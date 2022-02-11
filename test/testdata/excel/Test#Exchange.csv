@@ -1,0 +1,16 @@
+"id
+ID","desc
+Desc","begin_time
+BeginTime","Date
+Date","Time
+Time"
+"INTEGER
+map<uint32, Reward>","VARCHAR(64)
+string","datetime
+datetime","date
+date","time
+time"
+奖励ID,描述,开始时间,日期,时间
+1,award1,2020-01-01  05:00:00,2020-01-01,05:00:00
+2,award2,2020-01-01  05:00:00,2020-01-01,05:00:00
+3,award3,2020-01-01  05:00:00,20200101,050000

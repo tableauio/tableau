@@ -1,0 +1,7 @@
+Interval,Timeout,Factor1Type,Factor1Value,Factor2Type,Factor2Value,ModeID,ModeDifficulty,ModeDesc,ModeAIType,ModeAIAbility,TaskType,TaskParam1,TaskParam2,TaskFilterType,TaskFilterOpen,TaskFilterJobType,TaskFilterJobCount,TaskFilterSectionID,TaskFilterSectionName,TaskFilterSectionItem1Id,TaskFilterSectionItem1Num,TaskFilterSectionItem2Id,TaskFilterSectionItem2Num,RobotType,RobotAbility
+int32,int32,"map<int32, Factor>",int32,int32,int32,"map<uint32, Mode>",int32,string,[AI]int32,int32,{Task}int32,[]int32,int32,"map<uint32,Filter>",bool,[Job]int32,int32,[Section]uint32,string,[Item]int32,int32,int32,int32,{Robot}int32,int32
+间隔时间,超时时间,因子类型,因子值,因子类型,因子值,奖励ID,难度,描述,AI类型,能力,任务类型,参数1,参数2,过滤器类型,过滤器是否打开,AI类型,能力,节ID,节名,奖励1Id,奖励1Num,奖励2Id,奖励2Num,机器人类型,能力
+1,11,10,11,100,11,1,11,mode1,1,1,1,1,2,1,,1,1,1,签到活动节1,2001,1,,,1,1
+2,12,20,12,200,12,2,12,mode2,2,4,2,2,5,2,,2,4,2,签到活动节2,2002,2,,,2,4
+3,13,30,13,300,13,3,13,mode3,3,7,3,3,8,3,true,3,7,3,签到活动节3,2003,3,2005,13,3,7
+4,14,30,14,300,14,3,14,mode4,4,7,4,4,8,3,true,4,7,4,签到活动节4,2004,4,2005,14,4,8

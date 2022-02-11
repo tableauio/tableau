@@ -1,0 +1,6 @@
+ID,Desc
+"map<uint32, Reward>",string
+英雄ID,描述
+1,hero1
+2,hero2
+3,hero3

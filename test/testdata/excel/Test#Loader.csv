@@ -1,0 +1,13 @@
+ServerType,ServerConfType,ServerConfConditionType,ServerConfConditionValue
+"map<enum<.ServerType>, Server>",[Conf]<enum<.ConfType>>,[Condition]<int32>,int32
+进程名,配置Sheet名,条件类型,条件值
+,,,
+SERVER_TYPE_GAME,CONF_TYPE_CLOUD,0,113
+,,0,134
+SERVER_TYPE_ACTIVITY,CONF_TYPE_CLOUD,,
+,CONF_TYPE_CLOUD,,
+,CONF_TYPE_LOCAL,9,34
+,CONF_TYPE_LOCAL,9,12
+,CONF_TYPE_LOCAL,,
+,CONF_TYPE_REMOTE,,
+SERVER_TYPE_MATCH,CONF_TYPE_UNKNOWN,,

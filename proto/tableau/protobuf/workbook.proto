@@ -1,0 +1,34 @@
+syntax = "proto3";
+package tableau;
+option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+
+import "tableau.proto";
+
+message Workbook {
+  WorkbookOptions options = 1;
+  repeated Worksheet worksheets = 2;
+  string name = 3;
+  map<string, int32> imports = 4;  // imported proto files
+}
+
+message Worksheet {
+  WorksheetOptions options = 1;
+  repeated Field fields = 2;
+  string name = 3;
+}
+
+message Field {
+  FieldOptions options = 1;
+  string card = 2;  // Cardinality of field, value can be: "repeated" or ""
+  string type = 3;
+  string name = 4;
+  //   uint32 tagid = 5;
+  repeated Field fields = 6;  // map or list if fields's length is not 0.
+  MapEntry map_entry = 7;
+  bool type_defined = 8;  // message type ws already defined.
+}
+
+message MapEntry {
+  string key_type = 1;
+  string value_type = 2;
+}

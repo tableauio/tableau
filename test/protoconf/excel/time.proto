@@ -1,0 +1,21 @@
+syntax = "proto3";
+package testexcel;
+option go_package = "github.com/tableauio/tableau/cmd/test/testpb/excel";
+
+import "tableau/protobuf/tableau.proto";
+import "google/protobuf/timestamp.proto";
+
+message Duration {
+  DurationType type = 1 [(tableau.field) = { name: "Type" }];
+  google.protobuf.Timestamp begin = 2 [(tableau.field) = { name: "Begin" }];
+  google.protobuf.Timestamp end = 3 [(tableau.field) = { name: "End" }];
+  int32 delayed_days = 4 [(tableau.field) = { name: "DelayedDays" }];
+  repeated int32 params = 5 [(tableau.field) = {name:"Params" type:TYPE_INCELL_LIST}];
+}
+
+enum DurationType {
+  DURATION_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "未知"];
+  DURATION_TYPE_ABSOLUTE = 1 [(tableau.evalue).name = "绝对区间"];
+  DURATION_TYPE_REGISTER = 2 [(tableau.evalue).name = "注册时间"];
+  DURATION_TYPE_OPEN_SERVER = 3 [(tableau.evalue).name = "开服时间"];
+}

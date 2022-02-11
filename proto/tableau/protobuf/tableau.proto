@@ -1,0 +1,131 @@
+syntax = "proto3";
+package tableau;
+option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+
+import "google/protobuf/descriptor.proto";
+
+// Option field numbers must be in the range 50000-99999. This range
+// is reserved for internal use within individual organizations.
+
+extend google.protobuf.FileOptions {
+  WorkbookOptions workbook = 50000;
+}
+
+extend google.protobuf.MessageOptions {
+  WorksheetOptions worksheet = 50000;
+}
+
+extend google.protobuf.FieldOptions {
+  FieldOptions field = 50000;
+}
+
+extend google.protobuf.EnumOptions {
+  EnumOptions enum = 50000;
+}
+
+extend google.protobuf.EnumValueOptions {
+  EnumValueOptions evalue = 50000;
+}
+
+message WorkbookOptions {
+  string name = 1;  // workbook name
+}
+
+message WorksheetOptions {
+  string name = 1;     // worksheet name
+  int32 namerow = 2;   // [default = 1]; // exact row number of name at worksheet.
+  int32 typerow = 3;   // [default = 2]; // exact row number of type at worksheet, for generating protos.
+  int32 noterow = 4;   // [default = 3]; // exact row number of note at worksheet.
+  int32 datarow = 5;   // [default = 4]; // start row number of data at worksheet.
+  bool transpose = 6;  // [default = false]; // interchange the rows and columns
+  string tags = 7;     // [default = ""]; // tags for usage, e.g.: "1,2" specifying loading servers. Speciallly, "*"
+                       // means all servers.
+  int32 nameline = 8;  // [default = 0]; // specify which line in cell as name, '0' means the whole cell is name.
+  int32 typeline = 9;  // [default = 0]; // specify which line in cell as type,'0' means the whole cell is type.
+  bool nested = 10;    // [default = false]; // whether the naming of name row is nested.
+}
+
+message FieldOptions {
+  string name = 1;    // scalar type's varible name or composite type's varible name (prefix)
+  string note = 2;    // note of name, maybe in another language (Chinese) other than name (English)
+  Type type = 3;      // default: TYPE_DEFAULT
+  string key = 4;     // only set when type is map
+  Layout layout = 5;  // default: LAYOUT_DEFAULT
+  string sep = 6;     // separator, default: ","
+  string subsep = 7;  // sub separator, default: ":"
+  bool optional = 8;  // whether the field is optional.
+
+  /////////////////////////////
+  // Simple Validators Below //
+  /////////////////////////////
+  // Different meanings:
+  // repeated: size range of array
+  // integer: value range
+  // string: count of utf-8 code point
+  int32 min = 11;     // min value
+  int32 max = 12;     // max value
+  string range = 13;  // format like set description: [1,10], (1,10], [1,10), [1,~]
+}
+
+message EnumOptions {
+  string name = 1;  // alias name
+}
+message EnumValueOptions {
+  string name = 1;  // alias name
+}
+
+// field type.
+enum Type {
+  // auto deduced protobuf types
+  TYPE_DEFAULT = 0;
+
+  //////////////////////////////
+  /////Build-in Types///////////
+  //////////////////////////////
+  // interger
+  TYPE_INT32 = 1;
+  TYPE_UINT32 = 2;
+  TYPE_INT64 = 3;
+  TYPE_UINT64 = 4;
+  // floating-point number
+  TYPE_DOUBLE = 5;
+  TYPE_FLOAT = 6;
+  // bool
+  TYPE_BOOL = 7;
+  // string
+  TYPE_STRING = 8;
+
+  ////////////////////////
+  /////Struct Type//////
+  ////////////////////////
+  TYPE_STRUCT = 10;
+
+  ////////////////////////
+  /////Extended Types/////
+  ////////////////////////
+  // time
+  TYPE_DATE = 21;      // format: "yyyy-MM-dd"
+  TYPE_TIME = 22;      // format: "HH:mm:ss"
+  TYPE_DATETIME = 23;  // format: "yyyy-MM-dd HH:mm:ss"
+  // list in a cell:
+  // - the list **item** must be **built-in** type
+  // - format: ',' separated items
+  TYPE_INCELL_LIST = 24;
+  // map in a cell:
+  // - both the **key** and **value** must be **built-in** type
+  // - format: key-value pairs is separated by ',', and
+  //           key and value is separated by ':'
+  TYPE_INCELL_MAP = 25;
+  // struct in a cell
+  TYPE_INCELL_STRUCT = 26;
+
+  // TYPE_RICH_TEXT = 31;
+  // TYPE_JSON = 32;
+}
+
+// layout of composite types, such as list and map.
+enum Layout {
+  LAYOUT_DEFAULT = 0;     // default direction: vertical for map, horizontal for list
+  LAYOUT_VERTICAL = 1;    // vertical direction
+  LAYOUT_HORIZONTAL = 2;  // horizontal direction
+}
