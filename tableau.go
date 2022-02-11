@@ -13,7 +13,7 @@ import (
 )
 
 // Excel2Conf converts excel files (with tableau header) to different formatted configuration files.
-// Supported formats: json, prototext, and protowire.
+// Supported formats: JSON, Text, and Wire.
 func Excel2Conf(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
@@ -47,7 +47,7 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 	g.Generate()
 }
 
-// ParseMeta parses the @TABLEAU sheet in a workboot.
+// ParseMeta parses the @TABLEAU sheet in a workbook.
 func ParseMeta(indir, relWorkbookPath string) importer.Importer {
 	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "")
 	return importer.New(
@@ -57,7 +57,7 @@ func ParseMeta(indir, relWorkbookPath string) importer.Importer {
 }
 
 // XML2Conf converts xml files to different formatted configuration files.
-// Supported formats: json, prototext, and protowire.
+// Supported formats: json, text, and wire.
 func XML2Conf(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)

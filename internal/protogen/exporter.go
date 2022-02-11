@@ -110,7 +110,7 @@ func (x *bookExporter) export() error {
 		g2.P(`import "`, key, `";`)
 	}
 	g2.P("")
-	g2.P("option (tableau.workbook) = {", genPrototext(x.wb.Options), "};")
+	g2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
 	g2.P("")
 
 	path := filepath.Join(x.OutputDir, x.wb.Name+x.FilenameSuffix+".proto")
@@ -153,7 +153,7 @@ type sheetExporter struct {
 
 func (x *sheetExporter) export() error {
 	x.g.P("message ", x.ws.Name, " {")
-	x.g.P("  option (tableau.worksheet) = {", genPrototext(x.ws.Options), "};")
+	x.g.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
 	x.g.P("")
 	// generate the fields
 	depth := 1
@@ -177,8 +177,7 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 		// head += " " // cardinality exists
 		cardTypeSep = " "
 	}
-	// x.g.P(head+"%x %x = %d [(tableau.field) = {%x}];", printer.Indent(depth), field.Card, field.Type, field.Name, tagid, genPrototext(field.Options))
-	x.g.P(printer.Indent(depth), field.Card, cardTypeSep, field.Type, " ", field.Name, " = ", tagid, " [(tableau.field) = {", genPrototext(field.Options), "}];")
+	x.g.P(printer.Indent(depth), field.Card, cardTypeSep, field.Type, " ", field.Name, " = ", tagid, " [(tableau.field) = {", marshalToText(field.Options), "}];")
 
 	if field.Type == "google.protobuf.Timestamp" {
 		x.Imports[timestampProtoPath] = true
@@ -223,7 +222,7 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 	return nil
 }
 
-func genPrototext(m protoreflect.ProtoMessage) string {
+func marshalToText(m protoreflect.ProtoMessage) string {
 	// text := proto.CompactTextString(field.Options)
 	bin, err := prototext.Marshal(m)
 	if err != nil {

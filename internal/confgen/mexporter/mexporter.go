@@ -1,5 +1,5 @@
 // mexporter is the message exporter package, which can export one
-// single message to different formts: JSON, Prototext, and Protowire.
+// single message to different formts: JSON, Text, and Wire.
 package mexporter
 
 import (
@@ -40,23 +40,23 @@ func (x *messageExporter) Export() error {
 	var err error
 	switch x.outputOpt.Format {
 	case options.JSON:
-		filename += ".json"
+		filename += options.JSONExt
 		out, err = x.marshalToJSON()
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to JSON", x.name)
 		}
 
-	case options.Prototext:
-		filename += ".prototext"
-		out, err = x.marshalToPrototext()
+	case options.Text:
+		filename += options.TextExt
+		out, err = x.marshalToText()
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to prototext", x.name)
+			return errors.Wrapf(err, "failed to export %s to Text", x.name)
 		}
-	case options.Protowire:
-		filename += ".protowire"
-		out, err = x.marshalToProtowire()
+	case options.Wire:
+		filename += options.WireExt
+		out, err = x.marshalToWire()
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to protowire", x.name)
+			return errors.Wrapf(err, "failed to export %s to Wire", x.name)
 		}
 	default:
 		return errors.Errorf("unknown output format: %v", x.outputOpt.Format)
@@ -83,7 +83,7 @@ func (x *messageExporter) marshalToJSON() (out []byte, err error) {
 	return protojson.Marshal(x.msg)
 }
 
-func (x *messageExporter) marshalToPrototext() (out []byte, err error) {
+func (x *messageExporter) marshalToText() (out []byte, err error) {
 	if x.outputOpt.Pretty {
 		opts := prototext.MarshalOptions{
 			Multiline: true,
@@ -94,6 +94,6 @@ func (x *messageExporter) marshalToPrototext() (out []byte, err error) {
 	return prototext.Marshal(x.msg)
 }
 
-func (x *messageExporter) marshalToProtowire() (out []byte, err error) {
+func (x *messageExporter) marshalToWire() (out []byte, err error) {
 	return proto.Marshal(x.msg)
 }

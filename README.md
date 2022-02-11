@@ -14,12 +14,12 @@ A modern configuration converter based on Protobuf(proto3).
 - Importer: xlsx/xml importer.
 - IR: Intermediate Representation.
 - Filter: filter the IR.
-- Exporter: JSON, protowire, prototext.
+- Exporter: JSON(protojson), Text(prototext), Wire(protowire).
 - Protoconf: a configuration metadata format based on protobuf.
 
 ## Workflow
 
-xlsx -> Importer -> Protoconf -> Exporter -> JSON/protowire/prototext
+xlsx -> Importer -> Protoconf -> Exporter -> JSON/Text/Wire
 
 ## Types
 
@@ -70,18 +70,18 @@ xlsx -> Importer -> Protoconf -> Exporter -> JSON/protowire/prototext
 ### Conversion
 
 - [x] xlsx -> JSON(default format and human readable)
-- [x] xlsx -> protowire(small size)
-- [x] xlsx -> prototext(human debugging)
+- [x] xlsx -> Wire(small size)
+- [x] xlsx -> Text(human debugging)
 - [ ] JSON -> xlsx
-- [ ] protowire -> xlsx
-- [ ] prototext -> xlsx
+- [ ] Wire -> xlsx
+- [ ] Text -> xlsx
 
 ### Pretty Print
 
 - [x] Multiline: every textual element on a new line
 - [x] Indent: 4 space characters
-- [x] JSON support
-- [x] prototext support
+- [x] JSON format support
+- [x] Text format support
 
 ### EmitUnpopulated
 

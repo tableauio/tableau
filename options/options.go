@@ -4,12 +4,23 @@ type Format int
 
 // file format
 const (
-	JSON      Format = 0
-	Protowire Format = 1
-	Prototext Format = 2
-	Excel     Format = 3
-	CSV       Format = 4
-	XML       Format = 5
+	JSON  Format = 0
+	Wire  Format = 1
+	Text  Format = 2
+	Excel Format = 3
+	CSV   Format = 4
+	XML   Format = 5
+)
+
+// file format extension
+
+const (
+	JSONExt  string = ".json"
+	WireExt  string = ".wire"
+	TextExt  string = ".text"
+	ExcelExt string = ".xlsx"
+	CSVExt   string = ".csv"
+	XMLExt   string = ".xml"
 )
 
 // Options is the wrapper of tableau params.
@@ -40,10 +51,10 @@ type OutputOption struct {
 	FilenameWithSubdirPrefix bool // default true, filename dir separator `/` or `\` is replaced by "__"
 	FilenameSuffix           string
 
-	// only for confgen generated JSON/prototext/protowire file
+	// only for confgen generated JSON/Text/Wire file
 	FilenameAsSnakeCase bool   // default false, output filename as snake case, default is camel case same as the protobuf message name.
 	Format              Format // output pretty format, with mulitline and indent.
-	Pretty              bool   // default true, output format: json, protowire, or prototext, and default is json.
+	Pretty              bool   // default true, output format: json, text, or wire, and default is json.
 	// Output.EmitUnpopulated specifies whether to emit unpopulated fields. It does not
 	// emit unpopulated oneof fields or unpopulated extension fields.
 	// The JSON value emitted for unpopulated fields are as follows:
@@ -150,11 +161,11 @@ func ParseOptions(setters ...Option) *Options {
 
 func Ext2Format(ext string) Format {
 	switch ext {
-	case ".xlsx":
+	case ExcelExt:
 		return Excel
-	case ".xml":
+	case XMLExt:
 		return XML
-	case ".csv":
+	case CSVExt:
 		return CSV
 	default:
 		return Excel
