@@ -1,6 +1,6 @@
 # Tableau
 
-A powerful configuration conversion tool based on Protobuf(proto3).
+A modern configuration converter based on Protobuf(proto3).
 
 ## Features
 
