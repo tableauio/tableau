@@ -130,7 +130,12 @@ func (gen *Generator) generate(dir string) error {
 			continue
 		}
 		// atom.Log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
-		if options.Ext2Format(filepath.Ext(entry.Name())) != gen.InputOpts.Format {
+		fmt, err := options.Ext2Format(filepath.Ext(entry.Name()))
+		if err != nil {
+			continue
+		}
+
+		if fmt != gen.InputOpts.Format {
 			// ignore not xlsx files
 			continue
 		}

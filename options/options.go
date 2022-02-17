@@ -1,15 +1,18 @@
 package options
 
+import "github.com/pkg/errors"
+
 type Format int
 
 // file format
 const (
-	JSON  Format = 0
-	Wire  Format = 1
-	Text  Format = 2
-	Excel Format = 3
-	CSV   Format = 4
-	XML   Format = 5
+	UnknownFormat Format = iota
+	JSON
+	Wire
+	Text
+	Excel
+	CSV
+	XML
 )
 
 // file format extension
@@ -159,15 +162,40 @@ func ParseOptions(setters ...Option) *Options {
 	return opts
 }
 
-func Ext2Format(ext string) Format {
+func Ext2Format(ext string) (Format, error) {
 	switch ext {
 	case ExcelExt:
-		return Excel
+		return Excel, nil
 	case XMLExt:
-		return XML
+		return XML, nil
 	case CSVExt:
-		return CSV
+		return CSV, nil
+	case JSONExt:
+		return JSON, nil
+	case TextExt:
+		return Text, nil
+	case WireExt:
+		return Wire, nil
 	default:
-		return Excel
+		return UnknownFormat, errors.Errorf("unknown file extension: %s", ext)
+	}
+}
+
+func Format2Ext(fmt Format) (string, error) {
+	switch fmt {
+	case Excel:
+		return ExcelExt, nil
+	case XML:
+		return XMLExt, nil
+	case CSV:
+		return CSVExt, nil
+	case JSON:
+		return JSONExt, nil
+	case Text:
+		return TextExt, nil
+	case Wire:
+		return WireExt, nil
+	default:
+		return "", errors.Errorf("unknown file format: %v", fmt)
 	}
 }
