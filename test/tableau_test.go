@@ -4,9 +4,12 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/load"
 	"github.com/tableauio/tableau/options"
+	"github.com/tableauio/tableau/test/testpb/excel"
 	_ "github.com/tableauio/tableau/test/testpb/excel"
 	_ "github.com/tableauio/tableau/test/testpb/xml"
 )
@@ -118,7 +121,7 @@ func Test_XML2Proto(t *testing.T) {
 		),
 		options.Input(
 			&options.InputOption{
-				Format: options.XML,
+				Format: format.XML,
 			},
 		),
 	)
@@ -132,9 +135,25 @@ func Test_XML2JSON(t *testing.T) {
 		options.LogLevel("debug"),
 		options.Input(
 			&options.InputOption{
-				Format: options.XML,
+				Format: format.XML,
 			},
 		),
 	)
 	// tableau.Generate("test", "./testdata/", "./_output/xml/")
+}
+
+func Test_LoadJSON(t *testing.T) {
+	msg := &excel.Activity{}
+	err := load.Load(msg, "./_output/json/", format.JSON)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func Test_LoadExcel(t *testing.T) {
+	msg := &excel.Hero{}
+	err := load.Load(msg, "./testdata/excel/", format.Excel)
+	if err != nil {
+		t.Error(err)
+	}
 }

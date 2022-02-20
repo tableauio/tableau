@@ -10,7 +10,6 @@ import (
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen/mexporter"
 	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -37,9 +36,7 @@ func NewSheetExporter(outputDir string, output *options.OutputOption) *sheetExpo
 // export the protomsg message.
 func (x *sheetExporter) Export(imp importer.Importer, parser *sheetParser, protomsg proto.Message) error {
 	md := protomsg.ProtoReflect().Descriptor()
-	// _, workbook := parseFileOptions(md.ParentFile())
-	msgName, wsOpts := parseMessageOptions(md)
-
+	msgName, wsOpts := ParseMessageOptions(md)
 	sheet, err := imp.GetSheet(wsOpts.Name)
 	if err != nil {
 		return errors.WithMessagef(err, "get sheet failed: %s", wsOpts.Name)
@@ -167,7 +164,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		if string(pkg) != sp.ProtoPackage && pkg != "google.protobuf" {
-			atom.Log.Debugf("%s// no need to proces package: %v", printer.Indent(depth), pkg)
+			atom.Log.Debugf("no need to process package: %v", pkg)
 			return nil
 		}
 
@@ -833,16 +830,16 @@ func parseEnumValue(fd protoreflect.FieldDescriptor, value string) (protoreflect
 	return defaultValue, errors.Errorf("enum: enum value alias name not found: %v", value)
 }
 
-// parseFileOptions is aimed to parse the options of a protobuf definition file.
-func parseFileOptions(fd protoreflect.FileDescriptor) (string, *tableaupb.WorkbookOptions) {
+// ParseFileOptions parse the options of a protobuf definition file.
+func ParseFileOptions(fd protoreflect.FileDescriptor) (string, *tableaupb.WorkbookOptions) {
 	opts := fd.Options().(*descriptorpb.FileOptions)
 	protofile := string(fd.FullName())
 	workbook := proto.GetExtension(opts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
 	return protofile, workbook
 }
 
-// parseMessageOptions is aimed to parse the options of a protobuf message.
-func parseMessageOptions(md protoreflect.MessageDescriptor) (string, *tableaupb.WorksheetOptions) {
+// ParseMessageOptions parse the options of a protobuf message.
+func ParseMessageOptions(md protoreflect.MessageDescriptor) (string, *tableaupb.WorksheetOptions) {
 	opts := md.Options().(*descriptorpb.MessageOptions)
 	msgName := string(md.Name())
 	wsOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)

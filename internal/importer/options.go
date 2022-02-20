@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
@@ -11,16 +12,16 @@ type SheetParser interface {
 }
 
 type Options struct {
-	Format options.Format      // file format: Excel, CSV, XML. Default: Excel.
-	Sheets []string    // sheet names to import
-	Parser SheetParser // parser to parse the worksheet
+	Format format.Format         // file format: Excel, CSV, XML. Default: Excel.
+	Sheets []string              // sheet names to import
+	Parser SheetParser           // parser to parse the worksheet
 	Header *options.HeaderOption // header settings.
 }
 
 // Option is the functional option type.
 type Option func(*Options)
 
-func Format(fmt options.Format) Option {
+func Format(fmt format.Format) Option {
 	return func(opts *Options) {
 		opts.Format = fmt
 	}
@@ -46,7 +47,7 @@ func Header(header *options.HeaderOption) Option {
 
 func newDefaultOptions() *Options {
 	return &Options{
-		Format: options.Excel,
+		Format: format.Excel,
 	}
 }
 

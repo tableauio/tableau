@@ -227,11 +227,6 @@ Use [RFC 3339](https://tools.ietf.org/html/rfc3339) , which is following [ISO 86
 - [ ] Each goroutine process one worksheet
 - [ ] Mutiple process model
 
-### Optimization
-
-- [ ] Error: [https://github.com/pkg/errors](https://github.com/pkg/errors)
-- [ ] Log: [https://github.com/uber-go/zap](https://github.com/uber-go/zap)
-
 ## Contribution
 
 ### Requirements

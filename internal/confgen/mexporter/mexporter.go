@@ -8,6 +8,7 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/options"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -39,21 +40,21 @@ func (x *messageExporter) Export() error {
 	var out []byte
 	var err error
 	switch x.outputOpt.Format {
-	case options.JSON:
-		filename += options.JSONExt
+	case format.JSON:
+		filename += format.JSONExt
 		out, err = x.marshalToJSON()
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to JSON", x.name)
 		}
 
-	case options.Text:
-		filename += options.TextExt
+	case format.Text:
+		filename += format.TextExt
 		out, err = x.marshalToText()
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Text", x.name)
 		}
-	case options.Wire:
-		filename += options.WireExt
+	case format.Wire:
+		filename += format.WireExt
 		out, err = x.marshalToWire()
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Wire", x.name)

@@ -1,30 +1,6 @@
 package options
 
-import "github.com/pkg/errors"
-
-type Format int
-
-// file format
-const (
-	UnknownFormat Format = iota
-	JSON
-	Wire
-	Text
-	Excel
-	CSV
-	XML
-)
-
-// file format extension
-
-const (
-	JSONExt  string = ".json"
-	WireExt  string = ".wire"
-	TextExt  string = ".text"
-	ExcelExt string = ".xlsx"
-	CSVExt   string = ".csv"
-	XMLExt   string = ".xml"
-)
+import "github.com/tableauio/tableau/format"
 
 // Options is the wrapper of tableau params.
 // Options follow the design of Functional Options (https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md).
@@ -55,9 +31,9 @@ type OutputOption struct {
 	FilenameSuffix           string
 
 	// only for confgen generated JSON/Text/Wire file
-	FilenameAsSnakeCase bool   // default false, output filename as snake case, default is camel case same as the protobuf message name.
-	Format              Format // output pretty format, with mulitline and indent.
-	Pretty              bool   // default true, output format: json, text, or wire, and default is json.
+	FilenameAsSnakeCase bool          // default false, output filename as snake case, default is camel case same as the protobuf message name.
+	Format              format.Format // output pretty format, with mulitline and indent.
+	Pretty              bool          // default true, output format: json, text, or wire, and default is json.
 	// Output.EmitUnpopulated specifies whether to emit unpopulated fields. It does not
 	// emit unpopulated oneof fields or unpopulated extension fields.
 	// The JSON value emitted for unpopulated fields are as follows:
@@ -76,7 +52,7 @@ type OutputOption struct {
 }
 
 type InputOption struct {
-	Format Format
+	Format format.Format
 }
 
 // Option is the functional option type.
@@ -143,12 +119,12 @@ func newDefaultOptions() *Options {
 		Output: &OutputOption{
 			FilenameWithSubdirPrefix: true,
 			FilenameAsSnakeCase:      false,
-			Format:                   JSON,
+			Format:                   format.JSON,
 			Pretty:                   true,
 			EmitUnpopulated:          true,
 		},
 		Input: &InputOption{
-			Format: Excel,
+			Format: format.Excel,
 		},
 	}
 }
@@ -160,42 +136,4 @@ func ParseOptions(setters ...Option) *Options {
 		setter(opts)
 	}
 	return opts
-}
-
-func Ext2Format(ext string) (Format, error) {
-	switch ext {
-	case ExcelExt:
-		return Excel, nil
-	case XMLExt:
-		return XML, nil
-	case CSVExt:
-		return CSV, nil
-	case JSONExt:
-		return JSON, nil
-	case TextExt:
-		return Text, nil
-	case WireExt:
-		return Wire, nil
-	default:
-		return UnknownFormat, errors.Errorf("unknown file extension: %s", ext)
-	}
-}
-
-func Format2Ext(fmt Format) (string, error) {
-	switch fmt {
-	case Excel:
-		return ExcelExt, nil
-	case XML:
-		return XMLExt, nil
-	case CSV:
-		return CSVExt, nil
-	case JSON:
-		return JSONExt, nil
-	case Text:
-		return TextExt, nil
-	case Wire:
-		return WireExt, nil
-	default:
-		return "", errors.Errorf("unknown file format: %v", fmt)
-	}
 }

@@ -11,10 +11,10 @@ import (
 	"unicode"
 
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/camelcase"
 	"github.com/tableauio/tableau/internal/types"
-	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/xuri/excelize/v2"
 )
@@ -28,11 +28,11 @@ type Importer interface {
 func New(filename string, setters ...Option) Importer {
 	opts := parseOptions(setters...)
 	switch opts.Format {
-	case options.Excel:
+	case format.Excel:
 		return NewExcelImporter(filename, opts.Sheets, opts.Parser, false)
-	case options.CSV:
+	case format.CSV:
 		return NewCSVImporter(filename)
-	case options.XML:
+	case format.XML:
 		return NewXMLImporter(filename, opts.Header)
 	default:
 		return nil

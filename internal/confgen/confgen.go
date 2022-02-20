@@ -70,8 +70,7 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 		func(fd protoreflect.FileDescriptor) bool {
 			// atom.Log.Debugf("filepath: %s", fd.Path())
 			err = func() error {
-				opts := fd.Options().(*descriptorpb.FileOptions)
-				workbook := proto.GetExtension(opts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
+				_, workbook := ParseFileOptions(fd)
 				if workbook == nil {
 					return nil
 				}

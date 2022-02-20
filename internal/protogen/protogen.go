@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/fs"
@@ -130,7 +131,7 @@ func (gen *Generator) generate(dir string) error {
 			continue
 		}
 		// atom.Log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
-		fmt, err := options.Ext2Format(filepath.Ext(entry.Name()))
+		fmt, err := format.Ext2Format(filepath.Ext(entry.Name()))
 		if err != nil {
 			continue
 		}
