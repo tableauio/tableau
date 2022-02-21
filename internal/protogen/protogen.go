@@ -137,7 +137,7 @@ func (gen *Generator) generate(dir string) error {
 		}
 
 		if fmt != gen.InputOpts.Format {
-			// ignore not xlsx files
+			// ignore
 			continue
 		}
 		if err := gen.convert(dir, entry.Name()); err != nil {

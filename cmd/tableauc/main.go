@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/options"
@@ -18,6 +19,7 @@ var (
 	outputDir                string
 	filenameWithSubdirPrefix bool
 	filenameSuffix           string
+	inputFormat              string
 	logLevel                 string
 
 	// xlsx header
@@ -39,8 +41,17 @@ func main() {
 		Long:    `Complete documentation is available at https://tableauio.github.io`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Do Stuff Here
-			g := protogen.NewGenerator(protoPackage, goPackage, inputDir, outputDir, options.Header(
-				&options.HeaderOption{
+			formatType := format.Excel
+			switch inputFormat {
+			case "excel":
+				formatType = format.Excel
+			case "csv":
+				formatType = format.CSV
+			case "xml":
+				formatType = format.XML
+			}
+			g := protogen.NewGenerator(protoPackage, goPackage, inputDir, outputDir,
+				options.Header(&options.HeaderOption{
 					Namerow: namerow,
 					Typerow: typerow,
 					Noterow: noterow,
@@ -49,12 +60,19 @@ func main() {
 					Nameline: nameline,
 					Typeline: typeline,
 				},
-			), options.Imports(imports), options.LocationName(locationName), options.Output(
-				&options.OutputOption{
-					FilenameSuffix:           filenameSuffix,
-					FilenameWithSubdirPrefix: filenameWithSubdirPrefix,
-				},
-			))
+				),
+				options.Imports(imports),
+				options.LocationName(locationName),
+				options.Output(
+					&options.OutputOption{
+						FilenameSuffix:           filenameSuffix,
+						FilenameWithSubdirPrefix: filenameWithSubdirPrefix,
+					},
+				),
+				options.Input(&options.InputOption{
+					Format: formatType,
+				}),
+			)
 			atom.InitZap(logLevel)
 			if len(args) == 0 {
 				if err := g.Generate(); err != nil {
@@ -77,9 +95,10 @@ func main() {
 	rootCmd.Flags().StringVarP(&locationName, "location-name", "", "", "location name for locale time parser")
 	rootCmd.Flags().StringVarP(&inputDir, "input-dir", "i", "./", "input directory")
 	rootCmd.Flags().StringVarP(&outputDir, "output-dir", "o", "./", "output directory")
-	rootCmd.Flags().BoolVarP(&filenameWithSubdirPrefix, "with-subdir-prefix", "", true, "output filename with subdir prefix")
+	rootCmd.Flags().BoolVarP(&filenameWithSubdirPrefix, "with-subdir-prefix", "", false, "output filename with subdir prefix")
 	rootCmd.Flags().StringVarP(&filenameSuffix, "suffix", "s", "", "output filename suffix")
 	rootCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "log level: debug, info, warn, error")
+	rootCmd.Flags().StringVarP(&inputFormat, "format", "", "excel", "input file format: excel, xml")
 
 	rootCmd.Flags().Int32VarP(&namerow, "namerow", "", 1, "name row in xlsx")
 	rootCmd.Flags().Int32VarP(&typerow, "typerow", "", 2, "type row in xlsx")
