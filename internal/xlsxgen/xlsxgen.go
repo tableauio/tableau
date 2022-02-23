@@ -11,11 +11,11 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/iancoleman/strcase"
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/iancoleman/strcase"
+	"github.com/pkg/errors"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -47,8 +47,10 @@ type MetaSheet struct {
 	Worksheet string // worksheet name
 	options.HeaderOption
 	Transpose bool   // interchange the rows and columns
+
 	Rows []Row
 	colMap map[string]int // colName -> colNum
+
 	defaultMap map[string]string // colName -> default value
 }
 
@@ -78,7 +80,14 @@ func (sheet *MetaSheet) NewRow() *Row {
 	return &row
 }
 
-func (sheet *MetaSheet) Cell(row int, name string) *Cell {
+func (sheet *MetaSheet) HasCol(name string) bool {
+	_, existed := sheet.colMap[name]
+	return existed
+}
+
+// Cell get the cell named `name` in the row `row`
+// If not exists, insert empty type and note to the cell located in (row, col)
+func (sheet *MetaSheet) Cell(row int, col int, name string) *Cell {
 	if col, existed := sheet.colMap[name]; existed {
 		if len(sheet.Rows[row].Cells) <= col {
 			newCols := make([]Cell, col-len(sheet.Rows[row].Cells)+1)
@@ -86,31 +95,60 @@ func (sheet *MetaSheet) Cell(row int, name string) *Cell {
 		}
 		return &sheet.Rows[row].Cells[col]
 	}
-	sheet.colMap[name] = len(sheet.Rows[sheet.Namerow-1].Cells)
-	sheet.Rows[sheet.Namerow-1].Cells = append(sheet.Rows[sheet.Namerow-1].Cells, Cell{Data: name})
+	// cannot access any of datarows when header not set
+	if row + 1 >= int(sheet.Datarow) {
+		errStr := fmt.Sprintf("undefined column %s in row %d", name, row)
+		panic(errStr)
+	}
+	// cannot insert new column to an isolated location
+	curLen := len(sheet.Rows[sheet.Namerow-1].Cells)
+	if col > curLen || col < 0 {
+		errStr := fmt.Sprintf("invalid col %d, which should be in range [0,%d]", col, curLen)
+		panic(errStr)
+	}
+	// only define new column and its type
+	sheet.Rows[sheet.Namerow-1].Cells = append(sheet.Rows[sheet.Namerow-1].Cells, Cell{})
 	// if there is typerow and noterow
 	if sheet.Typerow < sheet.Datarow {
-		sheet.Rows[sheet.Typerow-1].Cells = append(sheet.Rows[sheet.Typerow-1].Cells, Cell{Data: ""})
+		sheet.Rows[sheet.Typerow-1].Cells = append(sheet.Rows[sheet.Typerow-1].Cells, Cell{})
 	}
 	if sheet.Noterow < sheet.Datarow {
-		sheet.Rows[sheet.Noterow-1].Cells = append(sheet.Rows[sheet.Noterow-1].Cells, Cell{Data: "Note"})
+		sheet.Rows[sheet.Noterow-1].Cells = append(sheet.Rows[sheet.Noterow-1].Cells, Cell{})
 	}
-	if row + 1 >= int(sheet.Datarow) {
-		sheet.Rows[row].Cells = append(sheet.Rows[row].Cells, Cell{Data: ""})
+	for i := curLen; i > col; i-- {
+		colName := sheet.Rows[sheet.Namerow-1].Cells[i-1].Data
+		sheet.colMap[colName] = i
+		sheet.Rows[sheet.Namerow-1].Cells[i] = sheet.Rows[sheet.Namerow-1].Cells[i-1]
+		// if there is typerow and noterow
+		if sheet.Typerow < sheet.Datarow {
+			sheet.Rows[sheet.Typerow-1].Cells[i] = sheet.Rows[sheet.Typerow-1].Cells[i-1]
+		}
+		if sheet.Noterow < sheet.Datarow {
+			sheet.Rows[sheet.Noterow-1].Cells[i] = sheet.Rows[sheet.Noterow-1].Cells[i-1]
+		}
 	}
-	return &sheet.Rows[row].Cells[len(sheet.Rows[row].Cells)-1]
+	sheet.colMap[name] = col
+	sheet.Rows[sheet.Namerow-1].Cells[col].Data = name
+	// if there is typerow and noterow
+	if sheet.Typerow < sheet.Datarow {
+		sheet.Rows[sheet.Typerow-1].Cells[col].Data = ""
+	}
+	if sheet.Noterow < sheet.Datarow {
+		sheet.Rows[sheet.Noterow-1].Cells[col].Data = "Note"
+	}
+	return &sheet.Rows[row].Cells[sheet.colMap[name]]
 }
 
 func (sheet *MetaSheet) SetColType(col, typ string) {
-	sheet.Cell(int(sheet.Typerow-1), col).Data = typ
+	sheet.Cell(int(sheet.Typerow-1), len(sheet.Rows[sheet.Namerow-1].Cells), col).Data = typ
 }
 
 func (sheet *MetaSheet) GetColType(col string) string {
-	return sheet.Cell(int(sheet.Typerow-1), col).Data
+	return sheet.Cell(int(sheet.Typerow-1), len(sheet.Rows[sheet.Namerow-1].Cells), col).Data
 }
 
 func (sheet *MetaSheet) SetColNote(col, note string) {
-	sheet.Cell(int(sheet.Noterow-1), col).Data = note
+	sheet.Cell(int(sheet.Noterow-1), len(sheet.Rows[sheet.Namerow-1].Cells), col).Data = note
 }
 
 func (sheet *MetaSheet) SetDefaultValue(col, defaultVal string) {
@@ -138,7 +176,7 @@ func (sheet *MetaSheet) GetLastColName() string {
 
 func (sheet *MetaSheet) ForEachCol(rowId int, f func(name string, cell *Cell) error) error {
 	for name, i := range sheet.colMap {
-		cell := sheet.Cell(rowId, name)
+		cell := sheet.Cell(rowId, len(sheet.Rows[sheet.Namerow-1].Cells), name)
 		if err := f(name, cell); err != nil {
 			return errors.Wrapf(err, "call user-defined failed when iterating col %s (%d, %d)", name, rowId, i)
 		}
@@ -351,7 +389,7 @@ func (gen *Generator) setDataValidation(wb *excelize.File, metaSheet *MetaSheet,
 		dv.Sqref = dataStartAxis + ":" + dataEndAxis
 		dv.Type = "custom"
 		// dv.SetInput("Key", "Must be unique in this column")
-		// NOTE(wenchyzhu): Five XML escape characters
+		// NOTE(tableauiozhu): Five XML escape characters
 		// "   &quot;
 		// '   &apos;
 		// <   &lt;

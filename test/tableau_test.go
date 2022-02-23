@@ -10,7 +10,6 @@ import (
 	"github.com/tableauio/tableau/load"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/test/testpb/excel"
-	_ "github.com/tableauio/tableau/test/testpb/excel"
 	_ "github.com/tableauio/tableau/test/testpb/xml"
 )
 

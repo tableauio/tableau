@@ -33,7 +33,7 @@ func New(filename string, setters ...Option) Importer {
 	case format.CSV:
 		return NewCSVImporter(filename)
 	case format.XML:
-		return NewXMLImporter(filename, opts.Header)
+		return NewXMLImporter(filename, opts.Sheets, opts.Header)
 	default:
 		return nil
 	}
@@ -66,6 +66,27 @@ func NewSheet(name string, rows [][]string) *Sheet {
 		MaxRow: maxRow,
 		MaxCol: maxCol,
 		Rows:   rows,
+	}
+}
+
+// ExtendSheet extends an existing Sheet.
+func ExtendSheet(sheet *Sheet, rows [][]string) {
+	maxRow := len(rows)
+	maxCol := 0
+	// MOTE: different row may have different length.
+	// We need to find the max col.
+	for _, row := range rows {
+		n := len(row)
+		if n > maxCol {
+			maxCol = n
+		}
+	}
+	sheet = &Sheet{
+		Name:   sheet.Name,
+		MaxRow: sheet.MaxRow + maxRow,
+		MaxCol: int(math.Max(float64(sheet.MaxCol), float64(maxCol))),
+		Rows:   append(sheet.Rows, rows...),
+		Meta: sheet.Meta,
 	}
 }
 
