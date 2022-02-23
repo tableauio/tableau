@@ -47,7 +47,7 @@ type XMLImporter struct {
 	sheetNames []string
 	header     *options.HeaderOption // header settings.
 
-	prefixMap map[string]Range // prefix -> [6, 9)
+	prefixMaps map[string](map[string]Range) // sheet -> { prefix -> [6, 9) }
 }
 
 // TODO: options
@@ -56,6 +56,7 @@ func NewXMLImporter(filename string, sheets []string, header *options.HeaderOpti
 		filename: filename,
 		sheetNames: sheets,
 		header:   header,
+		prefixMaps: make(map[string](map[string]Range)),
 	}
 }
 
@@ -118,6 +119,16 @@ func (x *XMLImporter) parse() error {
 	// So in order to have multiple roots, we need to use a stream parser
 	// The first pass
 	hasMetaTag := false
+	hasUserSheets := x.sheetNames != nil
+	hasTableauSheets := false
+	contains := func (sheets []string, sheet string) bool {
+		for _, s := range sheets {
+			if sheet == s {
+				return true
+			}
+		}
+		return false
+	}
 	p, err := xmlquery.CreateStreamParser(strings.NewReader(replacedStr), "/")
 	if err != nil {
 		return errors.Wrapf(err, "failed to create stream parser from string %s", replacedStr)
@@ -139,25 +150,30 @@ func (x *XMLImporter) parse() error {
 				if nav.NodeType() != xpath.ElementNode {
 					continue
 				}
+				if !hasUserSheets {
+					x.sheetNames = append(x.sheetNames, nav.LocalName())
+				}
+				hasTableauSheets = true
 				if err := x.parseSheet(nav.Current(), nav.LocalName(), FIRST); err != nil {
 					return errors.WithMessagef(err, "failed to parse `@%s` sheet: %s#%s", metaName, x.filename, nav.LocalName())
 				}
 			}
 		} else {
 			// parse sheets
-			if x.sheetNames == nil {
+			if (!hasUserSheets && !hasTableauSheets) || contains(x.sheetNames, n.Data) {
 				if err := x.parseSheet(n, n.Data, FIRST); err != nil {
 					return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
 				}
-			} else {
-				for _, name := range x.sheetNames {
-					if n.Data == name {
-						if err := x.parseSheet(n, n.Data, FIRST); err != nil {
-							return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
-						}
-					}
+				if !hasUserSheets && !hasTableauSheets {
+					x.sheetNames = append(x.sheetNames, n.Data)
 				}
 			}
+		}
+		// `<@TABLEAU>...</@TABLEAU>` must be the first sheet
+		if !hasMetaTag {
+			atom.Log.Debugf("`<@TABLEAU>...</@TABLEAU>` not exists or not the first sheet")
+			x.sheetNames = nil
+			return nil
 		}
 	}
 
@@ -174,25 +190,10 @@ func (x *XMLImporter) parse() error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to read from stream parser")
 		}
-		// parse `<@TABLEAU>...</@TABLEAU>`
-		if n.Data == metaName {
-			continue
-		} else if hasMetaTag {
-			// parse sheets
-			if x.sheetNames == nil {
-				if err := x.parseSheet(n, n.Data, SECOND); err != nil {
-					return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
-				}
-				x.sheetNames = append(x.sheetNames, n.Data)
-			} else {
-				for _, name := range x.sheetNames {
-					if n.Data == name {
-						if err := x.parseSheet(n, n.Data, SECOND); err != nil {
-							return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
-						}
-						x.sheetNames = append(x.sheetNames, n.Data)
-					}
-				}
+		// parse sheets
+		if contains(x.sheetNames, n.Data) {
+			if err := x.parseSheet(n, n.Data, SECOND); err != nil {
+				return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
 			}
 		}
 	}
@@ -207,7 +208,7 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 	if !exist {
 		metaSheet = xlsxgen.NewMetaSheet(sheetName, x.header, false)
 		x.metaMap[sheetName] = metaSheet
-		x.prefixMap = make(map[string]Range)
+		x.prefixMaps[sheetName] = make(map[string]Range)
 	}
 	root := xmlquery.CreateXPathNavigator(doc)
 	isMeta := doc.Parent != nil && doc.Parent.Data == metaName
@@ -223,7 +224,7 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 			return errors.Wrapf(err, "failed to parseNodeData for root node %s", sheetName)
 		}
 	}
-	// atom.Log.Info(metaSheet)
+	atom.Log.Info(metaSheet)
 	if pass == SECOND {
 		// unpack rows from the MetaSheet struct
 		var rows [][]string
@@ -275,7 +276,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 	for i, attr := range nav.Current().Attr {
 		attrName := attr.Name.Local
 		attrValue := attr.Value
-		_, prefixExist := x.prefixMap[prefix]
+		_, prefixExist := x.prefixMaps[metaSheet.Worksheet][prefix]
 		x.tryAddCol(metaSheet, parentList, strcase.ToCamel(attrName))
 
 		t, d := inferType(attrValue)
@@ -436,6 +437,7 @@ func (x *XMLImporter) tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []strin
 	prefix := ""
 	var reversedList []string
 	parentMap := make(map[string]bool)
+	prefixMap := x.prefixMaps[metaSheet.Worksheet]
 	for i := len(parentList)-1; i >= 0; i-- {
 		prefix += parentList[i]
 		parentMap[prefix] = true
@@ -449,31 +451,31 @@ func (x *XMLImporter) tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []strin
 	}
 	shift := func (r Range)  {
 		for i := 0; i < len(reversedList); i++ {
-			if r, exist := x.prefixMap[reversedList[i]]; exist {
-				x.prefixMap[reversedList[i]] = Range{r.begin, r.attrNum, r.len + 1}
+			if r, exist := prefixMap[reversedList[i]]; exist {
+				prefixMap[reversedList[i]] = Range{r.begin, r.attrNum, r.len + 1}
 			}
 		}
-		for k, v := range x.prefixMap {
+		for k, v := range prefixMap {
 			if _, exist := parentMap[k]; !exist && v.begin > r.begin {
-				x.prefixMap[k] = Range{v.begin+1, v.attrNum, v.len}
+				prefixMap[k] = Range{v.begin+1, v.attrNum, v.len}
 			}
 		}
 	}
 	// insert prefixMap
-	if r, exist := x.prefixMap[prefix]; !exist {
+	if r, exist := prefixMap[prefix]; !exist {
 		index := len(metaSheet.Rows[metaSheet.Namerow-1].Cells)
 		if len(reversedList) > 0 {
 			parentPrefix := reversedList[len(reversedList)-1]
-			if r2, exist := x.prefixMap[parentPrefix]; exist {
+			if r2, exist := prefixMap[parentPrefix]; exist {
 				index = r2.begin + r2.len
 			}
 		}
-		x.prefixMap[prefix] = Range{index, 1, 1}
-		shift(x.prefixMap[prefix])
-		metaSheet.Cell(int(metaSheet.Namerow)-1, x.prefixMap[prefix].begin, colName).Data = colName
+		prefixMap[prefix] = Range{index, 1, 1}
+		shift(prefixMap[prefix])
+		metaSheet.Cell(int(metaSheet.Namerow)-1, prefixMap[prefix].begin, colName).Data = colName
 	} else {
-		x.prefixMap[prefix] = Range{r.begin, r.attrNum+1, r.len+1}
-		shift(x.prefixMap[prefix])
+		prefixMap[prefix] = Range{r.begin, r.attrNum+1, r.len+1}
+		shift(prefixMap[prefix])
 		metaSheet.Cell(int(metaSheet.Namerow)-1, r.begin + r.attrNum, colName).Data = colName
 	}
 }
