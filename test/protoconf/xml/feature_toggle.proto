@@ -31,5 +31,5 @@ message ToggleCfg {
       string desc = 11 [(tableau.field) = {name:"Desc"}];
     }
   }
-  bool tableau_placeholder = 2 [(tableau.field) = {name:"TableauPlaceholder"}];
+  bool _placeholder = 2 [(tableau.field) = {name:"_placeholder"}];
 }

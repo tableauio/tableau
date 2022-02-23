@@ -10,7 +10,7 @@ option (tableau.workbook) = {name:"MultiSheet.xml"};
 message Server {
   option (tableau.worksheet) = {name:"Server" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
-  bool tableau_placeholder = 1 [(tableau.field) = {name:"TableauPlaceholder"}];
+  string desc = 1 [(tableau.field) = {name:"Desc"}];
   repeated Node node_list = 2 [(tableau.field) = {name:"Node" key:"Addr" layout:LAYOUT_VERTICAL}];
   message Node {
     string addr = 1 [(tableau.field) = {name:"Addr"}];
@@ -21,7 +21,7 @@ message Server {
 message Client {
   option (tableau.worksheet) = {name:"Client" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
-  bool tableau_placeholder = 1 [(tableau.field) = {name:"TableauPlaceholder"}];
+  bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
   Version version = 2 [(tableau.field) = {name:"Version"}];
   message Version {
     string min = 1 [(tableau.field) = {name:"Min"}];

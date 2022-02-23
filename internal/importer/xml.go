@@ -24,9 +24,9 @@ import (
 // metaName defines the meta data of each worksheet.
 const (
 	metaName = "TABLEAU"
-	placeholderName = "TableauPlaceholder"
+	placeholderName = "_placeholder"
 	placeholderType = "bool"
-	placeholderValue = "0"
+	placeholderValue = "false"
 )
 
 type Pass int
@@ -224,7 +224,7 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 			return errors.Wrapf(err, "failed to parseNodeData for root node %s", sheetName)
 		}
 	}
-	atom.Log.Info(metaSheet)
+	// atom.Log.Info(metaSheet)
 	if pass == SECOND {
 		// unpack rows from the MetaSheet struct
 		var rows [][]string
@@ -299,7 +299,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 		needChangeType := isMeta || curType == "" || (len(matches) > 0 && repeated)
 		// 1. new struct(list), not subsequent
 		// 2. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)
-		setKeyedType := !prefixExist || (len(matches) > 0 && repeated)
+		setKeyedType := (!prefixExist || (len(matches) > 0 && repeated)) && nav.LocalName() != metaSheet.Worksheet
 		if needChangeType {
 			if matches := types.MatchMap(t); len(matches) == 3 {
 				// case 1: map<uint32,Type>

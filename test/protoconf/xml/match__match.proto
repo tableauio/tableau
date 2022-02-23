@@ -95,14 +95,14 @@ message MatchCfg {
       string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
   }
-  bool tableau_placeholder = 4 [(tableau.field) = {name:"TableauPlaceholder"}];
+  bool _placeholder = 4 [(tableau.field) = {name:"_placeholder"}];
   MatchRoom match_room = 5 [(tableau.field) = {name:"MatchRoom"}];
   message MatchRoom {
     int32 max_loop = 1 [(tableau.field) = {name:"MaxLoop"}];
   }
   TeamRatingWeight team_rating_weight = 6 [(tableau.field) = {name:"TeamRatingWeight"}];
   message TeamRatingWeight {
-    bool tableau_placeholder = 1 [(tableau.field) = {name:"TableauPlaceholder"}];
+    bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
     repeated Weight weight_list = 2 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
     message Weight {
       int32 num = 1 [(tableau.field) = {name:"Num"}];

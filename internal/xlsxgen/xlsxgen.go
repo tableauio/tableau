@@ -97,7 +97,6 @@ func (sheet *MetaSheet) Cell(row int, col int, name string) *Cell {
 	}
 	// cannot access any of datarows when header not set
 	if row + 1 >= int(sheet.Datarow) {
-		atom.Log.Info(sheet)
 		errStr := fmt.Sprintf("undefined column %s in row %d", name, row)
 		panic(errStr)
 	}

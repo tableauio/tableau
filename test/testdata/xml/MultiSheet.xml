@@ -3,7 +3,7 @@
 <Client/>
 </@TABLEAU>
 
-<Server>
+<Server desc="test">
     <Node Addr="9.123.134.1" ProcNum="2"/>
     <Node Addr="9.168.134.1" ProcNum="5"/>
 </Server>

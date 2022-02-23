@@ -10,7 +10,7 @@ option (tableau.workbook) = {name:"match/SimpleMatchConf.xml"};
 message SimpleMatchConf {
   option (tableau.worksheet) = {name:"SimpleMatchConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
-  bool tableau_placeholder = 1 [(tableau.field) = {name:"TableauPlaceholder"}];
+  bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
   ConfirmTimeOutPunish confirm_time_out_punish = 2 [(tableau.field) = {name:"ConfirmTimeOutPunish"}];
   message ConfirmTimeOutPunish {
     string time = 1 [(tableau.field) = {name:"Time"}];
@@ -21,7 +21,7 @@ message SimpleMatchConf {
   }
   TeamRatingWeight team_rating_weight = 4 [(tableau.field) = {name:"TeamRatingWeight"}];
   message TeamRatingWeight {
-    bool tableau_placeholder = 1 [(tableau.field) = {name:"TableauPlaceholder"}];
+    bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
     repeated Weight weight_list = 2 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
     message Weight {
       int32 num = 1 [(tableau.field) = {name:"Num"}];
