@@ -1,6 +1,6 @@
 <@TABLEAU>
-<Server/>
-<Client/>
+    <Server/>
+    <Client/>
 </@TABLEAU>
 
 <Server desc="test">

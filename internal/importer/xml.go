@@ -23,27 +23,28 @@ import (
 
 // metaName defines the meta data of each worksheet.
 const (
-	metaName = "TABLEAU"
-	placeholderName = "_placeholder"
-	placeholderType = "bool"
+	metaName         = "TABLEAU"
+	placeholderName  = "_placeholder"
+	placeholderType  = "bool"
 	placeholderValue = "false"
 )
 
 type Pass int
+
 const (
-	firstPass Pass = 1
+	firstPass  Pass = 1
 	secondPass Pass = 2
 )
 
 type Range struct {
-	begin int // index that Range begins at
+	begin   int // index that Range begins at
 	attrNum int // the number of attrs with the same prefix
-	len int // total number of columns with the same prefix, including attrs and children
+	len     int // total number of columns with the same prefix, including attrs and children
 }
 type XMLImporter struct {
 	filename   string
-	sheetMap   map[string]*Sheet // sheet name -> sheet
-	metaMap map[string]*xlsxgen.MetaSheet // sheet name -> meta
+	sheetMap   map[string]*Sheet             // sheet name -> sheet
+	metaMap    map[string]*xlsxgen.MetaSheet // sheet name -> meta
 	sheetNames []string
 	header     *options.HeaderOption // header settings.
 
@@ -53,9 +54,9 @@ type XMLImporter struct {
 // TODO: options
 func NewXMLImporter(filename string, sheets []string, header *options.HeaderOption) *XMLImporter {
 	return &XMLImporter{
-		filename: filename,
+		filename:   filename,
 		sheetNames: sheets,
-		header:   header,
+		header:     header,
 		prefixMaps: make(map[string](map[string]Range)),
 	}
 }
@@ -121,7 +122,7 @@ func (x *XMLImporter) parse() error {
 	hasMetaTag := false
 	hasUserSheets := x.sheetNames != nil
 	hasTableauSheets := false
-	contains := func (sheets []string, sheet string) bool {
+	contains := func(sheets []string, sheet string) bool {
 		for _, s := range sheets {
 			if sheet == s {
 				return true
@@ -438,7 +439,7 @@ func (x *XMLImporter) tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []strin
 	var reversedList []string
 	parentMap := make(map[string]bool)
 	prefixMap := x.prefixMaps[metaSheet.Worksheet]
-	for i := len(parentList)-1; i >= 0; i-- {
+	for i := len(parentList) - 1; i >= 0; i-- {
 		prefix += parentList[i]
 		parentMap[prefix] = true
 		if i > 0 {
@@ -449,7 +450,7 @@ func (x *XMLImporter) tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []strin
 	if metaSheet.HasCol(colName) {
 		return
 	}
-	shift := func (r Range)  {
+	shift := func(r Range) {
 		for i := 0; i < len(reversedList); i++ {
 			if r, exist := prefixMap[reversedList[i]]; exist {
 				prefixMap[reversedList[i]] = Range{r.begin, r.attrNum, r.len + 1}
@@ -457,7 +458,7 @@ func (x *XMLImporter) tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []strin
 		}
 		for k, v := range prefixMap {
 			if _, exist := parentMap[k]; !exist && v.begin > r.begin {
-				prefixMap[k] = Range{v.begin+1, v.attrNum, v.len}
+				prefixMap[k] = Range{v.begin + 1, v.attrNum, v.len}
 			}
 		}
 	}
@@ -474,9 +475,9 @@ func (x *XMLImporter) tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []strin
 		shift(prefixMap[prefix])
 		metaSheet.Cell(int(metaSheet.Namerow)-1, prefixMap[prefix].begin, colName).Data = colName
 	} else {
-		prefixMap[prefix] = Range{r.begin, r.attrNum+1, r.len+1}
+		prefixMap[prefix] = Range{r.begin, r.attrNum + 1, r.len + 1}
 		shift(prefixMap[prefix])
-		metaSheet.Cell(int(metaSheet.Namerow)-1, r.begin + r.attrNum, colName).Data = colName
+		metaSheet.Cell(int(metaSheet.Namerow)-1, r.begin+r.attrNum, colName).Data = colName
 	}
 }
 

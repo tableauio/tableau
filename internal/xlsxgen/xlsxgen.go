@@ -11,11 +11,11 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/iancoleman/strcase"
+	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/iancoleman/strcase"
-	"github.com/pkg/errors"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -23,12 +23,11 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
-
 type Generator struct {
 	ProtoPackage string // protobuf package name.
-	InputDir         string // input dir of workbooks.
-	OutputDir        string // output dir of generated protoconf files.
-	Workbook string // Workbook name
+	InputDir     string // input dir of workbooks.
+	OutputDir    string // output dir of generated protoconf files.
+	Workbook     string // Workbook name
 }
 
 var specialMessageMap = map[string]int{
@@ -46,9 +45,9 @@ type Row struct {
 type MetaSheet struct {
 	Worksheet string // worksheet name
 	options.HeaderOption
-	Transpose bool   // interchange the rows and columns
+	Transpose bool // interchange the rows and columns
 
-	Rows []Row
+	Rows   []Row
 	colMap map[string]int // colName -> colNum
 
 	defaultMap map[string]string // colName -> default value
@@ -60,22 +59,22 @@ func NewMetaSheet(worksheet string, header *options.HeaderOption, transpose bool
 		rows[i].Index = i
 	}
 	return &MetaSheet{
-		Worksheet: worksheet,
+		Worksheet:    worksheet,
 		HeaderOption: *header,
-		Transpose: transpose,
-		Rows: rows,
-		colMap: make(map[string]int),
-		defaultMap: make(map[string]string),
+		Transpose:    transpose,
+		Rows:         rows,
+		colMap:       make(map[string]int),
+		defaultMap:   make(map[string]string),
 	}
 }
 
 func (sheet *MetaSheet) NewRow() *Row {
 	row := Row{
-		Cells: make([]Cell, len(sheet.Rows[len(sheet.Rows) - 1].Cells)),
+		Cells: make([]Cell, len(sheet.Rows[len(sheet.Rows)-1].Cells)),
 		Index: len(sheet.Rows),
 	}
 	// Critical!!! copy common value from parent node
-	copy(row.Cells, sheet.Rows[len(sheet.Rows) - 1].Cells)
+	copy(row.Cells, sheet.Rows[len(sheet.Rows)-1].Cells)
 	sheet.Rows = append(sheet.Rows, row)
 	return &row
 }
@@ -96,7 +95,7 @@ func (sheet *MetaSheet) Cell(row int, col int, name string) *Cell {
 		return &sheet.Rows[row].Cells[col]
 	}
 	// cannot access any of datarows when header not set
-	if row + 1 >= int(sheet.Datarow) {
+	if row+1 >= int(sheet.Datarow) {
 		errStr := fmt.Sprintf("undefined column %s in row %d", name, row)
 		panic(errStr)
 	}
@@ -167,11 +166,11 @@ func (sheet *MetaSheet) GetDefaultValue(col string) string {
 }
 
 func (sheet *MetaSheet) GetLastColName() string {
-	row := sheet.Rows[sheet.Namerow - 1].Cells
+	row := sheet.Rows[sheet.Namerow-1].Cells
 	if len(row) == 0 {
 		return ""
 	}
-	return row[len(row) - 1].Data
+	return row[len(row)-1].Data
 }
 
 func (sheet *MetaSheet) ForEachCol(rowId int, f func(name string, cell *Cell) error) error {

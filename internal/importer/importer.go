@@ -86,7 +86,7 @@ func ExtendSheet(sheet *Sheet, rows [][]string) {
 		MaxRow: sheet.MaxRow + maxRow,
 		MaxCol: int(math.Max(float64(sheet.MaxCol), float64(maxCol))),
 		Rows:   append(sheet.Rows, rows...),
-		Meta: sheet.Meta,
+		Meta:   sheet.Meta,
 	}
 }
 
