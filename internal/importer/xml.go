@@ -31,8 +31,8 @@ const (
 
 type Pass int
 const (
-	FIRST Pass = 1
-	SECOND Pass = 2
+	firstPass Pass = 1
+	secondPass Pass = 2
 )
 
 type Range struct {
@@ -154,14 +154,14 @@ func (x *XMLImporter) parse() error {
 					x.sheetNames = append(x.sheetNames, nav.LocalName())
 				}
 				hasTableauSheets = true
-				if err := x.parseSheet(nav.Current(), nav.LocalName(), FIRST); err != nil {
+				if err := x.parseSheet(nav.Current(), nav.LocalName(), firstPass); err != nil {
 					return errors.WithMessagef(err, "failed to parse `@%s` sheet: %s#%s", metaName, x.filename, nav.LocalName())
 				}
 			}
 		} else {
 			// parse sheets
 			if (!hasUserSheets && !hasTableauSheets) || contains(x.sheetNames, n.Data) {
-				if err := x.parseSheet(n, n.Data, FIRST); err != nil {
+				if err := x.parseSheet(n, n.Data, firstPass); err != nil {
 					return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
 				}
 				if !hasUserSheets && !hasTableauSheets {
@@ -192,7 +192,7 @@ func (x *XMLImporter) parse() error {
 		}
 		// parse sheets
 		if contains(x.sheetNames, n.Data) {
-			if err := x.parseSheet(n, n.Data, SECOND); err != nil {
+			if err := x.parseSheet(n, n.Data, secondPass); err != nil {
 				return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
 			}
 		}
@@ -213,19 +213,19 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 	root := xmlquery.CreateXPathNavigator(doc)
 	isMeta := doc.Parent != nil && doc.Parent.Data == metaName
 	switch pass {
-	case FIRST:
+	case firstPass:
 		// 1 pass: scan all columns and their types
 		if err := x.parseNodeType(root, metaSheet, isMeta); err != nil {
 			return errors.Wrapf(err, "failed to parseNodeType for root node %s", sheetName)
 		}
-	case SECOND:
+	case secondPass:
 		// 2 pass: fill data to the corresponding columns
 		if err := x.parseNodeData(root, metaSheet, int(metaSheet.Datarow)-1); err != nil {
 			return errors.Wrapf(err, "failed to parseNodeData for root node %s", sheetName)
 		}
 	}
 	// atom.Log.Info(metaSheet)
-	if pass == SECOND {
+	if pass == secondPass {
 		// unpack rows from the MetaSheet struct
 		var rows [][]string
 		for i := 0; i < len(metaSheet.Rows); i++ {
