@@ -390,7 +390,7 @@ func (gen *Generator) setDataValidation(wb *excelize.File, metaSheet *MetaSheet,
 		dv.Sqref = dataStartAxis + ":" + dataEndAxis
 		dv.Type = "custom"
 		// dv.SetInput("Key", "Must be unique in this column")
-		// NOTE(tableauiozhu): Five XML escape characters
+		// NOTE(wenchyzhu): Five XML escape characters
 		// "   &quot;
 		// '   &apos;
 		// <   &lt;
