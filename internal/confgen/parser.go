@@ -42,7 +42,7 @@ func (x *sheetExporter) Export(imp importer.Importer, parser *sheetParser, proto
 		return errors.WithMessagef(err, "get sheet failed: %s", wsOpts.Name)
 	}
 
-	if err := parser.Parse(protomsg, sheet, wsOpts); err != nil {
+	if err := parser.Parse(protomsg, sheet); err != nil {
 		return errors.WithMessage(err, "failed to parse sheet")
 	}
 
@@ -53,43 +53,45 @@ func (x *sheetExporter) Export(imp importer.Importer, parser *sheetParser, proto
 type sheetParser struct {
 	ProtoPackage string
 	LocationName string
+	opts         *tableaupb.WorksheetOptions
 }
 
-func NewSheetParser(protoPackage, locationName string) *sheetParser {
+func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
 	return &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
+		opts:         opts,
 	}
 }
 
-func (sp *sheetParser) Parse(protomsg proto.Message, sheet *importer.Sheet, wsOpts *tableaupb.WorksheetOptions) error {
+func (sp *sheetParser) Parse(protomsg proto.Message, sheet *importer.Sheet) error {
 	// atom.Log.Debugf("parse sheet: %s", sheet.Name)
 	msg := protomsg.ProtoReflect()
-	if wsOpts.Transpose {
+	if sp.opts.Transpose {
 		// interchange the rows and columns
 		// namerow: name column
 		// [datarow, MaxCol]: data column
 		// kvRow := make(map[string]string)
 		var prev *importer.RowCells
-		for col := int(wsOpts.Datarow) - 1; col < sheet.MaxCol; col++ {
+		for col := int(sp.opts.Datarow) - 1; col < sheet.MaxCol; col++ {
 			curr := importer.NewRowCells(col, prev)
 			for row := 0; row < sheet.MaxRow; row++ {
-				nameCol := int(wsOpts.Namerow) - 1
+				nameCol := int(sp.opts.Namerow) - 1
 				nameCell, err := sheet.Cell(row, nameCol)
 				if err != nil {
 					return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, nameCol)
 				}
-				name := importer.ExtractFromCell(nameCell, wsOpts.Nameline)
+				name := importer.ExtractFromCell(nameCell, sp.opts.Nameline)
 
 				typ := ""
-				if wsOpts.Typerow > 0 {
+				if sp.opts.Typerow > 0 {
 					// if typerow is set!
-					typeCol := int(wsOpts.Typerow) - 1
+					typeCol := int(sp.opts.Typerow) - 1
 					typeCell, err := sheet.Cell(row, typeCol)
 					if err != nil {
 						return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, typeCol)
 					}
-					typ = importer.ExtractFromCell(typeCell, wsOpts.Typeline)
+					typ = importer.ExtractFromCell(typeCell, sp.opts.Typeline)
 				}
 
 				data, err := sheet.Cell(row, col)
@@ -108,25 +110,25 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *importer.Sheet, wsOp
 		// namerow: name row
 		// [datarow, MaxRow]: data row
 		var prev *importer.RowCells
-		for row := int(wsOpts.Datarow) - 1; row < sheet.MaxRow; row++ {
+		for row := int(sp.opts.Datarow) - 1; row < sheet.MaxRow; row++ {
 			curr := importer.NewRowCells(row, prev)
 			for col := 0; col < sheet.MaxCol; col++ {
-				nameRow := int(wsOpts.Namerow) - 1
+				nameRow := int(sp.opts.Namerow) - 1
 				nameCell, err := sheet.Cell(nameRow, col)
 				if err != nil {
 					return errors.WithMessagef(err, "failed to get name cell: %d, %d", nameRow, col)
 				}
-				name := importer.ExtractFromCell(nameCell, wsOpts.Nameline)
+				name := importer.ExtractFromCell(nameCell, sp.opts.Nameline)
 
 				typ := ""
-				if wsOpts.Typerow > 0 {
+				if sp.opts.Typerow > 0 {
 					// if typerow is set!
-					typeRow := int(wsOpts.Typerow) - 1
+					typeRow := int(sp.opts.Typerow) - 1
 					typeCell, err := sheet.Cell(typeRow, col)
 					if err != nil {
 						return errors.WithMessagef(err, "failed to get type cell: %d, %d", typeRow, col)
 					}
-					typ = importer.ExtractFromCell(typeCell, wsOpts.Typeline)
+					typ = importer.ExtractFromCell(typeCell, sp.opts.Typeline)
 				}
 
 				data, err := sheet.Cell(row, col)
@@ -174,8 +176,8 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.
 		etype := tableaupb.Type_TYPE_DEFAULT
 		key := ""
 		layout := tableaupb.Layout_LAYOUT_DEFAULT
-		sep := ""
-		subsep := ""
+		sep := ","
+		subsep := ":"
 		optional := false
 
 		opts := fd.Options().(*descriptorpb.FieldOptions)
@@ -186,8 +188,8 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.
 			etype = fieldOpts.Type
 			key = fieldOpts.Key
 			layout = fieldOpts.Layout
-			sep = fieldOpts.Sep
-			subsep = fieldOpts.Subsep
+			sep = strings.TrimSpace(fieldOpts.Sep)
+			subsep = strings.TrimSpace(fieldOpts.Subsep)
 			optional = fieldOpts.Optional
 		} else {
 			// default processing
@@ -202,33 +204,17 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.
 			}
 		}
 		if sep == "" {
-			sep = ","
+			sep = strings.TrimSpace(sp.opts.Sep)
+			if sep == "" {
+				sep = ","
+			}
 		}
 		if subsep == "" {
-			subsep = ":"
+			subsep = strings.TrimSpace(sp.opts.Subsep)
+			if subsep == "" {
+				subsep = ":"
+			}
 		}
-
-		// msgName := ""
-		// if fd.Kind() == protoreflect.MessageKind {
-		// 	msgName = string(fd.Message().FullName())
-		// }
-		// atom.Log.Debugf("%s%s(%v) %s(%s) %s = %d [(name) = \"%s\", (type) = %s, (key) = \"%s\", (layout) = \"%s\", (sep) = \"%s\"];",
-		// 	printer.Indent(depth), fd.Cardinality().String(), fd.IsMap(), fd.Kind().String(), msgName, fd.FullName().Name(), fd.Number(), prefix+name, etype.String(), key, layout.String(), sep)
-		// atom.Log.Debugw("field metadata",
-		// 	"tabs", depth,
-		// 	"cardinality", fd.Cardinality().String(),
-		// 	"isMap", fd.IsMap(),
-		// 	"kind", fd.Kind().String(),
-		// 	"msgName", msgName,
-		// 	"fullName", fd.FullName(),
-		// 	"number", fd.Number(),
-		// 	"name", prefix+name,
-		// 	"note", note,
-		// 	"type", etype.String(),
-		// 	"key", key,
-		// 	"layout", layout.String(),
-		// 	"sep", sep,
-		// )
 
 		field := &Field{
 			fd: fd,
@@ -290,7 +276,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			for _, pair := range splits {
 				kv := strings.Split(pair, field.opts.Subsep)
 				if len(kv) != 2 {
-					return errors.Errorf("%s|incell map: illegal key-value pair: %s", rc.CellDebugString(colName), pair)
+					return errors.Errorf("%s|incell map: illegal key-value pair: %s, subseq: '%s'", rc.CellDebugString(colName), pair, field.opts.Subsep)
 				}
 				key, value := kv[0], kv[1]
 

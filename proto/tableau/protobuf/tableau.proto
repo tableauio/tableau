@@ -32,17 +32,20 @@ message WorkbookOptions {
 }
 
 message WorksheetOptions {
-  string name = 1;     // worksheet name
-  int32 namerow = 2;   // [default = 1]; // exact row number of name at worksheet.
-  int32 typerow = 3;   // [default = 2]; // exact row number of type at worksheet, for generating protos.
-  int32 noterow = 4;   // [default = 3]; // exact row number of note at worksheet.
-  int32 datarow = 5;   // [default = 4]; // start row number of data at worksheet.
-  bool transpose = 6;  // [default = false]; // interchange the rows and columns
-  string tags = 7;     // [default = ""]; // tags for usage, e.g.: "1,2" specifying loading servers. Speciallly, "*"
-                       // means all servers.
-  int32 nameline = 8;  // [default = 0]; // specify which line in cell as name, '0' means the whole cell is name.
-  int32 typeline = 9;  // [default = 0]; // specify which line in cell as type,'0' means the whole cell is type.
-  bool nested = 10;    // [default = false]; // whether the naming of name row is nested.
+  string name = 1;       // worksheet name
+  int32 namerow = 2;     // [default = 1]; // exact row number of name at worksheet.
+  int32 typerow = 3;     // [default = 2]; // exact row number of type at worksheet, for generating protos.
+  int32 noterow = 4;     // [default = 3]; // exact row number of note at worksheet.
+  int32 datarow = 5;     // [default = 4]; // start row number of data at worksheet.
+  bool transpose = 6;    // [default = false]; // interchange the rows and columns
+  string tags = 7;       // [default = ""]; // tags for usage, e.g.: "1,2" specifying loading servers. Speciallly, "*"
+                         // means all servers.
+  int32 nameline = 8;    // [default = 0]; // specify which line in cell as name, '0' means the whole cell is name.
+  int32 typeline = 9;    // [default = 0]; // specify which line in cell as type,'0' means the whole cell is type.
+  bool nested = 10;      // [default = false]; // whether the naming of name row is nested.
+  string sep = 11;       // separator, default: ","
+  string subsep = 12;    // subseparator, default: ":"
+  bool ordered_map = 13; // [default = false]; // whether generate OrderedMap accessers.
 }
 
 message FieldOptions {
@@ -52,19 +55,26 @@ message FieldOptions {
   string key = 4;     // only set when type is map
   Layout layout = 5;  // default: LAYOUT_DEFAULT
   string sep = 6;     // separator, default: ","
-  string subsep = 7;  // sub separator, default: ":"
+  string subsep = 7;  // subseparator, default: ":"
   bool optional = 8;  // whether the field is optional.
 
-  /////////////////////////////
-  // Simple Validators Below //
-  /////////////////////////////
-  // Different meanings:
-  // repeated: size range of array
-  // integer: value range
-  // string: count of utf-8 code point
-  int32 min = 11;     // min value
-  int32 max = 12;     // max value
-  string range = 13;  // format like set description: [1,10], (1,10], [1,10), [1,~]
+  FieldExtension extension = 15;
+}
+
+message FieldExtension {
+  // Usage: `{range:"1,10" refer:"XXXConf.ID"}`
+
+  // NOTE: two perspectives of the check:
+  //   - Local perspective, the check only depends on self configuration.
+  //   - Global perspective, the check depend on all configurations.
+
+  // Different interpretations of range::
+  //   - number: value range
+  //   - repeated: size range of array
+  //   - string: count of utf-8 code point
+  string range = 1;  // Local perspective: format: "1,10", "1,~", "~,10"
+  bool unique = 2;   // Local perspective: whether the field is unique when configured.
+  string refer = 3;  // Global perspective: ensure this field is in another message's field range. Example: "XXXConf.ID"
 }
 
 message EnumOptions {

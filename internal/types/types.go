@@ -11,7 +11,7 @@ var enumRegexp *regexp.Regexp
 var boringIntegerRegexp *regexp.Regexp
 
 func init() {
-	mapRegexp = regexp.MustCompile(`^map<(.+),(.+)>`)       // e.g.: map<uint32,Type>
+	mapRegexp = regexp.MustCompile(`^map<(.+),(.+)>`)       // e.g.: map<uint32,Type>|{range:"1,10" refer:"XXXConf.ID"}
 	listRegexp = regexp.MustCompile(`^\[(.*)\](.+)`)        // e.g.: [Type]uint32
 	keyedListRegexp = regexp.MustCompile(`^\[(.*)\]<(.+)>`) // e.g.: [Type]<uint32>
 	structRegexp = regexp.MustCompile(`^\{(.+)\}(.+)`)      // e.g.: {Type}uint32

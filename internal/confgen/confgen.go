@@ -23,7 +23,7 @@ type Generator struct {
 	OutputDir    string // output dir of generated files.
 
 	Output *options.OutputOption // output settings.
-	Input *options.InputOption // Input settings.
+	Input  *options.InputOption  // Input settings.
 	Header *options.HeaderOption // header settings.
 }
 
@@ -40,10 +40,15 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 		InputDir:     indir,
 		OutputDir:    outdir,
 		Output:       opts.Output,
-		Input: opts.Input,
-		Header: opts.Header,
+		Input:        opts.Input,
+		Header:       opts.Header,
 	}
 	return g
+}
+
+type sheetInfo struct {
+	MessageName string
+	opts        *tableaupb.WorksheetOptions
 }
 
 func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (err error) {
@@ -80,31 +85,32 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 				workbookFound = true
 
 				var sheets []string
-				sheetMap := map[string]string{} // sheet name -> message name
+				// sheet name -> message name
+				sheetMap := map[string]sheetInfo{}
 				msgs := fd.Messages()
 				for i := 0; i < msgs.Len(); i++ {
 					md := msgs.Get(i)
 					opts := md.Options().(*descriptorpb.MessageOptions)
 					worksheet := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
 					if worksheet != nil {
-						sheetMap[worksheet.Name] = string(md.Name())
+						sheetMap[worksheet.Name] = sheetInfo{string(md.Name()), worksheet}
 						sheets = append(sheets, worksheet.Name)
 					}
 				}
 				wbPath := filepath.Join(gen.InputDir, workbook.Name)
 				imp := importer.New(wbPath, importer.Sheets(sheets), importer.Format(gen.Input.Format), importer.Header(gen.Header))
 				// atom.Log.Debugf("proto: %s, workbook %s", fd.Path(), workbook)
-				for sheetName, msgName := range sheetMap {
+				for sheetName, sheetInfo := range sheetMap {
 					if worksheetName != "" && worksheetName != sheetName {
 						continue
 					}
 					worksheetFound = true
 
-					md := msgs.ByName(protoreflect.Name(msgName))
+					md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
 					// atom.Log.Debugf("%s", md.FullName())
 					atom.Log.Infof("generate: %s#%s <-> %s#%s", fd.Path(), md.Name(), workbook.Name, sheetName)
 					newMsg := dynamicpb.NewMessage(md)
-					parser := NewSheetParser(gen.ProtoPackage, gen.LocationName)
+					parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
 					exporter := NewSheetExporter(gen.OutputDir, gen.Output)
 					err := exporter.Export(imp, parser, newMsg)
 					if err != nil {

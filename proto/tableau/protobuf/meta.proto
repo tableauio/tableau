@@ -19,6 +19,8 @@ message SheetMeta {
   int32 nameline = 3 [(tableau.field) = { name: "Nameline" optional: true }];
   int32 typeline = 4 [(tableau.field) = { name: "Typeline" optional: true }];
   bool transpose = 5 [(tableau.field) = { name: "Transpose" optional: true }];
-  // nested naming of namerow
-  bool nested = 6 [(tableau.field) = { name: "Nested" optional: true }];
+  bool nested = 6 [(tableau.field) = { name: "Nested" optional: true }]; // nested naming of namerow
+  string sep = 7 [(tableau.field) = { name: "Sep" optional: true }];
+  string subsep = 8 [(tableau.field) = { name: "Subsep" optional: true }];
+  bool ordered_map = 9 [(tableau.field) = { name: "OrderedMap" optional: true }]; // generate ordered map accessers
 }

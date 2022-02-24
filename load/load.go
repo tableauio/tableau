@@ -104,8 +104,8 @@ func loadExcel(msg proto.Message, dir string, format format.Format) error {
 	pkgName := md.ParentFile().Package()
 	// TODO: support LocationName setting by using Functional Options
 	locationName := ""
-	parser := confgen.NewSheetParser(string(pkgName), locationName)
-	if err := parser.Parse(msg, sheet, wsOpts); err != nil {
+	parser := confgen.NewSheetParser(string(pkgName), locationName, wsOpts)
+	if err := parser.Parse(msg, sheet); err != nil {
 		return errors.WithMessagef(err, "%v|failed to parse sheet: %s", msgName, wsOpts.Name)
 	}
 	return nil

@@ -10,6 +10,7 @@ import (
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/options"
+	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
 // Excel2Conf converts excel files (with tableau header) to different formatted configuration files.
@@ -49,7 +50,12 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 
 // ParseMeta parses the @TABLEAU sheet in a workbook.
 func ParseMeta(indir, relWorkbookPath string) importer.Importer {
-	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "")
+	wsOpts :=  &tableaupb.WorksheetOptions{
+		Name:    importer.MetaSheetName,
+		Namerow: 1,
+		Datarow: 2,
+	}
+	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", wsOpts)
 	return importer.New(
 		filepath.Join(indir, relWorkbookPath),
 		importer.Parser(parser),

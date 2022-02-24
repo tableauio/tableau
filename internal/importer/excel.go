@@ -14,8 +14,8 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// metaSheetName defines the meta data of each worksheet.
-const metaSheetName = "@TABLEAU"
+// MetaSheetName defines the meta data of each worksheet.
+const MetaSheetName = "@TABLEAU"
 
 type ExcelImporter struct {
 	filename   string
@@ -80,7 +80,7 @@ func (x *ExcelImporter) parse() error {
 	}
 
 	if err := x.parseWorkbookMeta(file); err != nil {
-		return errors.Wrapf(err, "failed to parse workbook meta: %s", metaSheetName)
+		return errors.Wrapf(err, "failed to parse workbook meta: %s", MetaSheetName)
 	}
 
 	if err := x.collectSheetsInOrder(file); err != nil {
@@ -106,14 +106,14 @@ func (x *ExcelImporter) parseWorkbookMeta(file *excelize.File) error {
 		return nil
 	}
 
-	if file.GetSheetIndex(metaSheetName) == -1 {
-		atom.Log.Debugf("workbook %s has no sheet named %s", x.filename, metaSheetName)
+	if file.GetSheetIndex(MetaSheetName) == -1 {
+		atom.Log.Debugf("workbook %s has no sheet named %s", x.filename, MetaSheetName)
 		return nil
 	}
 
-	sheet, err := x.parseSheet(file, metaSheetName)
+	sheet, err := x.parseSheet(file, MetaSheetName)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, metaSheetName)
+		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, MetaSheetName)
 	}
 
 	if sheet.MaxRow <= 1 {
@@ -123,17 +123,12 @@ func (x *ExcelImporter) parseWorkbookMeta(file *excelize.File) error {
 			}
 		}
 		return nil
-	}
-	wsOpts := &tableaupb.WorksheetOptions{
-		Name:    sheet.Name,
-		Namerow: 1,
-		Datarow: 2,
-	}
-	if err := x.metaParser.Parse(x.Meta, sheet, wsOpts); err != nil {
-		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, metaSheetName)
+	}	
+	if err := x.metaParser.Parse(x.Meta, sheet); err != nil {
+		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, MetaSheetName)
 	}
 
-	atom.Log.Debugf("%s#%s: %+v", x.filename, metaSheetName, x.Meta)
+	atom.Log.Debugf("%s#%s: %+v", x.filename, MetaSheetName, x.Meta)
 	return nil
 }
 
@@ -182,7 +177,7 @@ func (x *ExcelImporter) collectSheetsInOrder(file *excelize.File) error {
 	x.sheetNames = nil
 	for _, val := range sortedMap.Values() {
 		sheetName := val.(string)
-		if  sheetName != metaSheetName || (x.includeMetaSheet && sheetName == metaSheetName) {
+		if  sheetName != MetaSheetName || (x.includeMetaSheet && sheetName == MetaSheetName) {
 			// exclude meta sheet
 			x.sheetNames = append(x.sheetNames, sheetName)
 		}

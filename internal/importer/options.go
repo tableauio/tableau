@@ -3,12 +3,11 @@ package importer
 import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 )
 
 type SheetParser interface {
-	Parse(protomsg proto.Message, sheet *Sheet, wsOpts *tableaupb.WorksheetOptions) error
+	Parse(protomsg proto.Message, sheet *Sheet) error
 }
 
 type Options struct {

@@ -164,7 +164,12 @@ func (gen *Generator) convert(dir, filename string) error {
 		return errors.WithMessagef(err, "get relative path failed")
 	}
 	absPath := filepath.Join(dir, filename)
-	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName)
+	wsOpts :=  &tableaupb.WorksheetOptions{
+		Name:    importer.MetaSheetName,
+		Namerow: 1,
+		Datarow: 2,
+	}
+	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, wsOpts)
 	imp := importer.New(absPath, importer.Parser(parser), importer.Format(gen.InputOpts.Format), importer.Header(gen.Header))
 	sheets, err := imp.GetSheets()
 	if err != nil {
@@ -191,16 +196,19 @@ func (gen *Generator) convert(dir, filename string) error {
 		}
 		ws := &tableaupb.Worksheet{
 			Options: &tableaupb.WorksheetOptions{
-				Name:      sheet.Name,
-				Namerow:   gen.Header.Namerow,
-				Typerow:   gen.Header.Typerow,
-				Noterow:   gen.Header.Noterow,
-				Datarow:   gen.Header.Datarow,
-				Transpose: false,
-				Tags:      "",
-				Nameline:  sheet.Meta.Nameline,
-				Typeline:  sheet.Meta.Typeline,
-				Nested:    sheet.Meta.Nested,
+				Name:       sheet.Name,
+				Namerow:    gen.Header.Namerow,
+				Typerow:    gen.Header.Typerow,
+				Noterow:    gen.Header.Noterow,
+				Datarow:    gen.Header.Datarow,
+				Transpose:  false,
+				Tags:       "",
+				Nameline:   sheet.Meta.Nameline,
+				Typeline:   sheet.Meta.Typeline,
+				Nested:     sheet.Meta.Nested,
+				Sep:        sheet.Meta.Sep,
+				Subsep:     sheet.Meta.Subsep,
+				OrderedMap: sheet.Meta.OrderedMap,
 			},
 			Fields: []*tableaupb.Field{},
 			Name:   sheetMsgName,
