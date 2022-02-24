@@ -13,16 +13,15 @@ option (tableau.workbook) = {name:"match/Match.xml"};
 message MatchCfg {
   option (tableau.worksheet) = {name:"MatchCfg" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
-  int32 tableau_placeholder = 1 [(tableau.field) = {name:"TableauPlaceholder"}];
-  ConfirmTimeOutPunish confirm_time_out_punish = 2 [(tableau.field) = {name:"ConfirmTimeOutPunish"}];
+  ConfirmTimeOutPunish confirm_time_out_punish = 1 [(tableau.field) = {name:"ConfirmTimeOutPunish"}];
   message ConfirmTimeOutPunish {
     google.protobuf.Duration time = 1 [(tableau.field) = {name:"Time"}];
   }
-  MatchStatInfo match_stat_info = 3 [(tableau.field) = {name:"MatchStatInfo"}];
+  MatchStatInfo match_stat_info = 2 [(tableau.field) = {name:"MatchStatInfo"}];
   message MatchStatInfo {
     google.protobuf.Duration report_interval = 1 [(tableau.field) = {name:"ReportInterval"}];
   }
-  map<int32, MatchMode> match_mode_map = 4 [(tableau.field) = {name:"MatchMode" key:"MissionType" layout:LAYOUT_VERTICAL}];
+  map<int32, MatchMode> match_mode_map = 3 [(tableau.field) = {name:"MatchMode" key:"MissionType" layout:LAYOUT_VERTICAL}];
   message MatchMode {
     MissionType mission_type = 1 [(tableau.field) = {name:"MissionType"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
@@ -30,8 +29,8 @@ message MatchCfg {
     message Time {
       google.protobuf.Duration min_time = 1 [(tableau.field) = {name:"MinTime"}];
       google.protobuf.Duration max_time = 2 [(tableau.field) = {name:"MaxTime"}];
-      int32 freq = 3 [(tableau.field) = {name:"Freq"}];
-      google.protobuf.Duration confirm_time = 4 [(tableau.field) = {name:"ConfirmTime"}];
+      google.protobuf.Duration confirm_time = 3 [(tableau.field) = {name:"ConfirmTime"}];
+      int32 freq = 4 [(tableau.field) = {name:"Freq"}];
     }
     Open open = 4 [(tableau.field) = {name:"Open"}];
     message Open {
@@ -60,8 +59,8 @@ message MatchCfg {
     message Filter {
       ENMMatchFilter filter_id = 1 [(tableau.field) = {name:"FilterID"}];
       bool open = 2 [(tableau.field) = {name:"Open"}];
-      int32 value = 3 [(tableau.field) = {name:"Value"}];
-      google.protobuf.Duration upd_interval = 4 [(tableau.field) = {name:"UpdInterval"}];
+      google.protobuf.Duration upd_interval = 3 [(tableau.field) = {name:"UpdInterval"}];
+      int32 value = 4 [(tableau.field) = {name:"Value"}];
       string desc = 5 [(tableau.field) = {name:"Desc"}];
       repeated Power power_list = 6 [(tableau.field) = {name:"Power" key:"HornorPower" layout:LAYOUT_VERTICAL}];
       message Power {
@@ -72,12 +71,7 @@ message MatchCfg {
         }
       }
     }
-    Route route = 9 [(tableau.field) = {name:"Route"}];
-    message Route {
-      int32 key = 1 [(tableau.field) = {name:"Key"}];
-      string desc = 2 [(tableau.field) = {name:"Desc"}];
-    }
-    MatchAI match_ai = 10 [(tableau.field) = {name:"MatchAI"}];
+    MatchAI match_ai = 9 [(tableau.field) = {name:"MatchAI"}];
     message MatchAI {
       bool is_open = 1 [(tableau.field) = {name:"IsOpen"}];
       bool player_only_one_camp = 2 [(tableau.field) = {name:"PlayerOnlyOneCamp"}];
@@ -91,23 +85,24 @@ message MatchCfg {
         string desc = 5 [(tableau.field) = {name:"Desc"}];
       }
     }
-    repeated Random random_list = 11 [(tableau.field) = {name:"Random" key:"MissionType" layout:LAYOUT_VERTICAL}];
+    repeated Random random_list = 10 [(tableau.field) = {name:"Random" key:"MissionType" layout:LAYOUT_VERTICAL}];
     message Random {
       MissionType mission_type = 1 [(tableau.field) = {name:"MissionType"}];
-      int32 priority = 2 [(tableau.field) = {name:"Priority"}];
+    }
+    Route route = 11 [(tableau.field) = {name:"Route"}];
+    message Route {
+      int32 key = 1 [(tableau.field) = {name:"Key"}];
+      string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
   }
+  bool _placeholder = 4 [(tableau.field) = {name:"_placeholder"}];
   MatchRoom match_room = 5 [(tableau.field) = {name:"MatchRoom"}];
   message MatchRoom {
     int32 max_loop = 1 [(tableau.field) = {name:"MaxLoop"}];
   }
-  MatchPlayer match_player = 6 [(tableau.field) = {name:"MatchPlayer"}];
-  message MatchPlayer {
-    int32 max_loop = 1 [(tableau.field) = {name:"MaxLoop"}];
-  }
-  TeamRatingWeight team_rating_weight = 7 [(tableau.field) = {name:"TeamRatingWeight"}];
+  TeamRatingWeight team_rating_weight = 6 [(tableau.field) = {name:"TeamRatingWeight"}];
   message TeamRatingWeight {
-    int32 tableau_placeholder = 1 [(tableau.field) = {name:"TableauPlaceholder"}];
+    bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
     repeated Weight weight_list = 2 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
     message Weight {
       int32 num = 1 [(tableau.field) = {name:"Num"}];

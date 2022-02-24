@@ -1,0 +1,19 @@
+<@TABLEAU>
+    <Server/>
+    <Client/>
+</@TABLEAU>
+
+<Server desc="test">
+    <Node Addr="9.123.134.1" ProcNum="2"/>
+    <Node Addr="9.168.134.1" ProcNum="5"/>
+</Server>
+
+<Client>
+    <Version Min="1.0.0.1" Max="1.0.0.3"/>
+</Client>
+
+<TrashBin>
+    <Trash Name="Banana"/>
+    <Trash Name="Apple"/>
+    <Trash Name="Bottle"/>
+</TrashBin>

@@ -1,15 +1,14 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<ToggleCfg>
-    <!-- 添加新特性开关后，调用tools/gen_feature_toggle/search_all.py 生成代码 -->
-
-    <@TABLEAU>
-        <FeatureToggle EnvID="map<uint32,FeatureToggle>" desc="string">
-            <Toggle ID="map<enum<.FeatureToggleMacroType>,Toggle>" OpenRate="int32" WorldID="uint32" ZoneID="uint32" OpenTime="datetime|2022-01-23 15:40:00"  CloseTime="datetime|2022-01-23 15:40:00" UserLimitType="int32" UserSourceType="int32" SysKey1="int64" SysKey2="int64" SysKey3="int64" NotifyClosed="bool" />
+<@TABLEAU>
+    <ToggleCfg>
+        <FeatureToggle EnvID="map<uint32,FeatureToggle>">
+            <Toggle ID="map<enum<.FeatureToggleMacroType>,Toggle>" WorldID="uint32" ZoneID="uint32" OpenTime="datetime|2022-01-23 15:40:00" CloseTime="datetime|2022-01-23 15:40:00" SysKey1="int64" SysKey2="int64" NotifyClosed="bool"/>
         </FeatureToggle>
-    </@TABLEAU>
+    </ToggleCfg>
+</@TABLEAU>
 
+<ToggleCfg>
     <FeatureToggle EnvID="0" desc="common: 通用环境的配置，需要包含全量的开关。common没有且对应环境也没有的开关会被默认为关闭。">
-
         <!--
         - ID				系统对应的toggleid
         - OpenRate			开放比例[0,10000], 0表示关闭，10000全开
@@ -17,8 +16,6 @@
         - ZoneID			小区id, 0表示所有小区，支持','分隔配置多个，示例: 1,2；支持'-'配置连续大区,示例: 1-2 相当于配置1,2两个小区
         - OpenTime			开启时间，逗号分隔日期和时间，示例：20190101, 0 表示20190101 0点开启; 20190101, 100000 表示20190101 10点0分0秒开启
         - CloseTime			关闭时间，逗号分隔日期和时间，示例：20190101, 0 表示20190101 0点关闭ui9; 20190101, 100000 表示20190101 10点0分0秒关闭
-        - UserLimitType		限制用户类型，0表示不限制，1限制账号uid，2限制账号openid，3限制角色
-        - UserSourceType	限制用户名单类型，0表示白名单，1表示黑名单
         - SysKey1-3			系统自定义筛选key
         - NotifyClosed		开关关闭是否通知客户端，0不通知，其他通知
         -->
@@ -32,50 +29,6 @@
         <Toggle name="意志进阶" ID="TOGGLE_WEAPON_STAR_UP" OpenRate="10000" SysKey1="0" desc="SysKey1->EquipID"/>
         <Toggle name="创建队伍" ID="TOGGLE_TEAM_CREATE_TEAM" OpenRate="10000" />
         <Toggle name="队伍匹配" ID="TOGGLE_TEAM_REQ_MATCH" OpenRate="10000" />
-        <!-- 客户端 暂时没有主动加入队伍的功能，服务器也暂时关闭 -->
-        <Toggle name="加入队伍" ID="TOGGLE_TEAM_JOIN_TEAM" OpenRate="0" />
-        <Toggle name="悬赏解锁" ID="TOGGLE_BOUNTY_UNLOCK" OpenRate="0" />
-        <Toggle name="排行榜" ID="TOGGLE_RANK" OpenRate="10000" />
-        <Toggle name="商城" ID="TOGGLE_MALL_SHOP" OpenRate="10000" />
-        <Toggle name="商城购买" ID="TOGGLE_MALL_BUY" OpenRate="10000" />
-        <Toggle name="聊天" ID="TOGGLE_CHAT" OpenRate="10000" desc="SysKey1->ChatStrategy SysKey2->ChatType"/>
-        <Toggle name="全服邮件" ID="TOGGLE_GLOBAL_MAIL" OpenRate="10000" />
-        <Toggle name="援护技" ID="TOGGLE_ASSIST_SKILL" OpenRate="0" />
-        <Toggle name="单局统计流水" ID="TOGGLE_GAMEPLAY_STATISTIC" OpenRate="10000" />
-
-        <Toggle name="是否要校验版本降级登录" ID="TOGGLE_CHECK_CLIENT_VERSION_INCR" OpenRate="0" />
-        <Toggle name="点券pc支付开放开关" ID="TOGGLE_PC_PAY" OpenRate="10000" />
-        <Toggle name="Tcaplus状态统计开关" ID="TOGGLE_TCAP_CMD_STAT" OpenRate="10000" />
-        <Toggle name="添加道具，背包满是否当错误" ID="TOGGLE_ITEM_BAG_FULL_IS_FAIL" OpenRate="10000" />
-        <Toggle name="压测 跳过加道具" ID="TOGGLE_ITEM_PRESSURE_BREAK_ADDOBJ" OpenRate="10000" />
-        <Toggle name="开发配置切片, 非0表示使用切片" ID="TOGGLE_OPEN_CFG_SET" OpenRate="10000" />
-        <Toggle name="单局开始未连上服务器，是否当做掉线，非0表示当做掉线" ID="TOGGLE_GAMEPLAY_START_NOT_CONNECT" OpenRate="10000" />
-        <Toggle name="pvpagentsvr是否开启共享内存恢复" ID="TOGGLE_PVPAGENT_USE_RESUME" OpenRate="10000" />
-        <Toggle name="chatsvr是否开启共享内存恢复" ID="TOGGLE_CHAT_USE_RESUME" OpenRate="10000" />
-        <Toggle name="viewsvr是否开启共享内存恢复" ID="TOGGLE_VIEW_USE_RESUME" OpenRate="0" />
-        <Toggle name="主动离开副本是否恢复" ID="TOGGLE_LEAVE_FUBEN_NEED_RESUME" OpenRate="0" />
-        <Toggle name="副本断线重连测试开关" ID="TOGGLE_FUBEN_RECONNCET" OpenRate="10000" />
-        <Toggle name="副本MD5校验开关" ID="TOGGLE_FUBEN_MD5_CHECK" OpenRate="0" />
-        <Toggle name="资源版本检查开发" ID="TOGGLE_HOTRES_CHECK" OpenRate="0" />
-        <Toggle name="匹配是否需要检查版本一致性" ID="TOGGLE_MATCH_VERSION_CHECK" OpenRate="0" />
-        <Toggle name="tlog区分多套ce环境【上线后关掉】" ID="TOGGLE_SUPORT_MUTLI_CE_TLOG" OpenRate="10000" />
-        <Toggle name="日志是否使用实时时间" ID="TOGGLE_LOG_REAL_TIME" OpenRate="0" />
-        <Toggle name="是否开启PvpOpenTime限制，请见PvpOpenTime.xlsx" ID="TOGGLE_PVP_OPEN_TIME" OpenRate="10000" />
-        <Toggle name="是否开启FubenOpenTime限制，请见FubenOpenTimeInfo.xlsx" ID="TOGGLE_FUBEN_OPEN_TIME" OpenRate="10000" />
-        <Toggle name="开局是否检查已经有单局" ID="TOGGLE_IN_GAME_CHECK" OpenRate="10000" />
-
-        <Toggle name="会员、超会入口" ID="TOGGLE_VIP_ENTRY" OpenRate="10000" />
-        <Toggle name="邀请" ID="TOGGLE_INVITE" OpenRate="10000" />
-        <Toggle name="游戏特权" ID="TOGGLE_GAME_PRIVILEGE" OpenRate="10000" />
-        <Toggle name="潘多拉开关" ID="TOGGLE_PANDORA" OpenRate="10000" />
-        <Toggle name="微社区入口开关" ID="TOGGLE_MICRO_COMMUNITY" OpenRate="10000" />
-        <Toggle name="企鹅电竞" ID="TOGGLE_TENCENT_ESPORT" OpenRate="10000" />
-        <Toggle name="心悦特权" ID="TOGGLE_XINYUE_PRIVILEGE" OpenRate="10000" />
-        <Toggle name="微信公众号" ID="TOGGLE_WEIXIN_MEDIA_PLATFORM" OpenRate="10000" />
-        <Toggle name="礼包中心" ID="TOGGLE_PACKAGE_CENTER" OpenRate="10000" />
-        <Toggle name="公告(包括:登录前公告+登录后公告)" ID="TOGGLE_ANNOUNCEMENT" OpenRate="10000" />
-        <Toggle name="活动入口" ID="TOGGLE_ACTIVITY_ENTRY" OpenRate="10000" />
-        <Toggle name="是否开启录像上传" ID="TOGGLE_UPLOAD_VIDEO" OpenRate="10000" />
     </FeatureToggle>
 
     <FeatureToggle EnvID="21" desc="审核服: 以下开关配置只会在审核服生效，会覆盖上面common的配置。">
