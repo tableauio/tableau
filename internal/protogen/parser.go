@@ -108,6 +108,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	matches := types.MatchMap(typeCell)
 	keyType := strings.TrimSpace(matches[1])
 	valueType := strings.TrimSpace(matches[2])
+	rawpropText := matches[3]
 
 	parsedKeyType := keyType
 	if types.MatchEnum(keyType) != nil {
@@ -173,6 +174,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Options = &tableaupb.FieldOptions{
 			Key:    trimmedNameCell,
 			Layout: layout,
+			Prop:   types.ParseProp(rawpropText),
 		}
 		if nested {
 			field.Options.Name = parsedValueType
@@ -205,6 +207,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Options = &tableaupb.FieldOptions{
 			Key:    trimmedNameCell,
 			Layout: layout,
+			Prop:   types.ParseProp(rawpropText),
 		}
 		if nested {
 			field.Options.Name = parsedValueType
@@ -234,6 +237,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Options = &tableaupb.FieldOptions{
 			Name: trimmedNameCell,
 			Type: tableaupb.Type_TYPE_INCELL_MAP,
+			Prop: types.ParseProp(rawpropText),
 		}
 	}
 
@@ -445,10 +449,19 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 }
 
 func (p *bookParser) parseScalarField(name, typ, note string) *tableaupb.Field {
+	rawpropText := ""
 	// enum syntax pattern
 	if matches := types.MatchEnum(typ); len(matches) > 0 {
 		enumType := strings.TrimSpace(matches[1])
 		typ = enumType
+		rawpropText = matches[2]
+	} else {
+		// scalar syntax pattern
+		splits := strings.SplitN(typ, "|", 2)
+		typ = splits[0]
+		if len(splits) > 1 {
+			rawpropText = splits[1]
+		}
 	}
 	typ, typeDefined := p.parseType(typ)
 
@@ -459,6 +472,7 @@ func (p *bookParser) parseScalarField(name, typ, note string) *tableaupb.Field {
 		Options: &tableaupb.FieldOptions{
 			Name: name,
 			Note: p.genNote(note),
+			Prop: types.ParseProp(rawpropText),
 		},
 	}
 }

@@ -58,10 +58,10 @@ message FieldOptions {
   string subsep = 7;  // subseparator, default: ":"
   bool optional = 8;  // whether the field is optional.
 
-  FieldExtension extension = 15;
+  FieldProp prop = 15; // property of field.
 }
 
-message FieldExtension {
+message FieldProp {
   // Usage: `{range:"1,10" refer:"XXXConf.ID"}`
 
   // NOTE: two perspectives of the check:

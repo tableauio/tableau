@@ -1,21 +1,32 @@
 package types
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+
+	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/proto/tableaupb"
+	"google.golang.org/protobuf/encoding/prototext"
+)
 
 var mapRegexp *regexp.Regexp
 var listRegexp *regexp.Regexp
 var keyedListRegexp *regexp.Regexp
 var structRegexp *regexp.Regexp
 var enumRegexp *regexp.Regexp
+var propRegexp *regexp.Regexp
 
 var boringIntegerRegexp *regexp.Regexp
 
+const rawpropRegex = `(\|\{.+\})?` // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
+
 func init() {
-	mapRegexp = regexp.MustCompile(`^map<(.+),(.+)>`)       // e.g.: map<uint32,Type>|{range:"1,10" refer:"XXXConf.ID"}
-	listRegexp = regexp.MustCompile(`^\[(.*)\](.+)`)        // e.g.: [Type]uint32
-	keyedListRegexp = regexp.MustCompile(`^\[(.*)\]<(.+)>`) // e.g.: [Type]<uint32>
-	structRegexp = regexp.MustCompile(`^\{(.+)\}(.+)`)      // e.g.: {Type}uint32
-	enumRegexp = regexp.MustCompile(`^enum<(.+)>`)          // e.g.: enum<Type>
+	mapRegexp = regexp.MustCompile(`^map<(.+),(.+)>` + rawpropRegex)       // e.g.: map<uint32,Type>
+	listRegexp = regexp.MustCompile(`^\[(.*)\](.+)` + rawpropRegex)        // e.g.: [Type]uint32
+	keyedListRegexp = regexp.MustCompile(`^\[(.*)\]<(.+)>` + rawpropRegex) // e.g.: [Type]<uint32>
+	structRegexp = regexp.MustCompile(`^\{(.+)\}(.+)` + rawpropRegex)      // e.g.: {Type}uint32
+	enumRegexp = regexp.MustCompile(`^enum<(.+)>` + rawpropRegex)          // e.g.: enum<Type>
+	propRegexp = regexp.MustCompile(`\|?\{(.+)\}`)                         // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
 
 	// trim float to integer after(include) dot, e.g: 0.0, 1.0, 1.00 ...
 	// refer: https://stackoverflow.com/questions/638565/parsing-scientific-notation-sensibly
@@ -42,8 +53,29 @@ func MatchEnum(text string) []string {
 	return enumRegexp.FindStringSubmatch(text)
 }
 
+func MatchProp(text string) []string {
+	return propRegexp.FindStringSubmatch(text)
+}
+
 func MatchBoringInteger(text string) []string {
 	return boringIntegerRegexp.FindStringSubmatch(text)
+}
+
+func ParseProp(text string) *tableaupb.FieldProp {
+	matches := propRegexp.FindStringSubmatch(text)
+	if len(matches) > 0 {
+		propText := strings.TrimSpace(matches[1])
+		if propText == "" {
+			return nil
+		}
+		prop := &tableaupb.FieldProp{}
+		if err := prototext.Unmarshal([]byte(propText), prop); err != nil {
+			atom.Log.Errorf("parse prop failed: %s", err)
+			return nil
+		}
+		return prop
+	}
+	return nil
 }
 
 type Kind int

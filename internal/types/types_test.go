@@ -20,21 +20,21 @@ func TestMatchList(t *testing.T) {
 			args: args{
 				text: "[]uint32",
 			},
-			want: []string{"[]uint32", "", "uint32"},
+			want: []string{"[]uint32", "", "uint32", ""},
 		},
 		{
 			name: "struct list",
 			args: args{
 				text: "[Type]uint32",
 			},
-			want: []string{"[Type]uint32", "Type", "uint32"},
+			want: []string{"[Type]uint32", "Type", "uint32", ""},
 		},
 		{
 			name: "keyed struct list",
 			args: args{
 				text: "[Type]<uint32>",
 			},
-			want: []string{"[Type]<uint32>", "Type", "<uint32>"},
+			want: []string{"[Type]<uint32>", "Type", "<uint32>", ""},
 		},
 	}
 	for _, tt := range tests {
@@ -61,7 +61,7 @@ func TestMatchKeyedList(t *testing.T) {
 			args: args{
 				text: "[Type]<uint32>",
 			},
-			want: []string{"[Type]<uint32>", "Type", "uint32"},
+			want: []string{"[Type]<uint32>", "Type", "uint32", ""},
 		},
 		{
 			name: "normal struct list",
@@ -164,20 +164,27 @@ func TestMatchMap(t *testing.T) {
 			args: args{
 				text: "map<int32, Server>",
 			},
-			want: []string{"map<int32, Server>", "int32", " Server"},
+			want: []string{"map<int32, Server>", "int32", " Server", ""},
 		},
 		{
 			name: "enum keyed map",
 			args: args{
 				text: "map<enum<.ServerType>, Server>",
 			},
-			want: []string{"map<enum<.ServerType>, Server>", "enum<.ServerType>", " Server"},
+			want: []string{"map<enum<.ServerType>, Server>", "enum<.ServerType>", " Server", ""},
+		},
+		{
+			name: "map with property",
+			args: args{
+				text: `map<int32, Server>|{range:"{1,110}"}`,
+			},
+			want: []string{`map<int32, Server>|{range:"{1,110}"}`, "int32", " Server", `|{range:"{1,110}"}`},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := MatchMap(tt.args.text); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MatchMap() = %v, want %v", got, tt.want)
+				t.Errorf("MatchMap() = %T, want %v", got[3], tt.want)
 			}
 		})
 	}

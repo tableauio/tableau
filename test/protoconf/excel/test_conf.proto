@@ -12,53 +12,53 @@ import "time.proto";
 option (tableau.workbook) = {name:"Test.xlsx"};
 
 message Activity {
-  option (tableau.worksheet) = {name:"Activity" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 nested:true sep:"," ordered_map:true};
+  option (tableau.worksheet) = {name:"Activity" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 sep:"," ordered_map:true};
 
-  map<uint32, Activity> activity_map = 1 [(tableau.field) = {name:"Activity" key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL prop:{range:"~,999999" unique:true}}];
   message Activity {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-  }
-  map<uint32, Chapter> chapter_map = 2 [(tableau.field) = {name:"Chapter" key:"ID" layout:LAYOUT_VERTICAL}];
-  message Chapter {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-  }
-  repeated Section section_list = 3 [(tableau.field) = {name:"Section" layout:LAYOUT_VERTICAL}];
-  message Section {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    repeated Item item_list = 3 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
-    message Item {
-      int32 id = 1 [(tableau.field) = {name:"Id"}];
-      int32 num = 2 [(tableau.field) = {name:"Num"}];
+    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID"}];
+    string activity_name = 2 [(tableau.field) = {name:"ActivityName"}];
+    map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
+    message Chapter {
+      uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID"}];
+      string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}];
+      repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+      message Section {
+        uint32 section_id = 1 [(tableau.field) = {name:"SectionID"}];
+        string section_name = 2 [(tableau.field) = {name:"SectionName"}];
+        repeated Item section_item_list = 3 [(tableau.field) = {name:"SectionItem" layout:LAYOUT_HORIZONTAL}];
+        message Item {
+          int32 id = 1 [(tableau.field) = {name:"Id"}];
+          int32 num = 2 [(tableau.field) = {name:"Num"}];
+        }
+        Duration duration = 4 [(tableau.field) = {name:"Duration"}];
+        google.protobuf.Duration timespan = 5 [(tableau.field) = {name:"Timespan"}];
+        Task task = 6 [(tableau.field) = {name:"Task"}];
+        message Task {
+          int32 type = 1 [(tableau.field) = {name:"Type"}];
+          int32 param_1 = 2 [(tableau.field) = {name:"Param1"}];
+          int32 param_2 = 3 [(tableau.field) = {name:"Param2"}];
+          int32 param_3 = 4 [(tableau.field) = {name:"Param3"}];
+          repeated int32 param_list_1 = 5 [(tableau.field) = {name:"ParamList1" type:TYPE_INCELL_LIST}];
+          repeated int32 param_list_2 = 6 [(tableau.field) = {name:"ParamList2" type:TYPE_INCELL_LIST}];
+          repeated int32 param_list_3 = 7 [(tableau.field) = {name:"ParamList3" type:TYPE_INCELL_LIST}];
+          map<int32, int32> param_map_1 = 8 [(tableau.field) = {name:"ParamMap1" type:TYPE_INCELL_MAP}];
+          map<int32, int32> param_map_2 = 9 [(tableau.field) = {name:"ParamMap2" type:TYPE_INCELL_MAP}];
+          int32 target = 10 [(tableau.field) = {name:"Target" prop:{range:"1,10"}}];
+        }
+        Info warn_info = 7 [(tableau.field) = {name:"WarnInfo" type:TYPE_INCELL_STRUCT}];
+        message Info {
+          int32 id = 1 [(tableau.field) = {name:"Id"}];
+          string desc = 2 [(tableau.field) = {name:"Desc"}];
+          int32 value = 3 [(tableau.field) = {name:"Value"}];
+        }
+        Info incell_struct = 8 [(tableau.field) = {name:"IncellStruct" type:TYPE_INCELL_STRUCT}];
+        repeated int32 int_params = 9 [(tableau.field) = {name:"IntParams" type:TYPE_INCELL_LIST}];
+        map<int32, string> tips = 10 [(tableau.field) = {name:"Tips" type:TYPE_INCELL_MAP}];
+        repeated string client_param_list = 11 [(tableau.field) = {name:"ClientParam" layout:LAYOUT_HORIZONTAL}];
+      }
     }
   }
-  Duration duration = 4 [(tableau.field) = {name:"Duration"}];
-  google.protobuf.Duration timespan = 5 [(tableau.field) = {name:"Timespan"}];
-  Task task = 6 [(tableau.field) = {name:"Task"}];
-  message Task {
-    int32 type = 1 [(tableau.field) = {name:"Type"}];
-    int32 param_1 = 2 [(tableau.field) = {name:"Param1"}];
-    int32 param_2 = 3 [(tableau.field) = {name:"Param2"}];
-    int32 param_3 = 4 [(tableau.field) = {name:"Param3"}];
-    repeated int32 param_list_1 = 5 [(tableau.field) = {name:"ParamList1" type:TYPE_INCELL_LIST}];
-    repeated int32 param_list_2 = 6 [(tableau.field) = {name:"ParamList2" type:TYPE_INCELL_LIST}];
-    repeated int32 param_list_3 = 7 [(tableau.field) = {name:"ParamList3" type:TYPE_INCELL_LIST}];
-    map<int32, int32> param_map_1 = 8 [(tableau.field) = {name:"ParamMap1" type:TYPE_INCELL_MAP}];
-    map<int32, int32> param_map_2 = 9 [(tableau.field) = {name:"ParamMap2" type:TYPE_INCELL_MAP}];
-    int32 target = 10 [(tableau.field) = {name:"Target"}];
-  }
-  Info warn_info = 7 [(tableau.field) = {name:"WarnInfo" type:TYPE_INCELL_STRUCT}];
-  message Info {
-    int32 id = 1 [(tableau.field) = {name:"Id"}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
-    int32 value = 3 [(tableau.field) = {name:"Value"}];
-  }
-  Info incell_struct = 8 [(tableau.field) = {name:"IncellStruct" type:TYPE_INCELL_STRUCT}];
-  repeated int32 int_params = 9 [(tableau.field) = {name:"IntParams" type:TYPE_INCELL_LIST}];
-  map<int32, string> tips = 10 [(tableau.field) = {name:"Tips" type:TYPE_INCELL_MAP}];
-  repeated string client_param_list = 11 [(tableau.field) = {name:"ClientParam" layout:LAYOUT_HORIZONTAL}];
 }
 
 message ExchangeInfo {
