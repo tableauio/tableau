@@ -108,7 +108,7 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 
 					md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
 					// atom.Log.Debugf("%s", md.FullName())
-					atom.Log.Infof("generate: %s#%s <-> %s#%s", fd.Path(), md.Name(), workbook.Name, sheetName)
+					atom.Log.Infof("generate: %s#%s (%s#%s)", fd.Path(), md.Name(), workbook.Name, sheetName)
 					newMsg := dynamicpb.NewMessage(md)
 					parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
 					exporter := NewSheetExporter(gen.OutputDir, gen.Output)

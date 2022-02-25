@@ -438,9 +438,8 @@ func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap prot
 			return mapKey, errors.WithMessagef(err, "failed to parse key: %s", cellData)
 		}
 		// check range
-		atom.Log.Debugf("key: %s, opts: %s", protoKeyName, opts)
 		if !prop.InRange(opts.Prop, fd, fieldValue) {
-			return mapKey, errors.Errorf("%s out of range %s", cellData, opts.Prop.Range)
+			return mapKey, errors.Errorf("%s out of range [%s]", cellData, opts.Prop.Range)
 		}
 		mapKey = fieldValue.MapKey()
 	}
@@ -509,9 +508,9 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 					if !keyedListItemExisted && !types.EqualMessage(emptyListValue, listItemValue) {
 						reflectList.Append(listItemValue)
-						if prefix+field.opts.Name == "ServerConfCondition" {
-							atom.Log.Debugf("append list item: %+v", listItemValue)
-						}
+						// if prefix+field.opts.Name == "ServerConfCondition" {
+						// 	atom.Log.Debugf("append list item: %+v", listItemValue)
+						// }
 					}
 				} else {
 					newListValue := reflectList.NewElement()
@@ -677,7 +676,7 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	}
 	// check range
 	if !prop.InRange(field.opts.Prop, field.fd, newValue) {
-		return errors.Errorf("%s|scalar: value %v out of range %s", rc.CellDebugString(colName), newValue, field.opts.Prop.Range)
+		return errors.Errorf("%s|scalar: value %v out of range [%s]", rc.CellDebugString(colName), newValue, field.opts.Prop.Range)
 	}
 	msg.Set(field.fd, newValue)
 	return nil

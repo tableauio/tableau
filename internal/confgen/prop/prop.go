@@ -14,14 +14,12 @@ func IsUnique(prop *tableaupb.FieldProp) bool {
 }
 
 func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value) bool {
-	if prop == nil {
+	if prop == nil || strings.TrimSpace(prop.Range) == "" {
 		return true
 	}
 	splits := strings.SplitN(prop.Range, ",", 2)
 	leftStr := strings.TrimSpace(splits[0])
 	rightStr := strings.TrimSpace(splits[1])
-
-	atom.Log.Debugf("inRange: %s %s %s", leftStr, rightStr, value.String())
 
 	switch fd.Kind() {
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,

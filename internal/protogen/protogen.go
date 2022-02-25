@@ -178,7 +178,7 @@ func (gen *Generator) convert(dir, filename string) error {
 	if len(sheets) == 0 {
 		return nil
 	}
-	atom.Log.Infof("workbook: %s, %s", gen.InputDir, relativePath)
+	atom.Log.Infof("workbook: %s", relativePath)
 	// creat a book parser
 	bp := newBookParser(relativePath, gen.FilenameWithSubdirPrefix, gen.Imports)
 	for _, sheet := range sheets {

@@ -9,6 +9,7 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/options"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -69,6 +70,7 @@ func (x *messageExporter) Export() error {
 		return errors.Wrapf(err, "failed to write file: %s", fpath)
 	}
 	// out.WriteTo(os.Stdout)
+	atom.Log.Infof("output: %s", filename)
 	return nil
 }
 

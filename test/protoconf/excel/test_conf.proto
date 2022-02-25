@@ -14,7 +14,7 @@ option (tableau.workbook) = {name:"Test.xlsx"};
 message Activity {
   option (tableau.worksheet) = {name:"Activity" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 sep:"," ordered_map:true};
 
-  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL prop:{range:"~,999999" unique:true}}];
+  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL prop:{range:"~,999999"}}];
   message Activity {
     uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID"}];
     string activity_name = 2 [(tableau.field) = {name:"ActivityName"}];
@@ -24,11 +24,11 @@ message Activity {
       string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}];
       repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
       message Section {
-        uint32 section_id = 1 [(tableau.field) = {name:"SectionID"}];
+        uint32 section_id = 1 [(tableau.field) = {name:"SectionID" prop:{range:"~,100"}}];
         string section_name = 2 [(tableau.field) = {name:"SectionName"}];
         repeated Item section_item_list = 3 [(tableau.field) = {name:"SectionItem" layout:LAYOUT_HORIZONTAL}];
         message Item {
-          int32 id = 1 [(tableau.field) = {name:"Id"}];
+          int32 id = 1 [(tableau.field) = {name:"Id" prop:{range:"~,3001"}}];
           int32 num = 2 [(tableau.field) = {name:"Num"}];
         }
         Duration duration = 4 [(tableau.field) = {name:"Duration"}];
@@ -44,7 +44,7 @@ message Activity {
           repeated int32 param_list_3 = 7 [(tableau.field) = {name:"ParamList3" type:TYPE_INCELL_LIST}];
           map<int32, int32> param_map_1 = 8 [(tableau.field) = {name:"ParamMap1" type:TYPE_INCELL_MAP}];
           map<int32, int32> param_map_2 = 9 [(tableau.field) = {name:"ParamMap2" type:TYPE_INCELL_MAP}];
-          int32 target = 10 [(tableau.field) = {name:"Target" prop:{range:"1,10"}}];
+          int32 target = 10 [(tableau.field) = {name:"Target" prop:{range:"~,10"}}];
         }
         Info warn_info = 7 [(tableau.field) = {name:"WarnInfo" type:TYPE_INCELL_STRUCT}];
         message Info {
@@ -57,6 +57,27 @@ message Activity {
         map<int32, string> tips = 10 [(tableau.field) = {name:"Tips" type:TYPE_INCELL_MAP}];
         repeated string client_param_list = 11 [(tableau.field) = {name:"ClientParam" layout:LAYOUT_HORIZONTAL}];
       }
+    }
+  }
+}
+
+message Reward {
+  option (tableau.worksheet) = {name:"Reward" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1};
+
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true}}];
+  message Reward {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    repeated Item reward_item_list = 3 [(tableau.field) = {name:"RewardItem" layout:LAYOUT_HORIZONTAL}];
+    repeated Exchange exchange_list = 4 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+    message Exchange {
+      uint32 exchange_id = 1 [(tableau.field) = {name:"ExchangeId"}];
+      repeated ExchangeItem input_item_list = 2 [(tableau.field) = {name:"InputItem" layout:LAYOUT_HORIZONTAL}];
+      message ExchangeItem {
+        int32 id = 1 [(tableau.field) = {name:"Id"}];
+        int32 num = 2 [(tableau.field) = {name:"Num"}];
+      }
+      repeated ExchangeItem output_item_list = 3 [(tableau.field) = {name:"OutputItem" layout:LAYOUT_HORIZONTAL}];
     }
   }
 }

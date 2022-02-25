@@ -113,8 +113,9 @@ func (x *bookExporter) export() error {
 	g2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
 	g2.P("")
 
-	path := filepath.Join(x.OutputDir, x.wb.Name+x.FilenameSuffix+".proto")
-	atom.Log.Infof("output: %s", path)
+	relPath := x.wb.Name+x.FilenameSuffix+".proto"
+	path := filepath.Join(x.OutputDir, relPath)
+	atom.Log.Infof("output: %s", relPath)
 
 	if existed, err := fs.Exists(path); err != nil {
 		return errors.WithMessagef(err, "failed to check if file exists: %s", path)

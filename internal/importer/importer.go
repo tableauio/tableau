@@ -14,6 +14,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/camelcase"
+	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/xuri/excelize/v2"
@@ -233,13 +234,13 @@ func (r *RowCells) Cell(name string, optional bool) *RowCell {
 func (r *RowCells) CellDebugString(name string) string {
 	rc := r.Cell(name, false)
 	if rc == nil {
-		return fmt.Sprintf("(%d,%d)%s:%s", r.Row+1, -1, name, "")
+		return fmt.Sprintf("position(%d,%s), field(%s:%s)", r.Row+1, "nil", name, "")
 	}
 	dataFlag := ""
 	if rc.autoPopulated {
 		dataFlag = "~"
 	}
-	return fmt.Sprintf("(%d,%d)%s:%s%s", r.Row+1, rc.Col+1, name, rc.Data, dataFlag)
+	return fmt.Sprintf("position(%d,%s), field(%s:%s%s)", r.Row+1, printer.LetterAxis(rc.Col), name, rc.Data, dataFlag)
 }
 
 func (r *RowCells) SetCell(name string, col int, data, typ string) {

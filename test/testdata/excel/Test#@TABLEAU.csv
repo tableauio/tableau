@@ -1,5 +1,6 @@
 Sheet,Alias,Nameline,Typeline,Nested,OrderedMap,Sep
 Activity,,1,1,,true,","
+Reward,,1,1,,,
 Exchange,ExchangeInfo,0,0,,,
 Match,MatchConf,1,1,true,,
 Loader,,1,1,true,,

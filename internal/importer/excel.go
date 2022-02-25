@@ -18,21 +18,22 @@ import (
 const MetaSheetName = "@TABLEAU"
 
 type ExcelImporter struct {
-	filename   string
-	sheetMap   map[string]*Sheet // sheet name -> sheet
-	sheetNames []string
+	filename         string
+	sheetMap         map[string]*Sheet // sheet name -> sheet
+	sheetNames       []string
 	includeMetaSheet bool
 
 	Meta       *tableaupb.WorkbookMeta
 	metaParser SheetParser
 }
+
 // TODO: options
 func NewExcelImporter(filename string, sheets []string, parser SheetParser, includeMetaSheet bool) *ExcelImporter {
 	return &ExcelImporter{
-		filename:   filename,
-		sheetNames: sheets,
+		filename:         filename,
+		sheetNames:       sheets,
 		includeMetaSheet: includeMetaSheet,
-		metaParser: parser,
+		metaParser:       parser,
 		Meta: &tableaupb.WorkbookMeta{
 			SheetMetaMap: make(map[string]*tableaupb.SheetMeta),
 		},
@@ -102,7 +103,7 @@ func (x *ExcelImporter) NeedParseMeta() bool {
 
 func (x *ExcelImporter) parseWorkbookMeta(file *excelize.File) error {
 	if !x.NeedParseMeta() {
-		atom.Log.Debugf("skip parsing workbook meta: %s", x.filename)
+		// atom.Log.Debugf("skip parsing workbook meta: %s", x.filename)
 		return nil
 	}
 
@@ -123,7 +124,7 @@ func (x *ExcelImporter) parseWorkbookMeta(file *excelize.File) error {
 			}
 		}
 		return nil
-	}	
+	}
 	if err := x.metaParser.Parse(x.Meta, sheet); err != nil {
 		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, MetaSheetName)
 	}
@@ -177,7 +178,7 @@ func (x *ExcelImporter) collectSheetsInOrder(file *excelize.File) error {
 	x.sheetNames = nil
 	for _, val := range sortedMap.Values() {
 		sheetName := val.(string)
-		if  sheetName != MetaSheetName || (x.includeMetaSheet && sheetName == MetaSheetName) {
+		if sheetName != MetaSheetName || (x.includeMetaSheet && sheetName == MetaSheetName) {
 			// exclude meta sheet
 			x.sheetNames = append(x.sheetNames, sheetName)
 		}

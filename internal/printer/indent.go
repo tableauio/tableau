@@ -7,7 +7,8 @@ func Indent(depth int) string {
 	return strings.Repeat("  ", depth)
 }
 
-// LetterAxis Get the corresponding column name
+// LetterAxis generate the corresponding column name.
+// index: 0-based.
 func LetterAxis(index int) string {
 	var (
 		colCode = ""
