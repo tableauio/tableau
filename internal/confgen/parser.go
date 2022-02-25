@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen/mexporter"
+	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/options"
@@ -179,6 +180,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.
 		sep := ","
 		subsep := ":"
 		optional := false
+		var prop *tableaupb.FieldProp
 
 		opts := fd.Options().(*descriptorpb.FieldOptions)
 		fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
@@ -191,6 +193,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.
 			sep = strings.TrimSpace(fieldOpts.Sep)
 			subsep = strings.TrimSpace(fieldOpts.Subsep)
 			optional = fieldOpts.Optional
+			prop = fieldOpts.Prop
 		} else {
 			// default processing
 			if fd.IsList() {
@@ -227,6 +230,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.
 				Sep:      sep,
 				Subsep:   subsep,
 				Optional: optional,
+				Prop:     prop,
 			},
 		}
 		err = sp.parseField(field, msg, rc, depth, prefix)
@@ -284,8 +288,8 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				if err != nil {
 					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), key)
 				}
-				newMapKey := fieldValue.MapKey()
 
+				newMapKey := fieldValue.MapKey()
 				fieldValue, err = sp.parseFieldValue(valueFd, value)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), value)
@@ -314,13 +318,17 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					if cell == nil {
 						return errors.Errorf("%s|horizontal map: key column not found", rc.CellDebugString(keyColName))
 					}
-					newMapKey, err := sp.parseMapKey(reflectMap, strcase.ToSnake(field.opts.Key), cell.Data)
+					newMapKey, err := sp.parseMapKey(field.opts, reflectMap, strcase.ToSnake(field.opts.Key), cell.Data)
 					if err != nil {
 						return errors.WithMessagef(err, "%s|horizontal map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
 					}
 
 					var newMapValue protoreflect.Value
 					if reflectMap.Has(newMapKey) {
+						// check uniqueness
+						if prop.IsUnique(field.opts.Prop) {
+							return errors.Errorf("%s|horizontal map: key %s already exists", rc.CellDebugString(keyColName), cell.Data)
+						}
 						newMapValue = reflectMap.Mutable(newMapKey)
 					} else {
 						newMapValue = reflectMap.NewValue()
@@ -339,13 +347,17 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				if cell == nil {
 					return errors.Errorf("%s|vertical map: key column not found", rc.CellDebugString(keyColName))
 				}
-				newMapKey, err := sp.parseMapKey(reflectMap, strcase.ToSnake(field.opts.Key), cell.Data)
+				newMapKey, err := sp.parseMapKey(field.opts, reflectMap, strcase.ToSnake(field.opts.Key), cell.Data)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|vertical map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
 				}
 
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
+					// check uniqueness
+					if prop.IsUnique(field.opts.Prop) {
+						return errors.Errorf("%s|vertical map: key %s already exists", rc.CellDebugString(keyColName), cell.Data)
+					}
 					newMapValue = reflectMap.Mutable(newMapKey)
 				} else {
 					newMapValue = reflectMap.NewValue()
@@ -375,6 +387,10 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			newMapKey := fieldValue.MapKey()
 			var newMapValue protoreflect.Value
 			if reflectMap.Has(newMapKey) {
+				// check uniqueness
+				if prop.IsUnique(field.opts.Prop) {
+					return errors.Errorf("%s|vertical map(scalar): key %s already exists", rc.CellDebugString(keyColName), cell.Data)
+				}
 				newMapValue = reflectMap.Mutable(newMapKey)
 			} else {
 				newMapValue = reflectMap.NewValue()
@@ -400,7 +416,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	return nil
 }
 
-func (sp *sheetParser) parseMapKey(reflectMap protoreflect.Map, protoKeyName, cellData string) (protoreflect.MapKey, error) {
+func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap protoreflect.Map, protoKeyName, cellData string) (protoreflect.MapKey, error) {
 	var mapKey protoreflect.MapKey
 
 	md := reflectMap.NewValue().Message().Descriptor()
@@ -420,6 +436,11 @@ func (sp *sheetParser) parseMapKey(reflectMap protoreflect.Map, protoKeyName, ce
 		fieldValue, err := sp.parseFieldValue(fd, cellData)
 		if err != nil {
 			return mapKey, errors.WithMessagef(err, "failed to parse key: %s", cellData)
+		}
+		// check range
+		atom.Log.Debugf("key: %s, opts: %s", protoKeyName, opts)
+		if !prop.InRange(opts.Prop, fd, fieldValue) {
+			return mapKey, errors.Errorf("%s out of range %s", cellData, opts.Prop.Range)
 		}
 		mapKey = fieldValue.MapKey()
 	}
@@ -653,6 +674,10 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	newValue, err = sp.parseFieldValue(field.fd, cell.Data)
 	if err != nil {
 		return errors.WithMessagef(err, "%s|scalar: failed to parse field value: %s", rc.CellDebugString(colName), cell.Data)
+	}
+	// check range
+	if !prop.InRange(field.opts.Prop, field.fd, newValue) {
+		return errors.Errorf("%s|scalar: value %v out of range %s", rc.CellDebugString(colName), newValue, field.opts.Prop.Range)
 	}
 	msg.Set(field.fd, newValue)
 	return nil
