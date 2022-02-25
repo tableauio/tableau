@@ -23,6 +23,13 @@ func TestMatchList(t *testing.T) {
 			want: []string{"[]uint32", "", "uint32", ""},
 		},
 		{
+			name: "scalar list with prop",
+			args: args{
+				text: `[]uint32|{range:"1,10"}`,
+			},
+			want: []string{`[]uint32|{range:"1,10"}`, "", "uint32", `|{range:"1,10"}`},
+		},
+		{
 			name: "struct list",
 			args: args{
 				text: "[Type]uint32",

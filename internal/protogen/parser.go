@@ -108,7 +108,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	matches := types.MatchMap(typeCell)
 	keyType := strings.TrimSpace(matches[1])
 	valueType := strings.TrimSpace(matches[2])
-	rawpropText := matches[3]
+	rawpropText := strings.TrimSpace(matches[3])
 
 	parsedKeyType := keyType
 	if types.MatchEnum(keyType) != nil {
@@ -260,7 +260,9 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		// scalar type, such as int32, string, etc.
 		elemType = colType
 		isScalarType = true
+		atom.Log.Debug("list|scalar type", elemType)
 	}
+	rawpropText := strings.TrimSpace(matches[3])
 
 	// preprocess
 	layout := tableaupb.Layout_LAYOUT_VERTICAL // default layout is vertical.
@@ -330,8 +332,8 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				colType = strings.TrimSpace(matches[2])
 				field.Options.Key = trimmedNameCell
 			}
-
-			field.Fields = append(field.Fields, p.parseScalarField(trimmedNameCell, colType, noteCell))
+			colTypeWithProp := colType + rawpropText
+			field.Fields = append(field.Fields, p.parseScalarField(trimmedNameCell, colTypeWithProp, noteCell))
 			for cursor++; cursor < len(header.namerow); cursor++ {
 				if nested {
 					nameCell := header.getNameCell(cursor)
@@ -368,7 +370,8 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			}
 		} else {
 			name := strings.TrimPrefix(nameCell, prefix+"1")
-			field.Fields = append(field.Fields, p.parseScalarField(name, colType, noteCell))
+			colTypeWithProp := colType + rawpropText
+			field.Fields = append(field.Fields, p.parseScalarField(name, colTypeWithProp, noteCell))
 			for cursor++; cursor < len(header.namerow); cursor++ {
 				nameCell := header.getNameCell(cursor)
 				if strings.HasPrefix(nameCell, prefix+"1") {
@@ -389,6 +392,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.Options = &tableaupb.FieldOptions{
 			Name: trimmedNameCell,
 			Type: tableaupb.Type_TYPE_INCELL_LIST,
+			Prop: types.ParseProp(rawpropText),
 		}
 	}
 	return cursor

@@ -232,15 +232,18 @@ func (r *RowCells) Cell(name string, optional bool) *RowCell {
 }
 
 func (r *RowCells) CellDebugString(name string) string {
+	pos := "?"
+	data := ""
 	rc := r.Cell(name, false)
 	if rc == nil {
-		return fmt.Sprintf("position(%d,%s), field(%s:%s)", r.Row+1, "nil", name, "")
+		return fmt.Sprintf("%s%d(%s), %s", pos, r.Row+1, data, name)
 	}
-	dataFlag := ""
+	data = rc.Data
 	if rc.autoPopulated {
-		dataFlag = "~"
+		data += "~"
 	}
-	return fmt.Sprintf("position(%d,%s), field(%s:%s%s)", r.Row+1, excel.LetterAxis(rc.Col), name, rc.Data, dataFlag)
+	pos = excel.LetterAxis(rc.Col)
+	return fmt.Sprintf("%s%d(%s), %s", pos, r.Row+1, data, name)
 }
 
 func (r *RowCells) SetCell(name string, col int, data, typ string) {

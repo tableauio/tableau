@@ -289,6 +289,11 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), key)
 				}
 
+				// check range: key
+				if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
+					return errors.Errorf("%s|incell map: %s out of range [%s]", rc.CellDebugString(colName), key, field.opts.Prop.Range)
+				}
+
 				newMapKey := fieldValue.MapKey()
 				fieldValue, err = sp.parseFieldValue(valueFd, value)
 				if err != nil {
@@ -384,6 +389,12 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if err != nil {
 				return errors.WithMessagef(err, "%s|failed to parse field value: %s", rc.CellDebugString(keyColName), cell.Data)
 			}
+
+			// check range
+			if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
+				return errors.Errorf("%s|vertical map(scalar): value %s out of range [%s]", rc.CellDebugString(keyColName), cell.Data, field.opts.Prop.Range)
+			}
+
 			newMapKey := fieldValue.MapKey()
 			var newMapValue protoreflect.Value
 			if reflectMap.Has(newMapKey) {
@@ -437,7 +448,7 @@ func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap prot
 		if err != nil {
 			return mapKey, errors.WithMessagef(err, "failed to parse key: %s", cellData)
 		}
-		// check range
+		// check range: key
 		if !prop.InRange(opts.Prop, fd, fieldValue) {
 			return mapKey, errors.Errorf("%s out of range [%s]", cellData, opts.Prop.Range)
 		}
@@ -462,11 +473,15 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			// slice of length 1 whose only element is s.
 			splits := strings.Split(cell.Data, field.opts.Sep)
 			for _, incell := range splits {
-				value, err := sp.parseFieldValue(field.fd, incell)
+				fieldValue, err := sp.parseFieldValue(field.fd, incell)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|incell list: failed to parse field value: %s", rc.CellDebugString(colName), incell)
 				}
-				reflectList.Append(value)
+				// check range
+				if !prop.InRange(field.opts.Prop, field.fd, fieldValue) {
+					return errors.Errorf("%s|incell list: value %s out of range [%s]", rc.CellDebugString(colName), incell, field.opts.Prop.Range)
+				}
+				reflectList.Append(fieldValue)
 			}
 		}
 	} else {
