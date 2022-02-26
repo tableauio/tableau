@@ -323,7 +323,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					if cell == nil {
 						return errors.Errorf("%s|horizontal map: key column not found", rc.CellDebugString(keyColName))
 					}
-					newMapKey, err := sp.parseMapKey(field.opts, reflectMap, strcase.ToSnake(field.opts.Key), cell.Data)
+					newMapKey, err := sp.parseMapKey(field.opts, reflectMap, cell.Data)
 					if err != nil {
 						return errors.WithMessagef(err, "%s|horizontal map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
 					}
@@ -352,7 +352,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				if cell == nil {
 					return errors.Errorf("%s|vertical map: key column not found", rc.CellDebugString(keyColName))
 				}
-				newMapKey, err := sp.parseMapKey(field.opts, reflectMap, strcase.ToSnake(field.opts.Key), cell.Data)
+				newMapKey, err := sp.parseMapKey(field.opts, reflectMap, cell.Data)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|vertical map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
 				}
@@ -427,29 +427,40 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	return nil
 }
 
-func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap protoreflect.Map, protoKeyName, cellData string) (protoreflect.MapKey, error) {
+func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap protoreflect.Map, cellData string) (protoreflect.MapKey, error) {
 	var mapKey protoreflect.MapKey
+	var keyFd protoreflect.FieldDescriptor
 
 	md := reflectMap.NewValue().Message().Descriptor()
-	fd := md.Fields().ByName(protoreflect.Name(protoKeyName))
-	if fd == nil {
-		return mapKey, errors.Errorf("%s|key '%s' not found in proto definition", protoKeyName)
+	for i := 0; i < md.Fields().Len(); i++ {
+		fd := md.Fields().Get(i)
+		fdOpts := fd.Options().(*descriptorpb.FieldOptions)
+		if fdOpts != nil {
+			tableauFieldOpts := proto.GetExtension(fdOpts, tableaupb.E_Field).(*tableaupb.FieldOptions)
+			if tableauFieldOpts != nil && tableauFieldOpts.Name == opts.Key {
+				keyFd = fd
+				break
+			}
+		}
+	}
+	if keyFd == nil {
+		return mapKey, errors.Errorf("key %s not found in proto definition", keyFd.FullName().Name())
 	}
 
-	if fd.Kind() == protoreflect.EnumKind {
-		fieldValue, err := sp.parseFieldValue(fd, cellData)
+	if keyFd.Kind() == protoreflect.EnumKind {
+		fieldValue, err := sp.parseFieldValue(keyFd, cellData)
 		if err != nil {
 			return mapKey, errors.Errorf("failed to parse key: %s", cellData)
 		}
 		v := protoreflect.ValueOfInt32(int32(fieldValue.Enum()))
 		mapKey = v.MapKey()
 	} else {
-		fieldValue, err := sp.parseFieldValue(fd, cellData)
+		fieldValue, err := sp.parseFieldValue(keyFd, cellData)
 		if err != nil {
 			return mapKey, errors.WithMessagef(err, "failed to parse key: %s", cellData)
 		}
 		// check range: key
-		if !prop.InRange(opts.Prop, fd, fieldValue) {
+		if !prop.InRange(opts.Prop, keyFd, fieldValue) {
 			return mapKey, errors.Errorf("%s out of range [%s]", cellData, opts.Prop.Range)
 		}
 		mapKey = fieldValue.MapKey()
