@@ -444,7 +444,7 @@ func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap prot
 		}
 	}
 	if keyFd == nil {
-		return mapKey, errors.Errorf("key %s not found in proto definition", keyFd.FullName().Name())
+		return mapKey, errors.Errorf("opts.Key %s not found in proto definition", opts.Key)
 	}
 
 	if keyFd.Kind() == protoreflect.EnumKind {
