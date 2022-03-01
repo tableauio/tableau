@@ -302,7 +302,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 		// 2. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)
 		setKeyedType := (!prefixExist || (len(matches) > 0 && repeated)) && nav.LocalName() != metaSheet.Worksheet
 		if needChangeType {
-			if matches := types.MatchMap(t); len(matches) == 3 {
+			if matches := types.MatchMap(t); len(matches) >= 3 {
 				// case 1: map<uint32,Type>
 				if !types.IsScalarType(matches[1]) && len(types.MatchEnum(matches[1])) == 0 {
 					return errors.Errorf("%s is not scalar type in node %s attr %s type %s", matches[1], nav.LocalName(), attrName, t)
@@ -311,7 +311,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[2], attrName, t, nav.LocalName())
 				}
 				metaSheet.SetColType(colName, t)
-			} else if matches := types.MatchKeyedList(t); len(matches) == 3 {
+			} else if matches := types.MatchKeyedList(t); len(matches) >= 3 {
 				// case 2: [Type]<uint32>
 				if i != 0 {
 					return errors.Errorf("KeyedList attr %s in node %s must be the first attr", attrName, nav.LocalName())
@@ -323,7 +323,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[1], attrName, t, nav.LocalName())
 				}
 				metaSheet.SetColType(colName, t)
-			} else if matches := types.MatchList(t); len(matches) == 3 {
+			} else if matches := types.MatchList(t); len(matches) >= 3 {
 				// case 3: [Type]uint32
 				if i != 0 {
 					return errors.Errorf("KeyedList attr %s in node %s must be the first attr", attrName, nav.LocalName())
