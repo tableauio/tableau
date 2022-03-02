@@ -53,6 +53,8 @@ type OutputOption struct {
 
 type InputOption struct {
 	Format format.Format
+	// Specify only those sub-directories (relative to input dir) to be processed.
+	Subdirs []string
 }
 
 // Option is the functional option type.

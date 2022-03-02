@@ -39,6 +39,12 @@ func Test_Excel2Proto(t *testing.T) {
 				"time.proto",
 			},
 		),
+		options.Input(
+			&options.InputOption{
+				Format:  format.Excel,
+				Subdirs: []string{`./`},
+			},
+		),
 		options.Output(
 			&options.OutputOption{
 				FilenameSuffix:           "_conf",

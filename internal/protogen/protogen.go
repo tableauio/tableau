@@ -102,6 +102,15 @@ func (gen *Generator) Generate() error {
 	if err := gen.PrepareOutpuDir(); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", gen.OutputDir)
 	}
+	if len(gen.InputOpts.Subdirs) != 0 {
+		for _, subdir := range gen.InputOpts.Subdirs {
+			dir := filepath.Join(gen.InputDir, subdir)
+			if err := gen.generate(dir); err != nil {
+				return errors.WithMessagef(err, "failed to generate %s", dir)
+			}
+		}
+		return nil
+	}
 	return gen.generate(gen.InputDir)
 }
 
@@ -164,7 +173,7 @@ func (gen *Generator) convert(dir, filename string) error {
 		return errors.WithMessagef(err, "get relative path failed")
 	}
 	absPath := filepath.Join(dir, filename)
-	wsOpts :=  &tableaupb.WorksheetOptions{
+	wsOpts := &tableaupb.WorksheetOptions{
 		Name:    importer.MetaSheetName,
 		Namerow: 1,
 		Datarow: 2,

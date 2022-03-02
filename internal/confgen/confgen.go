@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -53,11 +54,11 @@ type sheetInfo struct {
 
 func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (err error) {
 	if relWorkbookPath != "" {
-		relCleanSlashPath := filepath.ToSlash(filepath.Clean(relWorkbookPath))
+		relCleanSlashPath := fs.GetCleanSlashPath(relWorkbookPath)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get relative path from %s to %s", gen.InputDir, relWorkbookPath)
 		}
-		atom.Log.Debugf("relWorkbookPath: %s -> %s", relWorkbookPath, relCleanSlashPath)
+		atom.Log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", relWorkbookPath, relCleanSlashPath)
 		relWorkbookPath = relCleanSlashPath
 	}
 

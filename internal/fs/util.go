@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
 )
 
 // CopyFile copies a file from src to dst. If src and dst files exist, and are
@@ -76,4 +79,16 @@ func Exists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func GetCleanSlashPath(path string) string {
+	return filepath.ToSlash(filepath.Clean(path))
+}
+
+func GetRelCleanSlashPath(rootdir, path string) (string, error) {
+	relPath, err := filepath.Rel(rootdir, path)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get relative path from %s to %s", rootdir, path)
+	}
+	return GetCleanSlashPath(relPath), nil
 }

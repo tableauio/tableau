@@ -260,7 +260,6 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		// scalar type, such as int32, string, etc.
 		elemType = colType
 		isScalarType = true
-		atom.Log.Debug("list|scalar type", elemType)
 	}
 	rawpropText := strings.TrimSpace(matches[3])
 
