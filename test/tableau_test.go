@@ -90,7 +90,7 @@ func Test_Excel2JSON_Select(t *testing.T) {
 func Test_Excel2CSV(t *testing.T) {
 	paths := []string{
 		"./testdata/excel/Test.xlsx",
-		"./testdata/excel/hero/Test.xlsx",
+		"./testdata/excel/hero/Hero.xlsx",
 	}
 	for _, path := range paths {
 		imp := importer.NewExcelImporter(path, nil, nil, true)

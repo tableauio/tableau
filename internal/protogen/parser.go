@@ -191,9 +191,10 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			cursor = p.parseSubField(field, header, cursor, prefix, nested)
 		}
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
-		if nested {
-			prefix += parsedValueType // add prefix with value type
-		}
+		// horizontal list: continuous N columns belong to this list after this cursor.
+		mapName := trimmedNameCell[:index]
+		prefix += mapName
+
 		field.Name = strcase.ToSnake(parsedValueType) + "_map"
 		field.Type = mapType
 		// For map type, TypeDefined indicates the ValueType of map has been defined.
@@ -205,6 +206,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix+"1")
 		field.Options = &tableaupb.FieldOptions{
+			Name:   mapName,
 			Key:    trimmedNameCell,
 			Layout: layout,
 			Prop:   types.ParseProp(rawpropText),
@@ -293,12 +295,6 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				}
 			}
 		}
-		// for tmpNameCell, listName := trimmedNameCell, trimmedNameCell[:index]; strings.Contains(tmpNameCell, listName); {
-		// 	if tmpCursor++; tmpCursor >= len(header.namerow) {
-		// 		break
-		// 	}
-		// 	tmpNameCell = strings.TrimPrefix(header.getNameCell(tmpCursor), prefix)
-		// }
 	} else {
 		if isScalarType {
 			layout = tableaupb.Layout_LAYOUT_DEFAULT // incell list
