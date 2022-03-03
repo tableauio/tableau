@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
@@ -74,7 +75,6 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 	protoregistry.GlobalFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
-			// atom.Log.Debugf("filepath: %s", fd.Path())
 			err = func() error {
 				_, workbook := ParseFileOptions(fd)
 				if workbook == nil {
@@ -84,6 +84,13 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 					return nil
 				}
 				workbookFound = true
+				fmt, err := format.Ext2Format(filepath.Ext(workbook.Name))
+				if err != nil || !format.IsValidInput(fmt) {
+					return nil
+				}
+				if gen.Input.Format != format.UnknownFormat && gen.Input.Format != fmt {
+					return nil
+				}
 
 				var sheets []string
 				// sheet name -> message name
@@ -99,7 +106,7 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 					}
 				}
 				wbPath := filepath.Join(gen.InputDir, workbook.Name)
-				imp := importer.New(wbPath, importer.Sheets(sheets), importer.Format(gen.Input.Format), importer.Header(gen.Header))
+				imp := importer.New(wbPath, importer.Sheets(sheets), importer.Format(fmt), importer.Header(gen.Header))
 				// atom.Log.Debugf("proto: %s, workbook %s", fd.Path(), workbook)
 				for sheetName, sheetInfo := range sheetMap {
 					if worksheetName != "" && worksheetName != sheetName {

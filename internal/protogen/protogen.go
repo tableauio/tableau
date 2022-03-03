@@ -141,11 +141,11 @@ func (gen *Generator) generate(dir string) error {
 		}
 		// atom.Log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
 		fmt, err := format.Ext2Format(filepath.Ext(entry.Name()))
-		if err != nil {
+		if err != nil || !format.IsValidInput(fmt) {
 			continue
 		}
 
-		if fmt != gen.InputOpts.Format {
+		if gen.InputOpts.Format != format.UnknownFormat && gen.InputOpts.Format != fmt {
 			// ignore
 			continue
 		}
@@ -179,7 +179,8 @@ func (gen *Generator) convert(dir, filename string) error {
 		Datarow: 2,
 	}
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, wsOpts)
-	imp := importer.New(absPath, importer.Parser(parser), importer.Format(gen.InputOpts.Format), importer.Header(gen.Header))
+	fmt, _ := format.Ext2Format(filepath.Ext(filename))
+	imp := importer.New(absPath, importer.Parser(parser), importer.Format(fmt), importer.Header(gen.Header))
 	sheets, err := imp.GetSheets()
 	if err != nil {
 		return errors.Wrapf(err, "failed to get sheet of workbook: %s", absPath)

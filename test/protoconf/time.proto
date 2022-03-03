@@ -1,6 +1,6 @@
 syntax = "proto3";
-package testexcel;
-option go_package = "github.com/tableauio/tableau/cmd/test/testpb/excel";
+package test;
+option go_package = "github.com/tableauio/tableau/cmd/test/testpb";
 
 import "tableau/protobuf/tableau.proto";
 import "google/protobuf/timestamp.proto";

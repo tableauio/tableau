@@ -126,7 +126,7 @@ func newDefaultOptions() *Options {
 			EmitUnpopulated:          true,
 		},
 		Input: &InputOption{
-			Format: format.Excel,
+			Format: format.UnknownFormat,
 		},
 	}
 }

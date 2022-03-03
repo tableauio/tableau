@@ -13,9 +13,9 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
-// Excel2Conf converts excel files (with tableau header) to different formatted configuration files.
+// GenConf converts excel/xml/csv files (with tableau header) to different formatted configuration files.
 // Supported formats: JSON, Text, and Wire.
-func Excel2Conf(protoPackage, indir, outdir string, setters ...options.Option) {
+func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.InitZap(opts.LogLevel)
@@ -26,8 +26,8 @@ func Excel2Conf(protoPackage, indir, outdir string, setters ...options.Option) {
 	}
 }
 
-// Excel2Proto converts excel files (with tableau header) to protoconf files.
-func Excel2Proto(protoPackage, goPackage, indir, outdir string, setters ...options.Option) {
+// GenProto converts excel/xml/csv files (with tableau header) to protoconf files.
+func GenProto(protoPackage, goPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	g := protogen.NewGenerator(protoPackage, goPackage, indir, outdir, setters...)
 	atom.InitZap(opts.LogLevel)
@@ -50,7 +50,7 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 
 // ParseMeta parses the @TABLEAU sheet in a workbook.
 func ParseMeta(indir, relWorkbookPath string) importer.Importer {
-	wsOpts :=  &tableaupb.WorksheetOptions{
+	wsOpts := &tableaupb.WorksheetOptions{
 		Name:    importer.MetaSheetName,
 		Namerow: 1,
 		Datarow: 2,
@@ -60,29 +60,4 @@ func ParseMeta(indir, relWorkbookPath string) importer.Importer {
 		filepath.Join(indir, relWorkbookPath),
 		importer.Parser(parser),
 	)
-}
-
-// XML2Conf converts xml files to different formatted configuration files.
-// Supported formats: json, text, and wire.
-func XML2Conf(protoPackage, indir, outdir string, setters ...options.Option) {
-	opts := options.ParseOptions(setters...)
-	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
-	atom.InitZap(opts.LogLevel)
-	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
-	if err := g.Generate(opts.Workbook, opts.Worksheet); err != nil {
-		atom.Log.Errorf("generate failed: %+v", err)
-		os.Exit(-1)
-	}
-}
-
-// XML2Proto converts xml files to protoconf files.
-func XML2Proto(protoPackage, goPackage, indir, outdir string, setters ...options.Option) {
-	opts := options.ParseOptions(setters...)
-	g := protogen.NewGenerator(protoPackage, goPackage, indir, outdir, setters...)
-	atom.InitZap(opts.LogLevel)
-	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
-	if err := g.Generate(); err != nil {
-		atom.Log.Errorf("generate failed: %+v", err)
-		os.Exit(-1)
-	}
 }

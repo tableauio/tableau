@@ -33,7 +33,7 @@ func Ext2Format(ext string) (Format, error) {
 	case XMLExt:
 		fmt = XML
 	case CSVExt:
-		fmt = XML
+		fmt = CSV
 	case JSONExt:
 		fmt = JSON
 	case TextExt:
@@ -65,4 +65,13 @@ func Format2Ext(fmt Format) (string, error) {
 		return "", errors.Errorf("unknown file format: %v", fmt)
 	}
 	return ext, nil
+}
+
+func IsValidInput(fmt Format) bool {
+	switch fmt {
+	case Excel, XML:
+		return true
+	default:
+		return false
+	}
 }
