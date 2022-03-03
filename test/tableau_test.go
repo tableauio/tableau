@@ -17,7 +17,7 @@ func init() {
 }
 
 func Test_Excel2Proto(t *testing.T) {
-	tableau.GenerateProto(
+	tableau.GenProto(
 		"test",
 		"github.com/tableauio/tableau/cmd/test/testpb",
 		"./testdata",
@@ -56,7 +56,7 @@ func Test_Excel2Proto(t *testing.T) {
 }
 
 func Test_Excel2JSON(t *testing.T) {
-	tableau.GenerateConf(
+	tableau.GenConf(
 		"test",
 		"./testdata",
 		"./_output/json/",
@@ -70,7 +70,7 @@ func Test_Excel2JSON(t *testing.T) {
 }
 
 func Test_Excel2JSON_Select(t *testing.T) {
-	tableau.GenerateConf(
+	tableau.GenConf(
 		"test",
 		"./testdata",
 		"./_output/json/",
@@ -124,7 +124,7 @@ func Test_CSV2Excel(t *testing.T) {
 }
 
 func Test_XML2Proto(t *testing.T) {
-	tableau.GenerateProto(
+	tableau.GenProto(
 		"test",
 		"github.com/tableauio/tableau/cmd/test/testpb",
 		"./testdata",
@@ -161,7 +161,7 @@ func Test_XML2Proto(t *testing.T) {
 }
 
 func Test_XML2JSON(t *testing.T) {
-	tableau.GenerateConf(
+	tableau.GenConf(
 		"test",
 		"./testdata",
 		"./_output/json",
@@ -185,14 +185,14 @@ func Test_LoadJSON(t *testing.T) {
 
 func Test_LoadExcel(t *testing.T) {
 	msg := &testpb.Hero{}
-	err := load.Load(msg, "./testdata/excel/", format.Excel)
+	err := load.Load(msg, "./testdata/", format.Excel)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
-func Test_GenerateProto(t *testing.T) {
-	tableau.GenerateProto(
+func Test_GenProto(t *testing.T) {
+	tableau.GenProto(
 		"test",
 		"github.com/tableauio/tableau/cmd/test/testpb",
 		"./testdata",
@@ -223,8 +223,8 @@ func Test_GenerateProto(t *testing.T) {
 	)
 }
 
-func Test_GenerateJSON(t *testing.T) {
-	tableau.GenerateConf(
+func Test_GenJSON(t *testing.T) {
+	tableau.GenConf(
 		"test",
 		"./testdata",
 		"./_output/json",
