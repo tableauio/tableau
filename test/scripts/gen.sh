@@ -13,23 +13,22 @@ test_indir="./test/protoconf"
 test_outdir="./test/testpb"
 
 
+# remove generated files
+rm -vf $test_outdir/*
 gen_pb()
 {
-    # remove generated files
-    rm -rf $test_outdir/$1
-    mkdir -p $test_outdir/$1
+    # mkdir -p $test_outdir/$1
 
-    for item in "$test_indir/$1"/* ; do
+    for item in "$1"/* ; do
         echo "$item"
         if [ -f "$item" ]; then
             protoc \
-            --go_out="$test_outdir/$1" \
+            --go_out="$test_outdir" \
             --go_opt=paths=source_relative \
-            --proto_path="$test_indir/$1" \
+            --proto_path="$1" \
             --proto_path="$tableau_proto" \
             "$item"
         fi
     done
 }
-gen_pb excel
-gen_pb xml
+gen_pb $test_indir

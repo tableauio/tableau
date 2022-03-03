@@ -19,9 +19,11 @@ import (
 )
 
 var protoTypeRegexp *regexp.Regexp
+var packageRegexp *regexp.Regexp
 
 func init() {
 	protoTypeRegexp = regexp.MustCompile(`^(message|enum) +(.+?) +(\{)?`) // message or enum type
+	packageRegexp = regexp.MustCompile(`^package `)
 }
 
 type bookExporter struct {

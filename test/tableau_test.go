@@ -9,8 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/load"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/test/testpb/excel"
-	_ "github.com/tableauio/tableau/test/testpb/xml"
+	"github.com/tableauio/tableau/test/testpb"
 )
 
 func init() {
@@ -18,11 +17,11 @@ func init() {
 }
 
 func Test_Excel2Proto(t *testing.T) {
-	tableau.Excel2Proto(
-		"testexcel",
-		"github.com/tableauio/tableau/cmd/test/testpb/excel",
-		"./testdata/excel",
-		"./protoconf/excel",
+	tableau.GenerateProto(
+		"test",
+		"github.com/tableauio/tableau/cmd/test/testpb",
+		"./testdata",
+		"./protoconf",
 		options.Header(
 			&options.HeaderOption{
 				Namerow: 1,
@@ -35,6 +34,7 @@ func Test_Excel2Proto(t *testing.T) {
 			}),
 		options.Imports(
 			[]string{
+				"cs_dbkeyword.proto",
 				"common.proto",
 				"time.proto",
 			},
@@ -48,7 +48,7 @@ func Test_Excel2Proto(t *testing.T) {
 		options.Output(
 			&options.OutputOption{
 				FilenameSuffix:           "_conf",
-				FilenameWithSubdirPrefix: true,
+				FilenameWithSubdirPrefix: false,
 			},
 		),
 		options.LogLevel("debug"),
@@ -56,23 +56,33 @@ func Test_Excel2Proto(t *testing.T) {
 }
 
 func Test_Excel2JSON(t *testing.T) {
-	tableau.Excel2Conf(
-		"testexcel",
-		"./testdata/excel",
+	tableau.GenerateConf(
+		"test",
+		"./testdata",
 		"./_output/json/",
+		options.Input(
+			&options.InputOption{
+				Format: format.Excel,
+			},
+		),
 		options.LogLevel("debug"),
 	)
 }
 
 func Test_Excel2JSON_Select(t *testing.T) {
-	tableau.Excel2Conf(
-		"testexcel",
-		"./testdata/excel",
+	tableau.GenerateConf(
+		"test",
+		"./testdata",
 		"./_output/json/",
+		options.Input(
+			&options.InputOption{
+				Format: format.Excel,
+			},
+		),
 		options.LogLevel("debug"),
-		// options.Workbook("hero/Test.xlsx"),
-		// options.Workbook("./hero/Test.xlsx"),
-		options.Workbook(".\\hero\\Test.xlsx"),
+		// options.Workbook("hero/Hero.xlsx"),
+		// options.Workbook("./hero/Hero.xlsx"),
+		options.Workbook(".\\excel\\hero\\Hero.xlsx"),
 		options.Worksheet("Hero"),
 	)
 }
@@ -101,8 +111,8 @@ func Test_CSV2Excel(t *testing.T) {
 		"./testdata/excel/Test#@TABLEAU.csv",
 		"./testdata/excel/Test#Sheet2.csv",
 
-		"./testdata/excel/hero/Test#Hero.csv",
-		"./testdata/excel/hero/Test#@TABLEAU.csv",
+		"./testdata/excel/hero/Hero#Hero.csv",
+		"./testdata/excel/hero/Hero#@TABLEAU.csv",
 	}
 	for _, path := range paths {
 		imp := importer.NewCSVImporter(path)
@@ -114,14 +124,16 @@ func Test_CSV2Excel(t *testing.T) {
 }
 
 func Test_XML2Proto(t *testing.T) {
-	tableau.XML2Proto(
-		"testxml",
-		"github.com/tableauio/tableau/cmd/test/testpb/xml",
-		"./testdata/xml",
-		"./protoconf/xml",
+	tableau.GenerateProto(
+		"test",
+		"github.com/tableauio/tableau/cmd/test/testpb",
+		"./testdata",
+		"./protoconf",
 		options.Imports(
 			[]string{
-				"cs_com_def.proto",
+				"cs_dbkeyword.proto",
+				"common.proto",
+				"time.proto",
 			},
 		),
 		options.Input(
@@ -129,13 +141,29 @@ func Test_XML2Proto(t *testing.T) {
 				Format: format.XML,
 			},
 		),
+		options.Output(
+			&options.OutputOption{
+				FilenameSuffix:           "_conf",
+				FilenameWithSubdirPrefix: false,
+			},
+		),
+		options.Header(
+			&options.HeaderOption{
+				Namerow: 1,
+				Typerow: 2,
+				Noterow: 3,
+				Datarow: 5,
+
+				Nameline: 2,
+				Typeline: 2,
+			}),
 	)
 }
 
 func Test_XML2JSON(t *testing.T) {
-	tableau.XML2Conf(
-		"testxml",
-		"./testdata/xml",
+	tableau.GenerateConf(
+		"test",
+		"./testdata",
 		"./_output/json",
 		options.LogLevel("debug"),
 		options.Input(
@@ -148,7 +176,7 @@ func Test_XML2JSON(t *testing.T) {
 }
 
 func Test_LoadJSON(t *testing.T) {
-	msg := &excel.Activity{}
+	msg := &testpb.Activity{}
 	err := load.Load(msg, "./_output/json/", format.JSON)
 	if err != nil {
 		t.Error(err)
@@ -156,9 +184,50 @@ func Test_LoadJSON(t *testing.T) {
 }
 
 func Test_LoadExcel(t *testing.T) {
-	msg := &excel.Hero{}
+	msg := &testpb.Hero{}
 	err := load.Load(msg, "./testdata/excel/", format.Excel)
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func Test_GenerateProto(t *testing.T) {
+	tableau.GenerateProto(
+		"test",
+		"github.com/tableauio/tableau/cmd/test/testpb",
+		"./testdata",
+		"./protoconf",
+		options.Imports(
+			[]string{
+				"cs_dbkeyword.proto",
+				"common.proto",
+				"time.proto",
+			},
+		),
+		options.Output(
+			&options.OutputOption{
+				FilenameSuffix:           "_conf",
+				FilenameWithSubdirPrefix: false,
+			},
+		),
+		options.Header(
+			&options.HeaderOption{
+				Namerow: 1,
+				Typerow: 2,
+				Noterow: 3,
+				Datarow: 5,
+
+				Nameline: 2,
+				Typeline: 2,
+			}),
+	)
+}
+
+func Test_GenerateJSON(t *testing.T) {
+	tableau.GenerateConf(
+		"test",
+		"./testdata",
+		"./_output/json",
+		options.LogLevel("debug"),
+	)
 }
