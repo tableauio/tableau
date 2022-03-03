@@ -113,7 +113,7 @@ func (x *bookExporter) export() error {
 	g2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
 	g2.P("")
 
-	relPath := x.wb.Name+x.FilenameSuffix+".proto"
+	relPath := x.wb.Name + x.FilenameSuffix + ".proto"
 	path := filepath.Join(x.OutputDir, relPath)
 	atom.Log.Infof("output: %s", relPath)
 
