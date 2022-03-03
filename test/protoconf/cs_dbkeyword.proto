@@ -1,4 +1,3 @@
-//=============this file is auto generatored, do not alert!==========
 syntax = "proto3";
 package test;
 option go_package = "github.com/tableauio/tableau/cmd/test/testpb";
