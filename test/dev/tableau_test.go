@@ -9,7 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/load"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/test/testpb"
+	"github.com/tableauio/tableau/test/dev/testpb"
 )
 
 func init() {

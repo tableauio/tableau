@@ -19,4 +19,4 @@
 _*
 cmd/tableauc/tableauc
 *.xlsx
-test/testpb/
+test/dev/testpb/
