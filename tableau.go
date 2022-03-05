@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/fatih/color"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
@@ -21,7 +22,8 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	atom.InitZap(opts.LogLevel)
 	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
 	if err := g.Generate(opts.Workbook, opts.Worksheet); err != nil {
-		atom.Log.Errorf("generate failed: %+v", err)
+		red := color.New(color.FgRed).SprintfFunc()
+		atom.Log.Errorf(red("generate failed: %+v", err))
 		os.Exit(-1)
 	}
 }
@@ -33,7 +35,8 @@ func GenProto(protoPackage, goPackage, indir, outdir string, setters ...options.
 	atom.InitZap(opts.LogLevel)
 	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
 	if err := g.Generate(); err != nil {
-		atom.Log.Errorf("generate failed: %+v", err)
+		red := color.New(color.FgRed).SprintfFunc()
+		atom.Log.Errorf(red("generate failed: %+v", err))
 		os.Exit(-1)
 	}
 }

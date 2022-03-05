@@ -9,8 +9,8 @@ cd "$(git rev-parse --show-toplevel)"
 bash ./scripts/gen_pb.sh
 
 TABLEAU_PROTO_PATH="./proto"
-INDIR="./test/dev/protoconf"
-OUTDIR="./test/dev/testpb"
+INDIR="./test/dev/proto"
+OUTDIR="./test/dev/protoconf"
 
 # remove generated dir
 rm -rfv $OUTDIR

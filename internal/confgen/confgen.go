@@ -136,6 +136,9 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 		return err
 	}
 	if !workbookFound {
+		if relWorkbookPath == "" {
+			return errors.Errorf("There's no any workbook found, maybe you forget to use `blank identifier` to inject the protoconf package.")
+		}
 		return errors.Errorf("workbook not found: %s", relWorkbookPath)
 	}
 	if !worksheetFound {

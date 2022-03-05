@@ -1,4 +1,4 @@
-package main
+package dev
 
 import (
 	"testing"
@@ -7,9 +7,8 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/load"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/test/dev/testpb"
+	_ "github.com/tableauio/tableau/test/dev/protoconf"
 )
 
 func init() {
@@ -18,10 +17,10 @@ func init() {
 
 func Test_Excel2Proto(t *testing.T) {
 	tableau.GenProto(
-		"test",
-		"github.com/tableauio/tableau/cmd/test/testpb",
+		"protoconf",
+		"github.com/tableauio/tableau/test/dev/protoconf",
 		"./testdata",
-		"./protoconf",
+		"./proto",
 		options.Header(
 			&options.HeaderOption{
 				Namerow: 1,
@@ -57,9 +56,9 @@ func Test_Excel2Proto(t *testing.T) {
 
 func Test_Excel2JSON(t *testing.T) {
 	tableau.GenConf(
-		"test",
+		"protoconf",
 		"./testdata",
-		"./_output/json/",
+		"./_conf",
 		options.Input(
 			&options.InputOption{
 				Format: format.Excel,
@@ -71,9 +70,9 @@ func Test_Excel2JSON(t *testing.T) {
 
 func Test_Excel2JSON_Select(t *testing.T) {
 	tableau.GenConf(
-		"test",
+		"protoconf",
 		"./testdata",
-		"./_output/json/",
+		"./_conf",
 		options.Input(
 			&options.InputOption{
 				Format: format.Excel,
@@ -117,10 +116,10 @@ func Test_CSV2Excel(t *testing.T) {
 
 func Test_XML2Proto(t *testing.T) {
 	tableau.GenProto(
-		"test",
-		"github.com/tableauio/tableau/cmd/test/testpb",
+		"protoconf",
+		"github.com/tableauio/tableau/test/dev/protoconf",
 		"./testdata",
-		"./protoconf",
+		"./proto",
 		options.Imports(
 			[]string{
 				"cs_dbkeyword.proto",
@@ -154,9 +153,9 @@ func Test_XML2Proto(t *testing.T) {
 
 func Test_XML2JSON(t *testing.T) {
 	tableau.GenConf(
-		"test",
+		"protoconf",
 		"./testdata",
-		"./_output/json",
+		"./_conf",
 		options.LogLevel("debug"),
 		options.Input(
 			&options.InputOption{
@@ -164,31 +163,15 @@ func Test_XML2JSON(t *testing.T) {
 			},
 		),
 	)
-	// tableau.Generate("test", "./testdata/", "./_output/xml/")
-}
-
-func Test_LoadJSON(t *testing.T) {
-	msg := &testpb.Activity{}
-	err := load.Load(msg, "./_output/json/", format.JSON)
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func Test_LoadExcel(t *testing.T) {
-	msg := &testpb.Hero{}
-	err := load.Load(msg, "./testdata/", format.Excel)
-	if err != nil {
-		t.Error(err)
-	}
+	// tableau.Generate("protoconf", "./testdata/", "./_output/xml/")
 }
 
 func Test_GenProto(t *testing.T) {
 	tableau.GenProto(
-		"test",
-		"github.com/tableauio/tableau/cmd/test/testpb",
+		"protoconf",
+		"github.com/tableauio/tableau/test/dev/protoconf",
 		"./testdata",
-		"./protoconf",
+		"./proto",
 		options.Imports(
 			[]string{
 				"cs_dbkeyword.proto",
@@ -218,9 +201,9 @@ func Test_GenProto(t *testing.T) {
 
 func Test_GenJSON(t *testing.T) {
 	tableau.GenConf(
-		"test",
+		"protoconf",
 		"./testdata",
-		"./_output/json",
+		"./_conf",
 		options.LogLevel("debug"),
 	)
 }
