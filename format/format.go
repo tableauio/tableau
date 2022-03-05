@@ -69,7 +69,7 @@ func Format2Ext(fmt Format) (string, error) {
 
 func IsValidInput(fmt Format) bool {
 	switch fmt {
-	case Excel, XML:
+	case Excel, CSV, XML:
 		return true
 	default:
 		return false

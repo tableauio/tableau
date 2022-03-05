@@ -22,16 +22,13 @@ type bookParser struct {
 	withNote bool
 }
 
-func newBookParser(relSlashPath string, filenameWithSubdirPrefix bool, imports []string) *bookParser {
+func newBookParser(bookName, relSlashPath string, filenameWithSubdirPrefix bool, imports []string) *bookParser {
 	// atom.Log.Debugf("filenameWithSubdirPrefix: %v", filenameWithSubdirPrefix)
-	ext := filepath.Ext(relSlashPath)
-	filename := ""
+	filename := strcase.ToSnake(bookName)
 	if filenameWithSubdirPrefix {
-		snakePath := strcase.ToSnake(strings.TrimSuffix(relSlashPath, ext))
+		bookPath := filepath.Join(filepath.Dir(relSlashPath), bookName)
+		snakePath := strcase.ToSnake(bookPath)
 		filename = strings.ReplaceAll(snakePath, "/", "__")
-	} else {
-		workbookName := filepath.Base(relSlashPath)
-		filename = strcase.ToSnake(strings.TrimSuffix(workbookName, ext))
 	}
 	bp := &bookParser{
 		wb: &tableaupb.Workbook{

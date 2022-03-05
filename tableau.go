@@ -13,7 +13,7 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
-// GenConf converts excel/xml/csv files (with tableau header) to different formatted configuration files.
+// GenConf converts Excel/CSV/XML files (with tableau header) to different formatted configuration files.
 // Supported formats: JSON, Text, and Wire.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
@@ -26,7 +26,7 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	}
 }
 
-// GenProto converts excel/xml/csv files (with tableau header) to protoconf files.
+// GenProto converts Excel/CSV/XML files (with tableau header) to protoconf files.
 func GenProto(protoPackage, goPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	g := protogen.NewGenerator(protoPackage, goPackage, indir, outdir, setters...)

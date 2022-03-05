@@ -124,6 +124,9 @@ func (gen *Generator) generate(dir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to read input dir: %s", gen.InputDir)
 	}
+
+	// book name -> existance(bool)
+	csvBooks := map[string]bool{}
 	for _, entry := range dirEntries {
 		if entry.IsDir() {
 			// scan and generate subdir recursively
@@ -136,13 +139,22 @@ func (gen *Generator) generate(dir string) error {
 		}
 
 		if strings.HasPrefix(entry.Name(), "~$") {
-			// ignore xlsx temp file named with prefix "~$"
+			// ignore temp file named with prefix "~$"
 			continue
 		}
 		// atom.Log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
 		fmt, err := format.Ext2Format(filepath.Ext(entry.Name()))
 		if err != nil || !format.IsValidInput(fmt) {
 			continue
+		}
+
+		if fmt == format.CSV {
+			bookName := importer.ParseCSVBookName(entry.Name())
+			if _, ok := csvBooks[bookName]; ok {
+				// NOTE: multiple CSV files construct the same book.
+				continue
+			}
+			csvBooks[bookName] = true
 		}
 
 		if gen.InputOpts.Format != format.UnknownFormat && gen.InputOpts.Format != fmt {
@@ -168,10 +180,6 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 }
 
 func (gen *Generator) convert(dir, filename string) error {
-	relativePath, err := getRelCleanSlashPath(gen.InputDir, dir, filename)
-	if err != nil {
-		return errors.WithMessagef(err, "get relative path failed")
-	}
 	absPath := filepath.Join(dir, filename)
 	wsOpts := &tableaupb.WorksheetOptions{
 		Name:    importer.MetaSheetName,
@@ -188,9 +196,14 @@ func (gen *Generator) convert(dir, filename string) error {
 	if len(sheets) == 0 {
 		return nil
 	}
+	basename := filepath.Base(imp.Filename())
+	relativePath, err := getRelCleanSlashPath(gen.InputDir, dir, basename)
+	if err != nil {
+		return errors.WithMessagef(err, "get relative path failed")
+	}
 	atom.Log.Infof("workbook: %s", relativePath)
 	// creat a book parser
-	bp := newBookParser(relativePath, gen.FilenameWithSubdirPrefix, gen.Imports)
+	bp := newBookParser(imp.BookName(), relativePath, gen.FilenameWithSubdirPrefix, gen.Imports)
 	for _, sheet := range sheets {
 		// parse sheet header
 		sheetMsgName := sheet.Name

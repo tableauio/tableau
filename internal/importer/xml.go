@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -59,6 +60,14 @@ func NewXMLImporter(filename string, sheets []string, header *options.HeaderOpti
 		header:     header,
 		prefixMaps: make(map[string](map[string]Range)),
 	}
+}
+
+func (x *XMLImporter) BookName() string {
+	return strings.TrimSuffix(filepath.Base(x.filename), filepath.Ext(x.filename))
+}
+
+func (x *XMLImporter) Filename() string {
+	return x.filename
 }
 
 func (x *XMLImporter) GetSheets() ([]*Sheet, error) {

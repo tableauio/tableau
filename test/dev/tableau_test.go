@@ -103,19 +103,11 @@ func Test_Excel2CSV(t *testing.T) {
 
 func Test_CSV2Excel(t *testing.T) {
 	paths := []string{
-		"./testdata/excel/Test#Activity.csv",
-		"./testdata/excel/Test#Reward.csv",
-		"./testdata/excel/Test#Exchange.csv",
-		"./testdata/excel/Test#Match.csv",
-		"./testdata/excel/Test#Loader.csv",
-		"./testdata/excel/Test#@TABLEAU.csv",
-		"./testdata/excel/Test#Sheet2.csv",
-
-		"./testdata/excel/hero/Hero#Hero.csv",
-		"./testdata/excel/hero/Hero#@TABLEAU.csv",
+		"./testdata/excel/Test#*.csv",
+		"./testdata/excel/hero/Hero#*.csv",
 	}
 	for _, path := range paths {
-		imp := importer.NewCSVImporter(path)
+		imp := importer.NewCSVImporter(path, nil, nil)
 		err := imp.ExportExcel()
 		if err != nil {
 			t.Errorf("%+v", err)
@@ -220,6 +212,7 @@ func Test_GenProto(t *testing.T) {
 				Nameline: 2,
 				Typeline: 2,
 			}),
+		options.LogLevel("debug"),
 	)
 }
 

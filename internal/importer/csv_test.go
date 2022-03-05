@@ -11,7 +11,7 @@ func TestCSVImporter_ExportExcel(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "test",
-			x:    NewCSVImporter("testdata/Test.csv"),
+			x:    NewCSVImporter("testdata/Test#Test.csv", nil, nil),
 		},
 	}
 	for _, tt := range tests {

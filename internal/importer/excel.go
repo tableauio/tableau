@@ -18,9 +18,10 @@ import (
 const MetaSheetName = "@TABLEAU"
 
 type ExcelImporter struct {
-	filename         string
+	filename string
+
 	sheetMap         map[string]*Sheet // sheet name -> sheet
-	sheetNames       []string
+	sheetNames       []string          // ordered sheet names
 	includeMetaSheet bool
 
 	Meta       *tableaupb.WorkbookMeta
@@ -28,16 +29,24 @@ type ExcelImporter struct {
 }
 
 // TODO: options
-func NewExcelImporter(filename string, sheets []string, parser SheetParser, includeMetaSheet bool) *ExcelImporter {
+func NewExcelImporter(filename string, sheetNames []string, parser SheetParser, includeMetaSheet bool) *ExcelImporter {
 	return &ExcelImporter{
 		filename:         filename,
-		sheetNames:       sheets,
+		sheetNames:       sheetNames,
 		includeMetaSheet: includeMetaSheet,
 		metaParser:       parser,
 		Meta: &tableaupb.WorkbookMeta{
 			SheetMetaMap: make(map[string]*tableaupb.SheetMeta),
 		},
 	}
+}
+
+func (x *ExcelImporter) BookName() string {
+	return strings.TrimSuffix(filepath.Base(x.filename), filepath.Ext(x.filename))
+}
+
+func (x *ExcelImporter) Filename() string {
+	return x.filename
 }
 
 func (x *ExcelImporter) GetSheets() ([]*Sheet, error) {
@@ -171,7 +180,6 @@ func (x *ExcelImporter) collectSheetsInOrder(file *excelize.File) error {
 			}
 			sortedMap.Put(index, name)
 		}
-
 	}
 
 	// Clear before re-assign.
