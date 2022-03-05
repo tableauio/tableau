@@ -1,0 +1,6 @@
+ID,Desc,Property1ID,Property1Value,Property2ID,Property2Value
+"map<uint32, Item>",string,"map<int32, Prop>",int64,int32,int64
+Item's id,Item's desc,Prop's id,Prop's value,Prop's id,Prop's value
+1,item1,1,10,2,20
+2,item2,3,30,4,40
+3,item3,5,50,,
