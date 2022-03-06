@@ -16,6 +16,7 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/options"
@@ -44,7 +45,7 @@ type Range struct {
 }
 type XMLImporter struct {
 	filename   string
-	sheetMap   map[string]*Sheet             // sheet name -> sheet
+	sheetMap   map[string]*book.Sheet             // sheet name -> sheet
 	metaMap    map[string]*xlsxgen.MetaSheet // sheet name -> meta
 	sheetNames []string
 	header     *options.HeaderOption // header settings.
@@ -70,14 +71,14 @@ func (x *XMLImporter) Filename() string {
 	return x.filename
 }
 
-func (x *XMLImporter) GetSheets() ([]*Sheet, error) {
+func (x *XMLImporter) GetSheets() ([]*book.Sheet, error) {
 	if x.sheetNames == nil {
 		if err := x.parse(); err != nil {
 			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
 		}
 	}
 
-	sheets := []*Sheet{}
+	sheets := []*book.Sheet{}
 	for _, name := range x.sheetNames {
 		sheet, err := x.GetSheet(name)
 		if err != nil {
@@ -89,7 +90,7 @@ func (x *XMLImporter) GetSheets() ([]*Sheet, error) {
 }
 
 // GetSheet returns a Sheet of the specified sheet name.
-func (x *XMLImporter) GetSheet(name string) (*Sheet, error) {
+func (x *XMLImporter) GetSheet(name string) (*book.Sheet, error) {
 	if x.sheetMap == nil {
 		if err := x.parse(); err != nil {
 			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
@@ -104,7 +105,7 @@ func (x *XMLImporter) GetSheet(name string) (*Sheet, error) {
 }
 
 func (x *XMLImporter) parse() error {
-	x.sheetMap = make(map[string]*Sheet)
+	x.sheetMap = make(map[string]*book.Sheet)
 	x.metaMap = make(map[string]*xlsxgen.MetaSheet)
 	// open xml file and parse the document
 	xmlPath := x.filename
@@ -246,7 +247,7 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 			rows = append(rows, row)
 		}
 		// insert sheets into map for importer
-		sheet := NewSheet(sheetName, rows)
+		sheet := book.NewSheet(sheetName, rows)
 		sheet.Meta = &tableaupb.SheetMeta{
 			Sheet:    sheetName,
 			Alias:    sheetName,

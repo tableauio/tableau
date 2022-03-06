@@ -9,20 +9,21 @@ import (
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
 // CSVImporter recognizes pattern: "<BookName>#<SheetName>.csv"
 type CSVImporter struct {
-	book               *Book
+	book               *book.Book
 	filename           string
 	selectedSheetNames []string // selected sheet names
 
 	Meta       *tableaupb.WorkbookMeta
-	metaParser SheetParser
+	metaParser book.SheetParser
 }
 
-func NewCSVImporter(filename string, sheetNames []string, parser SheetParser) *CSVImporter {
+func NewCSVImporter(filename string, sheetNames []string, parser book.SheetParser) *CSVImporter {
 	return &CSVImporter{
 		filename:           filename,
 		selectedSheetNames: sheetNames,
@@ -45,7 +46,7 @@ func (x *CSVImporter) Filename() string {
 	return genCSVBookFilenamePattern(dir, bookName)
 }
 
-func (x *CSVImporter) GetSheets() ([]*Sheet, error) {
+func (x *CSVImporter) GetSheets() ([]*book.Sheet, error) {
 	if x.book == nil {
 		if err := x.parseBook(); err != nil {
 			return nil, errors.WithMessagef(err, "failed to parse csv book: %s", x.Filename())
@@ -55,7 +56,7 @@ func (x *CSVImporter) GetSheets() ([]*Sheet, error) {
 }
 
 // GetSheet returns a Sheet of the specified sheet name.
-func (x *CSVImporter) GetSheet(name string) (*Sheet, error) {
+func (x *CSVImporter) GetSheet(name string) (*book.Sheet, error) {
 	if x.book == nil {
 		if err := x.parseBook(); err != nil {
 			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
@@ -71,7 +72,7 @@ func (x *CSVImporter) GetSheet(name string) (*Sheet, error) {
 func (x *CSVImporter) parseBook() error {
 	bookName, _ := parseCSVFilenamePattern(x.filename)
 	if bookName == "" {
-		x.book = NewBook(bookName)
+		x.book = book.NewBook(bookName)
 		return nil
 	}
 
@@ -90,7 +91,7 @@ func (x *CSVImporter) parseBook() error {
 		book.Squeeze(x.selectedSheetNames)
 	}
 
-	// finnaly, assign parsed book to importer
+	// finally, assign parsed book to importer
 	x.book = book
 	return nil
 }
@@ -125,7 +126,7 @@ func readCSV(filename string) ([][]string, error) {
 	return r.ReadAll()
 }
 
-func readCSVBook(dir, bookName string) (*Book, error) {
+func readCSVBook(dir, bookName string) (*book.Book, error) {
 	globFilename := genCSVBookFilenamePattern(dir, bookName)
 	matches, err := filepath.Glob(globFilename)
 	if err != nil {
@@ -138,7 +139,7 @@ func readCSVBook(dir, bookName string) (*Book, error) {
 		set.Add(filename)
 	}
 
-	book := NewBook(bookName)
+	newBook := book.NewBook(bookName)
 	for _, val := range set.Values() {
 		filename := val.(string)
 		_, sheetName := parseCSVFilenamePattern(filename)
@@ -149,14 +150,14 @@ func readCSVBook(dir, bookName string) (*Book, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read CSV file: %s", filename)
 		}
-		sheet := NewSheet(sheetName, records)
-		book.AddSheet(sheet)
+		sheet := book.NewSheet(sheetName, records)
+		newBook.AddSheet(sheet)
 	}
 
-	return book, nil
+	return newBook, nil
 }
 
-func (x *CSVImporter) parseWorkbookMeta(book *Book) error {
+func (x *CSVImporter) parseWorkbookMeta(book *book.Book) error {
 	sheet := book.GetSheet(MetaSheetName)
 	if sheet == nil {
 		atom.Log.Debugf("sheet %s not found in book %s", MetaSheetName, x.Filename())

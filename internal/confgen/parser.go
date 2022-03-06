@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/mexporter"
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -65,7 +66,7 @@ func NewSheetParser(protoPackage, locationName string, opts *tableaupb.Worksheet
 	}
 }
 
-func (sp *sheetParser) Parse(protomsg proto.Message, sheet *importer.Sheet) error {
+func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	// atom.Log.Debugf("parse sheet: %s", sheet.Name)
 	msg := protomsg.ProtoReflect()
 	if sp.opts.Transpose {
@@ -73,16 +74,16 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *importer.Sheet) erro
 		// namerow: name column
 		// [datarow, MaxCol]: data column
 		// kvRow := make(map[string]string)
-		var prev *importer.RowCells
+		var prev *book.RowCells
 		for col := int(sp.opts.Datarow) - 1; col < sheet.MaxCol; col++ {
-			curr := importer.NewRowCells(col, prev)
+			curr := book.NewRowCells(col, prev)
 			for row := 0; row < sheet.MaxRow; row++ {
 				nameCol := int(sp.opts.Namerow) - 1
 				nameCell, err := sheet.Cell(row, nameCol)
 				if err != nil {
 					return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, nameCol)
 				}
-				name := importer.ExtractFromCell(nameCell, sp.opts.Nameline)
+				name := book.ExtractFromCell(nameCell, sp.opts.Nameline)
 
 				typ := ""
 				if sp.opts.Typerow > 0 {
@@ -92,7 +93,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *importer.Sheet) erro
 					if err != nil {
 						return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, typeCol)
 					}
-					typ = importer.ExtractFromCell(typeCell, sp.opts.Typeline)
+					typ = book.ExtractFromCell(typeCell, sp.opts.Typeline)
 				}
 
 				data, err := sheet.Cell(row, col)
@@ -110,16 +111,16 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *importer.Sheet) erro
 	} else {
 		// namerow: name row
 		// [datarow, MaxRow]: data row
-		var prev *importer.RowCells
+		var prev *book.RowCells
 		for row := int(sp.opts.Datarow) - 1; row < sheet.MaxRow; row++ {
-			curr := importer.NewRowCells(row, prev)
+			curr := book.NewRowCells(row, prev)
 			for col := 0; col < sheet.MaxCol; col++ {
 				nameRow := int(sp.opts.Namerow) - 1
 				nameCell, err := sheet.Cell(nameRow, col)
 				if err != nil {
 					return errors.WithMessagef(err, "failed to get name cell: %d, %d", nameRow, col)
 				}
-				name := importer.ExtractFromCell(nameCell, sp.opts.Nameline)
+				name := book.ExtractFromCell(nameCell, sp.opts.Nameline)
 
 				typ := ""
 				if sp.opts.Typerow > 0 {
@@ -129,7 +130,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *importer.Sheet) erro
 					if err != nil {
 						return errors.WithMessagef(err, "failed to get type cell: %d, %d", typeRow, col)
 					}
-					typ = importer.ExtractFromCell(typeCell, sp.opts.Typeline)
+					typ = book.ExtractFromCell(typeCell, sp.opts.Typeline)
 				}
 
 				data, err := sheet.Cell(row, col)
@@ -154,7 +155,7 @@ type Field struct {
 }
 
 // parseFieldOptions is aimed to parse the options of all the fields of a protobuf message.
-func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.RowCells, depth int, prefix string) (err error) {
+func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
 	md := msg.Descriptor()
 	pkg := md.ParentFile().Package()
 	// opts := md.Options().(*descriptorpb.MessageOptions)
@@ -241,7 +242,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *importer.
 	return nil
 }
 
-func (sp *sheetParser) parseField(field *Field, msg protoreflect.Message, rc *importer.RowCells, depth int, prefix string) (err error) {
+func (sp *sheetParser) parseField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
 	// atom.Log.Debug(field.fd.ContainingMessage().FullName())
 	if field.fd.IsMap() {
 		return sp.parseMapField(field, msg, rc, depth, prefix)
@@ -254,7 +255,7 @@ func (sp *sheetParser) parseField(field *Field, msg protoreflect.Message, rc *im
 	}
 }
 
-func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc *importer.RowCells, depth int, prefix string) (err error) {
+func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	reflectMap := newValue.Map()
@@ -468,7 +469,7 @@ func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap prot
 	return mapKey, nil
 }
 
-func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc *importer.RowCells, depth int, prefix string) (err error) {
+func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	reflectList := newValue.List()
@@ -598,7 +599,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 	return nil
 }
 
-func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, rc *importer.RowCells, depth int, prefix string) (err error) {
+func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
 	// NOTE(wenchy): `proto.Equal` treats a nil message as not equal to an empty one.
 	// doc: [Equal](https://pkg.go.dev/google.golang.org/protobuf/proto?tab=doc#Equal)
 	// issue: [APIv2: protoreflect: consider Message nilness test](https://github.com/golang/protobuf/issues/966)
@@ -683,7 +684,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 	return nil
 }
 
-func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *importer.RowCells, depth int, prefix string) (err error) {
+func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
 	if msg.Has(field.fd) {
 		// Only parse field if it is not already present. This means the first
 		// none-empty related row part (related to scalar) is parsed.

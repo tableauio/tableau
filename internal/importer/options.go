@@ -2,18 +2,14 @@ package importer
 
 import (
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/options"
-	"google.golang.org/protobuf/proto"
 )
-
-type SheetParser interface {
-	Parse(protomsg proto.Message, sheet *Sheet) error
-}
 
 type Options struct {
 	Format format.Format         // file format: Excel, CSV, XML. Default: Excel.
 	Sheets []string              // sheet names to import
-	Parser SheetParser           // parser to parse the worksheet
+	Parser book.SheetParser      // parser to parse the worksheet
 	Header *options.HeaderOption // header settings.
 }
 
@@ -32,9 +28,9 @@ func Sheets(sheets []string) Option {
 	}
 }
 
-func Parser(sp SheetParser) Option {
+func Parser(parser book.SheetParser) Option {
 	return func(opts *Options) {
-		opts.Parser = sp
+		opts.Parser = parser
 	}
 }
 

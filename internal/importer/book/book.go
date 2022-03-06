@@ -1,9 +1,10 @@
-package importer
+package book
 
 import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/internal/excel"
 )
 
 type Book struct {
@@ -84,7 +85,7 @@ func (b *Book) ExportExcel(dir string) error {
 	if len(b.sheetNames) == 0 {
 		return nil
 	}
-	file, err := OpenExcel(filename, b.sheetNames[0])
+	file, err := excel.Open(filename, b.sheetNames[0])
 	if err != nil {
 		return errors.WithMessagef(err, "failed to open file %s", filename)
 	}

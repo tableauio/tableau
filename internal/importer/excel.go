@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/xuri/excelize/v2"
 )
@@ -20,16 +20,16 @@ const MetaSheetName = "@TABLEAU"
 type ExcelImporter struct {
 	filename string
 
-	sheetMap         map[string]*Sheet // sheet name -> sheet
+	sheetMap         map[string]*book.Sheet // sheet name -> sheet
 	sheetNames       []string          // ordered sheet names
 	includeMetaSheet bool
 
 	Meta       *tableaupb.WorkbookMeta
-	metaParser SheetParser
+	metaParser book.SheetParser
 }
 
 // TODO: options
-func NewExcelImporter(filename string, sheetNames []string, parser SheetParser, includeMetaSheet bool) *ExcelImporter {
+func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, includeMetaSheet bool) *ExcelImporter {
 	return &ExcelImporter{
 		filename:         filename,
 		sheetNames:       sheetNames,
@@ -49,14 +49,14 @@ func (x *ExcelImporter) Filename() string {
 	return x.filename
 }
 
-func (x *ExcelImporter) GetSheets() ([]*Sheet, error) {
+func (x *ExcelImporter) GetSheets() ([]*book.Sheet, error) {
 	if x.sheetMap == nil {
 		if err := x.parse(); err != nil {
 			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
 		}
 	}
 
-	sheets := []*Sheet{}
+	sheets := []*book.Sheet{}
 	for _, name := range x.sheetNames {
 		sheet, err := x.GetSheet(name)
 		if err != nil {
@@ -68,7 +68,7 @@ func (x *ExcelImporter) GetSheets() ([]*Sheet, error) {
 }
 
 // GetSheet returns a Sheet of the specified sheet name.
-func (x *ExcelImporter) GetSheet(name string) (*Sheet, error) {
+func (x *ExcelImporter) GetSheet(name string) (*book.Sheet, error) {
 	if x.sheetMap == nil {
 		if err := x.parse(); err != nil {
 			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
@@ -83,7 +83,7 @@ func (x *ExcelImporter) GetSheet(name string) (*Sheet, error) {
 }
 
 func (x *ExcelImporter) parse() error {
-	x.sheetMap = make(map[string]*Sheet)
+	x.sheetMap = make(map[string]*book.Sheet)
 	file, err := excelize.OpenFile(x.filename)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open file %s", x.filename)
@@ -142,12 +142,12 @@ func (x *ExcelImporter) parseWorkbookMeta(file *excelize.File) error {
 	return nil
 }
 
-func (x *ExcelImporter) parseSheet(file *excelize.File, sheetName string) (*Sheet, error) {
+func (x *ExcelImporter) parseSheet(file *excelize.File, sheetName string) (*book.Sheet, error) {
 	rows, err := file.GetRows(sheetName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get rows of sheet: %s#%s", x.filename, sheetName)
 	}
-	sheet := NewSheet(sheetName, rows)
+	sheet := book.NewSheet(sheetName, rows)
 
 	if x.NeedParseMeta() {
 		sheet.Meta = x.Meta.SheetMetaMap[sheetName]
@@ -214,44 +214,4 @@ func (x *ExcelImporter) ExportCSV() error {
 		}
 	}
 	return nil
-}
-
-func OpenExcel(filename string, sheetName string) (*excelize.File, error) {
-	var wb *excelize.File
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		fmt.Println("create file: ", filename)
-		wb = excelize.NewFile()
-		t := time.Now()
-		datetime := t.Format(time.RFC3339)
-		err := wb.SetDocProps(&excelize.DocProperties{
-			Category:       "category",
-			ContentStatus:  "Draft",
-			Created:        datetime,
-			Creator:        "Tableau",
-			Description:    "This file was created by Tableau",
-			Identifier:     "xlsx",
-			Keywords:       "Spreadsheet",
-			LastModifiedBy: "Tableau",
-			Modified:       datetime,
-			Revision:       "0",
-			Subject:        "Configuration",
-			Title:          filepath.Base(filename),
-			Language:       "en-US",
-			Version:        "1.0.0",
-		})
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to set doc props: %s", filename)
-		}
-		// The newly created workbook will by default contain a worksheet named `Sheet1`.
-		wb.SetSheetName("Sheet1", sheetName)
-		wb.SetDefaultFont("Courier")
-	} else {
-		fmt.Println("existed file: ", filename)
-		wb, err = excelize.OpenFile(filename)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open file: %s", filename)
-		}
-		wb.NewSheet(sheetName)
-	}
-	return wb, nil
 }

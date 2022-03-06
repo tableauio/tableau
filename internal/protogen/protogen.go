@@ -13,6 +13,7 @@ import (
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
@@ -275,7 +276,7 @@ func getCell(row []string, cursor int, line int32) string {
 	if cursor >= len(row) {
 		return ""
 	}
-	return importer.ExtractFromCell(row[cursor], line)
+	return book.ExtractFromCell(row[cursor], line)
 }
 
 func (sh *sheetHeader) getNameCell(cursor int) string {
