@@ -52,7 +52,7 @@ type OutputOption struct {
 }
 
 type InputOption struct {
-	Format format.Format
+	Formats []format.Format
 	// Specify only those sub-directories (relative to input dir) to be processed.
 	Subdirs []string
 }
@@ -78,6 +78,18 @@ func Input(o *InputOption) Option {
 	}
 }
 
+func InputFormats(formats ...format.Format) Option {
+	return func(opts *Options) {
+		opts.Input.Formats = formats
+	}
+}
+
+func InputSubdirs(subdirs ...string) Option {
+	return func(opts *Options) {
+		opts.Input.Subdirs = subdirs
+	}
+}
+
 func LocationName(o string) Option {
 	return func(opts *Options) {
 		opts.LocationName = o
@@ -90,7 +102,7 @@ func LogLevel(level string) Option {
 	}
 }
 
-func Imports(imports []string) Option {
+func Imports(imports ...string) Option {
 	return func(opts *Options) {
 		opts.Imports = imports
 	}
@@ -126,7 +138,7 @@ func newDefaultOptions() *Options {
 			EmitUnpopulated:          true,
 		},
 		Input: &InputOption{
-			Format: format.UnknownFormat,
+			Formats: nil,
 		},
 	}
 }

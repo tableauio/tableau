@@ -1,70 +1,67 @@
 package format
 
-import "github.com/pkg/errors"
-
 type Format int
 
 // File format
 const (
 	UnknownFormat Format = iota
-	JSON
-	Wire
-	Text
+	// input formats below
 	Excel
 	CSV
 	XML
+	// output formats below
+	JSON
+	Wire
+	Text
 )
 
 // File format extension
 const (
-	JSONExt  string = ".json"
-	WireExt  string = ".wire"
-	TextExt  string = ".text"
-	ExcelExt string = ".xlsx"
-	CSVExt   string = ".csv"
-	XMLExt   string = ".xml"
+	UnknownExt string = ".unknown"
+	JSONExt    string = ".json"
+	WireExt    string = ".wire"
+	TextExt    string = ".text"
+	ExcelExt   string = ".xlsx"
+	CSVExt     string = ".csv"
+	XMLExt     string = ".xml"
 )
 
-func Ext2Format(ext string) (Format, error) {
-	fmt := UnknownFormat
+func Ext2Format(ext string) Format {
 	switch ext {
 	case ExcelExt:
-		fmt = Excel
-	case XMLExt:
-		fmt = XML
+		return Excel
 	case CSVExt:
-		fmt = CSV
+		return CSV
+	case XMLExt:
+		return XML
 	case JSONExt:
-		fmt = JSON
+		return JSON
 	case TextExt:
-		fmt = Text
+		return Text
 	case WireExt:
-		fmt = Wire
+		return Wire
 	default:
-		return UnknownFormat, errors.Errorf("unknown file extension: %s", ext)
+		return UnknownFormat
 	}
-	return fmt, nil
 }
 
-func Format2Ext(fmt Format) (string, error) {
-	ext := ""
+func Format2Ext(fmt Format) string {
 	switch fmt {
 	case Excel:
-		ext = ExcelExt
-	case XML:
-		ext = XMLExt
+		return ExcelExt
 	case CSV:
-		ext = CSVExt
+		return CSVExt
+	case XML:
+		return XMLExt
 	case JSON:
-		ext = JSONExt
+		return JSONExt
 	case Text:
-		ext = TextExt
+		return TextExt
 	case Wire:
-		ext = WireExt
+		return WireExt
 	default:
-		return "", errors.Errorf("unknown file format: %v", fmt)
+		return UnknownExt
 	}
-	return ext, nil
 }
 
 func IsValidInput(fmt Format) bool {
@@ -74,4 +71,27 @@ func IsValidInput(fmt Format) bool {
 	default:
 		return false
 	}
+}
+
+func Amongst(fmt Format, formats []Format) bool {
+	var found bool
+	for _, f := range formats {
+		if f == fmt {
+			found = true
+			break
+		}
+	}
+	return found
+}
+
+// NeedProcessInput checks if this input format need to be converted.
+func NeedProcessInput(inputFormat Format, allowedInputFormats []Format) bool {
+	if !IsValidInput(inputFormat) {
+		return false
+	}
+
+	if allowedInputFormats == nil || Amongst(inputFormat, allowedInputFormats) {
+		return true
+	}
+	return false
 }

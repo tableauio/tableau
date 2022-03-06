@@ -144,8 +144,9 @@ func (gen *Generator) generate(dir string) error {
 			continue
 		}
 		// atom.Log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
-		fmt, err := format.Ext2Format(filepath.Ext(entry.Name()))
-		if err != nil || !format.IsValidInput(fmt) {
+		fmt := format.Ext2Format(filepath.Ext(entry.Name()))
+		// check if this workbook format need to be converted
+		if !format.NeedProcessInput(fmt, gen.InputOpts.Formats) {
 			continue
 		}
 
@@ -158,10 +159,6 @@ func (gen *Generator) generate(dir string) error {
 			csvBooks[bookName] = true
 		}
 
-		if gen.InputOpts.Format != format.UnknownFormat && gen.InputOpts.Format != fmt {
-			// ignore
-			continue
-		}
 		if err := gen.convert(dir, entry.Name()); err != nil {
 			return errors.WithMessage(err, "failed to convert workbook")
 		}
@@ -188,8 +185,7 @@ func (gen *Generator) convert(dir, filename string) error {
 		Datarow: 2,
 	}
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, wsOpts)
-	fmt, _ := format.Ext2Format(filepath.Ext(filename))
-	imp := importer.New(absPath, importer.Parser(parser), importer.Format(fmt), importer.Header(gen.Header))
+	imp := importer.New(absPath, importer.Parser(parser), importer.Header(gen.Header))
 	sheets, err := imp.GetSheets()
 	if err != nil {
 		return errors.Wrapf(err, "failed to get sheet of workbook: %s", absPath)

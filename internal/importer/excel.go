@@ -1,12 +1,9 @@
 package importer
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -14,27 +11,21 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// MetaSheetName defines the meta data of each worksheet.
-const MetaSheetName = "@TABLEAU"
-
 type ExcelImporter struct {
+	book     *book.Book
 	filename string
 
-	sheetMap         map[string]*book.Sheet // sheet name -> sheet
-	sheetNames       []string          // ordered sheet names
-	includeMetaSheet bool
+	selectedSheetNames []string // selected sheet names
 
 	Meta       *tableaupb.WorkbookMeta
 	metaParser book.SheetParser
 }
 
-// TODO: options
-func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, includeMetaSheet bool) *ExcelImporter {
+func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser) *ExcelImporter {
 	return &ExcelImporter{
-		filename:         filename,
-		sheetNames:       sheetNames,
-		includeMetaSheet: includeMetaSheet,
-		metaParser:       parser,
+		filename:           filename,
+		selectedSheetNames: sheetNames,
+		metaParser:         parser,
 		Meta: &tableaupb.WorkbookMeta{
 			SheetMetaMap: make(map[string]*tableaupb.SheetMeta),
 		},
@@ -50,168 +41,117 @@ func (x *ExcelImporter) Filename() string {
 }
 
 func (x *ExcelImporter) GetSheets() ([]*book.Sheet, error) {
-	if x.sheetMap == nil {
-		if err := x.parse(); err != nil {
-			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
+	if x.book == nil {
+		if err := x.parseBook(); err != nil {
+			return nil, errors.WithMessagef(err, "failed to parse csv book: %s", x.Filename())
 		}
 	}
-
-	sheets := []*book.Sheet{}
-	for _, name := range x.sheetNames {
-		sheet, err := x.GetSheet(name)
-		if err != nil {
-			return nil, errors.WithMessagef(err, "get sheet failed: %s", name)
-		}
-		sheets = append(sheets, sheet)
-	}
-	return sheets, nil
+	return x.book.GetSheets(), nil
 }
 
 // GetSheet returns a Sheet of the specified sheet name.
 func (x *ExcelImporter) GetSheet(name string) (*book.Sheet, error) {
-	if x.sheetMap == nil {
-		if err := x.parse(); err != nil {
+	if x.book == nil {
+		if err := x.parseBook(); err != nil {
 			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
 		}
 	}
-
-	sheet, ok := x.sheetMap[name]
-	if !ok {
+	sheet := x.book.GetSheet(name)
+	if sheet == nil {
 		return nil, errors.Errorf("sheet %s not found", name)
 	}
 	return sheet, nil
 }
 
-func (x *ExcelImporter) parse() error {
-	x.sheetMap = make(map[string]*book.Sheet)
-	file, err := excelize.OpenFile(x.filename)
+func (x *ExcelImporter) parseBook() error {
+	book, err := readExcelBook(x.filename)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open file %s", x.filename)
+		return errors.WithMessagef(err, "failed to read csv book: %s", x.Filename())
 	}
 
-	if err := x.parseWorkbookMeta(file); err != nil {
-		return errors.Wrapf(err, "failed to parse workbook meta: %s", MetaSheetName)
-	}
-
-	if err := x.collectSheetsInOrder(file); err != nil {
-		return errors.WithMessagef(err, "failed to collectSheetsInOrder: %s", x.filename)
-	}
-
-	for _, sheetName := range x.sheetNames {
-		s, err := x.parseSheet(file, sheetName)
-		if err != nil {
-			return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, sheetName)
+	if x.needParseMeta() {
+		if err := x.parseWorkbookMeta(book); err != nil {
+			return errors.Wrapf(err, "failed to parse workbook meta: %s", MetaSheetName)
 		}
-		x.sheetMap[sheetName] = s
 	}
+
+	if x.selectedSheetNames != nil {
+		book.Squeeze(x.selectedSheetNames)
+	}
+
+	// finally, assign parsed book to importer
+	x.book = book
 	return nil
 }
-func (x *ExcelImporter) NeedParseMeta() bool {
+
+func (x *ExcelImporter) needParseMeta() bool {
 	return x.metaParser != nil
 }
 
-func (x *ExcelImporter) parseWorkbookMeta(file *excelize.File) error {
-	if !x.NeedParseMeta() {
-		// atom.Log.Debugf("skip parsing workbook meta: %s", x.filename)
+func (x *ExcelImporter) parseWorkbookMeta(book *book.Book) error {
+	sheet := book.GetSheet(MetaSheetName)
+	if sheet == nil {
+		atom.Log.Debugf("sheet %s not found in book %s", MetaSheetName, x.Filename())
 		return nil
-	}
-
-	if file.GetSheetIndex(MetaSheetName) == -1 {
-		atom.Log.Debugf("workbook %s has no sheet named %s", x.filename, MetaSheetName)
-		return nil
-	}
-
-	sheet, err := x.parseSheet(file, MetaSheetName)
-	if err != nil {
-		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, MetaSheetName)
 	}
 
 	if sheet.MaxRow <= 1 {
-		for _, sheetName := range file.GetSheetList() {
-			x.Meta.SheetMetaMap[sheetName] = &tableaupb.SheetMeta{
-				Sheet: sheetName,
+		// need all sheets except the metasheet "@TABLEAU"
+		for _, sheet := range book.GetSheets() {
+			if sheet.Name != MetaSheetName {
+				x.Meta.SheetMetaMap[sheet.Name] = &tableaupb.SheetMeta{
+					Sheet: sheet.Name,
+				}
 			}
-		}
-		return nil
-	}
-	if err := x.metaParser.Parse(x.Meta, sheet); err != nil {
-		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, MetaSheetName)
-	}
-
-	atom.Log.Debugf("%s#%s: %+v", x.filename, MetaSheetName, x.Meta)
-	return nil
-}
-
-func (x *ExcelImporter) parseSheet(file *excelize.File, sheetName string) (*book.Sheet, error) {
-	rows, err := file.GetRows(sheetName)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get rows of sheet: %s#%s", x.filename, sheetName)
-	}
-	sheet := book.NewSheet(sheetName, rows)
-
-	if x.NeedParseMeta() {
-		sheet.Meta = x.Meta.SheetMetaMap[sheetName]
-	}
-	return sheet, nil
-}
-
-func (x *ExcelImporter) collectSheetsInOrder(file *excelize.File) error {
-	sortedMap := treemap.NewWithIntComparator()
-	if x.NeedParseMeta() {
-		for sheetName := range x.Meta.SheetMetaMap {
-			index := file.GetSheetIndex(sheetName)
-			if index == -1 {
-				return errors.Errorf("sheet %s not found in workbook %s", sheetName, x.filename)
-			}
-			sortedMap.Put(index, sheetName)
 		}
 	} else {
-		// Import all sheets except `@TABLEAU` if x.sheetNames is empty.
-		if x.sheetNames == nil {
-			for index, name := range file.GetSheetMap() {
-				sortedMap.Put(index, name)
-			}
-		}
-
-		for _, name := range x.sheetNames {
-			index := file.GetSheetIndex(name)
-			if index == -1 {
-				return errors.Errorf("sheet %s not found in workbook %s", name, x.filename)
-			}
-			sortedMap.Put(index, name)
+		if err := x.metaParser.Parse(x.Meta, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, MetaSheetName)
 		}
 	}
 
-	// Clear before re-assign.
-	x.sheetNames = nil
-	for _, val := range sortedMap.Values() {
-		sheetName := val.(string)
-		if sheetName != MetaSheetName || (x.includeMetaSheet && sheetName == MetaSheetName) {
-			// exclude meta sheet
-			x.sheetNames = append(x.sheetNames, sheetName)
+	atom.Log.Debugf("%s#%s: %+v", x.Filename(), MetaSheetName, x.Meta)
+
+	var keepedSheetNames []string
+	for sheetName, sheetMeta := range x.Meta.SheetMetaMap {
+		sheet := book.GetSheet(sheetName)
+		if sheet == nil {
+			return errors.Errorf("sheet %s not found in book %s", sheetName, x.Filename())
 		}
+		keepedSheetNames = append(keepedSheetNames, sheetName)
+		sheet.Meta = sheetMeta
 	}
+	// NOTE: only keep the sheets that are specified in meta
+	book.Squeeze(keepedSheetNames)
 	return nil
+}
+
+func readExcelBook(filename string) (*book.Book, error) {
+	file, err := excelize.OpenFile(filename)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to open file %s", filename)
+	}
+
+	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
+	newBook := book.NewBook(bookName)
+	for _, sheetName := range file.GetSheetList() {
+		rows, err := file.GetRows(sheetName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get rows of sheet: %s#%s", filename, sheetName)
+		}
+		sheet := book.NewSheet(sheetName, rows)
+		newBook.AddSheet(sheet)
+	}
+
+	return newBook, nil
 }
 
 func (x *ExcelImporter) ExportCSV() error {
-	ext := filepath.Ext(x.filename)
-	basename := strings.TrimSuffix(x.filename, ext)
-	sheets, err := x.GetSheets()
-	if err != nil {
-		return errors.WithMessagef(err, "failed to get sheets: %s", x.filename)
-	}
-	for _, sheet := range sheets {
-		path := fmt.Sprintf("%s#%s.csv", basename, sheet.Name)
-		f, err := os.Create(path)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create csv file: %s", path)
-		}
-		defer f.Close()
-
-		if err := sheet.ExportCSV(f); err != nil {
-			return errors.WithMessagef(err, "export sheet %s to excel failed", sheet.Name)
+	if x.book == nil {
+		if err := x.parseBook(); err != nil {
+			return errors.WithMessagef(err, "failed to parse %s", x.filename)
 		}
 	}
-	return nil
+	dir := filepath.Dir(x.filename)
+	return x.book.ExportCSV(dir)
 }

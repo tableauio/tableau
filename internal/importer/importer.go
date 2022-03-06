@@ -1,9 +1,14 @@
 package importer
 
 import (
+	"path/filepath"
+
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
 )
+
+// MetaSheetName defines the meta data of each worksheet.
+const MetaSheetName = "@TABLEAU"
 
 type Importer interface {
 	// Filename returns the parsed filename of the original inputed filename.
@@ -24,9 +29,10 @@ type Importer interface {
 
 func New(filename string, setters ...Option) Importer {
 	opts := parseOptions(setters...)
-	switch opts.Format {
+	fmt := format.Ext2Format(filepath.Ext(filename))
+	switch fmt {
 	case format.Excel:
-		return NewExcelImporter(filename, opts.Sheets, opts.Parser, false)
+		return NewExcelImporter(filename, opts.Sheets, opts.Parser)
 	case format.CSV:
 		return NewCSVImporter(filename, opts.Sheets, opts.Parser)
 	case format.XML:

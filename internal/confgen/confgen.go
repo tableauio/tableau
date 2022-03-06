@@ -84,11 +84,9 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 					return nil
 				}
 				workbookFound = true
-				fmt, err := format.Ext2Format(filepath.Ext(workbook.Name))
-				if err != nil || !format.IsValidInput(fmt) {
-					return nil
-				}
-				if gen.Input.Format != format.UnknownFormat && gen.Input.Format != fmt {
+				workbookFormat := format.Ext2Format(filepath.Ext(workbook.Name))
+				// check if this workbook format need to be converted
+				if !format.NeedProcessInput(workbookFormat, gen.Input.Formats) {
 					return nil
 				}
 
@@ -106,7 +104,7 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 					}
 				}
 				wbPath := filepath.Join(gen.InputDir, workbook.Name)
-				imp := importer.New(wbPath, importer.Sheets(sheets), importer.Format(fmt), importer.Header(gen.Header))
+				imp := importer.New(wbPath, importer.Sheets(sheets), importer.Header(gen.Header))
 				// atom.Log.Debugf("proto: %s, workbook %s", fd.Path(), workbook)
 				for sheetName, sheetInfo := range sheetMap {
 					if worksheetName != "" && worksheetName != sheetName {

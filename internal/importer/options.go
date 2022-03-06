@@ -1,13 +1,11 @@
 package importer
 
 import (
-	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/options"
 )
 
 type Options struct {
-	Format format.Format         // file format: Excel, CSV, XML. Default: Excel.
 	Sheets []string              // sheet names to import
 	Parser book.SheetParser      // parser to parse the worksheet
 	Header *options.HeaderOption // header settings.
@@ -15,12 +13,6 @@ type Options struct {
 
 // Option is the functional option type.
 type Option func(*Options)
-
-func Format(fmt format.Format) Option {
-	return func(opts *Options) {
-		opts.Format = fmt
-	}
-}
 
 func Sheets(sheets []string) Option {
 	return func(opts *Options) {
@@ -41,9 +33,7 @@ func Header(header *options.HeaderOption) Option {
 }
 
 func newDefaultOptions() *Options {
-	return &Options{
-		Format: format.Excel,
-	}
+	return &Options{}
 }
 
 func parseOptions(setters ...Option) *Options {

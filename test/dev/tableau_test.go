@@ -32,15 +32,13 @@ func Test_Excel2Proto(t *testing.T) {
 				Typeline: 2,
 			}),
 		options.Imports(
-			[]string{
-				"cs_dbkeyword.proto",
-				"common.proto",
-				"time.proto",
-			},
+			"cs_dbkeyword.proto",
+			"common.proto",
+			"time.proto",
 		),
 		options.Input(
 			&options.InputOption{
-				Format:  format.Excel,
+				Formats: []format.Format{format.Excel},
 				Subdirs: []string{`./`},
 			},
 		),
@@ -59,11 +57,7 @@ func Test_Excel2JSON(t *testing.T) {
 		"protoconf",
 		"./testdata",
 		"./_conf",
-		options.Input(
-			&options.InputOption{
-				Format: format.Excel,
-			},
-		),
+		options.InputFormats(format.Excel),
 		options.LogLevel("debug"),
 	)
 }
@@ -75,7 +69,7 @@ func Test_Excel2JSON_Select(t *testing.T) {
 		"./_conf",
 		options.Input(
 			&options.InputOption{
-				Format: format.Excel,
+				Formats: []format.Format{format.Excel},
 			},
 		),
 		options.LogLevel("debug"),
@@ -92,7 +86,7 @@ func Test_Excel2CSV(t *testing.T) {
 		"./testdata/excel/hero/Hero.xlsx",
 	}
 	for _, path := range paths {
-		imp := importer.NewExcelImporter(path, nil, nil, true)
+		imp := importer.NewExcelImporter(path, nil, nil)
 		err := imp.ExportCSV()
 		if err != nil {
 			t.Error(err)
@@ -121,17 +115,11 @@ func Test_XML2Proto(t *testing.T) {
 		"./testdata",
 		"./proto",
 		options.Imports(
-			[]string{
-				"cs_dbkeyword.proto",
-				"common.proto",
-				"time.proto",
-			},
+			"cs_dbkeyword.proto",
+			"common.proto",
+			"time.proto",
 		),
-		options.Input(
-			&options.InputOption{
-				Format: format.XML,
-			},
-		),
+		options.InputFormats(format.XML),
 		options.Output(
 			&options.OutputOption{
 				FilenameSuffix:           "_conf",
@@ -157,11 +145,7 @@ func Test_XML2JSON(t *testing.T) {
 		"./testdata",
 		"./_conf",
 		options.LogLevel("debug"),
-		options.Input(
-			&options.InputOption{
-				Format: format.XML,
-			},
-		),
+		options.InputFormats(format.XML),
 	)
 	// tableau.Generate("protoconf", "./testdata/", "./_output/xml/")
 }
@@ -173,12 +157,11 @@ func Test_GenProto(t *testing.T) {
 		"./testdata",
 		"./proto",
 		options.Imports(
-			[]string{
-				"cs_dbkeyword.proto",
-				"common.proto",
-				"time.proto",
-			},
+			"cs_dbkeyword.proto",
+			"common.proto",
+			"time.proto",
 		),
+		options.InputFormats(format.CSV, format.XML),
 		options.Output(
 			&options.OutputOption{
 				FilenameSuffix:           "_conf",

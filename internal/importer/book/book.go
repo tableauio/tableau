@@ -1,6 +1,8 @@
 package book
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -98,6 +100,26 @@ func (b *Book) ExportExcel(dir string) error {
 
 	if err := file.SaveAs(filename); err != nil {
 		return errors.WithMessagef(err, "failed to save file %s", filename)
+	}
+	return nil
+}
+
+func (b *Book) ExportCSV(dir string) error {
+	basename := filepath.Join(dir, b.Name)
+	if len(b.sheetNames) == 0 {
+		return nil
+	}
+	for _, sheet := range b.GetSheets() {
+		path := fmt.Sprintf("%s#%s.csv", basename, sheet.Name)
+		f, err := os.Create(path)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create csv file: %s", path)
+		}
+		defer f.Close()
+
+		if err := sheet.ExportCSV(f); err != nil {
+			return errors.WithMessagef(err, "export sheet %s to excel failed", sheet.Name)
+		}
 	}
 	return nil
 }

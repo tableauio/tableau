@@ -23,7 +23,7 @@ func Load(msg proto.Message, dir string, fmt format.Format) error {
 	case format.Wire:
 		return loadWire(msg, dir)
 	case format.Excel, format.CSV, format.XML:
-		return loadExcel(msg, dir, fmt)
+		return loadOrigin(msg, dir)
 	default:
 		return errors.Errorf("unknown format: %v", fmt)
 	}
@@ -71,7 +71,8 @@ func loadWire(msg proto.Message, dir string) error {
 	return nil
 }
 
-func loadExcel(msg proto.Message, dir string, format format.Format) error {
+// loadOrigin loads the origin file(excel/csv/xml) from the given directory.
+func loadOrigin(msg proto.Message, dir string) error {
 	md := msg.ProtoReflect().Descriptor()
 	protofile, workbook := confgen.ParseFileOptions(md.ParentFile())
 	if workbook == nil {
@@ -93,7 +94,6 @@ func loadExcel(msg proto.Message, dir string, format format.Format) error {
 	imp := importer.New(
 		wbPath,
 		importer.Sheets(sheets),
-		importer.Format(format),
 		importer.Header(header),
 	)
 

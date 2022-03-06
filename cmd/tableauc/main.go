@@ -19,7 +19,7 @@ var (
 	outputDir                string
 	filenameWithSubdirPrefix bool
 	filenameSuffix           string
-	inputFormat              string
+	inputFormats             []string
 	logLevel                 string
 
 	// xlsx header
@@ -41,14 +41,10 @@ func main() {
 		Long:    `Complete documentation is available at https://tableauio.github.io`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Do Stuff Here
-			formatType := format.Excel
-			switch inputFormat {
-			case "excel":
-				formatType = format.Excel
-			case "csv":
-				formatType = format.CSV
-			case "xml":
-				formatType = format.XML
+			var formats []format.Format
+			for _, inputFormat := range inputFormats {
+				formatType := format.Ext2Format("." + inputFormat)
+				formats = append(formats, formatType)
 			}
 			g := protogen.NewGenerator(protoPackage, goPackage, inputDir, outputDir,
 				options.Header(&options.HeaderOption{
@@ -61,7 +57,7 @@ func main() {
 					Typeline: typeline,
 				},
 				),
-				options.Imports(imports),
+				options.Imports(imports...),
 				options.LocationName(locationName),
 				options.Output(
 					&options.OutputOption{
@@ -69,9 +65,7 @@ func main() {
 						FilenameWithSubdirPrefix: filenameWithSubdirPrefix,
 					},
 				),
-				options.Input(&options.InputOption{
-					Format: formatType,
-				}),
+				options.InputFormats(formats...),
 			)
 			atom.InitZap(logLevel)
 			if len(args) == 0 {
@@ -98,7 +92,7 @@ func main() {
 	rootCmd.Flags().BoolVarP(&filenameWithSubdirPrefix, "with-subdir-prefix", "", false, "output filename with subdir prefix")
 	rootCmd.Flags().StringVarP(&filenameSuffix, "suffix", "s", "", "output filename suffix")
 	rootCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "log level: debug, info, warn, error")
-	rootCmd.Flags().StringVarP(&inputFormat, "format", "", "excel", "input file format: excel, xml")
+	rootCmd.Flags().StringSliceVarP(&inputFormats, "formats", "", nil, "input file formats: excel, csv, xml. Default: all formats.")
 
 	rootCmd.Flags().Int32VarP(&namerow, "namerow", "", 1, "name row in xlsx")
 	rootCmd.Flags().Int32VarP(&typerow, "typerow", "", 2, "type row in xlsx")
@@ -107,7 +101,7 @@ func main() {
 	rootCmd.Flags().Int32VarP(&nameline, "nameline", "", 0, "name line in xlsx cell")
 	rootCmd.Flags().Int32VarP(&typeline, "typeline", "", 0, "type line in xlsx cell")
 
-	rootCmd.Flags().StringSliceVarP(&imports, "imports", "", nil, "import common protobuf files")
+	rootCmd.Flags().StringSliceVarP(&imports, "imports", "", nil, "import common protobuf files, path relative to input dir")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
