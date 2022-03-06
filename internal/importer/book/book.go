@@ -6,25 +6,41 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/excel"
+	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
 type Book struct {
-	Name       string            // book name without suffix
+	name       string            // book name without suffix
+	filename   string            // book filename
 	sheets     map[string]*Sheet // sheet name -> sheet
 	sheetNames []string          // ordered sheet names
+
+	meta       *tableaupb.WorkbookMeta
+	metaParser SheetParser
 }
 
-func NewBook(name string) *Book {
+func NewBook(bookName, filename string, parser SheetParser) *Book {
 	return &Book{
-		Name:   name,
-		sheets: make(map[string]*Sheet),
+		name:               bookName,
+		filename:           filename,
+		sheets:             make(map[string]*Sheet),
+		meta: &tableaupb.WorkbookMeta{
+			SheetMetaMap: make(map[string]*tableaupb.SheetMeta),
+		},
+		metaParser: parser,
 	}
+}
+
+// Filename returns this book's original filename.
+func (b *Book) Filename() string {
+	return b.filename
 }
 
 // BookNames returns this book's name.
 func (b *Book) BookName() string {
-	return b.Name
+	return b.name
 }
 
 // AddSheet adds a sheet to the book and keep the sheet order.
@@ -82,8 +98,47 @@ func (b *Book) Squeeze(sheetNames []string) {
 	}
 }
 
-func (b *Book) ExportExcel(dir string) error {
-	filename := filepath.Join(dir, b.Name+".xlsx")
+func (b *Book) ParseMeta() error {
+	sheet := b.GetSheet(MetaSheetName)
+	if sheet == nil {
+		atom.Log.Debugf("sheet %s not found in book %s", MetaSheetName, b.Filename())
+		return nil
+	}
+
+	if sheet.MaxRow <= 1 {
+		// need all sheets except the metasheet "@TABLEAU"
+		for _, sheet := range b.GetSheets() {
+			if sheet.Name != MetaSheetName {
+				b.meta.SheetMetaMap[sheet.Name] = &tableaupb.SheetMeta{
+					Sheet: sheet.Name,
+				}
+			}
+		}
+	} else {
+		if err := b.metaParser.Parse(b.meta, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse sheet: %s#%s", b.Filename(), MetaSheetName)
+		}
+	}
+
+	atom.Log.Debugf("%s#%s: %+v", b.Filename(), MetaSheetName, b.meta)
+
+	var keepedSheetNames []string
+	for sheetName, sheetMeta := range b.meta.SheetMetaMap {
+		sheet := b.GetSheet(sheetName)
+		if sheet == nil {
+			return errors.Errorf("sheet %s not found in book %s", sheetName, b.Filename())
+		}
+		keepedSheetNames = append(keepedSheetNames, sheetName)
+		sheet.Meta = sheetMeta
+	}
+	// NOTE: only keep the sheets that are specified in meta
+	b.Squeeze(keepedSheetNames)
+	return nil
+}
+
+func (b *Book) ExportExcel() error {
+	dir := filepath.Dir(b.filename)
+	filename := filepath.Join(dir, b.name+".xlsx")
 	if len(b.sheetNames) == 0 {
 		return nil
 	}
@@ -104,8 +159,9 @@ func (b *Book) ExportExcel(dir string) error {
 	return nil
 }
 
-func (b *Book) ExportCSV(dir string) error {
-	basename := filepath.Join(dir, b.Name)
+func (b *Book) ExportCSV() error {
+	dir := filepath.Dir(b.filename)
+	basename := filepath.Join(dir, b.name)
 	if len(b.sheetNames) == 0 {
 		return nil
 	}

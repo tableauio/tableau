@@ -45,7 +45,7 @@ type Range struct {
 }
 type XMLImporter struct {
 	filename   string
-	sheetMap   map[string]*book.Sheet             // sheet name -> sheet
+	sheetMap   map[string]*book.Sheet        // sheet name -> sheet
 	metaMap    map[string]*xlsxgen.MetaSheet // sheet name -> meta
 	sheetNames []string
 	header     *options.HeaderOption // header settings.
@@ -54,13 +54,13 @@ type XMLImporter struct {
 }
 
 // TODO: options
-func NewXMLImporter(filename string, sheets []string, header *options.HeaderOption) *XMLImporter {
+func NewXMLImporter(filename string, sheets []string, header *options.HeaderOption) (*XMLImporter, error) {
 	return &XMLImporter{
 		filename:   filename,
 		sheetNames: sheets,
 		header:     header,
 		prefixMaps: make(map[string](map[string]Range)),
-	}
+	}, nil
 }
 
 func (x *XMLImporter) BookName() string {
@@ -71,37 +71,37 @@ func (x *XMLImporter) Filename() string {
 	return x.filename
 }
 
-func (x *XMLImporter) GetSheets() ([]*book.Sheet, error) {
+func (x *XMLImporter) GetSheets() []*book.Sheet {
 	if x.sheetNames == nil {
 		if err := x.parse(); err != nil {
-			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
+			atom.Log.Panicf("failed to parse: %s, %+v", x.filename, err)
 		}
 	}
 
 	sheets := []*book.Sheet{}
 	for _, name := range x.sheetNames {
-		sheet, err := x.GetSheet(name)
-		if err != nil {
-			return nil, errors.WithMessagef(err, "get sheet failed: %s", name)
+		sheet := x.GetSheet(name)
+		if sheet == nil {
+			atom.Log.Panicf("get sheet failed: %s", name)
 		}
 		sheets = append(sheets, sheet)
 	}
-	return sheets, nil
+	return sheets
 }
 
 // GetSheet returns a Sheet of the specified sheet name.
-func (x *XMLImporter) GetSheet(name string) (*book.Sheet, error) {
+func (x *XMLImporter) GetSheet(name string) *book.Sheet {
 	if x.sheetMap == nil {
 		if err := x.parse(); err != nil {
-			return nil, errors.WithMessagef(err, "failed to parse %s", x.filename)
+			atom.Log.Panicf("failed to parse: %s, %+v", x.filename, err)
 		}
 	}
 
 	sheet, ok := x.sheetMap[name]
 	if !ok {
-		return nil, errors.Errorf("sheet %s not found", name)
+		atom.Log.Panicf("get sheet failed: %s", name)
 	}
-	return sheet, nil
+	return sheet
 }
 
 func (x *XMLImporter) parse() error {

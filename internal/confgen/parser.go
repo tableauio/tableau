@@ -39,9 +39,9 @@ func NewSheetExporter(outputDir string, output *options.OutputOption) *sheetExpo
 func (x *sheetExporter) Export(imp importer.Importer, parser *sheetParser, protomsg proto.Message) error {
 	md := protomsg.ProtoReflect().Descriptor()
 	msgName, wsOpts := ParseMessageOptions(md)
-	sheet, err := imp.GetSheet(wsOpts.Name)
-	if err != nil {
-		return errors.WithMessagef(err, "get sheet failed: %s", wsOpts.Name)
+	sheet := imp.GetSheet(wsOpts.Name)
+	if sheet == nil {
+		return errors.Errorf("sheet %s not found", wsOpts.Name)
 	}
 
 	if err := parser.Parse(protomsg, sheet); err != nil {

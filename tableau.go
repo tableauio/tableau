@@ -52,7 +52,7 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 }
 
 // ParseMeta parses the @TABLEAU sheet in a workbook.
-func ParseMeta(indir, relWorkbookPath string) importer.Importer {
+func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
 	wsOpts := &tableaupb.WorksheetOptions{
 		Name:    importer.MetaSheetName,
 		Namerow: 1,

@@ -13,6 +13,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// MetaSheetName defines the meta data of each worksheet.
+const MetaSheetName = "@TABLEAU"
+
 type SheetParser interface {
 	Parse(protomsg proto.Message, sheet *Sheet) error
 }

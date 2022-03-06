@@ -104,7 +104,10 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 					}
 				}
 				wbPath := filepath.Join(gen.InputDir, workbook.Name)
-				imp := importer.New(wbPath, importer.Sheets(sheets), importer.Header(gen.Header))
+				imp, err := importer.New(wbPath, importer.Sheets(sheets), importer.Header(gen.Header))
+				if err != nil {
+					return errors.WithMessagef(err, "failed to import workbook: %s", wbPath)
+				}
 				// atom.Log.Debugf("proto: %s, workbook %s", fd.Path(), workbook)
 				for sheetName, sheetInfo := range sheetMap {
 					if worksheetName != "" && worksheetName != sheetName {

@@ -185,11 +185,12 @@ func (gen *Generator) convert(dir, filename string) error {
 		Datarow: 2,
 	}
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, wsOpts)
-	imp := importer.New(absPath, importer.Parser(parser), importer.Header(gen.Header))
-	sheets, err := imp.GetSheets()
+	imp, err := importer.New(absPath, importer.Parser(parser), importer.Header(gen.Header))
 	if err != nil {
-		return errors.Wrapf(err, "failed to get sheet of workbook: %s", absPath)
+		return errors.Wrapf(err, "failed to import workbook: %s", absPath)
 	}
+
+	sheets := imp.GetSheets()
 	if len(sheets) == 0 {
 		return nil
 	}

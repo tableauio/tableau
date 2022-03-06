@@ -3,6 +3,7 @@ package importer
 import (
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
 )
@@ -22,12 +23,12 @@ type Importer interface {
 	// 	- XML: the base filename without file extension.
 	BookName() string
 	// GetSheets returns all sheets in order of the book.
-	GetSheets() ([]*book.Sheet, error)
+	GetSheets() []*book.Sheet
 	// GetSheet returns a Sheet of the specified sheet name.
-	GetSheet(name string) (*book.Sheet, error)
+	GetSheet(name string) *book.Sheet
 }
 
-func New(filename string, setters ...Option) Importer {
+func New(filename string, setters ...Option) (Importer, error) {
 	opts := parseOptions(setters...)
 	fmt := format.Ext2Format(filepath.Ext(filename))
 	switch fmt {
@@ -38,7 +39,7 @@ func New(filename string, setters ...Option) Importer {
 	case format.XML:
 		return NewXMLImporter(filename, opts.Sheets, opts.Header)
 	default:
-		return nil
+		return nil, errors.Errorf("unsupported format: %d", fmt)
 	}
 }
 
