@@ -8,9 +8,6 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 )
 
-// MetaSheetName defines the meta data of each worksheet.
-const MetaSheetName = "@TABLEAU"
-
 type Importer interface {
 	// Filename returns the parsed filename of the original inputed filename.
 	// 	- Excel: same as the inputed filename.
@@ -41,9 +38,4 @@ func New(filename string, setters ...Option) (Importer, error) {
 	default:
 		return nil, errors.Errorf("unsupported format: %d", fmt)
 	}
-}
-
-func ParseCSVBookName(filename string) string {
-	bookName, _ := parseCSVFilenamePattern(filename)
-	return bookName
 }

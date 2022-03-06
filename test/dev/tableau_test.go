@@ -88,28 +88,29 @@ func Test_Excel2CSV(t *testing.T) {
 	for _, path := range paths {
 		imp, err := importer.NewExcelImporter(path, nil, nil)
 		if err != nil {
-			t.Fatal(err)
+			t.Errorf("%+v", err)
 		}
-
 		if err := imp.ExportCSV(); err != nil {
-			t.Fatal(err)
+			t.Errorf("%+v", err)
 		}
 	}
 }
 
-// func Test_CSV2Excel(t *testing.T) {
-// 	paths := []string{
-// 		"./testdata/excel/Test#*.csv",
-// 		"./testdata/excel/hero/Hero#*.csv",
-// 	}
-// 	for _, path := range paths {
-// 		imp := importer.NewCSVImporter(path, nil, nil)
-// 		err := imp.ExportExcel()
-// 		if err != nil {
-// 			t.Errorf("%+v", err)
-// 		}
-// 	}
-// }
+func Test_CSV2Excel(t *testing.T) {
+	paths := []string{
+		"./testdata/excel/Test#*.csv",
+		"./testdata/excel/hero/Hero#*.csv",
+	}
+	for _, path := range paths {
+		imp, err := importer.NewCSVImporter(path, nil, nil)
+		if err != nil {
+			t.Errorf("%+v", err)
+		}
+		if err := imp.ExportExcel(); err != nil {
+			t.Errorf("%+v", err)
+		}
+	}
+}
 
 func Test_XML2Proto(t *testing.T) {
 	tableau.GenProto(

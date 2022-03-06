@@ -91,15 +91,18 @@ func loadOrigin(msg proto.Message, dir string) error {
 		Nameline: wsOpts.Nameline,
 		Typeline: wsOpts.Typeline,
 	}
-	imp := importer.New(
+	imp, err := importer.New(
 		wbPath,
 		importer.Sheets(sheets),
 		importer.Header(header),
 	)
-
-	sheet, err := imp.GetSheet(wsOpts.Name)
 	if err != nil {
-		return errors.WithMessagef(err, "%v|get sheet failed: %s", msgName, wsOpts.Name)
+		return errors.WithMessagef(err, "failed to import workbook: %v", wbPath)
+	}
+
+	sheet := imp.GetSheet(wsOpts.Name)
+	if sheet == nil {
+		return errors.WithMessagef(err, "%v|sheet %s not found", msgName, wsOpts.Name)
 	}
 	pkgName := md.ParentFile().Package()
 	// TODO: support LocationName setting by using Functional Options

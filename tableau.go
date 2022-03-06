@@ -8,10 +8,10 @@ import (
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
 // GenConf converts Excel/CSV/XML files (with tableau header) to different formatted configuration files.
@@ -53,12 +53,7 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 
 // ParseMeta parses the @TABLEAU sheet in a workbook.
 func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
-	wsOpts := &tableaupb.WorksheetOptions{
-		Name:    importer.MetaSheetName,
-		Namerow: 1,
-		Datarow: 2,
-	}
-	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", wsOpts)
+	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", book.MetsasheetOptions())
 	return importer.New(
 		filepath.Join(indir, relWorkbookPath),
 		importer.Parser(parser),

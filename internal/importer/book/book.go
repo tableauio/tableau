@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -138,7 +139,7 @@ func (b *Book) ParseMeta() error {
 
 func (b *Book) ExportExcel() error {
 	dir := filepath.Dir(b.filename)
-	filename := filepath.Join(dir, b.name+".xlsx")
+	filename := filepath.Join(dir, b.name+format.ExcelExt)
 	if len(b.sheetNames) == 0 {
 		return nil
 	}
@@ -166,7 +167,7 @@ func (b *Book) ExportCSV() error {
 		return nil
 	}
 	for _, sheet := range b.GetSheets() {
-		path := fmt.Sprintf("%s#%s.csv", basename, sheet.Name)
+		path := fmt.Sprintf("%s#%s%s", basename, sheet.Name, format.CSVExt)
 		f, err := os.Create(path)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create csv file: %s", path)

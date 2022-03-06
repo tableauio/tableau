@@ -137,3 +137,11 @@ func (s *Sheet) ExportExcel(file *excelize.File) error {
 	}
 	return nil
 }
+
+func MetsasheetOptions() *tableaupb.WorksheetOptions {
+	return &tableaupb.WorksheetOptions{
+		Name:    MetaSheetName,
+		Namerow: 1,
+		Datarow: 2,
+	}
+}

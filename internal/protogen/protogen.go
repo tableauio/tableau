@@ -151,7 +151,7 @@ func (gen *Generator) generate(dir string) error {
 		}
 
 		if fmt == format.CSV {
-			bookName := importer.ParseCSVBookName(entry.Name())
+			bookName, _ := importer.ParseCSVFilenamePattern(entry.Name())
 			if _, ok := csvBooks[bookName]; ok {
 				// NOTE: multiple CSV files construct the same book.
 				continue
@@ -179,12 +179,7 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 
 func (gen *Generator) convert(dir, filename string) error {
 	absPath := filepath.Join(dir, filename)
-	wsOpts := &tableaupb.WorksheetOptions{
-		Name:    importer.MetaSheetName,
-		Namerow: 1,
-		Datarow: 2,
-	}
-	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, wsOpts)
+	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetsasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser), importer.Header(gen.Header))
 	if err != nil {
 		return errors.Wrapf(err, "failed to import workbook: %s", absPath)
