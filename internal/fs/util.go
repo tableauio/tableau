@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -91,4 +92,31 @@ func GetRelCleanSlashPath(rootdir, path string) (string, error) {
 		return "", errors.Wrapf(err, "failed to get relative path from %s to %s", rootdir, path)
 	}
 	return GetCleanSlashPath(relPath), nil
+}
+
+func FilterSubdir(filename string, subdirs []string) bool {
+	if len(subdirs) != 0 {
+		for _, subdir := range subdirs {
+			subdir = GetCleanSlashPath(subdir)
+			if strings.HasPrefix(filename, subdir) {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
+func RewriteSubdir(filename string, subdirRewrites map[string]string) string {
+	if len(subdirRewrites) != 0 {
+		for old, new := range subdirRewrites {
+			oldSubdir := GetCleanSlashPath(old)
+			newSubdir := GetCleanSlashPath(new)
+			if strings.HasPrefix(filename, oldSubdir) {
+				newfilename := strings.Replace(filename, oldSubdir, newSubdir, 1)
+				return GetCleanSlashPath(newfilename)
+			}
+		}
+	}
+	return filename
 }

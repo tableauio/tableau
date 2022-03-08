@@ -36,9 +36,9 @@ type Generator struct {
 	FilenameWithSubdirPrefix bool   // filename dir separator `/` or `\` is replaced by "__"
 	FilenameSuffix           string // filename suffix of generated protoconf files.
 
-	Imports   []string              // imported common proto file paths
-	Header    *options.HeaderOption // header settings.
-	Input *options.InputOption
+	Imports []string              // imported common proto file paths
+	Header  *options.HeaderOption // header settings.
+	Input   *options.InputOption
 }
 
 func NewGenerator(protoPackage, goPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -53,9 +53,9 @@ func NewGenerator(protoPackage, goPackage, indir, outdir string, setters ...opti
 		FilenameWithSubdirPrefix: opts.Output.FilenameWithSubdirPrefix,
 		FilenameSuffix:           opts.Output.FilenameSuffix,
 
-		Imports:   opts.Imports,
-		Header:    opts.Header,
-		Input: opts.Input,
+		Imports: opts.Imports,
+		Header:  opts.Header,
+		Input:   opts.Input,
 	}
 	return g
 }
@@ -194,9 +194,11 @@ func (gen *Generator) convert(dir, filename string) error {
 	if err != nil {
 		return errors.WithMessagef(err, "get relative path failed")
 	}
-	atom.Log.Infof("workbook: %s", relativePath)
+	// rewrite subdir
+	rewrittenWorkbookName := fs.RewriteSubdir(relativePath, gen.Input.SubdirRewrites)
+	atom.Log.Infof("workbook: %s", rewrittenWorkbookName)
 	// creat a book parser
-	bp := newBookParser(imp.BookName(), relativePath, gen.FilenameWithSubdirPrefix, gen.Imports)
+	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen.FilenameWithSubdirPrefix, gen.Imports)
 	for _, sheet := range sheets {
 		// parse sheet header
 		sheetMsgName := sheet.Name

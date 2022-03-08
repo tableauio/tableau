@@ -166,6 +166,15 @@ func Test_GenProto(t *testing.T) {
 			"time.proto",
 		),
 		options.InputFormats(format.CSV, format.XML),
+		// options.Input(
+		// 	&options.InputOption{
+		// 		// Formats: []format.Format{format.CSV},
+		// 		// Subdirs: []string{`excel/`},
+		// 		SubdirRewrites: map[string]string{
+		// 			`excel/`: ``,
+		// 		},
+		// 	},
+		// ),
 		options.Output(
 			&options.OutputOption{
 				FilenameSuffix:           "_conf",
