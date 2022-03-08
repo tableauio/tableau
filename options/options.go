@@ -55,6 +55,8 @@ type InputOption struct {
 	Formats []format.Format
 	// Specify only those sub-directories (relative to input dir) to be processed.
 	Subdirs []string
+	// Rewrite subdir path.
+	SubdirRewrites map[string]string
 }
 
 // Option is the functional option type.

@@ -38,7 +38,7 @@ type Generator struct {
 
 	Imports   []string              // imported common proto file paths
 	Header    *options.HeaderOption // header settings.
-	InputOpts *options.InputOption
+	Input *options.InputOption
 }
 
 func NewGenerator(protoPackage, goPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -55,7 +55,7 @@ func NewGenerator(protoPackage, goPackage, indir, outdir string, setters ...opti
 
 		Imports:   opts.Imports,
 		Header:    opts.Header,
-		InputOpts: opts.Input,
+		Input: opts.Input,
 	}
 	return g
 }
@@ -103,8 +103,8 @@ func (gen *Generator) Generate() error {
 	if err := gen.PrepareOutpuDir(); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", gen.OutputDir)
 	}
-	if len(gen.InputOpts.Subdirs) != 0 {
-		for _, subdir := range gen.InputOpts.Subdirs {
+	if len(gen.Input.Subdirs) != 0 {
+		for _, subdir := range gen.Input.Subdirs {
 			dir := filepath.Join(gen.InputDir, subdir)
 			if err := gen.generate(dir); err != nil {
 				return errors.WithMessagef(err, "failed to generate %s", dir)
@@ -146,7 +146,7 @@ func (gen *Generator) generate(dir string) error {
 		// atom.Log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
 		fmt := format.Ext2Format(filepath.Ext(entry.Name()))
 		// check if this workbook format need to be converted
-		if !format.NeedProcessInput(fmt, gen.InputOpts.Formats) {
+		if !format.FilterInput(fmt, gen.Input.Formats) {
 			continue
 		}
 

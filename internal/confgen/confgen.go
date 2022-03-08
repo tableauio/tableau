@@ -3,6 +3,7 @@ package confgen
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
@@ -53,6 +54,32 @@ type sheetInfo struct {
 	opts        *tableaupb.WorksheetOptions
 }
 
+func FilterSubdir(filename string, subdirs []string) bool {
+	if len(subdirs) != 0 {
+		for _, subdir := range subdirs {
+			subdir = fs.GetCleanSlashPath(subdir)
+			if strings.HasPrefix(filename, subdir) {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
+func RewriteSubdir(filename string, subdirRewrites map[string]string) string {
+	if len(subdirRewrites) != 0 {
+		for old, new := range subdirRewrites {
+			oldSubdir := fs.GetCleanSlashPath(old)
+			newSubdir := fs.GetCleanSlashPath(new)
+			if strings.HasPrefix(filename, oldSubdir) {
+				return strings.Replace(filename, oldSubdir, newSubdir, 1)
+			}
+		}
+	}
+	return filename
+}
+
 func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (err error) {
 	if relWorkbookPath != "" {
 		relCleanSlashPath := fs.GetCleanSlashPath(relWorkbookPath)
@@ -84,9 +111,15 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 					return nil
 				}
 				workbookFound = true
+
 				workbookFormat := format.Ext2Format(filepath.Ext(workbook.Name))
 				// check if this workbook format need to be converted
-				if !format.NeedProcessInput(workbookFormat, gen.Input.Formats) {
+				if !format.FilterInput(workbookFormat, gen.Input.Formats) {
+					return nil
+				}
+
+				// filter subdir
+				if !FilterSubdir(workbook.Name, gen.Input.Subdirs) {
 					return nil
 				}
 
@@ -103,7 +136,10 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 						sheets = append(sheets, worksheet.Name)
 					}
 				}
-				wbPath := filepath.Join(gen.InputDir, workbook.Name)
+				
+				// rewrite subdir
+				rewrittenWorkbookName := RewriteSubdir(workbook.Name, gen.Input.SubdirRewrites)
+				wbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
 				imp, err := importer.New(wbPath, importer.Sheets(sheets), importer.Header(gen.Header))
 				if err != nil {
 					return errors.WithMessagef(err, "failed to import workbook: %s", wbPath)

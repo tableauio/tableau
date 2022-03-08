@@ -84,8 +84,8 @@ func Amongst(fmt Format, formats []Format) bool {
 	return found
 }
 
-// NeedProcessInput checks if this input format need to be converted.
-func NeedProcessInput(inputFormat Format, allowedInputFormats []Format) bool {
+// FilterInput checks if this input format need to be converted.
+func FilterInput(inputFormat Format, allowedInputFormats []Format) bool {
 	if !IsValidInput(inputFormat) {
 		return false
 	}

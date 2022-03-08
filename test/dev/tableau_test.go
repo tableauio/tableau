@@ -194,3 +194,21 @@ func Test_GenJSON(t *testing.T) {
 		options.LogLevel("debug"),
 	)
 }
+
+func Test_GenJSON_Subdir(t *testing.T) {
+	tableau.GenConf(
+		"protoconf",
+		"./testdata",
+		"./_conf",
+		options.Input(
+			&options.InputOption{
+				// Formats: []format.Format{format.CSV},
+				Subdirs: []string{`excel/`},
+				SubdirRewrites: map[string]string{
+					`excel/`: ``,
+				},
+			},
+		),
+		options.LogLevel("debug"),
+	)
+}
