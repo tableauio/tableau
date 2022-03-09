@@ -5,32 +5,19 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/options"
+	"gopkg.in/yaml.v2"
 )
 
 var (
-	protoPackage             string
-	goPackage                string
-	locationName             string
-	inputDir                 string
-	outputDir                string
-	filenameWithSubdirPrefix bool
-	filenameSuffix           string
-	inputFormats             []string
-	logLevel                 string
-
-	// xlsx header
-	namerow  int32
-	typerow  int32
-	noterow  int32
-	datarow  int32
-	nameline int32
-	typeline int32
-
-	imports []string
+	protoPackage   string
+	goPackage      string
+	inputDir       string
+	outputDir      string
+	confPath       string
+	outputConfTmpl bool
 )
 
 func main() {
@@ -40,34 +27,19 @@ func main() {
 		Short:   "Tableauc is a protoconf generator",
 		Long:    `Complete documentation is available at https://tableauio.github.io`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Do Stuff Here
-			var formats []format.Format
-			for _, inputFormat := range inputFormats {
-				formatType := format.Ext2Format("." + inputFormat)
-				formats = append(formats, formatType)
-			}
-			g := protogen.NewGenerator(protoPackage, goPackage, inputDir, outputDir,
-				options.Header(&options.HeaderOption{
-					Namerow: namerow,
-					Typerow: typerow,
-					Noterow: noterow,
-					Datarow: datarow,
 
-					Nameline: nameline,
-					Typeline: typeline,
-				},
-				),
-				options.Imports(imports...),
-				options.LocationName(locationName),
-				options.Output(
-					&options.OutputOption{
-						FilenameSuffix:           filenameSuffix,
-						FilenameWithSubdirPrefix: filenameWithSubdirPrefix,
-					},
-				),
-				options.InputFormats(formats...),
-			)
-			atom.InitZap(logLevel)
+			if outputConfTmpl {
+				OutputConfTmpl()
+				return
+			}
+
+			opts := &options.Options{}
+			err := LoadConf(confPath, opts)
+			if err != nil {
+				fmt.Printf("load config(options) failed: %+v\n", err)
+				os.Exit(-1)
+			}
+			g := protogen.NewGeneratorWithOptions(protoPackage, goPackage, inputDir, outputDir, opts)
 			if len(args) == 0 {
 				if err := g.Generate(); err != nil {
 					atom.Log.Errorf("generate failed: %+v", err)
@@ -84,27 +56,39 @@ func main() {
 		},
 	}
 
-	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "", "protoconf", "proto package name")
-	rootCmd.Flags().StringVarP(&goPackage, "go-package", "", "protoconfpb", "go package name")
-	rootCmd.Flags().StringVarP(&locationName, "location-name", "", "", "location name for locale time parser")
-	rootCmd.Flags().StringVarP(&inputDir, "input-dir", "i", "./", "input directory")
-	rootCmd.Flags().StringVarP(&outputDir, "output-dir", "o", "./", "output directory")
-	rootCmd.Flags().BoolVarP(&filenameWithSubdirPrefix, "with-subdir-prefix", "", false, "output filename with subdir prefix")
-	rootCmd.Flags().StringVarP(&filenameSuffix, "suffix", "s", "", "output filename suffix")
-	rootCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "log level: debug, info, warn, error")
-	rootCmd.Flags().StringSliceVarP(&inputFormats, "formats", "", nil, "input file formats: excel, csv, xml. Default: all formats.")
-
-	rootCmd.Flags().Int32VarP(&namerow, "namerow", "", 1, "name row in xlsx")
-	rootCmd.Flags().Int32VarP(&typerow, "typerow", "", 2, "type row in xlsx")
-	rootCmd.Flags().Int32VarP(&noterow, "noterow", "", 3, "note row in xlsx")
-	rootCmd.Flags().Int32VarP(&datarow, "datarow", "", 4, "data row in xlsx")
-	rootCmd.Flags().Int32VarP(&nameline, "nameline", "", 0, "name line in xlsx cell")
-	rootCmd.Flags().Int32VarP(&typeline, "typeline", "", 0, "type line in xlsx cell")
-
-	rootCmd.Flags().StringSliceVarP(&imports, "imports", "", nil, "import common protobuf files, path relative to input dir")
+	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "proto package name")
+	rootCmd.Flags().StringVarP(&goPackage, "go-package", "g", "protoconf", "go package name")
+	rootCmd.Flags().StringVarP(&inputDir, "indir", "i", "./", "input directory")
+	rootCmd.Flags().StringVarP(&outputDir, "outdir", "o", "./", "output directory")
+	rootCmd.Flags().StringVarP(&confPath, "conf", "c", "./conf.yaml", "config file path")
+	rootCmd.Flags().BoolVarP(&outputConfTmpl, "output-conf-tmpl", "t", false, "config template to file template.yaml")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func LoadConf(path string, out interface{}) error {
+	fmt.Printf("load conf path: %s\n", path)
+	d, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal(d, out)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("loaded conf: %+v\n", out)
+	return nil
+}
+
+func OutputConfTmpl() {
+	defaultConf := options.NewDefault()
+	d, err := yaml.Marshal(defaultConf)
+	if err != nil {
+		fmt.Printf("marshal failed: %+v\n", err)
+		os.Exit(-1)
+	}
+	fmt.Println(string(d))
 }

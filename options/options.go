@@ -8,8 +8,8 @@ type Options struct {
 	LocationName string        // Location represents the collection of time offsets in use in a geographical area. Default is "Asia/Shanghai".
 	LogLevel     string        // Log level: debug, info, warn, error
 	Header       *HeaderOption // header rows of excel file.
-	Output       *OutputOption // output settings.
 	Input        *InputOption  // input settings.
+	Output       *OutputOption // output settings.
 	Imports      []string      // imported common proto file paths
 	Workbook     string        // workbook path or name
 	Worksheet    string        // worksheet name
@@ -121,7 +121,8 @@ func Worksheet(ws string) Option {
 		opts.Worksheet = ws
 	}
 }
-func newDefaultOptions() *Options {
+
+func NewDefault() *Options {
 	return &Options{
 		LocationName: "Asia/Shanghai",
 		LogLevel:     "info",
@@ -147,7 +148,7 @@ func newDefaultOptions() *Options {
 
 func ParseOptions(setters ...Option) *Options {
 	// Default Options
-	opts := newDefaultOptions()
+	opts := NewDefault()
 	for _, setter := range setters {
 		setter(opts)
 	}

@@ -43,6 +43,10 @@ type Generator struct {
 
 func NewGenerator(protoPackage, goPackage, indir, outdir string, setters ...options.Option) *Generator {
 	opts := options.ParseOptions(setters...)
+	return NewGeneratorWithOptions(protoPackage, goPackage, indir, outdir, opts)
+}
+
+func NewGeneratorWithOptions(protoPackage, goPackage, indir, outdir string, opts *options.Options) *Generator {
 	g := &Generator{
 		ProtoPackage: protoPackage,
 		GoPackage:    goPackage,
