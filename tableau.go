@@ -14,8 +14,7 @@ import (
 	"github.com/tableauio/tableau/options"
 )
 
-// GenConf converts Excel/CSV/XML files (with tableau header) to different formatted configuration files.
-// Supported formats: JSON, Text, and Wire.
+// GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
@@ -28,7 +27,7 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	}
 }
 
-// GenProto converts Excel/CSV/XML files (with tableau header) to protoconf files.
+// GenProto can convert Excel/CSV/XML files to protoconf files.
 func GenProto(protoPackage, goPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	g := protogen.NewGenerator(protoPackage, goPackage, indir, outdir, setters...)
@@ -51,7 +50,7 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 	g.Generate()
 }
 
-// ParseMeta parses the @TABLEAU sheet in a workbook.
+// ParseMeta parses the metasheet "@TABLEAU" in a workbook.
 func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
 	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", book.MetsasheetOptions())
 	return importer.New(

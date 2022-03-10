@@ -5,36 +5,59 @@ import "github.com/tableauio/tableau/format"
 // Options is the wrapper of tableau params.
 // Options follow the design of Functional Options (https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md).
 type Options struct {
-	LocationName string        // Location represents the collection of time offsets in use in a geographical area. Default is "Asia/Shanghai".
-	LogLevel     string        // Log level: debug, info, warn, error
-	Header       *HeaderOption // header rows of excel file.
-	Input        *InputOption  // input settings.
-	Output       *OutputOption // output settings.
-	Imports      []string      // imported common proto file paths
-	Workbook     string        // workbook path or name
-	Worksheet    string        // worksheet name
+	// Location represents the collection of time offsets in use in a geographical area.
+	// Default: "Asia/Shanghai".
+	LocationName string
+	LogLevel     string        // Log level: debug, info, warn, error. Default: "info".
+	Header       *HeaderOption // Header options of worksheet file.
+	Input        *InputOption  // Input options.
+	Output       *OutputOption // Output options.
+	Imports      []string      // Import common proto files. Default: nil.
+	Workbook     string        // Workbook filename. Default: "".
+	Worksheet    string        // Worksheet name. Default: "".
 }
 
 type HeaderOption struct {
+	// Exact row number of column name definition at a worksheet.
+	// Default: 1.
 	Namerow int32
+	// Exact row number of column type definition at a worksheet.
+	// Default: 2.
 	Typerow int32
+	// Exact row number of column note at a worksheet.
+	// Default: 3.
 	Noterow int32
+	// Start row number of data at a worksheet.
+	// Default: 4.
 	Datarow int32
 
+	// The line number of column name definition in a cell.
+	// Value 0 means the whole cell.
+	// Default: 0.
 	Nameline int32
+	// The line number of column type definition in a cell.
+	// Value 0 means the whole cell.
+	// Default: 0.
 	Typeline int32
 }
 
 type OutputOption struct {
-	// only for protogen generated protoconf file
-	FilenameWithSubdirPrefix bool // default true, filename dir separator `/` or `\` is replaced by "__"
-	FilenameSuffix           string
-
-	// only for confgen generated JSON/Text/Wire file
-	FilenameAsSnakeCase bool          // default false, output filename as snake case, default is camel case same as the protobuf message name.
-	Format              format.Format // output pretty format, with mulitline and indent.
-	Pretty              bool          // default true, output format: json, text, or wire, and default is json.
-	// Output.EmitUnpopulated specifies whether to emit unpopulated fields. It does not
+	// Only for protogen: dir separator `/` or `\`  in filename is replaced by "__".
+	// Default: true.
+	FilenameWithSubdirPrefix bool
+	// Only for protogen: append the suffix to filename.
+	// Default: "".
+	FilenameSuffix string
+	// Only for confgen: output filename as snake_case, default is CamelCase as the protobuf message name.
+	// Default: false.
+	FilenameAsSnakeCase bool
+	// Only for confgen: output file format.
+	// Default: format.JSON.
+	Format format.Format
+	// Only for confgen: output pretty format, with multiline and indent.
+	// Default: true.
+	Pretty bool
+	// EmitUnpopulated specifies whether to emit unpopulated fields. It does not
 	// emit unpopulated oneof fields or unpopulated extension fields.
 	// The JSON value emitted for unpopulated fields are as follows:
 	//  ╔═══════╤════════════════════════════╗
@@ -48,80 +71,96 @@ type OutputOption struct {
 	//  ║ []    │ list fields                ║
 	//  ║ {}    │ map fields                 ║
 	//  ╚═══════╧════════════════════════════╝
-	EmitUnpopulated bool // default true
+	//
+	// Default: true.
+	EmitUnpopulated bool
 }
 
 type InputOption struct {
+	// Specify input formats.
 	Formats []format.Format
-	// Specify only those sub-directories (relative to input dir) to be processed.
+	// - For protogen, specify only these subdirs (relative to input dir) to be processed.
+	// - For confgen, specify only these subdirs (relative to workbook name option in .proto file).
 	Subdirs []string
-	// Rewrite subdir path.
+	// - For protogen, rewrite subdir path (relative to input dir).
+	// - For confgen, rewrite subdir path (relative to workbook name option in .proto file).
 	SubdirRewrites map[string]string
 }
 
 // Option is the functional option type.
 type Option func(*Options)
 
+// Header sets HeaderOption.
 func Header(o *HeaderOption) Option {
 	return func(opts *Options) {
 		opts.Header = o
 	}
 }
 
+// Output sets OutputOption.
 func Output(o *OutputOption) Option {
 	return func(opts *Options) {
 		opts.Output = o
 	}
 }
 
+// Input sets InputOption.
 func Input(o *InputOption) Option {
 	return func(opts *Options) {
 		opts.Input = o
 	}
 }
 
+// InputFormats sets input formats.
 func InputFormats(formats ...format.Format) Option {
 	return func(opts *Options) {
 		opts.Input.Formats = formats
 	}
 }
 
+// InputSubdirs sets input subdirs.
 func InputSubdirs(subdirs ...string) Option {
 	return func(opts *Options) {
 		opts.Input.Subdirs = subdirs
 	}
 }
 
+// LocationName sets LocationName.
 func LocationName(o string) Option {
 	return func(opts *Options) {
 		opts.LocationName = o
 	}
 }
 
+// LogLevel sets LogLevel.
 func LogLevel(level string) Option {
 	return func(opts *Options) {
 		opts.LogLevel = level
 	}
 }
 
+// Imports sets common proto files to be imported.
 func Imports(imports ...string) Option {
 	return func(opts *Options) {
 		opts.Imports = imports
 	}
 }
 
+// Workbook sets workbook filename.
 func Workbook(wb string) Option {
 	return func(opts *Options) {
 		opts.Workbook = wb
 	}
 }
 
+// Worksheet sets worksheet name.
 func Worksheet(ws string) Option {
 	return func(opts *Options) {
 		opts.Worksheet = ws
 	}
 }
 
+// NewDefault returns a default Options.
 func NewDefault() *Options {
 	return &Options{
 		LocationName: "Asia/Shanghai",
@@ -146,6 +185,7 @@ func NewDefault() *Options {
 	}
 }
 
+// ParseOptions parses functional options and merge them to default Options.
 func ParseOptions(setters ...Option) *Options {
 	// Default Options
 	opts := NewDefault()
