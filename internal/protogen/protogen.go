@@ -206,7 +206,7 @@ func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.Heade
 func (gen *Generator) convert(dir, filename string) error {
 	absPath := filepath.Join(dir, filename)
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetsasheetOptions())
-	imp, err := importer.New(absPath, importer.Parser(parser), importer.Header(gen.Header))
+	imp, err := importer.New(absPath, importer.Parser(parser))
 	if err != nil {
 		return errors.Wrapf(err, "failed to import workbook: %s", absPath)
 	}

@@ -213,9 +213,9 @@ func (x *XMLImporter) parse() error {
 func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass) error {
 	// In order to combine column headers (the result of 1 pass) and data (the result of 2 pass),
 	// we need to cache the MetaSheet struct in `x`
-	metaSheet, exist := x.metaMap[sheetName]
+	metaSheet, ok := x.metaMap[sheetName]
 	header := options.NewDefault().Header
-	if !exist {
+	if !ok {
 		metaSheet = xlsxgen.NewMetaSheet(sheetName, header, false)
 		x.metaMap[sheetName] = metaSheet
 		x.prefixMaps[sheetName] = make(map[string]Range)
@@ -465,22 +465,22 @@ func (x *XMLImporter) tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []strin
 	}
 	shift := func(r Range) {
 		for i := 0; i < len(reversedList); i++ {
-			if r, exist := prefixMap[reversedList[i]]; exist {
+			if r, ok := prefixMap[reversedList[i]]; ok {
 				prefixMap[reversedList[i]] = Range{r.begin, r.attrNum, r.len + 1}
 			}
 		}
 		for k, v := range prefixMap {
-			if _, exist := parentMap[k]; !exist && v.begin > r.begin {
+			if _, ok := parentMap[k]; !ok && v.begin > r.begin {
 				prefixMap[k] = Range{v.begin + 1, v.attrNum, v.len}
 			}
 		}
 	}
 	// insert prefixMap
-	if r, exist := prefixMap[prefix]; !exist {
+	if r, ok := prefixMap[prefix]; !ok {
 		index := len(metaSheet.Rows[metaSheet.Namerow-1].Cells)
 		if len(reversedList) > 0 {
 			parentPrefix := reversedList[len(reversedList)-1]
-			if r2, exist := prefixMap[parentPrefix]; exist {
+			if r2, ok := prefixMap[parentPrefix]; ok {
 				index = r2.begin + r2.len
 			}
 		}
