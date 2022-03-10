@@ -8,7 +8,7 @@ import "tableau/protobuf/tableau.proto";
 option (tableau.workbook) = {name:"xml/MultiSheet.xml"};
 
 message Server {
-  option (tableau.worksheet) = {name:"Server" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 nested:true};
+  option (tableau.worksheet) = {name:"Server" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
   string desc = 1 [(tableau.field) = {name:"Desc"}];
   repeated Node node_list = 2 [(tableau.field) = {name:"Node" key:"Addr" layout:LAYOUT_VERTICAL}];
@@ -19,7 +19,7 @@ message Server {
 }
 
 message Client {
-  option (tableau.worksheet) = {name:"Client" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 nested:true};
+  option (tableau.worksheet) = {name:"Client" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
   bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
   Version version = 2 [(tableau.field) = {name:"Version"}];

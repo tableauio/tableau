@@ -109,11 +109,11 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 						sheets = append(sheets, worksheet.Name)
 					}
 				}
-				
+
 				// rewrite subdir
 				rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.Input.SubdirRewrites)
 				wbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
-				imp, err := importer.New(wbPath, importer.Sheets(sheets), importer.Header(gen.Header))
+				imp, err := importer.New(wbPath, importer.Sheets(sheets))
 				if err != nil {
 					return errors.WithMessagef(err, "failed to import workbook: %s", wbPath)
 				}

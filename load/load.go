@@ -8,7 +8,6 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/options"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -82,19 +81,9 @@ func loadOrigin(msg proto.Message, dir string) error {
 	msgName, wsOpts := confgen.ParseMessageOptions(md)
 	sheets := []string{wsOpts.Name}
 
-	header := &options.HeaderOption{
-		Namerow: wsOpts.Namerow,
-		Typerow: wsOpts.Typerow,
-		Noterow: wsOpts.Noterow,
-		Datarow: wsOpts.Datarow,
-
-		Nameline: wsOpts.Nameline,
-		Typeline: wsOpts.Typeline,
-	}
 	imp, err := importer.New(
 		wbPath,
 		importer.Sheets(sheets),
-		importer.Header(header),
 	)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to import workbook: %v", wbPath)
