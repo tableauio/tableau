@@ -99,10 +99,17 @@ func (b *Book) Squeeze(sheetNames []string) {
 	}
 }
 
+// Clear clears all sheets in the book.
+func (b *Book) Clear() {
+	b.sheets = make(map[string]*Sheet)
+	b.sheetNames = nil
+}
+
 func (b *Book) ParseMeta() error {
 	sheet := b.GetSheet(MetaSheetName)
 	if sheet == nil {
 		atom.Log.Debugf("sheet %s not found in book %s", MetaSheetName, b.Filename())
+		b.Clear()
 		return nil
 	}
 

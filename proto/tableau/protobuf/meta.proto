@@ -16,11 +16,15 @@ message WorkbookMeta {
 message SheetMeta {
   string sheet = 1 [(tableau.field) = { name: "Sheet" optional: false }];
   string alias = 2 [(tableau.field) = { name: "Alias" optional: true }];
-  int32 nameline = 3 [(tableau.field) = { name: "Nameline" optional: true }];
-  int32 typeline = 4 [(tableau.field) = { name: "Typeline" optional: true }];
-  bool transpose = 5 [(tableau.field) = { name: "Transpose" optional: true }];
-  bool nested = 6 [(tableau.field) = { name: "Nested" optional: true }]; // nested naming of namerow
-  string sep = 7 [(tableau.field) = { name: "Sep" optional: true }];
-  string subsep = 8 [(tableau.field) = { name: "Subsep" optional: true }];
-  bool ordered_map = 9 [(tableau.field) = { name: "OrderedMap" optional: true }]; // generate ordered map accessers
+  int32 namerow = 3 [(tableau.field) = { name: "Namerow" optional: true }];
+  int32 typerow = 4 [(tableau.field) = { name: "Typerow" optional: true }];
+  int32 noterow = 5 [(tableau.field) = { name: "Noterow" optional: true }];
+  int32 datarow = 6 [(tableau.field) = { name: "Datarow" optional: true }];
+  int32 nameline = 7 [(tableau.field) = { name: "Nameline" optional: true }];
+  int32 typeline = 8 [(tableau.field) = { name: "Typeline" optional: true }];
+  bool transpose = 9 [(tableau.field) = { name: "Transpose" optional: true }];
+  bool nested = 10 [(tableau.field) = { name: "Nested" optional: true }]; // nested naming of namerow
+  string sep = 11 [(tableau.field) = { name: "Sep" optional: true }];
+  string subsep = 12 [(tableau.field) = { name: "Subsep" optional: true }];
+  bool ordered_map = 13 [(tableau.field) = { name: "OrderedMap" optional: true }]; // generate ordered map accessers
 }

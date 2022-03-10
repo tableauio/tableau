@@ -181,6 +181,28 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 	return relSlashPath, nil
 }
 
+// mergeHeaderOptions merge from options.HeaderOption to tableaupb.SheetMeta.
+func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.HeaderOption) {
+	if sheetMeta.Namerow == 0 {
+		sheetMeta.Namerow = headerOpt.Namerow
+	}
+	if sheetMeta.Typerow == 0 {
+		sheetMeta.Typerow = headerOpt.Typerow
+	}
+	if sheetMeta.Noterow == 0 {
+		sheetMeta.Noterow = headerOpt.Noterow
+	}
+	if sheetMeta.Datarow == 0 {
+		sheetMeta.Datarow = headerOpt.Datarow
+	}
+	if sheetMeta.Nameline == 0 {
+		sheetMeta.Nameline = headerOpt.Nameline
+	}
+	if sheetMeta.Typeline == 0 {
+		sheetMeta.Typeline = headerOpt.Typeline
+	}
+}
+
 func (gen *Generator) convert(dir, filename string) error {
 	absPath := filepath.Join(dir, filename)
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetsasheetOptions())
@@ -209,21 +231,15 @@ func (gen *Generator) convert(dir, filename string) error {
 		if sheet.Meta.Alias != "" {
 			sheetMsgName = sheet.Meta.Alias
 		}
-		// merge nameline and typeline from sheet meta and header option
-		if sheet.Meta.Nameline == 0 {
-			sheet.Meta.Nameline = gen.Header.Nameline
-		}
-		if sheet.Meta.Typeline == 0 {
-			sheet.Meta.Typeline = gen.Header.Typeline
-		}
+		mergeHeaderOptions(sheet.Meta, gen.Header)
 		ws := &tableaupb.Worksheet{
 			Options: &tableaupb.WorksheetOptions{
 				Name:       sheet.Name,
-				Namerow:    gen.Header.Namerow,
-				Typerow:    gen.Header.Typerow,
-				Noterow:    gen.Header.Noterow,
-				Datarow:    gen.Header.Datarow,
-				Transpose:  false,
+				Namerow:    sheet.Meta.Namerow,
+				Typerow:    sheet.Meta.Typerow,
+				Noterow:    sheet.Meta.Noterow,
+				Datarow:    sheet.Meta.Datarow,
+				Transpose:  sheet.Meta.Transpose,
 				Tags:       "",
 				Nameline:   sheet.Meta.Nameline,
 				Typeline:   sheet.Meta.Typeline,
