@@ -34,7 +34,7 @@ func New(filename string, setters ...Option) (Importer, error) {
 	case format.CSV:
 		return NewCSVImporter(filename, opts.Sheets, opts.Parser)
 	case format.XML:
-		return NewXMLImporter(filename, opts.Sheets, opts.Header)
+		return NewXMLImporter(filename, opts.Sheets)
 	default:
 		return nil, errors.Errorf("unsupported format: %d", fmt)
 	}

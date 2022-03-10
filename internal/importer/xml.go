@@ -48,17 +48,15 @@ type XMLImporter struct {
 	sheetMap   map[string]*book.Sheet        // sheet name -> sheet
 	metaMap    map[string]*xlsxgen.MetaSheet // sheet name -> meta
 	sheetNames []string
-	header     *options.HeaderOption // header settings.
 
 	prefixMaps map[string](map[string]Range) // sheet -> { prefix -> [6, 9) }
 }
 
 // TODO: options
-func NewXMLImporter(filename string, sheets []string, header *options.HeaderOption) (*XMLImporter, error) {
+func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 	return &XMLImporter{
 		filename:   filename,
 		sheetNames: sheets,
-		header:     header,
 		prefixMaps: make(map[string](map[string]Range)),
 	}, nil
 }
@@ -216,8 +214,9 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 	// In order to combine column headers (the result of 1 pass) and data (the result of 2 pass),
 	// we need to cache the MetaSheet struct in `x`
 	metaSheet, exist := x.metaMap[sheetName]
+	header := options.NewDefault().Header
 	if !exist {
-		metaSheet = xlsxgen.NewMetaSheet(sheetName, x.header, false)
+		metaSheet = xlsxgen.NewMetaSheet(sheetName, header, false)
 		x.metaMap[sheetName] = metaSheet
 		x.prefixMaps[sheetName] = make(map[string]Range)
 	}
@@ -251,6 +250,10 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 		sheet.Meta = &tableaupb.SheetMeta{
 			Sheet:    sheetName,
 			Alias:    sheetName,
+			Namerow: header.Namerow,
+			Typerow: header.Typerow,
+			Noterow: header.Noterow,
+			Datarow: header.Datarow,
 			Nameline: 1,
 			Typeline: 1,
 			Nested:   true,
