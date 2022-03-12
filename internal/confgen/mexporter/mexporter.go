@@ -32,7 +32,25 @@ func New(name string, msg proto.Message, outputDir string, outputOpt *options.Ou
 	}
 }
 
+// Export exports the message to the specified one or multiple forma(s).
 func (x *messageExporter) Export() error {
+	formats := format.OutputFormats
+	if x.outputOpt.Formats != nil {
+		formats = x.outputOpt.Formats
+	}
+
+	for _, fmt := range formats {
+		err := x.export(fmt)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// export marshals the message to the specified format and writes it to the
+// specified file.
+func (x *messageExporter) export(fmt format.Format) error {
 	filename := x.name
 	if x.outputOpt.FilenameAsSnakeCase {
 		filename = strcase.ToSnake(x.name)
@@ -40,7 +58,7 @@ func (x *messageExporter) Export() error {
 
 	var out []byte
 	var err error
-	switch x.outputOpt.Format {
+	switch fmt {
 	case format.JSON:
 		filename += format.JSONExt
 		out, err = x.marshalToJSON()
@@ -61,7 +79,7 @@ func (x *messageExporter) Export() error {
 			return errors.Wrapf(err, "failed to export %s to Wire", x.name)
 		}
 	default:
-		return errors.Errorf("unknown output format: %v", x.outputOpt.Format)
+		return errors.Errorf("unknown output format: %v", fmt)
 	}
 
 	fpath := filepath.Join(x.outputDir, filename)

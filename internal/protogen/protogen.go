@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	App                 = "tableauc"
+	App                 = "protogen"
 	Version             = "0.2.2"
 	TableauProtoPackage = "tableau"
 )

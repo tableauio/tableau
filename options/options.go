@@ -41,6 +41,19 @@ type HeaderOption struct {
 	Typeline int32
 }
 
+type InputOption struct {
+	// Only for protogen: input file formats.
+	// Note: recognize all formats (Excel, CSV, and XML) if not set (value is nil).
+	// Default: nil.
+	Formats []format.Format
+	// - For protogen, specify only these subdirs (relative to input dir) to be processed.
+	// - For confgen, specify only these subdirs (relative to workbook name option in .proto file).
+	Subdirs []string
+	// - For protogen, rewrite subdir path (relative to input dir).
+	// - For confgen, rewrite subdir path (relative to workbook name option in .proto file).
+	SubdirRewrites map[string]string
+}
+
 type OutputOption struct {
 	// Only for protogen: dir separator `/` or `\`  in filename is replaced by "__".
 	// Default: true.
@@ -51,9 +64,10 @@ type OutputOption struct {
 	// Only for confgen: output filename as snake_case, default is CamelCase as the protobuf message name.
 	// Default: false.
 	FilenameAsSnakeCase bool
-	// Only for confgen: output file format.
-	// Default: format.JSON.
-	Format format.Format
+	// Only for confgen: output file formats.
+	// Note: Output all formats (JSON, Text, and Wire) if not set (value is nil).
+	// Default: nil.
+	Formats []format.Format
 	// Only for confgen: output pretty format, with multiline and indent.
 	// Default: true.
 	Pretty bool
@@ -74,17 +88,6 @@ type OutputOption struct {
 	//
 	// Default: true.
 	EmitUnpopulated bool
-}
-
-type InputOption struct {
-	// Specify input formats.
-	Formats []format.Format
-	// - For protogen, specify only these subdirs (relative to input dir) to be processed.
-	// - For confgen, specify only these subdirs (relative to workbook name option in .proto file).
-	Subdirs []string
-	// - For protogen, rewrite subdir path (relative to input dir).
-	// - For confgen, rewrite subdir path (relative to workbook name option in .proto file).
-	SubdirRewrites map[string]string
 }
 
 // Option is the functional option type.
@@ -160,6 +163,13 @@ func Worksheet(ws string) Option {
 	}
 }
 
+// OutputFormats sets output formats.
+func OutputFormats(formats ...format.Format) Option {
+	return func(opts *Options) {
+		opts.Output.Formats = formats
+	}
+}
+
 // NewDefault returns a default Options.
 func NewDefault() *Options {
 	return &Options{
@@ -175,7 +185,7 @@ func NewDefault() *Options {
 		Output: &OutputOption{
 			FilenameWithSubdirPrefix: true,
 			FilenameAsSnakeCase:      false,
-			Format:                   format.JSON,
+			Formats:                  nil,
 			Pretty:                   true,
 			EmitUnpopulated:          true,
 		},

@@ -64,13 +64,16 @@ func Format2Ext(fmt Format) string {
 	}
 }
 
-func IsValidInput(fmt Format) bool {
-	switch fmt {
-	case Excel, CSV, XML:
-		return true
-	default:
-		return false
+var InputFormats = []Format{Excel, CSV, XML}
+var OutputFormats = []Format{JSON, Wire, Text}
+
+func IsInputFormat(fmt Format) bool {
+	for _, f := range InputFormats {
+		if f == fmt {
+			return true
+		}
 	}
+	return false
 }
 
 func Amongst(fmt Format, formats []Format) bool {
@@ -86,7 +89,7 @@ func Amongst(fmt Format, formats []Format) bool {
 
 // FilterInput checks if this input format need to be converted.
 func FilterInput(inputFormat Format, allowedInputFormats []Format) bool {
-	if !IsValidInput(inputFormat) {
+	if !IsInputFormat(inputFormat) {
 		return false
 	}
 

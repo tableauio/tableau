@@ -201,6 +201,7 @@ func Test_GenJSON(t *testing.T) {
 		"./testdata",
 		"./_conf",
 		options.LogLevel("debug"),
+		options.OutputFormats(format.JSON),
 	)
 }
 
@@ -219,5 +220,6 @@ func Test_GenJSON_Subdir(t *testing.T) {
 			},
 		),
 		options.LogLevel("debug"),
+		options.OutputFormats(format.JSON),
 	)
 }
