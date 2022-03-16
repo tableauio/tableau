@@ -836,10 +836,14 @@ func parseEnumValue(fd protoreflect.FieldDescriptor, value string) (protoreflect
 		return defaultValue, nil
 	}
 	ed := fd.Enum() // get enum descriptor
+
 	// try enum value number
-	val, err := strconv.ParseInt(value, 10, 32)
+	// val, err := strconv.ParseInt(value, 10, 32)
+
+	// Keep compatibility with excel number format.
+	val, err := strconv.ParseFloat(value, 64)
 	if err == nil {
-		evd := ed.Values().ByNumber(protoreflect.EnumNumber(val))
+		evd := ed.Values().ByNumber(protoreflect.EnumNumber(int32(val)))
 		if evd != nil {
 			return protoreflect.ValueOfEnum(evd.Number()), nil
 		}

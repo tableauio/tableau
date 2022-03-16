@@ -2,7 +2,7 @@ ServerType,ServerConfType,ServerConfConditionType,ServerConfConditionValue
 "map<enum<.ServerType>, Server>",[Conf]<enum<.ConfType>>,[Condition]<int32>,int32
 进程名,配置Sheet名,条件类型,条件值
 ,,,
-SERVER_TYPE_GAME,CONF_TYPE_CLOUD,0,113
+SERVER_TYPE_GAME,1.0,0,113
 ,,0,134
 SERVER_TYPE_ACTIVITY,CONF_TYPE_CLOUD,,
 ,CONF_TYPE_CLOUD,,
