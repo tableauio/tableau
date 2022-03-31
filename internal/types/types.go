@@ -19,7 +19,7 @@ var propRegexp *regexp.Regexp
 var boringIntegerRegexp *regexp.Regexp
 
 const rawpropRegex = `(\|\{.+\})?` // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
-const listFirstFieldType = `([0-9A-Za-z_><]+)`
+const listFirstFieldType = `([0-9A-Za-z_><\.]+)`
 
 func init() {
 	mapRegexp = regexp.MustCompile(`^map<(.+),(.+)>` + rawpropRegex)                 // e.g.: map<uint32,Type>
