@@ -254,11 +254,17 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	matches := types.MatchList(typeCell)
 	colType := strings.TrimSpace(matches[2])
 	var isScalarType bool
+	var elemIsIncellStruct bool
 	elemType := strings.TrimSpace(matches[1])
 	if elemType == "" {
-		// scalar type, such as int32, string, etc.
-		elemType = colType
-		isScalarType = true
+		if types.IsScalarType(colType) {
+			// scalar type, such as int32, string, etc.
+			elemType = colType
+			isScalarType = true
+		} else if matches := types.MatchStruct(colType); len(matches) > 0 {
+			elemType = matches[2]
+			elemIsIncellStruct = true
+		}
 	}
 	rawpropText := strings.TrimSpace(matches[3])
 
@@ -361,18 +367,33 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				}
 			}
 		} else {
-			name := strings.TrimPrefix(nameCell, prefix+"1")
 			colTypeWithProp := colType + rawpropText
-			field.Fields = append(field.Fields, p.parseScalarField(name, colTypeWithProp, noteCell))
-			for cursor++; cursor < len(header.namerow); cursor++ {
-				nameCell := header.getNameCell(cursor)
-				if strings.HasPrefix(nameCell, prefix+"1") {
-					cursor = p.parseSubField(field, header, cursor, prefix+"1", nested)
-				} else if strings.HasPrefix(nameCell, prefix) {
-					continue
-				} else {
-					cursor--
-					return cursor
+			if elemIsIncellStruct {
+				field.Options.Type = tableaupb.Type_TYPE_INCELL_STRUCT
+				incellStructField := p.parseIncellStructField(listName, colTypeWithProp)
+				field.Fields = append(field.Fields, incellStructField.Fields...)
+				for cursor++; cursor < len(header.namerow); cursor++ {
+					nameCell := header.getNameCell(cursor)
+					if strings.HasPrefix(nameCell, prefix) {
+						continue
+					} else {
+						cursor--
+						return cursor
+					}
+				}
+			} else {
+				name := strings.TrimPrefix(nameCell, prefix+"1")
+				field.Fields = append(field.Fields, p.parseScalarField(name, colTypeWithProp, noteCell))
+				for cursor++; cursor < len(header.namerow); cursor++ {
+					nameCell := header.getNameCell(cursor)
+					if strings.HasPrefix(nameCell, prefix+"1") {
+						cursor = p.parseSubField(field, header, cursor, prefix+"1", nested)
+					} else if strings.HasPrefix(nameCell, prefix) {
+						continue
+					} else {
+						cursor--
+						return cursor
+					}
 				}
 			}
 		}
@@ -388,6 +409,31 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		}
 	}
 	return cursor
+}
+
+func (p *bookParser) parseIncellStructField(name, typ string) *tableaupb.Field {
+	// struct syntax pattern
+	matches := types.MatchStruct(typ)
+	elemType := strings.TrimSpace(matches[1])
+	colType := strings.TrimSpace(matches[2])
+
+	field := tableaupb.Field{}
+	if fieldPairs := ParseIncellStruct(elemType); fieldPairs != nil {
+		// incell struct
+		field.Name = strcase.ToSnake(name)
+		field.Type, field.TypeDefined = p.parseType(colType)
+		field.Options = &tableaupb.FieldOptions{
+			Name: name,
+			Type: tableaupb.Type_TYPE_INCELL_STRUCT,
+		}
+
+		for i := 0; i < len(fieldPairs); i += 2 {
+			fieldType := fieldPairs[i]
+			fieldName := fieldPairs[i+1]
+			field.Fields = append(field.Fields, p.parseScalarField(fieldName, fieldType, ""))
+		}
+	}
+	return &field
 }
 
 func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, nested bool) int {

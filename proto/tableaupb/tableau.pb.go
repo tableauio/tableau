@@ -54,15 +54,16 @@ const (
 	Type_TYPE_TIME     Type = 22 // format: "HH:mm:ss"
 	Type_TYPE_DATETIME Type = 23 // format: "yyyy-MM-dd HH:mm:ss"
 	// list in a cell:
-	// - the list **item** must be **built-in** type
+	// - the list **Element** must be **Scalar** type
 	// - format: ',' separated items
 	Type_TYPE_INCELL_LIST Type = 24
 	// map in a cell:
-	// - both the **key** and **value** must be **built-in** type
+	// - both the **Key** and **Value** must be **Scalar** type
 	// - format: key-value pairs is separated by ',', and
 	//           key and value is separated by ':'
 	Type_TYPE_INCELL_MAP Type = 25
-	// struct in a cell
+	// struct in a cell.
+	// list with element type as in-cell struct. E.g.: []{int32 id,string name}Element
 	Type_TYPE_INCELL_STRUCT Type = 26
 )
 
@@ -382,7 +383,7 @@ type FieldOptions struct {
 	Name     string     `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                          // scalar type's varible name or composite type's varible name (prefix)
 	Note     string     `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`                          // note of name, maybe in another language (Chinese) other than name (English)
 	Type     Type       `protobuf:"varint,3,opt,name=type,proto3,enum=tableau.Type" json:"type,omitempty"`       // default: TYPE_DEFAULT
-	Key      string     `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`                            // only set when type is map
+	Key      string     `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`                            // only set when type is map or keyed-list.
 	Layout   Layout     `protobuf:"varint,5,opt,name=layout,proto3,enum=tableau.Layout" json:"layout,omitempty"` // default: LAYOUT_DEFAULT
 	Sep      string     `protobuf:"bytes,6,opt,name=sep,proto3" json:"sep,omitempty"`                            // separator, default: ","
 	Subsep   string     `protobuf:"bytes,7,opt,name=subsep,proto3" json:"subsep,omitempty"`                      // subseparator, default: ":"
