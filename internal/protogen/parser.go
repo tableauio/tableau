@@ -9,6 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -18,11 +19,13 @@ const (
 )
 
 type bookParser struct {
+	gen *Generator
+
 	wb       *tableaupb.Workbook
 	withNote bool
 }
 
-func newBookParser(bookName, relSlashPath string, filenameWithSubdirPrefix bool, imports []string) *bookParser {
+func newBookParser(bookName, relSlashPath string, filenameWithSubdirPrefix bool, imports []string, gen *Generator) *bookParser {
 	// atom.Log.Debugf("filenameWithSubdirPrefix: %v", filenameWithSubdirPrefix)
 	filename := strcase.ToSnake(bookName)
 	if filenameWithSubdirPrefix {
@@ -31,6 +34,7 @@ func newBookParser(bookName, relSlashPath string, filenameWithSubdirPrefix bool,
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
 	bp := &bookParser{
+		gen: gen,
 		wb: &tableaupb.Workbook{
 			Options: &tableaupb.WorkbookOptions{
 				// NOTE(wenchyzhu): all OS platforms use path slash separator `/`
@@ -420,10 +424,34 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		// cross cell struct
 		// NOTE(wenchy): treated as nested named struct
 		field.Type, field.TypeDefined = p.parseType(elemType)
-		field.Name = strcase.ToSnake(field.Type)
-		// index := len(field.Type)
-		// structName := trimmedNameCell[:index]
-		structName := field.Type
+		structName := field.Type // default: struct name is same as the type name
+		if field.TypeDefined {
+			// Find predefined type's first field's tableau name
+			// structName = field.Type
+			fullMsgName := p.gen.ProtoPackage + "." + field.Type
+			for _, fileDesc := range p.gen.fds {
+				md := fileDesc.FindMessage(fullMsgName)
+				if md == nil {
+					continue
+				}
+				fds := md.GetFields()
+				if len(fds) == 0 {
+					break
+				}
+				fd := fds[0]
+				// fist field
+				opts := fd.GetFieldOptions()
+				fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
+				if fieldOpts != nil {
+					if index := strings.Index(trimmedNameCell, fieldOpts.Name); index != -1 {
+						structName = trimmedNameCell[:index]
+					}
+				}
+				break
+			}
+		}
+
+		field.Name = strcase.ToSnake(structName)
 		field.Options = &tableaupb.FieldOptions{
 			Name: structName,
 		}

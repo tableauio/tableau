@@ -3,6 +3,7 @@ syntax = "proto3";
 package protoconf;
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 
+import "common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option (tableau.workbook) = {name:"excel/hero/Hero#*.csv"};
@@ -19,5 +20,6 @@ message Hero {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       int64 value = 2 [(tableau.field) = {name:"Value"}];
     }
+    Item award_item = 4 [(tableau.field) = {name:"AwardItem"}];
   }
 }

@@ -12,6 +12,7 @@ type Options struct {
 	Header       *HeaderOption // Header options of worksheet file.
 	Input        *InputOption  // Input options.
 	Output       *OutputOption // Output options.
+	ImportPaths  []string      // Import paths. Default: nil.
 	Imports      []string      // Import common proto files. Default: nil.
 	Workbook     string        // Workbook filename. Default: "".
 	Worksheet    string        // Worksheet name. Default: "".
@@ -139,6 +140,16 @@ func LocationName(o string) Option {
 func LogLevel(level string) Option {
 	return func(opts *Options) {
 		opts.LogLevel = level
+	}
+}
+
+// ImportPaths specifies the paths used to search for dependencies that are
+// referenced in import statements in proto source files. If no import paths
+// are provided then "." (current directory) is assumed to be the only import
+// path.
+func ImportPaths(importPaths ...string) Option {
+	return func(opts *Options) {
+		opts.ImportPaths = importPaths
 	}
 }
 

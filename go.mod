@@ -8,6 +8,7 @@ require (
 	github.com/emirpasic/gods v1.12.0
 	github.com/fatih/color v1.13.0
 	github.com/iancoleman/strcase v0.2.0
+	github.com/jhump/protoreflect v1.12.0
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v1.3.0
 	github.com/xuri/excelize/v2 v2.4.1
@@ -18,6 +19,7 @@ require (
 
 require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
@@ -32,4 +34,5 @@ require (
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
 	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
 )

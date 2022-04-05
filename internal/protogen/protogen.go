@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jhump/protoreflect/desc"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
@@ -14,6 +15,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
@@ -36,9 +38,13 @@ type Generator struct {
 	FilenameWithSubdirPrefix bool   // filename dir separator `/` or `\` is replaced by "__"
 	FilenameSuffix           string // filename suffix of generated protoconf files.
 
-	Imports []string              // imported common proto file paths
-	Header  *options.HeaderOption // header settings.
-	Input   *options.InputOption
+	ImportPaths []string              // import paths.
+	Imports     []string              // imported common proto file paths
+	Header      *options.HeaderOption // header settings.
+	Input       *options.InputOption
+
+	// internal
+	fds []*desc.FileDescriptor // all parsed imported proto file descriptors.
 }
 
 func NewGenerator(protoPackage, goPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -57,10 +63,25 @@ func NewGeneratorWithOptions(protoPackage, goPackage, indir, outdir string, opts
 		FilenameWithSubdirPrefix: opts.Output.FilenameWithSubdirPrefix,
 		FilenameSuffix:           opts.Output.FilenameSuffix,
 
-		Imports: opts.Imports,
-		Header:  opts.Header,
-		Input:   opts.Input,
+		ImportPaths: opts.ImportPaths,
+		Imports:     opts.Imports,
+		Header:      opts.Header,
+		Input:       opts.Input,
 	}
+
+	// parse imported proto files
+	var importPaths []string
+	importPaths = append(importPaths, opts.ImportPaths...)
+	importPaths = append(importPaths, outdir)
+
+	fds, err := xproto.ParseProtos(
+		importPaths,
+		opts.Imports...)
+	if err != nil {
+		atom.Log.Panic(err)
+	}
+	g.fds = fds
+
 	return g
 }
 
@@ -224,7 +245,7 @@ func (gen *Generator) convert(dir, filename string) error {
 	rewrittenWorkbookName := fs.RewriteSubdir(relativePath, gen.Input.SubdirRewrites)
 	atom.Log.Infof("workbook: %s", rewrittenWorkbookName)
 	// creat a book parser
-	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen.FilenameWithSubdirPrefix, gen.Imports)
+	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen.FilenameWithSubdirPrefix, gen.Imports, gen)
 	for _, sheet := range sheets {
 		// parse sheet header
 		sheetMsgName := sheet.Name
