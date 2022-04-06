@@ -226,7 +226,7 @@ func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.Heade
 
 func (gen *Generator) convert(dir, filename string) error {
 	absPath := filepath.Join(dir, filename)
-	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetsasheetOptions())
+	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser))
 	if err != nil {
 		return errors.Wrapf(err, "failed to import workbook: %s", absPath)
@@ -243,11 +243,12 @@ func (gen *Generator) convert(dir, filename string) error {
 	}
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(relativePath, gen.Input.SubdirRewrites)
-	atom.Log.Infof("workbook: %s", rewrittenWorkbookName)
+	atom.Log.Infof("workbook: %s, %d worksheet(s) will be parsed", rewrittenWorkbookName, len(sheets))
 	// creat a book parser
 	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen.FilenameWithSubdirPrefix, gen.Imports, gen)
 	for _, sheet := range sheets {
 		// parse sheet header
+		atom.Log.Infof("worksheet: %s", sheet.Name)
 		sheetMsgName := sheet.Name
 		if sheet.Meta.Alias != "" {
 			sheetMsgName = sheet.Meta.Alias

@@ -52,7 +52,7 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 
 // ParseMeta parses the metasheet "@TABLEAU" in a workbook.
 func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
-	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", book.MetsasheetOptions())
+	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", book.MetasheetOptions())
 	return importer.New(
 		filepath.Join(indir, relWorkbookPath),
 		importer.Parser(parser),

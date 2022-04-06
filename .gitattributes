@@ -1,0 +1,16 @@
+# Treat all files in this repo as binary, with no git magic updating
+# line endings. This produces predictable results in different environments.
+#
+# Windows users contributing to this repo will need to use a modern version
+# of git and editors capable of LF line endings.
+#
+# Windows .bat files are known to have multiple bugs when run with LF
+# endings, and so they are checked in with CRLF endings, with a test
+# to catch problems. (See https://github.com/golang/go/issues/37791.)
+#
+# We'll prevent accidental CRLF line endings from entering the repo
+# via MR/PR checks and tests.
+#
+# See https://github.com/golang/go/issues/9281.
+# See https://adaptivepatchwork.com/2012/03/01/mind-the-end-of-your-line.
+* -text

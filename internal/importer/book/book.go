@@ -24,9 +24,9 @@ type Book struct {
 
 func NewBook(bookName, filename string, parser SheetParser) *Book {
 	return &Book{
-		name:               bookName,
-		filename:           filename,
-		sheets:             make(map[string]*Sheet),
+		name:     bookName,
+		filename: filename,
+		sheets:   make(map[string]*Sheet),
 		meta: &tableaupb.WorkbookMeta{
 			SheetMetaMap: make(map[string]*tableaupb.SheetMeta),
 		},
@@ -54,6 +54,7 @@ func (b *Book) AddSheet(sheet *Sheet) {
 
 // DelSheet deletes a sheet from the book.
 func (b *Book) DelSheet(sheetName string) {
+	atom.Log.Debugf("delete sheet: %s", sheetName)
 	delete(b.sheets, sheetName)
 	b.delSheetName(sheetName)
 }
@@ -92,7 +93,12 @@ func (b *Book) Squeeze(sheetNames []string) {
 		sheetNameMap[sheetName] = true
 	}
 
-	for _, sheetName := range b.sheetNames {
+	// NOTE(wenchgy): must deep-copy the sheetNames, as we will delete 
+	// the elements when looping the slice at the same time.
+	deeplyCopiedSheetNames := make([]string, len(b.sheetNames))
+	copy(deeplyCopiedSheetNames, b.sheetNames)
+
+	for _, sheetName := range deeplyCopiedSheetNames {
 		if !sheetNameMap[sheetName] {
 			b.DelSheet(sheetName)
 		}
@@ -106,9 +112,9 @@ func (b *Book) Clear() {
 }
 
 func (b *Book) ParseMeta() error {
-	sheet := b.GetSheet(MetaSheetName)
+	sheet := b.GetSheet(MetasheetName)
 	if sheet == nil {
-		atom.Log.Debugf("sheet %s not found in book %s", MetaSheetName, b.Filename())
+		atom.Log.Debugf("sheet %s not found in book %s", MetasheetName, b.Filename())
 		b.Clear()
 		return nil
 	}
@@ -116,7 +122,7 @@ func (b *Book) ParseMeta() error {
 	if sheet.MaxRow <= 1 {
 		// need all sheets except the metasheet "@TABLEAU"
 		for _, sheet := range b.GetSheets() {
-			if sheet.Name != MetaSheetName {
+			if sheet.Name != MetasheetName {
 				b.meta.SheetMetaMap[sheet.Name] = &tableaupb.SheetMeta{
 					Sheet: sheet.Name,
 				}
@@ -124,11 +130,11 @@ func (b *Book) ParseMeta() error {
 		}
 	} else {
 		if err := b.metaParser.Parse(b.meta, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse sheet: %s#%s", b.Filename(), MetaSheetName)
+			return errors.WithMessagef(err, "failed to parse sheet: %s#%s", b.Filename(), MetasheetName)
 		}
 	}
 
-	atom.Log.Debugf("%s#%s: %+v", b.Filename(), MetaSheetName, b.meta)
+	atom.Log.Debugf("%s#%s: %+v", b.Filename(), MetasheetName, b.meta)
 
 	var keepedSheetNames []string
 	for sheetName, sheetMeta := range b.meta.SheetMetaMap {
@@ -141,6 +147,10 @@ func (b *Book) ParseMeta() error {
 	}
 	// NOTE: only keep the sheets that are specified in meta
 	b.Squeeze(keepedSheetNames)
+	atom.Log.Debugf("squeezed: %s#%s: %+v", b.Filename(), MetasheetName, keepedSheetNames)
+	for sheetName := range b.sheets {
+		atom.Log.Debugf("sheet: %s", sheetName)
+	}
 	return nil
 }
 

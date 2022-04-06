@@ -13,8 +13,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// MetaSheetName defines the meta data of each worksheet.
-const MetaSheetName = "@TABLEAU"
+// MetasheetName defines the meta data of each worksheet.
+const MetasheetName = "@TABLEAU"
 
 type SheetParser interface {
 	Parse(protomsg proto.Message, sheet *Sheet) error
@@ -138,9 +138,9 @@ func (s *Sheet) ExportExcel(file *excelize.File) error {
 	return nil
 }
 
-func MetsasheetOptions() *tableaupb.WorksheetOptions {
+func MetasheetOptions() *tableaupb.WorksheetOptions {
 	return &tableaupb.WorksheetOptions{
-		Name:    MetaSheetName,
+		Name:    MetasheetName,
 		Namerow: 1,
 		Datarow: 2,
 	}
