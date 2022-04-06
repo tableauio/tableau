@@ -2,7 +2,7 @@ syntax = "proto3";
 package tableau;
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
-import "tableau.proto";
+import "tableau/protobuf/tableau.proto";
 
 message WorkbookMeta {
   option (tableau.worksheet) = {

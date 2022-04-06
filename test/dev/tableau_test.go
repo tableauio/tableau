@@ -160,9 +160,9 @@ func Test_GenProto(t *testing.T) {
 		"github.com/tableauio/tableau/test/dev/protoconf",
 		"./testdata",
 		"./proto",
-		options.ImportPaths(
-			"../../proto",
-		),
+		// options.ImportPaths(
+		// 	"../../proto",
+		// ),
 		options.Imports(
 			"cs_dbkeyword.proto",
 			"common.proto",

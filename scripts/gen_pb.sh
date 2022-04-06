@@ -6,19 +6,20 @@ set -o pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-tableau_indir="./proto/tableau/protobuf"
-tableau_outdir="./proto/tableaupb"
+PROTO_PATH="./proto"
+TABLEAU_INDIR="${PROTO_PATH}/tableau/protobuf"
+TABLEAU_OUTDIR="./proto/tableaupb"
 
-# remove *.go
-rm -fv $tableau_outdir/*.go
+# remove generated files
+rm -rfv $TABLEAU_OUTDIR/*
 
-for item in "$tableau_indir"/* ; do
+for item in "$TABLEAU_INDIR"/* ; do
     echo "$item"
     if [ -f "$item" ]; then
         protoc \
-        --go_out="$tableau_outdir" \
-        --go_opt=paths=source_relative \
-        --proto_path="$tableau_indir" \
+        --go_out="$TABLEAU_OUTDIR" \
+        --go_opt=module="github.com/tableauio/tableau/proto/tableaupb" \
+        --proto_path="$PROTO_PATH" \
         "$item"
     fi
 done
