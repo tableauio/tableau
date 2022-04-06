@@ -84,6 +84,8 @@ func Test_Excel2CSV(t *testing.T) {
 	paths := []string{
 		"./testdata/excel/Test.xlsx",
 		"./testdata/excel/hero/Hero.xlsx",
+		"./testdata/excel/hero/HeroA.xlsx",
+		"./testdata/excel/hero/HeroB.xlsx",
 	}
 	for _, path := range paths {
 		imp, err := importer.NewExcelImporter(path, nil, nil)
@@ -100,6 +102,8 @@ func Test_CSV2Excel(t *testing.T) {
 	paths := []string{
 		"./testdata/excel/Test#*.csv",
 		"./testdata/excel/hero/Hero#*.csv",
+		"./testdata/excel/hero/HeroA#*.csv",
+		"./testdata/excel/hero/HeroB#*.csv",
 	}
 	for _, path := range paths {
 		imp, err := importer.NewCSVImporter(path, nil, nil)

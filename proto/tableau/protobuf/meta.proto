@@ -6,7 +6,7 @@ import "tableau/protobuf/tableau.proto";
 
 message WorkbookMeta {
   option (tableau.worksheet) = {
-    name: "@TABLEAU"
+    name:"@TABLEAU"
     namerow: 1
     datarow: 2
   };
@@ -14,17 +14,25 @@ message WorkbookMeta {
   map<string, SheetMeta> sheet_meta_map = 1 [(tableau.field).key = "Sheet"];
 }
 message SheetMeta {
-  string sheet = 1 [(tableau.field) = { name: "Sheet" optional: false }];
-  string alias = 2 [(tableau.field) = { name: "Alias" optional: true }];
-  int32 namerow = 3 [(tableau.field) = { name: "Namerow" optional: true }];
-  int32 typerow = 4 [(tableau.field) = { name: "Typerow" optional: true }];
-  int32 noterow = 5 [(tableau.field) = { name: "Noterow" optional: true }];
-  int32 datarow = 6 [(tableau.field) = { name: "Datarow" optional: true }];
-  int32 nameline = 7 [(tableau.field) = { name: "Nameline" optional: true }];
-  int32 typeline = 8 [(tableau.field) = { name: "Typeline" optional: true }];
-  bool transpose = 9 [(tableau.field) = { name: "Transpose" optional: true }];
-  bool nested = 10 [(tableau.field) = { name: "Nested" optional: true }]; // nested naming of namerow
-  string sep = 11 [(tableau.field) = { name: "Sep" optional: true }];
-  string subsep = 12 [(tableau.field) = { name: "Subsep" optional: true }];
-  bool ordered_map = 13 [(tableau.field) = { name: "OrderedMap" optional: true }]; // generate ordered map accessers
+  string sheet = 1 [(tableau.field) = { name:"Sheet" optional:false }];
+  string alias = 2 [(tableau.field) = { name:"Alias" optional:true }];
+  int32 namerow = 3 [(tableau.field) = { name:"Namerow" optional:true }];
+  int32 typerow = 4 [(tableau.field) = { name:"Typerow" optional:true }];
+  int32 noterow = 5 [(tableau.field) = { name:"Noterow" optional:true }];
+  int32 datarow = 6 [(tableau.field) = { name:"Datarow" optional:true }];
+  int32 nameline = 7 [(tableau.field) = { name:"Nameline" optional:true }];
+  int32 typeline = 8 [(tableau.field) = { name:"Typeline" optional:true }];
+  bool transpose = 9 [(tableau.field) = { name:"Transpose" optional:true }];
+  // nested naming of namerow
+  bool nested = 10 [(tableau.field) = { name:"Nested" optional:true }];
+  string sep = 11 [(tableau.field) = { name:"Sep" optional:true }];
+  string subsep = 12 [(tableau.field) = { name:"Subsep" optional:true }];
+  // generate ordered map accessers
+  bool ordered_map = 13 [(tableau.field) = { name:"OrderedMap" optional:true }];
+  // merger of multiple sheets: [Element]...
+  // each element is:
+  // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>, 
+  //   then the sheet name is the same as this sheet.
+  // - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
+  repeated string merger = 14 [(tableau.field) = { name:"Merger" type:TYPE_INCELL_LIST optional:true }];
 }

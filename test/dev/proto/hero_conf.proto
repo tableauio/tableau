@@ -9,7 +9,7 @@ import "tableau/protobuf/tableau.proto";
 option (tableau.workbook) = {name:"excel/hero/Hero#*.csv"};
 
 message Hero {
-  option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+  option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 merger:"HeroA.xlsx" merger:"Her*.xlsx"};
 
   map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Hero {

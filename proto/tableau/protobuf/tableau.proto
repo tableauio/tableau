@@ -46,6 +46,7 @@ message WorksheetOptions {
   string sep = 11;       // separator, default: ","
   string subsep = 12;    // subseparator, default: ":"
   bool ordered_map = 13; // [default = false]; // whether generate OrderedMap accessers.
+  repeated string merger = 14; // [default = ""]; // merge multiple sheets by the merger pattern.
 }
 
 message FieldOptions {

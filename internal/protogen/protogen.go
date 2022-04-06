@@ -269,6 +269,7 @@ func (gen *Generator) convert(dir, filename string) error {
 				Sep:        sheet.Meta.Sep,
 				Subsep:     sheet.Meta.Subsep,
 				OrderedMap: sheet.Meta.OrderedMap,
+				Merger:     sheet.Meta.Merger,
 			},
 			Fields: []*tableaupb.Field{},
 			Name:   sheetMsgName,

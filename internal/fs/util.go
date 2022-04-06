@@ -86,6 +86,9 @@ func GetCleanSlashPath(path string) string {
 	return filepath.ToSlash(filepath.Clean(path))
 }
 
+func IsSamePath(leftPath, rightPath string) bool {
+	return GetCleanSlashPath(leftPath) == GetCleanSlashPath(rightPath)
+}
 func GetRelCleanSlashPath(rootdir, path string) (string, error) {
 	relPath, err := filepath.Rel(rootdir, path)
 	if err != nil {

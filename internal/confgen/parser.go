@@ -36,16 +36,19 @@ func NewSheetExporter(outputDir string, output *options.OutputOption) *sheetExpo
 }
 
 // export the protomsg message.
-func (x *sheetExporter) Export(imp importer.Importer, parser *sheetParser, protomsg proto.Message) error {
+func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, importers ...importer.Importer) error {
 	md := protomsg.ProtoReflect().Descriptor()
 	msgName, wsOpts := ParseMessageOptions(md)
-	sheet := imp.GetSheet(wsOpts.Name)
-	if sheet == nil {
-		return errors.Errorf("sheet %s not found", wsOpts.Name)
-	}
 
-	if err := parser.Parse(protomsg, sheet); err != nil {
-		return errors.WithMessage(err, "failed to parse sheet")
+	for _, imp := range importers {
+		sheet := imp.GetSheet(wsOpts.Name)
+		if sheet == nil {
+			return errors.Errorf("sheet %s not found", wsOpts.Name)
+		}
+
+		if err := parser.Parse(protomsg, sheet); err != nil {
+			return errors.WithMessage(err, "failed to parse sheet")
+		}
 	}
 
 	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.Output)

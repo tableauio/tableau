@@ -129,9 +129,17 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 					atom.Log.Infof("generate: %s#%s (%s#%s)", fd.Path(), md.Name(), workbook.Name, sheetName)
 					newMsg := dynamicpb.NewMessage(md)
 					parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
-					exporter := NewSheetExporter(gen.OutputDir, gen.Output)
-					err := exporter.Export(imp, parser, newMsg)
+
+					// get merger importers
+					importers, err := getMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
 					if err != nil {
+						return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
+					}
+					// append self
+					importers = append(importers, imp)
+
+					exporter := NewSheetExporter(gen.OutputDir, gen.Output)
+					if err := exporter.Export(parser, newMsg, importers...); err != nil {
 						return err
 					}
 				}
@@ -155,4 +163,40 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 		return errors.Errorf("worksheet not found: %s", worksheetName)
 	}
 	return nil
+}
+
+// getMergerImporters gathers all merger importers.
+// 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
+// 	2. exclude self
+func getMergerImporters(primaryWorkbookPath, sheetName string, merger []string) ([]importer.Importer, error) {
+	if len(merger) == 0 {
+		return nil, nil
+	}
+
+	curDir := filepath.Dir(primaryWorkbookPath)
+	mergerWorkbookPaths := map[string]bool{}
+	for _, merger := range merger {
+		pattern := filepath.Join(curDir, merger)
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
+		}
+		for _, match := range matches {
+			if fs.IsSamePath(match, primaryWorkbookPath) {
+				// exclude self
+				continue
+			}
+			mergerWorkbookPaths[match] = true
+		}
+	}
+	var importers []importer.Importer
+	for fpath := range mergerWorkbookPaths {
+		atom.Log.Infof("merge workbook: %s", fpath)
+		importer, err := importer.New(fpath, importer.Sheets([]string{sheetName}))
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+		}
+		importers = append(importers, importer)
+	}
+	return importers, nil
 }
