@@ -21,3 +21,4 @@ cmd/tableauc/tableauc
 *.xlsx
 *.pb.go
 test/dev/testpb/
+test/parallel/proto/

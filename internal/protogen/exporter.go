@@ -9,6 +9,7 @@ import (
 
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/pkg/errors"
+	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/printer"
@@ -117,6 +118,17 @@ func (x *bookExporter) export() error {
 	path := filepath.Join(x.OutputDir, relPath)
 	atom.Log.Infof("output: %s", relPath)
 
+	// mu := lockedfile.MutexAt(path)
+	// unlock, err := mu.Lock()
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to lock file: %s", path)
+	// }
+	// defer unlock()
+
+	// NOTE: use file lock to protect .proto file from being writen by multiple goroutines
+	// refer: https://github.com/golang/go/issues/33974
+	// refer: https://go.googlesource.com/proposal/+/master/design/33974-add-public-lockedfile-pkg.md
+
 	if existed, err := fs.Exists(path); err != nil {
 		return errors.WithMessagef(err, "failed to check if file exists: %s", path)
 	} else {
@@ -125,7 +137,7 @@ func (x *bookExporter) export() error {
 		}
 	}
 
-	if f, err := os.Create(path); err != nil {
+	if f, err := lockedfile.Create(path); err != nil {
 		return errors.Wrapf(err, "failed to create output file: %s", path)
 	} else {
 		defer f.Close()

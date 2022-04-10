@@ -13,8 +13,9 @@ type ExcelImporter struct {
 	*book.Book
 }
 
-func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser) (*ExcelImporter, error) {
-	book, err := parseExcelBook(filename, sheetNames, parser)
+// topN: 0 means read all rows
+func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, topN uint) (*ExcelImporter, error) {
+	book, err := parseExcelBook(filename, sheetNames, parser, topN)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to parse excel book")
 	}
@@ -24,8 +25,8 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 	}, nil
 }
 
-func parseExcelBook(filename string, sheetNames []string, parser book.SheetParser) (*book.Book, error) {
-	book, err := readExcelBook(filename, parser)
+func parseExcelBook(filename string, sheetNames []string, parser book.SheetParser, topN uint) (*book.Book, error) {
+	book, err := readExcelBook(filename, parser, topN)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
 	}
@@ -42,7 +43,7 @@ func parseExcelBook(filename string, sheetNames []string, parser book.SheetParse
 	return book, nil
 }
 
-func readExcelBook(filename string, parser book.SheetParser) (*book.Book, error) {
+func readExcelBook(filename string, parser book.SheetParser, topN uint) (*book.Book, error) {
 	file, err := excelize.OpenFile(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file %s", filename)
@@ -51,7 +52,7 @@ func readExcelBook(filename string, parser book.SheetParser) (*book.Book, error)
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, parser)
 	for _, sheetName := range file.GetSheetList() {
-		rows, err := file.GetRows(sheetName)
+		rows, err := readExcelSheetRows(file, sheetName, topN)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get rows of sheet: %s#%s", filename, sheetName)
 		}
@@ -60,4 +61,31 @@ func readExcelBook(filename string, parser book.SheetParser) (*book.Book, error)
 	}
 
 	return newBook, nil
+}
+
+func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][]string, err error) {
+	if topN == 0 {
+		// read all rows
+		rows, err := f.GetRows(sheetName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get all rows of sheet: %s#%s", f.Path, sheetName)
+		}
+		return rows, nil
+	}
+
+	// read top N rows
+	excelRows, err := f.Rows(sheetName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get topN(%d) rows of sheet: %s#%s", topN, f.Path, sheetName)
+	}
+	var nrow uint
+	for excelRows.Next() {
+		nrow++
+		if nrow > topN {
+			break
+		}
+		row, _ := excelRows.Columns()
+		rows = append(rows, row)
+	}
+	return rows, nil
 }

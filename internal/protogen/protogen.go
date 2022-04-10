@@ -18,12 +18,15 @@ import (
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
 	App                 = "protogen"
 	Version             = "0.2.2"
 	TableauProtoPackage = "tableau"
+
+	defaultTopN = 10 // default top N rows for importer's TopN option
 )
 
 type Generator struct {
@@ -145,7 +148,14 @@ func (gen *Generator) GenOneWorkbook(relativeWorkbookPath string) error {
 	return gen.convert(filepath.Dir(absPath), filepath.Base(absPath))
 }
 
-func (gen *Generator) generate(dir string) error {
+func (gen *Generator) generate(dir string) (err error) {
+	var eg errgroup.Group
+	defer func() {
+		if err == nil {
+			err = eg.Wait()
+		}
+	}()
+
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read input dir: %s", gen.InputDir)
@@ -157,7 +167,7 @@ func (gen *Generator) generate(dir string) error {
 		if entry.IsDir() {
 			// scan and generate subdir recursively
 			subdir := filepath.Join(dir, entry.Name())
-			err := gen.generate(subdir)
+			err = gen.generate(subdir)
 			if err != nil {
 				return errors.WithMessagef(err, "failed to generate subdir: %s", subdir)
 			}
@@ -184,9 +194,10 @@ func (gen *Generator) generate(dir string) error {
 			csvBooks[bookName] = true
 		}
 
-		if err := gen.convert(dir, entry.Name()); err != nil {
-			return errors.WithMessage(err, "failed to convert workbook")
-		}
+		filename := entry.Name()
+		eg.Go(func() error {
+			return gen.convert(dir, filename)
+		})
 	}
 	return nil
 }
@@ -227,7 +238,7 @@ func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.Heade
 func (gen *Generator) convert(dir, filename string) error {
 	absPath := filepath.Join(dir, filename)
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
-	imp, err := importer.New(absPath, importer.Parser(parser))
+	imp, err := importer.New(absPath, importer.Parser(parser), importer.TopN(defaultTopN))
 	if err != nil {
 		return errors.Wrapf(err, "failed to import workbook: %s", absPath)
 	}

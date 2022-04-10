@@ -5,8 +5,9 @@ import (
 )
 
 type Options struct {
-	Sheets []string              // sheet names to import
-	Parser book.SheetParser      // parser to parse the worksheet
+	Sheets []string         // sheet names to import
+	Parser book.SheetParser // parser to parse the worksheet
+	TopN   uint             // read top N rows, 0 means read all rows
 }
 
 // Option is the functional option type.
@@ -21,6 +22,12 @@ func Sheets(sheets []string) Option {
 func Parser(parser book.SheetParser) Option {
 	return func(opts *Options) {
 		opts.Parser = parser
+	}
+}
+
+func TopN(n uint) Option {
+	return func(opts *Options) {
+		opts.TopN = n
 	}
 }
 

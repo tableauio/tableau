@@ -61,7 +61,7 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	noteCell := header.getNoteCell(cursor)
 	// atom.Log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)
 	if nameCell == "" || typeCell == "" {
-		atom.Log.Warnf("no need to parse column %d, as name(%s) or type(%s) is empty", cursor, nameCell, typeCell)
+		atom.Log.Debugf("no need to parse column %d, as name(%s) or type(%s) is empty", cursor, nameCell, typeCell)
 		return cursor, false
 	}
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
