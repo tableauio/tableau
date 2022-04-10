@@ -14,13 +14,13 @@ func init() {
 
 const (
 	protoPackage    = "protoconf"
-	goPackage       = "git.woa.com/wedo/golang/cloud/protoconf"
+	goPackage       = "github.com/tableauio/tableau/test/parallel/protoconf"
 	defaultProtoDir = "protoconf/proto"
 	defaultInputDir = "conf"
 	defaultJsonDir  = "golang/cloud/_output/json"
 	defaultFormat   = "json"
-	inputDir = "/Users/wenchyzhu/Development/wedo/client/trunk/DB/excel"
-	outputDir = "./proto"
+	inputDir        = "./excel"
+	outputDir       = "./proto"
 )
 
 func Test_GenProto(t *testing.T) {
