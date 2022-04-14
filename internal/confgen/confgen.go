@@ -9,6 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
@@ -27,6 +28,9 @@ type Generator struct {
 	Output *options.OutputOption // output settings.
 	Input  *options.InputOption  // Input settings.
 	Header *options.HeaderOption // header settings.
+
+	ImportPaths []string // import paths.
+	ProtoFiles  []string // proto files.
 }
 
 var specialMessageMap = map[string]int{
@@ -35,6 +39,10 @@ var specialMessageMap = map[string]int{
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
+	// TODO: define tableau in package constants.
+	if protoPackage == "tableau" {
+		atom.Log.Panicf(`proto package can not be "tableau" which is reserved`)
+	}
 	opts := options.ParseOptions(setters...)
 	g := &Generator{
 		ProtoPackage: protoPackage,
@@ -44,6 +52,8 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 		Output:       opts.Output,
 		Input:        opts.Input,
 		Header:       opts.Header,
+		ImportPaths:  opts.ImportPaths,
+		ProtoFiles:   opts.ProtoFiles,
 	}
 	return g
 }
@@ -72,7 +82,12 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 	workbookFound := false
 	worksheetFound := false
 
-	protoregistry.GlobalFiles.RangeFilesByPackage(
+	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.ImportPaths, gen.ProtoFiles...)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to create files")
+	}
+
+	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
 			err = func() error {
@@ -199,4 +214,21 @@ func getMergerImporters(primaryWorkbookPath, sheetName string, merger []string) 
 		importers = append(importers, importer)
 	}
 	return importers, nil
+}
+
+// get protoregistry.Files with specified package name
+func getProtoRegistryFiles(protoPackage string, importPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
+	count := 0
+	prFiles := protoregistry.GlobalFiles
+	prFiles.RangeFilesByPackage(
+		protoreflect.FullName(protoPackage),
+		func(fd protoreflect.FileDescriptor) bool {
+			count++
+			return false
+		})
+	if count != 0 {
+		atom.Log.Debugf("use already injected protoregistry.GlobalFiles")
+		return prFiles, nil
+	}
+	return xproto.NewFiles(importPaths, protoFiles...)
 }

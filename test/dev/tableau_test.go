@@ -88,7 +88,7 @@ func Test_Excel2CSV(t *testing.T) {
 		"./testdata/excel/hero/HeroB.xlsx",
 	}
 	for _, path := range paths {
-		imp, err := importer.NewExcelImporter(path, nil, nil)
+		imp, err := importer.NewExcelImporter(path, nil, nil, 0)
 		if err != nil {
 			t.Errorf("%+v", err)
 		}

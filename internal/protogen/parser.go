@@ -429,7 +429,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 			// Find predefined type's first field's tableau name
 			// structName = field.Type
 			fullMsgName := p.gen.ProtoPackage + "." + field.Type
-			for _, fileDesc := range p.gen.fds {
+			for _, fileDesc := range p.gen.fileDescs {
 				md := fileDesc.FindMessage(fullMsgName)
 				if md == nil {
 					continue

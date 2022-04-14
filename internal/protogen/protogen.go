@@ -47,7 +47,7 @@ type Generator struct {
 	Input       *options.InputOption
 
 	// internal
-	fds []*desc.FileDescriptor // all parsed imported proto file descriptors.
+	fileDescs []*desc.FileDescriptor // all parsed imported proto file descriptors.
 }
 
 func NewGenerator(protoPackage, goPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -77,13 +77,13 @@ func NewGeneratorWithOptions(protoPackage, goPackage, indir, outdir string, opts
 	importPaths = append(importPaths, opts.ImportPaths...)
 	importPaths = append(importPaths, outdir)
 
-	fds, err := xproto.ParseProtos(
+	fileDescs, err := xproto.ParseProtos(
 		importPaths,
 		opts.Imports...)
 	if err != nil {
 		atom.Log.Panic(err)
 	}
-	g.fds = fds
+	g.fileDescs = fileDescs
 
 	return g
 }

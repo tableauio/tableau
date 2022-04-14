@@ -14,6 +14,7 @@ type Options struct {
 	Output       *OutputOption // Output options.
 	ImportPaths  []string      // Import paths. Default: nil.
 	Imports      []string      // Import common proto files. Default: nil.
+	ProtoFiles   []string      // To be parsed proto files. Default: nil.
 	Workbook     string        // Workbook filename. Default: "".
 	Worksheet    string        // Worksheet name. Default: "".
 }
@@ -157,6 +158,13 @@ func ImportPaths(importPaths ...string) Option {
 func Imports(imports ...string) Option {
 	return func(opts *Options) {
 		opts.Imports = imports
+	}
+}
+
+// ProtoFiles sets proto files to be parsed.
+func ProtoFiles(protoFiles ...string) Option {
+	return func(opts *Options) {
+		opts.ProtoFiles = protoFiles
 	}
 }
 
