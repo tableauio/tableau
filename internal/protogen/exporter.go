@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/jhump/protoreflect/desc"
 	"github.com/pkg/errors"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/atom"
@@ -31,17 +32,18 @@ type bookExporter struct {
 	OutputDir      string
 	FilenameSuffix string
 	wb             *tableaupb.Workbook
-	customImports  []string
+
+	importFileDescs []*desc.FileDescriptor // all parsed imported proto file descriptors.
 }
 
-func newBookExporter(protoPackage, goPackage, outputDir, filenameSuffix string, imports []string, wb *tableaupb.Workbook) *bookExporter {
+func newBookExporter(protoPackage, goPackage, outputDir, filenameSuffix string, importFileDescs []*desc.FileDescriptor, wb *tableaupb.Workbook) *bookExporter {
 	return &bookExporter{
-		ProtoPackage:   protoPackage,
-		GoPackage:      goPackage,
-		OutputDir:      outputDir,
-		FilenameSuffix: filenameSuffix,
-		wb:             wb,
-		customImports:  imports,
+		ProtoPackage:    protoPackage,
+		GoPackage:       goPackage,
+		OutputDir:       outputDir,
+		FilenameSuffix:  filenameSuffix,
+		wb:              wb,
+		importFileDescs: importFileDescs,
 	}
 }
 
@@ -69,11 +71,25 @@ func parseCustomImports(dir string, filenames []string) (map[string]string, erro
 	return type2import, nil
 }
 
-func (x *bookExporter) export() error {
-	type2import, err := parseCustomImports(x.OutputDir, x.customImports)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse custom imports")
+func getType2Import(fileDescs []*desc.FileDescriptor) map[string]string {
+	type2import := make(map[string]string)
+	for _, fileDesc := range fileDescs {
+		for _, mt := range fileDesc.GetMessageTypes() {
+			type2import[mt.GetName()] = fileDesc.GetName()
+		}
+		for _, mt := range fileDesc.GetEnumTypes() {
+			type2import[mt.GetName()] = fileDesc.GetName()
+		}
 	}
+	return type2import
+}
+
+func (x *bookExporter) export() error {
+	// type2import, err := parseCustomImports(x.OutputDir, x.customImports)
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to parse custom imports")
+	// }
+	type2import := getType2Import(x.importFileDescs)
 
 	// atom.Log.Debug(proto.MarshalTextString(wb))
 	g1 := NewGeneratedBuf()

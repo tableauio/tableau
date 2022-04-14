@@ -304,7 +304,7 @@ func (gen *Generator) convert(dir, filename string) error {
 		bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 	}
 	// export book
-	be := newBookExporter(gen.ProtoPackage, gen.GoPackage, gen.OutputDir, gen.FilenameSuffix, gen.Imports, bp.wb)
+	be := newBookExporter(gen.ProtoPackage, gen.GoPackage, gen.OutputDir, gen.FilenameSuffix, gen.fileDescs, bp.wb)
 	if err := be.export(); err != nil {
 		return errors.WithMessagef(err, "failed to export workbook: %s", relativePath)
 	}

@@ -19,3 +19,40 @@ func Test_GenJSON(t *testing.T) {
 		options.OutputFormats(format.JSON),
 	)
 }
+
+func Test_Generate(t *testing.T) {
+	tableau.Generate(
+		"protoconf",
+		"github.com/tableauio/tableau/test/dev/protoconf",
+		"../testdata",
+		"./_out",
+		// options.ImportPaths("../proto/common"), // FIXME: this is not working
+		options.ImportPaths("./_out/proto"),
+		options.ProtoFiles("./_out/proto/*.proto"),
+		options.Imports(
+			"cs_dbkeyword.proto",
+			"common.proto",
+			"time.proto",
+		),
+		options.InputFormats(format.CSV, format.XML),
+		options.Output(
+			&options.OutputOption{
+				FilenameSuffix:           "_conf",
+				FilenameWithSubdirPrefix: false,
+				Pretty:                   true,
+				Formats:                  []format.Format{format.JSON},
+			},
+		),
+		options.Header(
+			&options.HeaderOption{
+				Namerow: 1,
+				Typerow: 2,
+				Noterow: 3,
+				Datarow: 5,
+
+				Nameline: 2,
+				Typeline: 2,
+			}),
+		options.LogLevel("debug"),
+	)
+}

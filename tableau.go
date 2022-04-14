@@ -14,6 +14,19 @@ import (
 	"github.com/tableauio/tableau/options"
 )
 
+// Generate can convert Excel/CSV/XML files to protoconf files and
+// different configuration files: JSON, Text, and Wire at the same time.
+func Generate(protoPackage, goPackage, indir, outdir string, setters ...options.Option) {
+	opts := options.ParseOptions(setters...)
+	protoOutDir := filepath.Join(outdir, "proto")
+	confOutDir := filepath.Join(outdir, "conf")
+	GenProto(protoPackage, goPackage, indir, protoOutDir, setters...)
+	
+	importPaths := append(opts.ImportPaths, protoOutDir)
+	setters = append(setters, options.ImportPaths(importPaths...))
+	GenConf(protoPackage, indir, confOutDir, setters...)
+}
+
 // GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
