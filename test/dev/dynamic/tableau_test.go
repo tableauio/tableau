@@ -23,7 +23,6 @@ func Test_GenJSON(t *testing.T) {
 func Test_Generate(t *testing.T) {
 	tableau.Generate(
 		"protoconf",
-		"github.com/tableauio/tableau/test/dev/protoconf",
 		"../testdata",
 		"./_out",
 		// options.ImportPaths("../proto/common"), // FIXME: this is not working
@@ -41,6 +40,9 @@ func Test_Generate(t *testing.T) {
 				FilenameWithSubdirPrefix: false,
 				Pretty:                   true,
 				Formats:                  []format.Format{format.JSON},
+				ProtoFileOptions: map[string]string{
+					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+				},
 			},
 		),
 		options.Header(

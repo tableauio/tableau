@@ -1,20 +1,23 @@
 package options
 
-import "github.com/tableauio/tableau/format"
+import (
+	"github.com/tableauio/tableau/format"
+)
 
 // Options is the wrapper of tableau params.
 // Options follow the design of Functional Options (https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md).
 type Options struct {
 	// Location represents the collection of time offsets in use in a geographical area.
 	// Default: "Asia/Shanghai".
-	LocationName string
-	LogLevel     string        // Log level: debug, info, warn, error. Default: "info".
+	LocationName string        `yaml:"locationName"`
+	LogLevel     string        `yaml:"logLevel"` // Log level: debug, info, warn, error. Default: "info".
 	Header       *HeaderOption // Header options of worksheet file.
 	Input        *InputOption  // Input options.
 	Output       *OutputOption // Output options.
-	ImportPaths  []string      // Import paths. Default: nil.
+	ImportPaths  []string      `yaml:"importPaths"` // Import paths. Default: nil.
 	Imports      []string      // Import common proto files. Default: nil.
-	ProtoFiles   []string      // To be parsed proto files. Default: nil.
+	ProtoFiles   []string      `yaml:"protoFiles"` // To be parsed proto files. Default: nil.
+
 	Workbook     string        // Workbook filename. Default: "".
 	Worksheet    string        // Worksheet name. Default: "".
 }
@@ -53,19 +56,19 @@ type InputOption struct {
 	Subdirs []string
 	// - For protogen, rewrite subdir path (relative to input dir).
 	// - For confgen, rewrite subdir path (relative to workbook name option in .proto file).
-	SubdirRewrites map[string]string
+	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
 }
 
 type OutputOption struct {
 	// Only for protogen: dir separator `/` or `\`  in filename is replaced by "__".
 	// Default: true.
-	FilenameWithSubdirPrefix bool
+	FilenameWithSubdirPrefix bool `yaml:"filenameWithSubdirPrefix"`
 	// Only for protogen: append the suffix to filename.
 	// Default: "".
-	FilenameSuffix string
+	FilenameSuffix string `yaml:"filenameSuffix"`
 	// Only for confgen: output filename as snake_case, default is CamelCase as the protobuf message name.
 	// Default: false.
-	FilenameAsSnakeCase bool
+	FilenameAsSnakeCase bool `yaml:"filenameAsSnakeCase"`
 	// Only for confgen: output file formats.
 	// Note: Output all formats (JSON, Text, and Wire) if not set (value is nil).
 	// Default: nil.
@@ -89,7 +92,11 @@ type OutputOption struct {
 	//  ╚═══════╧════════════════════════════╝
 	//
 	// Default: true.
-	EmitUnpopulated bool
+	EmitUnpopulated bool `yaml:"emitUnpopulated"`
+
+	// Only for proto file options. Default: nil.
+	// Example: go_package, csharp_namespace...
+	ProtoFileOptions map[string]string `yaml:"protoFileOptions"`
 }
 
 // Option is the functional option type.

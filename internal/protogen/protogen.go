@@ -31,45 +31,39 @@ const (
 
 type Generator struct {
 	ProtoPackage string // protobuf package name.
-	GoPackage    string // golang package name.
 	// Location represents the collection of time offsets in use in a geographical area.
 	// Default is "Asia/Shanghai".
 	LocationName string
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated protoconf files.
 
-	FilenameWithSubdirPrefix bool   // filename dir separator `/` or `\` is replaced by "__"
-	FilenameSuffix           string // filename suffix of generated protoconf files.
-
 	ImportPaths []string              // import paths.
 	Imports     []string              // imported common proto file paths
 	Header      *options.HeaderOption // header settings.
 	Input       *options.InputOption
+	Output      *options.OutputOption
 
 	// internal
 	fileDescs []*desc.FileDescriptor // all parsed imported proto file descriptors.
 }
 
-func NewGenerator(protoPackage, goPackage, indir, outdir string, setters ...options.Option) *Generator {
+func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
 	opts := options.ParseOptions(setters...)
-	return NewGeneratorWithOptions(protoPackage, goPackage, indir, outdir, opts)
+	return NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
 }
 
-func NewGeneratorWithOptions(protoPackage, goPackage, indir, outdir string, opts *options.Options) *Generator {
+func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	g := &Generator{
 		ProtoPackage: protoPackage,
-		GoPackage:    goPackage,
 		LocationName: opts.LocationName,
 		InputDir:     indir,
 		OutputDir:    outdir,
-
-		FilenameWithSubdirPrefix: opts.Output.FilenameWithSubdirPrefix,
-		FilenameSuffix:           opts.Output.FilenameSuffix,
 
 		ImportPaths: opts.ImportPaths,
 		Imports:     opts.Imports,
 		Header:      opts.Header,
 		Input:       opts.Input,
+		Output:      opts.Output,
 	}
 
 	// parse imported proto files
@@ -256,7 +250,7 @@ func (gen *Generator) convert(dir, filename string) error {
 	rewrittenWorkbookName := fs.RewriteSubdir(relativePath, gen.Input.SubdirRewrites)
 	atom.Log.Infof("workbook: %s, %d worksheet(s) will be parsed", rewrittenWorkbookName, len(sheets))
 	// creat a book parser
-	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen.FilenameWithSubdirPrefix, gen.Imports, gen)
+	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen.Output.FilenameWithSubdirPrefix, gen.Imports, gen)
 	for _, sheet := range sheets {
 		// parse sheet header
 		atom.Log.Infof("worksheet: %s", sheet.Name)
@@ -304,7 +298,14 @@ func (gen *Generator) convert(dir, filename string) error {
 		bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 	}
 	// export book
-	be := newBookExporter(gen.ProtoPackage, gen.GoPackage, gen.OutputDir, gen.FilenameSuffix, gen.fileDescs, bp.wb)
+	be := newBookExporter(
+		gen.ProtoPackage,
+		gen.Output.ProtoFileOptions,
+		gen.OutputDir,
+		gen.Output.FilenameSuffix,
+		gen.fileDescs,
+		bp.wb,
+	)
 	if err := be.export(); err != nil {
 		return errors.WithMessagef(err, "failed to export workbook: %s", relativePath)
 	}

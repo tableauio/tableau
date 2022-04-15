@@ -18,7 +18,6 @@ func init() {
 func Test_Excel2Proto(t *testing.T) {
 	tableau.GenProto(
 		"protoconf",
-		"github.com/tableauio/tableau/test/dev/protoconf",
 		"./testdata",
 		"./proto",
 		options.Header(
@@ -46,6 +45,9 @@ func Test_Excel2Proto(t *testing.T) {
 			&options.OutputOption{
 				FilenameSuffix:           "_conf",
 				FilenameWithSubdirPrefix: false,
+				ProtoFileOptions: map[string]string{
+					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+				},
 			},
 		),
 		options.LogLevel("debug"),
@@ -119,7 +121,6 @@ func Test_CSV2Excel(t *testing.T) {
 func Test_XML2Proto(t *testing.T) {
 	tableau.GenProto(
 		"protoconf",
-		"github.com/tableauio/tableau/test/dev/protoconf",
 		"./testdata",
 		"./proto",
 		options.Imports(
@@ -132,6 +133,9 @@ func Test_XML2Proto(t *testing.T) {
 			&options.OutputOption{
 				FilenameSuffix:           "_conf",
 				FilenameWithSubdirPrefix: false,
+				ProtoFileOptions: map[string]string{
+					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+				},
 			},
 		),
 		options.Header(
@@ -161,7 +165,6 @@ func Test_XML2JSON(t *testing.T) {
 func Test_GenProto(t *testing.T) {
 	tableau.GenProto(
 		"protoconf",
-		"github.com/tableauio/tableau/test/dev/protoconf",
 		"./testdata",
 		"./proto",
 		// options.ImportPaths(
@@ -186,6 +189,9 @@ func Test_GenProto(t *testing.T) {
 			&options.OutputOption{
 				FilenameSuffix:           "_conf",
 				FilenameWithSubdirPrefix: false,
+				ProtoFileOptions: map[string]string{
+					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+				},
 			},
 		),
 		options.Header(

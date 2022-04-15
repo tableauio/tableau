@@ -16,12 +16,12 @@ import (
 
 // Generate can convert Excel/CSV/XML files to protoconf files and
 // different configuration files: JSON, Text, and Wire at the same time.
-func Generate(protoPackage, goPackage, indir, outdir string, setters ...options.Option) {
+func Generate(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	protoOutDir := filepath.Join(outdir, "proto")
 	confOutDir := filepath.Join(outdir, "conf")
-	GenProto(protoPackage, goPackage, indir, protoOutDir, setters...)
-	
+	GenProto(protoPackage, indir, protoOutDir, setters...)
+
 	importPaths := append(opts.ImportPaths, protoOutDir)
 	setters = append(setters, options.ImportPaths(importPaths...))
 	GenConf(protoPackage, indir, confOutDir, setters...)
@@ -41,9 +41,9 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 }
 
 // GenProto can convert Excel/CSV/XML files to protoconf files.
-func GenProto(protoPackage, goPackage, indir, outdir string, setters ...options.Option) {
+func GenProto(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
-	g := protogen.NewGenerator(protoPackage, goPackage, indir, outdir, setters...)
+	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.InitZap(opts.LogLevel)
 	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
 	if err := g.Generate(); err != nil {

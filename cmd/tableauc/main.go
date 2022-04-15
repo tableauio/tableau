@@ -17,6 +17,8 @@ var (
 	inputDir       string
 	outputDir      string
 	confPath       string
+	mode           string
+	protoFiles     []string
 	outputConfTmpl bool
 )
 
@@ -27,7 +29,6 @@ func main() {
 		Short:   "Tableauc is a protoconf generator",
 		Long:    `Complete documentation is available at https://tableauio.github.io`,
 		Run: func(cmd *cobra.Command, args []string) {
-
 			if outputConfTmpl {
 				OutputConfTmpl()
 				return
@@ -39,7 +40,7 @@ func main() {
 				fmt.Printf("load config(options) failed: %+v\n", err)
 				os.Exit(-1)
 			}
-			g := protogen.NewGeneratorWithOptions(protoPackage, goPackage, inputDir, outputDir, opts)
+			g := protogen.NewGeneratorWithOptions(protoPackage, inputDir, outputDir, opts)
 			if len(args) == 0 {
 				if err := g.Generate(); err != nil {
 					atom.Log.Errorf("generate failed: %+v", err)
@@ -56,16 +57,18 @@ func main() {
 		},
 	}
 
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", "conf", "available mode: conf, proto")
 	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "proto package name")
 	rootCmd.Flags().StringVarP(&goPackage, "go-package", "g", "protoconf", "go package name")
 	rootCmd.Flags().StringVarP(&inputDir, "indir", "i", "./", "input directory")
 	rootCmd.Flags().StringVarP(&outputDir, "outdir", "o", "./", "output directory")
-	rootCmd.Flags().StringVarP(&confPath, "conf", "c", "./conf.yaml", "config file path")
-	rootCmd.Flags().BoolVarP(&outputConfTmpl, "output-conf-tmpl", "t", false, "config template to file template.yaml")
+	rootCmd.Flags().StringSliceVarP(&protoFiles, "proto-files", "", nil, "specify proto files to generate configurations. Glob pattern is supported")
+	rootCmd.Flags().StringVarP(&confPath, "config", "c", "./config.yaml", "config file path")
+	rootCmd.Flags().BoolVarP(&outputConfTmpl, "output-config-template", "t", false, "output config template")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		os.Exit(-1)
 	}
 }
 
