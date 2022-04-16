@@ -25,12 +25,9 @@ type Generator struct {
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated files.
 
-	Output *options.OutputOption // output settings.
-	Input  *options.InputOption  // Input settings.
-	Header *options.HeaderOption // header settings.
-
-	ImportPaths []string // import paths.
-	ProtoFiles  []string // proto files.
+	OutputOpt *options.OutputOption // output settings.
+	InputOpt  *options.InputOption  // Input settings.
+	Header    *options.HeaderOption // header settings.
 }
 
 var specialMessageMap = map[string]int{
@@ -49,11 +46,9 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 		LocationName: opts.LocationName,
 		InputDir:     indir,
 		OutputDir:    outdir,
-		Output:       opts.Output,
-		Input:        opts.Input,
 		Header:       opts.Header,
-		ImportPaths:  opts.ImportPaths,
-		ProtoFiles:   opts.ProtoFiles,
+		InputOpt:     opts.Input,
+		OutputOpt:    opts.Output,
 	}
 	return g
 }
@@ -74,15 +69,16 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 	}
 
 	// create output dir
-	err = os.MkdirAll(gen.OutputDir, 0700)
+	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ConfSubdir)
+	err = os.MkdirAll(outputConfDir, 0700)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to create output dir: %s", gen.OutputDir)
+		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
 	}
 
 	workbookFound := false
 	worksheetFound := false
 
-	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.ImportPaths, gen.ProtoFiles...)
+	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ImportPaths, gen.InputOpt.ProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
@@ -102,12 +98,12 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 
 				workbookFormat := format.Ext2Format(filepath.Ext(workbook.Name))
 				// check if this workbook format need to be converted
-				if !format.FilterInput(workbookFormat, gen.Input.Formats) {
+				if !format.FilterInput(workbookFormat, gen.InputOpt.Formats) {
 					return nil
 				}
 
 				// filter subdir
-				if !fs.FilterSubdir(workbook.Name, gen.Input.Subdirs) {
+				if !fs.FilterSubdir(workbook.Name, gen.InputOpt.Subdirs) {
 					return nil
 				}
 
@@ -126,7 +122,7 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 				}
 
 				// rewrite subdir
-				rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.Input.SubdirRewrites)
+				rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
 				wbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
 				imp, err := importer.New(wbPath, importer.Sheets(sheets))
 				if err != nil {
@@ -153,7 +149,7 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 					// append self
 					importers = append(importers, imp)
 
-					exporter := NewSheetExporter(gen.OutputDir, gen.Output)
+					exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 					if err := exporter.Export(parser, newMsg, importers...); err != nil {
 						return err
 					}

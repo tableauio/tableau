@@ -15,11 +15,42 @@ func init() {
 	atom.InitZap("debug")
 }
 
-func Test_Excel2Proto(t *testing.T) {
+func Test_GenProto(t *testing.T) {
 	tableau.GenProto(
 		"protoconf",
 		"./testdata",
 		"./proto",
+		options.Input(
+			&options.InputOption{
+				// ImportPaths: []string{
+				// 	"../../proto",
+				// },
+				ImportFiles: []string{
+					"cs_dbkeyword.proto",
+					"common.proto",
+					"time.proto",
+				},
+				Formats: []format.Format{
+					// format.Excel,
+					format.CSV,
+					format.XML,
+				},
+				// Formats: []format.Format{format.CSV},
+				// Subdirs: []string{`excel/`},
+				SubdirRewrites: map[string]string{
+					`excel/`: ``,
+				},
+			},
+		),
+		options.Output(
+			&options.OutputOption{
+				ProtoFilenameSuffix:           "_conf",
+				ProtoFilenameWithSubdirPrefix: false,
+				ProtoFileOptions: map[string]string{
+					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+				},
+			},
+		),
 		options.Header(
 			&options.HeaderOption{
 				Namerow: 1,
@@ -30,37 +61,22 @@ func Test_Excel2Proto(t *testing.T) {
 				Nameline: 2,
 				Typeline: 2,
 			}),
-		options.Imports(
-			"cs_dbkeyword.proto",
-			"common.proto",
-			"time.proto",
-		),
-		options.Input(
-			&options.InputOption{
-				Formats: []format.Format{format.Excel},
-				Subdirs: []string{`./`},
-			},
-		),
-		options.Output(
-			&options.OutputOption{
-				FilenameSuffix:           "_conf",
-				FilenameWithSubdirPrefix: false,
-				ProtoFileOptions: map[string]string{
-					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
-				},
-			},
-		),
 		options.LogLevel("debug"),
 	)
 }
 
-func Test_Excel2JSON(t *testing.T) {
+func Test_GenJSON(t *testing.T) {
 	tableau.GenConf(
 		"protoconf",
 		"./testdata",
 		"./_conf",
-		options.InputFormats(format.Excel),
 		options.LogLevel("debug"),
+		options.Output(
+			&options.OutputOption{
+				Pretty:  true,
+				Formats: []format.Format{format.JSON},
+			},
+		),
 	)
 }
 
@@ -118,106 +134,6 @@ func Test_CSV2Excel(t *testing.T) {
 	}
 }
 
-func Test_XML2Proto(t *testing.T) {
-	tableau.GenProto(
-		"protoconf",
-		"./testdata",
-		"./proto",
-		options.Imports(
-			"cs_dbkeyword.proto",
-			"common.proto",
-			"time.proto",
-		),
-		options.InputFormats(format.XML),
-		options.Output(
-			&options.OutputOption{
-				FilenameSuffix:           "_conf",
-				FilenameWithSubdirPrefix: false,
-				ProtoFileOptions: map[string]string{
-					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
-				},
-			},
-		),
-		options.Header(
-			&options.HeaderOption{
-				Namerow: 1,
-				Typerow: 2,
-				Noterow: 3,
-				Datarow: 5,
-
-				Nameline: 2,
-				Typeline: 2,
-			}),
-	)
-}
-
-func Test_XML2JSON(t *testing.T) {
-	tableau.GenConf(
-		"protoconf",
-		"./testdata",
-		"./_conf",
-		options.LogLevel("debug"),
-		options.InputFormats(format.XML),
-	)
-	// tableau.Generate("protoconf", "./testdata/", "./_output/xml/")
-}
-
-func Test_GenProto(t *testing.T) {
-	tableau.GenProto(
-		"protoconf",
-		"./testdata",
-		"./proto",
-		// options.ImportPaths(
-		// 	"../../proto",
-		// ),
-		options.Imports(
-			"cs_dbkeyword.proto",
-			"common.proto",
-			"time.proto",
-		),
-		options.InputFormats(format.CSV, format.XML),
-		// options.Input(
-		// 	&options.InputOption{
-		// 		// Formats: []format.Format{format.CSV},
-		// 		// Subdirs: []string{`excel/`},
-		// 		SubdirRewrites: map[string]string{
-		// 			`excel/`: ``,
-		// 		},
-		// 	},
-		// ),
-		options.Output(
-			&options.OutputOption{
-				FilenameSuffix:           "_conf",
-				FilenameWithSubdirPrefix: false,
-				ProtoFileOptions: map[string]string{
-					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
-				},
-			},
-		),
-		options.Header(
-			&options.HeaderOption{
-				Namerow: 1,
-				Typerow: 2,
-				Noterow: 3,
-				Datarow: 5,
-
-				Nameline: 2,
-				Typeline: 2,
-			}),
-		options.LogLevel("debug"),
-	)
-}
-
-func Test_GenJSON(t *testing.T) {
-	tableau.GenConf(
-		"protoconf",
-		"./testdata",
-		"./_conf",
-		options.LogLevel("debug"),
-		options.OutputFormats(format.JSON),
-	)
-}
-
 func Test_GenJSON_Subdir(t *testing.T) {
 	tableau.GenConf(
 		"protoconf",
@@ -232,7 +148,11 @@ func Test_GenJSON_Subdir(t *testing.T) {
 				},
 			},
 		),
+		options.Output(
+			&options.OutputOption{
+				Formats: []format.Format{format.JSON},
+			},
+		),
 		options.LogLevel("debug"),
-		options.OutputFormats(format.JSON),
 	)
 }

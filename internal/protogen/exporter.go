@@ -27,23 +27,23 @@ func init() {
 }
 
 type bookExporter struct {
-	ProtoPackage     string
-	ProtoFileOptions map[string]string
-	OutputDir        string
-	FilenameSuffix   string
-	wb               *tableaupb.Workbook
+	ProtoPackage        string
+	ProtoFileOptions    map[string]string
+	OutputDir           string
+	ProtoFilenameSuffix string
+	wb                  *tableaupb.Workbook
 
 	importFileDescs []*desc.FileDescriptor // all parsed imported proto file descriptors.
 }
 
-func newBookExporter(protoPackage string, protoFileOptions map[string]string, outputDir, filenameSuffix string, importFileDescs []*desc.FileDescriptor, wb *tableaupb.Workbook) *bookExporter {
+func newBookExporter(protoPackage string, protoFileOptions map[string]string, outputDir, protoFilenameSuffix string, importFileDescs []*desc.FileDescriptor, wb *tableaupb.Workbook) *bookExporter {
 	return &bookExporter{
-		ProtoPackage:     protoPackage,
-		ProtoFileOptions: protoFileOptions,
-		OutputDir:        outputDir,
-		FilenameSuffix:   filenameSuffix,
-		wb:               wb,
-		importFileDescs:  importFileDescs,
+		ProtoPackage:        protoPackage,
+		ProtoFileOptions:    protoFileOptions,
+		OutputDir:           outputDir,
+		ProtoFilenameSuffix: protoFilenameSuffix,
+		wb:                  wb,
+		importFileDescs:     importFileDescs,
 	}
 }
 
@@ -135,7 +135,7 @@ func (x *bookExporter) export() error {
 	g2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
 	g2.P("")
 
-	relPath := x.wb.Name + x.FilenameSuffix + ".proto"
+	relPath := x.wb.Name + x.ProtoFilenameSuffix + ".proto"
 	path := filepath.Join(x.OutputDir, relPath)
 	atom.Log.Infof("output: %s", relPath)
 

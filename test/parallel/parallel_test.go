@@ -52,8 +52,8 @@ func Test_GenProto(t *testing.T) {
 		// ),
 		options.Output(
 			&options.OutputOption{
-				FilenameSuffix:           "_conf",
-				FilenameWithSubdirPrefix: false,
+				ProtoFilenameSuffix:           "_conf",
+				ProtoFilenameWithSubdirPrefix: false,
 			},
 		),
 		options.LogLevel("info"),

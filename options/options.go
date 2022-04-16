@@ -9,17 +9,15 @@ import (
 type Options struct {
 	// Location represents the collection of time offsets in use in a geographical area.
 	// Default: "Asia/Shanghai".
-	LocationName string        `yaml:"locationName"`
-	LogLevel     string        `yaml:"logLevel"` // Log level: debug, info, warn, error. Default: "info".
-	Header       *HeaderOption // Header options of worksheet file.
-	Input        *InputOption  // Input options.
-	Output       *OutputOption // Output options.
-	ImportPaths  []string      `yaml:"importPaths"` // Import paths. Default: nil.
-	Imports      []string      // Import common proto files. Default: nil.
-	ProtoFiles   []string      `yaml:"protoFiles"` // To be parsed proto files. Default: nil.
+	LocationName string `yaml:"locationName"`
+	// Log level: debug, info, warn, error. Default: "info".
+	LogLevel string        `yaml:"logLevel"`
+	Header   *HeaderOption // Header options of worksheet.
+	Input    *InputOption  // Input options.
+	Output   *OutputOption // Output options.
 
-	Workbook     string        // Workbook filename. Default: "".
-	Worksheet    string        // Worksheet name. Default: "".
+	Workbook  string // Workbook filename. Default: "".
+	Worksheet string // Worksheet name. Default: "".
 }
 
 type HeaderOption struct {
@@ -51,26 +49,43 @@ type InputOption struct {
 	// Note: recognize all formats (Excel, CSV, and XML) if not set (value is nil).
 	// Default: nil.
 	Formats []format.Format
+	// The paths used to search for dependencies that are referenced in import
+	// statements in proto source files. If no import paths are provided then
+	// "." (current directory) is assumed to be the only import path.
+	// Default: nil.
+	ImportPaths []string `yaml:"importPaths"`
+	// The files in "ImportPaths" used to search for dependencies that are referenced in import
+	// statements in proto source files.
+	// Default: nil.
+	ImportFiles []string `yaml:"importFiles"`
+	// The files to be parsed to generate configurations.
+	// Default: nil.
+	ProtoFiles []string `yaml:"protoFiles"`
 	// - For protogen, specify only these subdirs (relative to input dir) to be processed.
 	// - For confgen, specify only these subdirs (relative to workbook name option in .proto file).
 	Subdirs []string
 	// - For protogen, rewrite subdir path (relative to input dir).
 	// - For confgen, rewrite subdir path (relative to workbook name option in .proto file).
+	//
+	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
 }
 
 type OutputOption struct {
+	// Only for protogen: specify subdir for generated proto files in output dir.
+	// Default: "".
+	ProtoSubdir string `yaml:"protoSubdir"`
+	// Only for confgen: specify subdir for generated configuration files in output dir.
+	// Default: "".
+	ConfSubdir  string `yaml:"confSubdir"`
 	// Only for protogen: dir separator `/` or `\`  in filename is replaced by "__".
 	// Default: true.
-	FilenameWithSubdirPrefix bool `yaml:"filenameWithSubdirPrefix"`
+	ProtoFilenameWithSubdirPrefix bool `yaml:"protoFilenameWithSubdirPrefix"`
 	// Only for protogen: append the suffix to filename.
 	// Default: "".
-	FilenameSuffix string `yaml:"filenameSuffix"`
-	// Only for confgen: output filename as snake_case, default is CamelCase as the protobuf message name.
-	// Default: false.
-	FilenameAsSnakeCase bool `yaml:"filenameAsSnakeCase"`
-	// Only for confgen: output file formats.
-	// Note: Output all formats (JSON, Text, and Wire) if not set (value is nil).
+	ProtoFilenameSuffix string `yaml:"protoFilenameSuffix"`
+	// Only for confgen: output file formats. It will output all formats
+	// (JSON, Text, and Wire) if not set.
 	// Default: nil.
 	Formats []format.Format
 	// Only for confgen: output pretty format, with multiline and indent.
@@ -102,6 +117,20 @@ type OutputOption struct {
 // Option is the functional option type.
 type Option func(*Options)
 
+// LocationName sets LocationName.
+func LocationName(o string) Option {
+	return func(opts *Options) {
+		opts.LocationName = o
+	}
+}
+
+// LogLevel sets LogLevel.
+func LogLevel(level string) Option {
+	return func(opts *Options) {
+		opts.LogLevel = level
+	}
+}
+
 // Header sets HeaderOption.
 func Header(o *HeaderOption) Option {
 	return func(opts *Options) {
@@ -123,58 +152,6 @@ func Input(o *InputOption) Option {
 	}
 }
 
-// InputFormats sets input formats.
-func InputFormats(formats ...format.Format) Option {
-	return func(opts *Options) {
-		opts.Input.Formats = formats
-	}
-}
-
-// InputSubdirs sets input subdirs.
-func InputSubdirs(subdirs ...string) Option {
-	return func(opts *Options) {
-		opts.Input.Subdirs = subdirs
-	}
-}
-
-// LocationName sets LocationName.
-func LocationName(o string) Option {
-	return func(opts *Options) {
-		opts.LocationName = o
-	}
-}
-
-// LogLevel sets LogLevel.
-func LogLevel(level string) Option {
-	return func(opts *Options) {
-		opts.LogLevel = level
-	}
-}
-
-// ImportPaths specifies the paths used to search for dependencies that are
-// referenced in import statements in proto source files. If no import paths
-// are provided then "." (current directory) is assumed to be the only import
-// path.
-func ImportPaths(importPaths ...string) Option {
-	return func(opts *Options) {
-		opts.ImportPaths = importPaths
-	}
-}
-
-// Imports sets common proto files to be imported.
-func Imports(imports ...string) Option {
-	return func(opts *Options) {
-		opts.Imports = imports
-	}
-}
-
-// ProtoFiles sets proto files to be parsed.
-func ProtoFiles(protoFiles ...string) Option {
-	return func(opts *Options) {
-		opts.ProtoFiles = protoFiles
-	}
-}
-
 // Workbook sets workbook filename.
 func Workbook(wb string) Option {
 	return func(opts *Options) {
@@ -186,13 +163,6 @@ func Workbook(wb string) Option {
 func Worksheet(ws string) Option {
 	return func(opts *Options) {
 		opts.Worksheet = ws
-	}
-}
-
-// OutputFormats sets output formats.
-func OutputFormats(formats ...format.Format) Option {
-	return func(opts *Options) {
-		opts.Output.Formats = formats
 	}
 }
 
@@ -209,11 +179,10 @@ func NewDefault() *Options {
 			Datarow: 4,
 		},
 		Output: &OutputOption{
-			FilenameWithSubdirPrefix: true,
-			FilenameAsSnakeCase:      false,
-			Formats:                  nil,
-			Pretty:                   true,
-			EmitUnpopulated:          true,
+			ProtoFilenameWithSubdirPrefix: true,
+			Formats:                       nil,
+			Pretty:                        true,
+			EmitUnpopulated:               true,
 		},
 		Input: &InputOption{
 			Formats: nil,

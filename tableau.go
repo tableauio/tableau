@@ -17,27 +17,8 @@ import (
 // Generate can convert Excel/CSV/XML files to protoconf files and
 // different configuration files: JSON, Text, and Wire at the same time.
 func Generate(protoPackage, indir, outdir string, setters ...options.Option) {
-	opts := options.ParseOptions(setters...)
-	protoOutDir := filepath.Join(outdir, "proto")
-	confOutDir := filepath.Join(outdir, "conf")
-	GenProto(protoPackage, indir, protoOutDir, setters...)
-
-	importPaths := append(opts.ImportPaths, protoOutDir)
-	setters = append(setters, options.ImportPaths(importPaths...))
-	GenConf(protoPackage, indir, confOutDir, setters...)
-}
-
-// GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
-func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
-	opts := options.ParseOptions(setters...)
-	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
-	atom.InitZap(opts.LogLevel)
-	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
-	if err := g.Generate(opts.Workbook, opts.Worksheet); err != nil {
-		red := color.New(color.FgRed).SprintfFunc()
-		atom.Log.Errorf(red("generate failed: %+v", err))
-		os.Exit(-1)
-	}
+	GenProto(protoPackage, indir, outdir, setters...)
+	GenConf(protoPackage, indir, outdir, setters...)
 }
 
 // GenProto can convert Excel/CSV/XML files to protoconf files.
@@ -47,6 +28,19 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) {
 	atom.InitZap(opts.LogLevel)
 	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
 	if err := g.Generate(); err != nil {
+		red := color.New(color.FgRed).SprintfFunc()
+		atom.Log.Errorf(red("generate failed: %+v", err))
+		os.Exit(-1)
+	}
+}
+
+// GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
+func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
+	opts := options.ParseOptions(setters...)
+	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
+	atom.InitZap(opts.LogLevel)
+	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
+	if err := g.Generate(opts.Workbook, opts.Worksheet); err != nil {
 		red := color.New(color.FgRed).SprintfFunc()
 		atom.Log.Errorf(red("generate failed: %+v", err))
 		os.Exit(-1)

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
@@ -27,8 +26,8 @@ func New(name string, msg proto.Message, outputDir string, outputOpt *options.Ou
 	return &messageExporter{
 		name:      name,
 		msg:       msg,
-		outputDir: outputDir,
 		outputOpt: outputOpt,
+		outputDir: filepath.Join(outputDir, outputOpt.ConfSubdir),
 	}
 }
 
@@ -52,10 +51,6 @@ func (x *messageExporter) Export() error {
 // specified file.
 func (x *messageExporter) export(fmt format.Format) error {
 	filename := x.name
-	if x.outputOpt.FilenameAsSnakeCase {
-		filename = strcase.ToSnake(x.name)
-	}
-
 	var out []byte
 	var err error
 	switch fmt {

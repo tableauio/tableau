@@ -37,11 +37,9 @@ type Generator struct {
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated protoconf files.
 
-	ImportPaths []string              // import paths.
-	Imports     []string              // imported common proto file paths
-	Header      *options.HeaderOption // header settings.
-	Input       *options.InputOption
-	Output      *options.OutputOption
+	Header    *options.HeaderOption // header settings.
+	InputOpt  *options.InputOption
+	OutputOpt *options.OutputOption
 
 	// internal
 	fileDescs []*desc.FileDescriptor // all parsed imported proto file descriptors.
@@ -59,21 +57,15 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputDir:     indir,
 		OutputDir:    outdir,
 
-		ImportPaths: opts.ImportPaths,
-		Imports:     opts.Imports,
-		Header:      opts.Header,
-		Input:       opts.Input,
-		Output:      opts.Output,
+		Header:    opts.Header,
+		InputOpt:  opts.Input,
+		OutputOpt: opts.Output,
 	}
 
 	// parse imported proto files
-	var importPaths []string
-	importPaths = append(importPaths, opts.ImportPaths...)
-	importPaths = append(importPaths, outdir)
-
 	fileDescs, err := xproto.ParseProtos(
-		importPaths,
-		opts.Imports...)
+		opts.Input.ImportPaths,
+		opts.Input.ImportFiles...)
 	if err != nil {
 		atom.Log.Panic(err)
 	}
@@ -82,20 +74,20 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return g
 }
 
-func (gen *Generator) PrepareOutpuDir() error {
-	existed, err := fs.Exists(gen.OutputDir)
+func prepareOutpuDir(outdir string, importFiles []string) error {
+	existed, err := fs.Exists(outdir)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check existence of output dir: %s", gen.OutputDir)
+		return errors.Wrapf(err, "failed to check existence of output dir: %s", outdir)
 	}
 	if existed {
 		// remove all *.proto file but not Imports
 		imports := make(map[string]int)
-		for _, path := range gen.Imports {
+		for _, path := range importFiles {
 			imports[path] = 1
 		}
-		files, err := os.ReadDir(gen.OutputDir)
+		files, err := os.ReadDir(outdir)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read dir: %s", gen.OutputDir)
+			return errors.Wrapf(err, "failed to read dir: %s", outdir)
 		}
 		for _, file := range files {
 			if !strings.HasSuffix(file.Name(), ".proto") {
@@ -104,7 +96,7 @@ func (gen *Generator) PrepareOutpuDir() error {
 			if _, ok := imports[file.Name()]; ok {
 				continue
 			}
-			fpath := filepath.Join(gen.OutputDir, file.Name())
+			fpath := filepath.Join(outdir, file.Name())
 			err := os.Remove(fpath)
 			if err != nil {
 				return errors.Wrapf(err, "failed to remove file: %s", fpath)
@@ -112,9 +104,9 @@ func (gen *Generator) PrepareOutpuDir() error {
 		}
 	} else {
 		// create output dir
-		err = os.MkdirAll(gen.OutputDir, 0700)
+		err = os.MkdirAll(outdir, 0700)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create output dir: %s", gen.OutputDir)
+			return errors.Wrapf(err, "failed to create output dir: %s", outdir)
 		}
 	}
 
@@ -122,11 +114,12 @@ func (gen *Generator) PrepareOutpuDir() error {
 }
 
 func (gen *Generator) Generate() error {
-	if err := gen.PrepareOutpuDir(); err != nil {
-		return errors.Wrapf(err, "failed to prepare output dir: %s", gen.OutputDir)
+	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir)
+	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportFiles); err != nil {
+		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
 	}
-	if len(gen.Input.Subdirs) != 0 {
-		for _, subdir := range gen.Input.Subdirs {
+	if len(gen.InputOpt.Subdirs) != 0 {
+		for _, subdir := range gen.InputOpt.Subdirs {
 			dir := filepath.Join(gen.InputDir, subdir)
 			if err := gen.generate(dir); err != nil {
 				return errors.WithMessagef(err, "failed to generate %s", dir)
@@ -175,7 +168,7 @@ func (gen *Generator) generate(dir string) (err error) {
 		// atom.Log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
 		fmt := format.Ext2Format(filepath.Ext(entry.Name()))
 		// check if this workbook format need to be converted
-		if !format.FilterInput(fmt, gen.Input.Formats) {
+		if !format.FilterInput(fmt, gen.InputOpt.Formats) {
 			continue
 		}
 
@@ -247,10 +240,10 @@ func (gen *Generator) convert(dir, filename string) error {
 		return errors.WithMessagef(err, "get relative path failed")
 	}
 	// rewrite subdir
-	rewrittenWorkbookName := fs.RewriteSubdir(relativePath, gen.Input.SubdirRewrites)
+	rewrittenWorkbookName := fs.RewriteSubdir(relativePath, gen.InputOpt.SubdirRewrites)
 	atom.Log.Infof("workbook: %s, %d worksheet(s) will be parsed", rewrittenWorkbookName, len(sheets))
 	// creat a book parser
-	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen.Output.FilenameWithSubdirPrefix, gen.Imports, gen)
+	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen)
 	for _, sheet := range sheets {
 		// parse sheet header
 		atom.Log.Infof("worksheet: %s", sheet.Name)
@@ -300,9 +293,9 @@ func (gen *Generator) convert(dir, filename string) error {
 	// export book
 	be := newBookExporter(
 		gen.ProtoPackage,
-		gen.Output.ProtoFileOptions,
-		gen.OutputDir,
-		gen.Output.FilenameSuffix,
+		gen.OutputOpt.ProtoFileOptions,
+		filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir),
+		gen.OutputOpt.ProtoFilenameSuffix,
 		gen.fileDescs,
 		bp.wb,
 	)

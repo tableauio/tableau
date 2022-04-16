@@ -13,10 +13,26 @@ func Test_GenJSON(t *testing.T) {
 		"protoconf",
 		"../testdata",
 		"../_conf",
-		options.ImportPaths("../proto"),
-		options.ProtoFiles("../proto/*.proto"),
+		options.Input(
+			&options.InputOption{
+				ImportPaths: []string{
+					"../proto",
+				},
+				ProtoFiles: []string{"../proto/*.proto"},
+				Formats: []format.Format{
+					// format.Excel,
+					format.CSV,
+					format.XML,
+				},
+			},
+		),
+		options.Output(
+			&options.OutputOption{
+				Pretty:  true,
+				Formats: []format.Format{format.JSON},
+			},
+		),
 		options.LogLevel("debug"),
-		options.OutputFormats(format.JSON),
 	)
 }
 
@@ -26,20 +42,35 @@ func Test_Generate(t *testing.T) {
 		"../testdata",
 		"./_out",
 		// options.ImportPaths("../proto/common"), // FIXME: this is not working
-		options.ImportPaths("./_out/proto"),
-		options.ProtoFiles("./_out/proto/*.proto"),
-		options.Imports(
-			"cs_dbkeyword.proto",
-			"common.proto",
-			"time.proto",
+		options.Input(
+			&options.InputOption{
+				// FIXME: this is not working
+				ImportPaths: []string{
+					"./_out/proto",
+					// "./_out",
+				},
+				ImportFiles: []string{
+					"cs_dbkeyword.proto",
+					"common.proto",
+					"time.proto",
+				},
+				ProtoFiles: []string{"./_out/proto/*.proto"},
+				// ProtoFiles: []string{"./_out/*.proto"},
+				Formats: []format.Format{
+					// format.Excel,
+					format.CSV,
+					format.XML,
+				},
+			},
 		),
-		options.InputFormats(format.CSV, format.XML),
 		options.Output(
 			&options.OutputOption{
-				FilenameSuffix:           "_conf",
-				FilenameWithSubdirPrefix: false,
-				Pretty:                   true,
-				Formats:                  []format.Format{format.JSON},
+				ProtoSubdir:                   "proto",
+				ConfSubdir:                    "conf",
+				ProtoFilenameSuffix:           "_conf",
+				ProtoFilenameWithSubdirPrefix: false,
+				Pretty:                        true,
+				Formats:                       []format.Format{format.JSON},
 				ProtoFileOptions: map[string]string{
 					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
 				},
