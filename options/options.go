@@ -69,6 +69,10 @@ type InputOption struct {
 	//
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
+	// Only for protogen: follow the symbolic links when traversing directories recursively.
+	// WARN: be careful to use this option, it may lead to infinite loop.
+	// Default: false.
+	FollowSymlink bool `yaml:"followSymlink"`
 }
 
 type OutputOption struct {
@@ -77,7 +81,7 @@ type OutputOption struct {
 	ProtoSubdir string `yaml:"protoSubdir"`
 	// Only for confgen: specify subdir for generated configuration files in output dir.
 	// Default: "".
-	ConfSubdir  string `yaml:"confSubdir"`
+	ConfSubdir string `yaml:"confSubdir"`
 	// Only for protogen: dir separator `/` or `\`  in filename is replaced by "__".
 	// Default: true.
 	ProtoFilenameWithSubdirPrefix bool `yaml:"protoFilenameWithSubdirPrefix"`
@@ -170,7 +174,7 @@ func Worksheet(ws string) Option {
 func NewDefault() *Options {
 	return &Options{
 		LocationName: "Asia/Shanghai",
-		LogLevel:     "info",
+		LogLevel:     "INFO",
 
 		Header: &HeaderOption{
 			Namerow: 1,

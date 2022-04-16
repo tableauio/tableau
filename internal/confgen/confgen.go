@@ -36,11 +36,15 @@ var specialMessageMap = map[string]int{
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
+	opts := options.ParseOptions(setters...)
+	return NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
+}
+
+func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	// TODO: define tableau in package constants.
 	if protoPackage == "tableau" {
 		atom.Log.Panicf(`proto package can not be "tableau" which is reserved`)
 	}
-	opts := options.ParseOptions(setters...)
 	g := &Generator{
 		ProtoPackage: protoPackage,
 		LocationName: opts.LocationName,

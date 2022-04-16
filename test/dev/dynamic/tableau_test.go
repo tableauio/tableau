@@ -32,7 +32,7 @@ func Test_GenJSON(t *testing.T) {
 				Formats: []format.Format{format.JSON},
 			},
 		),
-		options.LogLevel("debug"),
+		options.LogLevel("DEBUG"),
 	)
 }
 
@@ -41,13 +41,13 @@ func Test_Generate(t *testing.T) {
 		"protoconf",
 		"../testdata",
 		"./_out",
-		// options.ImportPaths("../proto/common"), // FIXME: this is not working
 		options.Input(
 			&options.InputOption{
 				// FIXME: this is not working
 				ImportPaths: []string{
 					"./_out/proto",
 					// "./_out",
+					// "../proto/common", // FIXME: this is not working yet for standalone common dir.
 				},
 				ImportFiles: []string{
 					"cs_dbkeyword.proto",
@@ -86,6 +86,6 @@ func Test_Generate(t *testing.T) {
 				Nameline: 2,
 				Typeline: 2,
 			}),
-		options.LogLevel("debug"),
+		options.LogLevel("DEBUG"),
 	)
 }

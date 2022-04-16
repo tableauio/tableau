@@ -27,7 +27,6 @@ func Test_GenProto(t *testing.T) {
 
 	tableau.GenProto(
 		protoPackage,
-		goPackage,
 		inputDir,
 		outputDir,
 		options.Header(
@@ -39,23 +38,24 @@ func Test_GenProto(t *testing.T) {
 				Nameline: 2,
 				Typeline: 2,
 			}),
-		options.Imports(
-			"common_conf.proto",
-			"cs_dbkeyword_conf.proto",
+		options.Input(
+			&options.InputOption{
+				ImportPaths: []string{defaultProtoDir},
+				ImportFiles: []string{
+					"common_conf.proto",
+					"cs_dbkeyword_conf.proto",
+				},
+			},
 		),
-		options.LogLevel("info"),
-		// options.Input(
-		// 	&options.InputOption{
-		// 		Subdirs:        subdirs,
-		// 		SubdirRewrites: rewrites,
-		// 	},
-		// ),
 		options.Output(
 			&options.OutputOption{
 				ProtoFilenameSuffix:           "_conf",
 				ProtoFilenameWithSubdirPrefix: false,
+				ProtoFileOptions: map[string]string{
+					"go_package": goPackage,
+				},
 			},
 		),
-		options.LogLevel("info"),
+		options.LogLevel("INFO"),
 	)
 }

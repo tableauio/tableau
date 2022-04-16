@@ -3,6 +3,7 @@ package protogen
 import (
 	"bytes"
 	"fmt"
+	iofs "io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -157,6 +158,25 @@ func (gen *Generator) generate(dir string) (err error) {
 			err = gen.generate(subdir)
 			if err != nil {
 				return errors.WithMessagef(err, "failed to generate subdir: %s", subdir)
+			}
+			continue
+		} else if gen.InputOpt.FollowSymlink && entry.Type() == iofs.ModeSymlink {
+			dstPath, err := os.Readlink(filepath.Join(dir, entry.Name()))
+			if err != nil {
+				return errors.Wrapf(err, "failed to read symlink: %s", filepath.Join(dir, entry.Name()))
+			}
+			fileInfo, err := os.Stat(dstPath)
+			if err != nil {
+				return errors.Wrapf(err, "failed to stat symlink: %s", dstPath)
+			}
+
+			if !fileInfo.IsDir() {
+				// is not a directory
+				atom.Log.Warnf("symlink: %s is not a directory, currently not processed", dstPath)
+			}
+			err = gen.generate(dstPath)
+			if err != nil {
+				return errors.WithMessagef(err, "failed to generate subdir: %s", dstPath)
 			}
 			continue
 		}

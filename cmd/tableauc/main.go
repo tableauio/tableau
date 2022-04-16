@@ -4,67 +4,46 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/options"
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	tableaucConfMode  = "conf"
+	tableaucProtoMode = "proto"
+)
+
 var (
-	protoPackage   string
-	goPackage      string
-	inputDir       string
-	outputDir      string
-	confPath       string
-	mode           string
-	protoFiles     []string
-	outputConfTmpl bool
+	protoPackage       string
+	indir              string
+	outdir             string
+	mode               string
+	protoFiles         []string
+	configPath         string
+	needOutputConfTmpl bool
 )
 
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:     "tableauc [FILE]...",
 		Version: protogen.Version,
-		Short:   "Tableauc is a protoconf generator",
+		Short:   "Tableauc is a modern configuration converter",
 		Long:    `Complete documentation is available at https://tableauio.github.io`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if outputConfTmpl {
-				OutputConfTmpl()
-				return
-			}
-
-			opts := &options.Options{}
-			err := LoadConf(confPath, opts)
-			if err != nil {
-				fmt.Printf("load config(options) failed: %+v\n", err)
-				os.Exit(-1)
-			}
-			g := protogen.NewGeneratorWithOptions(protoPackage, inputDir, outputDir, opts)
-			if len(args) == 0 {
-				if err := g.Generate(); err != nil {
-					atom.Log.Errorf("generate failed: %+v", err)
-					os.Exit(-1)
-				}
-			} else {
-				for _, filename := range args {
-					if err := g.GenOneWorkbook(filename); err != nil {
-						atom.Log.Errorf("generate failed: %+v", err)
-						os.Exit(-1)
-					}
-				}
-			}
-		},
+		Run:     runCmd,
 	}
 
-	rootCmd.Flags().StringVarP(&mode, "mode", "m", "conf", "available mode: conf, proto")
-	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "proto package name")
-	rootCmd.Flags().StringVarP(&goPackage, "go-package", "g", "protoconf", "go package name")
-	rootCmd.Flags().StringVarP(&inputDir, "indir", "i", "./", "input directory")
-	rootCmd.Flags().StringVarP(&outputDir, "outdir", "o", "./", "output directory")
-	rootCmd.Flags().StringSliceVarP(&protoFiles, "proto-files", "", nil, "specify proto files to generate configurations. Glob pattern is supported")
-	rootCmd.Flags().StringVarP(&confPath, "config", "c", "./config.yaml", "config file path")
-	rootCmd.Flags().BoolVarP(&outputConfTmpl, "output-config-template", "t", false, "output config template")
+	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "Proto package name")
+	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "Input directory, default is current directory")
+	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "Output directory, default is current directory")
+	rootCmd.Flags().StringSliceVarP(&protoFiles, "proto-files", "", nil, "Specify proto files to generate configurations. Glob pattern is supported")
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", "conf", "Available mode: conf, proto")
+	rootCmd.Flags().StringVarP(&configPath, "config", "c", "./config.yaml", "Config file path")
+	rootCmd.Flags().BoolVarP(&needOutputConfTmpl, "output-config-template", "t", false, "Output config template")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -72,7 +51,69 @@ func main() {
 	}
 }
 
-func LoadConf(path string, out interface{}) error {
+func runCmd(cmd *cobra.Command, args []string) {
+	if needOutputConfTmpl {
+		outputConfTmpl()
+		return
+	}
+
+	opts := &options.Options{}
+	err := loadConf(configPath, opts)
+	if err != nil {
+		fmt.Printf("load config(options) failed: %+v\n", err)
+		os.Exit(-1)
+	}
+	atom.InitZap(opts.LogLevel)
+	switch mode {
+	case tableaucConfMode:
+		genProto(args, opts)
+		genConf(args, opts)
+	case tableaucProtoMode:
+		genProto(args, opts)
+	default:
+		fmt.Printf("unknown mode: %s\n", mode)
+		os.Exit(-1)
+	}
+}
+
+func genProto(workbooks []string, opts *options.Options) {
+	red := color.New(color.FgRed).SprintfFunc()
+	// generate proto files
+	g1 := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
+	if len(workbooks) == 0 {
+		if err := g1.Generate(); err != nil {
+			atom.Log.Errorf(red("generate proto files failed: %+v", err))
+			os.Exit(-1)
+		}
+	} else {
+		for _, wbpath := range workbooks {
+			if err := g1.GenOneWorkbook(wbpath); err != nil {
+				atom.Log.Errorf(red("generate proto file of %s failed: %+v", wbpath, err))
+				os.Exit(-1)
+			}
+		}
+	}
+}
+
+func genConf(workbooks []string, opts *options.Options) {
+	red := color.New(color.FgRed).SprintfFunc()
+	// generate conf files
+	g2 := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
+	if len(workbooks) == 0 {
+		if err := g2.Generate(opts.Workbook, opts.Worksheet); err != nil {
+			atom.Log.Errorf(red("generate conf files failed: %+v", err))
+			os.Exit(-1)
+		}
+	} else {
+		for _, wbpath := range workbooks {
+			if err := g2.Generate(wbpath, ""); err != nil {
+				atom.Log.Errorf(red("generate conf file of %s failed: %+v", wbpath, err))
+				os.Exit(-1)
+			}
+		}
+	}
+}
+func loadConf(path string, out interface{}) error {
 	fmt.Printf("load conf path: %s\n", path)
 	d, err := os.ReadFile(path)
 	if err != nil {
@@ -86,7 +127,7 @@ func LoadConf(path string, out interface{}) error {
 	return nil
 }
 
-func OutputConfTmpl() {
+func outputConfTmpl() {
 	defaultConf := options.NewDefault()
 	d, err := yaml.Marshal(defaultConf)
 	if err != nil {

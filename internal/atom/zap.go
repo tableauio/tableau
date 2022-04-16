@@ -4,29 +4,31 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var levelMap = map[string]zapcore.Level{
-	"debug": zapcore.DebugLevel,
-	"info":  zapcore.InfoLevel,
-	"warn":  zapcore.WarnLevel,
-	"error": zapcore.ErrorLevel,
+	"DEBUG": zapcore.DebugLevel,
+	"INFO":  zapcore.InfoLevel,
+	"WARN":  zapcore.WarnLevel,
+	"ERROR": zapcore.ErrorLevel,
+	"FATAL": zapcore.FatalLevel,
 }
 
 var Log *zap.SugaredLogger
 
 func init() {
-	err := InitZap("debug")
+	err := InitZap("DEBUG")
 	if err != nil {
 		panic(err)
 	}
 }
 
 func InitZap(level string) error {
-	zapLevel, ok := levelMap[level]
+	zapLevel, ok := levelMap[strings.ToUpper(level)]
 	if !ok {
 		log.Fatalf("illegal log level: %s", level)
 		return errors.New("illegal log level")

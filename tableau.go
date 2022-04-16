@@ -24,8 +24,8 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) {
 // GenProto can convert Excel/CSV/XML files to protoconf files.
 func GenProto(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
-	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.InitZap(opts.LogLevel)
+	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
 	if err := g.Generate(); err != nil {
 		red := color.New(color.FgRed).SprintfFunc()
@@ -37,8 +37,8 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) {
 // GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
-	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.InitZap(opts.LogLevel)
+	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
 	if err := g.Generate(opts.Workbook, opts.Worksheet); err != nil {
 		red := color.New(color.FgRed).SprintfFunc()

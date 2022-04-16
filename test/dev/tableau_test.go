@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	atom.InitZap("debug")
+	atom.InitZap("DEBUG")
 }
 
 func Test_GenProto(t *testing.T) {
@@ -37,9 +37,9 @@ func Test_GenProto(t *testing.T) {
 				},
 				// Formats: []format.Format{format.CSV},
 				// Subdirs: []string{`excel/`},
-				SubdirRewrites: map[string]string{
-					`excel/`: ``,
-				},
+				// SubdirRewrites: map[string]string{
+				// 	`excel/`: ``,
+				// },
 			},
 		),
 		options.Output(
@@ -61,7 +61,7 @@ func Test_GenProto(t *testing.T) {
 				Nameline: 2,
 				Typeline: 2,
 			}),
-		options.LogLevel("debug"),
+		options.LogLevel("DEBUG"),
 	)
 }
 
@@ -70,7 +70,7 @@ func Test_GenJSON(t *testing.T) {
 		"protoconf",
 		"./testdata",
 		"./_conf",
-		options.LogLevel("debug"),
+		options.LogLevel("DEBUG"),
 		options.Output(
 			&options.OutputOption{
 				Pretty:  true,
@@ -90,7 +90,7 @@ func Test_Excel2JSON_Select(t *testing.T) {
 				Formats: []format.Format{format.Excel},
 			},
 		),
-		options.LogLevel("debug"),
+		options.LogLevel("DEBUG"),
 		// options.Workbook("hero/Hero.xlsx"),
 		// options.Workbook("./hero/Hero.xlsx"),
 		options.Workbook(".\\excel\\hero\\Hero.xlsx"),
@@ -153,6 +153,6 @@ func Test_GenJSON_Subdir(t *testing.T) {
 				Formats: []format.Format{format.JSON},
 			},
 		),
-		options.LogLevel("debug"),
+		options.LogLevel("DEBUG"),
 	)
 }

@@ -1,29 +1,31 @@
 package format
 
-type Format int
+type Format string
 
 // File format
 const (
-	UnknownFormat Format = iota
-	// input formats below
-	Excel
-	CSV
-	XML
-	// output formats below
-	JSON
-	Wire
-	Text
+	UnknownFormat Format = "unknown"
+	// input formats
+	Excel Format = "xlsx"
+	CSV   Format = "csv"
+	XML   Format = "xml"
+	// output formats
+	JSON Format = "json"
+	Wire Format = "wire"
+	Text Format = "text"
 )
 
 // File format extension
 const (
 	UnknownExt string = ".unknown"
-	JSONExt    string = ".json"
-	WireExt    string = ".wire"
-	TextExt    string = ".text"
-	ExcelExt   string = ".xlsx"
-	CSVExt     string = ".csv"
-	XMLExt     string = ".xml"
+	// input formats
+	ExcelExt string = ".xlsx"
+	CSVExt   string = ".csv"
+	XMLExt   string = ".xml"
+	// output formats
+	JSONExt string = ".json"
+	WireExt string = ".wire"
+	TextExt string = ".text"
 )
 
 func Ext2Format(ext string) Format {
