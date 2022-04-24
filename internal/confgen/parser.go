@@ -873,14 +873,12 @@ func parseEnumValue(fd protoreflect.FieldDescriptor, value string) (protoreflect
 		evd := ed.Values().Get(i)
 		opts := evd.Options().(*descriptorpb.EnumValueOptions)
 		evalueOpts := proto.GetExtension(opts, tableaupb.E_Evalue).(*tableaupb.EnumValueOptions)
-		if evalueOpts == nil {
-			return defaultValue, errors.Errorf("enum: enum value options not found: %v", value)
-		}
-		if evalueOpts.Name == value {
+		if evalueOpts != nil && evalueOpts.Name == value {
+			// alias name found and return
 			return protoreflect.ValueOfEnum(evd.Number()), nil
 		}
 	}
-	return defaultValue, errors.Errorf("enum: enum value alias name not found: %v", value)
+	return defaultValue, errors.Errorf("enum: enum(%s) value options not found: %v", ed.FullName(), value)
 }
 
 // ParseFileOptions parse the options of a protobuf definition file.
