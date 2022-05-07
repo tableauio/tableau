@@ -132,6 +132,10 @@ func (gen *Generator) Generate() error {
 }
 
 func (gen *Generator) GenOneWorkbook(relativeWorkbookPath string) error {
+	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir)
+	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportFiles); err != nil {
+		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
+	}
 	absPath := filepath.Join(gen.InputDir, relativeWorkbookPath)
 	return gen.convert(filepath.Dir(absPath), filepath.Base(absPath))
 }
