@@ -6,6 +6,7 @@ import (
 
 	_ "time/tzdata"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau/internal/atom"
@@ -125,7 +126,7 @@ func loadConf(path string, out interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("loaded conf: %+v\n", out)
+	fmt.Printf("loaded conf: %+v\n", spew.Sdump(out))
 	return nil
 }
 

@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/antchfx/xmlquery v1.3.8
 	github.com/antchfx/xpath v1.2.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/emirpasic/gods v1.12.0
 	github.com/fatih/color v1.13.0
 	github.com/iancoleman/strcase v0.2.0

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/fatih/color"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
@@ -26,7 +27,7 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	atom.InitZap(opts.LogLevel)
 	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
-	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
+	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
 	if err := g.Generate(); err != nil {
 		red := color.New(color.FgRed).SprintfFunc()
 		atom.Log.Errorf(red("generate failed: %+v", err))
@@ -39,7 +40,7 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
 	opts := options.ParseOptions(setters...)
 	atom.InitZap(opts.LogLevel)
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
-	atom.Log.Debugf("options inited: %+v, header: %+v, output: %+v", opts, opts.Header, opts.Output)
+	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
 	if err := g.Generate(opts.Workbook, opts.Worksheet); err != nil {
 		red := color.New(color.FgRed).SprintfFunc()
 		atom.Log.Errorf(red("generate failed: %+v", err))
