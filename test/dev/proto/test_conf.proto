@@ -25,11 +25,11 @@ message Activity {
     message Chapter {
       uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID"}];
       string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}];
-      repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL prop:{range:"~,100"}}];
+      repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
       message Section {
         uint32 section_id = 1 [(tableau.field) = {name:"SectionID" prop:{range:"~,100"}}];
         string section_name = 2 [(tableau.field) = {name:"SectionName"}];
-        repeated Item section_item_list = 3 [(tableau.field) = {name:"SectionItem" layout:LAYOUT_HORIZONTAL prop:{range:"~,3001"}}];
+        repeated Item section_item_list = 3 [(tableau.field) = {name:"SectionItem" layout:LAYOUT_HORIZONTAL}];
         message Item {
           int32 id = 1 [(tableau.field) = {name:"Id" prop:{range:"~,3001"}}];
           int32 num = 2 [(tableau.field) = {name:"Num"}];

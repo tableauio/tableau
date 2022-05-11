@@ -305,7 +305,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		// vertical list: all columns belong to this list after this cursor.
-		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawpropText, noteCell)
+		scalarField := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		proto.Merge(field, scalarField)
 		field.Card = "repeated"
 		field.Name = strcase.ToSnake(elemType) + "_list"
@@ -345,7 +345,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		listName := trimmedNameCell[:index]
 		prefix += listName
 
-		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawpropText, noteCell)
+		scalarField := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		proto.Merge(field, scalarField)
 		field.Card = "repeated"
 		field.Name = strcase.ToSnake(listName) + "_list"
@@ -399,15 +399,12 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	matches := types.MatchStruct(typeCell)
 	elemType := strings.TrimSpace(matches[1])
 	colType := strings.TrimSpace(matches[2])
+	// rawpropText := strings.TrimSpace(matches[3])
 
 	if fieldPairs := ParseIncellStruct(elemType); fieldPairs != nil {
-		// incell struct
-		field.Name = strcase.ToSnake(trimmedNameCell)
-		field.Type, field.TypeDefined = p.parseType(colType)
-		field.Options = &tableaupb.FieldOptions{
-			Name: trimmedNameCell,
-			Type: tableaupb.Type_TYPE_INCELL_STRUCT,
-		}
+		scalarField := p.parseScalarField(trimmedNameCell, colType, noteCell)
+		proto.Merge(field, scalarField)
+		field.Options.Type = tableaupb.Type_TYPE_INCELL_STRUCT
 
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
@@ -417,7 +414,9 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	} else {
 		// cross cell struct
 		// NOTE(wenchy): treated as nested named struct
-		field.Type, field.TypeDefined = p.parseType(elemType)
+		scalarField := p.parseScalarField(trimmedNameCell, elemType, noteCell)
+		proto.Merge(field, scalarField)
+
 		structName := field.Type // default: struct name is same as the type name
 		if field.TypeDefined {
 			// Find predefined type's first field's tableau name
