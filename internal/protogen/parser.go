@@ -305,13 +305,12 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		// vertical list: all columns belong to this list after this cursor.
+		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawpropText, noteCell)
+		proto.Merge(field, scalarField)
 		field.Card = "repeated"
 		field.Name = strcase.ToSnake(elemType) + "_list"
-		field.Type, field.TypeDefined = p.parseType(elemType)
-		field.Options = &tableaupb.FieldOptions{
-			Name:   "", // name is empty for vertical list
-			Layout: layout,
-		}
+		field.Options.Name = "" // name is empty for vertical list
+		field.Options.Layout = layout
 
 		if isScalarType {
 			// TODO: support list of scalar type when layout is vertical?
@@ -346,14 +345,13 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		listName := trimmedNameCell[:index]
 		prefix += listName
 
+		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawpropText, noteCell)
+		proto.Merge(field, scalarField)
 		field.Card = "repeated"
 		field.Name = strcase.ToSnake(listName) + "_list"
-		field.Type, field.TypeDefined = p.parseType(elemType)
-		field.Options = &tableaupb.FieldOptions{
-			Name:   listName,
-			Layout: layout,
-			// ListMaxLen: int32(tmpCursor - cursor),
-		}
+		field.Options.Name = listName // name is empty for vertical list
+		field.Options.Layout = layout
+
 		if isScalarType {
 			for cursor++; cursor < len(header.namerow); cursor++ {
 				nameCell := header.getNameCell(cursor)
@@ -382,14 +380,10 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		// incell list
+		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawpropText, noteCell)
+		proto.Merge(field, scalarField)
 		field.Card = "repeated"
-		field.Name = strcase.ToSnake(trimmedNameCell)
-		field.Type, field.TypeDefined = p.parseType(elemType)
-		field.Options = &tableaupb.FieldOptions{
-			Name: trimmedNameCell,
-			Type: tableaupb.Type_TYPE_INCELL_LIST,
-			Prop: types.ParseProp(rawpropText),
-		}
+		field.Options.Type = tableaupb.Type_TYPE_INCELL_LIST
 	}
 	return cursor
 }
