@@ -196,3 +196,48 @@ func TestMatchMap(t *testing.T) {
 		})
 	}
 }
+
+func TestBelongToFirstElement(t *testing.T) {
+	type args struct {
+		name   string
+		prefix string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "belong to first element",
+			args: args{
+				name:   "BattleItem1Id",
+				prefix: "BattleItem",
+			},
+			want: true,
+		},
+		{
+			name: "not belong to first element as with no element fields",
+			args: args{
+				name:   "BattleItem1",
+				prefix: "BattleItem",
+			},
+			want: false,
+		},
+		{
+			name: "not belong to first element as with two next digits",
+			args: args{
+				name:   "BattleItem10",
+				prefix: "BattleItem",
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := BelongToFirstElement(tt.args.name, tt.args.prefix); got != tt.want {
+				t.Errorf("BelongToFirstElement() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

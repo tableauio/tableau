@@ -22,3 +22,4 @@ cmd/tableauc/tableauc
 *.pb.go
 test/dev/testpb/
 test/parallel/proto/
+test/parallel/protoconf/

@@ -220,7 +220,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Fields = append(field.Fields, p.parseScalarField(name, keyType, noteCell))
 		for cursor++; cursor < len(header.namerow); cursor++ {
 			nameCell := header.getNameCell(cursor)
-			if strings.HasPrefix(nameCell, prefix+"1") {
+			if types.BelongToFirstElement(nameCell, prefix) {
 				cursor = p.parseSubField(field, header, cursor, prefix+"1", nested)
 			} else if strings.HasPrefix(nameCell, prefix) {
 				continue
@@ -368,7 +368,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			field.Fields = append(field.Fields, p.parseScalarField(name, colTypeWithProp, noteCell))
 			for cursor++; cursor < len(header.namerow); cursor++ {
 				nameCell := header.getNameCell(cursor)
-				if strings.HasPrefix(nameCell, prefix+"1") {
+				if types.BelongToFirstElement(nameCell, prefix) {
 					cursor = p.parseSubField(field, header, cursor, prefix+"1", nested)
 				} else if strings.HasPrefix(nameCell, prefix) {
 					continue

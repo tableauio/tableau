@@ -3,6 +3,7 @@ package types
 import (
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -77,6 +78,20 @@ func ParseProp(text string) *tableaupb.FieldProp {
 		return prop
 	}
 	return nil
+}
+
+// BelongToFirstElement returns true if the name has specified `prefix+"1"`
+// and the next character is not digit.
+func BelongToFirstElement(name, prefix string) bool {
+	firstElemPrefix := prefix + "1"
+	nextCharPos := len(firstElemPrefix)
+	if strings.HasPrefix(name, firstElemPrefix) {
+		if len(name) > len(firstElemPrefix) {
+			char := name[nextCharPos]
+			return !unicode.IsDigit(rune(char))
+		}
+	}
+	return false
 }
 
 type Kind int
