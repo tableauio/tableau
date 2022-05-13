@@ -7,6 +7,7 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
@@ -55,7 +56,7 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 	return bp
 }
 
-func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, nested bool) (cur int, ok bool) {
+func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, ok bool) {
 	nameCell := header.getNameCell(cursor)
 	typeCell := header.getTypeCell(cursor)
 	noteCell := header.getNoteCell(cursor)
@@ -64,25 +65,29 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 		atom.Log.Debugf("no need to parse column %d, as name(%s) or type(%s) is empty", cursor, nameCell, typeCell)
 		return cursor, false
 	}
-	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 
+	opts := parseroptions.ParseOptions(options...)
+	if opts.GetVTypeCell(cursor) != "" {
+		typeCell = opts.GetVTypeCell(cursor)
+	}
 	if matches := types.MatchMap(typeCell); len(matches) > 0 {
-		cursor = p.parseMapField(field, header, cursor, prefix, nested)
+		cursor = p.parseMapField(field, header, cursor, prefix, options...)
 	} else if matches := types.MatchList(typeCell); len(matches) > 0 {
-		cursor = p.parseListField(field, header, cursor, prefix, nested)
+		cursor = p.parseListField(field, header, cursor, prefix, options...)
 	} else if matches := types.MatchStruct(typeCell); len(matches) > 0 {
-		cursor = p.parseStructField(field, header, cursor, prefix, nested)
+		cursor = p.parseStructField(field, header, cursor, prefix, options...)
 	} else {
-		// scalar
+		// enum or scalar types
+		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		*field = *p.parseScalarField(trimmedNameCell, typeCell, noteCell)
 	}
 
 	return cursor, true
 }
 
-func (p *bookParser) parseSubField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, nested bool) int {
+func (p *bookParser) parseSubField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) int {
 	subField := &tableaupb.Field{}
-	cursor, ok := p.parseField(subField, header, cursor, prefix, nested)
+	cursor, ok := p.parseField(subField, header, cursor, prefix, options...)
 	if ok {
 		field.Fields = append(field.Fields, subField)
 		// if field.Options.Layout == tableaupb.Layout_LAYOUT_HORIZONTAL {
@@ -92,7 +97,7 @@ func (p *bookParser) parseSubField(field *tableaupb.Field, header *sheetHeader, 
 	return cursor
 }
 
-func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, nested bool) int {
+func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) int {
 	// refer: https://developers.google.com/protocol-buffers/docs/proto3#maps
 	//
 	//	map<key_type, value_type> map_field = N;
@@ -100,16 +105,20 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	// where the key_type can be any integral or string type (so, any scalar type
 	// except for floating point types and bytes). Note that enum is not a valid
 	// key_type. The value_type can be any type except another map.
+	opts := parseroptions.ParseOptions(options...)
 
 	nameCell := header.getNameCell(cursor)
 	typeCell := header.getTypeCell(cursor)
+	if opts.GetVTypeCell(cursor) != "" {
+		typeCell = opts.GetVTypeCell(cursor)
+	}
 	noteCell := header.getNoteCell(cursor)
 
 	// map syntax pattern
 	matches := types.MatchMap(typeCell)
 	keyType := strings.TrimSpace(matches[1])
 	valueType := strings.TrimSpace(matches[2])
-	rawpropText := strings.TrimSpace(matches[3])
+	rawPropText := strings.TrimSpace(matches[3])
 
 	parsedKeyType := keyType
 	if types.MatchEnum(keyType) != nil {
@@ -159,7 +168,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
-		if nested {
+		if opts.Nested {
 			prefix += parsedValueType // add prefix with value type
 		}
 		field.Name = strcase.ToSnake(parsedValueType) + "_map"
@@ -175,21 +184,21 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Options = &tableaupb.FieldOptions{
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   types.ParseProp(rawpropText),
+			Prop:   types.ParseProp(rawPropText),
 		}
-		if nested {
+		if opts.Nested {
 			field.Options.Name = parsedValueType
 		}
 		field.Fields = append(field.Fields, p.parseScalarField(trimmedNameCell, keyType, noteCell))
 		for cursor++; cursor < len(header.namerow); cursor++ {
-			if nested {
+			if opts.Nested {
 				nameCell := header.getNameCell(cursor)
 				if !strings.HasPrefix(nameCell, prefix) {
 					cursor--
 					return cursor
 				}
 			}
-			cursor = p.parseSubField(field, header, cursor, prefix, nested)
+			cursor = p.parseSubField(field, header, cursor, prefix, options...)
 		}
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		// horizontal list: continuous N columns belong to this list after this cursor.
@@ -210,18 +219,19 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Name:   mapName,
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   types.ParseProp(rawpropText),
+			Prop:   types.ParseProp(rawPropText),
 		}
-		if nested {
+		if opts.Nested {
 			field.Options.Name = parsedValueType
 		}
 
 		name := strings.TrimPrefix(nameCell, prefix+"1")
 		field.Fields = append(field.Fields, p.parseScalarField(name, keyType, noteCell))
+
 		for cursor++; cursor < len(header.namerow); cursor++ {
 			nameCell := header.getNameCell(cursor)
 			if types.BelongToFirstElement(nameCell, prefix) {
-				cursor = p.parseSubField(field, header, cursor, prefix+"1", nested)
+				cursor = p.parseSubField(field, header, cursor, prefix+"1", options...)
 			} else if strings.HasPrefix(nameCell, prefix) {
 				continue
 			} else {
@@ -240,16 +250,21 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Options = &tableaupb.FieldOptions{
 			Name: trimmedNameCell,
 			Type: tableaupb.Type_TYPE_INCELL_MAP,
-			Prop: types.ParseProp(rawpropText),
+			Prop: types.ParseProp(rawPropText),
 		}
 	}
 
 	return cursor
 }
 
-func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, nested bool) int {
+func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) int {
+	opts := parseroptions.ParseOptions(options...)
+
 	nameCell := header.getNameCell(cursor)
 	typeCell := header.getTypeCell(cursor)
+	if opts.GetVTypeCell(cursor) != "" {
+		typeCell = opts.GetVTypeCell(cursor)
+	}
 	noteCell := header.getNoteCell(cursor)
 
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
@@ -264,7 +279,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		elemType = colType
 		isScalarType = true
 	}
-	rawpropText := strings.TrimSpace(matches[3])
+	rawPropText := strings.TrimSpace(matches[3])
 
 	// preprocess
 	layout := tableaupb.Layout_LAYOUT_VERTICAL // default layout is vertical.
@@ -316,7 +331,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			// TODO: support list of scalar type when layout is vertical?
 			atom.Log.Errorf("vertical list of scalar type is not supported")
 		} else {
-			if nested {
+			if opts.Nested {
 				prefix += field.Type // add prefix with value type
 				field.Options.Name = field.Type
 			}
@@ -327,17 +342,23 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				colType = strings.TrimSpace(matches[2])
 				field.Options.Key = trimmedNameCell
 			}
-			colTypeWithProp := colType + rawpropText
-			field.Fields = append(field.Fields, p.parseScalarField(trimmedNameCell, colTypeWithProp, noteCell))
+			// colTypeWithProp := colType + rawPropText
+			// field.Fields = append(field.Fields, p.parseScalarField(trimmedNameCell, colTypeWithProp, noteCell))
+
+			// Parse first field
+			colTypeWithProp := colType + rawPropText
+			firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
+			cursor = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
+			// Parse other fields
 			for cursor++; cursor < len(header.namerow); cursor++ {
-				if nested {
+				if opts.Nested {
 					nameCell := header.getNameCell(cursor)
 					if !strings.HasPrefix(nameCell, prefix) {
 						cursor--
 						return cursor
 					}
 				}
-				cursor = p.parseSubField(field, header, cursor, prefix, nested)
+				cursor = p.parseSubField(field, header, cursor, prefix, options...)
 			}
 		}
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
@@ -363,13 +384,13 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				}
 			}
 		} else {
-			name := strings.TrimPrefix(nameCell, prefix+"1")
-			colTypeWithProp := colType + rawpropText
-			field.Fields = append(field.Fields, p.parseScalarField(name, colTypeWithProp, noteCell))
+			colTypeWithProp := colType + rawPropText
+			firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
+			cursor = p.parseSubField(field, header, cursor, prefix+"1", firstFieldOptions...)
 			for cursor++; cursor < len(header.namerow); cursor++ {
 				nameCell := header.getNameCell(cursor)
 				if types.BelongToFirstElement(nameCell, prefix) {
-					cursor = p.parseSubField(field, header, cursor, prefix+"1", nested)
+					cursor = p.parseSubField(field, header, cursor, prefix+"1", options...)
 				} else if strings.HasPrefix(nameCell, prefix) {
 					continue
 				} else {
@@ -380,7 +401,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		// incell list
-		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawpropText, noteCell)
+		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawPropText, noteCell)
 		proto.Merge(field, scalarField)
 		field.Card = "repeated"
 		field.Options.Type = tableaupb.Type_TYPE_INCELL_LIST
@@ -388,9 +409,14 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	return cursor
 }
 
-func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, nested bool) int {
+func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) int {
+	opts := parseroptions.ParseOptions(options...)
+
 	nameCell := header.getNameCell(cursor)
 	typeCell := header.getTypeCell(cursor)
+	if opts.GetVTypeCell(cursor) != "" {
+		typeCell = opts.GetVTypeCell(cursor)
+	}
 	noteCell := header.getNoteCell(cursor)
 
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
@@ -399,7 +425,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	matches := types.MatchStruct(typeCell)
 	elemType := strings.TrimSpace(matches[1])
 	colType := strings.TrimSpace(matches[2])
-	// rawpropText := strings.TrimSpace(matches[3])
+	rawPropText := strings.TrimSpace(matches[3])
 
 	if fieldPairs := ParseIncellStruct(elemType); fieldPairs != nil {
 		scalarField := p.parseScalarField(trimmedNameCell, colType, noteCell)
@@ -449,16 +475,16 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 			Name: structName,
 		}
 		prefix += structName
-
-		name := strings.TrimPrefix(nameCell, prefix)
-		field.Fields = append(field.Fields, p.parseScalarField(name, colType, noteCell))
+		colTypeWithProp := colType + rawPropText
+		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
+		cursor = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
 		for cursor++; cursor < len(header.namerow); cursor++ {
 			nameCell := header.getNameCell(cursor)
 			if !strings.HasPrefix(nameCell, prefix) {
 				cursor--
 				return cursor
 			}
-			cursor = p.parseSubField(field, header, cursor, prefix, nested)
+			cursor = p.parseSubField(field, header, cursor, prefix, options...)
 		}
 	}
 
@@ -466,18 +492,18 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 }
 
 func (p *bookParser) parseScalarField(name, typ, note string) *tableaupb.Field {
-	rawpropText := ""
+	rawPropText := ""
 	// enum syntax pattern
 	if matches := types.MatchEnum(typ); len(matches) > 0 {
 		enumType := strings.TrimSpace(matches[1])
 		typ = enumType
-		rawpropText = matches[2]
+		rawPropText = matches[2]
 	} else {
 		// scalar syntax pattern
 		splits := strings.SplitN(typ, "|", 2)
 		typ = splits[0]
 		if len(splits) > 1 {
-			rawpropText = splits[1]
+			rawPropText = splits[1]
 		}
 	}
 	typ, typeDefined := p.parseType(typ)
@@ -489,7 +515,7 @@ func (p *bookParser) parseScalarField(name, typ, note string) *tableaupb.Field {
 		Options: &tableaupb.FieldOptions{
 			Name: name,
 			Note: p.genNote(note),
-			Prop: types.ParseProp(rawpropText),
+			Prop: types.ParseProp(rawPropText),
 		},
 	}
 }

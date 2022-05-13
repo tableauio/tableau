@@ -11,6 +11,58 @@ import "tableau/protobuf/tableau.proto";
 
 option (tableau.workbook) = {name:"excel/hero/Hero#*.csv"};
 
+message FirstHListField {
+  option (tableau.worksheet) = {name:"FirstHListField" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+
+  map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Hero {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    repeated Reward reward_list = 3 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
+    message Reward {
+      Icon icon = 1 [(tableau.field) = {name:"Icon"}];
+      message Icon {
+        int32 id = 1 [(tableau.field) = {name:"Id"}];
+        int32 num = 2 [(tableau.field) = {name:"Num"}];
+      }
+      string desc = 2 [(tableau.field) = {name:"Desc"}];
+    }
+    repeated Cost cost_list = 4 [(tableau.field) = {name:"Cost" layout:LAYOUT_HORIZONTAL}];
+    message Cost {
+      Item item = 1 [(tableau.field) = {name:"Item"}];
+      string desc = 2 [(tableau.field) = {name:"Desc"}];
+    }
+    repeated Power power_list = 5 [(tableau.field) = {name:"Power" layout:LAYOUT_HORIZONTAL}];
+    message Power {
+      repeated Item ability_list = 1 [(tableau.field) = {name:"Ability" layout:LAYOUT_HORIZONTAL}];
+      string desc = 2 [(tableau.field) = {name:"Desc"}];
+    }
+    repeated Superpower superpower_list = 6 [(tableau.field) = {name:"Superpower" layout:LAYOUT_HORIZONTAL}];
+    message Superpower {
+      map<uint32, Ability> ability_map = 1 [(tableau.field) = {name:"Ability" key:"Id" layout:LAYOUT_HORIZONTAL}];
+      message Ability {
+        uint32 id = 1 [(tableau.field) = {name:"Id"}];
+        int32 num = 2 [(tableau.field) = {name:"Num"}];
+      }
+      string desc = 2 [(tableau.field) = {name:"Desc"}];
+    }
+  }
+}
+
+message FirstVListField {
+  option (tableau.worksheet) = {name:"FirstVListField" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+
+  repeated Hero hero_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  message Hero {
+    Prop prop = 1 [(tableau.field) = {name:"Prop"}];
+    message Prop {
+      int32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 val = 2 [(tableau.field) = {name:"Val"}];
+    }
+    string item_desc = 2 [(tableau.field) = {name:"ItemDesc"}];
+  }
+}
+
 message Hero {
   option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 merger:"HeroA.xlsx" merger:"Her*.xlsx"};
 

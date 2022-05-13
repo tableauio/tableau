@@ -80,24 +80,6 @@ func Test_GenJSON(t *testing.T) {
 	)
 }
 
-func Test_Excel2JSON_Select(t *testing.T) {
-	tableau.GenConf(
-		"protoconf",
-		"./testdata",
-		"./_conf",
-		options.Input(
-			&options.InputOption{
-				Formats: []format.Format{format.Excel},
-			},
-		),
-		options.LogLevel("DEBUG"),
-		// options.Workbook("hero/Hero.xlsx"),
-		// options.Workbook("./hero/Hero.xlsx"),
-		options.Workbook(".\\excel\\hero\\Hero.xlsx"),
-		options.Worksheet("Hero"),
-	)
-}
-
 func Test_Excel2CSV(t *testing.T) {
 	paths := []string{
 		"./testdata/excel/Test.xlsx",
@@ -132,6 +114,24 @@ func Test_CSV2Excel(t *testing.T) {
 			t.Errorf("%+v", err)
 		}
 	}
+}
+
+func Test_Excel2JSON_Select(t *testing.T) {
+	tableau.GenConf(
+		"protoconf",
+		"./testdata",
+		"./_conf",
+		options.Input(
+			&options.InputOption{
+				Formats: []format.Format{format.Excel},
+			},
+		),
+		options.LogLevel("DEBUG"),
+		// options.Workbook("hero/Hero.xlsx"),
+		// options.Workbook("./hero/Hero.xlsx"),
+		options.Workbook(".\\excel\\hero\\Hero.xlsx"),
+		options.Worksheet("Hero"),
+	)
 }
 
 func Test_GenJSON_Subdir(t *testing.T) {

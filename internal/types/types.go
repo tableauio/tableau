@@ -19,16 +19,16 @@ var propRegexp *regexp.Regexp
 
 var boringIntegerRegexp *regexp.Regexp
 
-const rawpropRegex = `(\|\{.+\})?` // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
-const listFirstFieldType = `([0-9A-Za-z_><\.]+)`
+const rawPropRegex = `(\|\{.+\})?` // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
+const listFirstFieldType = `([0-9A-Za-z,_>< \[\]\.\{\}]+)`
 
 func init() {
-	mapRegexp = regexp.MustCompile(`^map<(.+),(.+)>` + rawpropRegex)                 // e.g.: map<uint32,Type>
-	listRegexp = regexp.MustCompile(`^\[(.*)\]` + listFirstFieldType + rawpropRegex) // e.g.: [Type]uint32
-	keyedListRegexp = regexp.MustCompile(`^\[(.*)\]<(.+)>` + rawpropRegex)           // e.g.: [Type]<uint32>
-	structRegexp = regexp.MustCompile(`^\{(.+)\}(.+)` + rawpropRegex)                // e.g.: {Type}uint32
-	enumRegexp = regexp.MustCompile(`^enum<(.+)>` + rawpropRegex)                    // e.g.: enum<Type>
-	propRegexp = regexp.MustCompile(`\|?\{(.+)\}`)                                   // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
+	mapRegexp = regexp.MustCompile(`^map<(.+),(.+)>` + rawPropRegex)                  // e.g.: map<uint32,Type>
+	listRegexp = regexp.MustCompile(`^\[(.*?)\]` + listFirstFieldType + rawPropRegex) // e.g.: [Type]uint32
+	keyedListRegexp = regexp.MustCompile(`^\[(.*)\]<(.+)>` + rawPropRegex)            // e.g.: [Type]<uint32>
+	structRegexp = regexp.MustCompile(`^\{(.+)\}(.+)` + rawPropRegex)                 // e.g.: {Type}uint32
+	enumRegexp = regexp.MustCompile(`^enum<(.+)>` + rawPropRegex)                     // e.g.: enum<Type>
+	propRegexp = regexp.MustCompile(`\|?\{(.+)\}`)                                    // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
 
 	// trim float to integer after(include) dot, e.g: 0.0, 1.0, 1.00 ...
 	// refer: https://stackoverflow.com/questions/638565/parsing-scientific-notation-sensibly

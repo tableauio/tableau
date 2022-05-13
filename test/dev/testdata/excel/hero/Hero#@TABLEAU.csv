@@ -1,2 +1,4 @@
 Sheet,Alias,Nameline,Typeline,Namerow,Typerow,Noterow,Datarow,Merger
 Hero,,1,1,1,2,3,4,"HeroA.xlsx,Her*.xlsx"
+FirstVListField,,1,1,1,2,3,4,
+FirstHListField,,1,1,1,2,3,4,

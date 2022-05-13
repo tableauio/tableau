@@ -1,0 +1,6 @@
+ID,Desc,Reward1IconId,Reward1IconNum,Reward1Desc,Cost1ItemId,Cost1ItemNum,Cost1Desc,Power1Ability1Id,Power1Ability1Num,Power1Desc,Superpower1Ability1Id,Superpower1Ability1Num,Superpower1Desc
+"map<uint32, Hero>",string,[Reward]{Icon}int32,int32,string,[Cost]{.Item}uint32,int32,string,[Power][.Item]uint32,int32,string,"[Superpower]map<uint32, Ability>",int32,string
+Hero's ID.,Hero's description.,Reward icon's id.,Reward icon's num.,Reward desc,Cost item's id.,Reward item's num.,Cost desc,Power item's id.,Powwer item's num.,Power desc,Superpower item's id.,Superpower item's num.,Superpower desc
+1,hero1,1001,7,desc1 ,6001,333,desc1 ,7001,444,desc1 ,8001,555,desc1 
+1,hero2,2001,8,desc2,9001,1,desc2,,,desc2,,,desc2
+2,hero3,3003,9,desc3,9003,2,desc3,,,desc3,,,desc3

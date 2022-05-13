@@ -16,6 +16,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -306,7 +307,7 @@ func (gen *Generator) convert(dir, filename string) error {
 		var ok bool
 		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
 			field := &tableaupb.Field{}
-			cursor, ok = bp.parseField(field, shHeader, cursor, "", sheet.Meta.Nested)
+			cursor, ok = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
 			if ok {
 				ws.Fields = append(ws.Fields, field)
 			}
