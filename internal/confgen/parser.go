@@ -103,7 +103,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return errors.WithMessagef(err, "failed to get data cell: %d, %d", row, col)
 				}
-				curr.SetCell(name, row, data, typ)
+				curr.SetCell(name, row, data, typ, sp.opts.ContinuousKey)
 			}
 			err := sp.parseFieldOptions(msg, curr, 0, "")
 			if err != nil {
@@ -140,7 +140,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return errors.WithMessagef(err, "failed to get data cell: %d, %d", row, col)
 				}
-				curr.SetCell(name, col, data, typ)
+				curr.SetCell(name, col, data, typ, sp.opts.ContinuousKey)
 			}
 			err := sp.parseFieldOptions(msg, curr, 0, "")
 			if err != nil {
@@ -265,119 +265,43 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	// reflectMap := msg.Mutable(field.fd).Map()
 	keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
-	// newKey := protoreflect.ValueOf(int32(1)).MapKey()
-	// newKey := sp.parseFieldValue(keyFd, "1111001").MapKey()
-	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
-		colName := prefix + field.opts.Name
-		cell := rc.Cell(colName, field.opts.Optional)
-		if cell == nil {
-			return errors.Errorf("%s|column not found", rc.CellDebugString(colName))
-		}
-		if valueFd.Kind() == protoreflect.MessageKind {
-			return errors.Errorf("%s|incell map: message type not supported", rc.CellDebugString(colName))
-		}
 
-		if cell.Data != "" {
-			// If s does not contain sep and sep is not empty, Split returns a
-			// slice of length 1 whose only element is s.
-			splits := strings.Split(cell.Data, field.opts.Sep)
-			for _, pair := range splits {
-				kv := strings.Split(pair, field.opts.Subsep)
-				if len(kv) != 2 {
-					return errors.Errorf("%s|incell map: illegal key-value pair: %s, subseq: '%s'", rc.CellDebugString(colName), pair, field.opts.Subsep)
-				}
-				key, value := kv[0], kv[1]
+	layout := field.opts.Layout
+	if field.opts.Layout == tableaupb.Layout_LAYOUT_DEFAULT {
+		// Map default layout is vertical
+		layout = tableaupb.Layout_LAYOUT_VERTICAL
+	}
 
-				fieldValue, err := sp.parseFieldValue(keyFd, key)
-				if err != nil {
-					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), key)
-				}
-
-				// check range: key
-				if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
-					return errors.Errorf("%s|incell map: %s out of range [%s]", rc.CellDebugString(colName), key, field.opts.Prop.Range)
-				}
-
-				newMapKey := fieldValue.MapKey()
-				fieldValue, err = sp.parseFieldValue(valueFd, value)
-				if err != nil {
-					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), value)
-				}
-				newMapValue := reflectMap.NewValue()
-				newMapValue = fieldValue
-
-				reflectMap.Set(newMapKey, newMapValue)
-			}
-		}
-	} else {
+	switch layout {
+	case tableaupb.Layout_LAYOUT_VERTICAL:
 		emptyMapValue := reflectMap.NewValue()
 		if valueFd.Kind() == protoreflect.MessageKind {
-			if field.opts.Layout == tableaupb.Layout_LAYOUT_HORIZONTAL {
-				if msg.Has(field.fd) {
-					// When the map's layout is horizontal, only parse field
-					// if it is not already present. This means the first not
-					// empty related row part (related to this map) is parsed.
-					return nil
-				}
-				size := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
-				// atom.Log.Debug("prefix size: ", size)
-				for i := 1; i <= size; i++ {
-					keyColName := prefix + field.opts.Name + strconv.Itoa(i) + field.opts.Key
-					cell := rc.Cell(keyColName, field.opts.Optional)
-					if cell == nil {
-						return errors.Errorf("%s|horizontal map: key column not found", rc.CellDebugString(keyColName))
-					}
-					newMapKey, err := sp.parseMapKey(field.opts, reflectMap, cell.Data)
-					if err != nil {
-						return errors.WithMessagef(err, "%s|horizontal map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
-					}
+			keyColName := prefix + field.opts.Name + field.opts.Key
+			cell := rc.Cell(keyColName, field.opts.Optional)
+			if cell == nil {
+				return errors.Errorf("%s|vertical map: key column not found", rc.CellDebugString(keyColName))
+			}
+			newMapKey, err := sp.parseMapKey(field.opts, reflectMap, cell.Data)
+			if err != nil {
+				return errors.WithMessagef(err, "%s|vertical map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
+			}
 
-					var newMapValue protoreflect.Value
-					if reflectMap.Has(newMapKey) {
-						// check uniqueness
-						if prop.IsUnique(field.opts.Prop) {
-							return errors.Errorf("%s|horizontal map: key %s already exists", rc.CellDebugString(keyColName), cell.Data)
-						}
-						newMapValue = reflectMap.Mutable(newMapKey)
-					} else {
-						newMapValue = reflectMap.NewValue()
-					}
-					err = sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
-					if err != nil {
-						return errors.WithMessagef(err, "%s|horizontal map: failed to parse field options with prefix: %s", rc.CellDebugString(keyColName), prefix+field.opts.Name+strconv.Itoa(i))
-					}
-					if !types.EqualMessage(emptyMapValue, newMapValue) {
-						reflectMap.Set(newMapKey, newMapValue)
-					}
+			var newMapValue protoreflect.Value
+			if reflectMap.Has(newMapKey) {
+				// check uniqueness
+				if prop.IsUnique(field.opts.Prop) {
+					return errors.Errorf("%s|vertical map: key %s already exists", rc.CellDebugString(keyColName), cell.Data)
 				}
+				newMapValue = reflectMap.Mutable(newMapKey)
 			} else {
-				keyColName := prefix + field.opts.Name + field.opts.Key
-				cell := rc.Cell(keyColName, field.opts.Optional)
-				if cell == nil {
-					return errors.Errorf("%s|vertical map: key column not found", rc.CellDebugString(keyColName))
-				}
-				newMapKey, err := sp.parseMapKey(field.opts, reflectMap, cell.Data)
-				if err != nil {
-					return errors.WithMessagef(err, "%s|vertical map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
-				}
-
-				var newMapValue protoreflect.Value
-				if reflectMap.Has(newMapKey) {
-					// check uniqueness
-					if prop.IsUnique(field.opts.Prop) {
-						return errors.Errorf("%s|vertical map: key %s already exists", rc.CellDebugString(keyColName), cell.Data)
-					}
-					newMapValue = reflectMap.Mutable(newMapKey)
-				} else {
-					newMapValue = reflectMap.NewValue()
-				}
-				err = sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name)
-				if err != nil {
-					return errors.WithMessagef(err, "%s|vertical map: failed to parse field options with prefix: %s", rc.CellDebugString(keyColName), prefix+field.opts.Name)
-				}
-				if !types.EqualMessage(emptyMapValue, newMapValue) {
-					reflectMap.Set(newMapKey, newMapValue)
-				}
+				newMapValue = reflectMap.NewValue()
+			}
+			err = sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name)
+			if err != nil {
+				return errors.WithMessagef(err, "%s|vertical map: failed to parse field options with prefix: %s", rc.CellDebugString(keyColName), prefix+field.opts.Name)
+			}
+			if !types.EqualMessage(emptyMapValue, newMapValue) {
+				reflectMap.Set(newMapKey, newMapValue)
 			}
 		} else {
 			// value is scalar type
@@ -424,7 +348,93 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				reflectMap.Set(newMapKey, newMapValue)
 			}
 		}
+
+	case tableaupb.Layout_LAYOUT_HORIZONTAL:
+		emptyMapValue := reflectMap.NewValue()
+		if valueFd.Kind() == protoreflect.MessageKind {
+			if msg.Has(field.fd) {
+				// When the map's layout is horizontal, only parse field
+				// if it is not already present. This means the first not
+				// empty related row part (related to this map) is parsed.
+				return nil
+			}
+			size := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
+			// atom.Log.Debug("prefix size: ", size)
+			for i := 1; i <= size; i++ {
+				keyColName := prefix + field.opts.Name + strconv.Itoa(i) + field.opts.Key
+				cell := rc.Cell(keyColName, field.opts.Optional)
+				if cell == nil {
+					return errors.Errorf("%s|horizontal map: key column not found", rc.CellDebugString(keyColName))
+				}
+				newMapKey, err := sp.parseMapKey(field.opts, reflectMap, cell.Data)
+				if err != nil {
+					return errors.WithMessagef(err, "%s|horizontal map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
+				}
+
+				var newMapValue protoreflect.Value
+				if reflectMap.Has(newMapKey) {
+					// check uniqueness
+					if prop.IsUnique(field.opts.Prop) {
+						return errors.Errorf("%s|horizontal map: key %s already exists", rc.CellDebugString(keyColName), cell.Data)
+					}
+					newMapValue = reflectMap.Mutable(newMapKey)
+				} else {
+					newMapValue = reflectMap.NewValue()
+				}
+				err = sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
+				if err != nil {
+					return errors.WithMessagef(err, "%s|horizontal map: failed to parse field options with prefix: %s", rc.CellDebugString(keyColName), prefix+field.opts.Name+strconv.Itoa(i))
+				}
+				if !types.EqualMessage(emptyMapValue, newMapValue) {
+					reflectMap.Set(newMapKey, newMapValue)
+				}
+			}
+		}
+
+	case tableaupb.Layout_LAYOUT_INCELL:
+		colName := prefix + field.opts.Name
+		cell := rc.Cell(colName, field.opts.Optional)
+		if cell == nil {
+			return errors.Errorf("%s|column not found", rc.CellDebugString(colName))
+		}
+		if valueFd.Kind() == protoreflect.MessageKind {
+			return errors.Errorf("%s|incell map: message type not supported", rc.CellDebugString(colName))
+		}
+
+		if cell.Data != "" {
+			// If s does not contain sep and sep is not empty, Split returns a
+			// slice of length 1 whose only element is s.
+			splits := strings.Split(cell.Data, field.opts.Sep)
+			for _, pair := range splits {
+				kv := strings.Split(pair, field.opts.Subsep)
+				if len(kv) != 2 {
+					return errors.Errorf("%s|incell map: illegal key-value pair: %s, subseq: '%s'", rc.CellDebugString(colName), pair, field.opts.Subsep)
+				}
+				key, value := kv[0], kv[1]
+
+				fieldValue, err := sp.parseFieldValue(keyFd, key)
+				if err != nil {
+					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), key)
+				}
+
+				// check range: key
+				if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
+					return errors.Errorf("%s|incell map: %s out of range [%s]", rc.CellDebugString(colName), key, field.opts.Prop.Range)
+				}
+
+				newMapKey := fieldValue.MapKey()
+				fieldValue, err = sp.parseFieldValue(valueFd, value)
+				if err != nil {
+					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), value)
+				}
+				newMapValue := reflectMap.NewValue()
+				newMapValue = fieldValue
+
+				reflectMap.Set(newMapKey, newMapValue)
+			}
+		}
 	}
+
 	if !msg.Has(field.fd) && reflectMap.Len() != 0 {
 		msg.Set(field.fd, newValue)
 	}
@@ -476,7 +486,136 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	reflectList := newValue.List()
-	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
+
+	layout := field.opts.Layout
+	if field.opts.Layout == tableaupb.Layout_LAYOUT_DEFAULT {
+		// List default layout is horizontal
+		layout = tableaupb.Layout_LAYOUT_HORIZONTAL
+	}
+
+	switch layout {
+	case tableaupb.Layout_LAYOUT_VERTICAL:
+		emptyListValue := reflectList.NewElement()
+		// vertical list
+		if field.fd.Kind() == protoreflect.MessageKind {
+			// struct list
+			if field.opts.Key != "" {
+				// KeyedList means the list is keyed by the first field with tag number 1.
+				listItemValue := reflectList.NewElement()
+				keyedListItemExisted := false
+				keyColName := prefix + field.opts.Name + field.opts.Key
+				for i := 0; i < reflectList.Len(); i++ {
+					item := reflectList.Get(i)
+					md := item.Message().Descriptor()
+					keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
+					fd := md.Fields().ByName(keyProtoName)
+					if fd == nil {
+						return errors.Errorf("%s|vertical keyed list: key field not found in proto definition: %s", rc.CellDebugString(keyColName), keyProtoName)
+					}
+					cell := rc.Cell(keyColName, field.opts.Optional)
+					if cell == nil {
+						return errors.Errorf("%s|vertical keyed list: key column not found", rc.CellDebugString(keyColName))
+					}
+					key, err := sp.parseFieldValue(fd, cell.Data)
+					if err != nil {
+						return errors.Errorf("%s|vertical keyed list: failed to parse field value: %s", rc.CellDebugString(keyColName), cell.Data)
+					}
+					if types.EqualValue(fd, item.Message().Get(fd), key) {
+						listItemValue = item
+						keyedListItemExisted = true
+						break
+					}
+				}
+				err = sp.parseFieldOptions(listItemValue.Message(), rc, depth+1, prefix+field.opts.Name)
+				if err != nil {
+					return errors.WithMessagef(err, "...|vertical list: failed to parse field options with prefix: %s", prefix+field.opts.Name)
+				}
+				if !keyedListItemExisted && !types.EqualMessage(emptyListValue, listItemValue) {
+					reflectList.Append(listItemValue)
+					// if prefix+field.opts.Name == "ServerConfCondition" {
+					// 	atom.Log.Debugf("append list item: %+v", listItemValue)
+					// }
+				}
+			} else {
+				newListValue := reflectList.NewElement()
+				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+					// incell-struct list
+					colName := prefix + field.opts.Name
+					cell := rc.Cell(colName, field.opts.Optional)
+					if cell == nil {
+						return errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
+					}
+					if err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+						return errors.WithMessagef(err, "...|vertical list: failed to parse field options at column: %s", colName)
+					}
+				} else {
+					err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name)
+					if err != nil {
+						return errors.WithMessagef(err, "...|vertical list: failed to parse field options with prefix: %s", prefix+field.opts.Name)
+					}
+				}
+				if !types.EqualMessage(emptyListValue, newListValue) {
+					reflectList.Append(newListValue)
+				}
+			}
+		} else {
+			// TODO: support list of scalar type when layout is vertical?
+			// NOTE(wenchyzhu): we don't support list of scalar type when layout is vertical
+		}
+	case tableaupb.Layout_LAYOUT_HORIZONTAL:
+		emptyListValue := reflectList.NewElement()
+		// horizontal list
+		if msg.Has(field.fd) {
+			// When the list's layout is horizontal, only parse field
+			// if it is not already present. This means the first not
+			// empty related row part (part related to this list) is parsed.
+			return nil
+		}
+		size := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
+		if size <= 0 {
+			return errors.Errorf("%s|horizontal list: no cell found with digit suffix", rc.CellDebugString(prefix+field.opts.Name))
+		}
+		for i := 1; i <= size; i++ {
+			newListValue := reflectList.NewElement()
+			if field.fd.Kind() == protoreflect.MessageKind {
+				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+					// incell-struct list
+					colName := prefix + field.opts.Name + strconv.Itoa(i)
+					cell := rc.Cell(colName, field.opts.Optional)
+					if cell == nil {
+						return errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
+					}
+					if err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+						return errors.WithMessagef(err, "...|horizontal list: failed to parse field options at column: %s", colName)
+					}
+				} else {
+					// struct list
+					err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
+					if err != nil {
+						return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
+					}
+				}
+				if err != nil {
+					return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
+				}
+				if !types.EqualMessage(emptyListValue, newListValue) {
+					reflectList.Append(newListValue)
+				}
+			} else {
+				// scalar list
+				colName := prefix + field.opts.Name + strconv.Itoa(i)
+				cell := rc.Cell(colName, field.opts.Optional)
+				if cell == nil {
+					return errors.Errorf("%s|horizontal list(scalar): column not found", rc.CellDebugString(colName))
+				}
+				newListValue, err = sp.parseFieldValue(field.fd, cell.Data)
+				if err != nil {
+					return errors.WithMessagef(err, "%s|horizontal list(scalar): failed to parse field value: %s", rc.CellDebugString(colName), cell.Data)
+				}
+				reflectList.Append(newListValue)
+			}
+		}
+	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell list
 		colName := prefix + field.opts.Name
 		cell := rc.Cell(colName, field.opts.Optional)
@@ -499,129 +638,8 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				reflectList.Append(fieldValue)
 			}
 		}
-	} else {
-		emptyListValue := reflectList.NewElement()
-		if field.opts.Layout == tableaupb.Layout_LAYOUT_VERTICAL {
-			// vertical list
-			if field.fd.Kind() == protoreflect.MessageKind {
-				// struct list
-				if field.opts.Key != "" {
-					// KeyedList means the list is keyed by the first field with tag number 1.
-					listItemValue := reflectList.NewElement()
-					keyedListItemExisted := false
-					keyColName := prefix + field.opts.Name + field.opts.Key
-					for i := 0; i < reflectList.Len(); i++ {
-						item := reflectList.Get(i)
-						md := item.Message().Descriptor()
-						keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
-						fd := md.Fields().ByName(keyProtoName)
-						if fd == nil {
-							return errors.Errorf("%s|vertical keyed list: key field not found in proto definition: %s", rc.CellDebugString(keyColName), keyProtoName)
-						}
-						cell := rc.Cell(keyColName, field.opts.Optional)
-						if cell == nil {
-							return errors.Errorf("%s|vertical keyed list: key column not found", rc.CellDebugString(keyColName))
-						}
-						key, err := sp.parseFieldValue(fd, cell.Data)
-						if err != nil {
-							return errors.Errorf("%s|vertical keyed list: failed to parse field value: %s", rc.CellDebugString(keyColName), cell.Data)
-						}
-						if types.EqualValue(fd, item.Message().Get(fd), key) {
-							listItemValue = item
-							keyedListItemExisted = true
-							break
-						}
-					}
-					err = sp.parseFieldOptions(listItemValue.Message(), rc, depth+1, prefix+field.opts.Name)
-					if err != nil {
-						return errors.WithMessagef(err, "...|vertical list: failed to parse field options with prefix: %s", prefix+field.opts.Name)
-					}
-					if !keyedListItemExisted && !types.EqualMessage(emptyListValue, listItemValue) {
-						reflectList.Append(listItemValue)
-						// if prefix+field.opts.Name == "ServerConfCondition" {
-						// 	atom.Log.Debugf("append list item: %+v", listItemValue)
-						// }
-					}
-				} else {
-					newListValue := reflectList.NewElement()
-					if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-						// incell-struct list
-						colName := prefix + field.opts.Name
-						cell := rc.Cell(colName, field.opts.Optional)
-						if cell == nil {
-							return errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
-						}
-						if err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
-							return errors.WithMessagef(err, "...|vertical list: failed to parse field options at column: %s", colName)
-						}
-					} else {
-						err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name)
-						if err != nil {
-							return errors.WithMessagef(err, "...|vertical list: failed to parse field options with prefix: %s", prefix+field.opts.Name)
-						}
-					}
-					if !types.EqualMessage(emptyListValue, newListValue) {
-						reflectList.Append(newListValue)
-					}
-				}
-			} else {
-				// TODO: support list of scalar type when layout is vertical?
-				// NOTE(wenchyzhu): we don't support list of scalar type when layout is vertical
-			}
-		} else {
-			// horizontal list
-			if msg.Has(field.fd) {
-				// When the list's layout is horizontal, only parse field
-				// if it is not already present. This means the first not
-				// empty related row part (part related to this list) is parsed.
-				return nil
-			}
-			size := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
-			if size <= 0 {
-				return errors.Errorf("%s|horizontal list: no cell found with digit suffix", rc.CellDebugString(prefix+field.opts.Name))
-			}
-			for i := 1; i <= size; i++ {
-				newListValue := reflectList.NewElement()
-				if field.fd.Kind() == protoreflect.MessageKind {
-					if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-						// incell-struct list
-						colName := prefix + field.opts.Name + strconv.Itoa(i)
-						cell := rc.Cell(colName, field.opts.Optional)
-						if cell == nil {
-							return errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
-						}
-						if err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
-							return errors.WithMessagef(err, "...|horizontal list: failed to parse field options at column: %s", colName)
-						}
-					} else {
-						// struct list
-						err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
-						if err != nil {
-							return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
-						}
-					}
-					if err != nil {
-						return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
-					}
-					if !types.EqualMessage(emptyListValue, newListValue) {
-						reflectList.Append(newListValue)
-					}
-				} else {
-					// scalar list
-					colName := prefix + field.opts.Name + strconv.Itoa(i)
-					cell := rc.Cell(colName, field.opts.Optional)
-					if cell == nil {
-						return errors.Errorf("%s|horizontal list(scalar): column not found", rc.CellDebugString(colName))
-					}
-					newListValue, err = sp.parseFieldValue(field.fd, cell.Data)
-					if err != nil {
-						return errors.WithMessagef(err, "%s|horizontal list(scalar): failed to parse field value: %s", rc.CellDebugString(colName), cell.Data)
-					}
-					reflectList.Append(newListValue)
-				}
-			}
-		}
 	}
+
 	if !msg.Has(field.fd) && reflectList.Len() != 0 {
 		msg.Set(field.fd, newValue)
 	}
@@ -767,7 +785,7 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, value st
 			// - decimal fraction: 1.0
 			// - scientific notation: 1.0000001e7
 			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(int32(val)), err
+			return protoreflect.ValueOf(int32(val)), errors.WithStack(err)
 		}
 		return protoreflect.ValueOf(int32(0)), nil
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
@@ -777,7 +795,7 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, value st
 
 			// Keep compatibility with excel number format.
 			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(uint32(val)), err
+			return protoreflect.ValueOf(uint32(val)), errors.WithStack(err)
 		}
 		return protoreflect.ValueOf(uint32(0)), nil
 	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
@@ -787,7 +805,7 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, value st
 
 			// Keep compatibility with excel number format.
 			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(int64(val)), err
+			return protoreflect.ValueOf(int64(val)), errors.WithStack(err)
 		}
 		return protoreflect.ValueOf(int64(0)), nil
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
@@ -797,7 +815,7 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, value st
 
 			// Keep compatibility with excel number format.
 			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(uint64(val)), err
+			return protoreflect.ValueOf(uint64(val)), errors.WithStack(err)
 		}
 		return protoreflect.ValueOf(uint64(0)), nil
 	case protoreflect.StringKind:
@@ -809,21 +827,21 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, value st
 		if value != "" {
 			// Keep compatibility with excel number format.
 			val, err := strconv.ParseBool(purifyInteger(value))
-			return protoreflect.ValueOf(val), err
+			return protoreflect.ValueOf(val), errors.WithStack(err)
 		}
 		return protoreflect.ValueOf(false), nil
 	case protoreflect.FloatKind:
 		value = strings.TrimSpace(value)
 		if value != "" {
 			val, err := strconv.ParseFloat(value, 32)
-			return protoreflect.ValueOf(float32(val)), err
+			return protoreflect.ValueOf(float32(val)), errors.WithStack(err)
 		}
 		return protoreflect.ValueOf(float32(0)), nil
 	case protoreflect.DoubleKind:
 		value = strings.TrimSpace(value)
 		if value != "" {
 			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(float64(val)), err
+			return protoreflect.ValueOf(float64(val)), errors.WithStack(err)
 		}
 		return protoreflect.ValueOf(float64(0)), nil
 	case protoreflect.EnumKind:

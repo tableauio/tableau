@@ -62,6 +62,11 @@ message FirstHListField {
     repeated int32 param_list = 9 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}];
     repeated int32 incell_params_1 = 10 [(tableau.field) = {name:"IncellParams1" layout:LAYOUT_INCELL}];
     repeated int32 incell_params_2 = 11 [(tableau.field) = {name:"IncellParams2" layout:LAYOUT_INCELL}];
+    repeated Tip incell_struct_tip_list = 12 [(tableau.field) = {name:"IncellStructTip" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
+    message Tip {
+      int32 id = 1 [(tableau.field) = {name:"Id"}];
+      string desc = 2 [(tableau.field) = {name:"Desc"}];
+    }
   }
 }
 

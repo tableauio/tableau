@@ -101,7 +101,7 @@ func (r *RowCells) CellDebugString(name string) string {
 	return fmt.Sprintf("%s%d(%s), %s", pos, r.Row+1, data, name)
 }
 
-func (r *RowCells) SetCell(name string, col int, data, typ string) {
+func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateKey bool) {
 	cell := &RowCell{
 		Col:  col,
 		Data: data,
@@ -110,7 +110,7 @@ func (r *RowCells) SetCell(name string, col int, data, typ string) {
 	}
 
 	// TODO: Parser(first-pass), check if this sheet is nested.
-	if data == "" {
+	if needPopulateKey && data == "" {
 		if (types.MatchMap(typ) != nil || types.MatchKeyedList(typ) != nil) && r.prev != nil {
 			// NOTE: populate the missing map key from the prev row's corresponding cell.
 			// TODO(wenchy): this is a flawed hack, need to be taken into more consideration.

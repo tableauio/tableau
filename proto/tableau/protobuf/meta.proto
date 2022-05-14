@@ -33,6 +33,11 @@ message SheetMeta {
   //   then the sheet name is the same as this sheet.
   // - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
   repeated string merger = 13 [(tableau.field) = { name:"Merger" optional:true layout:LAYOUT_INCELL}];
+  // Tableau will merge continuous N rows with the same key. If the key cell is not set, 
+  // it will be treated as the same as the most nearest key above the same column.
+  //
+  // This option is only useful for map or keyed-list.
+  bool continuous_key = 14 [(tableau.field) = { name:"ContinuousKey" optional:true }];
   
   ////////// Loader related options below //////////
   // generate ordered map accessers

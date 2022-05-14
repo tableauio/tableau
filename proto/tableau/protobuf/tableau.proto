@@ -45,8 +45,12 @@ message WorksheetOptions {
   bool nested = 10;      // [default = false]; // whether the naming of name row is nested.
   string sep = 11;       // separator, default: ","
   string subsep = 12;    // subseparator, default: ":"
-  bool ordered_map = 13; // [default = false]; // whether generate OrderedMap accessers.
-  repeated string merger = 14; // [default = ""]; // merge multiple sheets by the merger pattern.
+  repeated string merger = 13; // [default = ""]; // merge multiple sheets by the merger pattern.
+  bool continuous_key = 14; // [default = false]; // whether the key cross continuous N rows.
+
+  ////////// Loader related options below //////////
+  bool ordered_map = 50; // generate ordered map accessers.
+  repeated string index = 51; // generate index accessers.
 }
 
 message FieldOptions {

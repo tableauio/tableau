@@ -128,7 +128,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	parsedValueType, valueTypeDefined := p.parseType(valueType)
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, parsedValueType)
 
-	isScalarType := types.IsScalarType(parsedValueType)
+	isScalarValue := types.IsScalarType(parsedValueType)
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 
 	// preprocess
@@ -149,19 +149,19 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 				nextTypeCell := header.getTypeCell(cursor + 1)
 				if matches := types.MatchMap(nextTypeCell); len(matches) > 0 {
 					// The next type cell is also a map type declaration.
-					if isScalarType {
+					if isScalarValue {
 						layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 					}
 				}
 			} else {
 				// only one map item, treat it as incell map
-				if isScalarType {
+				if isScalarValue {
 					layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 				}
 			}
 		}
 	} else {
-		if isScalarType {
+		if isScalarValue {
 			layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 		}
 	}
@@ -276,17 +276,16 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	originalElemType := strings.TrimSpace(matches[1])
 	colType := strings.TrimSpace(matches[2])
 	var listElemSpanInnerCell bool
-	var isScalarType bool
 	elemType := originalElemType
+	isScalarElement := true
 	if elemType == "" {
 		listElemSpanInnerCell = true
 		// scalar type, such as int32, string, etc.
 		elemType = colType
-		isScalarType = true
 		if matches := types.MatchStruct(colType); len(matches) > 0 {
 			// struct type
 			elemType = matches[2]
-			isScalarType = false
+			isScalarElement = false
 		}
 	}
 	rawPropText := strings.TrimSpace(matches[3])
@@ -310,19 +309,19 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				nextTypeCell := header.getTypeCell(cursor + 1)
 				if matches := types.MatchList(nextTypeCell); len(matches) > 0 {
 					// The next type cell is also a list type declaration.
-					if isScalarType {
+					if listElemSpanInnerCell {
 						layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 					}
 				}
 			} else {
 				// only one list item, treat it as incell list
-				if isScalarType {
+				if listElemSpanInnerCell {
 					layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 				}
 			}
 		}
 	} else {
-		if isScalarType {
+		if listElemSpanInnerCell && isScalarElement {
 			layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 		}
 	}
@@ -337,51 +336,47 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.Options.Name = "" // Default, name is empty for vertical list
 		field.Options.Layout = layout
 
-		if isScalarType {
-			// TODO: support list of scalar type when layout is vertical?
-			atom.Log.Errorf("vertical list of scalar type is not supported")
-		} else {
-			if opts.Nested {
-				prefix += field.Type // add prefix with value type
-				field.Options.Name = field.Type
-			}
-			trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
-
-			if matches := types.MatchKeyedList(typeCell); matches != nil {
-				// set column type and key if this is a keyed list.
-				colType = strings.TrimSpace(matches[2])
-				field.Options.Key = trimmedNameCell
-			}
-			// Parse first field
-			colTypeWithProp := colType + rawPropText
-			firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
-			if listElemSpanInnerCell {
-				// inner cell element
-				tempField := &tableaupb.Field{}
-				_, ok := p.parseField(tempField, header, cursor, prefix, firstFieldOptions...)
-				if ok {
-					field.Fields = tempField.Fields
-					field.TypeDefined = tempField.TypeDefined
-					field.Options.Span = tempField.Options.Span
-					field.Options.Name = tempField.Options.Name
-				} else {
-					atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
-				}
-			} else {
-				cursor = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
-			}
-			// Parse other fields
-			for cursor++; cursor < len(header.namerow); cursor++ {
-				if opts.Nested {
-					nameCell := header.getNameCell(cursor)
-					if !strings.HasPrefix(nameCell, prefix) {
-						cursor--
-						return cursor
-					}
-				}
-				cursor = p.parseSubField(field, header, cursor, prefix, options...)
-			}
+		if opts.Nested {
+			prefix += field.Type // add prefix with value type
+			field.Options.Name = field.Type
 		}
+		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
+
+		if matches := types.MatchKeyedList(typeCell); matches != nil {
+			// set column type and key if this is a keyed list.
+			colType = strings.TrimSpace(matches[2])
+			field.Options.Key = trimmedNameCell
+		}
+		// Parse first field
+		colTypeWithProp := colType + rawPropText
+		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
+		if listElemSpanInnerCell {
+			// inner cell element
+			tempField := &tableaupb.Field{}
+			_, ok := p.parseField(tempField, header, cursor, prefix, firstFieldOptions...)
+			if ok {
+				field.Fields = tempField.Fields
+				field.TypeDefined = tempField.TypeDefined
+				field.Options.Span = tempField.Options.Span
+				field.Options.Name = tempField.Options.Name
+			} else {
+				atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
+			}
+		} else {
+			cursor = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
+		}
+		// Parse other fields
+		for cursor++; cursor < len(header.namerow); cursor++ {
+			if opts.Nested {
+				nameCell := header.getNameCell(cursor)
+				if !strings.HasPrefix(nameCell, prefix) {
+					cursor--
+					return cursor
+				}
+			}
+			cursor = p.parseSubField(field, header, cursor, prefix, options...)
+		}
+
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		// horizontal list: continuous N columns belong to this list after this cursor.
 		listName := trimmedNameCell[:index]
@@ -394,48 +389,37 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.Options.Name = listName // name is empty for vertical list
 		field.Options.Layout = layout
 
-		if isScalarType {
-			for cursor++; cursor < len(header.namerow); cursor++ {
-				nameCell := header.getNameCell(cursor)
-				if nameCell == "" || strings.HasPrefix(nameCell, prefix) {
-					continue
-				} else {
-					cursor--
-					return cursor
-				}
+		// Parse first field
+		colTypeWithProp := colType + rawPropText
+		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
+		if listElemSpanInnerCell {
+			// inner cell element
+			tempField := &tableaupb.Field{}
+			_, ok := p.parseField(tempField, header, cursor, prefix+"1", firstFieldOptions...)
+			if ok {
+				field.Fields = tempField.Fields
+				field.TypeDefined = tempField.TypeDefined
+				field.Options.Span = tempField.Options.Span
+			} else {
+				atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
 			}
 		} else {
-			// Parse first field
-			colTypeWithProp := colType + rawPropText
-			firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
-			if listElemSpanInnerCell {
-				// inner cell element
-				tempField := &tableaupb.Field{}
-				_, ok := p.parseField(tempField, header, cursor, prefix+"1", firstFieldOptions...)
-				if ok {
-					field.Fields = tempField.Fields
-					field.TypeDefined = tempField.TypeDefined
-					field.Options.Span = tempField.Options.Span
-				} else {
-					atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
-				}
+			// cross cell element
+			cursor = p.parseSubField(field, header, cursor, prefix+"1", firstFieldOptions...)
+		}
+		// Parse other fields or skip cotinuous N columns of the same element type.
+		for cursor++; cursor < len(header.namerow); cursor++ {
+			nameCell := header.getNameCell(cursor)
+			if !listElemSpanInnerCell && types.BelongToFirstElement(nameCell, prefix) {
+				cursor = p.parseSubField(field, header, cursor, prefix+"1", options...)
+			} else if strings.HasPrefix(nameCell, prefix) {
+				continue
 			} else {
-				// cross cell element
-				cursor = p.parseSubField(field, header, cursor, prefix+"1", firstFieldOptions...)
-			}
-			// Parse other fields or skip cotinuous N columns of the same element type.
-			for cursor++; cursor < len(header.namerow); cursor++ {
-				nameCell := header.getNameCell(cursor)
-				if types.BelongToFirstElement(nameCell, prefix) {
-					cursor = p.parseSubField(field, header, cursor, prefix+"1", options...)
-				} else if strings.HasPrefix(nameCell, prefix) {
-					continue
-				} else {
-					cursor--
-					return cursor
-				}
+				cursor--
+				return cursor
 			}
 		}
+
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell list
 		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawPropText, noteCell)
