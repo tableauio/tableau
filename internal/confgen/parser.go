@@ -544,9 +544,21 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 				} else {
 					newListValue := reflectList.NewElement()
-					err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name)
-					if err != nil {
-						return errors.WithMessagef(err, "...|vertical list: failed to parse field options with prefix: %s", prefix+field.opts.Name)
+					if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+						// incell-struct list
+						colName := prefix + field.opts.Name
+						cell := rc.Cell(colName, field.opts.Optional)
+						if cell == nil {
+							return errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
+						}
+						if err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+							return errors.WithMessagef(err, "...|vertical list: failed to parse field options at column: %s", colName)
+						}
+					} else {
+						err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name)
+						if err != nil {
+							return errors.WithMessagef(err, "...|vertical list: failed to parse field options with prefix: %s", prefix+field.opts.Name)
+						}
 					}
 					if !types.EqualMessage(emptyListValue, newListValue) {
 						reflectList.Append(newListValue)
@@ -571,8 +583,6 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			for i := 1; i <= size; i++ {
 				newListValue := reflectList.NewElement()
 				if field.fd.Kind() == protoreflect.MessageKind {
-					// struct list
-					// err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
 					if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 						// incell-struct list
 						colName := prefix + field.opts.Name + strconv.Itoa(i)
@@ -580,9 +590,8 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						if cell == nil {
 							return errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
 						}
-						err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep)
-						if err != nil {
-							return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
+						if err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+							return errors.WithMessagef(err, "...|horizontal list: failed to parse field options at column: %s", colName)
 						}
 					} else {
 						// struct list
@@ -656,21 +665,8 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 		if cell == nil {
 			return errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
 		}
-		if cell.Data != "" {
-			// If s does not contain sep and sep is not empty, Split returns a
-			// slice of length 1 whose only element is s.
-			splits := strings.Split(cell.Data, field.opts.Sep)
-			subMd := structValue.Message().Descriptor()
-			for i := 0; i < subMd.Fields().Len() && i < len(splits); i++ {
-				fd := subMd.Fields().Get(i)
-				// atom.Log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
-				incell := splits[i]
-				value, err := sp.parseFieldValue(fd, incell)
-				if err != nil {
-					return errors.WithMessagef(err, "%s|incell struct: failed to parse field value: %s", rc.CellDebugString(colName), incell)
-				}
-				structValue.Message().Set(fd, value)
-			}
+		if err := sp.parseIncellStruct(structValue, cell.Data, field.opts.Sep); err != nil {
+			return errors.WithMessagef(err, "%s|incell struct: failed to parse field options with prefix: %s", rc.CellDebugString(colName), prefix+field.opts.Name)
 		}
 	} else {
 		subMsgName := string(field.fd.Message().FullName())

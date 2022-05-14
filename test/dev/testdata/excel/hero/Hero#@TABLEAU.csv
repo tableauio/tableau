@@ -1,4 +1,5 @@
 Sheet,Alias,Nameline,Typeline,Namerow,Typerow,Noterow,Datarow,Merger
-Hero,,1,1,1,2,3,4,"HeroA.xlsx,Her*.xlsx"
+Hero,,1,1,1,2,3,4,"HeroA.csv,Her*.csv"
 FirstVListField,,1,1,1,2,3,4,
 FirstHListField,,1,1,1,2,3,4,
+VIncellStructList,,1,1,1,2,3,4,

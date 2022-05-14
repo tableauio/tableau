@@ -59,6 +59,9 @@ message FirstHListField {
       int32 id = 1 [(tableau.field) = {name:"Id"}];
       int32 num = 2 [(tableau.field) = {name:"Num"}];
     }
+    repeated int32 param_list = 9 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}];
+    repeated int32 incell_params_1 = 10 [(tableau.field) = {name:"IncellParams1" layout:LAYOUT_INCELL}];
+    repeated int32 incell_params_2 = 11 [(tableau.field) = {name:"IncellParams2" layout:LAYOUT_INCELL}];
   }
 }
 
@@ -77,7 +80,7 @@ message FirstVListField {
 }
 
 message Hero {
-  option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 merger:"HeroA.xlsx" merger:"Her*.xlsx"};
+  option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 merger:"HeroA.csv" merger:"Her*.csv"};
 
   map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Hero {
@@ -89,5 +92,15 @@ message Hero {
       int64 value = 2 [(tableau.field) = {name:"Value"}];
     }
     Item award_item = 4 [(tableau.field) = {name:"AwardItem"}];
+  }
+}
+
+message VIncellStructList {
+  option (tableau.worksheet) = {name:"VIncellStructList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+
+  repeated Hero hero_list = 1 [(tableau.field) = {name:"Hero" layout:LAYOUT_VERTICAL span:SPAN_INNER_CELL}];
+  message Hero {
+    int32 id = 1 [(tableau.field) = {name:"Id"}];
+    int32 num = 2 [(tableau.field) = {name:"Num"}];
   }
 }

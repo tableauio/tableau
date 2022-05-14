@@ -334,7 +334,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		proto.Merge(field, scalarField)
 		field.Card = "repeated"
 		field.Name = strcase.ToSnake(elemType) + "_list"
-		field.Options.Name = "" // name is empty for vertical list
+		field.Options.Name = "" // Default, name is empty for vertical list
 		field.Options.Layout = layout
 
 		if isScalarType {
@@ -355,7 +355,21 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			// Parse first field
 			colTypeWithProp := colType + rawPropText
 			firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
-			cursor = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
+			if listElemSpanInnerCell {
+				// inner cell element
+				tempField := &tableaupb.Field{}
+				_, ok := p.parseField(tempField, header, cursor, prefix, firstFieldOptions...)
+				if ok {
+					field.Fields = tempField.Fields
+					field.TypeDefined = tempField.TypeDefined
+					field.Options.Span = tempField.Options.Span
+					field.Options.Name = tempField.Options.Name
+				} else {
+					atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
+				}
+			} else {
+				cursor = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
+			}
 			// Parse other fields
 			for cursor++; cursor < len(header.namerow); cursor++ {
 				if opts.Nested {
