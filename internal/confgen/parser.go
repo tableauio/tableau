@@ -572,7 +572,25 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				newListValue := reflectList.NewElement()
 				if field.fd.Kind() == protoreflect.MessageKind {
 					// struct list
-					err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
+					// err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
+					if field.opts.Type == tableaupb.Type_TYPE_INCELL_STRUCT {
+						// incell-struct list
+						colName := prefix + field.opts.Name + strconv.Itoa(i)
+						cell := rc.Cell(colName, field.opts.Optional)
+						if cell == nil {
+							return errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
+						}
+						err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep)
+						if err != nil {
+							return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
+						}
+					} else {
+						// struct list
+						err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
+						if err != nil {
+							return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
+						}
+					}
 					if err != nil {
 						return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
 					}
@@ -687,6 +705,27 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 	return nil
 }
 
+func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellData, sep string) (err error) {
+	if cellData == "" {
+		return nil
+	}
+	// If s does not contain sep and sep is not empty, Split returns a
+	// slice of length 1 whose only element is s.
+	splits := strings.Split(cellData, sep)
+	subMd := structValue.Message().Descriptor()
+	for i := 0; i < subMd.Fields().Len() && i < len(splits); i++ {
+		fd := subMd.Fields().Get(i)
+		// atom.Log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
+		incell := splits[i]
+		value, err := sp.parseFieldValue(fd, incell)
+		if err != nil {
+			return errors.WithMessagef(err, "incell struct(%s): failed to parse field value: %s", cellData, incell)
+		}
+		structValue.Message().Set(fd, value)
+	}
+	return nil
+}
+
 func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
 	if msg.Has(field.fd) {
 		// Only parse field if it is not already present. This means the first
@@ -720,7 +759,7 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, value st
 		}
 		return s
 	}
-	
+
 	switch fd.Kind() {
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
 		value = strings.TrimSpace(value)

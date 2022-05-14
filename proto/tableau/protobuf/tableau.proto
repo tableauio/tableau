@@ -50,10 +50,10 @@ message WorksheetOptions {
 }
 
 message FieldOptions {
-  string name = 1;    // scalar type's varible name or composite type's varible name (prefix)
-  string note = 2;    // note of name, maybe in another language (Chinese) other than name (English)
-  Type type = 3;      // default: TYPE_DEFAULT
-  string key = 4;     // only set when type is map
+  string name = 1;    // scalar type's varible name or composite type's varible name (prefix).
+  string note = 2;    // note of name, maybe in another language (Chinese) other than variable name (English).
+  Type type = 3;      // default: TYPE_DEFAULT.
+  string key = 4;     // only set when type is map or keyed-list.
   Layout layout = 5;  // default: LAYOUT_DEFAULT
   string sep = 6;     // separator, default: ","
   string subsep = 7;  // subseparator, default: ":"
@@ -85,6 +85,14 @@ message EnumOptions {
 }
 message EnumValueOptions {
   string name = 1;  // alias name
+}
+
+// Field data span, to replace Type.
+//  - map: span, map-value: subspan
+//  - list: span, list-element: subspan
+enum Span {
+  SPAN_CROSS_CELL = 0; // The field data spans cross multiple cells.
+  SPAN_INNER_CELL = 1; // The field data spans only in one cell.
 }
 
 // field type.
@@ -121,19 +129,17 @@ enum Type {
   TYPE_TIME = 22;      // format: "HH:mm:ss"
   TYPE_DATETIME = 23;  // format: "yyyy-MM-dd HH:mm:ss"
   // list in a cell:
-  // - the list **item** must be **built-in** type
+  // - the list **Element** must be **Scalar** or **Enum** type
   // - format: ',' separated items
   TYPE_INCELL_LIST = 24;
   // map in a cell:
-  // - both the **key** and **value** must be **built-in** type
+  // - both the **Key** and **Value** must be **Scalar** or **Enum** type
   // - format: key-value pairs is separated by ',', and
   //           key and value is separated by ':'
   TYPE_INCELL_MAP = 25;
-  // struct in a cell
+  // struct in a cell.
+  // list with element type as in-cell struct. E.g.: []{int32 id,string name}Element
   TYPE_INCELL_STRUCT = 26;
-
-  // TYPE_RICH_TEXT = 31;
-  // TYPE_JSON = 32;
 }
 
 // layout of composite types, such as list and map.

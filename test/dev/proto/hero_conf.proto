@@ -46,6 +46,19 @@ message FirstHListField {
       }
       string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
+    repeated Magic magic_list = 7 [(tableau.field) = {name:"Magic" layout:LAYOUT_HORIZONTAL}];
+    message Magic {
+      Ability ability = 1 [(tableau.field) = {name:"Ability" type:TYPE_INCELL_STRUCT}];
+      message Ability {
+        int32 id = 1 [(tableau.field) = {name:"Id"}];
+        int32 num = 2 [(tableau.field) = {name:"Num"}];
+      }
+    }
+    repeated Ability ability_list = 8 [(tableau.field) = {name:"Ability" type:TYPE_INCELL_STRUCT layout:LAYOUT_HORIZONTAL}];
+    message Ability {
+      int32 id = 1 [(tableau.field) = {name:"Id"}];
+      int32 num = 2 [(tableau.field) = {name:"Num"}];
+    }
   }
 }
 

@@ -271,13 +271,21 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 
 	// list syntax pattern
 	matches := types.MatchList(typeCell)
+	originalElemType := strings.TrimSpace(matches[1])
 	colType := strings.TrimSpace(matches[2])
+	var listElemSpanInnerCell bool
 	var isScalarType bool
-	elemType := strings.TrimSpace(matches[1])
+	elemType := originalElemType
 	if elemType == "" {
+		listElemSpanInnerCell = true
 		// scalar type, such as int32, string, etc.
 		elemType = colType
 		isScalarType = true
+		if matches := types.MatchStruct(colType); len(matches) > 0 {
+			// struct type
+			elemType = matches[2]
+			isScalarType = false
+		}
 	}
 	rawPropText := strings.TrimSpace(matches[3])
 
@@ -342,9 +350,6 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				colType = strings.TrimSpace(matches[2])
 				field.Options.Key = trimmedNameCell
 			}
-			// colTypeWithProp := colType + rawPropText
-			// field.Fields = append(field.Fields, p.parseScalarField(trimmedNameCell, colTypeWithProp, noteCell))
-
 			// Parse first field
 			colTypeWithProp := colType + rawPropText
 			firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
@@ -384,9 +389,25 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				}
 			}
 		} else {
+			// Parse first field
 			colTypeWithProp := colType + rawPropText
 			firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colTypeWithProp))
-			cursor = p.parseSubField(field, header, cursor, prefix+"1", firstFieldOptions...)
+			if listElemSpanInnerCell {
+				// inner cell element
+				tempField := &tableaupb.Field{}
+				_, ok := p.parseField(tempField, header, cursor, prefix+"1", firstFieldOptions...)
+				if ok {
+					field.Fields = tempField.Fields
+					field.TypeDefined = tempField.TypeDefined
+					field.Options.Type = tempField.Options.Type
+				} else {
+					atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
+				}
+			} else {
+				// cross cell element
+				cursor = p.parseSubField(field, header, cursor, prefix+"1", firstFieldOptions...)
+			}
+			// Parse other fields or skip cotinuous N columns of the same element type.
 			for cursor++; cursor < len(header.namerow); cursor++ {
 				nameCell := header.getNameCell(cursor)
 				if types.BelongToFirstElement(nameCell, prefix) {
@@ -553,7 +574,7 @@ func ParseIncellStruct(elemType string) []string {
 
 	fieldPairs := make([]string, 0)
 	for _, pair := range strings.Split(elemType, ",") {
-		kv := strings.Split(pair, " ")
+		kv := strings.Split(strings.TrimSpace(pair), " ")
 		if len(kv) != 2 {
 			atom.Log.Panicf("illegal type-variable pair: %v in incell struct: %s", pair, elemType)
 		}

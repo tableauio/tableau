@@ -27,12 +27,16 @@ message SheetMeta {
   bool nested = 10 [(tableau.field) = { name:"Nested" optional:true }];
   string sep = 11 [(tableau.field) = { name:"Sep" optional:true }];
   string subsep = 12 [(tableau.field) = { name:"Subsep" optional:true }];
-  // generate ordered map accessers
-  bool ordered_map = 13 [(tableau.field) = { name:"OrderedMap" optional:true }];
   // merger of multiple sheets: [Element]...
   // each element is:
   // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>, 
   //   then the sheet name is the same as this sheet.
   // - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
-  repeated string merger = 14 [(tableau.field) = { name:"Merger" type:TYPE_INCELL_LIST optional:true }];
+  repeated string merger = 13 [(tableau.field) = { name:"Merger" optional:true type:TYPE_INCELL_LIST}];
+  
+  ////////// Loader related options below //////////
+  // generate ordered map accessers
+  bool ordered_map = 50 [(tableau.field) = { name:"OrderedMap" optional:true }];
+  // generate index accessers
+  repeated string index = 51 [(tableau.field) = { name:"Index" optional:true type:TYPE_INCELL_LIST}];
 }
