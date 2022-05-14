@@ -531,7 +531,7 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 
 		// default value
 		name := strcase.ToCamel(string(fd.FullName().Name()))
-		etype := tableaupb.Type_TYPE_DEFAULT
+		span := tableaupb.Span_SPAN_DEFAULT
 		key := ""
 		layout := tableaupb.Layout_LAYOUT_DEFAULT
 		sep := ""
@@ -541,7 +541,7 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 		field := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
 		if field != nil {
 			name = field.Name
-			etype = field.Type
+			span = field.Span
 			key = field.Key
 			layout = field.Layout
 			sep = field.Sep
@@ -565,7 +565,7 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 			subsep = ":"
 		}
 		atom.Log.Debugf("%s%s(%v) %s(%s) %s = %d [(name) = \"%s\", (type) = %s, (key) = \"%s\", (layout) = \"%s\", (sep) = \"%s\"];",
-			getTabStr(depth), fd.Cardinality().String(), fd.IsMap(), fd.Kind().String(), msgName, fd.FullName().Name(), fd.Number(), prefix+name, etype.String(), key, layout.String(), sep)
+			getTabStr(depth), fd.Cardinality().String(), fd.IsMap(), fd.Kind().String(), msgName, fd.FullName().Name(), fd.Number(), prefix+name, span.String(), key, layout.String(), sep)
 		atom.Log.Debugw("field metadata",
 			"tabs", depth,
 			"cardinality", fd.Cardinality().String(),
@@ -575,14 +575,14 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 			"fullName", fd.FullName(),
 			"number", fd.Number(),
 			"name", prefix+name,
-			"type", etype.String(),
+			"span", span.String(),
 			"key", key,
 			"layout", layout.String(),
 			"sep", sep,
 		)
 		if fd.IsMap() {
 			valueFd := fd.MapValue()
-			if etype == tableaupb.Type_TYPE_INCELL_MAP {
+			if layout == tableaupb.Layout_LAYOUT_INCELL {
 				if valueFd.Kind() == protoreflect.MessageKind {
 					panic("in-cell map do not support value as message type")
 				}
@@ -617,16 +617,16 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 					gen.TestParseFieldOptions(fd.Message(), row, depth+1, prefix+name)
 				}
 			} else {
-				if etype == tableaupb.Type_TYPE_INCELL_LIST {
+				if layout == tableaupb.Layout_LAYOUT_INCELL {
 					fmt.Println("cell(FIELD_TYPE_CELL_LIST): ", prefix+name)
 					*row = append(*row, Cell{Data: prefix + name})
 				} else {
-					panic(fmt.Sprintf("unknown list type: %v\n", etype))
+					panic(fmt.Sprintf("unknown list layout: %v\n", layout))
 				}
 			}
 		} else {
 			if fd.Kind() == protoreflect.MessageKind {
-				if etype == tableaupb.Type_TYPE_INCELL_STRUCT {
+				if span == tableaupb.Span_SPAN_INNER_CELL {
 					fmt.Println("cell(FIELD_TYPE_CELL_MESSAGE): ", prefix+name)
 					*row = append(*row, Cell{Data: prefix + name})
 				} else {

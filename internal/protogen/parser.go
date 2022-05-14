@@ -150,19 +150,19 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 				if matches := types.MatchMap(nextTypeCell); len(matches) > 0 {
 					// The next type cell is also a map type declaration.
 					if isScalarType {
-						layout = tableaupb.Layout_LAYOUT_DEFAULT // incell map
+						layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 					}
 				}
 			} else {
 				// only one map item, treat it as incell map
 				if isScalarType {
-					layout = tableaupb.Layout_LAYOUT_DEFAULT // incell map
+					layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 				}
 			}
 		}
 	} else {
 		if isScalarType {
-			layout = tableaupb.Layout_LAYOUT_DEFAULT // incell map
+			layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 		}
 	}
 
@@ -240,7 +240,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			}
 		}
 
-	case tableaupb.Layout_LAYOUT_DEFAULT:
+	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell map
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		field.Name = strcase.ToSnake(trimmedNameCell)
@@ -248,10 +248,12 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		// For map type, TypeDefined indicates the ValueType of map has been defined.
 		field.TypeDefined = valueTypeDefined
 		field.Options = &tableaupb.FieldOptions{
-			Name: trimmedNameCell,
-			Type: tableaupb.Type_TYPE_INCELL_MAP,
-			Prop: types.ParseProp(rawPropText),
+			Name:   trimmedNameCell,
+			Layout: layout,
+			Prop:   types.ParseProp(rawPropText),
 		}
+	case tableaupb.Layout_LAYOUT_DEFAULT:
+		atom.Log.Panicf("should not reach default layout: %v", layout)
 	}
 
 	return cursor
@@ -309,19 +311,19 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				if matches := types.MatchList(nextTypeCell); len(matches) > 0 {
 					// The next type cell is also a list type declaration.
 					if isScalarType {
-						layout = tableaupb.Layout_LAYOUT_DEFAULT // incell list
+						layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 					}
 				}
 			} else {
 				// only one list item, treat it as incell list
 				if isScalarType {
-					layout = tableaupb.Layout_LAYOUT_DEFAULT // incell list
+					layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 				}
 			}
 		}
 	} else {
 		if isScalarType {
-			layout = tableaupb.Layout_LAYOUT_DEFAULT // incell list
+			layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 		}
 	}
 
@@ -399,7 +401,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				if ok {
 					field.Fields = tempField.Fields
 					field.TypeDefined = tempField.TypeDefined
-					field.Options.Type = tempField.Options.Type
+					field.Options.Span = tempField.Options.Span
 				} else {
 					atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
 				}
@@ -420,12 +422,14 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				}
 			}
 		}
-	case tableaupb.Layout_LAYOUT_DEFAULT:
+	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell list
 		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawPropText, noteCell)
 		proto.Merge(field, scalarField)
 		field.Card = "repeated"
-		field.Options.Type = tableaupb.Type_TYPE_INCELL_LIST
+		field.Options.Layout = layout
+	case tableaupb.Layout_LAYOUT_DEFAULT:
+		atom.Log.Panicf("should not reach default layout: %s", layout)
 	}
 	return cursor
 }
@@ -451,7 +455,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	if fieldPairs := ParseIncellStruct(elemType); fieldPairs != nil {
 		scalarField := p.parseScalarField(trimmedNameCell, colType, noteCell)
 		proto.Merge(field, scalarField)
-		field.Options.Type = tableaupb.Type_TYPE_INCELL_STRUCT
+		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
 
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]

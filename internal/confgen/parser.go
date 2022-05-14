@@ -178,7 +178,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 		// default value
 		name := strcase.ToCamel(string(fd.FullName().Name()))
 		note := ""
-		etype := tableaupb.Type_TYPE_DEFAULT
+		span := tableaupb.Span_SPAN_DEFAULT
 		key := ""
 		layout := tableaupb.Layout_LAYOUT_DEFAULT
 		sep := ","
@@ -191,7 +191,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 		if fieldOpts != nil {
 			name = fieldOpts.Name
 			note = fieldOpts.Note
-			etype = fieldOpts.Type
+			span = fieldOpts.Span
 			key = fieldOpts.Key
 			layout = fieldOpts.Layout
 			sep = strings.TrimSpace(fieldOpts.Sep)
@@ -228,7 +228,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 			opts: &tableaupb.FieldOptions{
 				Name:     name,
 				Note:     note,
-				Type:     etype,
+				Span:     span,
 				Key:      key,
 				Layout:   layout,
 				Sep:      sep,
@@ -267,7 +267,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	valueFd := field.fd.MapValue()
 	// newKey := protoreflect.ValueOf(int32(1)).MapKey()
 	// newKey := sp.parseFieldValue(keyFd, "1111001").MapKey()
-	if field.opts.Type == tableaupb.Type_TYPE_INCELL_MAP {
+	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
 		colName := prefix + field.opts.Name
 		cell := rc.Cell(colName, field.opts.Optional)
 		if cell == nil {
@@ -476,7 +476,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	reflectList := newValue.List()
-	if field.opts.Type == tableaupb.Type_TYPE_INCELL_LIST {
+	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
 		// incell list
 		colName := prefix + field.opts.Name
 		cell := rc.Cell(colName, field.opts.Optional)
@@ -573,7 +573,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if field.fd.Kind() == protoreflect.MessageKind {
 					// struct list
 					// err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
-					if field.opts.Type == tableaupb.Type_TYPE_INCELL_STRUCT {
+					if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 						// incell-struct list
 						colName := prefix + field.opts.Name + strconv.Itoa(i)
 						cell := rc.Cell(colName, field.opts.Optional)
@@ -650,7 +650,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 	}
 
 	colName := prefix + field.opts.Name
-	if field.opts.Type == tableaupb.Type_TYPE_INCELL_STRUCT {
+	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
 		cell := rc.Cell(colName, field.opts.Optional)
 		if cell == nil {

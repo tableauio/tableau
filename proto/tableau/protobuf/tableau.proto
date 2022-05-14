@@ -52,9 +52,9 @@ message WorksheetOptions {
 message FieldOptions {
   string name = 1;    // scalar type's varible name or composite type's varible name (prefix).
   string note = 2;    // note of name, maybe in another language (Chinese) other than variable name (English).
-  Type type = 3;      // default: TYPE_DEFAULT.
-  string key = 4;     // only set when type is map or keyed-list.
-  Layout layout = 5;  // default: LAYOUT_DEFAULT
+  string key = 3;     // only set when type is map or keyed-list.
+  Layout layout = 4;  // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
+  Span span = 5;      // For list element or map value types. Default: SPAN_CROSS_CELL.
   string sep = 6;     // separator, default: ","
   string subsep = 7;  // subseparator, default: ":"
   bool optional = 8;  // whether the field is optional.
@@ -80,71 +80,32 @@ message FieldProp {
   string default = 5;    // default value.
 }
 
+// Layout of list and map.
+enum Layout {
+  // Default:
+  //  - vertical for struct map
+  //  - incell for scalar map
+  //  - horizontal for struct list
+  //  - incell for scalar list
+  LAYOUT_DEFAULT = 0;
+  LAYOUT_VERTICAL = 1;    // Vertical
+  LAYOUT_HORIZONTAL = 2;  // Horizontal
+  LAYOUT_INCELL = 3;      // Incell
+}
+
+// Field data span of scalar and struct.
+enum Span {
+  // Default:
+  //  - inner cell for scalar type: bool, string, bytes, number, and enum.
+  //  - cross cell for struct type: map-value, list-element, and struct-field.
+  SPAN_DEFAULT = 0;
+  SPAN_CROSS_CELL = 1; // The field data spans cross multiple cells.
+  SPAN_INNER_CELL = 2; // The field data spans only in one cell.
+}
+
 message EnumOptions {
   string name = 1;  // alias name
 }
 message EnumValueOptions {
   string name = 1;  // alias name
-}
-
-// Field data span, to replace Type.
-//  - map: span, map-value: subspan
-//  - list: span, list-element: subspan
-enum Span {
-  SPAN_CROSS_CELL = 0; // The field data spans cross multiple cells.
-  SPAN_INNER_CELL = 1; // The field data spans only in one cell.
-}
-
-// field type.
-enum Type {
-  // auto deduced protobuf types
-  TYPE_DEFAULT = 0;
-
-  //////////////////////////////
-  /////Build-in Types///////////
-  //////////////////////////////
-  // interger
-  TYPE_INT32 = 1;
-  TYPE_UINT32 = 2;
-  TYPE_INT64 = 3;
-  TYPE_UINT64 = 4;
-  // floating-point number
-  TYPE_DOUBLE = 5;
-  TYPE_FLOAT = 6;
-  // bool
-  TYPE_BOOL = 7;
-  // string
-  TYPE_STRING = 8;
-
-  ////////////////////////
-  /////Struct Type//////
-  ////////////////////////
-  TYPE_STRUCT = 10;
-
-  ////////////////////////
-  /////Extended Types/////
-  ////////////////////////
-  // time
-  TYPE_DATE = 21;      // format: "yyyy-MM-dd"
-  TYPE_TIME = 22;      // format: "HH:mm:ss"
-  TYPE_DATETIME = 23;  // format: "yyyy-MM-dd HH:mm:ss"
-  // list in a cell:
-  // - the list **Element** must be **Scalar** or **Enum** type
-  // - format: ',' separated items
-  TYPE_INCELL_LIST = 24;
-  // map in a cell:
-  // - both the **Key** and **Value** must be **Scalar** or **Enum** type
-  // - format: key-value pairs is separated by ',', and
-  //           key and value is separated by ':'
-  TYPE_INCELL_MAP = 25;
-  // struct in a cell.
-  // list with element type as in-cell struct. E.g.: []{int32 id,string name}Element
-  TYPE_INCELL_STRUCT = 26;
-}
-
-// layout of composite types, such as list and map.
-enum Layout {
-  LAYOUT_DEFAULT = 0;     // default direction: vertical for map, horizontal for list
-  LAYOUT_VERTICAL = 1;    // vertical direction
-  LAYOUT_HORIZONTAL = 2;  // horizontal direction
 }

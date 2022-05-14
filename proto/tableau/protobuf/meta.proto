@@ -32,11 +32,11 @@ message SheetMeta {
   // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>, 
   //   then the sheet name is the same as this sheet.
   // - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
-  repeated string merger = 13 [(tableau.field) = { name:"Merger" optional:true type:TYPE_INCELL_LIST}];
+  repeated string merger = 13 [(tableau.field) = { name:"Merger" optional:true layout:LAYOUT_INCELL}];
   
   ////////// Loader related options below //////////
   // generate ordered map accessers
   bool ordered_map = 50 [(tableau.field) = { name:"OrderedMap" optional:true }];
   // generate index accessers
-  repeated string index = 51 [(tableau.field) = { name:"Index" optional:true type:TYPE_INCELL_LIST}];
+  repeated string index = 51 [(tableau.field) = { name:"Index" optional:true layout:LAYOUT_INCELL}];
 }
