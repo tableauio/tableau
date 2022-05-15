@@ -25,7 +25,7 @@ message Field {
   //   uint32 tagid = 5;
   repeated Field fields = 6;  // map or list if fields's length is not 0.
   MapEntry map_entry = 7;
-  bool type_defined = 8;  // message type ws already defined.
+  bool predefined = 8;  // This message type was predefined.
 }
 
 message MapEntry {

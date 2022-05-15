@@ -406,9 +406,10 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			// slice of length 1 whose only element is s.
 			splits := strings.Split(cell.Data, field.opts.Sep)
 			for _, pair := range splits {
-				kv := strings.Split(pair, field.opts.Subsep)
-				if len(kv) != 2 {
-					return errors.Errorf("%s|incell map: illegal key-value pair: %s, subseq: '%s'", rc.CellDebugString(colName), pair, field.opts.Subsep)
+				kv := strings.SplitN(pair, field.opts.Subsep, 2)
+				if len(kv) == 1 {
+					// If value is not set, then treated it as default empty string.
+					kv = append(kv, "")
 				}
 				key, value := kv[0], kv[1]
 

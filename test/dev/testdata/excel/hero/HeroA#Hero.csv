@@ -1,6 +1,6 @@
-ID,Desc,Property1ID,Property1Value,Property2ID,Property2Value,AwardItemId,AwardItemNum
-"map<uint32, Hero>",string,"map<int32, Prop>",int64,int32,int64,{.Item}int32,int32
-Hero's ID.,Hero's description.,Hero's prop ID.,Hero's prop value.,Hero's prop ID.,Hero's prop value.,Hero's award id.,Hero's award num.
-10,hero10,1,10,2,20,1,10
-20,hero20,3,30,4,40,2,11
-30,hero30,5,50,,,3,12
+ID,Desc,Kind,Group,Property1ID,Property1Value,Property2ID,Property2Value,AwardItemId,AwardItemNum
+"map<uint32, Hero>",string,int32,int32,"map<int32, Prop>",int64,int32,int64,{.Item}int32,int32
+Hero's ID.,Hero's description.,Hero's kind.,Hero's group.,Hero's prop ID.,Hero's prop value.,Hero's prop ID.,Hero's prop value.,Hero's award id.,Hero's award num.
+10,hero10,1,10,1,10,2,20,1,10
+20,hero20,1,11,3,30,4,40,2,11
+30,hero30,2,22,5,50,,,3,12

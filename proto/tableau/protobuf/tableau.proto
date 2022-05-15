@@ -50,7 +50,7 @@ message WorksheetOptions {
 
   ////////// Loader related options below //////////
   bool ordered_map = 50; // generate ordered map accessers.
-  map<string, string> index = 51; // generate index accessers.
+  repeated string index = 51; // generate index accessers.
 }
 
 message FieldOptions {

@@ -219,14 +219,14 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 		x.Imports[durationProtoPath] = true
 	}
 
-	if field.TypeDefined {
+	if field.Predefined {
 		// NOTE: import corresponding message's custom defined proto file
 		if path, ok := x.type2import[field.Type]; ok {
 			x.Imports[path] = true
 		}
 	}
 
-	if !field.TypeDefined && field.Fields != nil {
+	if !field.Predefined && field.Fields != nil {
 		// iff field is a map or list and message type is not imported.
 		msgName := field.Type
 		if field.MapEntry != nil {

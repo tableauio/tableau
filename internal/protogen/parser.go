@@ -175,8 +175,8 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		}
 		field.Name = strcase.ToSnake(parsedValueType) + "_map"
 		field.Type = mapType
-		// For map type, TypeDefined indicates the ValueType of map has been defined.
-		field.TypeDefined = valueTypeDefined
+		// For map type, Predefined indicates the ValueType of map has been defined.
+		field.Predefined = valueTypeDefined
 		field.MapEntry = &tableaupb.MapEntry{
 			KeyType:   parsedKeyType,
 			ValueType: parsedValueType,
@@ -209,8 +209,8 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 
 		field.Name = strcase.ToSnake(parsedValueType) + "_map"
 		field.Type = mapType
-		// For map type, TypeDefined indicates the ValueType of map has been defined.
-		field.TypeDefined = valueTypeDefined
+		// For map type, Predefined indicates the ValueType of map has been defined.
+		field.Predefined = valueTypeDefined
 		field.MapEntry = &tableaupb.MapEntry{
 			KeyType:   parsedKeyType,
 			ValueType: parsedValueType,
@@ -247,8 +247,8 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		field.Name = strcase.ToSnake(trimmedNameCell)
 		field.Type = mapType
-		// For map type, TypeDefined indicates the ValueType of map has been defined.
-		field.TypeDefined = valueTypeDefined
+		// For map type, Predefined indicates the ValueType of map has been defined.
+		field.Predefined = valueTypeDefined
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,
@@ -358,7 +358,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			_, ok := p.parseField(tempField, header, cursor, prefix, firstFieldOptions...)
 			if ok {
 				field.Fields = tempField.Fields
-				field.TypeDefined = tempField.TypeDefined
+				field.Predefined = tempField.Predefined
 				field.Options.Span = tempField.Options.Span
 				field.Options.Name = tempField.Options.Name
 			} else {
@@ -400,7 +400,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			_, ok := p.parseField(tempField, header, cursor, prefix+"1", firstFieldOptions...)
 			if ok {
 				field.Fields = tempField.Fields
-				field.TypeDefined = tempField.TypeDefined
+				field.Predefined = tempField.Predefined
 				field.Options.Span = tempField.Options.Span
 			} else {
 				atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
@@ -469,7 +469,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		proto.Merge(field, scalarField)
 
 		structName := field.Type // default: struct name is same as the type name
-		if field.TypeDefined {
+		if field.Predefined {
 			// Find predefined type's first field's tableau name
 			// structName = field.Type
 			fullMsgName := p.gen.ProtoPackage + "." + field.Type
@@ -531,12 +531,12 @@ func (p *bookParser) parseScalarField(name, typ, note string) *tableaupb.Field {
 			rawPropText = splits[1]
 		}
 	}
-	typ, typeDefined := p.parseType(typ)
+	typ, predefined := p.parseType(typ)
 
 	return &tableaupb.Field{
 		Name:        strcase.ToSnake(name),
 		Type:        typ,
-		TypeDefined: typeDefined,
+		Predefined: predefined,
 		Options: &tableaupb.FieldOptions{
 			Name: name,
 			Note: p.genNote(note),

@@ -43,13 +43,13 @@ message SheetMeta {
   // generate ordered map accessers
   bool ordered_map = 50 [(tableau.field) = { name:"OrderedMap" optional:true }];
   // generate index accessers.
-  // The key-value pair is `<IndexColumnName>[:IndexName]`, if IndexName is not set,
+  // The key-value pair is `<ColumnName>[@IndexName]`, if IndexName is not set,
   // it will be this column's parent struct type name.
   //
   // Generated APIs are:
   //
   // C++:
-  // - Repeated<const STRUCT_TYPE&> Find<IndexName>(INDEX_TYPE index) const;
+  // - std::vector<const STRUCT_TYPE*> Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
-  map<string, string> index = 51 [(tableau.field) = { name:"Index" optional:true layout:LAYOUT_INCELL}];
+  repeated string index = 51 [(tableau.field) = { name:"Index" optional:true layout:LAYOUT_INCELL}];
 }
