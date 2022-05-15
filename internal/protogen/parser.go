@@ -70,11 +70,11 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
 	}
-	if matches := types.MatchMap(typeCell); len(matches) > 0 {
+	if types.IsMap(typeCell) {
 		cursor = p.parseMapField(field, header, cursor, prefix, options...)
-	} else if matches := types.MatchList(typeCell); len(matches) > 0 {
+	} else if types.IsList(typeCell) {
 		cursor = p.parseListField(field, header, cursor, prefix, options...)
-	} else if matches := types.MatchStruct(typeCell); len(matches) > 0 {
+	} else if types.IsStruct(typeCell) {
 		cursor = p.parseStructField(field, header, cursor, prefix, options...)
 	} else {
 		// enum or scalar types
@@ -121,7 +121,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	rawPropText := strings.TrimSpace(matches[3])
 
 	parsedKeyType := keyType
-	if types.MatchEnum(keyType) != nil {
+	if types.IsEnum(keyType) {
 		// NOTE: support enum as map key, convert key type as `int32`.
 		parsedKeyType = "int32"
 	}
@@ -131,23 +131,25 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	isScalarValue := types.IsScalarType(parsedValueType)
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 
-	// preprocess
-	layout := tableaupb.Layout_LAYOUT_VERTICAL // default layout is vertical.
-	index := -1
-	if index = strings.Index(trimmedNameCell, "1"); index > 0 {
+	// preprocess: analyze the correct layout of map.
+	layout := tableaupb.Layout_LAYOUT_VERTICAL // set default layout as vertical.
+	firstElemIndex := -1
+	if index1 := strings.Index(trimmedNameCell, "1"); index1 > 0 {
+		firstElemIndex = index1
 		layout = tableaupb.Layout_LAYOUT_HORIZONTAL
-		if cursor+1 < len(header.namerow) {
+		nextCursor := cursor + 1
+		if nextCursor < len(header.namerow) {
 			// Header:
 			//
 			// TaskParamMap1		TaskParamMap2		TaskParamMap3
 			// map<int32, int32>	map<int32, int32>	map<int32, int32>
 
 			// check next cursor
-			nextNameCell := header.getNameCell(cursor + 1)
+			nextNameCell := header.getNameCell(nextCursor)
 			trimmedNextNameCell := strings.TrimPrefix(nextNameCell, prefix)
 			if index2 := strings.Index(trimmedNextNameCell, "2"); index2 > 0 {
-				nextTypeCell := header.getTypeCell(cursor + 1)
-				if matches := types.MatchMap(nextTypeCell); len(matches) > 0 {
+				nextTypeCell := header.getTypeCell(nextCursor)
+				if types.IsMap(nextTypeCell) {
 					// The next type cell is also a map type declaration.
 					if isScalarValue {
 						layout = tableaupb.Layout_LAYOUT_INCELL // incell map
@@ -202,7 +204,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		}
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		// horizontal list: continuous N columns belong to this list after this cursor.
-		mapName := trimmedNameCell[:index]
+		mapName := trimmedNameCell[:firstElemIndex]
 		prefix += mapName
 
 		field.Name = strcase.ToSnake(parsedValueType) + "_map"
@@ -275,53 +277,53 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	matches := types.MatchList(typeCell)
 	originalElemType := strings.TrimSpace(matches[1])
 	colType := strings.TrimSpace(matches[2])
-	var listElemSpanInnerCell bool
+	rawPropText := strings.TrimSpace(matches[3])
+
+	listElemSpanInnerCell, isScalarElement := false, false
 	elemType := originalElemType
-	isScalarElement := true
 	if elemType == "" {
 		listElemSpanInnerCell = true
-		// scalar type, such as int32, string, etc.
+		isScalarElement = true
 		elemType = colType
 		if matches := types.MatchStruct(colType); len(matches) > 0 {
-			// struct type
 			elemType = matches[2]
 			isScalarElement = false
 		}
 	}
-	rawPropText := strings.TrimSpace(matches[3])
 
-	// preprocess
-	layout := tableaupb.Layout_LAYOUT_VERTICAL // default layout is vertical.
-	index := -1
-	// tmpCursor := cursor
-	if index = strings.Index(trimmedNameCell, "1"); index > 0 {
+	// preprocess: analyze the correct layout of list.
+	layout := tableaupb.Layout_LAYOUT_VERTICAL // set default layout as vertical.
+	firstElemIndex := -1
+	if index1 := strings.Index(trimmedNameCell, "1"); index1 > 0 {
+		firstElemIndex = index1
 		layout = tableaupb.Layout_LAYOUT_HORIZONTAL
-		if cursor+1 < len(header.namerow) {
+		nextCursor := cursor + 1
+		if nextCursor < len(header.namerow) {
 			// Header:
 			//
 			// TaskParamList1	TaskParamList2	TaskParamList3
 			// []int32			[]int32			[]int32
 
 			// check next cursor
-			nextNameCell := header.getNameCell(cursor + 1)
+			nextNameCell := header.getNameCell(nextCursor)
 			trimmedNextNameCell := strings.TrimPrefix(nextNameCell, prefix)
 			if index2 := strings.Index(trimmedNextNameCell, "2"); index2 > 0 {
-				nextTypeCell := header.getTypeCell(cursor + 1)
-				if matches := types.MatchList(nextTypeCell); len(matches) > 0 {
+				nextTypeCell := header.getTypeCell(nextCursor)
+				if types.IsList(nextTypeCell) {
 					// The next type cell is also a list type declaration.
-					if listElemSpanInnerCell {
+					if isScalarElement {
 						layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 					}
 				}
 			} else {
 				// only one list item, treat it as incell list
-				if listElemSpanInnerCell {
+				if isScalarElement {
 					layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 				}
 			}
 		}
 	} else {
-		if listElemSpanInnerCell && isScalarElement {
+		if isScalarElement {
 			layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 		}
 	}
@@ -379,7 +381,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		// horizontal list: continuous N columns belong to this list after this cursor.
-		listName := trimmedNameCell[:index]
+		listName := trimmedNameCell[:firstElemIndex]
 		prefix += listName
 
 		scalarField := p.parseScalarField(trimmedNameCell, elemType, noteCell)

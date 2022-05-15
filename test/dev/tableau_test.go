@@ -74,7 +74,7 @@ func Test_GenJSON(t *testing.T) {
 		options.Output(
 			&options.OutputOption{
 				Pretty:  true,
-				Formats: []format.Format{format.JSON},
+				Formats: []format.Format{format.JSON, format.Text},
 			},
 		),
 	)

@@ -39,20 +39,40 @@ func MatchMap(text string) []string {
 	return mapRegexp.FindStringSubmatch(text)
 }
 
+func IsMap(text string) bool {
+	return MatchMap(text) != nil
+}
+
 func MatchList(text string) []string {
 	return listRegexp.FindStringSubmatch(text)
+}
+
+func IsList(text string) bool {
+	return MatchList(text) != nil
 }
 
 func MatchKeyedList(text string) []string {
 	return keyedListRegexp.FindStringSubmatch(text)
 }
 
+func IsKeyedList(text string) bool {
+	return MatchKeyedList(text) != nil
+}
+
 func MatchStruct(text string) []string {
 	return structRegexp.FindStringSubmatch(text)
 }
 
+func IsStruct(text string) bool {
+	return MatchStruct(text) != nil
+}
+
 func MatchEnum(text string) []string {
 	return enumRegexp.FindStringSubmatch(text)
+}
+
+func IsEnum(text string) bool {
+	return MatchEnum(text) != nil
 }
 
 func MatchProp(text string) []string {

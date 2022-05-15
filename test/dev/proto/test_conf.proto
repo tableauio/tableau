@@ -78,7 +78,7 @@ message ExchangeInfo {
 }
 
 message Loader {
-  option (tableau.worksheet) = {name:"Loader" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 nested:true continuous_key:true};
+  option (tableau.worksheet) = {name:"Loader" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 nested:true adjacent_key:true};
 
   map<int32, Server> server_map = 1 [(tableau.field) = {name:"Server" key:"Type" layout:LAYOUT_VERTICAL}];
   message Server {

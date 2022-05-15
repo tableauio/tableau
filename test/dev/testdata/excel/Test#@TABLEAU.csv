@@ -1,4 +1,4 @@
-Sheet,Alias,Nameline,Typeline,Nested,OrderedMap,Sep,ContinuousKey
+Sheet,Alias,Nameline,Typeline,Nested,OrderedMap,Sep,AdjacentKey
 Activity,,1,1,,true,",",
 Reward,,1,1,,,,
 Exchange,ExchangeInfo,0,0,,,,

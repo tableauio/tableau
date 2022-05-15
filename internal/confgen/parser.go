@@ -103,7 +103,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return errors.WithMessagef(err, "failed to get data cell: %d, %d", row, col)
 				}
-				curr.SetCell(name, row, data, typ, sp.opts.ContinuousKey)
+				curr.SetCell(name, row, data, typ, sp.opts.AdjacentKey)
 			}
 			err := sp.parseFieldOptions(msg, curr, 0, "")
 			if err != nil {
@@ -140,7 +140,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return errors.WithMessagef(err, "failed to get data cell: %d, %d", row, col)
 				}
-				curr.SetCell(name, col, data, typ, sp.opts.ContinuousKey)
+				curr.SetCell(name, col, data, typ, sp.opts.AdjacentKey)
 			}
 			err := sp.parseFieldOptions(msg, curr, 0, "")
 			if err != nil {

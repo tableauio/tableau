@@ -46,11 +46,11 @@ message WorksheetOptions {
   string sep = 11;       // separator, default: ","
   string subsep = 12;    // subseparator, default: ":"
   repeated string merger = 13; // [default = ""]; // merge multiple sheets by the merger pattern.
-  bool continuous_key = 14; // [default = false]; // whether the key cross continuous N rows.
+  bool adjacent_key = 14; // [default = false]; // whether the rows with the same key is adjacent together.
 
   ////////// Loader related options below //////////
   bool ordered_map = 50; // generate ordered map accessers.
-  repeated string index = 51; // generate index accessers.
+  map<string, string> index = 51; // generate index accessers.
 }
 
 message FieldOptions {
