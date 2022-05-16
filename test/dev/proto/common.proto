@@ -22,3 +22,8 @@ enum ServerType {
   SERVER_TYPE_ACTIVITY = 2 [(tableau.evalue).name = "活动服"];
   SERVER_TYPE_MATCH = 3 [(tableau.evalue).name = "匹配服"];
 }
+
+message CloudStrategy {
+  ConfType type = 1 [(tableau.field).name = "Type"];
+  int32 num = 2 [(tableau.field).name = "Num"];
+}

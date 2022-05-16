@@ -221,7 +221,11 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 
 	if field.Predefined {
 		// NOTE: import corresponding message's custom defined proto file
-		if path, ok := x.type2import[field.Type]; ok {
+		relatedType := field.Type
+		if field.MapEntry != nil {
+			relatedType = field.MapEntry.ValueType
+		}
+		if path, ok := x.type2import[relatedType]; ok {
 			x.Imports[path] = true
 		}
 	}

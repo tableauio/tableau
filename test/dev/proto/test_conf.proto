@@ -97,6 +97,7 @@ message Loader {
         int32 weight = 2 [(tableau.field) = {name:"Weight"}];
       }
       repeated ConfType ext_types = 4 [(tableau.field) = {name:"ExtTypes" layout:LAYOUT_INCELL}];
+      map<int32, CloudStrategy> strategy_map = 5 [(tableau.field) = {name:"Strategy" key:"Type" layout:LAYOUT_HORIZONTAL}];
     }
   }
 }

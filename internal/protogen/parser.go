@@ -125,7 +125,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		// NOTE: support enum as map key, convert key type as `int32`.
 		parsedKeyType = "int32"
 	}
-	parsedValueType, valueTypeDefined := p.parseType(valueType)
+	parsedValueType, valueTypePredefined := p.parseType(valueType)
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, parsedValueType)
 
 	isScalarValue := types.IsScalarType(parsedValueType)
@@ -176,7 +176,10 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Name = strcase.ToSnake(parsedValueType) + "_map"
 		field.Type = mapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
-		field.Predefined = valueTypeDefined
+		field.Predefined = valueTypePredefined
+		// TODO: support define custom variable name for predefined map value type.
+		// We can use descriptor to get the first field of predefined map value type, 
+		// use its name option as column name, and then extract the custom variable name.
 		field.MapEntry = &tableaupb.MapEntry{
 			KeyType:   parsedKeyType,
 			ValueType: parsedValueType,
@@ -207,10 +210,10 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		mapName := trimmedNameCell[:firstElemIndex]
 		prefix += mapName
 
-		field.Name = strcase.ToSnake(parsedValueType) + "_map"
+		field.Name = strcase.ToSnake(mapName) + "_map"
 		field.Type = mapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
-		field.Predefined = valueTypeDefined
+		field.Predefined = valueTypePredefined
 		field.MapEntry = &tableaupb.MapEntry{
 			KeyType:   parsedKeyType,
 			ValueType: parsedValueType,
@@ -222,9 +225,6 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Key:    trimmedNameCell,
 			Layout: layout,
 			Prop:   types.ParseProp(rawPropText),
-		}
-		if opts.Nested {
-			field.Options.Name = parsedValueType
 		}
 
 		name := strings.TrimPrefix(nameCell, prefix+"1")
@@ -248,7 +248,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Name = strcase.ToSnake(trimmedNameCell)
 		field.Type = mapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
-		field.Predefined = valueTypeDefined
+		field.Predefined = valueTypePredefined
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,

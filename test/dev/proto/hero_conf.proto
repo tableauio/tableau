@@ -93,7 +93,7 @@ message Hero {
     string desc = 2 [(tableau.field) = {name:"Desc"}];
     int32 kind = 3 [(tableau.field) = {name:"Kind"}];
     int32 group = 4 [(tableau.field) = {name:"Group"}];
-    map<int32, Prop> prop_map = 5 [(tableau.field) = {name:"Property" key:"ID" layout:LAYOUT_HORIZONTAL}];
+    map<int32, Prop> property_map = 5 [(tableau.field) = {name:"Property" key:"ID" layout:LAYOUT_HORIZONTAL}];
     message Prop {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       int64 value = 2 [(tableau.field) = {name:"Value"}];
