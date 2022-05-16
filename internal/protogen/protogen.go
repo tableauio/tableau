@@ -25,7 +25,7 @@ import (
 
 const (
 	App                 = "protogen"
-	Version             = "0.2.2"
+	Version             = "0.3.0"
 	TableauProtoPackage = "tableau"
 
 	defaultTopN = 10 // default top N rows for importer's TopN option
