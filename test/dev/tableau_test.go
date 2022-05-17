@@ -5,18 +5,13 @@ import (
 
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/options"
 	_ "github.com/tableauio/tableau/test/dev/protoconf"
 )
 
-func init() {
-	atom.InitZap("DEBUG")
-}
-
 func Test_GenProto(t *testing.T) {
-	tableau.GenProto(
+	err := tableau.GenProto(
 		"protoconf",
 		"./testdata",
 		"./proto",
@@ -63,10 +58,13 @@ func Test_GenProto(t *testing.T) {
 			}),
 		options.LogLevel("DEBUG"),
 	)
+	if err != nil {
+		t.Errorf("%+v", err)
+	}
 }
 
 func Test_GenJSON(t *testing.T) {
-	tableau.GenConf(
+	err := tableau.GenConf(
 		"protoconf",
 		"./testdata",
 		"./_conf",
@@ -78,6 +76,9 @@ func Test_GenJSON(t *testing.T) {
 			},
 		),
 	)
+	if err != nil {
+		t.Errorf("%+v", err)
+	}
 }
 
 func Test_Excel2CSV(t *testing.T) {
@@ -117,7 +118,7 @@ func Test_CSV2Excel(t *testing.T) {
 }
 
 func Test_Excel2JSON_Select(t *testing.T) {
-	tableau.GenConf(
+	err := tableau.GenConf(
 		"protoconf",
 		"./testdata",
 		"./_conf",
@@ -132,10 +133,13 @@ func Test_Excel2JSON_Select(t *testing.T) {
 		options.Workbook(".\\excel\\hero\\Hero.xlsx"),
 		options.Worksheet("Hero"),
 	)
+	if err != nil {
+		t.Errorf("%+v", err)
+	}
 }
 
 func Test_GenJSON_Subdir(t *testing.T) {
-	tableau.GenConf(
+	err := tableau.GenConf(
 		"protoconf",
 		"./testdata",
 		"./_conf",
@@ -155,4 +159,7 @@ func Test_GenJSON_Subdir(t *testing.T) {
 		),
 		options.LogLevel("DEBUG"),
 	)
+	if err != nil {
+		t.Errorf("%+v", err)
+	}
 }

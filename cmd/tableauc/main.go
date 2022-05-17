@@ -66,7 +66,7 @@ func runCmd(cmd *cobra.Command, args []string) {
 		fmt.Printf("load config(options) failed: %+v\n", err)
 		os.Exit(-1)
 	}
-	atom.InitZap(opts.LogLevel)
+	atom.InitConsoleLog(opts.LogLevel)
 	switch mode {
 	case tableaucConfMode:
 		genProto(args, opts)

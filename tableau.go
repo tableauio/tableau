@@ -1,11 +1,9 @@
 package tableau
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/fatih/color"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
@@ -23,29 +21,21 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) {
 }
 
 // GenProto can convert Excel/CSV/XML files to protoconf files.
-func GenProto(protoPackage, indir, outdir string, setters ...options.Option) {
+func GenProto(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
-	atom.InitZap(opts.LogLevel)
+	atom.InitConsoleLog(opts.LogLevel)
 	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
-	if err := g.Generate(); err != nil {
-		red := color.New(color.FgRed).SprintfFunc()
-		atom.Log.Errorf(red("generate failed: %+v", err))
-		os.Exit(-1)
-	}
+	return g.Generate()
 }
 
 // GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
-func GenConf(protoPackage, indir, outdir string, setters ...options.Option) {
+func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
-	atom.InitZap(opts.LogLevel)
+	atom.InitConsoleLog(opts.LogLevel)
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
-	if err := g.Generate(opts.Workbook, opts.Worksheet); err != nil {
-		red := color.New(color.FgRed).SprintfFunc()
-		atom.Log.Errorf(red("generate failed: %+v", err))
-		os.Exit(-1)
-	}
+	return g.Generate(opts.Workbook, opts.Worksheet)
 }
 
 // Proto2Excel converts protoconf files to excel files (with tableau header).
@@ -65,4 +55,14 @@ func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
 		filepath.Join(indir, relWorkbookPath),
 		importer.Parser(parser),
 	)
+}
+
+// SetLog set the log level and path for debugging.
+// If dir is empty, the log will be written to console,
+// otherwise it will be written to files in dir.
+func SetLog(logLevel, dir string) error {
+	if dir == "" {
+		return atom.InitConsoleLog(logLevel)
+	}
+	return atom.InitFileLog(logLevel, dir, "tableau.log")
 }

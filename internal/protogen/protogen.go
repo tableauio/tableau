@@ -198,7 +198,10 @@ func (gen *Generator) generate(dir string) (err error) {
 		}
 
 		if fmt == format.CSV {
-			bookName, _ := importer.ParseCSVFilenamePattern(entry.Name())
+			bookName, _, err := importer.ParseCSVFilenamePattern(entry.Name())
+			if err != nil {
+				return errors.WithMessagef(err, "failed to parse book name from entiry: %s", entry.Name())
+			}
 			if _, ok := csvBooks[bookName]; ok {
 				// NOTE: multiple CSV files construct the same book.
 				continue
