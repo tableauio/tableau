@@ -77,11 +77,12 @@ message FieldProp {
   //   - number: value range
   //   - repeated: size range of array
   //   - string: count of utf-8 code point
-  string range = 1;      // Local perspective: format: "1,10", "1,~", "~,10"
-  bool unique = 2;       // Local perspective: whether the field's value is unique .
+  string range = 1;      // Local perspective:  format: "1,10", "1,~", "~,10"
+  bool unique = 2;       // Local perspective:  whether the field's value is unique.
   string refer = 3;      // Global perspective: ensure this field is in another message's field range. Example: "XXXConf.ID"
-  bool sequential = 4;   // Local perspective: whether the field's value is sequential.
-  string default = 5;    // default value.
+  // Local perspective: ensure this field's value is a sequence and begins with this value.
+  optional int64 sequence = 4;
+  string default = 5; // default value.
 }
 
 // Layout of list and map.

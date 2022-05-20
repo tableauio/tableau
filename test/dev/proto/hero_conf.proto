@@ -29,12 +29,12 @@ message FirstHListField {
     }
     repeated Cost cost_list = 4 [(tableau.field) = {name:"Cost" layout:LAYOUT_HORIZONTAL}];
     message Cost {
-      Item item = 1 [(tableau.field) = {name:"Item"}];
+      protoconf.Item item = 1 [(tableau.field) = {name:"Item"}];
       string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
     repeated Power power_list = 5 [(tableau.field) = {name:"Power" layout:LAYOUT_HORIZONTAL}];
     message Power {
-      repeated Item ability_list = 1 [(tableau.field) = {name:"Ability" layout:LAYOUT_HORIZONTAL}];
+      repeated protoconf.Item ability_list = 1 [(tableau.field) = {name:"Ability" layout:LAYOUT_HORIZONTAL}];
       string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
     repeated Superpower superpower_list = 6 [(tableau.field) = {name:"Superpower" layout:LAYOUT_HORIZONTAL}];
@@ -98,7 +98,7 @@ message Hero {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       int64 value = 2 [(tableau.field) = {name:"Value"}];
     }
-    Item award_item = 6 [(tableau.field) = {name:"AwardItem"}];
+    protoconf.Item award_item = 6 [(tableau.field) = {name:"AwardItem"}];
   }
 }
 

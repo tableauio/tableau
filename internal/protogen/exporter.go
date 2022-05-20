@@ -71,25 +71,36 @@ func parseCustomImports(dir string, filenames []string) (map[string]string, erro
 	return type2import, nil
 }
 
-func getType2Import(fileDescs []*desc.FileDescriptor) map[string]string {
-	type2import := make(map[string]string)
+type ProtoTypeInfo struct {
+	Fullname       string
+	ParentFilename string
+}
+
+func ParseProtoTypeInfo(fileDescs []*desc.FileDescriptor) map[string]*ProtoTypeInfo {
+	typeInfos := make(map[string]*ProtoTypeInfo)
 	for _, fileDesc := range fileDescs {
 		for _, mt := range fileDesc.GetMessageTypes() {
-			type2import[mt.GetName()] = fileDesc.GetName()
+			typeInfos[mt.GetName()] = &ProtoTypeInfo{
+				Fullname:       mt.GetFullyQualifiedName(),
+				ParentFilename: fileDesc.GetName(),
+			}
 		}
 		for _, mt := range fileDesc.GetEnumTypes() {
-			type2import[mt.GetName()] = fileDesc.GetName()
+			typeInfos[mt.GetName()] = &ProtoTypeInfo{
+				Fullname:       mt.GetFullyQualifiedName(),
+				ParentFilename: fileDesc.GetName(),
+			}
 		}
 	}
-	return type2import
+	return typeInfos
 }
 
 func (x *bookExporter) export() error {
-	// type2import, err := parseCustomImports(x.OutputDir, x.customImports)
+	// typeInfos, err := parseCustomImports(x.OutputDir, x.customImports)
 	// if err != nil {
 	// 	return errors.Wrapf(err, "failed to parse custom imports")
 	// }
-	type2import := getType2Import(x.importFileDescs)
+	typeInfos := ParseProtoTypeInfo(x.importFileDescs)
 
 	// atom.Log.Debug(proto.MarshalTextString(wb))
 	g1 := NewGeneratedBuf()
@@ -115,7 +126,7 @@ func (x *bookExporter) export() error {
 			g:              g3,
 			isLastSheet:    i == len(x.wb.Worksheets)-1,
 			nestedMessages: make(map[string]*tableaupb.Field),
-			type2import:    type2import,
+			typeInfos:      typeInfos,
 			Imports:        make(map[string]bool),
 		}
 		if err := x.export(); err != nil {
@@ -181,7 +192,7 @@ type sheetExporter struct {
 	g              *GeneratedBuf
 	isLastSheet    bool
 	nestedMessages map[string]*tableaupb.Field // type name -> field
-	type2import    map[string]string           // type name -> import path
+	typeInfos      map[string]*ProtoTypeInfo   // type name -> type info
 	Imports        map[string]bool             // import name -> defined
 }
 
@@ -211,24 +222,28 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 		// head += " " // cardinality exists
 		cardTypeSep = " "
 	}
-	x.g.P(printer.Indent(depth), field.Card, cardTypeSep, field.Type, " ", field.Name, " = ", tagid, " [(tableau.field) = {", marshalToText(field.Options), "}];")
-
 	if field.Type == "google.protobuf.Timestamp" {
 		x.Imports[timestampProtoPath] = true
 	} else if field.Type == "google.protobuf.Duration" {
 		x.Imports[durationProtoPath] = true
 	}
 
+	fieldType := field.Type
 	if field.Predefined {
 		// NOTE: import corresponding message's custom defined proto file
-		relatedType := field.Type
 		if field.MapEntry != nil {
-			relatedType = field.MapEntry.ValueType
-		}
-		if path, ok := x.type2import[relatedType]; ok {
-			x.Imports[path] = true
+			if info, ok := x.typeInfos[field.MapEntry.ValueType]; ok {
+				x.Imports[info.ParentFilename] = true
+			}
+		} else {
+			if info, ok := x.typeInfos[field.Type]; ok {
+				x.Imports[info.ParentFilename] = true
+				fieldType = info.Fullname
+			}
 		}
 	}
+
+	x.g.P(printer.Indent(depth), field.Card, cardTypeSep, fieldType, " ", field.Name, " = ", tagid, " [(tableau.field) = {", marshalToText(field.Options), "}];")
 
 	if !field.Predefined && field.Fields != nil {
 		// iff field is a map or list and message type is not imported.

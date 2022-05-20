@@ -63,7 +63,7 @@ func Test_GenProto(t *testing.T) {
 	}
 }
 
-func Test_GenJSON(t *testing.T) {
+func Test_GenConf(t *testing.T) {
 	err := tableau.GenConf(
 		"protoconf",
 		"./testdata",
@@ -72,7 +72,7 @@ func Test_GenJSON(t *testing.T) {
 		options.Output(
 			&options.OutputOption{
 				Pretty:  true,
-				Formats: []format.Format{format.JSON, format.Text},
+				Formats: []format.Format{format.JSON, format.Wire},
 			},
 		),
 	)

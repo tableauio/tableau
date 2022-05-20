@@ -93,3 +93,18 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 	}
 	return true
 }
+
+func CheckSequence(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value, lastValue protoreflect.Value) bool {
+	// if prop == nil || prop.Sequence == nil {
+	// 	return true
+	// }
+	// switch fd.Kind() {
+	// case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
+	// 	protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+	// 	v := value.Int()
+	// case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
+	// 	protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+	// 	return false
+	// }
+	return true
+}

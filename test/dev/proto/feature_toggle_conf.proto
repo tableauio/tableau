@@ -21,7 +21,7 @@ message ToggleCfg {
     string desc = 2 [(tableau.field) = {name:"Desc"}];
     map<int32, Toggle> toggle_map = 3 [(tableau.field) = {name:"Toggle" key:"Id" layout:LAYOUT_VERTICAL}];
     message Toggle {
-      FeatureToggleMacroType id = 1 [(tableau.field) = {name:"Id"}];
+      protoconf.FeatureToggleMacroType id = 1 [(tableau.field) = {name:"Id"}];
       uint32 world_id = 2 [(tableau.field) = {name:"WorldID"}];
       uint32 zone_id = 3 [(tableau.field) = {name:"ZoneID"}];
       google.protobuf.Timestamp open_time = 4 [(tableau.field) = {name:"OpenTime"}];

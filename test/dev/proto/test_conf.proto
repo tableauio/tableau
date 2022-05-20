@@ -34,7 +34,7 @@ message Activity {
           int32 id = 1 [(tableau.field) = {name:"Id" prop:{range:"~,3001"}}];
           int32 num = 2 [(tableau.field) = {name:"Num"}];
         }
-        Duration duration = 4 [(tableau.field) = {name:"Duration"}];
+        protoconf.Duration duration = 4 [(tableau.field) = {name:"Duration"}];
         google.protobuf.Duration timespan = 5 [(tableau.field) = {name:"Timespan"}];
         Task task = 6 [(tableau.field) = {name:"Task"}];
         message Task {
@@ -82,10 +82,10 @@ message Loader {
 
   map<int32, Server> server_map = 1 [(tableau.field) = {name:"Server" key:"Type" layout:LAYOUT_VERTICAL}];
   message Server {
-    ServerType type = 1 [(tableau.field) = {name:"Type"}];
+    protoconf.ServerType type = 1 [(tableau.field) = {name:"Type"}];
     repeated Conf conf_list = 2 [(tableau.field) = {name:"Conf" key:"Type" layout:LAYOUT_VERTICAL}];
     message Conf {
-      ConfType type = 1 [(tableau.field) = {name:"Type"}];
+      protoconf.ConfType type = 1 [(tableau.field) = {name:"Type"}];
       repeated Condition condition_list = 2 [(tableau.field) = {name:"Condition" key:"Type" layout:LAYOUT_VERTICAL}];
       message Condition {
         int32 type = 1 [(tableau.field) = {name:"Type"}];
@@ -93,10 +93,10 @@ message Loader {
       }
       repeated Deploy deploy_list = 3 [(tableau.field) = {name:"Deploy" layout:LAYOUT_HORIZONTAL}];
       message Deploy {
-        ConfType type = 1 [(tableau.field) = {name:"Type"}];
+        protoconf.ConfType type = 1 [(tableau.field) = {name:"Type"}];
         int32 weight = 2 [(tableau.field) = {name:"Weight"}];
       }
-      repeated ConfType ext_types = 4 [(tableau.field) = {name:"ExtTypes" layout:LAYOUT_INCELL}];
+      repeated protoconf.ConfType ext_types = 4 [(tableau.field) = {name:"ExtTypes" layout:LAYOUT_INCELL}];
       map<int32, CloudStrategy> strategy_map = 5 [(tableau.field) = {name:"Strategy" key:"Type" layout:LAYOUT_HORIZONTAL}];
     }
   }
@@ -162,7 +162,7 @@ message Reward {
   message Reward {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
-    repeated Item reward_item_list = 3 [(tableau.field) = {name:"RewardItem" layout:LAYOUT_HORIZONTAL}];
+    repeated protoconf.Item reward_item_list = 3 [(tableau.field) = {name:"RewardItem" layout:LAYOUT_HORIZONTAL}];
     repeated Exchange exchange_list = 4 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
     message Exchange {
       uint32 exchange_id = 1 [(tableau.field) = {name:"ExchangeId"}];

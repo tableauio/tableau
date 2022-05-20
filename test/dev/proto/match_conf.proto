@@ -26,7 +26,7 @@ message MatchCfg {
   }
   map<int32, MatchMode> match_mode_map = 3 [(tableau.field) = {name:"MatchMode" key:"MissionType" layout:LAYOUT_VERTICAL}];
   message MatchMode {
-    MissionType mission_type = 1 [(tableau.field) = {name:"MissionType"}];
+    protoconf.MissionType mission_type = 1 [(tableau.field) = {name:"MissionType"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
     Time time = 3 [(tableau.field) = {name:"Time"}];
     message Time {
@@ -50,17 +50,17 @@ message MatchCfg {
     }
     Strategy strategy = 6 [(tableau.field) = {name:"Strategy"}];
     message Strategy {
-      ENMMatchStrategy strategy_id = 1 [(tableau.field) = {name:"StrategyID"}];
+      protoconf.ENMMatchStrategy strategy_id = 1 [(tableau.field) = {name:"StrategyID"}];
       string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
     Scope scope = 7 [(tableau.field) = {name:"Scope"}];
     message Scope {
-      ENMMatchScope scope_id = 1 [(tableau.field) = {name:"ScopeID"}];
+      protoconf.ENMMatchScope scope_id = 1 [(tableau.field) = {name:"ScopeID"}];
       string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
     repeated Filter filter_list = 8 [(tableau.field) = {name:"Filter" key:"FilterID" layout:LAYOUT_VERTICAL}];
     message Filter {
-      ENMMatchFilter filter_id = 1 [(tableau.field) = {name:"FilterID"}];
+      protoconf.ENMMatchFilter filter_id = 1 [(tableau.field) = {name:"FilterID"}];
       bool open = 2 [(tableau.field) = {name:"Open"}];
       google.protobuf.Duration upd_interval = 3 [(tableau.field) = {name:"UpdInterval"}];
       int32 value = 4 [(tableau.field) = {name:"Value"}];
@@ -81,7 +81,7 @@ message MatchCfg {
       int32 guarantee_ai_ratio = 3 [(tableau.field) = {name:"GuaranteeAIRatio"}];
       repeated AI ai_list = 4 [(tableau.field) = {name:"AI" key:"Type" layout:LAYOUT_VERTICAL}];
       message AI {
-        ENMAIWarmType type = 1 [(tableau.field) = {name:"Type"}];
+        protoconf.ENMAIWarmType type = 1 [(tableau.field) = {name:"Type"}];
         bool is_open = 2 [(tableau.field) = {name:"IsOpen"}];
         google.protobuf.Duration min_time = 3 [(tableau.field) = {name:"MinTime"}];
         google.protobuf.Duration max_time = 4 [(tableau.field) = {name:"MaxTime"}];
@@ -90,7 +90,7 @@ message MatchCfg {
     }
     repeated Random random_list = 10 [(tableau.field) = {name:"Random" key:"MissionType" layout:LAYOUT_VERTICAL}];
     message Random {
-      MissionType mission_type = 1 [(tableau.field) = {name:"MissionType"}];
+      protoconf.MissionType mission_type = 1 [(tableau.field) = {name:"MissionType"}];
     }
     Route route = 11 [(tableau.field) = {name:"Route"}];
     message Route {
