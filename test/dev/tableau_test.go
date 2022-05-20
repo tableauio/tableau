@@ -1,8 +1,13 @@
 package dev
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
@@ -72,12 +77,42 @@ func Test_GenConf(t *testing.T) {
 		options.Output(
 			&options.OutputOption{
 				Pretty:  true,
-				Formats: []format.Format{format.JSON, format.Wire},
+				Formats: []format.Format{format.JSON},
 			},
 		),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
+	}
+}
+
+func Test_CompareJSON(t *testing.T) {
+	newConfDir := "_conf"
+	oldConfDir := "_old_conf"
+	files, err := os.ReadDir(newConfDir)
+	if err != nil {
+		t.Errorf("failed to read dir: %s", newConfDir)
+	}
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".json") {
+			continue
+		}
+		if file.Name() == "Reward.json"{
+			continue
+		}
+		newPath := filepath.Join(newConfDir, file.Name())
+		oldPath := filepath.Join(oldConfDir, file.Name())
+		// var newfile interface{}
+		newData, err := os.ReadFile(newPath)
+		if err != nil {
+			t.Error(err)
+		}
+		oldData, err := os.ReadFile(oldPath)
+		if err != nil {
+			t.Error(err)
+		}
+		fmt.Printf("compare json file: %s\n", file.Name())
+		require.JSONEq(t, string(oldData), string(newData))
 	}
 }
 

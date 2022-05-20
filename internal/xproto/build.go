@@ -68,3 +68,27 @@ func NewFiles(importPaths []string, filenames ...string) (*protoregistry.Files, 
 	}
 	return files, nil
 }
+
+type TypeInfo struct {
+	Fullname       string
+	ParentFilename string
+}
+
+func GetAllTypeInfo(fileDescs []*desc.FileDescriptor) map[string]*TypeInfo {
+	typeInfos := make(map[string]*TypeInfo)
+	for _, fileDesc := range fileDescs {
+		for _, mt := range fileDesc.GetMessageTypes() {
+			typeInfos[mt.GetName()] = &TypeInfo{
+				Fullname:       mt.GetFullyQualifiedName(),
+				ParentFilename: fileDesc.GetName(),
+			}
+		}
+		for _, mt := range fileDesc.GetEnumTypes() {
+			typeInfos[mt.GetName()] = &TypeInfo{
+				Fullname:       mt.GetFullyQualifiedName(),
+				ParentFilename: fileDesc.GetName(),
+			}
+		}
+	}
+	return typeInfos
+}

@@ -18,17 +18,31 @@ message Worksheet {
 }
 
 message Field {
-  FieldOptions options = 1;
-  string card = 2;  // Cardinality of field, value can be: "repeated" or ""
-  string type = 3;
-  string name = 4;
-  //   uint32 tagid = 5;
-  repeated Field fields = 6;  // map or list if fields's length is not 0.
-  MapEntry map_entry = 7;
-  bool predefined = 8;  // This message type was predefined.
+  string type = 1;
+  string full_type = 2;
+  ListEntry list_entry = 3;
+  MapEntry map_entry = 4;
+  // Indicate this field's related type is predefined.
+  // - message: message type
+  // - enum: enum type
+  // - list: list's element type
+  // - map: map's value type
+  bool predefined = 5;
+  string name = 6;
+  FieldOptions options = 7;
+  
+  // This filed is map or list if fields's length is not 0.
+  repeated Field fields = 10;  
+
+  message ListEntry {
+    string elem_type = 1;
+    string full_elem_type = 2;
+  }
+  message MapEntry {
+    string key_type = 1;
+    string value_type = 2;
+    string full_value_type = 3;
+  }    
 }
 
-message MapEntry {
-  string key_type = 1;
-  string value_type = 2;
-}
+

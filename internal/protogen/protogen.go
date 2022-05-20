@@ -44,7 +44,8 @@ type Generator struct {
 	OutputOpt *options.OutputOption
 
 	// internal
-	fileDescs []*desc.FileDescriptor // all parsed imported proto file descriptors.
+	fileDescs []*desc.FileDescriptor      // all parsed imported proto file descriptors.
+	typeInfos map[string]*xproto.TypeInfo // proto full type name -> type info
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -72,6 +73,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		atom.Log.Panic(err)
 	}
 	g.fileDescs = fileDescs
+	g.typeInfos = xproto.GetAllTypeInfo(fileDescs)
 
 	return g
 }
@@ -327,7 +329,7 @@ func (gen *Generator) convert(dir, filename string) error {
 		gen.OutputOpt.ProtoFileOptions,
 		filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir),
 		gen.OutputOpt.ProtoFilenameSuffix,
-		gen.fileDescs,
+		bp.Imports,
 		bp.wb,
 	)
 	if err := be.export(); err != nil {

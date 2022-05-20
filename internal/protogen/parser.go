@@ -24,6 +24,7 @@ type bookParser struct {
 
 	wb       *tableaupb.Workbook
 	withNote bool
+	Imports  map[string]bool // imported proto name -> defined
 }
 
 func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
@@ -47,6 +48,7 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 			Imports:    make(map[string]int32),
 		},
 		withNote: false,
+		Imports:  make(map[string]bool),
 	}
 
 	// custom imports
@@ -125,8 +127,9 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		// NOTE: support enum as map key, convert key type as `int32`.
 		parsedKeyType = "int32"
 	}
-	parsedValueType, valueTypePredefined := p.parseType(valueType)
+	parsedValueType, parsedValueFullType, valueTypePredefined := p.parseType(valueType)
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, parsedValueType)
+	fullMapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, parsedValueFullType)
 
 	isScalarValue := types.IsScalarType(parsedValueType)
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
@@ -173,16 +176,19 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		if opts.Nested {
 			prefix += parsedValueType // add prefix with value type
 		}
+		// auto add suffix "_map" to each cross cell map variable.
 		field.Name = strcase.ToSnake(parsedValueType) + "_map"
 		field.Type = mapType
+		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
 		field.Predefined = valueTypePredefined
 		// TODO: support define custom variable name for predefined map value type.
-		// We can use descriptor to get the first field of predefined map value type, 
+		// We can use descriptor to get the first field of predefined map value type,
 		// use its name option as column name, and then extract the custom variable name.
-		field.MapEntry = &tableaupb.MapEntry{
-			KeyType:   parsedKeyType,
-			ValueType: parsedValueType,
+		field.MapEntry = &tableaupb.Field_MapEntry{
+			KeyType:       parsedKeyType,
+			ValueType:     parsedValueType,
+			FullValueType: parsedValueFullType,
 		}
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
@@ -209,14 +215,16 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		// horizontal list: continuous N columns belong to this list after this cursor.
 		mapName := trimmedNameCell[:firstElemIndex]
 		prefix += mapName
-
+		// auto add suffix "_map" to each cross cell map variable.
 		field.Name = strcase.ToSnake(mapName) + "_map"
 		field.Type = mapType
+		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
 		field.Predefined = valueTypePredefined
-		field.MapEntry = &tableaupb.MapEntry{
-			KeyType:   parsedKeyType,
-			ValueType: parsedValueType,
+		field.MapEntry = &tableaupb.Field_MapEntry{
+			KeyType:       parsedKeyType,
+			ValueType:     parsedValueType,
+			FullValueType: parsedValueFullType,
 		}
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix+"1")
@@ -247,8 +255,14 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		field.Name = strcase.ToSnake(trimmedNameCell)
 		field.Type = mapType
+		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
 		field.Predefined = valueTypePredefined
+		field.MapEntry = &tableaupb.Field_MapEntry{
+			KeyType:       parsedKeyType,
+			ValueType:     parsedValueType,
+			FullValueType: parsedValueFullType,
+		}
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,
@@ -333,14 +347,21 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		// vertical list: all columns belong to this list after this cursor.
 		scalarField := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		proto.Merge(field, scalarField)
-		field.Card = "repeated"
+		field.Type = "repeated " + scalarField.Type
+		field.FullType = "repeated " + scalarField.FullType
+		field.ListEntry = &tableaupb.Field_ListEntry{
+			ElemType:     scalarField.Type,
+			FullElemType: scalarField.FullType,
+		}
+		// auto add suffix "_list" to each cross cell list variable.
 		field.Name = strcase.ToSnake(elemType) + "_list"
+		
 		field.Options.Name = "" // Default, name is empty for vertical list
 		field.Options.Layout = layout
 
 		if opts.Nested {
-			prefix += field.Type // add prefix with value type
-			field.Options.Name = field.Type
+			prefix += field.ListEntry.ElemType // add prefix with value type
+			field.Options.Name = field.ListEntry.ElemType
 		}
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 
@@ -362,7 +383,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				field.Options.Span = tempField.Options.Span
 				field.Options.Name = tempField.Options.Name
 			} else {
-				atom.Log.Panic("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
+				atom.Log.Panicf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
 			}
 		} else {
 			cursor = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
@@ -386,8 +407,15 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 
 		scalarField := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		proto.Merge(field, scalarField)
-		field.Card = "repeated"
+		field.Type = "repeated " + scalarField.Type
+		field.FullType = "repeated " + scalarField.FullType
+		field.ListEntry = &tableaupb.Field_ListEntry{
+			ElemType:     scalarField.Type,
+			FullElemType: scalarField.FullType,
+		}
+		// auto add suffix "_list" to each cross cell list variable.
 		field.Name = strcase.ToSnake(listName) + "_list"
+
 		field.Options.Name = listName // name is empty for vertical list
 		field.Options.Layout = layout
 
@@ -426,7 +454,12 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		// incell list
 		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawPropText, noteCell)
 		proto.Merge(field, scalarField)
-		field.Card = "repeated"
+		field.Type = "repeated " + scalarField.Type
+		field.FullType = "repeated " + scalarField.FullType
+		field.ListEntry = &tableaupb.Field_ListEntry{
+			ElemType:     scalarField.Type,
+			FullElemType: scalarField.FullType,
+		}
 		field.Options.Layout = layout
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		atom.Log.Panicf("should not reach default layout: %s", layout)
@@ -531,11 +564,12 @@ func (p *bookParser) parseScalarField(name, typ, note string) *tableaupb.Field {
 			rawPropText = splits[1]
 		}
 	}
-	typ, predefined := p.parseType(typ)
+	typeName, fullTypeName, predefined := p.parseType(typ)
 
 	return &tableaupb.Field{
-		Name:        strcase.ToSnake(name),
-		Type:        typ,
+		Name:       strcase.ToSnake(name),
+		Type:       typeName,
+		FullType:   fullTypeName,
 		Predefined: predefined,
 		Options: &tableaupb.FieldOptions{
 			Name: name,
@@ -552,21 +586,33 @@ func (p *bookParser) genNote(note string) string {
 	return ""
 }
 
-func (p *bookParser) parseType(typ string) (string, bool) {
-	if strings.HasPrefix(typ, ".") {
+func (p *bookParser) parseType(rawType string) (typeName string, fullTypeName string, predefined bool) {
+	if strings.HasPrefix(rawType, ".") {
 		// This messge type is defined in imported proto
-		typ = strings.TrimPrefix(typ, ".")
-		return typ, true
+		typeName = strings.TrimPrefix(rawType, ".")
+		if typeInfo, ok := p.gen.typeInfos[typeName]; ok {
+			p.Imports[typeInfo.ParentFilename] = true
+			fullTypeName = typeInfo.Fullname
+		} else {
+			atom.Log.Panicf("predefined type not found: %s", rawType)
+		}
+		predefined = true
+		return
 	}
-	switch typ {
+	switch rawType {
 	case "datetime", "date":
-		typ = "google.protobuf.Timestamp"
+		p.Imports[timestampProtoPath] = true
+		typeName, fullTypeName = "google.protobuf.Timestamp", "google.protobuf.Timestamp"
+		predefined = true
 	case "duration", "time":
-		typ = "google.protobuf.Duration"
+		p.Imports[durationProtoPath] = true
+		typeName, fullTypeName = "google.protobuf.Duration", "google.protobuf.Duration"
+		predefined = true
 	default:
-		return typ, false
+		typeName, fullTypeName = rawType, rawType
+		predefined = false
 	}
-	return typ, false
+	return
 }
 
 func ParseIncellStruct(elemType string) []string {
