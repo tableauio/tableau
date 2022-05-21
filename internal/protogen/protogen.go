@@ -25,11 +25,15 @@ import (
 
 const (
 	App                 = "protogen"
-	Version             = "0.3.0"
+	Version             = "0.3.1"
 	TableauProtoPackage = "tableau"
 
 	defaultTopN = 10 // default top N rows for importer's TopN option
 )
+
+func AppVersion() string {
+	return fmt.Sprintf("%s v%s", App, Version)
+}
 
 type Generator struct {
 	ProtoPackage string // protobuf package name.

@@ -16,17 +16,19 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const version = "0.3.1"
 const (
-	tableaucConfMode  = "conf"
-	tableaucProtoMode = "proto"
+	ModeDefault = "default" // generate both proto and conf files
+	ModeProto   = "proto"
+	ModeConf    = "conf"
 )
 
 var (
-	protoPackage       string
-	indir              string
-	outdir             string
-	mode               string
-	protoFiles         []string
+	protoPackage string
+	indir        string
+	outdir       string
+	mode         string
+	// protoFiles         []string
 	configPath         string
 	needOutputConfTmpl bool
 )
@@ -34,7 +36,7 @@ var (
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:     "tableauc [FILE]...",
-		Version: protogen.Version,
+		Version: genVersion(),
 		Short:   "Tableauc is a modern configuration converter",
 		Long:    `Complete documentation is available at https://tableauio.github.io`,
 		Run:     runCmd,
@@ -43,8 +45,12 @@ func main() {
 	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "Proto package name")
 	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "Input directory, default is current directory")
 	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "Output directory, default is current directory")
-	rootCmd.Flags().StringSliceVarP(&protoFiles, "proto-files", "", nil, "Specify proto files to generate configurations. Glob pattern is supported")
-	rootCmd.Flags().StringVarP(&mode, "mode", "m", "conf", "Available mode: conf, proto")
+	// rootCmd.Flags().StringSliceVarP(&protoFiles, "proto-files", "", nil, "Specify proto files to generate configurations. Glob pattern is supported")
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `Available mode: default, proto, and conf. 
+- default: generate both proto and conf files.
+- proto: generate proto files only.
+- conf: generate conf files only.
+`)
 	rootCmd.Flags().StringVarP(&configPath, "config", "c", "./config.yaml", "Config file path")
 	rootCmd.Flags().BoolVarP(&needOutputConfTmpl, "output-config-template", "t", false, "Output config template")
 
@@ -68,11 +74,13 @@ func runCmd(cmd *cobra.Command, args []string) {
 	}
 	atom.InitConsoleLog(opts.LogLevel)
 	switch mode {
-	case tableaucConfMode:
+	case ModeDefault:
 		genProto(args, opts)
 		genConf(args, opts)
-	case tableaucProtoMode:
+	case ModeProto:
 		genProto(args, opts)
+	case ModeConf:
+		genConf(args, opts)
 	default:
 		fmt.Printf("unknown mode: %s\n", mode)
 		os.Exit(-1)
@@ -138,4 +146,10 @@ func outputConfTmpl() {
 		os.Exit(-1)
 	}
 	fmt.Println(string(d))
+}
+
+func genVersion() string {
+	ver := version
+	ver += fmt.Sprintf(" (%s)", protogen.AppVersion())
+	return ver
 }
