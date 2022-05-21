@@ -49,7 +49,7 @@ message SheetMeta {
   // Generated APIs are:
   //
   // C++:
-  // - std::vector<const STRUCT_TYPE*> Find<IndexName>(INDEX_TYPE index) const;
+  // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
   repeated string index = 51 [(tableau.field) = { name:"Index" optional:true layout:LAYOUT_INCELL}];
 }

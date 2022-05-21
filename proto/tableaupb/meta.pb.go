@@ -106,7 +106,7 @@ type SheetMeta struct {
 	// Generated APIs are:
 	//
 	// C++:
-	// - std::vector<const STRUCT_TYPE*> Find<IndexName>(INDEX_TYPE index) const;
+	// - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
 	// - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
 	Index []string `protobuf:"bytes,51,rep,name=index,proto3" json:"index,omitempty"`
 }

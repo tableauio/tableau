@@ -86,7 +86,8 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
-
+	
+	atom.Log.Debugf("count of proto files with package name %s is %s", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {

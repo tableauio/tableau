@@ -294,13 +294,26 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	rawPropText := strings.TrimSpace(matches[3])
 
 	listElemSpanInnerCell, isScalarElement := false, false
+	pureElemTypeName := originalElemType
 	elemType := originalElemType
 	if elemType == "" {
 		listElemSpanInnerCell = true
 		isScalarElement = true
 		elemType = colType
+		pureElemTypeName = colType
 		if matches := types.MatchStruct(colType); len(matches) > 0 {
-			elemType = matches[2]
+			structType := strings.TrimSpace(matches[1])
+			colType := strings.TrimSpace(matches[2])
+			elemType = colType
+			pureElemTypeName = colType
+			// rawPropText := strings.TrimSpace(matches[3])
+			if colType == "" {
+				// incell predefined struct
+				listElemSpanInnerCell = true
+				elemType = structType
+				typeName, _, _ := p.parseType(structType)
+				pureElemTypeName = typeName
+			}
 			isScalarElement = false
 		}
 	}
@@ -354,8 +367,8 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			FullElemType: scalarField.FullType,
 		}
 		// auto add suffix "_list" to each cross cell list variable.
-		field.Name = strcase.ToSnake(elemType) + "_list"
-		
+		field.Name = strcase.ToSnake(pureElemTypeName) + "_list"
+
 		field.Options.Name = "" // Default, name is empty for vertical list
 		field.Options.Layout = layout
 
@@ -484,8 +497,12 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	elemType := strings.TrimSpace(matches[1])
 	colType := strings.TrimSpace(matches[2])
 	rawPropText := strings.TrimSpace(matches[3])
-
-	if fieldPairs := ParseIncellStruct(elemType); fieldPairs != nil {
+	if colType == "" {
+		// incell predefined struct
+		scalarField := p.parseScalarField(trimmedNameCell, elemType, noteCell)
+		proto.Merge(field, scalarField)
+		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
+	} else if fieldPairs := ParseIncellStruct(elemType); fieldPairs != nil {
 		scalarField := p.parseScalarField(trimmedNameCell, colType, noteCell)
 		proto.Merge(field, scalarField)
 		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
@@ -594,7 +611,7 @@ func (p *bookParser) parseType(rawType string) (typeName string, fullTypeName st
 			p.Imports[typeInfo.ParentFilename] = true
 			fullTypeName = typeInfo.Fullname
 		} else {
-			atom.Log.Panicf("predefined type not found: %s", rawType)
+			atom.Log.Panicf("predefined type not found: %s, %v", typeName, p.gen.typeInfos)
 		}
 		predefined = true
 		return

@@ -56,6 +56,8 @@ func NewFiles(importPaths []string, filenames ...string) (*protoregistry.Files, 
 		}
 	}
 
+	atom.Log.Debugf("proto files: %v", protoFiles)
+
 	descFileDescriptors, err := ParseProtos(importPaths, protoFiles...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse protos")

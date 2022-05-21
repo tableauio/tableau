@@ -9,7 +9,7 @@ import (
 )
 
 func Test_GenJSON(t *testing.T) {
-	tableau.GenConf(
+	err := tableau.GenConf(
 		"protoconf",
 		"../testdata",
 		"../_conf",
@@ -34,10 +34,13 @@ func Test_GenJSON(t *testing.T) {
 		),
 		options.LogLevel("DEBUG"),
 	)
+	if err != nil {
+		t.Errorf("%+v", err)
+	}
 }
 
 func Test_Generate(t *testing.T) {
-	tableau.Generate(
+	err := tableau.Generate(
 		"protoconf",
 		"../testdata",
 		"./_out",
@@ -88,4 +91,7 @@ func Test_Generate(t *testing.T) {
 			}),
 		options.LogLevel("DEBUG"),
 	)
+	if err != nil {
+		t.Errorf("%+v", err)
+	}
 }

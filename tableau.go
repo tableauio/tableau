@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
@@ -15,9 +16,14 @@ import (
 
 // Generate can convert Excel/CSV/XML files to protoconf files and
 // different configuration files: JSON, Text, and Wire at the same time.
-func Generate(protoPackage, indir, outdir string, setters ...options.Option) {
-	GenProto(protoPackage, indir, outdir, setters...)
-	GenConf(protoPackage, indir, outdir, setters...)
+func Generate(protoPackage, indir, outdir string, setters ...options.Option) error {
+	if err := GenProto(protoPackage, indir, outdir, setters...); err != nil {
+		return errors.WithMessagef(err, "failed to generate proto files")
+	}
+	if err := GenConf(protoPackage, indir, outdir, setters...); err != nil {
+		return errors.WithMessagef(err, "failed to generate conf files")
+	}
+	return nil
 }
 
 // GenProto can convert Excel/CSV/XML files to protoconf files.

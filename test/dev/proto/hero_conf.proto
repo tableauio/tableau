@@ -67,6 +67,8 @@ message FirstHListField {
       int32 id = 1 [(tableau.field) = {name:"Id"}];
       string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
+    protoconf.Item special_award = 13 [(tableau.field) = {name:"SpecialAward" span:SPAN_INNER_CELL}];
+    repeated protoconf.Item bobus_item_list = 14 [(tableau.field) = {name:"BobusItem" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
   }
 }
 

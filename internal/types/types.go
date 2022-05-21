@@ -19,16 +19,20 @@ var propRegexp *regexp.Regexp
 
 var boringIntegerRegexp *regexp.Regexp
 
-const rawPropRegex = `(\|\{.+\})?` // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
-const listFirstFieldType = `([0-9A-Za-z,_>< \[\]\.\{\}]+)`
+// refer: https://github.com/google/re2/wiki/Syntax
+const rawPropGroup = `(\|\{.+\})?` // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
+const typeCharSet = `[0-9A-Za-z,_>< \[\]\.\{\}]`
+const typeGroup = `(` + typeCharSet + `+)`
+const looseTypeGroup = typeGroup + `?` // `x?`: zero or one x, prefer one
+const elemTypeGroup = `(` + typeCharSet + `*?)`
 
 func init() {
-	mapRegexp = regexp.MustCompile(`^map<(.+),(.+)>` + rawPropRegex)                  // e.g.: map<uint32,Type>
-	listRegexp = regexp.MustCompile(`^\[(.*?)\]` + listFirstFieldType + rawPropRegex) // e.g.: [Type]uint32
-	keyedListRegexp = regexp.MustCompile(`^\[(.*)\]<(.+)>` + rawPropRegex)            // e.g.: [Type]<uint32>
-	structRegexp = regexp.MustCompile(`^\{(.+)\}(.+)` + rawPropRegex)                 // e.g.: {Type}uint32
-	enumRegexp = regexp.MustCompile(`^enum<(.+)>` + rawPropRegex)                     // e.g.: enum<Type>
-	propRegexp = regexp.MustCompile(`\|?\{(.+)\}`)                                    // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
+	mapRegexp = regexp.MustCompile(`^map<` + typeGroup + `,` + typeGroup + `>` + rawPropGroup)           // e.g.: map<uint32,Type>
+	listRegexp = regexp.MustCompile(`^\[` + elemTypeGroup + `\]` + typeGroup + rawPropGroup)             // e.g.: [Type]uint32
+	keyedListRegexp = regexp.MustCompile(`^\[` + elemTypeGroup + `\]<` + typeGroup + `>` + rawPropGroup) // e.g.: [Type]<uint32>
+	structRegexp = regexp.MustCompile(`^\{` + typeGroup + `\}` + looseTypeGroup + rawPropGroup)          // e.g.: {Type}uint32
+	enumRegexp = regexp.MustCompile(`^enum<` + typeGroup + `>` + rawPropGroup)                           // e.g.: enum<Type>
+	propRegexp = regexp.MustCompile(`\|?\{(.+)\}`)                                                       // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
 
 	// trim float to integer after(include) dot, e.g: 0.0, 1.0, 1.00 ...
 	// refer: https://stackoverflow.com/questions/638565/parsing-scientific-notation-sensibly
