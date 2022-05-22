@@ -9,7 +9,6 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -49,7 +48,7 @@ func init() {
 	DefaultDurationValue = pref.ValueOf(du.ProtoReflect())
 }
 
-func ParseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, locationName string) (v protoreflect.Value, present bool, err error) {
+func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string) (v pref.Value, present bool, err error) {
 	purifyInteger := func(s string) string {
 		// trim integer boring suffix matched by regexp `.0*$`
 		if matches := types.MatchBoringInteger(s); matches != nil {
@@ -60,7 +59,7 @@ func ParseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, locationN
 
 	value := strings.TrimSpace(rawValue)
 	switch fd.Kind() {
-	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
+	case pref.Int32Kind, pref.Sint32Kind, pref.Sfixed32Kind:
 		if value == "" {
 			return DefaultInt32Value, false, nil
 		}
@@ -70,61 +69,61 @@ func ParseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, locationN
 		// - decimal fraction: 1.0
 		// - scientific notation: 1.0000001e7
 		val, err := strconv.ParseFloat(value, 64)
-		return protoreflect.ValueOf(int32(val)), true, errors.WithStack(err)
+		return pref.ValueOf(int32(val)), true, errors.WithStack(err)
 
-	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
+	case pref.Uint32Kind, pref.Fixed32Kind:
 		if value == "" {
 			return DefaultUint32Value, false, nil
 		}
 		// val, err := strconv.ParseUint(value, 10, 32)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return protoreflect.ValueOf(uint32(val)), true, errors.WithStack(err)
-	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return pref.ValueOf(uint32(val)), true, errors.WithStack(err)
+	case pref.Int64Kind, pref.Sint64Kind, pref.Sfixed64Kind:
 		if value == "" {
 			return DefaultInt64Value, false, nil
 		}
 		// val, err := strconv.ParseInt(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return protoreflect.ValueOf(int64(val)), true, errors.WithStack(err)
-	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return pref.ValueOf(int64(val)), true, errors.WithStack(err)
+	case pref.Uint64Kind, pref.Fixed64Kind:
 		if value == "" {
 			return DefaultUint64Value, false, nil
 		}
 		// val, err := strconv.ParseUint(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return protoreflect.ValueOf(uint64(val)), true, errors.WithStack(err)
-	case protoreflect.BoolKind:
+		return pref.ValueOf(uint64(val)), true, errors.WithStack(err)
+	case pref.BoolKind:
 		if value == "" {
 			return DefaultBoolValue, false, nil
 		}
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseBool(purifyInteger(value))
-		return protoreflect.ValueOf(val), true, errors.WithStack(err)
+		return pref.ValueOf(val), true, errors.WithStack(err)
 
-	case protoreflect.FloatKind:
+	case pref.FloatKind:
 		if value == "" {
 			return DefaultFloat32Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 32)
-		return protoreflect.ValueOf(float32(val)), true, errors.WithStack(err)
+		return pref.ValueOf(float32(val)), true, errors.WithStack(err)
 
-	case protoreflect.DoubleKind:
+	case pref.DoubleKind:
 		if value == "" {
 			return DefaultFloat64Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 64)
-		return protoreflect.ValueOf(float64(val)), true, errors.WithStack(err)
+		return pref.ValueOf(float64(val)), true, errors.WithStack(err)
 
-	case protoreflect.StringKind:
-		return protoreflect.ValueOf(rawValue), rawValue != "", nil
-	case protoreflect.BytesKind:
-		return protoreflect.ValueOf([]byte(rawValue)), rawValue != "", nil
-	case protoreflect.EnumKind:
+	case pref.StringKind:
+		return pref.ValueOf(rawValue), rawValue != "", nil
+	case pref.BytesKind:
+		return pref.ValueOf([]byte(rawValue)), rawValue != "", nil
+	case pref.EnumKind:
 		return parseEnumValue(fd, value)
-	case protoreflect.MessageKind:
+	case pref.MessageKind:
 		msgName := fd.Message().FullName()
 		switch msgName {
 		case "google.protobuf.Timestamp":
@@ -142,7 +141,7 @@ func ParseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, locationN
 			if err := ts.CheckValid(); err != nil {
 				return DefaultTimestampValue, true, errors.WithMessagef(err, "invalid timestamp: %v", value)
 			}
-			return protoreflect.ValueOf(ts.ProtoReflect()), true, nil
+			return pref.ValueOf(ts.ProtoReflect()), true, nil
 
 		case "google.protobuf.Duration":
 			if value == "" {
@@ -156,20 +155,20 @@ func ParseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, locationN
 			if err := du.CheckValid(); err != nil {
 				return DefaultDurationValue, true, errors.WithMessagef(err, "invalid duration: %v", value)
 			}
-			return protoreflect.ValueOf(du.ProtoReflect()), true, nil
+			return pref.ValueOf(du.ProtoReflect()), true, nil
 
 		default:
-			return protoreflect.Value{}, false, errors.Errorf("not supported message type: %s", msgName)
+			return pref.Value{}, false, errors.Errorf("not supported message type: %s", msgName)
 		}
-	// case protoreflect.GroupKind:
+	// case pref.GroupKind:
 	// 	atom.Log.Panicf("not supported key type: %s", fd.Kind().String())
-	// 	return protoreflect.Value{}
+	// 	return pref.Value{}
 	default:
-		return protoreflect.Value{}, false, errors.Errorf("not supported scalar type: %s", fd.Kind().String())
+		return pref.Value{}, false, errors.Errorf("not supported scalar type: %s", fd.Kind().String())
 	}
 }
 
-func parseEnumValue(fd protoreflect.FieldDescriptor, rawValue string) (v protoreflect.Value, present bool, err error) {
+func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, present bool, err error) {
 	// default enum value
 	value := strings.TrimSpace(rawValue)
 	if value == "" {
@@ -183,17 +182,17 @@ func parseEnumValue(fd protoreflect.FieldDescriptor, rawValue string) (v protore
 	// Keep compatibility with excel number format.
 	val, err := strconv.ParseFloat(value, 64)
 	if err == nil {
-		evd := ed.Values().ByNumber(protoreflect.EnumNumber(int32(val)))
+		evd := ed.Values().ByNumber(pref.EnumNumber(int32(val)))
 		if evd != nil {
-			return protoreflect.ValueOfEnum(evd.Number()), true, nil
+			return pref.ValueOfEnum(evd.Number()), true, nil
 		}
 		return DefaultEnumValue, true, errors.Errorf("enum: enum value name not defined: %v", value)
 	}
 
 	// try enum value name
-	evd := ed.Values().ByName(protoreflect.Name(value))
+	evd := ed.Values().ByName(pref.Name(value))
 	if evd != nil {
-		return protoreflect.ValueOfEnum(evd.Number()), true, nil
+		return pref.ValueOfEnum(evd.Number()), true, nil
 	}
 	// try enum value alias name
 	for i := 0; i < ed.Values().Len(); i++ {
@@ -203,7 +202,7 @@ func parseEnumValue(fd protoreflect.FieldDescriptor, rawValue string) (v protore
 		evalueOpts := proto.GetExtension(opts, tableaupb.E_Evalue).(*tableaupb.EnumValueOptions)
 		if evalueOpts != nil && evalueOpts.Name == value {
 			// alias name found and return
-			return protoreflect.ValueOfEnum(evd.Number()), true, nil
+			return pref.ValueOfEnum(evd.Number()), true, nil
 		}
 	}
 	return DefaultEnumValue, true, errors.Errorf("enum: enum(%s) value options not found: %v", ed.FullName(), value)

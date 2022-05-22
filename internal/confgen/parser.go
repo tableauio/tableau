@@ -11,7 +11,6 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -279,7 +278,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if cell == nil {
 				return errors.Errorf("%s|vertical map: key column not found", rc.CellDebugString(keyColName))
 			}
-			newMapKey, err := sp.parseMapKey(field.opts, reflectMap, cell.Data)
+			newMapKey, err := sp.parseMapKey(field, reflectMap, cell.Data)
 			if err != nil {
 				return errors.WithMessagef(err, "%s|vertical map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
 			}
@@ -298,7 +297,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if err != nil {
 				return errors.WithMessagef(err, "%s|vertical map: failed to parse field options with prefix: %s", rc.CellDebugString(keyColName), prefix+field.opts.Name)
 			}
-			if !types.EqualMessage(emptyMapValue, newMapValue) {
+			if !xproto.EqualMessage(emptyMapValue, newMapValue) {
 				reflectMap.Set(newMapKey, newMapValue)
 			}
 		} else {
@@ -364,7 +363,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				if cell == nil {
 					return errors.Errorf("%s|horizontal map: key column not found", rc.CellDebugString(keyColName))
 				}
-				newMapKey, err := sp.parseMapKey(field.opts, reflectMap, cell.Data)
+				newMapKey, err := sp.parseMapKey(field, reflectMap, cell.Data)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|horizontal map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
 				}
@@ -383,7 +382,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				if err != nil {
 					return errors.WithMessagef(err, "%s|horizontal map: failed to parse field options with prefix: %s", rc.CellDebugString(keyColName), prefix+field.opts.Name+strconv.Itoa(i))
 				}
-				if !types.EqualMessage(emptyMapValue, newMapValue) {
+				if !xproto.EqualMessage(emptyMapValue, newMapValue) {
 					reflectMap.Set(newMapKey, newMapValue)
 				}
 			}
@@ -440,7 +439,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	return nil
 }
 
-func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap protoreflect.Map, cellData string) (protoreflect.MapKey, error) {
+func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, cellData string) (protoreflect.MapKey, error) {
 	var mapKey protoreflect.MapKey
 	var keyFd protoreflect.FieldDescriptor
 
@@ -450,14 +449,14 @@ func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap prot
 		fdOpts := fd.Options().(*descriptorpb.FieldOptions)
 		if fdOpts != nil {
 			tableauFieldOpts := proto.GetExtension(fdOpts, tableaupb.E_Field).(*tableaupb.FieldOptions)
-			if tableauFieldOpts != nil && tableauFieldOpts.Name == opts.Key {
+			if tableauFieldOpts != nil && tableauFieldOpts.Name == field.opts.Key {
 				keyFd = fd
 				break
 			}
 		}
 	}
 	if keyFd == nil {
-		return mapKey, errors.Errorf("opts.Key %s not found in proto definition", opts.Key)
+		return mapKey, errors.Errorf("opts.Key %s not found in proto definition", field.opts.Key)
 	}
 
 	if keyFd.Kind() == protoreflect.EnumKind {
@@ -473,10 +472,13 @@ func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap prot
 			return mapKey, errors.WithMessagef(err, "failed to parse key: %s", cellData)
 		}
 		// check range: key
-		if !prop.InRange(opts.Prop, keyFd, fieldValue) {
-			return mapKey, errors.Errorf("%s out of range [%s]", cellData, opts.Prop.Range)
+		if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
+			return mapKey, errors.Errorf("%s out of range [%s]", cellData, field.opts.Prop.Range)
 		}
 		mapKey = fieldValue.MapKey()
+	}
+	if !prop.CheckMapKeySequence(field.opts.Prop, keyFd.Kind(), mapKey, reflectMap) {
+		return mapKey, errors.Errorf("prop.sequence|map key %s is not the initial or next sequence number", cellData)
 	}
 	return mapKey, nil
 }
@@ -519,7 +521,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					if err != nil {
 						return errors.Errorf("%s|vertical keyed list: failed to parse field value: %s", rc.CellDebugString(keyColName), cell.Data)
 					}
-					if types.EqualValue(fd, item.Message().Get(fd), key) {
+					if xproto.EqualValue(fd, item.Message().Get(fd), key) {
 						listItemValue = item
 						keyedListItemExisted = true
 						break
@@ -529,7 +531,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if err != nil {
 					return errors.WithMessagef(err, "...|vertical list: failed to parse field options with prefix: %s", prefix+field.opts.Name)
 				}
-				if !keyedListItemExisted && !types.EqualMessage(emptyListValue, listItemValue) {
+				if !keyedListItemExisted && !xproto.EqualMessage(emptyListValue, listItemValue) {
 					reflectList.Append(listItemValue)
 					// if prefix+field.opts.Name == "ServerConfCondition" {
 					// 	atom.Log.Debugf("append list item: %+v", listItemValue)
@@ -553,7 +555,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						return errors.WithMessagef(err, "...|vertical list: failed to parse field options with prefix: %s", prefix+field.opts.Name)
 					}
 				}
-				if !types.EqualMessage(emptyListValue, newListValue) {
+				if !xproto.EqualMessage(emptyListValue, newListValue) {
 					reflectList.Append(newListValue)
 				}
 			}
@@ -597,7 +599,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if err != nil {
 					return errors.WithMessagef(err, "...|horizontal list: failed to parse field options with prefix: %s", prefix+field.opts.Name+strconv.Itoa(i))
 				}
-				if !types.EqualMessage(emptyListValue, newListValue) {
+				if !xproto.EqualMessage(emptyListValue, newListValue) {
 					reflectList.Append(newListValue)
 				}
 			} else {
@@ -716,7 +718,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 	}
 
 	emptyValue := msg.NewField(field.fd)
-	if !types.EqualMessage(emptyValue, structValue) {
+	if !xproto.EqualMessage(emptyValue, structValue) {
 		// only set field if it is not empty
 		msg.Set(field.fd, structValue)
 	}
@@ -739,7 +741,7 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 		if err != nil {
 			return errors.WithMessagef(err, "incell struct(%s): failed to parse field value: %s", cellData, incell)
 		}
-		if fd.HasPresence() && !present{
+		if fd.HasPresence() && !present {
 			continue
 		}
 		structValue.Message().Set(fd, value)

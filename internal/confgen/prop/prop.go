@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -94,19 +95,53 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 	return true
 }
 
-func CheckSequence(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value, lastValue protoreflect.Value) bool {
+func CheckMapKeySequence(prop *tableaupb.FieldProp, kind protoreflect.Kind, mapkey protoreflect.MapKey, prefMap protoreflect.Map) bool {
 	if prop == nil || prop.Sequence == nil {
 		return true
 	}
-	switch fd.Kind() {
-	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
-		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return value.Int() == lastValue.Int()+1
-	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
-		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		return value.Uint() == lastValue.Uint()+1
-	default:
-		atom.Log.Errorf("not supported sequence kind: %s", fd.Kind())
+	if prefMap.Len() == 0 {
+		val, err := convertValueToInt64(kind, mapkey.Value())
+		if err != nil {
+			atom.Log.Errorf("convert map key to int64 failed: %s", err)
+			return false
+		}
+		return prop.GetSequence() == val
+	}
+	prevValue, err := getPrevValueOfSequence(kind, mapkey.Value())
+	if err != nil {
+		atom.Log.Errorf("get prev value of sequence error: %s", err)
 		return false
 	}
+	return prefMap.Has(prevValue.MapKey())
+}
+
+func convertValueToInt64(kind protoreflect.Kind, value protoreflect.Value) (int64, error) {
+	switch kind {
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
+		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return value.Int(), nil
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
+		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		// NOTE: as sequence type is int64, so convert to int64 even if the value is uint64.
+		return int64(value.Uint()), nil
+	default:
+		return 0, errors.Errorf("not supported sequence kind: %s", kind)
+	}
+}
+
+func getPrevValueOfSequence(kind protoreflect.Kind, value protoreflect.Value) (protoreflect.Value, error) {
+	var prevValue protoreflect.Value
+	switch kind {
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
+		prevValue = protoreflect.ValueOfInt32(int32(value.Int()) - 1)
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		prevValue = protoreflect.ValueOfInt64(value.Int() - 1)
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
+		prevValue = protoreflect.ValueOfUint32(uint32(value.Uint() - 1))
+	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		prevValue = protoreflect.ValueOfUint64(value.Uint() - 1)
+	default:
+		return prevValue, errors.Errorf("not supported sequence kind: %s", kind)
+	}
+	return prevValue, nil
 }
