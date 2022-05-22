@@ -8,46 +8,40 @@ import (
 	pref "google.golang.org/protobuf/reflect/protoreflect"
 )
 
-// equalMessage reports whether two messages are equal.
-// If two messages marshal to the same bytes under deterministic serialization,
-// then Equal is guaranteed to report true.
+// EqualMessage reports whether two messages are equal.
 func EqualMessage(v1, v2 pref.Value) bool {
-	if proto.Equal(v1.Message().Interface(), v2.Message().Interface()) {
-		// atom.Log.Debug("empty message exists")
-		return true
-	}
-	return false
+	return proto.Equal(v1.Message().Interface(), v2.Message().Interface())
 }
 
-// equalValue compares two singular values.
+// EqualValue compares two singular values.
 // NOTE(wenchy): borrowed from https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/proto/equal.go#L113
-func EqualValue(fd pref.FieldDescriptor, x, y pref.Value) bool {
+func EqualValue(fd pref.FieldDescriptor, v1, v2 pref.Value) bool {
 	switch fd.Kind() {
 	case pref.BoolKind:
-		return x.Bool() == y.Bool()
+		return v1.Bool() == v2.Bool()
 	case pref.EnumKind:
-		return x.Enum() == y.Enum()
+		return v1.Enum() == v2.Enum()
 	case pref.Int32Kind, pref.Sint32Kind,
 		pref.Int64Kind, pref.Sint64Kind,
 		pref.Sfixed32Kind, pref.Sfixed64Kind:
-		return x.Int() == y.Int()
+		return v1.Int() == v2.Int()
 	case pref.Uint32Kind, pref.Uint64Kind,
 		pref.Fixed32Kind, pref.Fixed64Kind:
-		return x.Uint() == y.Uint()
+		return v1.Uint() == v2.Uint()
 	case pref.FloatKind, pref.DoubleKind:
-		fx := x.Float()
-		fy := y.Float()
+		fx := v1.Float()
+		fy := v2.Float()
 		if math.IsNaN(fx) || math.IsNaN(fy) {
 			return math.IsNaN(fx) && math.IsNaN(fy)
 		}
 		return fx == fy
 	case pref.StringKind:
-		return x.String() == y.String()
+		return v1.String() == v2.String()
 	case pref.BytesKind:
-		return bytes.Equal(x.Bytes(), y.Bytes())
-	// case pref.MessageKind, pref.GroupKind:
-	// 	return equalMessage(x.Message(), y.Message())
+		return bytes.Equal(v1.Bytes(), v2.Bytes())
+	case pref.MessageKind, pref.GroupKind:
+		return EqualMessage(v1, v2)
 	default:
-		return x.Interface() == y.Interface()
+		return v1.Interface() == v2.Interface()
 	}
 }

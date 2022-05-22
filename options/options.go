@@ -110,7 +110,11 @@ type OutputOption struct {
 	//  ║ {}    │ map fields                 ║
 	//  ╚═══════╧════════════════════════════╝
 	//
-	// Default: true.
+	// NOTE: worksheet with FieldPresence set as true ignore this option.
+	// 
+	// Refer: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
+	//
+	// Default: false.
 	EmitUnpopulated bool `yaml:"emitUnpopulated"`
 
 	// Only for proto file options. Default: nil.
@@ -186,7 +190,6 @@ func NewDefault() *Options {
 			ProtoFilenameWithSubdirPrefix: true,
 			Formats:                       nil,
 			Pretty:                        true,
-			EmitUnpopulated:               true,
 		},
 		Input: &InputOption{
 			Formats: nil,

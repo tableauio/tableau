@@ -10,6 +10,7 @@ import (
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/printer"
+	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -146,7 +147,11 @@ func (x *sheetExporter) export() error {
 }
 
 func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field, prefix string) error {
-	x.g.P(printer.Indent(depth), field.FullType, " ", field.Name, " = ", tagid, " [(tableau.field) = {", marshalToText(field.Options), "}];")
+	label := ""
+	if x.ws.Options != nil && x.ws.Options.FieldPresence && types.IsScalarType(field.FullType) {
+		label = "optional "
+	}
+	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " [(tableau.field) = {", marshalToText(field.Options), "}];")
 
 	if !field.Predefined && field.Fields != nil {
 		// iff field is a map or list and message type is not imported.

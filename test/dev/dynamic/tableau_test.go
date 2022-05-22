@@ -8,7 +8,7 @@ import (
 	"github.com/tableauio/tableau/options"
 )
 
-func Test_GenJSON(t *testing.T) {
+func Test_GenConf(t *testing.T) {
 	err := tableau.GenConf(
 		"protoconf",
 		"../testdata",

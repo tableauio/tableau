@@ -103,55 +103,55 @@ message Loader {
 }
 
 message MatchConf {
-  option (tableau.worksheet) = {name:"Match" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 nested:true};
+  option (tableau.worksheet) = {name:"Match" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 nested:true field_presence:true};
 
-  int32 interval = 1 [(tableau.field) = {name:"Interval"}];
-  int32 timeout = 2 [(tableau.field) = {name:"Timeout"}];
+  optional int32 interval = 1 [(tableau.field) = {name:"Interval"}];
+  optional int32 timeout = 2 [(tableau.field) = {name:"Timeout"}];
   map<int32, Factor> factor_map = 3 [(tableau.field) = {name:"Factor" key:"Type" layout:LAYOUT_HORIZONTAL}];
   message Factor {
-    int32 type = 1 [(tableau.field) = {name:"Type"}];
-    int32 value = 2 [(tableau.field) = {name:"Value"}];
+    optional int32 type = 1 [(tableau.field) = {name:"Type"}];
+    optional int32 value = 2 [(tableau.field) = {name:"Value"}];
   }
   map<uint32, Mode> mode_map = 4 [(tableau.field) = {name:"Mode" key:"ID" layout:LAYOUT_VERTICAL}];
   message Mode {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    int32 difficulty = 2 [(tableau.field) = {name:"Difficulty"}];
-    string desc = 3 [(tableau.field) = {name:"Desc"}];
+    optional uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    optional int32 difficulty = 2 [(tableau.field) = {name:"Difficulty"}];
+    optional string desc = 3 [(tableau.field) = {name:"Desc"}];
     repeated AI ai_list = 4 [(tableau.field) = {name:"AI" layout:LAYOUT_VERTICAL}];
     message AI {
-      int32 type = 1 [(tableau.field) = {name:"Type"}];
-      int32 ability = 2 [(tableau.field) = {name:"Ability"}];
+      optional int32 type = 1 [(tableau.field) = {name:"Type"}];
+      optional int32 ability = 2 [(tableau.field) = {name:"Ability"}];
     }
   }
   Task task = 5 [(tableau.field) = {name:"Task"}];
   message Task {
-    int32 type = 1 [(tableau.field) = {name:"Type"}];
+    optional int32 type = 1 [(tableau.field) = {name:"Type"}];
     repeated int32 param_list = 2 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}];
     map<uint32, Filter> filter_map = 3 [(tableau.field) = {name:"Filter" key:"Type" layout:LAYOUT_VERTICAL}];
     message Filter {
-      uint32 type = 1 [(tableau.field) = {name:"Type"}];
-      bool open = 2 [(tableau.field) = {name:"Open"}];
+      optional uint32 type = 1 [(tableau.field) = {name:"Type"}];
+      optional bool open = 2 [(tableau.field) = {name:"Open"}];
       repeated Job job_list = 3 [(tableau.field) = {name:"Job" layout:LAYOUT_VERTICAL}];
       message Job {
-        int32 type = 1 [(tableau.field) = {name:"Type"}];
-        int32 count = 2 [(tableau.field) = {name:"Count"}];
+        optional int32 type = 1 [(tableau.field) = {name:"Type"}];
+        optional int32 count = 2 [(tableau.field) = {name:"Count"}];
       }
       repeated Section section_list = 4 [(tableau.field) = {name:"Section" layout:LAYOUT_VERTICAL}];
       message Section {
-        uint32 id = 1 [(tableau.field) = {name:"ID"}];
-        string name = 2 [(tableau.field) = {name:"Name"}];
+        optional uint32 id = 1 [(tableau.field) = {name:"ID"}];
+        optional string name = 2 [(tableau.field) = {name:"Name"}];
         repeated Item item_list = 3 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
         message Item {
-          int32 id = 1 [(tableau.field) = {name:"Id"}];
-          int32 num = 2 [(tableau.field) = {name:"Num"}];
+          optional int32 id = 1 [(tableau.field) = {name:"Id"}];
+          optional int32 num = 2 [(tableau.field) = {name:"Num"}];
         }
       }
     }
   }
   Robot robot = 6 [(tableau.field) = {name:"Robot"}];
   message Robot {
-    int32 type = 1 [(tableau.field) = {name:"Type"}];
-    int32 ability = 2 [(tableau.field) = {name:"Ability"}];
+    optional int32 type = 1 [(tableau.field) = {name:"Type"}];
+    optional int32 ability = 2 [(tableau.field) = {name:"Ability"}];
   }
 }
 

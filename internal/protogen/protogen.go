@@ -302,6 +302,7 @@ func (gen *Generator) convert(dir, filename string) error {
 				Subsep:      sheet.Meta.Subsep,
 				Merger:      sheet.Meta.Merger,
 				AdjacentKey: sheet.Meta.AdjacentKey,
+				FieldPresence: sheet.Meta.FieldPresence,
 				// Loader options:
 				OrderedMap: sheet.Meta.OrderedMap,
 				Index:      sheet.Meta.Index,

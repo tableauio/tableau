@@ -38,6 +38,14 @@ message SheetMeta {
   //
   // This option is only useful for map or keyed-list.
   bool adjacent_key = 14 [(tableau.field) = { name:"AdjacentKey" optional:true }];
+  // Field presence is the notion of whether a protobuf field has a value. If set as true,
+  // in order to track presence for basic types (numeric, string, bytes, and enums), the 
+  // generated .proto will add the `optional` label to them.
+  //
+  // Singular proto3 fields of basic types (numeric, string, bytes, and enums) which are defined
+  // with the optional label have explicit presence, like proto2 (this feature is enabled by default
+  // as release 3.15). Refer: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
+  bool field_presence = 15 [(tableau.field) = { name:"FieldPresence" optional:true }];
   
   ////////// Loader related options below //////////
   // generate ordered map accessers

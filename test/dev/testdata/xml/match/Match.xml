@@ -55,7 +55,7 @@
     </MatchMode>
 
     <MatchMode MissionType="MT_CLASSIC_PVP_1V1" desc="旧经典1v1">
-        <Time MinTime="5s" MaxTime="90s" Freq="3" ConfirmTime="0s" />
+        <Time MinTime="8s" MaxTime="70s" Freq="3"/>
         <Open BeginDate="20201216" BeginTime="200000" EndDate="20201220" EndTime="203000" />
         <Camp CampID="0" PlayerNum="1" desc="阵营1" />
         <Camp CampID="1" PlayerNum="1" desc="阵营2" />

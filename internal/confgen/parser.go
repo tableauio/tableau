@@ -3,7 +3,6 @@ package confgen
 import (
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
@@ -13,13 +12,12 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type sheetExporter struct {
@@ -51,7 +49,7 @@ func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, impo
 		}
 	}
 
-	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.Output)
+	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.Output, wsOpts)
 	return exporter.Export()
 }
 
@@ -313,7 +311,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if cell == nil {
 				return errors.Errorf("%s|vertical map(scalar): key column not found", rc.CellDebugString(keyColName))
 			}
-			fieldValue, err := sp.parseFieldValue(keyFd, cell.Data)
+			fieldValue, _, err := sp.parseFieldValue(keyFd, cell.Data)
 			if err != nil {
 				return errors.WithMessagef(err, "%s|failed to parse field value: %s", rc.CellDebugString(keyColName), cell.Data)
 			}
@@ -340,7 +338,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if cell == nil {
 				return errors.Errorf("%s|vertical map(scalar): value colum not found", rc.CellDebugString(valueColName))
 			}
-			newMapValue, err = sp.parseFieldValue(field.fd, cell.Data)
+			newMapValue, _, err = sp.parseFieldValue(field.fd, cell.Data)
 			if err != nil {
 				return errors.WithMessagef(err, "%s|vertical map(scalar): failed to parse field value: %s", rc.CellDebugString(valueColName), cell.Data)
 			}
@@ -413,7 +411,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				}
 				key, value := kv[0], kv[1]
 
-				fieldValue, err := sp.parseFieldValue(keyFd, key)
+				fieldValue, _, err := sp.parseFieldValue(keyFd, key)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), key)
 				}
@@ -424,7 +422,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				}
 
 				newMapKey := fieldValue.MapKey()
-				fieldValue, err = sp.parseFieldValue(valueFd, value)
+				fieldValue, _, err = sp.parseFieldValue(valueFd, value)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), value)
 				}
@@ -463,14 +461,14 @@ func (sp *sheetParser) parseMapKey(opts *tableaupb.FieldOptions, reflectMap prot
 	}
 
 	if keyFd.Kind() == protoreflect.EnumKind {
-		fieldValue, err := sp.parseFieldValue(keyFd, cellData)
+		fieldValue, _, err := sp.parseFieldValue(keyFd, cellData)
 		if err != nil {
 			return mapKey, errors.Errorf("failed to parse key: %s", cellData)
 		}
 		v := protoreflect.ValueOfInt32(int32(fieldValue.Enum()))
 		mapKey = v.MapKey()
 	} else {
-		fieldValue, err := sp.parseFieldValue(keyFd, cellData)
+		fieldValue, _, err := sp.parseFieldValue(keyFd, cellData)
 		if err != nil {
 			return mapKey, errors.WithMessagef(err, "failed to parse key: %s", cellData)
 		}
@@ -517,7 +515,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					if cell == nil {
 						return errors.Errorf("%s|vertical keyed list: key column not found", rc.CellDebugString(keyColName))
 					}
-					key, err := sp.parseFieldValue(fd, cell.Data)
+					key, _, err := sp.parseFieldValue(fd, cell.Data)
 					if err != nil {
 						return errors.Errorf("%s|vertical keyed list: failed to parse field value: %s", rc.CellDebugString(keyColName), cell.Data)
 					}
@@ -609,7 +607,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if cell == nil {
 					return errors.Errorf("%s|horizontal list(scalar): column not found", rc.CellDebugString(colName))
 				}
-				newListValue, err = sp.parseFieldValue(field.fd, cell.Data)
+				newListValue, _, err = sp.parseFieldValue(field.fd, cell.Data)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|horizontal list(scalar): failed to parse field value: %s", rc.CellDebugString(colName), cell.Data)
 				}
@@ -628,7 +626,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			// slice of length 1 whose only element is s.
 			splits := strings.Split(cell.Data, field.opts.Sep)
 			for _, incell := range splits {
-				fieldValue, err := sp.parseFieldValue(field.fd, incell)
+				fieldValue, _, err := sp.parseFieldValue(field.fd, incell)
 				if err != nil {
 					return errors.WithMessagef(err, "%s|incell list: failed to parse field value: %s", rc.CellDebugString(colName), incell)
 				}
@@ -648,7 +646,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 	return nil
 }
 
-func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
+func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) error {
 	// NOTE(wenchy): `proto.Equal` treats a nil message as not equal to an empty one.
 	// doc: [Equal](https://pkg.go.dev/google.golang.org/protobuf/proto?tab=doc#Equal)
 	// issue: [APIv2: protoreflect: consider Message nilness test](https://github.com/golang/protobuf/issues/966)
@@ -673,7 +671,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 
 	structValue := msg.NewField(field.fd)
 	if msg.Has(field.fd) {
-		// Get existed field value if it is already present.
+		// Get it if this field is populated.
 		structValue = msg.Mutable(field.fd)
 	}
 
@@ -691,21 +689,26 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 		subMsgName := string(field.fd.Message().FullName())
 		_, found := specialMessageMap[subMsgName]
 		if found {
-			// built-in struct
+			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
 			cell := rc.Cell(colName, field.opts.Optional)
 			if cell == nil {
-				return errors.Errorf("%s|built-in type: column not found", rc.CellDebugString(colName))
+				return errors.Errorf("%s|built-in type %s: column not found", rc.CellDebugString(colName), subMsgName)
 			}
-			structValue, err = sp.parseFieldValue(field.fd, cell.Data)
+			value, present, err := sp.parseFieldValue(field.fd, cell.Data)
 			if err != nil {
-				return errors.WithMessagef(err, "%s|built-in type: failed to parse field value: %s", rc.CellDebugString(colName), cell.Data)
+				return errors.WithMessagef(err, "%s|built-in type %s: failed to parse field value: %s", rc.CellDebugString(colName), subMsgName, cell.Data)
 			}
+			if !present {
+				return nil
+			}
+			msg.Set(field.fd, value)
+			return nil
 		} else {
 			pkgName := structValue.Message().Descriptor().ParentFile().Package()
 			if string(pkgName) != sp.ProtoPackage {
 				return errors.Errorf("%s|struct: unknown message %v in package %s", rc.CellDebugString(colName), subMsgName, pkgName)
 			}
-			err = sp.parseFieldOptions(structValue.Message(), rc, depth+1, prefix+field.opts.Name)
+			err := sp.parseFieldOptions(structValue.Message(), rc, depth+1, prefix+field.opts.Name)
 			if err != nil {
 				return errors.WithMessagef(err, "%s|struct: failed to parse field options with prefix: %s", rc.CellDebugString(colName), prefix+field.opts.Name)
 			}
@@ -732,18 +735,21 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 		fd := subMd.Fields().Get(i)
 		// atom.Log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
 		incell := splits[i]
-		value, err := sp.parseFieldValue(fd, incell)
+		value, present, err := sp.parseFieldValue(fd, incell)
 		if err != nil {
 			return errors.WithMessagef(err, "incell struct(%s): failed to parse field value: %s", cellData, incell)
+		}
+		if fd.HasPresence() && !present{
+			continue
 		}
 		structValue.Message().Set(fd, value)
 	}
 	return nil
 }
 
-func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (err error) {
+func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) error {
 	if msg.Has(field.fd) {
-		// Only parse field if it is not already present. This means the first
+		// Only parse if this field is not polulated. This means the first
 		// none-empty related row part (related to scalar) is parsed.
 		return nil
 	}
@@ -754,7 +760,7 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	if cell == nil {
 		return errors.Errorf("%s|scalar: column not found", rc.CellDebugString(colName))
 	}
-	newValue, err = sp.parseFieldValue(field.fd, cell.Data)
+	newValue, present, err := sp.parseFieldValue(field.fd, cell.Data)
 	if err != nil {
 		return errors.WithMessagef(err, "%s|scalar: failed to parse field value: %s", rc.CellDebugString(colName), cell.Data)
 	}
@@ -762,177 +768,15 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	if !prop.InRange(field.opts.Prop, field.fd, newValue) {
 		return errors.Errorf("%s|scalar: value %v out of range [%s]", rc.CellDebugString(colName), newValue, field.opts.Prop.Range)
 	}
+	if field.fd.HasPresence() && !present {
+		return nil
+	}
 	msg.Set(field.fd, newValue)
 	return nil
 }
 
-func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, value string) (protoreflect.Value, error) {
-	purifyInteger := func(s string) string {
-		// trim integer boring suffix matched by regexp `.0*$`
-		if matches := types.MatchBoringInteger(s); matches != nil {
-			return matches[1]
-		}
-		return s
-	}
-
-	switch fd.Kind() {
-	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
-		value = strings.TrimSpace(value)
-		if value != "" {
-			// val, err := strconv.ParseInt(value, 10, 32)
-
-			// Keep compatibility with excel number format.
-			// maybe:
-			// - decimal fraction: 1.0
-			// - scientific notation: 1.0000001e7
-			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(int32(val)), errors.WithStack(err)
-		}
-		return protoreflect.ValueOf(int32(0)), nil
-	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
-		value = strings.TrimSpace(value)
-		if value != "" {
-			// val, err := strconv.ParseUint(value, 10, 32)
-
-			// Keep compatibility with excel number format.
-			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(uint32(val)), errors.WithStack(err)
-		}
-		return protoreflect.ValueOf(uint32(0)), nil
-	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		value = strings.TrimSpace(value)
-		if value != "" {
-			// val, err := strconv.ParseInt(value, 10, 64)
-
-			// Keep compatibility with excel number format.
-			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(int64(val)), errors.WithStack(err)
-		}
-		return protoreflect.ValueOf(int64(0)), nil
-	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		value = strings.TrimSpace(value)
-		if value != "" {
-			// val, err := strconv.ParseUint(value, 10, 64)
-
-			// Keep compatibility with excel number format.
-			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(uint64(val)), errors.WithStack(err)
-		}
-		return protoreflect.ValueOf(uint64(0)), nil
-	case protoreflect.StringKind:
-		return protoreflect.ValueOf(value), nil
-	case protoreflect.BytesKind:
-		return protoreflect.ValueOf([]byte(value)), nil
-	case protoreflect.BoolKind:
-		value = strings.TrimSpace(value)
-		if value != "" {
-			// Keep compatibility with excel number format.
-			val, err := strconv.ParseBool(purifyInteger(value))
-			return protoreflect.ValueOf(val), errors.WithStack(err)
-		}
-		return protoreflect.ValueOf(false), nil
-	case protoreflect.FloatKind:
-		value = strings.TrimSpace(value)
-		if value != "" {
-			val, err := strconv.ParseFloat(value, 32)
-			return protoreflect.ValueOf(float32(val)), errors.WithStack(err)
-		}
-		return protoreflect.ValueOf(float32(0)), nil
-	case protoreflect.DoubleKind:
-		value = strings.TrimSpace(value)
-		if value != "" {
-			val, err := strconv.ParseFloat(value, 64)
-			return protoreflect.ValueOf(float64(val)), errors.WithStack(err)
-		}
-		return protoreflect.ValueOf(float64(0)), nil
-	case protoreflect.EnumKind:
-		value = strings.TrimSpace(value)
-		return parseEnumValue(fd, value)
-	// case protoreflect.GroupKind:
-	// 	atom.Log.Panicf("not supported key type: %s", fd.Kind().String())
-	// 	return protoreflect.Value{}
-	case protoreflect.MessageKind:
-		value = strings.TrimSpace(value)
-		msgName := fd.Message().FullName()
-		switch msgName {
-		case "google.protobuf.Timestamp":
-			// make use of t as a *timestamppb.Timestamp
-			ts := &timestamppb.Timestamp{}
-			if value != "" {
-				// location name: "Asia/Shanghai" or "Asia/Chongqing".
-				// NOTE(wenchy): There is no "Asia/Beijing" location name. Whoa!!! Big surprize?
-				t, err := parseTimeWithLocation(sp.LocationName, value)
-				if err != nil {
-					return protoreflect.ValueOf(ts.ProtoReflect()), errors.WithMessagef(err, "illegal timestamp string format: %v", value)
-				}
-				// atom.Log.Debugf("timeStr: %v, unix timestamp: %v", value, t.Unix())
-				ts = timestamppb.New(t)
-				if err := ts.CheckValid(); err != nil {
-					return protoreflect.ValueOf(ts.ProtoReflect()), errors.WithMessagef(err, "invalid timestamp: %v", value)
-				}
-			}
-			return protoreflect.ValueOf(ts.ProtoReflect()), nil
-		case "google.protobuf.Duration":
-			// make use of d as a *durationpb.Duration
-			du := &durationpb.Duration{} // default
-			if value != "" {
-				d, err := parseDuration(value)
-				if err != nil {
-					return protoreflect.ValueOf(du.ProtoReflect()), errors.WithMessagef(err, "illegal duration string format: %v", value)
-				}
-				du = durationpb.New(d)
-				if err := du.CheckValid(); err != nil {
-					return protoreflect.ValueOf(du.ProtoReflect()), errors.WithMessagef(err, "invalid duration: %v", value)
-				}
-			}
-			return protoreflect.ValueOf(du.ProtoReflect()), nil
-
-		default:
-			return protoreflect.Value{}, errors.Errorf("not supported message type: %s", msgName)
-		}
-	default:
-		return protoreflect.Value{}, errors.Errorf("not supported scalar type: %s", fd.Kind().String())
-	}
-}
-
-func parseEnumValue(fd protoreflect.FieldDescriptor, value string) (protoreflect.Value, error) {
-	// default enum value
-	defaultValue := protoreflect.ValueOfEnum(protoreflect.EnumNumber(0))
-	if value == "" {
-		return defaultValue, nil
-	}
-	ed := fd.Enum() // get enum descriptor
-
-	// try enum value number
-	// val, err := strconv.ParseInt(value, 10, 32)
-
-	// Keep compatibility with excel number format.
-	val, err := strconv.ParseFloat(value, 64)
-	if err == nil {
-		evd := ed.Values().ByNumber(protoreflect.EnumNumber(int32(val)))
-		if evd != nil {
-			return protoreflect.ValueOfEnum(evd.Number()), nil
-		}
-		return defaultValue, errors.Errorf("enum: enum value name not defined: %v", value)
-	}
-
-	// try enum value name
-	evd := ed.Values().ByName(protoreflect.Name(value))
-	if evd != nil {
-		return protoreflect.ValueOfEnum(evd.Number()), nil
-	}
-	// try enum value alias name
-	for i := 0; i < ed.Values().Len(); i++ {
-		// get enum value descriptor
-		evd := ed.Values().Get(i)
-		opts := evd.Options().(*descriptorpb.EnumValueOptions)
-		evalueOpts := proto.GetExtension(opts, tableaupb.E_Evalue).(*tableaupb.EnumValueOptions)
-		if evalueOpts != nil && evalueOpts.Name == value {
-			// alias name found and return
-			return protoreflect.ValueOfEnum(evd.Number()), nil
-		}
-	}
-	return defaultValue, errors.Errorf("enum: enum(%s) value options not found: %v", ed.FullName(), value)
+func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue string) (v protoreflect.Value, present bool, err error) {
+	return xproto.ParseFieldValue(fd, rawValue, sp.LocationName)
 }
 
 // ParseFileOptions parse the options of a protobuf definition file.
@@ -964,40 +808,4 @@ func ParseMessageOptions(md protoreflect.MessageDescriptor) (string, *tableaupb.
 	}
 	// atom.Log.Debugf("msg: %v, wsOpts: %+v", msgName, wsOpts)
 	return msgName, wsOpts
-}
-
-func parseTimeWithLocation(locationName string, timeStr string) (time.Time, error) {
-	// see https://golang.org/pkg/time/#LoadLocation
-	if location, err := time.LoadLocation(locationName); err != nil {
-		return time.Time{}, errors.Wrapf(err, "LoadLocation failed: %s", locationName)
-	} else {
-		timeStr = strings.TrimSpace(timeStr)
-		layout := "2006-01-02 15:04:05"
-		if strings.Contains(timeStr, " ") {
-			layout = "2006-01-02 15:04:05"
-		} else {
-			layout = "2006-01-02"
-			if !strings.Contains(timeStr, "-") && len(timeStr) == 8 {
-				// convert "yyyymmdd" to "yyyy-mm-dd"
-				timeStr = timeStr[0:4] + "-" + timeStr[4:6] + "-" + timeStr[6:8]
-			}
-		}
-		t, err := time.ParseInLocation(layout, timeStr, location)
-		if err != nil {
-			return time.Time{}, errors.Wrapf(err, "ParseInLocation failed, timeStr: %v, locationName: %v", timeStr, locationName)
-		}
-		return t, nil
-	}
-}
-
-func parseDuration(duration string) (time.Duration, error) {
-	duration = strings.TrimSpace(duration)
-	if !strings.ContainsAny(duration, ":hmsµu") && len(duration) == 6 {
-		duration = duration[0:2] + "h" + duration[2:4] + "m" + duration[4:6] + "s"
-	} else if strings.Contains(duration, ":") && len(duration) == 8 {
-		// convert "hh:mm:ss" to "<hh>h<mm>m:<ss>s"
-		duration = duration[0:2] + "h" + duration[3:5] + "m" + duration[6:8] + "s"
-	}
-
-	return time.ParseDuration(duration)
 }

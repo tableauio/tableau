@@ -46,7 +46,8 @@ message WorksheetOptions {
   string sep = 11;       // separator, default: ","
   string subsep = 12;    // subseparator, default: ":"
   repeated string merger = 13; // [default = ""]; // merge multiple sheets by the merger pattern.
-  bool adjacent_key = 14; // [default = false]; // whether the rows with the same key is adjacent together.
+  bool adjacent_key = 14;   // [default = false]; // whether the rows with the same key is adjacent together.
+  bool field_presence = 15; // [default = false]; // whether add the optional label to basic types.
 
   ////////// Loader related options below //////////
   bool ordered_map = 50; // generate ordered map accessers.

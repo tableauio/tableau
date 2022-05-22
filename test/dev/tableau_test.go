@@ -88,7 +88,8 @@ func Test_GenConf(t *testing.T) {
 
 func Test_CompareJSON(t *testing.T) {
 	newConfDir := "_conf"
-	oldConfDir := "_old_conf"
+	// oldConfDir := "_old_conf"
+	oldConfDir := "dynamic/_out/conf"
 	files, err := os.ReadDir(newConfDir)
 	if err != nil {
 		t.Errorf("failed to read dir: %s", newConfDir)
@@ -97,12 +98,11 @@ func Test_CompareJSON(t *testing.T) {
 		if !strings.HasSuffix(file.Name(), ".json") {
 			continue
 		}
-		if file.Name() == "Reward.json"{
-			continue
-		}
+		// if file.Name() == "Reward.json"{
+		// 	continue
+		// }
 		newPath := filepath.Join(newConfDir, file.Name())
 		oldPath := filepath.Join(oldConfDir, file.Name())
-		// var newfile interface{}
 		newData, err := os.ReadFile(newPath)
 		if err != nil {
 			t.Error(err)

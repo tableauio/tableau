@@ -10,6 +10,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/options"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -18,16 +19,18 @@ import (
 type messageExporter struct {
 	name      string
 	msg       proto.Message
-	outputOpt *options.OutputOption
 	outputDir string
+	outputOpt *options.OutputOption
+	wsOpts    *tableaupb.WorksheetOptions
 }
 
-func New(name string, msg proto.Message, outputDir string, outputOpt *options.OutputOption) *messageExporter {
+func New(name string, msg proto.Message, outputDir string, outputOpt *options.OutputOption, wsOpts *tableaupb.WorksheetOptions) *messageExporter {
 	return &messageExporter{
 		name:      name,
 		msg:       msg,
 		outputOpt: outputOpt,
 		outputDir: filepath.Join(outputDir, outputOpt.ConfSubdir),
+		wsOpts:    wsOpts,
 	}
 }
 
@@ -88,11 +91,12 @@ func (x *messageExporter) export(fmt format.Format) error {
 }
 
 func (x *messageExporter) marshalToJSON() (out []byte, err error) {
+	emitUnpopulated := x.outputOpt.EmitUnpopulated
 	if x.outputOpt.Pretty {
 		opts := protojson.MarshalOptions{
 			Multiline:       true,
 			Indent:          "    ",
-			EmitUnpopulated: x.outputOpt.EmitUnpopulated,
+			EmitUnpopulated: emitUnpopulated,
 		}
 		return opts.Marshal(x.msg)
 	}
