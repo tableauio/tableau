@@ -8,6 +8,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/fatih/color"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
@@ -125,16 +126,15 @@ func genConf(workbooks []string, opts *options.Options) {
 	}
 }
 func loadConf(path string, out interface{}) error {
-	fmt.Printf("load conf path: %s\n", path)
 	d, err := os.ReadFile(path)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	err = yaml.Unmarshal(d, out)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
-	fmt.Printf("loaded conf: %+v\n", spew.Sdump(out))
+	atom.Log.Debugf("loaded tableau config: %+v", spew.Sdump(out))
 	return nil
 }
 

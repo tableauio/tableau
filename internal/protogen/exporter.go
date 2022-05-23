@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -24,17 +25,17 @@ type bookExporter struct {
 	ProtoFilenameSuffix string
 	wb                  *tableaupb.Workbook
 
-	Imports map[string]bool // imported proto name -> defined
+	gen *Generator
 }
 
-func newBookExporter(protoPackage string, protoFileOptions map[string]string, outputDir, protoFilenameSuffix string, imports map[string]bool, wb *tableaupb.Workbook) *bookExporter {
+func newBookExporter(protoPackage string, protoFileOptions map[string]string, outputDir, protoFilenameSuffix string, wb *tableaupb.Workbook, gen *Generator) *bookExporter {
 	return &bookExporter{
 		ProtoPackage:        protoPackage,
 		ProtoFileOptions:    protoFileOptions,
 		OutputDir:           outputDir,
 		ProtoFilenameSuffix: protoFilenameSuffix,
 		wb:                  wb,
-		Imports:             imports,
+		gen:                 gen,
 	}
 }
 
@@ -51,13 +52,29 @@ func (x *bookExporter) export() error {
 		g1.P(`option `, k, ` = "`, v, `";`)
 	}
 	g1.P("")
-	// generate imports
+
 	// keep the elements ordered by import path
 	set := treeset.NewWithStringComparator()
 	set.Add(tableauProtoPath) // default must be imported path
-	for protoPath, _ := range x.Imports {
-		set.Add(protoPath)
+	g3 := NewGeneratedBuf()
+	for i, ws := range x.wb.Worksheets {
+		x := &sheetExporter{
+			ws:             ws,
+			g:              g3,
+			isLastSheet:    i == len(x.wb.Worksheets)-1,
+			typeInfos:      x.gen.typeInfos,
+			nestedMessages: make(map[string]*tableaupb.Field),
+			Imports:        make(map[string]bool),
+		}
+		if err := x.export(); err != nil {
+			return err
+		}
+		for key := range x.Imports {
+			set.Add(key)
+		}
 	}
+
+	// generate imports
 	g2 := NewGeneratedBuf()
 	for _, key := range set.Values() {
 		g2.P(`import "`, key, `";`)
@@ -65,19 +82,6 @@ func (x *bookExporter) export() error {
 	g2.P("")
 	g2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
 	g2.P("")
-
-	g3 := NewGeneratedBuf()
-	for i, ws := range x.wb.Worksheets {
-		x := &sheetExporter{
-			ws:             ws,
-			g:              g3,
-			isLastSheet:    i == len(x.wb.Worksheets)-1,
-			nestedMessages: make(map[string]*tableaupb.Field),
-		}
-		if err := x.export(); err != nil {
-			return err
-		}
-	}
 
 	relPath := x.wb.Name + x.ProtoFilenameSuffix + ".proto"
 	path := filepath.Join(x.OutputDir, relPath)
@@ -121,9 +125,12 @@ func (x *bookExporter) export() error {
 }
 
 type sheetExporter struct {
-	ws             *tableaupb.Worksheet
-	g              *GeneratedBuf
-	isLastSheet    bool
+	ws          *tableaupb.Worksheet
+	g           *GeneratedBuf
+	isLastSheet bool
+	typeInfos   map[string]*xproto.TypeInfo
+
+	Imports        map[string]bool             // import name -> defined
 	nestedMessages map[string]*tableaupb.Field // type name -> field
 }
 
@@ -153,35 +160,48 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 	}
 	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " [(tableau.field) = {", marshalToText(field.Options), "}];")
 
-	if !field.Predefined && field.Fields != nil {
-		// iff field is a map or list and message type is not imported.
-		msgName := field.Type
-		if field.ListEntry != nil {
-			msgName = field.ListEntry.ElemType
-		}
-		if field.MapEntry != nil {
-			msgName = field.MapEntry.ValueType
-		}
-		nestedMsgName := prefix + "." + msgName
+	if field.FullType == "google.protobuf.Timestamp" {
+		x.Imports[timestampProtoPath] = true
+	} else if field.FullType == "google.protobuf.Duration" {
+		x.Imports[durationProtoPath] = true
+	}
 
-		if isSameFieldMessageType(field, x.nestedMessages[nestedMsgName]) {
-			// if the nested message is the same as the previous one,
-			// just use the previous one, and don't generate a new one.
-			return nil
+	typeName := field.Type
+	if field.ListEntry != nil {
+		typeName = field.ListEntry.ElemType
+	}
+	if field.MapEntry != nil {
+		typeName = field.MapEntry.ValueType
+	}
+
+	if field.Predefined {
+		// NOTE: import corresponding message's custom defined proto file
+		if typeInfo, ok := x.typeInfos[typeName]; ok {
+			x.Imports[typeInfo.ParentFilename] = true
 		}
-
-		// bookkeeping this nested msessage, so we can check if we can reuse it later.
-		x.nestedMessages[nestedMsgName] = field
-
-		// x.g.P("")
-		x.g.P(printer.Indent(depth), "message ", msgName, " {")
-		for i, f := range field.Fields {
-			tagid := i + 1
-			if err := x.exportField(depth+1, tagid, f, nestedMsgName); err != nil {
-				return err
+	} else {
+		if field.Fields != nil {
+			// iff field is a map or list and message type is not imported.
+			nestedMsgName := prefix + "." + typeName
+			if isSameFieldMessageType(field, x.nestedMessages[nestedMsgName]) {
+				// if the nested message is the same as the previous one,
+				// just use the previous one, and don't generate a new one.
+				return nil
 			}
+
+			// bookkeeping this nested msessage, so we can check if we can reuse it later.
+			x.nestedMessages[nestedMsgName] = field
+
+			// x.g.P("")
+			x.g.P(printer.Indent(depth), "message ", typeName, " {")
+			for i, f := range field.Fields {
+				tagid := i + 1
+				if err := x.exportField(depth+1, tagid, f, nestedMsgName); err != nil {
+					return err
+				}
+			}
+			x.g.P(printer.Indent(depth), "}")
 		}
-		x.g.P(printer.Indent(depth), "}")
 	}
 	return nil
 }

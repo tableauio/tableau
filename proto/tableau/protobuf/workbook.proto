@@ -36,12 +36,12 @@ message Field {
 
   message ListEntry {
     string elem_type = 1;
-    string full_elem_type = 2;
+    string elem_full_type = 2;
   }
   message MapEntry {
     string key_type = 1;
     string value_type = 2;
-    string full_value_type = 3;
+    string value_full_type = 3;
   }    
 }
 

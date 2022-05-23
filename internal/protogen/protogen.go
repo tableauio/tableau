@@ -160,7 +160,7 @@ func (gen *Generator) generate(dir string) (err error) {
 		return errors.Wrapf(err, "failed to read input dir: %s", gen.InputDir)
 	}
 
-	// book name -> existance(bool)
+	// book name -> existence(bool)
 	csvBooks := map[string]bool{}
 	for _, entry := range dirEntries {
 		if entry.IsDir() {
@@ -288,20 +288,20 @@ func (gen *Generator) convert(dir, filename string) error {
 		mergeHeaderOptions(sheet.Meta, gen.Header)
 		ws := &tableaupb.Worksheet{
 			Options: &tableaupb.WorksheetOptions{
-				Name:        sheet.Name,
-				Namerow:     sheet.Meta.Namerow,
-				Typerow:     sheet.Meta.Typerow,
-				Noterow:     sheet.Meta.Noterow,
-				Datarow:     sheet.Meta.Datarow,
-				Transpose:   sheet.Meta.Transpose,
-				Tags:        "",
-				Nameline:    sheet.Meta.Nameline,
-				Typeline:    sheet.Meta.Typeline,
-				Nested:      sheet.Meta.Nested,
-				Sep:         sheet.Meta.Sep,
-				Subsep:      sheet.Meta.Subsep,
-				Merger:      sheet.Meta.Merger,
-				AdjacentKey: sheet.Meta.AdjacentKey,
+				Name:          sheet.Name,
+				Namerow:       sheet.Meta.Namerow,
+				Typerow:       sheet.Meta.Typerow,
+				Noterow:       sheet.Meta.Noterow,
+				Datarow:       sheet.Meta.Datarow,
+				Transpose:     sheet.Meta.Transpose,
+				Tags:          "",
+				Nameline:      sheet.Meta.Nameline,
+				Typeline:      sheet.Meta.Typeline,
+				Nested:        sheet.Meta.Nested,
+				Sep:           sheet.Meta.Sep,
+				Subsep:        sheet.Meta.Subsep,
+				Merger:        sheet.Meta.Merger,
+				AdjacentKey:   sheet.Meta.AdjacentKey,
 				FieldPresence: sheet.Meta.FieldPresence,
 				// Loader options:
 				OrderedMap: sheet.Meta.OrderedMap,
@@ -334,8 +334,8 @@ func (gen *Generator) convert(dir, filename string) error {
 		gen.OutputOpt.ProtoFileOptions,
 		filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir),
 		gen.OutputOpt.ProtoFilenameSuffix,
-		bp.Imports,
 		bp.wb,
+		bp.gen,
 	)
 	if err := be.export(); err != nil {
 		return errors.WithMessagef(err, "failed to export workbook: %s", relativePath)

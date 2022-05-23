@@ -24,7 +24,6 @@ type bookParser struct {
 
 	wb       *tableaupb.Workbook
 	withNote bool
-	Imports  map[string]bool // imported proto name -> defined
 }
 
 func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
@@ -48,7 +47,6 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 			Imports:    make(map[string]int32),
 		},
 		withNote: false,
-		Imports:  make(map[string]bool),
 	}
 
 	// custom imports
@@ -188,7 +186,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.MapEntry = &tableaupb.Field_MapEntry{
 			KeyType:       parsedKeyType,
 			ValueType:     parsedValueType,
-			FullValueType: parsedValueFullType,
+			ValueFullType: parsedValueFullType,
 		}
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
@@ -224,7 +222,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.MapEntry = &tableaupb.Field_MapEntry{
 			KeyType:       parsedKeyType,
 			ValueType:     parsedValueType,
-			FullValueType: parsedValueFullType,
+			ValueFullType: parsedValueFullType,
 		}
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix+"1")
@@ -261,7 +259,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.MapEntry = &tableaupb.Field_MapEntry{
 			KeyType:       parsedKeyType,
 			ValueType:     parsedValueType,
-			FullValueType: parsedValueFullType,
+			ValueFullType: parsedValueFullType,
 		}
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
@@ -364,7 +362,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.FullType = "repeated " + scalarField.FullType
 		field.ListEntry = &tableaupb.Field_ListEntry{
 			ElemType:     scalarField.Type,
-			FullElemType: scalarField.FullType,
+			ElemFullType: scalarField.FullType,
 		}
 		// auto add suffix "_list" to each cross cell list variable.
 		field.Name = strcase.ToSnake(pureElemTypeName) + "_list"
@@ -424,7 +422,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.FullType = "repeated " + scalarField.FullType
 		field.ListEntry = &tableaupb.Field_ListEntry{
 			ElemType:     scalarField.Type,
-			FullElemType: scalarField.FullType,
+			ElemFullType: scalarField.FullType,
 		}
 		// auto add suffix "_list" to each cross cell list variable.
 		field.Name = strcase.ToSnake(listName) + "_list"
@@ -471,7 +469,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.FullType = "repeated " + scalarField.FullType
 		field.ListEntry = &tableaupb.Field_ListEntry{
 			ElemType:     scalarField.Type,
-			FullElemType: scalarField.FullType,
+			ElemFullType: scalarField.FullType,
 		}
 		field.Options.Layout = layout
 	case tableaupb.Layout_LAYOUT_DEFAULT:
@@ -608,7 +606,6 @@ func (p *bookParser) parseType(rawType string) (typeName string, fullTypeName st
 		// This messge type is defined in imported proto
 		typeName = strings.TrimPrefix(rawType, ".")
 		if typeInfo, ok := p.gen.typeInfos[typeName]; ok {
-			p.Imports[typeInfo.ParentFilename] = true
 			fullTypeName = typeInfo.Fullname
 		} else {
 			atom.Log.Panicf("predefined type not found: %s, %v", typeName, p.gen.typeInfos)
@@ -618,11 +615,9 @@ func (p *bookParser) parseType(rawType string) (typeName string, fullTypeName st
 	}
 	switch rawType {
 	case "datetime", "date":
-		p.Imports[timestampProtoPath] = true
 		typeName, fullTypeName = "google.protobuf.Timestamp", "google.protobuf.Timestamp"
 		predefined = true
 	case "duration", "time":
-		p.Imports[durationProtoPath] = true
 		typeName, fullTypeName = "google.protobuf.Duration", "google.protobuf.Duration"
 		predefined = true
 	default:
