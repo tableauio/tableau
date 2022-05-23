@@ -14,6 +14,7 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/xuri/excelize/v2"
@@ -28,11 +29,6 @@ type Generator struct {
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated protoconf files.
 	Workbook     string // Workbook name
-}
-
-var specialMessageMap = map[string]int{
-	"google.protobuf.Timestamp": 1,
-	"google.protobuf.Duration":  1,
 }
 
 type Cell struct {
@@ -631,7 +627,7 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 					*row = append(*row, Cell{Data: prefix + name})
 				} else {
 					subMsgName := string(fd.Message().FullName())
-					_, found := specialMessageMap[subMsgName]
+					_, found := xproto.WellKnownMessages[subMsgName]
 					if found {
 						fmt.Println("cell(special message): ", prefix+name)
 						*row = append(*row, Cell{Data: prefix + name})

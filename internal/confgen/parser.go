@@ -689,7 +689,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 		}
 	} else {
 		subMsgName := string(field.fd.Message().FullName())
-		_, found := specialMessageMap[subMsgName]
+		_, found := xproto.WellKnownMessages[subMsgName]
 		if found {
 			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
 			cell := rc.Cell(colName, field.opts.Optional)

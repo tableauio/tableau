@@ -8,17 +8,65 @@ import (
 	"github.com/tableauio/tableau/options"
 )
 
+func Test_GenProto(t *testing.T) {
+	err := tableau.GenProto(
+		"protoconf",
+		"../testdata",
+		"./_proto",
+		options.Input(
+			&options.InputOption{
+				ImportPaths: []string{
+					"./_proto",
+				},
+				ImportFiles: []string{
+					"cs_dbkeyword.proto",
+					"common.proto",
+					"time.proto",
+				},
+				Formats: []format.Format{
+					// format.Excel,
+					format.CSV,
+					format.XML,
+				},
+			},
+		),
+		options.Output(
+			&options.OutputOption{
+				ProtoFilenameSuffix:           "_conf",
+				ProtoFilenameWithSubdirPrefix: false,
+				ProtoFileOptions: map[string]string{
+					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+				},
+			},
+		),
+		options.Header(
+			&options.HeaderOption{
+				Namerow: 1,
+				Typerow: 2,
+				Noterow: 3,
+				Datarow: 5,
+
+				Nameline: 2,
+				Typeline: 2,
+			}),
+		options.LogLevel("DEBUG"),
+	)
+	if err != nil {
+		t.Errorf("%+v", err)
+	}
+}
+
 func Test_GenConf(t *testing.T) {
 	err := tableau.GenConf(
 		"protoconf",
 		"../testdata",
-		"../_conf",
+		"./_conf",
 		options.Input(
 			&options.InputOption{
 				ImportPaths: []string{
-					"../proto",
+					"./_proto",
 				},
-				ProtoFiles: []string{"../proto/*.proto"},
+				ProtoFiles: []string{"./_proto/*.proto"},
 				Formats: []format.Format{
 					// format.Excel,
 					format.CSV,

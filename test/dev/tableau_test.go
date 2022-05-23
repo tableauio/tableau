@@ -89,7 +89,7 @@ func Test_GenConf(t *testing.T) {
 func Test_CompareJSON(t *testing.T) {
 	newConfDir := "_conf"
 	// oldConfDir := "_old_conf"
-	oldConfDir := "dynamic/_out/conf"
+	oldConfDir := "dynamic/_conf"
 	files, err := os.ReadDir(newConfDir)
 	if err != nil {
 		t.Errorf("failed to read dir: %s", newConfDir)

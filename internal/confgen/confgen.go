@@ -30,11 +30,6 @@ type Generator struct {
 	Header    *options.HeaderOption // header settings.
 }
 
-var specialMessageMap = map[string]int{
-	"google.protobuf.Timestamp": 1,
-	"google.protobuf.Duration":  1,
-}
-
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
 	opts := options.ParseOptions(setters...)
 	return NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
