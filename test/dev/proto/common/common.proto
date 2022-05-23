@@ -1,6 +1,6 @@
 syntax = "proto3";
 package protoconf;
-option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
+option go_package = "github.com/tableauio/tableau/test/dev/protoconf/common";
 
 import "tableau/protobuf/tableau.proto";
 

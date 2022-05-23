@@ -19,9 +19,9 @@ func Test_GenProto(t *testing.T) {
 					"./_proto",
 				},
 				ImportFiles: []string{
-					"cs_dbkeyword.proto",
-					"common.proto",
-					"time.proto",
+					"common/cs_dbkeyword.proto",
+					"common/common.proto",
+					"common/time.proto",
 				},
 				Formats: []format.Format{
 					// format.Excel,

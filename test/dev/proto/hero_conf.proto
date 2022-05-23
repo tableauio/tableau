@@ -6,7 +6,7 @@ package protoconf;
 
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 
-import "common.proto";
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option (tableau.workbook) = {name:"excel/hero/Hero#*.csv"};

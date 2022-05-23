@@ -1,0 +1,102 @@
+syntax = "proto3";
+package protoconf;
+option go_package = "github.com/tableauio/tableau/test/dev/protoconf/common";
+
+import "tableau/protobuf/tableau.proto";
+
+// 由gen_feature_toggle自动生成，请勿手动添加
+enum FeatureToggleMacroType {
+    TOGGLE_SAMPLE = 0;
+    TOGGLE_TEST = 1; //测试
+    TOGGLE_MATCH = 2; //匹配
+    TOGGLE_EVENT = 3; //事件
+    TOGGLE_GUILD = 4; //公会
+    TOGGLE_EQUIP_SELL = 5; //记忆(意志)出售
+    TOGGLE_EQUIP_SWITCH = 6; //记忆(意志)装配
+    TOGGLE_EQUIP_UPGRADE = 7; //记忆(意志)强化
+    TOGGLE_WEAPON_STAR_UP = 8; //意志进阶
+    TOGGLE_TEAM_CREATE_TEAM = 9; //创建队伍
+    TOGGLE_TEAM_REQ_MATCH = 10; //队伍匹配
+    TOGGLE_TEAM_JOIN_TEAM = 11; //加入队伍
+    TOGGLE_BOUNTY_UNLOCK = 12; //悬赏解锁
+    TOGGLE_RANK = 13; //排行榜
+    TOGGLE_MALL_SHOP = 14; //商城
+    TOGGLE_MALL_BUY = 15; //商城购买
+    TOGGLE_VIP_ENTRY = 40; //会员、超会入口
+    TOGGLE_INVITE = 41; //邀请
+    TOGGLE_GAME_PRIVILEGE = 42; //游戏特权
+    TOGGLE_PANDORA = 43; //潘多拉开关
+    TOGGLE_MICRO_COMMUNITY = 44; //微社区入口开关
+    TOGGLE_TENCENT_ESPORT = 45; //企鹅电竞
+    TOGGLE_XINYUE_PRIVILEGE = 46; //心悦特权
+    TOGGLE_WEIXIN_MEDIA_PLATFORM = 47; //微信公众号
+    TOGGLE_PACKAGE_CENTER = 48; //礼包中心
+    TOGGLE_ANNOUNCEMENT = 49; //公告(包括:登录前公告+登录后公告)
+    TOGGLE_ACTIVITY_ENTRY = 50; //活动入口
+}
+
+// 单局类型 @ name=MissionType
+enum MissionType {
+    MT_EMMT_MIN = 0 [(tableau.evalue).name = "最小值"];
+    MT_MAIN_FUBEN = 1 [(tableau.evalue).name = "循环副本"];
+    MT_PLOT_FUBEN = 2 [(tableau.evalue).name = "剧情副本"];
+    MT_ABYSS_FUBEN = 3 [(tableau.evalue).name = "深渊副本"];
+    MT_ANCIENT_FUBEN = 4 [(tableau.evalue).name = "远古副本"];
+    MT_RAID_FUBEN = 5 [(tableau.evalue).name = "团队副本"];
+    MT_CLASSIC_PVP = 6 [(tableau.evalue).name = "经典PVP"];
+    MT_UNKNOWN_LANDS = 7 [(tableau.evalue).name = "异界副本"];
+    MT_BOUNTY_FUBEN = 8 [(tableau.evalue).name = "悬赏副本"];
+    MT_CLASSIC_PVP_1V1 = 9 [(tableau.evalue).name = "经典1V1"];
+    MT_CLASSIC_PVP_3v3 = 10 [(tableau.evalue).name = "经典3V3"];
+    MT_CLASSIC_PVP_HeadCount = 11 [(tableau.evalue).name = "人头战"];
+    MT_PVP_Low_Rank_RoundBattle_1V1 = 20 [(tableau.evalue).name = "车轮战低端排位赛1v1"];
+}
+
+// 匹配策略
+enum ENMMatchStrategy {
+    MatchStrategy_Unify = 0; //无差别匹配
+    MatchStrategy_Glicko2 = 1; //Glicko2匹配
+    MatchStrategy_RoleHonorPower = 2; //英雄荣耀战力匹配
+    MatchStrategy_MMR = 3; //MMR匹配
+    MatchStrategy_TrueSkill = 4; //TrueSkill匹配
+    MatchStrategy_Max = 5; //最大值
+}
+
+// 匹配范围
+enum ENMMatchScope {
+    MatchScope_Zone = 0; //小区级匹配
+    MatchScope_World = 1; //大区级匹配
+    MatchScope_All = 2; //全大区级匹配
+    MatchScope_Max = 3; //最大值
+}
+
+// 匹配过滤器
+enum ENMMatchFilter {
+    MatchFilter_MaxRoleNum = 0; //最大角色数过滤器
+    MatchFilter_MaxLevelGap = 1; //最大等级差过滤器
+    MatchFilter_VersionConsistent = 2; //版本一致性过滤器 资源版本号
+    MatchFilter_MaxRatingGap = 3; //Elo隐藏分过滤器
+    MatchFilter_SelectedRole = 4; //已选角色滤器
+    MatchFilter_MaxHornorPowerGap = 5; //最大荣耀战力差过滤器
+    MatchFilter_Platform = 6; //平台过滤器
+    MatchFilter_MaxMMRGap = 7; //版本一致性过滤器
+    MatchFilter_TryNoDupRole = 8; //优先匹配不重复角色过滤器
+    MatchFilter_MatchVersion = 9; //上行版本一致过滤器 请求的版本号
+    MatchFilter_TrySameCluster = 10; //优先匹配同一个选择同一个集群ID过滤器
+    MatchFilter_DiffGuild = 11; //战队赛，相同战队不匹配
+    MatchFilter_Max = 12; //最大值
+}
+
+// AI温暖局类型
+enum ENMAIWarmType {
+    ENM_AI_NONE = 0; //@cname=无AI @display=无AI
+    ENM_AI_NEWER = 1; //@cname=新手温暖局 @display=新手温暖局
+    ENM_AI_DAILY = 2; //@cname=每日温暖局 @display=每日温暖局
+    ENM_AI_TIMEOUT = 3; //@cname=匹配超时AI @display=匹配超时AI
+    ENM_AI_CMD = 4; //@cname=cmd匹配AI @display=cmd匹配AI
+    ENM_AI_RETURN = 5; //@cname=回归玩家 @display=回归玩家
+    ENM_AI_TRAIN = 6; //@cname=训练局 @display=训练局
+    ENM_AI_GUARANTEE = 7; //@cname=保底AI @display=保底AI
+    ENM_AI_RATING = 8; //@cname=AI评级 @display=AI评级
+    ENM_AI_MAX = 9; //@cname=MAX @display=MAX
+}

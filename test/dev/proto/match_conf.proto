@@ -6,7 +6,7 @@ package protoconf;
 
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 
-import "cs_dbkeyword.proto";
+import "common/cs_dbkeyword.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";

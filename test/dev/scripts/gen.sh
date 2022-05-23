@@ -16,14 +16,9 @@ OUTDIR="./test/dev/protoconf"
 rm -rfv $OUTDIR
 mkdir -p $OUTDIR
 
-for item in "$INDIR"/* ; do
-    echo "$item"
-    if [ -f "$item" ]; then
-        protoc \
-        --go_out="$OUTDIR" \
-        --go_opt=paths=source_relative \
-        --proto_path="$INDIR" \
-        --proto_path="$TABLEAU_PROTO_PATH" \
-        "$item"
-    fi
-done
+protoc \
+--go_out="$OUTDIR" \
+--go_opt=paths=source_relative \
+--proto_path="$INDIR" \
+--proto_path="$TABLEAU_PROTO_PATH" \
+"$INDIR"/*.proto "$INDIR"/common/*.proto
