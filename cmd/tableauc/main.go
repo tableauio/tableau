@@ -17,7 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.3.2"
+const version = "0.3.3"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"
@@ -91,38 +91,20 @@ func runCmd(cmd *cobra.Command, args []string) {
 func genProto(workbooks []string, opts *options.Options) {
 	red := color.New(color.FgRed).SprintfFunc()
 	// generate proto files
-	g1 := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
-	if len(workbooks) == 0 {
-		if err := g1.Generate(); err != nil {
-			atom.Log.Errorf(red("generate proto files failed: %+v", err))
-			os.Exit(-1)
-		}
-	} else {
-		for _, wbpath := range workbooks {
-			if err := g1.GenOneWorkbook(wbpath); err != nil {
-				atom.Log.Errorf(red("generate proto file of %s failed: %+v", wbpath, err))
-				os.Exit(-1)
-			}
-		}
+	gen := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
+	if err := gen.Generate(workbooks...); err != nil {
+		atom.Log.Errorf(red("generate proto file failed: %+v", err))
+		os.Exit(-1)
 	}
 }
 
 func genConf(workbooks []string, opts *options.Options) {
 	red := color.New(color.FgRed).SprintfFunc()
 	// generate conf files
-	g2 := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
-	if len(workbooks) == 0 {
-		if err := g2.Generate(opts.Workbook, opts.Worksheet); err != nil {
-			atom.Log.Errorf(red("generate conf files failed: %+v", err))
-			os.Exit(-1)
-		}
-	} else {
-		for _, wbpath := range workbooks {
-			if err := g2.Generate(wbpath, ""); err != nil {
-				atom.Log.Errorf(red("generate conf file of %s failed: %+v", wbpath, err))
-				os.Exit(-1)
-			}
-		}
+	gen := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
+	if err := gen.Generate(workbooks...); err != nil {
+		atom.Log.Errorf(red("generate conf file failed: %+v", err))
+		os.Exit(-1)
 	}
 }
 func loadConf(path string, out interface{}) error {

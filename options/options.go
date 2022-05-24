@@ -15,9 +15,6 @@ type Options struct {
 	Header   *HeaderOption // Header options of worksheet.
 	Input    *InputOption  // Input options.
 	Output   *OutputOption // Output options.
-
-	Workbook  string // Workbook filename. Default: "".
-	Worksheet string // Worksheet name. Default: "".
 }
 
 type HeaderOption struct {
@@ -111,7 +108,7 @@ type OutputOption struct {
 	//  ╚═══════╧════════════════════════════╝
 	//
 	// NOTE: worksheet with FieldPresence set as true ignore this option.
-	// 
+	//
 	// Refer: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
 	//
 	// Default: false.
@@ -157,20 +154,6 @@ func Output(o *OutputOption) Option {
 func Input(o *InputOption) Option {
 	return func(opts *Options) {
 		opts.Input = o
-	}
-}
-
-// Workbook sets workbook filename.
-func Workbook(wb string) Option {
-	return func(opts *Options) {
-		opts.Workbook = wb
-	}
-}
-
-// Worksheet sets worksheet name.
-func Worksheet(ws string) Option {
-	return func(opts *Options) {
-		opts.Worksheet = ws
 	}
 }
 

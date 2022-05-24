@@ -3,7 +3,10 @@ package confgen
 import (
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
+	"github.com/emirpasic/gods/lists/arraylist"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/atom"
@@ -12,6 +15,7 @@ import (
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -28,6 +32,9 @@ type Generator struct {
 	OutputOpt *options.OutputOption // output settings.
 	InputOpt  *options.InputOption  // Input settings.
 	Header    *options.HeaderOption // header settings.
+
+	// Performace stats
+	PerfStats sync.Map
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -48,6 +55,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		Header:       opts.Header,
 		InputOpt:     opts.Input,
 		OutputOpt:    opts.Output,
+		PerfStats:    sync.Map{},
 	}
 	return g
 }
@@ -57,15 +65,86 @@ type sheetInfo struct {
 	opts        *tableaupb.WorksheetOptions
 }
 
-func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (err error) {
-	if relWorkbookPath != "" {
-		relCleanSlashPath := fs.GetCleanSlashPath(relWorkbookPath)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get relative path from %s to %s", gen.InputDir, relWorkbookPath)
-		}
-		atom.Log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", relWorkbookPath, relCleanSlashPath)
-		relWorkbookPath = relCleanSlashPath
+type messagerStatsInfo struct {
+	Name         string
+	Milliseconds int64
+}
+
+func PrintPerfStats(gen *Generator) {
+	// print performance stats
+	list := arraylist.New()
+	gen.PerfStats.Range(func(key, value interface{}) bool {
+		list.Add(&messagerStatsInfo{
+			Name:         key.(string),
+			Milliseconds: value.(int64),
+		})
+		return true
+	})
+	list.Sort(func(a, b interface{}) int {
+		infoA := a.(*messagerStatsInfo)
+		infoB := b.(*messagerStatsInfo)
+		return int(infoB.Milliseconds - infoA.Milliseconds)
+	})
+	list.Each(func(index int, value interface{}) {
+		info := value.(*messagerStatsInfo)
+		atom.Log.Debugf("timespan|%v: %vs", info.Name, float64(info.Milliseconds)/1000)
+	})
+}
+
+func (gen *Generator) Generate(relWorkbookPaths ...string) (err error) {
+	defer PrintPerfStats(gen)
+
+	if len(relWorkbookPaths) == 0 {
+		return gen.GenAll()
 	}
+	return gen.GenWorkbook(relWorkbookPaths...)
+}
+
+func (gen *Generator) GenAll() error {
+	// create output dir
+	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ConfSubdir)
+	err := os.MkdirAll(outputConfDir, 0700)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
+	}
+
+	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ImportPaths, gen.InputOpt.ProtoFiles...)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to create files")
+	}
+
+	atom.Log.Debugf("count of proto files with package name %s is %s", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+
+	var eg errgroup.Group
+	prFiles.RangeFilesByPackage(
+		protoreflect.FullName(gen.ProtoPackage),
+		func(fd protoreflect.FileDescriptor) bool {
+			eg.Go(func() error {
+				return gen.convert(fd, "")
+			})
+			return true
+		})
+	return eg.Wait()
+}
+
+func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
+	var eg errgroup.Group
+	for _, relWorkbookPath := range relWorkbookPaths {
+		tempRelWorkbookPath := relWorkbookPath
+		eg.Go(func() error {
+			return gen.GenOneWorkbook(tempRelWorkbookPath, "")
+		})
+	}
+	return eg.Wait()
+}
+
+func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName string) (err error) {
+	relCleanSlashPath := fs.GetCleanSlashPath(relWorkbookPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get relative path from %s to %s", gen.InputDir, relWorkbookPath)
+	}
+	atom.Log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", relWorkbookPath, relCleanSlashPath)
+	relWorkbookPath = relCleanSlashPath
 
 	// create output dir
 	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ConfSubdir)
@@ -73,92 +152,27 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
 	}
-
-	workbookFound := false
-	worksheetFound := false
-
 	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ImportPaths, gen.InputOpt.ProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
-	
-	atom.Log.Debugf("count of proto files with package name %s is %s", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+	atom.Log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+
+	workbookFound := false
 	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
-			err = func() error {
-				_, workbook := ParseFileOptions(fd)
-				if workbook == nil {
-					return nil
-				}
-				if relWorkbookPath != "" && relWorkbookPath != workbook.Name {
-					return nil
-				}
-				workbookFound = true
-
-				workbookFormat := format.Ext2Format(filepath.Ext(workbook.Name))
-				// check if this workbook format need to be converted
-				if !format.FilterInput(workbookFormat, gen.InputOpt.Formats) {
-					return nil
-				}
-
-				// filter subdir
-				if !fs.FilterSubdir(workbook.Name, gen.InputOpt.Subdirs) {
-					return nil
-				}
-
-				var sheets []string
-				// sheet name -> message name
-				sheetMap := map[string]sheetInfo{}
-				msgs := fd.Messages()
-				for i := 0; i < msgs.Len(); i++ {
-					md := msgs.Get(i)
-					opts := md.Options().(*descriptorpb.MessageOptions)
-					worksheet := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
-					if worksheet != nil {
-						sheetMap[worksheet.Name] = sheetInfo{string(md.Name()), worksheet}
-						sheets = append(sheets, worksheet.Name)
-					}
-				}
-
-				// rewrite subdir
-				rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
-				wbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
-				imp, err := importer.New(wbPath, importer.Sheets(sheets))
-				if err != nil {
-					return errors.WithMessagef(err, "failed to import workbook: %s", wbPath)
-				}
-				// atom.Log.Debugf("proto: %s, workbook %s", fd.Path(), workbook)
-				for sheetName, sheetInfo := range sheetMap {
-					if worksheetName != "" && worksheetName != sheetName {
-						continue
-					}
-					worksheetFound = true
-
-					md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
-					// atom.Log.Debugf("%s", md.FullName())
-					atom.Log.Infof("generate: %s#%s (%s#%s)", fd.Path(), md.Name(), workbook.Name, sheetName)
-					newMsg := dynamicpb.NewMessage(md)
-					parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
-
-					// get merger importers
-					importers, err := getMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
-					if err != nil {
-						return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
-					}
-					// append self
-					importers = append(importers, imp)
-
-					exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
-					if err := exporter.Export(parser, newMsg, importers...); err != nil {
-						return err
-					}
-				}
-				return nil
-			}()
-
+			_, workbook := ParseFileOptions(fd)
+			if workbook == nil {
+				return true
+			}
+			if relWorkbookPath != "" && relWorkbookPath != workbook.Name {
+				return true
+			}
+			workbookFound = true
 			// Due to closure, this err will be returned by func Generate().
-			return err == nil
+			err = gen.convert(fd, worksheetName)
+			return false
 		})
 
 	if err != nil {
@@ -170,7 +184,83 @@ func (gen *Generator) Generate(relWorkbookPath string, worksheetName string) (er
 		}
 		return errors.Errorf("workbook not found: %s", relWorkbookPath)
 	}
-	if !worksheetFound {
+	return nil
+}
+
+// convert a workbook related to parameter fd, and only convert the
+// specified worksheet if the input parameter worksheetName is not empty.
+func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName string) error {
+	bookBeginTime := time.Now()
+	_, workbook := ParseFileOptions(fd)
+	if workbook == nil {
+		return nil
+	}
+
+	workbookFormat := format.Ext2Format(filepath.Ext(workbook.Name))
+	// check if this workbook format need to be converted
+	if !format.FilterInput(workbookFormat, gen.InputOpt.Formats) {
+		return nil
+	}
+
+	// filter subdir
+	if !fs.FilterSubdir(workbook.Name, gen.InputOpt.Subdirs) {
+		return nil
+	}
+
+	var sheets []string
+	// sheet name -> message name
+	sheetMap := map[string]sheetInfo{}
+	msgs := fd.Messages()
+	for i := 0; i < msgs.Len(); i++ {
+		md := msgs.Get(i)
+		opts := md.Options().(*descriptorpb.MessageOptions)
+		worksheet := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
+		if worksheet != nil {
+			sheetMap[worksheet.Name] = sheetInfo{string(md.Name()), worksheet}
+			sheets = append(sheets, worksheet.Name)
+		}
+	}
+
+	// rewrite subdir
+	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
+	wbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
+	atom.Log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
+	imp, err := importer.New(wbPath, importer.Sheets(sheets))
+	if err != nil {
+		return errors.WithMessagef(err, "failed to import workbook: %s", wbPath)
+	}
+	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
+	worksheetFound := false
+	for sheetName, sheetInfo := range sheetMap {
+		sheetBeginTime := time.Now()
+		if worksheetName != "" {
+			if worksheetName != sheetName {
+				continue
+			}
+			worksheetFound = true
+		}
+		md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
+		// atom.Log.Debugf("%s", md.FullName())
+		atom.Log.Infof("generate: %s#%s (%s#%s)", fd.Path(), md.Name(), workbook.Name, sheetName)
+		newMsg := dynamicpb.NewMessage(md)
+		parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
+
+		// get merger importers
+		importers, err := getMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
+		if err != nil {
+			return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
+		}
+		// append self
+		importers = append(importers, imp)
+
+		exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
+		if err := exporter.Export(parser, newMsg, importers...); err != nil {
+			return err
+		}
+		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
+		gen.PerfStats.Store(sheetInfo.MessageName, seconds)
+	}
+	if worksheetName != "" && !worksheetFound {
 		return errors.Errorf("worksheet not found: %s", worksheetName)
 	}
 	return nil

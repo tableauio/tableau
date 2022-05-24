@@ -121,7 +121,14 @@ func prepareOutpuDir(outdir string, importFiles []string) error {
 	return nil
 }
 
-func (gen *Generator) Generate() error {
+func (gen *Generator) Generate(relWorkbookPaths ...string) error {
+	if len(relWorkbookPaths) == 0 {
+		return gen.GenAll()
+	}
+	return gen.GenWorkbook(relWorkbookPaths...)
+}
+
+func (gen *Generator) GenAll() error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir)
 	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportFiles); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
@@ -138,13 +145,19 @@ func (gen *Generator) Generate() error {
 	return gen.generate(gen.InputDir)
 }
 
-func (gen *Generator) GenOneWorkbook(relativeWorkbookPath string) error {
+func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir)
 	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportFiles); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
 	}
-	absPath := filepath.Join(gen.InputDir, relativeWorkbookPath)
-	return gen.convert(filepath.Dir(absPath), filepath.Base(absPath))
+	var eg errgroup.Group
+	for _, relWorkbookPath := range relWorkbookPaths {
+		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
+		eg.Go(func() error {
+			return gen.convert(filepath.Dir(absPath), filepath.Base(absPath))
+		})
+	}
+	return eg.Wait()
 }
 
 func (gen *Generator) generate(dir string) (err error) {

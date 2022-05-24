@@ -41,7 +41,7 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) erro
 	atom.InitConsoleLog(opts.LogLevel)
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
-	return g.Generate(opts.Workbook, opts.Worksheet)
+	return g.Generate()
 }
 
 // Proto2Excel converts protoconf files to excel files (with tableau header).
