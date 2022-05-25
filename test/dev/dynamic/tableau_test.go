@@ -27,6 +27,15 @@ func Test_GenProto(t *testing.T) {
 						format.CSV,
 						format.XML,
 					},
+					Header: &options.HeaderOption{
+						Namerow: 1,
+						Typerow: 2,
+						Noterow: 3,
+						Datarow: 5,
+
+						Nameline: 2,
+						Typeline: 2,
+					},
 				},
 			},
 		),
@@ -41,16 +50,6 @@ func Test_GenProto(t *testing.T) {
 				},
 			},
 		),
-		options.Header(
-			&options.HeaderOption{
-				Namerow: 1,
-				Typerow: 2,
-				Noterow: 3,
-				Datarow: 5,
-
-				Nameline: 2,
-				Typeline: 2,
-			}),
 		options.LogLevel("DEBUG"),
 	)
 	if err != nil {
@@ -101,14 +100,23 @@ func Test_Generate(t *testing.T) {
 				Proto: &options.InputProtoOption{
 					ProtoPaths: []string{"./_out/proto"},
 					ProtoCustomFiles: []string{
-						"common/cs_dbkeyword.proto",
-						"common/common.proto",
-						"common/time.proto",
+						"cs_dbkeyword.proto",
+						"common.proto",
+						"time.proto",
 					},
 					Formats: []format.Format{
 						// format.Excel,
 						format.CSV,
 						format.XML,
+					},
+					Header: &options.HeaderOption{
+						Namerow: 1,
+						Typerow: 2,
+						Noterow: 3,
+						Datarow: 5,
+
+						Nameline: 2,
+						Typeline: 2,
 					},
 				},
 
@@ -136,20 +144,10 @@ func Test_Generate(t *testing.T) {
 				Conf: &options.OutputConfOption{
 					Pretty:  true,
 					Formats: []format.Format{format.JSON},
-					Subdir: "conf",
+					Subdir:  "conf",
 				},
 			},
 		),
-		options.Header(
-			&options.HeaderOption{
-				Namerow: 1,
-				Typerow: 2,
-				Noterow: 3,
-				Datarow: 5,
-
-				Nameline: 2,
-				Typeline: 2,
-			}),
 		options.LogLevel("DEBUG"),
 	)
 	if err != nil {

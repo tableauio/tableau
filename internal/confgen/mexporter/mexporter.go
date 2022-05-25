@@ -37,7 +37,7 @@ func New(name string, msg proto.Message, outputDir string, outputOpt *options.Ou
 // Export exports the message to the specified one or multiple forma(s).
 func (x *messageExporter) Export() error {
 	formats := format.OutputFormats
-	if x.outputOpt.Formats != nil {
+	if len(x.outputOpt.Formats) == 0 {
 		formats = x.outputOpt.Formats
 	}
 

@@ -95,7 +95,7 @@ func FilterInput(inputFormat Format, allowedInputFormats []Format) bool {
 		return false
 	}
 
-	if allowedInputFormats == nil || Amongst(inputFormat, allowedInputFormats) {
+	if len(allowedInputFormats) == 0 || Amongst(inputFormat, allowedInputFormats) {
 		return true
 	}
 	return false

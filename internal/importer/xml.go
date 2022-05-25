@@ -214,7 +214,7 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 	// In order to combine column headers (the result of 1 pass) and data (the result of 2 pass),
 	// we need to cache the MetaSheet struct in `x`
 	metaSheet, ok := x.metaMap[sheetName]
-	header := options.NewDefault().Header
+	header := options.NewDefault().Input.Proto.Header
 	if !ok {
 		metaSheet = xlsxgen.NewMetaSheet(sheetName, header, false)
 		x.metaMap[sheetName] = metaSheet

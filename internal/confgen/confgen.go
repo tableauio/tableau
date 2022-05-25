@@ -25,13 +25,12 @@ import (
 
 type Generator struct {
 	ProtoPackage string // protobuf package name.
-	LocationName string // Location represents the collection of time offsets in use in a geographical area. Default is "Asia/Shanghai".
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated files.
 
-	Header    *options.HeaderOption     // header settings.
-	InputOpt  *options.InputConfOption  // Input settings.
-	OutputOpt *options.OutputConfOption // output settings.
+	LocationName string                    // TZ location name.
+	InputOpt     *options.InputConfOption  // Input settings.
+	OutputOpt    *options.OutputConfOption // output settings.
 
 	// Performace stats
 	PerfStats sync.Map
@@ -49,10 +48,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 	g := &Generator{
 		ProtoPackage: protoPackage,
-		LocationName: opts.LocationName,
 		InputDir:     indir,
 		OutputDir:    outdir,
-		Header:       opts.Header,
 		InputOpt:     opts.Input.Conf,
 		OutputOpt:    opts.Output.Conf,
 		PerfStats:    sync.Map{},
@@ -113,7 +110,7 @@ func (gen *Generator) GenAll() error {
 		return errors.WithMessagef(err, "failed to create files")
 	}
 
-	atom.Log.Debugf("count of proto files with package name %s is %s", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+	atom.Log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 
 	var eg errgroup.Group
 	prFiles.RangeFilesByPackage(

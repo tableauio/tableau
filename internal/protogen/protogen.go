@@ -37,15 +37,12 @@ func AppVersion() string {
 
 type Generator struct {
 	ProtoPackage string // protobuf package name.
-	// Location represents the collection of time offsets in use in a geographical area.
-	// Default is "Asia/Shanghai".
-	LocationName string
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated protoconf files.
 
-	Header    *options.HeaderOption // header settings.
-	InputOpt  *options.InputProtoOption
-	OutputOpt *options.OutputProtoOption
+	LocationName string // TZ location name.
+	InputOpt     *options.InputProtoOption
+	OutputOpt    *options.OutputProtoOption
 
 	// internal
 	fileDescs []*desc.FileDescriptor      // all parsed imported proto file descriptors.
@@ -60,11 +57,9 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	g := &Generator{
 		ProtoPackage: protoPackage,
-		LocationName: opts.LocationName,
 		InputDir:     indir,
 		OutputDir:    outdir,
 
-		Header:    opts.Header,
 		InputOpt:  opts.Input.Proto,
 		OutputOpt: opts.Output.Proto,
 	}
@@ -298,7 +293,7 @@ func (gen *Generator) convert(dir, filename string) error {
 		if sheet.Meta.Alias != "" {
 			sheetMsgName = sheet.Meta.Alias
 		}
-		mergeHeaderOptions(sheet.Meta, gen.Header)
+		mergeHeaderOptions(sheet.Meta, gen.InputOpt.Header)
 		ws := &tableaupb.Worksheet{
 			Options: &tableaupb.WorksheetOptions{
 				Name:          sheet.Name,
@@ -325,9 +320,9 @@ func (gen *Generator) convert(dir, filename string) error {
 		}
 		shHeader := &sheetHeader{
 			meta:    sheet.Meta,
-			namerow: sheet.Rows[gen.Header.Namerow-1],
-			typerow: sheet.Rows[gen.Header.Typerow-1],
-			noterow: sheet.Rows[gen.Header.Noterow-1],
+			namerow: sheet.Rows[gen.InputOpt.Header.Namerow-1],
+			typerow: sheet.Rows[gen.InputOpt.Header.Typerow-1],
+			noterow: sheet.Rows[gen.InputOpt.Header.Noterow-1],
 		}
 
 		var ok bool

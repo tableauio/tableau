@@ -7,15 +7,17 @@ import (
 // Options is the wrapper of tableau params.
 // Options follow the design of Functional Options (https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md).
 type Options struct {
-	// Location represents the collection of time offsets in use in a geographical area.
-	// Default: "Asia/Shanghai".
-	LocationName string `yaml:"locationName"`
 	// Log level: DEBUG, INFO, WARN, ERROR.
 	// Default: "info".
-	LogLevel string        `yaml:"logLevel"`
-	Header   *HeaderOption `yaml:"header"` // Header options of worksheet.
-	Input    *InputOption  `yaml:"input"`  // Input options.
-	Output   *OutputOption `yaml:"output"` // Output options.
+	LogLevel string `yaml:"logLevel"`
+	// Location represents the collection of time offsets in use in a geographical area.
+	// If the name is "" or "UTC", LoadLocation returns UTC.
+	// If the name is "Local", LoadLocation returns Local.
+	// Default: "Local".
+	LocationName string `yaml:"locationName"`
+
+	Input  *InputOption  `yaml:"input"`  // Input options.
+	Output *OutputOption `yaml:"output"` // Output options.
 }
 
 type HeaderOption struct {
@@ -58,6 +60,8 @@ type OutputOption struct {
 
 // Input options for generating proto files. Only for protogen.
 type InputProtoOption struct {
+	// Header options of worksheet.
+	Header *HeaderOption `yaml:"header"`
 	// The proto paths are used to search for dependencies that are referenced in import
 	// statements in proto source files. If no import paths are provided then
 	// "." (current directory) is assumed to be the only import path.
@@ -159,24 +163,10 @@ type OutputConfOption struct {
 // Option is the functional option type.
 type Option func(*Options)
 
-// LocationName sets LocationName.
-func LocationName(o string) Option {
-	return func(opts *Options) {
-		opts.LocationName = o
-	}
-}
-
 // LogLevel sets LogLevel.
 func LogLevel(level string) Option {
 	return func(opts *Options) {
 		opts.LogLevel = level
-	}
-}
-
-// Header sets HeaderOption.
-func Header(o *HeaderOption) Option {
-	return func(opts *Options) {
-		opts.Header = o
 	}
 }
 
@@ -233,18 +223,18 @@ func OutputConf(o *OutputConfOption) Option {
 // NewDefault returns a default Options.
 func NewDefault() *Options {
 	return &Options{
-		LocationName: "Asia/Shanghai",
 		LogLevel:     "INFO",
-
-		Header: &HeaderOption{
-			Namerow: 1,
-			Typerow: 2,
-			Noterow: 3,
-			Datarow: 4,
-		},
+		LocationName: "Local",
 		Input: &InputOption{
-			Proto: &InputProtoOption{},
-			Conf:  &InputConfOption{},
+			Proto: &InputProtoOption{
+				Header: &HeaderOption{
+					Namerow: 1,
+					Typerow: 2,
+					Noterow: 3,
+					Datarow: 4,
+				},
+			},
+			Conf: &InputConfOption{},
 		},
 		Output: &OutputOption{
 			Proto: &OutputProtoOption{},

@@ -37,6 +37,15 @@ func Test_GenProto(t *testing.T) {
 				// SubdirRewrites: map[string]string{
 				// 	`excel/`: ``,
 				// },
+				Header: &options.HeaderOption{
+					Namerow: 1,
+					Typerow: 2,
+					Noterow: 3,
+					Datarow: 5,
+
+					Nameline: 2,
+					Typeline: 2,
+				},
 			},
 		),
 		options.OutputProto(
@@ -48,16 +57,6 @@ func Test_GenProto(t *testing.T) {
 				},
 			},
 		),
-		options.Header(
-			&options.HeaderOption{
-				Namerow: 1,
-				Typerow: 2,
-				Noterow: 3,
-				Datarow: 5,
-
-				Nameline: 2,
-				Typeline: 2,
-			}),
 		options.LogLevel("DEBUG"),
 	)
 	if err != nil {
