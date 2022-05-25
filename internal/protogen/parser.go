@@ -29,7 +29,7 @@ type bookParser struct {
 func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 	// atom.Log.Debugf("filenameWithSubdirPrefix: %v", filenameWithSubdirPrefix)
 	filename := strcase.ToSnake(bookName)
-	if gen.OutputOpt.ProtoFilenameWithSubdirPrefix {
+	if gen.OutputOpt.FilenameWithSubdirPrefix {
 		bookPath := filepath.Join(filepath.Dir(relSlashPath), bookName)
 		snakePath := strcase.ToSnake(bookPath)
 		filename = strings.ReplaceAll(snakePath, "/", "__")
@@ -49,8 +49,8 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 		withNote: false,
 	}
 
-	// custom imports
-	for _, path := range gen.InputOpt.ImportFiles {
+	// custom imported proto files
+	for _, path := range gen.InputOpt.ProtoCustomFiles {
 		bp.wb.Imports[path] = 1
 	}
 	return bp

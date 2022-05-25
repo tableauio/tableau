@@ -20,9 +20,9 @@ func Test_GenProto(t *testing.T) {
 		"protoconf",
 		"./testdata",
 		"./proto",
-		options.Input(
-			&options.InputOption{
-				ImportFiles: []string{
+		options.InputProto(
+			&options.InputProtoOption{
+				ProtoCustomFiles: []string{
 					"common/cs_dbkeyword.proto",
 					"common/common.proto",
 					"common/time.proto",
@@ -39,11 +39,11 @@ func Test_GenProto(t *testing.T) {
 				// },
 			},
 		),
-		options.Output(
-			&options.OutputOption{
-				ProtoFilenameSuffix:           "_conf",
-				ProtoFilenameWithSubdirPrefix: false,
-				ProtoFileOptions: map[string]string{
+		options.OutputProto(
+			&options.OutputProtoOption{
+				FilenameSuffix:           "_conf",
+				FilenameWithSubdirPrefix: false,
+				FileOptions: map[string]string{
 					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
 				},
 			},
@@ -71,8 +71,8 @@ func Test_GenConf(t *testing.T) {
 		"./testdata",
 		"./_conf",
 		options.LogLevel("DEBUG"),
-		options.Output(
-			&options.OutputOption{
+		options.OutputConf(
+			&options.OutputConfOption{
 				Pretty:  true,
 				Formats: []format.Format{format.JSON},
 			},
@@ -154,17 +154,17 @@ func Test_GenJSON_Subdir(t *testing.T) {
 		"protoconf",
 		"./testdata",
 		"./_conf",
-		options.Input(
-			&options.InputOption{
-				// Formats: []format.Format{format.CSV},
-				Subdirs: []string{`excel/`},
-				SubdirRewrites: map[string]string{
-					`excel/`: ``,
-				},
+		options.InputConf(
+			&options.InputConfOption{
+				Formats: []format.Format{format.XML},
+				// Subdirs: []string{`excel/`},
+				// SubdirRewrites: map[string]string{
+				// 	`excel/`: ``,
+				// },
 			},
 		),
-		options.Output(
-			&options.OutputOption{
+		options.OutputConf(
+			&options.OutputConfOption{
 				Formats: []format.Format{format.JSON},
 			},
 		),

@@ -10,11 +10,12 @@ type Options struct {
 	// Location represents the collection of time offsets in use in a geographical area.
 	// Default: "Asia/Shanghai".
 	LocationName string `yaml:"locationName"`
-	// Log level: debug, info, warn, error. Default: "info".
+	// Log level: DEBUG, INFO, WARN, ERROR.
+	// Default: "info".
 	LogLevel string        `yaml:"logLevel"`
-	Header   *HeaderOption // Header options of worksheet.
-	Input    *InputOption  // Input options.
-	Output   *OutputOption // Output options.
+	Header   *HeaderOption `yaml:"header"` // Header options of worksheet.
+	Input    *InputOption  `yaml:"input"`  // Input options.
+	Output   *OutputOption `yaml:"output"` // Output options.
 }
 
 type HeaderOption struct {
@@ -42,55 +43,95 @@ type HeaderOption struct {
 }
 
 type InputOption struct {
-	// Only for protogen: input file formats.
-	// Note: recognize all formats (Excel, CSV, and XML) if not set (value is nil).
-	// Default: nil.
-	Formats []format.Format
-	// The paths used to search for dependencies that are referenced in import
+	// Input options for generating proto files.
+	Proto *InputProtoOption `yaml:"proto"`
+	// Input options for generating conf files.
+	Conf *InputConfOption `yaml:"conf"`
+}
+
+type OutputOption struct {
+	// Output options for generating proto files.
+	Proto *OutputProtoOption `yaml:"proto"`
+	// Output options for generating conf files.
+	Conf *OutputConfOption `yaml:"conf"`
+}
+
+// Input options for generating proto files. Only for protogen.
+type InputProtoOption struct {
+	// The proto paths are used to search for dependencies that are referenced in import
 	// statements in proto source files. If no import paths are provided then
 	// "." (current directory) is assumed to be the only import path.
 	// Default: nil.
-	ImportPaths []string `yaml:"importPaths"`
-	// The files in "ImportPaths" used to search for dependencies that are referenced in import
-	// statements in proto source files.
+	ProtoPaths []string `yaml:"protoPaths"`
+	// The enums and messages in ProtoCustomFiles can be used in Excel/CSV/XML as
+	// common types.
 	// Default: nil.
-	ImportFiles []string `yaml:"importFiles"`
-	// The files to be parsed to generate configurations.
+	ProtoCustomFiles []string `yaml:"protoCustomFiles"`
+	// Specify input file formats.
+	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
 	// Default: nil.
-	ProtoFiles []string `yaml:"protoFiles"`
-	// - For protogen, specify only these subdirs (relative to input dir) to be processed.
-	// - For confgen, specify only these subdirs (relative to workbook name option in .proto file).
-	Subdirs []string
-	// - For protogen, rewrite subdir path (relative to input dir).
-	// - For confgen, rewrite subdir path (relative to workbook name option in .proto file).
-	//
+	Formats []format.Format `yaml:"formats"`
+	// Specify only these subdirs (relative to input dir) to be processed.
+	Subdirs []string `yaml:"subdirs"`
+	// Specify rewrite subdir path (relative to input dir).
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
-	// Only for protogen: follow the symbolic links when traversing directories recursively.
+	// Follow the symbolic links when traversing directories recursively.
 	// WARN: be careful to use this option, it may lead to infinite loop.
 	// Default: false.
 	FollowSymlink bool `yaml:"followSymlink"`
 }
 
-type OutputOption struct {
-	// Only for protogen: specify subdir for generated proto files in output dir.
-	// Default: "".
-	ProtoSubdir string `yaml:"protoSubdir"`
-	// Only for confgen: specify subdir for generated configuration files in output dir.
-	// Default: "".
-	ConfSubdir string `yaml:"confSubdir"`
-	// Only for protogen: dir separator `/` or `\`  in filename is replaced by "__".
-	// Default: true.
-	ProtoFilenameWithSubdirPrefix bool `yaml:"protoFilenameWithSubdirPrefix"`
-	// Only for protogen: append the suffix to filename.
-	// Default: "".
-	ProtoFilenameSuffix string `yaml:"protoFilenameSuffix"`
-	// Only for confgen: output file formats. It will output all formats
-	// (JSON, Text, and Wire) if not set.
+// Input options for generating conf files. Only for confgen.
+type InputConfOption struct {
+	// The proto paths are used to search for dependencies that are referenced in import
+	// statements in proto source files. If no import paths are provided then
+	// "." (current directory) is assumed to be the only import path.
+	// Default: nil.
+	ProtoPaths []string `yaml:"protoPaths"`
+	// The files to be parsed to generate configurations.
+	// Default: nil.
+	ProtoFiles []string `yaml:"protoFiles"`
+	// Specify input file formats to be parsed.
+	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
 	// Default: nil.
 	Formats []format.Format
-	// Only for confgen: output pretty format, with multiline and indent.
-	// Default: true.
+	// Specify only these subdirs (relative to workbook name option in proto file).
+	Subdirs []string
+	// Specify rewrite subdir path (relative to workbook name option in proto file).
+	// Default: nil.
+	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
+}
+
+// Output options for generating proto files. Only for protogen.
+type OutputProtoOption struct {
+	// Specify subdir (relative to output dir) for generated proto files.
+	// Default: "".
+	Subdir string `yaml:"subdir"`
+	// Dir separator `/` or `\`  in filename is replaced by "__".
+	// Default: false.
+	FilenameWithSubdirPrefix bool `yaml:"filenameWithSubdirPrefix"`
+	// Append suffix to generated proto filename.
+	// Default: "".
+	FilenameSuffix string `yaml:"filenameSuffix"`
+
+	// Specify proto file options.
+	// Example: go_package, csharp_namespace...
+	// Default: nil.
+	FileOptions map[string]string `yaml:"fileOptions"`
+}
+
+// Output options for generating conf files. Only for confgen.
+type OutputConfOption struct {
+	// Specify subdir (relative to output dir) for generated configuration files.
+	// Default: "".
+	Subdir string `yaml:"subdir"`
+	// Specify generated conf file formats. If not set, it will generate all formats
+	// (JSON, Text, and Wire) .
+	// Default: nil.
+	Formats []format.Format
+	// Output pretty format, with multiline and indent.
+	// Default: false.
 	Pretty bool
 	// EmitUnpopulated specifies whether to emit unpopulated fields. It does not
 	// emit unpopulated oneof fields or unpopulated extension fields.
@@ -113,10 +154,6 @@ type OutputOption struct {
 	//
 	// Default: false.
 	EmitUnpopulated bool `yaml:"emitUnpopulated"`
-
-	// Only for proto file options. Default: nil.
-	// Example: go_package, csharp_namespace...
-	ProtoFileOptions map[string]string `yaml:"protoFileOptions"`
 }
 
 // Option is the functional option type.
@@ -143,6 +180,31 @@ func Header(o *HeaderOption) Option {
 	}
 }
 
+// Input sets InputOption.
+func Input(o *InputOption) Option {
+	return func(opts *Options) {
+		opts.Input = o
+	}
+}
+
+// InputProto set options for generating proto files.
+func InputProto(o *InputProtoOption) Option {
+	return func(opts *Options) {
+		opts.Input = &InputOption{
+			Proto: o,
+		}
+	}
+}
+
+// InputConf set options for generating conf files.
+func InputConf(o *InputConfOption) Option {
+	return func(opts *Options) {
+		opts.Input = &InputOption{
+			Conf: o,
+		}
+	}
+}
+
 // Output sets OutputOption.
 func Output(o *OutputOption) Option {
 	return func(opts *Options) {
@@ -150,10 +212,21 @@ func Output(o *OutputOption) Option {
 	}
 }
 
-// Input sets InputOption.
-func Input(o *InputOption) Option {
+// OutputProto set options for generating proto files.
+func OutputProto(o *OutputProtoOption) Option {
 	return func(opts *Options) {
-		opts.Input = o
+		opts.Output = &OutputOption{
+			Proto: o,
+		}
+	}
+}
+
+// OutputConf set options for generating conf files.
+func OutputConf(o *OutputConfOption) Option {
+	return func(opts *Options) {
+		opts.Output = &OutputOption{
+			Conf: o,
+		}
 	}
 }
 
@@ -169,13 +242,13 @@ func NewDefault() *Options {
 			Noterow: 3,
 			Datarow: 4,
 		},
-		Output: &OutputOption{
-			ProtoFilenameWithSubdirPrefix: true,
-			Formats:                       nil,
-			Pretty:                        true,
-		},
 		Input: &InputOption{
-			Formats: nil,
+			Proto: &InputProtoOption{},
+			Conf:  &InputConfOption{},
+		},
+		Output: &OutputOption{
+			Proto: &OutputProtoOption{},
+			Conf:  &OutputConfOption{},
 		},
 	}
 }

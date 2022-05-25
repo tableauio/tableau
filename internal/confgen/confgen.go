@@ -29,9 +29,9 @@ type Generator struct {
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated files.
 
-	OutputOpt *options.OutputOption // output settings.
-	InputOpt  *options.InputOption  // Input settings.
-	Header    *options.HeaderOption // header settings.
+	Header    *options.HeaderOption     // header settings.
+	InputOpt  *options.InputConfOption  // Input settings.
+	OutputOpt *options.OutputConfOption // output settings.
 
 	// Performace stats
 	PerfStats sync.Map
@@ -53,8 +53,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputDir:     indir,
 		OutputDir:    outdir,
 		Header:       opts.Header,
-		InputOpt:     opts.Input,
-		OutputOpt:    opts.Output,
+		InputOpt:     opts.Input.Conf,
+		OutputOpt:    opts.Output.Conf,
 		PerfStats:    sync.Map{},
 	}
 	return g
@@ -102,13 +102,13 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) (err error) {
 
 func (gen *Generator) GenAll() error {
 	// create output dir
-	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ConfSubdir)
+	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	err := os.MkdirAll(outputConfDir, 0700)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
 	}
 
-	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ImportPaths, gen.InputOpt.ProtoFiles...)
+	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
@@ -147,12 +147,12 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 	relWorkbookPath = relCleanSlashPath
 
 	// create output dir
-	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ConfSubdir)
+	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	err = os.MkdirAll(outputConfDir, 0700)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
 	}
-	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ImportPaths, gen.InputOpt.ProtoFiles...)
+	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}

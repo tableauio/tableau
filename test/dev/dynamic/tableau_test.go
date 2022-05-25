@@ -15,27 +15,29 @@ func Test_GenProto(t *testing.T) {
 		"./_proto",
 		options.Input(
 			&options.InputOption{
-				ImportPaths: []string{
-					"./_proto",
-				},
-				ImportFiles: []string{
-					"common/cs_dbkeyword.proto",
-					"common/common.proto",
-					"common/time.proto",
-				},
-				Formats: []format.Format{
-					// format.Excel,
-					format.CSV,
-					format.XML,
+				Proto: &options.InputProtoOption{
+					ProtoPaths: []string{"./_proto"},
+					ProtoCustomFiles: []string{
+						"common/cs_dbkeyword.proto",
+						"common/common.proto",
+						"common/time.proto",
+					},
+					Formats: []format.Format{
+						// format.Excel,
+						format.CSV,
+						format.XML,
+					},
 				},
 			},
 		),
 		options.Output(
 			&options.OutputOption{
-				ProtoFilenameSuffix:           "_conf",
-				ProtoFilenameWithSubdirPrefix: false,
-				ProtoFileOptions: map[string]string{
-					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+				Proto: &options.OutputProtoOption{
+					FilenameSuffix:           "_conf",
+					FilenameWithSubdirPrefix: false,
+					FileOptions: map[string]string{
+						"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+					},
 				},
 			},
 		),
@@ -63,21 +65,23 @@ func Test_GenConf(t *testing.T) {
 		"./_conf",
 		options.Input(
 			&options.InputOption{
-				ImportPaths: []string{
-					"./_proto",
-				},
-				ProtoFiles: []string{"./_proto/*.proto"},
-				Formats: []format.Format{
-					// format.Excel,
-					format.CSV,
-					format.XML,
+				Conf: &options.InputConfOption{
+					ProtoPaths: []string{"./_proto"},
+					ProtoFiles: []string{"./_proto/*.proto"},
+					Formats: []format.Format{
+						// format.Excel,
+						format.CSV,
+						format.XML,
+					},
 				},
 			},
 		),
 		options.Output(
 			&options.OutputOption{
-				Pretty:  true,
-				Formats: []format.Format{format.JSON},
+				Conf: &options.OutputConfOption{
+					Pretty:  true,
+					Formats: []format.Format{format.JSON},
+				},
 			},
 		),
 		options.LogLevel("DEBUG"),
@@ -94,36 +98,45 @@ func Test_Generate(t *testing.T) {
 		"./_out",
 		options.Input(
 			&options.InputOption{
-				// FIXME: this is not working
-				ImportPaths: []string{
-					"./_out/proto",
-					// "./_out",
-					// "../proto/common", // FIXME: this is not working yet for standalone common dir.
+				Proto: &options.InputProtoOption{
+					ProtoPaths: []string{"./_out/proto"},
+					ProtoCustomFiles: []string{
+						"common/cs_dbkeyword.proto",
+						"common/common.proto",
+						"common/time.proto",
+					},
+					Formats: []format.Format{
+						// format.Excel,
+						format.CSV,
+						format.XML,
+					},
 				},
-				ImportFiles: []string{
-					"cs_dbkeyword.proto",
-					"common.proto",
-					"time.proto",
-				},
-				ProtoFiles: []string{"./_out/proto/*.proto"},
-				// ProtoFiles: []string{"./_out/*.proto"},
-				Formats: []format.Format{
-					// format.Excel,
-					format.CSV,
-					format.XML,
+
+				Conf: &options.InputConfOption{
+					ProtoPaths: []string{"./_out/proto"},
+					ProtoFiles: []string{"./_out/proto/*.proto"},
+					Formats: []format.Format{
+						// format.Excel,
+						format.CSV,
+						format.XML,
+					},
 				},
 			},
 		),
 		options.Output(
 			&options.OutputOption{
-				ProtoSubdir:                   "proto",
-				ConfSubdir:                    "conf",
-				ProtoFilenameSuffix:           "_conf",
-				ProtoFilenameWithSubdirPrefix: false,
-				Pretty:                        true,
-				Formats:                       []format.Format{format.JSON},
-				ProtoFileOptions: map[string]string{
-					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+				Proto: &options.OutputProtoOption{
+					FilenameSuffix:           "_conf",
+					FilenameWithSubdirPrefix: false,
+					FileOptions: map[string]string{
+						"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
+					},
+					Subdir: "proto",
+				},
+				Conf: &options.OutputConfOption{
+					Pretty:  true,
+					Formats: []format.Format{format.JSON},
+					Subdir: "conf",
 				},
 			},
 		),

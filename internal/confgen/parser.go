@@ -21,14 +21,14 @@ import (
 
 type sheetExporter struct {
 	OutputDir string
-	Output    *options.OutputOption // output settings.
+	OutputOpt    *options.OutputConfOption // output settings.
 
 }
 
-func NewSheetExporter(outputDir string, output *options.OutputOption) *sheetExporter {
+func NewSheetExporter(outputDir string, output *options.OutputConfOption) *sheetExporter {
 	return &sheetExporter{
 		OutputDir: outputDir,
-		Output:    output,
+		OutputOpt:    output,
 	}
 }
 
@@ -48,7 +48,7 @@ func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, impo
 		}
 	}
 
-	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.Output, wsOpts)
+	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.OutputOpt, wsOpts)
 	return exporter.Export()
 }
 

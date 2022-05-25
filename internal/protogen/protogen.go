@@ -44,8 +44,8 @@ type Generator struct {
 	OutputDir    string // output dir of generated protoconf files.
 
 	Header    *options.HeaderOption // header settings.
-	InputOpt  *options.InputOption
-	OutputOpt *options.OutputOption
+	InputOpt  *options.InputProtoOption
+	OutputOpt *options.OutputProtoOption
 
 	// internal
 	fileDescs []*desc.FileDescriptor      // all parsed imported proto file descriptors.
@@ -65,14 +65,14 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		OutputDir:    outdir,
 
 		Header:    opts.Header,
-		InputOpt:  opts.Input,
-		OutputOpt: opts.Output,
+		InputOpt:  opts.Input.Proto,
+		OutputOpt: opts.Output.Proto,
 	}
 
-	// parse imported proto files
+	// parse custom imported proto files
 	fileDescs, err := xproto.ParseProtos(
-		opts.Input.ImportPaths,
-		opts.Input.ImportFiles...)
+		g.InputOpt.ProtoPaths,
+		g.InputOpt.ProtoCustomFiles...)
 	if err != nil {
 		atom.Log.Panic(err)
 	}
@@ -129,8 +129,8 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 }
 
 func (gen *Generator) GenAll() error {
-	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir)
-	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportFiles); err != nil {
+	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
+	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ProtoCustomFiles); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
 	}
 	if len(gen.InputOpt.Subdirs) != 0 {
@@ -146,8 +146,8 @@ func (gen *Generator) GenAll() error {
 }
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
-	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir)
-	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportFiles); err != nil {
+	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
+	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ProtoCustomFiles); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
 	}
 	var eg errgroup.Group
@@ -344,9 +344,9 @@ func (gen *Generator) convert(dir, filename string) error {
 	// export book
 	be := newBookExporter(
 		gen.ProtoPackage,
-		gen.OutputOpt.ProtoFileOptions,
-		filepath.Join(gen.OutputDir, gen.OutputOpt.ProtoSubdir),
-		gen.OutputOpt.ProtoFilenameSuffix,
+		gen.OutputOpt.FileOptions,
+		filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir),
+		gen.OutputOpt.FilenameSuffix,
 		bp.wb,
 		bp.gen,
 	)
