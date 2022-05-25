@@ -77,12 +77,12 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return g
 }
 
-func prepareOutpuDir(outdir string, importFiles []string) error {
+func prepareOutpuDir(outdir string, importFiles []string, delExsited bool) error {
 	existed, err := fs.Exists(outdir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check existence of output dir: %s", outdir)
 	}
-	if existed {
+	if existed && delExsited {
 		// remove all *.proto file but not Imports
 		imports := make(map[string]int)
 		for _, path := range importFiles {
@@ -125,7 +125,7 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 
 func (gen *Generator) GenAll() error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ProtoCustomFiles); err != nil {
+	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ProtoCustomFiles, true); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
 	}
 	if len(gen.InputOpt.Subdirs) != 0 {
@@ -142,14 +142,14 @@ func (gen *Generator) GenAll() error {
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ProtoCustomFiles); err != nil {
+	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ProtoCustomFiles, false); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
 	}
 	var eg errgroup.Group
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
 		eg.Go(func() error {
-			return gen.convert(filepath.Dir(absPath), filepath.Base(absPath))
+			return gen.convert(filepath.Dir(absPath), filepath.Base(absPath), false)
 		})
 	}
 	return eg.Wait()
@@ -225,7 +225,7 @@ func (gen *Generator) generate(dir string) (err error) {
 
 		filename := entry.Name()
 		eg.Go(func() error {
-			return gen.convert(dir, filename)
+			return gen.convert(dir, filename, true)
 		})
 	}
 	return nil
@@ -264,7 +264,7 @@ func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.Heade
 	}
 }
 
-func (gen *Generator) convert(dir, filename string) error {
+func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool) error {
 	absPath := filepath.Join(dir, filename)
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser), importer.TopN(defaultTopN))
@@ -285,9 +285,9 @@ func (gen *Generator) convert(dir, filename string) error {
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(relativePath, gen.InputOpt.SubdirRewrites)
 	if rewrittenWorkbookName != relativePath {
-		debugWorkbookName += " (" + rewrittenWorkbookName + ")"
+		debugWorkbookName += " (rewrite: " + rewrittenWorkbookName + ")"
 	}
-	atom.Log.Infof("analyzing workbook: %s, %d worksheet(s) will be parsed", debugWorkbookName, len(sheets))
+	atom.Log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugWorkbookName, len(sheets))
 	// creat a book parser
 	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen)
 	for _, sheet := range sheets {
@@ -296,9 +296,9 @@ func (gen *Generator) convert(dir, filename string) error {
 		sheetMsgName := sheet.Name
 		if sheet.Meta.Alias != "" {
 			sheetMsgName = sheet.Meta.Alias
-			debugSheetName += " (" + sheet.Meta.Alias + ")"
+			debugSheetName += " (alias: " + sheet.Meta.Alias + ")"
 		}
-		atom.Log.Infof("parsing worksheet: %s", debugSheetName)
+		atom.Log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 		mergeHeaderOptions(sheet.Meta, gen.InputOpt.Header)
 		ws := &tableaupb.Worksheet{
 			Options: &tableaupb.WorksheetOptions{
@@ -351,7 +351,7 @@ func (gen *Generator) convert(dir, filename string) error {
 		bp.wb,
 		bp.gen,
 	)
-	if err := be.export(); err != nil {
+	if err := be.export(checkProtoFileConflicts); err != nil {
 		return errors.WithMessagef(err, "failed to export workbook: %s", relativePath)
 	}
 

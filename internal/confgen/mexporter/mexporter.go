@@ -63,7 +63,6 @@ func (x *messageExporter) export(fmt format.Format) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to JSON", x.name)
 		}
-
 	case format.Text:
 		filename += format.TextExt
 		out, err = x.marshalToText()
@@ -86,7 +85,7 @@ func (x *messageExporter) export(fmt format.Format) error {
 		return errors.Wrapf(err, "failed to write file: %s", fpath)
 	}
 	// out.WriteTo(os.Stdout)
-	atom.Log.Infof("output: %s", filename)
+	atom.Log.Infof("%17s: %s", "generated conf", filename)
 	return nil
 }
 

@@ -238,7 +238,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		}
 		md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
 		// atom.Log.Debugf("%s", md.FullName())
-		atom.Log.Infof("parsing worksheet: %s#%s (%s#%s)", fd.Path(), md.Name(), workbook.Name, sheetName)
+		atom.Log.Infof("%17s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), md.Name(), workbook.Name, sheetName)
 		newMsg := dynamicpb.NewMessage(md)
 		parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
 
