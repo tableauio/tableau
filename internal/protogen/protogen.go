@@ -281,18 +281,24 @@ func (gen *Generator) convert(dir, filename string) error {
 	if err != nil {
 		return errors.WithMessagef(err, "get relative path failed")
 	}
+	debugWorkbookName := relativePath
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(relativePath, gen.InputOpt.SubdirRewrites)
-	atom.Log.Infof("workbook: %s, %d worksheet(s) will be parsed", rewrittenWorkbookName, len(sheets))
+	if rewrittenWorkbookName != relativePath {
+		debugWorkbookName += " (" + rewrittenWorkbookName + ")"
+	}
+	atom.Log.Infof("analyzing workbook: %s, %d worksheet(s) will be parsed", debugWorkbookName, len(sheets))
 	// creat a book parser
 	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen)
 	for _, sheet := range sheets {
 		// parse sheet header
-		atom.Log.Infof("worksheet: %s", sheet.Name)
+		debugSheetName := sheet.Name
 		sheetMsgName := sheet.Name
 		if sheet.Meta.Alias != "" {
 			sheetMsgName = sheet.Meta.Alias
+			debugSheetName += " (" + sheet.Meta.Alias + ")"
 		}
+		atom.Log.Infof("parsing worksheet: %s", debugSheetName)
 		mergeHeaderOptions(sheet.Meta, gen.InputOpt.Header)
 		ws := &tableaupb.Worksheet{
 			Options: &tableaupb.WorksheetOptions{

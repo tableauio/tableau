@@ -29,7 +29,10 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) err
 // GenProto can convert Excel/CSV/XML files to protoconf files.
 func GenProto(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
-	atom.InitConsoleLog(opts.LogLevel)
+	err := atom.InitConsoleLog(opts.Log.Level, opts.Log.Mode)
+	if err != nil {
+		return err
+	}
 	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
 	return g.Generate()
@@ -38,7 +41,10 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) err
 // GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
-	atom.InitConsoleLog(opts.LogLevel)
+	err := atom.InitConsoleLog(opts.Log.Level, opts.Log.Mode)
+	if err != nil {
+		return err
+	}
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
 	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
 	return g.Generate()
@@ -66,9 +72,9 @@ func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
 // SetLog set the log level and path for debugging.
 // If dir is empty, the log will be written to console,
 // otherwise it will be written to files in dir.
-func SetLog(logLevel, dir string) error {
+func SetLog(level, mode, dir string) error {
 	if dir == "" {
-		return atom.InitConsoleLog(logLevel)
+		return atom.InitConsoleLog(level, mode)
 	}
-	return atom.InitFileLog(logLevel, dir, "tableau.log")
+	return atom.InitFileLog(level, dir, "tableau.log")
 }

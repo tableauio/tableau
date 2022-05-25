@@ -57,7 +57,6 @@ func Test_GenProto(t *testing.T) {
 				},
 			},
 		),
-		options.LogLevel("DEBUG"),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
@@ -69,7 +68,6 @@ func Test_GenConf(t *testing.T) {
 		"protoconf",
 		"./testdata",
 		"./_conf",
-		options.LogLevel("DEBUG"),
 		options.OutputConf(
 			&options.OutputConfOption{
 				Pretty:  true,
@@ -167,7 +165,6 @@ func Test_GenJSON_Subdir(t *testing.T) {
 				Formats: []format.Format{format.JSON},
 			},
 		),
-		options.LogLevel("DEBUG"),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)

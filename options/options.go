@@ -7,19 +7,26 @@ import (
 // Options is the wrapper of tableau params.
 // Options follow the design of Functional Options (https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md).
 type Options struct {
-	// Log level: DEBUG, INFO, WARN, ERROR.
-	// Default: "info".
-	LogLevel string `yaml:"logLevel"`
 	// Location represents the collection of time offsets in use in a geographical area.
 	// If the name is "" or "UTC", LoadLocation returns UTC.
 	// If the name is "Local", LoadLocation returns Local.
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
 
+	Log *LogOption // Log options.
+
 	Input  *InputOption  `yaml:"input"`  // Input options.
 	Output *OutputOption `yaml:"output"` // Output options.
 }
 
+type LogOption struct {
+	// Log level: DEBUG, INFO, WARN, ERROR.
+	// Default: "INFO".
+	Level string `yaml:"level"`
+	// Log mode: SIMPLE, FULL.
+	// Default: "FULL".
+	Mode string `yaml:"mode"`
+}
 type HeaderOption struct {
 	// Exact row number of column name definition at a worksheet.
 	// Default: 1.
@@ -163,10 +170,17 @@ type OutputConfOption struct {
 // Option is the functional option type.
 type Option func(*Options)
 
-// LogLevel sets LogLevel.
-func LogLevel(level string) Option {
+// Log sets log options.
+func Log(o *LogOption) Option {
 	return func(opts *Options) {
-		opts.LogLevel = level
+		opts.Log = o
+	}
+}
+
+// LocationName sets TZ location name for parsing datetime format.
+func LocationName(o string) Option {
+	return func(opts *Options) {
+		opts.LocationName = o
 	}
 }
 
@@ -223,8 +237,11 @@ func OutputConf(o *OutputConfOption) Option {
 // NewDefault returns a default Options.
 func NewDefault() *Options {
 	return &Options{
-		LogLevel:     "INFO",
 		LocationName: "Local",
+		Log: &LogOption{
+			Mode:  "FULL",
+			Level: "INFO",
+		},
 		Input: &InputOption{
 			Proto: &InputProtoOption{
 				Header: &HeaderOption{

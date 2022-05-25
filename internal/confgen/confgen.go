@@ -238,7 +238,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		}
 		md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
 		// atom.Log.Debugf("%s", md.FullName())
-		atom.Log.Infof("generate: %s#%s (%s#%s)", fd.Path(), md.Name(), workbook.Name, sheetName)
+		atom.Log.Infof("parsing worksheet: %s#%s (%s#%s)", fd.Path(), md.Name(), workbook.Name, sheetName)
 		newMsg := dynamicpb.NewMessage(md)
 		parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
 
@@ -300,7 +300,7 @@ func getMergerImporters(primaryWorkbookPath, sheetName string, merger []string) 
 }
 
 // get protoregistry.Files with specified package name
-func getProtoRegistryFiles(protoPackage string, importPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
+func getProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
 	count := 0
 	prFiles := protoregistry.GlobalFiles
 	prFiles.RangeFilesByPackage(
@@ -313,5 +313,5 @@ func getProtoRegistryFiles(protoPackage string, importPaths []string, protoFiles
 		atom.Log.Debugf("use already injected protoregistry.GlobalFiles")
 		return prFiles, nil
 	}
-	return xproto.NewFiles(importPaths, protoFiles...)
+	return xproto.NewFiles(protoPaths, protoFiles...)
 }

@@ -21,7 +21,7 @@ func Test_LoadJSON(t *testing.T) {
 
 func Test_LoadCSVFailed(t *testing.T) {
 	msg := &protoconf.Activity{}
-	tableau.SetLog("DEBUG", "./_logs/")
+	tableau.SetLog("DEBUG", "FULL", "./_logs/")
 	err := load.Load(msg, "./testdata/", format.CSV, load.SubdirRewrites(map[string]string{"excel": ""}))
 	if err == nil {
 		t.Errorf("shoud have failed")

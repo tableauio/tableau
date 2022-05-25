@@ -50,7 +50,6 @@ func Test_GenProto(t *testing.T) {
 				},
 			},
 		),
-		options.LogLevel("DEBUG"),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
@@ -65,7 +64,7 @@ func Test_GenConf(t *testing.T) {
 		options.Input(
 			&options.InputOption{
 				Conf: &options.InputConfOption{
-					ProtoPaths: []string{"./_proto"},
+					ProtoPaths: []string{"./_proto", "."},
 					ProtoFiles: []string{"./_proto/*.proto"},
 					Formats: []format.Format{
 						// format.Excel,
@@ -83,7 +82,6 @@ func Test_GenConf(t *testing.T) {
 				},
 			},
 		),
-		options.LogLevel("DEBUG"),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
@@ -148,7 +146,6 @@ func Test_Generate(t *testing.T) {
 				},
 			},
 		),
-		options.LogLevel("DEBUG"),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)

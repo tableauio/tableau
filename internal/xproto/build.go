@@ -2,7 +2,6 @@ package xproto
 
 import (
 	"path/filepath"
-	"strings"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
@@ -14,51 +13,35 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// ParseProtos parses the import paths and proto Glob filenames to desc.FileDescriptor slices.
-func ParseProtos(importPaths []string, filenames ...string) ([]*desc.FileDescriptor, error) {
-	atom.Log.Debugf("import pathes: %v", importPaths)
-	atom.Log.Debugf("filenames: %v", filenames)
+// ParseProtos parses the proto paths and proto files to desc.FileDescriptor slices.
+func ParseProtos(protoPaths []string, protoFiles ...string) ([]*desc.FileDescriptor, error) {
+	atom.Log.Debugf("proto paths: %v", protoPaths)
+	atom.Log.Debugf("proto files: %v", protoFiles)
 	parser := &protoparse.Parser{
-		ImportPaths:  importPaths,
+		ImportPaths:  protoPaths,
 		LookupImport: desc.LoadFileDescriptor,
 	}
 
-	return parser.ParseFiles(filenames...)
+	return parser.ParseFiles(protoFiles...)
 }
 
-// NewFiles creates a new protoregistry.Files from the import paths and proto filenames.
-func NewFiles(importPaths []string, filenames ...string) (*protoregistry.Files, error) {
+// NewFiles creates a new protoregistry.Files from the proto paths and proto Gob filenames.
+func NewFiles(protoPaths []string, filenames ...string) (*protoregistry.Files, error) {
 	var protoFiles []string
 	for _, filename := range filenames {
 		matches, err := filepath.Glob(filename)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
 		}
-		for _, originMatch := range matches {
-			match, err := filepath.Abs(originMatch)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get absolute path for %s", match)
-			}
+		for _, match := range matches {
 			cleanSlashPath := fs.GetCleanSlashPath(match)
-			for _, importPath := range importPaths {
-				importPath, err := filepath.Abs(importPath)
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed to get absolute path for %s", importPath)
-				}
-				importCleanSlashPath := fs.GetCleanSlashPath(importPath)
-				if !strings.HasPrefix(cleanSlashPath, importCleanSlashPath) {
-					atom.Log.Debugf("add proto file: %s", originMatch)
-					protoFiles = append(protoFiles, originMatch)
-				} else {
-					protoFiles = append(protoFiles, strings.TrimPrefix(cleanSlashPath, importCleanSlashPath+"/"))
-				}
-			}
+			protoFiles = append(protoFiles, cleanSlashPath)
 		}
 	}
 
 	atom.Log.Debugf("proto files: %v", protoFiles)
 
-	descFileDescriptors, err := ParseProtos(importPaths, protoFiles...)
+	descFileDescriptors, err := ParseProtos(protoPaths, protoFiles...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse protos")
 	}

@@ -17,7 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.3.3"
+const version = "0.4.0"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"
@@ -73,7 +73,12 @@ func runCmd(cmd *cobra.Command, args []string) {
 		fmt.Printf("load config(options) failed: %+v\n", err)
 		os.Exit(-1)
 	}
-	atom.InitConsoleLog(opts.LogLevel)
+	err = atom.InitConsoleLog(opts.Log.Level, opts.Log.Mode)
+	if err != nil {
+		fmt.Printf("init log failed: %+v\n", err)
+		os.Exit(-1)
+	}
+	atom.Log.Debugf("loaded tableau config: %+v", spew.Sdump(opts))
 	switch mode {
 	case ModeDefault:
 		genProto(args, opts)
@@ -107,6 +112,7 @@ func genConf(workbooks []string, opts *options.Options) {
 		os.Exit(-1)
 	}
 }
+
 func loadConf(path string, out interface{}) error {
 	d, err := os.ReadFile(path)
 	if err != nil {
@@ -116,7 +122,6 @@ func loadConf(path string, out interface{}) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	atom.Log.Debugf("loaded tableau config: %+v", spew.Sdump(out))
 	return nil
 }
 

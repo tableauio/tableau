@@ -19,6 +19,11 @@ var levelMap = map[string]zapcore.Level{
 	"FATAL": zapcore.FatalLevel,
 }
 
+var modeMap = map[string]LogModeEncoder{
+	"SIMPLE": getSimpleEncoder,
+	"FULL":   getFullEncoder,
+}
+
 var Log *zap.SugaredLogger
 var zaplogger *zap.Logger
 
@@ -27,20 +32,24 @@ var zaplogger *zap.Logger
 // }
 
 func init() {
-	err := InitConsoleLog("DEBUG")
+	err := InitConsoleLog("DEBUG", "FULL")
 	if err != nil {
 		panic(err)
 	}
 }
 
-func InitConsoleLog(level string) error {
+func InitConsoleLog(level, mode string) error {
 	zapLevel, ok := levelMap[strings.ToUpper(level)]
 	if !ok {
 		return fmt.Errorf("illegal log level: %s", level)
 	}
+	modeEncoder, ok := modeMap[strings.ToUpper(mode)]
+	if !ok {
+		return fmt.Errorf("illegal log mode: %s", mode)
+	}
 	ws := createConsoleWriter()
 	core := zapcore.NewCore(
-		getEncoder(),
+		modeEncoder(),
 		ws,
 		zapLevel,
 	)
@@ -59,7 +68,7 @@ func InitFileLog(level string, dir string, filename string) error {
 		return fmt.Errorf("create file logger failed: %s", err)
 	}
 	core := zapcore.NewCore(
-		getEncoder(),
+		getFullEncoder(),
 		ws,
 		zapLevel,
 	)
@@ -102,7 +111,19 @@ func createLumberjackLogger(dir string, filename string) (*lumberjack.Logger, er
 	}, nil
 }
 
-func getEncoder() zapcore.Encoder {
+type LogModeEncoder func() zapcore.Encoder
+
+func getSimpleEncoder() zapcore.Encoder {
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.CallerKey = ""
+	encoderConfig.FunctionKey = ""
+	encoderConfig.EncodeTime = nil
+	encoderConfig.EncodeLevel = nil
+	encoderConfig.ConsoleSeparator = "|"
+	return zapcore.NewConsoleEncoder(encoderConfig)
+}
+
+func getFullEncoder() zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.FunctionKey = "func"
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
