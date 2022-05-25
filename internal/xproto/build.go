@@ -26,22 +26,56 @@ func ParseProtos(protoPaths []string, protoFiles ...string) ([]*desc.FileDescrip
 }
 
 // NewFiles creates a new protoregistry.Files from the proto paths and proto Gob filenames.
-func NewFiles(protoPaths []string, filenames ...string) (*protoregistry.Files, error) {
-	var protoFiles []string
-	for _, filename := range filenames {
+func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...string) (*protoregistry.Files, error) {
+	 parsedExcludedProtoFiles := map[string]bool{}
+	for _, filename := range excludeProtoFiles {
 		matches, err := filepath.Glob(filename)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
 			cleanSlashPath := fs.GetCleanSlashPath(match)
-			protoFiles = append(protoFiles, cleanSlashPath)
+			parsedExcludedProtoFiles[cleanSlashPath] = true
 		}
 	}
+	var parsedProtoFiles []string
+	for _, filename := range protoFiles {
+		matches, err := filepath.Glob(filename)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
+		}
+		for _, match := range matches {
+			cleanSlashPath := fs.GetCleanSlashPath(match)
+			if !parsedExcludedProtoFiles[cleanSlashPath] {
+				parsedProtoFiles = append(parsedProtoFiles, cleanSlashPath)
+			}
+		}
 
-	atom.Log.Debugf("proto files: %v", protoFiles)
+		// for _, originMatch := range matches {
+		// 	match, err := filepath.Abs(originMatch)
+		// 	if err != nil {
+		// 		return nil, errors.Wrapf(err, "failed to get absolute path for %s", match)
+		// 	}
+		// 	cleanSlashPath := fs.GetCleanSlashPath(match)
+		// 	for _, importPath := range protoPaths {
+		// 		importPath, err := filepath.Abs(importPath)
+		// 		if err != nil {
+		// 			return nil, errors.Wrapf(err, "failed to get absolute path for %s", importPath)
+		// 		}
+		// 		importCleanSlashPath := fs.GetCleanSlashPath(importPath)
+		// 		if !strings.HasPrefix(cleanSlashPath, importCleanSlashPath) {
+		// 			atom.Log.Debugf("add proto file: %s", originMatch)
+		// 			parsedProtoFiles = append(parsedProtoFiles, originMatch)
+		// 		} else {
+		// 			parsedProtoFiles = append(parsedProtoFiles, strings.TrimPrefix(cleanSlashPath, importCleanSlashPath+"/"))
+		// 		}
+		// 	}
+		// }
+	}
 
-	descFileDescriptors, err := ParseProtos(protoPaths, protoFiles...)
+	atom.Log.Debugf("proto files: %v", parsedProtoFiles)
+
+	descFileDescriptors, err := ParseProtos(protoPaths, parsedProtoFiles...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse protos")
 	}

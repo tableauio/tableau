@@ -105,7 +105,7 @@ func (gen *Generator) GenAll() error {
 		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
 	}
 
-	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles...)
+	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
@@ -149,7 +149,7 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
 	}
-	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles...)
+	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
@@ -300,7 +300,7 @@ func getMergerImporters(primaryWorkbookPath, sheetName string, merger []string) 
 }
 
 // get protoregistry.Files with specified package name
-func getProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
+func getProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles []string, excludeProtoFiles ...string) (*protoregistry.Files, error) {
 	count := 0
 	prFiles := protoregistry.GlobalFiles
 	prFiles.RangeFilesByPackage(
@@ -313,5 +313,5 @@ func getProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles 
 		atom.Log.Debugf("use already injected protoregistry.GlobalFiles")
 		return prFiles, nil
 	}
-	return xproto.NewFiles(protoPaths, protoFiles...)
+	return xproto.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
 }

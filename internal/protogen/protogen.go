@@ -67,7 +67,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	// parse custom imported proto files
 	fileDescs, err := xproto.ParseProtos(
 		g.InputOpt.ProtoPaths,
-		g.InputOpt.ProtoCustomFiles...)
+		g.InputOpt.ImportedProtoFiles...)
 	if err != nil {
 		atom.Log.Panic(err)
 	}
@@ -125,7 +125,7 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 
 func (gen *Generator) GenAll() error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ProtoCustomFiles, true); err != nil {
+	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, true); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
 	}
 	if len(gen.InputOpt.Subdirs) != 0 {
@@ -142,7 +142,7 @@ func (gen *Generator) GenAll() error {
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ProtoCustomFiles, false); err != nil {
+	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, false); err != nil {
 		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
 	}
 	var eg errgroup.Group

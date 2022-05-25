@@ -17,7 +17,7 @@ func Test_GenProto(t *testing.T) {
 			&options.InputOption{
 				Proto: &options.InputProtoOption{
 					ProtoPaths: []string{"./_proto"},
-					ProtoCustomFiles: []string{
+					ImportedProtoFiles: []string{
 						"common/cs_dbkeyword.proto",
 						"common/common.proto",
 						"common/time.proto",
@@ -97,7 +97,7 @@ func Test_Generate(t *testing.T) {
 			&options.InputOption{
 				Proto: &options.InputProtoOption{
 					ProtoPaths: []string{"./_out/proto"},
-					ProtoCustomFiles: []string{
+					ImportedProtoFiles: []string{
 						"cs_dbkeyword.proto",
 						"common.proto",
 						"time.proto",
@@ -119,8 +119,13 @@ func Test_Generate(t *testing.T) {
 				},
 
 				Conf: &options.InputConfOption{
-					ProtoPaths: []string{"./_out/proto"},
-					ProtoFiles: []string{"./_out/proto/*.proto"},
+					ProtoPaths: []string{"./_out/proto", "."},
+					ProtoFiles: []string{"_out/proto/*.proto"},
+					ExcludedProtoFiles: []string{
+						"_out/proto/cs_dbkeyword.proto",
+						"_out/proto/common.proto",
+						"_out/proto/time.proto",
+					},
 					Formats: []format.Format{
 						// format.Excel,
 						format.CSV,
@@ -144,6 +149,55 @@ func Test_Generate(t *testing.T) {
 					Formats: []format.Format{format.JSON},
 					Subdir:  "conf",
 				},
+			},
+		),
+		options.Log(
+			&options.LogOption{
+				Level: "DEBUG",
+				Mode:  "FULL",
+			},
+		),
+	)
+	if err != nil {
+		t.Errorf("%+v", err)
+	}
+}
+
+func Test_GenConf1(t *testing.T) {
+	err := tableau.GenConf(
+		"protoconf",
+		"../testdata",
+		"./_out/conf",
+		options.Input(
+			&options.InputOption{
+				Conf: &options.InputConfOption{
+					ProtoPaths: []string{"./_out/proto", "."},
+					ProtoFiles: []string{"_out/proto/*.proto"},
+					ExcludedProtoFiles: []string{
+						"_out/proto/cs_dbkeyword.proto",
+						"_out/proto/common.proto",
+						"_out/proto/time.proto",
+					},
+					Formats: []format.Format{
+						// format.Excel,
+						format.CSV,
+						format.XML,
+					},
+				},
+			},
+		),
+		options.Output(
+			&options.OutputOption{
+				Conf: &options.OutputConfOption{
+					Pretty:  true,
+					Formats: []format.Format{format.JSON},
+				},
+			},
+		),
+		options.Log(
+			&options.LogOption{
+				Level: "DEBUG",
+				Mode:  "FULL",
 			},
 		),
 	)

@@ -74,10 +74,10 @@ type InputProtoOption struct {
 	// "." (current directory) is assumed to be the only import path.
 	// Default: nil.
 	ProtoPaths []string `yaml:"protoPaths"`
-	// The enums and messages in ProtoCustomFiles can be used in Excel/CSV/XML as
+	// The enums and messages in ImportedProtoFiles can be used in Excel/CSV/XML as
 	// common types.
 	// Default: nil.
-	ProtoCustomFiles []string `yaml:"protoCustomFiles"`
+	ImportedProtoFiles []string `yaml:"importedProtoFiles"`
 	// Specify input file formats.
 	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
 	// Default: nil.
@@ -98,11 +98,23 @@ type InputConfOption struct {
 	// The proto paths are used to search for dependencies that are referenced in import
 	// statements in proto source files. If no import paths are provided then
 	// "." (current directory) is assumed to be the only import path.
+	//
 	// Default: nil.
 	ProtoPaths []string `yaml:"protoPaths"`
 	// The files to be parsed to generate configurations.
+	//
+	// NOTE: Glob patterns is supported, which can specify sets 
+	// of filenames with wildcard characters.
+	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
+	// The files not to be parsed to generate configurations.
+	//
+	// NOTE: Glob patterns is supported, which can specify sets 
+	// of filenames with wildcard characters.
+	//
+	// Default: nil.
+	ExcludedProtoFiles []string `yaml:"excludedProtoFiles"`
 	// Specify input file formats to be parsed.
 	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
 	// Default: nil.

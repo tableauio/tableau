@@ -22,7 +22,7 @@ func Test_GenProto(t *testing.T) {
 		"./proto",
 		options.InputProto(
 			&options.InputProtoOption{
-				ProtoCustomFiles: []string{
+				ImportedProtoFiles: []string{
 					"common/cs_dbkeyword.proto",
 					"common/common.proto",
 					"common/time.proto",
