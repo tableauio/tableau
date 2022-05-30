@@ -1,8 +1,8 @@
 package importer
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"os"
@@ -112,18 +112,30 @@ func (x *XMLImporter) parse() error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to open %s", xmlPath)
 	}
-	// replacement for `<` and `>` not allowed in attribute values
-	// e.g. `<ServerConf key="map<uint32,ServerConf> Open="bool">...</ServerConf>"`
-	attrValRegexp := regexp.MustCompile(`"\S+"`)
-	replacedStr := attrValRegexp.ReplaceAllStringFunc(string(buf), func(s string) string {
-		var buf bytes.Buffer
-		xml.EscapeText(&buf, []byte(s[1:len(s)-1]))
-		return fmt.Sprintf("\"%s\"", buf.String())
-	})
-	// replacement for tableau keyword, which begins by `@`
-	// e.g. `<@TABLEAU>``
-	keywordRegexp := regexp.MustCompile(`([</]+)@([A-Z]+)`)
-	replacedStr = keywordRegexp.ReplaceAllString(replacedStr, `$1$2`)
+	// converts `@TABLEAU` comments to a document. e.g.:
+	// <!-- @TABLEAU
+	// <xxxTag>
+	// 	...
+	// </xxxTag>
+	// -->
+	metaBeginRegexp := regexp.MustCompile(`^<!--\s+@TABLEAU`)
+	metaEndRegexp := regexp.MustCompile(`-->$`)
+	replacedBuf := bytes.NewBuffer(buf)
+	scanner := bufio.NewScanner(strings.NewReader(string(buf)))
+	inMetaBlock := false
+	for scanner.Scan() {
+		if metaBeginRegexp.FindStringSubmatch(scanner.Text()) != nil {
+			replacedBuf.WriteString("\n")
+			inMetaBlock = true
+			} else if metaEndRegexp.FindStringSubmatch(scanner.Text()) != nil && inMetaBlock {
+				replacedBuf.WriteString("\n")
+			inMetaBlock = false
+			} else {
+			replacedBuf.WriteString(scanner.Text() + "\n")			
+		}
+	}
+	replacedStr := replacedBuf.String()
+	atom.Log.Debug(replacedStr)
 	// Note that one xml file only has one root
 	// So in order to have multiple roots, we need to use a stream parser
 	// The first pass

@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<@TABLEAU>
-    <ToggleCfg>
-        <FeatureToggle EnvID="map<uint32,FeatureToggle>">
-            <Toggle ID="map<enum<.FeatureToggleMacroType>,Toggle>" WorldID="uint32" ZoneID="uint32" OpenTime="datetime|2022-01-23 15:40:00" CloseTime="datetime|2022-01-23 15:40:00" SysKey1="int64" SysKey2="int64" NotifyClosed="bool"/>
-        </FeatureToggle>
-    </ToggleCfg>
-</@TABLEAU>
+<!-- @TABLEAU
+<ToggleCfg>
+    <FeatureToggle EnvID="map<uint32,FeatureToggle>">
+        <Toggle ID="map<enum<.FeatureToggleMacroType>,Toggle>" WorldID="uint32" ZoneID="uint32" OpenTime="datetime|2022-01-23 15:40:00" CloseTime="datetime|2022-01-23 15:40:00" SysKey1="int64" SysKey2="int64" NotifyClosed="bool"/>
+    </FeatureToggle>
+</ToggleCfg>
+-->
 
 <ToggleCfg>
     <FeatureToggle EnvID="0" desc="common: 通用环境的配置，需要包含全量的开关。common没有且对应环境也没有的开关会被默认为关闭。">
