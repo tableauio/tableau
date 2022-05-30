@@ -36,6 +36,9 @@ func Test_GenProto(t *testing.T) {
 						Nameline: 2,
 						Typeline: 2,
 					},
+					Subdirs: []string{
+						// "xml/match",
+					},			
 				},
 			},
 		),
@@ -48,6 +51,12 @@ func Test_GenProto(t *testing.T) {
 						"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
 					},
 				},
+			},
+		),
+		options.Log(
+			&options.LogOption{
+				Level: "INFO",
+				Mode:  "FULL",
 			},
 		),
 	)

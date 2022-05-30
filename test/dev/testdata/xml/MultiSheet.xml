@@ -1,7 +1,7 @@
-<@TABLEAU>
-    <Server/>
-    <Client/>
-</@TABLEAU>
+<!-- @TABLEAU
+<Server/>
+<Client/>
+-->
 
 <Server desc="test">
     <Node Addr="9.123.134.1" ProcNum="2"/>

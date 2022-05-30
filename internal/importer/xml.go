@@ -3,6 +3,7 @@ package importer
 import (
 	"bufio"
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"os"
@@ -94,12 +95,13 @@ func (x *XMLImporter) GetSheet(name string) *book.Sheet {
 			atom.Log.Panicf("failed to parse: %s, %+v", x.filename, err)
 		}
 	}
-
-	sheet, ok := x.sheetMap[name]
-	if !ok {
+	
+	if sheet, ok := x.sheetMap[name]; !ok {
 		atom.Log.Panicf("get sheet failed: %s", name)
+	} else {
+		return sheet	
 	}
-	return sheet
+	return nil
 }
 
 func (x *XMLImporter) parse() error {
@@ -120,28 +122,44 @@ func (x *XMLImporter) parse() error {
 	// -->
 	metaBeginRegexp := regexp.MustCompile(`^<!--\s+@TABLEAU`)
 	metaEndRegexp := regexp.MustCompile(`-->$`)
-	replacedBuf := bytes.NewBuffer(buf)
+	metaBuf := bytes.NewBuffer(make([]byte, 0, len(buf)))
 	scanner := bufio.NewScanner(strings.NewReader(string(buf)))
 	inMetaBlock := false
+	foundMeta := false
 	for scanner.Scan() {
-		if metaBeginRegexp.FindStringSubmatch(scanner.Text()) != nil {
-			replacedBuf.WriteString("\n")
+		metaBeginning := metaBeginRegexp.FindStringSubmatch(scanner.Text()) != nil
+		metaEnding := metaEndRegexp.FindStringSubmatch(scanner.Text()) != nil && (inMetaBlock || metaBeginning)
+		if  metaBeginning {
+			foundMeta = true
+		}
+		// close a meta block
+		if metaEnding {
+			break
+		}
+		if metaBeginning && !metaEnding {
 			inMetaBlock = true
-			} else if metaEndRegexp.FindStringSubmatch(scanner.Text()) != nil && inMetaBlock {
-				replacedBuf.WriteString("\n")
-			inMetaBlock = false
-			} else {
-			replacedBuf.WriteString(scanner.Text() + "\n")			
+		} else if inMetaBlock {
+			metaBuf.WriteString(scanner.Text() + "\n")
 		}
 	}
-	replacedStr := replacedBuf.String()
-	atom.Log.Debug(replacedStr)
+	// replacement for `<` and `>` not allowed in attribute values
+	// e.g. `<ServerConf key="map<uint32,ServerConf> Open="bool">...</ServerConf>"`
+	attrValRegexp := regexp.MustCompile(`"\S+"`)
+	metaStr := attrValRegexp.ReplaceAllStringFunc(metaBuf.String(), func(s string) string {
+		var buf bytes.Buffer
+		xml.EscapeText(&buf, []byte(s[1:len(s)-1]))
+		return fmt.Sprintf("\"%s\"", buf.String())
+	})
+	// `@TABLEAU` must exist
+	if !foundMeta {
+		atom.Log.Debug("`@TABLEAU` not exists")
+		x.sheetNames = nil
+		return nil
+	}
 	// Note that one xml file only has one root
 	// So in order to have multiple roots, we need to use a stream parser
 	// The first pass
-	hasMetaTag := false
 	hasUserSheets := x.sheetNames != nil
-	hasTableauSheets := false
 	contains := func(sheets []string, sheet string) bool {
 		for _, s := range sheets {
 			if sheet == s {
@@ -150,9 +168,11 @@ func (x *XMLImporter) parse() error {
 		}
 		return false
 	}
-	p, err := xmlquery.CreateStreamParser(strings.NewReader(replacedStr), "/")
+	atom.Log.Debug(metaStr)
+	// parse the metaSheet
+	p, err := xmlquery.CreateStreamParser(strings.NewReader(metaStr), "/")
 	if err != nil {
-		return errors.Wrapf(err, "failed to create stream parser from string %s", replacedStr)
+		return errors.Wrapf(err, "failed to create stream parser from string %s", metaStr)
 	}
 	for {
 		n, err := p.Read()
@@ -162,46 +182,20 @@ func (x *XMLImporter) parse() error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to read from stream parser")
 		}
-		// parse `<@TABLEAU>...</@TABLEAU>`
-		if n.Data == metaName {
-			hasMetaTag = true
-			nav := xmlquery.CreateXPathNavigator(n)
-			for flag := nav.MoveToChild(); flag; flag = nav.MoveToNext() {
-				// commentNode, documentNode and other meaningless nodes should be filtered
-				if nav.NodeType() != xpath.ElementNode {
-					continue
-				}
-				if !hasUserSheets {
-					x.sheetNames = append(x.sheetNames, nav.LocalName())
-				}
-				hasTableauSheets = true
-				if err := x.parseSheet(nav.Current(), nav.LocalName(), firstPass); err != nil {
-					return errors.WithMessagef(err, "failed to parse `@%s` sheet: %s#%s", metaName, x.filename, nav.LocalName())
-				}
-			}
-		} else {
-			// parse sheets
-			if (!hasUserSheets && !hasTableauSheets) || contains(x.sheetNames, n.Data) {
-				if err := x.parseSheet(n, n.Data, firstPass); err != nil {
-					return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
-				}
-				if !hasUserSheets && !hasTableauSheets {
-					x.sheetNames = append(x.sheetNames, n.Data)
-				}
-			}
+		nav := xmlquery.CreateXPathNavigator(n)
+		if !hasUserSheets {
+			x.sheetNames = append(x.sheetNames, nav.LocalName())
 		}
-		// `<@TABLEAU>...</@TABLEAU>` must be the first sheet
-		if !hasMetaTag {
-			atom.Log.Debugf("`<@TABLEAU>...</@TABLEAU>` not exists or not the first sheet")
-			x.sheetNames = nil
-			return nil
+		if err := x.parseSheet(nav.Current(), nav.LocalName(), firstPass, true); err != nil {
+			return errors.WithMessagef(err, "failed to parse `@%s` sheet: %s#%s", metaName, x.filename, nav.LocalName())
 		}
 	}
-
-	// The second pass
-	p, err = xmlquery.CreateStreamParser(strings.NewReader(replacedStr), "/")
+	atom.Log.Debug(x.sheetNames)
+	atom.Log.Debug(string(buf))
+	// parse data sheets
+	p, err = xmlquery.CreateStreamParser(strings.NewReader(string(buf)), "/")
 	if err != nil {
-		return errors.Wrapf(err, "failed to create stream parser from string %s", replacedStr)
+		return errors.Wrapf(err, "failed to create stream parser from string %s", metaStr)
 	}
 	for {
 		n, err := p.Read()
@@ -212,8 +206,30 @@ func (x *XMLImporter) parse() error {
 			return errors.Wrapf(err, "failed to read from stream parser")
 		}
 		// parse sheets
+		if contained := contains(x.sheetNames, n.Data); !hasUserSheets || contained {
+			if err := x.parseSheet(n, n.Data, firstPass, false); err != nil {
+				return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
+			}
+			if !hasUserSheets && !contained {
+				x.sheetNames = append(x.sheetNames, n.Data)
+			}
+		}	
+	}
+	atom.Log.Debug(x.sheetNames)
+
+	// The second pass	
+	p, _ = xmlquery.CreateStreamParser(strings.NewReader(string(buf)), "/")
+	for {
+		n, err := p.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return errors.Wrapf(err, "failed to read from stream parser")
+		}
+		// parse sheets
 		if contains(x.sheetNames, n.Data) {
-			if err := x.parseSheet(n, n.Data, secondPass); err != nil {
+			if err := x.parseSheet(n, n.Data, secondPass, false); err != nil {
 				return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
 			}
 		}
@@ -222,7 +238,7 @@ func (x *XMLImporter) parse() error {
 	return nil
 }
 
-func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass) error {
+func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass, isMeta bool) error {
 	// In order to combine column headers (the result of 1 pass) and data (the result of 2 pass),
 	// we need to cache the MetaSheet struct in `x`
 	metaSheet, ok := x.metaMap[sheetName]
@@ -233,7 +249,6 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 		x.prefixMaps[sheetName] = make(map[string]Range)
 	}
 	root := xmlquery.CreateXPathNavigator(doc)
-	isMeta := doc.Parent != nil && doc.Parent.Data == metaName
 	switch pass {
 	case firstPass:
 		// 1 pass: scan all columns and their types
@@ -262,10 +277,10 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 		sheet.Meta = &tableaupb.SheetMeta{
 			Sheet:    sheetName,
 			Alias:    sheetName,
-			Namerow: header.Namerow,
-			Typerow: header.Typerow,
-			Noterow: header.Noterow,
-			Datarow: header.Datarow,
+			Namerow:  header.Namerow,
+			Typerow:  header.Typerow,
+			Noterow:  header.Noterow,
+			Datarow:  header.Datarow,
 			Nameline: 1,
 			Typeline: 1,
 			Nested:   true,
