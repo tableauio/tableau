@@ -3,6 +3,7 @@ package importer
 import "testing"
 
 func TestCSVImporter_ExportExcel(t *testing.T) {
+	importer, _ := NewCSVImporter("testdata/Test#Test.csv", nil, nil)
 	tests := []struct {
 		name    string
 		x       *CSVImporter
@@ -11,7 +12,7 @@ func TestCSVImporter_ExportExcel(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "test",
-			x:    NewCSVImporter("testdata/Test#Test.csv", nil, nil),
+			x:    importer,
 		},
 	}
 	for _, tt := range tests {

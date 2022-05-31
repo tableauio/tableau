@@ -26,10 +26,11 @@ import (
 
 // metaName defines the meta data of each worksheet.
 const (
-	metaName         = "TABLEAU"
-	placeholderName  = "_placeholder"
-	placeholderType  = "bool"
-	placeholderValue = "false"
+	metaName             = "TABLEAU"
+	placeholderName      = "_placeholder"
+	placeholderType      = "bool"
+	placeholderValue     = "false"
+	emptyMetaSheetRegexp = `^\s*<!--\s*@TABLEAU\s*-->\s*$` // e.g.: <!-- @TABLEAU -->
 )
 
 type Pass int
@@ -51,6 +52,115 @@ type XMLImporter struct {
 	sheetNames []string
 
 	prefixMaps map[string](map[string]Range) // sheet -> { prefix -> [6, 9) }
+}
+
+type NoNeedParseError struct {
+	err error
+}
+
+func (e NoNeedParseError) Error() string {
+	return "`@TABLEAU` not found"
+}
+
+func (e NoNeedParseError) Unwrap() error {
+	return e.err
+}
+
+var metaBeginRegexp *regexp.Regexp
+var metaEndRegexp *regexp.Regexp
+var attrValRegexp *regexp.Regexp
+
+func init() {
+	metaBeginRegexp = regexp.MustCompile(`^\s*<!--\s*@TABLEAU\s*$|` + emptyMetaSheetRegexp) // e.g.: <!--    @TABLEAU
+	metaEndRegexp = regexp.MustCompile(`^\s*-->\s*$|` + emptyMetaSheetRegexp)               // e.g.:       -->
+	attrValRegexp = regexp.MustCompile(`"` + types.PubTypeGroup + `"`)                                             // e.g.: "map<uint32, Type>"
+}
+
+func matchMetaBeginning(s string) []string {
+	return metaBeginRegexp.FindStringSubmatch(s)
+}
+
+func isMetaBeginning(s string) bool {
+	return matchMetaBeginning(s) != nil
+}
+
+func matchMetaEnding(s string) []string {
+	return metaEndRegexp.FindStringSubmatch(s)
+}
+
+func isMetaEnding(s string) bool {
+	return matchMetaEnding(s) != nil
+}
+
+// getMetaDoc get metaSheet document from `@TABLEAU` comments block. e.g.:
+//
+// <!-- @TABLEAU
+// <ServerConf key="map<uint32,ServerConf> Open="bool">
+// 	...
+// </ServerConf>
+// -->
+//
+// will be converted to
+//
+// <ServerConf key="map<uint32,ServerConf> Open="bool">
+// 	...
+// </ServerConf>
+func getMetaDoc(doc string) (metaDoc string, err error) {
+	metaBuf := bytes.NewBuffer(make([]byte, 0, len(doc)))
+	scanner := bufio.NewScanner(strings.NewReader(doc))
+	inMetaBlock := false
+	foundMeta := false
+	for scanner.Scan() {
+		metaBeginning := isMetaBeginning(scanner.Text())
+		metaEnding := isMetaEnding(scanner.Text()) && (inMetaBlock || metaBeginning)
+		if metaBeginning {
+			foundMeta = true
+		}
+		// close a meta block
+		if metaEnding {
+			break
+		}
+		if metaBeginning && !metaEnding {
+			inMetaBlock = true
+		} else if inMetaBlock {
+			metaBuf.WriteString(scanner.Text() + "\n")
+		}
+	}
+	// `@TABLEAU` must exist
+	if !foundMeta {
+		return metaBuf.String(), &NoNeedParseError{}
+	}
+	return metaBuf.String(), nil
+}
+
+// escapeMetaDoc escape characters for all attribute values in the document. e.g.:
+//
+// <ServerConf key="map<uint32,ServerConf> Open="bool">
+// 	...
+// </ServerConf>
+//
+// will be converted to
+//
+// <ServerConf key="map&lt;uint32,ServerConf&gt; Open="bool">
+// 	...
+// </ServerConf>
+func escapeAttrs(doc string) string {
+	escapedDoc := attrValRegexp.ReplaceAllStringFunc(doc, func(s string) string {
+		var buf bytes.Buffer
+		xml.EscapeText(&buf, []byte(s[1:len(s)-1]))
+		return fmt.Sprintf("\"%s\"", buf.String())
+	})
+	return escapedDoc
+}
+
+// contains check if sheets contains a specific sheet
+func contains(sheets []string, sheet string) bool {
+	for _, s := range sheets {
+		if sheet == s {
+			return true
+		}
+	}
+	return false
 }
 
 // TODO: options
@@ -95,11 +205,11 @@ func (x *XMLImporter) GetSheet(name string) *book.Sheet {
 			atom.Log.Panicf("failed to parse: %s, %+v", x.filename, err)
 		}
 	}
-	
+
 	if sheet, ok := x.sheetMap[name]; !ok {
 		atom.Log.Panicf("get sheet failed: %s", name)
 	} else {
-		return sheet	
+		return sheet
 	}
 	return nil
 }
@@ -107,6 +217,8 @@ func (x *XMLImporter) GetSheet(name string) *book.Sheet {
 func (x *XMLImporter) parse() error {
 	x.sheetMap = make(map[string]*book.Sheet)
 	x.metaMap = make(map[string]*xlsxgen.MetaSheet)
+	x.sheetNames = nil
+
 	// open xml file and parse the document
 	xmlPath := x.filename
 	atom.Log.Debugf("xml: %s", xmlPath)
@@ -114,65 +226,31 @@ func (x *XMLImporter) parse() error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to open %s", xmlPath)
 	}
-	// converts `@TABLEAU` comments to a document. e.g.:
-	// <!-- @TABLEAU
-	// <xxxTag>
-	// 	...
-	// </xxxTag>
-	// -->
-	metaBeginRegexp := regexp.MustCompile(`^<!--\s+@TABLEAU`)
-	metaEndRegexp := regexp.MustCompile(`-->$`)
-	metaBuf := bytes.NewBuffer(make([]byte, 0, len(buf)))
-	scanner := bufio.NewScanner(strings.NewReader(string(buf)))
-	inMetaBlock := false
-	foundMeta := false
-	for scanner.Scan() {
-		metaBeginning := metaBeginRegexp.FindStringSubmatch(scanner.Text()) != nil
-		metaEnding := metaEndRegexp.FindStringSubmatch(scanner.Text()) != nil && (inMetaBlock || metaBeginning)
-		if  metaBeginning {
-			foundMeta = true
-		}
-		// close a meta block
-		if metaEnding {
-			break
-		}
-		if metaBeginning && !metaEnding {
-			inMetaBlock = true
-		} else if inMetaBlock {
-			metaBuf.WriteString(scanner.Text() + "\n")
+
+	// get metaSheet document
+	metaDoc, err := getMetaDoc(string(buf))
+	if err != nil {
+		var noNeedParse *NoNeedParseError
+		if errors.As(err, &noNeedParse) {
+			atom.Log.Infof("%s no need parse: %s", xmlPath, noNeedParse)
+			return nil
+		} else {
+			return errors.Wrapf(err, "failed to getMetaDoc from xml content:\n%s", string(buf))
 		}
 	}
-	// replacement for `<` and `>` not allowed in attribute values
-	// e.g. `<ServerConf key="map<uint32,ServerConf> Open="bool">...</ServerConf>"`
-	attrValRegexp := regexp.MustCompile(`"\S+"`)
-	metaStr := attrValRegexp.ReplaceAllStringFunc(metaBuf.String(), func(s string) string {
-		var buf bytes.Buffer
-		xml.EscapeText(&buf, []byte(s[1:len(s)-1]))
-		return fmt.Sprintf("\"%s\"", buf.String())
-	})
-	// `@TABLEAU` must exist
-	if !foundMeta {
-		atom.Log.Debug("`@TABLEAU` not exists")
-		x.sheetNames = nil
-		return nil
-	}
+
+	// escape characters for attribute
+	metaDoc = escapeAttrs(metaDoc)
+	atom.Log.Debug(metaDoc)
+
+	//------------------------------ The first pass ------------------------------//	
+	// parse the metaSheet
 	// Note that one xml file only has one root
 	// So in order to have multiple roots, we need to use a stream parser
-	// The first pass
 	hasUserSheets := x.sheetNames != nil
-	contains := func(sheets []string, sheet string) bool {
-		for _, s := range sheets {
-			if sheet == s {
-				return true
-			}
-		}
-		return false
-	}
-	atom.Log.Debug(metaStr)
-	// parse the metaSheet
-	p, err := xmlquery.CreateStreamParser(strings.NewReader(metaStr), "/")
+	p, err := xmlquery.CreateStreamParser(strings.NewReader(metaDoc), "/")
 	if err != nil {
-		return errors.Wrapf(err, "failed to create stream parser from string %s", metaStr)
+		return errors.Wrapf(err, "failed to create stream parser from string %s", metaDoc)
 	}
 	for {
 		n, err := p.Read()
@@ -192,10 +270,11 @@ func (x *XMLImporter) parse() error {
 	}
 	atom.Log.Debug(x.sheetNames)
 	atom.Log.Debug(string(buf))
+
 	// parse data sheets
 	p, err = xmlquery.CreateStreamParser(strings.NewReader(string(buf)), "/")
 	if err != nil {
-		return errors.Wrapf(err, "failed to create stream parser from string %s", metaStr)
+		return errors.Wrapf(err, "failed to create stream parser from string %s", metaDoc)
 	}
 	for {
 		n, err := p.Read()
@@ -213,11 +292,12 @@ func (x *XMLImporter) parse() error {
 			if !hasUserSheets && !contained {
 				x.sheetNames = append(x.sheetNames, n.Data)
 			}
-		}	
+		}
 	}
 	atom.Log.Debug(x.sheetNames)
 
-	// The second pass	
+	//------------------------------ The second pass ------------------------------//
+	// only parse data sheets
 	p, _ = xmlquery.CreateStreamParser(strings.NewReader(string(buf)), "/")
 	for {
 		n, err := p.Read()
@@ -347,7 +427,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 				if !types.IsScalarType(matches[1]) && len(types.MatchEnum(matches[1])) == 0 {
 					return errors.Errorf("%s is not scalar type in node %s attr %s type %s", matches[1], nav.LocalName(), attrName, t)
 				}
-				if matches[2] != nav.LocalName() {
+				if strings.TrimSpace(matches[2]) != nav.LocalName() {
 					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[2], attrName, t, nav.LocalName())
 				}
 				metaSheet.SetColType(colName, t)
@@ -359,7 +439,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 				if !types.IsScalarType(matches[2]) && len(types.MatchEnum(matches[2])) == 0 {
 					return errors.Errorf("%s is not scalar type in node %s attr %s type %s", matches[2], nav.LocalName(), attrName, t)
 				}
-				if matches[1] != nav.LocalName() {
+				if strings.TrimSpace(matches[1]) != nav.LocalName() {
 					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[1], attrName, t, nav.LocalName())
 				}
 				metaSheet.SetColType(colName, t)
@@ -371,7 +451,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 				if !types.IsScalarType(matches[2]) && len(types.MatchEnum(matches[2])) == 0 {
 					return errors.Errorf("%s is not scalar type in node %s attr %s type %s", matches[2], nav.LocalName(), attrName, t)
 				}
-				if matches[1] != nav.LocalName() {
+				if strings.TrimSpace(matches[1]) != nav.LocalName() {
 					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[1], attrName, t, nav.LocalName())
 				}
 				metaSheet.SetColType(colName, t)

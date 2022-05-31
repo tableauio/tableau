@@ -87,7 +87,7 @@ func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][
 		}
 		row, err := excelRows.Columns()
 		if err != nil {
-			return nil, errors.Wrapf(err, "read the %-th row failed: %s#%s", nrow, f.Path, sheetName)
+			return nil, errors.Wrapf(err, "read the %dth row failed: %s#%s", nrow, f.Path, sheetName)
 		}
 		rows = append(rows, row)
 	}
