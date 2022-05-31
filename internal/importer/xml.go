@@ -382,17 +382,6 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 	}
 	repeated := len(xmlquery.Find(nav.Current().Parent, nav.LocalName())) > 1
 
-	// add placeholder to nude node
-	if !isMeta && len(nav.Current().Attr) == 0 {
-		colName := prefix + placeholderName
-		x.tryAddCol(metaSheet, parentList, placeholderName)
-		if nav.LocalName() != metaSheet.Worksheet {
-			metaSheet.SetColType(colName, fmt.Sprintf("{%s}%s", strcase.ToCamel(nav.LocalName()), placeholderType))
-		} else {
-			metaSheet.SetColType(colName, placeholderType)
-		}
-	}
-
 	// iterate over attributes
 	for i, attr := range nav.Current().Attr {
 		attrName := attr.Name.Local
