@@ -27,9 +27,6 @@ import (
 // metaName defines the meta data of each worksheet.
 const (
 	metaName             = "TABLEAU"
-	placeholderName      = "_placeholder"
-	placeholderType      = "bool"
-	placeholderValue     = "false"
 	emptyMetaSheetRegexp = `^\s*<!--\s*@TABLEAU\s*-->\s*$` // e.g.: <!-- @TABLEAU -->
 )
 
@@ -332,7 +329,7 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 	switch pass {
 	case firstPass:
 		// 1 pass: scan all columns and their types
-		if err := x.parseNodeType(root, metaSheet, isMeta); err != nil {
+		if err := x.parseNodeType(root, metaSheet, isMeta, true); err != nil {
 			return errors.Wrapf(err, "failed to parseNodeType for root node %s", sheetName)
 		}
 	case secondPass:
@@ -371,12 +368,25 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 }
 
 // parseNodeType parse and convert an xml file to sheet format
-func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, isMeta bool) error {
+func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, isMeta, isFirstChild bool) error {
 	// preprocess
 	prefix := ""
-	var parentList []string
+	continueFindNude := true
+	var parentList []string	
+	var nudeParentTypeList []string
 	// construct prefix
 	for flag, navCopy := true, *nav; flag && navCopy.LocalName() != metaSheet.Worksheet; flag = navCopy.MoveToParent() {
+		if prefix != "" && continueFindNude {
+			if len(navCopy.Current().Attr) > 0 {
+				continueFindNude = false
+			} else {
+				t := fmt.Sprintf("{%s}", navCopy.LocalName())
+				if navCopy.Current().Parent != nil && len(xmlquery.Find(navCopy.Current().Parent, navCopy.LocalName())) > 1 {
+					t = fmt.Sprintf("[%s]", navCopy.LocalName())
+				}
+				nudeParentTypeList = append(nudeParentTypeList, t)				
+			}
+		}
 		prefix = strcase.ToCamel(navCopy.LocalName()) + prefix
 		parentList = append(parentList, navCopy.LocalName())
 	}
@@ -401,6 +411,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 			}
 		}
 
+		// atom.Log.Debug(t)		
 		curType := metaSheet.GetColType(colName)
 		matches := types.MatchStruct(curType)
 		// 1. <TABLEAU>
@@ -411,6 +422,13 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 		// 2. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)
 		setKeyedType := (!prefixExist || (len(matches) > 0 && repeated)) && nav.LocalName() != metaSheet.Worksheet
 		if needChangeType {
+			oldType := t
+			typePrefix :=  ""
+			for _, parentType := range nudeParentTypeList {
+				typePrefix = parentType + typePrefix
+			}
+			t = typePrefix + t
+			// atom.Log.Debug(typePrefix)
 			if matches := types.MatchMap(t); len(matches) >= 3 {
 				// case 1: map<uint32,Type>
 				if !types.IsScalarType(matches[1]) && len(types.MatchEnum(matches[1])) == 0 {
@@ -445,13 +463,15 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 				}
 				metaSheet.SetColType(colName, t)
 			} else if i == 0 && setKeyedType {
+				t = oldType
 				// case 4: {Type}uint32
 				if repeated {
-					metaSheet.SetColType(colName, fmt.Sprintf("[%s]<%s>", strcase.ToCamel(nav.LocalName()), t))
+					metaSheet.SetColType(colName, fmt.Sprintf("%s[%s]<%s>", typePrefix, strcase.ToCamel(nav.LocalName()), t))
 				} else {
-					metaSheet.SetColType(colName, fmt.Sprintf("{%s}%s", strcase.ToCamel(nav.LocalName()), t))
+					metaSheet.SetColType(colName, fmt.Sprintf("%s{%s}%s", typePrefix, strcase.ToCamel(nav.LocalName()), t))
 				}
 			} else {
+				t = oldType
 				// default: built-in type
 				metaSheet.SetColType(colName, t)
 			}
@@ -460,15 +480,16 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 
 	// iterate over child nodes
 	navCopy := *nav
-	for flag := navCopy.MoveToChild(); flag; flag = navCopy.MoveToNext() {
+	for flag, i := navCopy.MoveToChild(), 0; flag; flag = navCopy.MoveToNext() {
 		// commentNode, documentNode and other meaningless nodes should be filtered
 		if navCopy.NodeType() != xpath.ElementNode {
 			continue
 		}
 		tagName := navCopy.LocalName()
-		if err := x.parseNodeType(&navCopy, metaSheet, isMeta); err != nil {
+		if err := x.parseNodeType(&navCopy, metaSheet, isMeta, i == 0); err != nil {
 			return errors.Wrapf(err, "failed to parseNodeType for the node %s", tagName)
 		}
+		i++
 	}
 
 	return nil
@@ -492,15 +513,6 @@ func (x *XMLImporter) parseNodeData(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 				}
 				return nil
 			})
-		}
-	}
-
-	// add placeholder to nude node
-	if len(nav.Current().Attr) == 0 {
-		colName := prefix + placeholderName
-		// fill values to the bottom when backtrace to top line
-		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
-			metaSheet.Cell(tmpCusor, len(metaSheet.Rows[metaSheet.Namerow-1].Cells), colName).Data = placeholderValue
 		}
 	}
 
