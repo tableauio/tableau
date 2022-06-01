@@ -97,15 +97,13 @@ message MatchCfg {
       string desc = 2 [(tableau.field) = {name:"Desc"}];
     }
   }
-  bool _placeholder = 4 [(tableau.field) = {name:"_placeholder"}];
-  MatchRoom match_room = 5 [(tableau.field) = {name:"MatchRoom"}];
+  MatchRoom match_room = 4 [(tableau.field) = {name:"MatchRoom"}];
   message MatchRoom {
     int32 max_loop = 1 [(tableau.field) = {name:"MaxLoop"}];
   }
-  TeamRatingWeight team_rating_weight = 6 [(tableau.field) = {name:"TeamRatingWeight"}];
+  TeamRatingWeight team_rating_weight = 5 [(tableau.field) = {name:"TeamRatingWeight"}];
   message TeamRatingWeight {
-    bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
-    repeated Weight weight_list = 2 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
+    repeated Weight weight_list = 1 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
     message Weight {
       int32 num = 1 [(tableau.field) = {name:"Num"}];
       repeated Param param_list = 2 [(tableau.field) = {name:"Param" key:"Value" layout:LAYOUT_VERTICAL}];

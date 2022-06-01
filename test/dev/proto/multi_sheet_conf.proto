@@ -23,8 +23,7 @@ message Server {
 message Client {
   option (tableau.worksheet) = {name:"Client" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
-  bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
-  Version version = 2 [(tableau.field) = {name:"Version"}];
+  Version version = 1 [(tableau.field) = {name:"Version"}];
   message Version {
     string min = 1 [(tableau.field) = {name:"Min"}];
     string max = 2 [(tableau.field) = {name:"Max"}];
