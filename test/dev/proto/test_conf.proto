@@ -41,11 +41,11 @@ message Activity {
           int32 param_1 = 2 [(tableau.field) = {name:"Param1"}];
           int32 param_2 = 3 [(tableau.field) = {name:"Param2"}];
           int32 param_3 = 4 [(tableau.field) = {name:"Param3"}];
-          repeated int32 param_list_1 = 5 [(tableau.field) = {name:"ParamList1" layout:LAYOUT_INCELL prop:{range:"1,50"}}];
-          repeated int32 param_list_2 = 6 [(tableau.field) = {name:"ParamList2" layout:LAYOUT_INCELL}];
-          repeated int32 param_list_3 = 7 [(tableau.field) = {name:"ParamList3" layout:LAYOUT_INCELL}];
-          map<int32, int32> param_map_1 = 8 [(tableau.field) = {name:"ParamMap1" layout:LAYOUT_INCELL}];
-          map<int32, int32> param_map_2 = 9 [(tableau.field) = {name:"ParamMap2" layout:LAYOUT_INCELL prop:{range:"1,100"}}];
+          repeated int32 incell_param_1_list = 5 [(tableau.field) = {name:"IncellParam1" layout:LAYOUT_INCELL prop:{range:"1,50"}}];
+          repeated int32 incell_param_2_list = 6 [(tableau.field) = {name:"IncellParam2" layout:LAYOUT_INCELL}];
+          repeated int32 incell_param_3_list = 7 [(tableau.field) = {name:"IncellParam3" layout:LAYOUT_INCELL}];
+          map<int32, int32> incell_param_4_map = 8 [(tableau.field) = {name:"IncellParam4" layout:LAYOUT_INCELL}];
+          map<int32, int32> incell_param_5_map = 9 [(tableau.field) = {name:"IncellParam5" layout:LAYOUT_INCELL prop:{range:"1,100"}}];
           int32 target = 10 [(tableau.field) = {name:"Target" prop:{range:"~,10"}}];
         }
         Info warn_info = 7 [(tableau.field) = {name:"WarnInfo" span:SPAN_INNER_CELL}];
@@ -55,8 +55,8 @@ message Activity {
           int32 value = 3 [(tableau.field) = {name:"Value"}];
         }
         Info incell_struct = 8 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}];
-        repeated int32 int_params = 9 [(tableau.field) = {name:"IntParams" layout:LAYOUT_INCELL}];
-        map<int32, string> tips = 10 [(tableau.field) = {name:"Tips" layout:LAYOUT_INCELL}];
+        repeated int32 int_param_list = 9 [(tableau.field) = {name:"IntParam" layout:LAYOUT_INCELL}];
+        map<int32, string> tip_map = 10 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}];
         repeated string client_param_list = 11 [(tableau.field) = {name:"ClientParam" layout:LAYOUT_HORIZONTAL}];
       }
     }
@@ -95,7 +95,7 @@ message Loader {
         protoconf.ConfType type = 1 [(tableau.field) = {name:"Type"}];
         int32 weight = 2 [(tableau.field) = {name:"Weight"}];
       }
-      repeated protoconf.ConfType ext_types = 4 [(tableau.field) = {name:"ExtTypes" layout:LAYOUT_INCELL}];
+      repeated protoconf.ConfType ext_type_list = 4 [(tableau.field) = {name:"ExtType" layout:LAYOUT_INCELL}];
       map<int32, protoconf.CloudStrategy> strategy_map = 5 [(tableau.field) = {name:"Strategy" key:"Type" layout:LAYOUT_HORIZONTAL}];
     }
   }

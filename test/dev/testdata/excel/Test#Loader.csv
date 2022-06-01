@@ -1,4 +1,4 @@
-ServerType,ServerConfType,ServerConfConditionType,ServerConfConditionValue,ServerConfDeploy1Type,ServerConfDeploy1Weight,ServerConfDeploy2Type,ServerConfDeploy2Weight,ServerConfExtTypes,ServerConfStrategy1Type,ServerConfStrategy1Num,ServerConfStrategy2Type,ServerConfStrategy2Num
+ServerType,ServerConfType,ServerConfConditionType,ServerConfConditionValue,ServerConfDeploy1Type,ServerConfDeploy1Weight,ServerConfDeploy2Type,ServerConfDeploy2Weight,ServerConfExtType,ServerConfStrategy1Type,ServerConfStrategy1Num,ServerConfStrategy2Type,ServerConfStrategy2Num
 "map<enum<.ServerType>, Server>",[Conf]<enum<.ConfType>>,[Condition]<int32>,int32,[Deploy]enum<.ConfType>,int32,enum<.ConfType>,int32,[]enum<.ConfType>,"map<enum<.ConfType>, .CloudStrategy>",int32,enum<.ConfType>,int32
 进程名,配置Sheet名,条件类型,条件值,,,,,,,,,
 ,,,,,,,,,,,,

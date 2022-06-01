@@ -44,7 +44,7 @@ func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, impo
 		}
 
 		if err := parser.Parse(protomsg, sheet); err != nil {
-			return errors.WithMessage(err, "failed to parse sheet")
+			return errors.WithMessagef(err, "failed to parse sheet: %s", msgName)
 		}
 	}
 

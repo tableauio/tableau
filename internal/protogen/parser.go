@@ -19,6 +19,11 @@ const (
 	durationProtoPath  = "google/protobuf/duration.proto"
 )
 
+const (
+	mapVarSuffix  = "_map"  // map variable name suffix
+	listVarSuffix = "_list" // list variable name suffix
+)
+
 type bookParser struct {
 	gen *Generator
 
@@ -174,8 +179,8 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		if opts.Nested {
 			prefix += parsedValueType // add prefix with value type
 		}
-		// auto add suffix "_map" to each cross cell map variable.
-		field.Name = strcase.ToSnake(parsedValueType) + "_map"
+		// auto add suffix "_map".
+		field.Name = strcase.ToSnake(parsedValueType) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
@@ -213,8 +218,8 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		// horizontal list: continuous N columns belong to this list after this cursor.
 		mapName := trimmedNameCell[:firstElemIndex]
 		prefix += mapName
-		// auto add suffix "_map" to each cross cell map variable.
-		field.Name = strcase.ToSnake(mapName) + "_map"
+		// auto add suffix "_map".
+		field.Name = strcase.ToSnake(mapName) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
@@ -251,7 +256,8 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell map
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
-		field.Name = strcase.ToSnake(trimmedNameCell)
+		// auto add suffix "_map".
+		field.Name = strcase.ToSnake(trimmedNameCell) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
@@ -364,8 +370,8 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			ElemType:     scalarField.Type,
 			ElemFullType: scalarField.FullType,
 		}
-		// auto add suffix "_list" to each cross cell list variable.
-		field.Name = strcase.ToSnake(pureElemTypeName) + "_list"
+		// auto add suffix "_list".
+		field.Name = strcase.ToSnake(pureElemTypeName) + listVarSuffix
 
 		field.Options.Name = "" // Default, name is empty for vertical list
 		field.Options.Layout = layout
@@ -424,8 +430,8 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			ElemType:     scalarField.Type,
 			ElemFullType: scalarField.FullType,
 		}
-		// auto add suffix "_list" to each cross cell list variable.
-		field.Name = strcase.ToSnake(listName) + "_list"
+		// auto add suffix "_list".
+		field.Name = strcase.ToSnake(listName) + listVarSuffix
 
 		field.Options.Name = listName // name is empty for vertical list
 		field.Options.Layout = layout
@@ -465,6 +471,8 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		// incell list
 		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawPropText, noteCell)
 		proto.Merge(field, scalarField)
+		// auto add suffix "_list".
+		field.Name += listVarSuffix
 		field.Type = "repeated " + scalarField.Type
 		field.FullType = "repeated " + scalarField.FullType
 		field.ListEntry = &tableaupb.Field_ListEntry{
