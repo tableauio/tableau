@@ -1,26 +1,26 @@
-<@TABLEAU>
-    <MatchCfg>
-        <ConfirmTimeOutPunish Time="duration" />
-        <MatchStatInfo ReportInterval="duration"/>
-        <MatchMode MissionType="map<enum<.MissionType>,MatchMode>">
-            <Time MinTime="duration" MaxTime="duration" ConfirmTime="duration" />
-            <Open BeginDate="date" BeginTime="time" EndDate="date" EndTime="time" />
-            <Camp CampID="[Camp]<uint32>" />
-            <Strategy StrategyID="enum<.ENMMatchStrategy>" />
+<!-- @TABLEAU
+<MatchCfg>
+    <ConfirmTimeOutPunish Time="duration" />
+    <MatchStatInfo ReportInterval="duration"/>
+    <MatchMode MissionType="map<enum<.MissionType>,MatchMode>">
+        <Time MinTime="duration" MaxTime="duration" ConfirmTime="duration" />
+        <Open BeginDate="date" BeginTime="time" EndDate="date" EndTime="time" />
+        <Camp CampID="[Camp]<uint32>" />
+        <Strategy StrategyID="enum<.ENMMatchStrategy>" />
 
-            <Scope ScopeID="enum<.ENMMatchScope>" />
-            <Filter FilterID="[Filter]<enum<.ENMMatchFilter>>" Open="bool" UpdInterval="duration">
-                <Power HornorPower="[Power]<int32>">
-                    <Param Value="[Param]<int32>"/>
-                </Power>
-            </Filter>
-            <MatchAI IsOpen="bool" PlayerOnlyOneCamp="bool">
-                <AI Type="[AI]<enum<.ENMAIWarmType>>" IsOpen="bool" MinTime="duration" MaxTime="duration" />
-            </MatchAI>
-            <Random MissionType="[Random]<enum<.MissionType>>" />
-        </MatchMode>
-    </MatchCfg>
-</@TABLEAU>
+        <Scope ScopeID="enum<.ENMMatchScope>" />
+        <Filter FilterID="[Filter]<enum<.ENMMatchFilter>>" Open="bool" UpdInterval="duration">
+            <Power HornorPower="[Power]<int32>">
+                <Param Value="[Param]<int32>"/>
+            </Power>
+        </Filter>
+        <MatchAI IsOpen="bool" PlayerOnlyOneCamp="bool">
+            <AI Type="[AI]<enum<.ENMAIWarmType>>" IsOpen="bool" MinTime="duration" MaxTime="duration" />
+        </MatchAI>
+        <Random MissionType="[Random]<enum<.MissionType>>" />
+    </MatchMode>
+</MatchCfg>
+-->
 
 <MatchCfg>
     <ConfirmTimeOutPunish Time="2s" />

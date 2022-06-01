@@ -25,6 +25,7 @@ const typeCharSet = `[0-9A-Za-z,_>< \[\]\.\{\}]`
 const typeGroup = `(` + typeCharSet + `+)`
 const looseTypeGroup = typeGroup + `?` // `x?`: zero or one x, prefer one
 const elemTypeGroup = `(` + typeCharSet + `*?)`
+const PubTypeGroup = typeGroup
 
 func init() {
 	mapRegexp = regexp.MustCompile(`^map<` + typeGroup + `,` + typeGroup + `>` + rawPropGroup)           // e.g.: map<uint32,Type>
