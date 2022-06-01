@@ -30,23 +30,13 @@ const (
 	emptyMetaSheetRegexp = `^\s*<!--\s*@TABLEAU\s*-->\s*$` // e.g.: <!-- @TABLEAU -->
 )
 
-type Pass int
-
-const (
-	firstPass  Pass = 1
-	secondPass Pass = 2
-)
-
 type Range struct {
 	begin   int // index that Range begins at
 	attrNum int // the number of attrs with the same prefix
 	len     int // total number of columns with the same prefix, including attrs and children
 }
 type XMLImporter struct {
-	book *book.Book	
-	
-	metaMap    map[string]*xlsxgen.MetaSheet // sheet name -> meta
-	prefixMaps map[string](map[string]Range) // sheet -> { prefix -> [6, 9) }
+	*book.Book
 }
 
 type NoNeedParseError struct {
@@ -160,66 +150,26 @@ func contains(sheets []string, sheet string) bool {
 
 // TODO: options
 func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
-	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
+	book, err := parseXML(filename, sheets)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
+	}
+	book.ExportCSV()
+	
 	return &XMLImporter{
-		book: book.NewBook(bookName, filename, nil),
-		prefixMaps: make(map[string](map[string]Range)),
+		Book: book,
 	}, nil
 }
 
-func (x *XMLImporter) BookName() string {
-	return strings.TrimSuffix(filepath.Base(x.filename), filepath.Ext(x.filename))
-}
-
-func (x *XMLImporter) Filename() string {
-	return x.filename
-}
-
-func (x *XMLImporter) GetSheets() []*book.Sheet {
-	if x.sheetNames == nil {
-		if err := x.parse(); err != nil {
-			atom.Log.Panicf("failed to parse: %s, %+v", x.filename, err)
-		}
-	}
-
-	sheets := []*book.Sheet{}
-	for _, name := range x.sheetNames {
-		sheet := x.GetSheet(name)
-		if sheet == nil {
-			atom.Log.Panicf("get sheet failed: %s", name)
-		}
-		sheets = append(sheets, sheet)
-	}
-	return sheets
-}
-
-// GetSheet returns a Sheet of the specified sheet name.
-func (x *XMLImporter) GetSheet(name string) *book.Sheet {
-	if x.sheetMap == nil {
-		if err := x.parse(); err != nil {
-			atom.Log.Panicf("failed to parse: %s, %+v", x.filename, err)
-		}
-	}
-
-	if sheet, ok := x.sheetMap[name]; !ok {
-		atom.Log.Panicf("get sheet failed: %s", name)
-	} else {
-		return sheet
-	}
-	return nil
-}
-
-func (x *XMLImporter) parse() error {
-	x.sheetMap = make(map[string]*book.Sheet)
-	x.metaMap = make(map[string]*xlsxgen.MetaSheet)
-	x.sheetNames = nil
-
+// parseXML parse sheets in the XML file named `filename` and return a book with multiple sheets
+// in TABLEAU grammar which can be exported to protobuf by excel parser.
+func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	// open xml file and parse the document
-	xmlPath := x.filename
+	xmlPath := filename
 	atom.Log.Debugf("xml: %s", xmlPath)
 	buf, err := os.ReadFile(xmlPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open %s", xmlPath)
+		return nil, errors.Wrapf(err, "failed to open %s", xmlPath)
 	}
 
 	// get metaSheet document
@@ -228,9 +178,9 @@ func (x *XMLImporter) parse() error {
 		var noNeedParse *NoNeedParseError
 		if errors.As(err, &noNeedParse) {
 			atom.Log.Infof("%s no need parse: %s", xmlPath, noNeedParse)
-			return nil
+			return nil, nil
 		} else {
-			return errors.Wrapf(err, "failed to getMetaDoc from xml content:\n%s", string(buf))
+			return nil, errors.Wrapf(err, "failed to getMetaDoc from xml content:\n%s", string(buf))
 		}
 	}
 
@@ -242,10 +192,16 @@ func (x *XMLImporter) parse() error {
 	// parse the metaSheet
 	// Note that one xml file only has one root
 	// So in order to have multiple roots, we need to use a stream parser
-	hasUserSheets := x.sheetNames != nil
+	noSheetByUser := len(sheetNames) == 0
+	header := options.NewDefault().Input.Proto.Header
+	type SheetCache struct{
+		metaSheet *xlsxgen.MetaSheet // metaSheet begins with `<-- @TABLEAU`
+		prefixMap map[string]Range // prefix -> [6, 9)
+	}
+	sheetMap := make(map[string]*SheetCache)
 	p, err := xmlquery.CreateStreamParser(strings.NewReader(metaDoc), "/")
 	if err != nil {
-		return errors.Wrapf(err, "failed to create stream parser from string %s", metaDoc)
+		return nil, errors.Wrapf(err, "failed to create stream parser from string %s", metaDoc)
 	}
 	for {
 		n, err := p.Read()
@@ -253,23 +209,28 @@ func (x *XMLImporter) parse() error {
 			break
 		}
 		if err != nil {
-			return errors.Wrapf(err, "failed to read from stream parser")
-		}
+			return nil, errors.Wrapf(err, "failed to read from stream parser")
+		}		
 		nav := xmlquery.CreateXPathNavigator(n)
-		if !hasUserSheets {
-			x.sheetNames = append(x.sheetNames, nav.LocalName())
+		sheetName := nav.LocalName()
+		// add new sheet to cache
+		sheetMap[sheetName] = &SheetCache{xlsxgen.NewMetaSheet(sheetName, header, false), make(map[string]Range)}
+		if err := firstParseSheet(nav, sheetMap[sheetName].metaSheet, sheetMap[sheetName].prefixMap, true); err != nil {
+			return nil, errors.Wrapf(err, "failed to parse `@%s` sheet: %s#%s", metaName, filename, sheetName)
 		}
-		if err := x.parseSheet(nav.Current(), nav.LocalName(), firstPass, true); err != nil {
-			return errors.WithMessagef(err, "failed to parse `@%s` sheet: %s#%s", metaName, x.filename, nav.LocalName())
+		// append if user not specified
+		if noSheetByUser {
+			sheetNames = append(sheetNames, sheetName)
 		}
 	}
-	atom.Log.Debug(x.sheetNames)
+	atom.Log.Debug(sheetNames)
 	atom.Log.Debug(string(buf))
 
 	// parse data sheets
+	noSheetInMeta := len(sheetNames) == 0
 	p, err = xmlquery.CreateStreamParser(strings.NewReader(string(buf)), "/")
 	if err != nil {
-		return errors.Wrapf(err, "failed to create stream parser from string %s", metaDoc)
+		return nil, errors.Wrapf(err, "failed to create stream parser from string %s", metaDoc)
 	}
 	for {
 		n, err := p.Read()
@@ -277,22 +238,28 @@ func (x *XMLImporter) parse() error {
 			break
 		}
 		if err != nil {
-			return errors.Wrapf(err, "failed to read from stream parser")
+			return nil, errors.Wrapf(err, "failed to read from stream parser")
 		}
-		// parse sheets
-		if contained := contains(x.sheetNames, n.Data); !hasUserSheets || contained {
-			if err := x.parseSheet(n, n.Data, firstPass, false); err != nil {
-				return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
-			}
-			if !hasUserSheets && !contained {
-				x.sheetNames = append(x.sheetNames, n.Data)
-			}
+		nav := xmlquery.CreateXPathNavigator(n)
+		sheetName := nav.LocalName()
+		// add new sheet if not exist
+		if _, ok := sheetMap[sheetName]; !ok {
+			sheetMap[sheetName] = &SheetCache{xlsxgen.NewMetaSheet(sheetName, header, false), make(map[string]Range)}
+		}
+		if err := firstParseSheet(nav, sheetMap[sheetName].metaSheet, sheetMap[sheetName].prefixMap, false); err != nil {
+			return nil, errors.Wrapf(err, "failed to parse sheet: %s#%s", filename, sheetName)
+		}
+		// generate all if metaSheet not specified
+		if noSheetInMeta {
+			sheetNames = append(sheetNames, sheetName)
 		}
 	}
-	atom.Log.Debug(x.sheetNames)
+	atom.Log.Debug(sheetNames)
 
 	//------------------------------ The second pass ------------------------------//
 	// only parse data sheets
+	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
+	newBook := book.NewBook(bookName, filename, nil)
 	p, _ = xmlquery.CreateStreamParser(strings.NewReader(string(buf)), "/")
 	for {
 		n, err := p.Read()
@@ -300,73 +267,65 @@ func (x *XMLImporter) parse() error {
 			break
 		}
 		if err != nil {
-			return errors.Wrapf(err, "failed to read from stream parser")
+			return nil, errors.Wrapf(err, "failed to read from stream parser")
 		}
-		// parse sheets
-		if contains(x.sheetNames, n.Data) {
-			if err := x.parseSheet(n, n.Data, secondPass, false); err != nil {
-				return errors.WithMessagef(err, "failed to parse sheet: %s#%s", x.filename, n.Data)
-			}
+		nav := xmlquery.CreateXPathNavigator(n)
+		sheet, err := secondParseSheet(nav, sheetMap[nav.LocalName()].metaSheet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse sheet: %s#%s", filename, nav.LocalName())
 		}
+		newBook.AddSheet(sheet)
 	}
 
+	return newBook, nil
+}
+
+// firstParseSheet do the jobs of first pass of the XML parser. To be more specified, recursively explore the document rooted by `root`
+// and fill the header (first 2 rows) of `metaSheet`, which can fully describe the structure of document.
+func firstParseSheet(root *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, prefixMap map[string]Range, isMeta bool) error {
+	if err := parseNodeType(root, metaSheet, prefixMap, isMeta, true); err != nil {
+		return errors.Wrapf(err, "failed to parseNodeType for root node %s", metaSheet.Worksheet)
+	}
+	atom.Log.Debug(metaSheet)
 	return nil
 }
 
-func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass, isMeta bool) error {
-	// In order to combine column headers (the result of 1 pass) and data (the result of 2 pass),
-	// we need to cache the MetaSheet struct in `x`
-	metaSheet, ok := x.metaMap[sheetName]
-	header := options.NewDefault().Input.Proto.Header
-	if !ok {
-		metaSheet = xlsxgen.NewMetaSheet(sheetName, header, false)
-		x.metaMap[sheetName] = metaSheet
-		x.prefixMaps[sheetName] = make(map[string]Range)
-	}
-	root := xmlquery.CreateXPathNavigator(doc)
-	switch pass {
-	case firstPass:
-		// 1 pass: scan all columns and their types
-		if err := x.parseNodeType(root, metaSheet, isMeta, true); err != nil {
-			return errors.Wrapf(err, "failed to parseNodeType for root node %s", sheetName)
-		}
-	case secondPass:
-		// 2 pass: fill data to the corresponding columns
-		if err := x.parseNodeData(root, metaSheet, int(metaSheet.Datarow)-1); err != nil {
-			return errors.Wrapf(err, "failed to parseNodeData for root node %s", sheetName)
-		}
+// secondParseSheet proceed filling the data rows (begins from 5th row) of `metaSheet` on the basis of `firstParseSheet` and
+// return a 2-dimensional book in TABLEAU grammar, which can fully describe both the structure and data of the document.
+func secondParseSheet(root *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet) (sheet *book.Sheet, err error) {
+	if err := parseNodeData(root, metaSheet, int(metaSheet.Datarow)-1); err != nil {
+		return nil, errors.Wrapf(err, "failed to parseNodeData for root node %s", metaSheet.Worksheet)
 	}
 	atom.Log.Debug(metaSheet)
-	if pass == secondPass {
-		// unpack rows from the MetaSheet struct
-		var rows [][]string
-		for i := 0; i < len(metaSheet.Rows); i++ {
-			var row []string
-			for _, cell := range metaSheet.Rows[i].Cells {
-				row = append(row, cell.Data)
-			}
-			rows = append(rows, row)
+	
+	// unpack rows from the MetaSheet struct
+	var rows [][]string
+	for i := 0; i < len(metaSheet.Rows); i++ {
+		var row []string
+		for _, cell := range metaSheet.Rows[i].Cells {
+			row = append(row, cell.Data)
 		}
-		// insert sheets into map for importer
-		sheet := book.NewSheet(sheetName, rows)
-		sheet.Meta = &tableaupb.SheetMeta{
-			Sheet:    sheetName,
-			Alias:    sheetName,
-			Namerow:  header.Namerow,
-			Typerow:  header.Typerow,
-			Noterow:  header.Noterow,
-			Datarow:  header.Datarow,
-			Nameline: 1,
-			Typeline: 1,
-			Nested:   true,
-		}
-		x.sheetMap[sheetName] = sheet
+		rows = append(rows, row)
 	}
-	return nil
+	// insert sheets into map for importer
+	header := options.NewDefault().Input.Proto.Header
+	sheet = book.NewSheet(metaSheet.Worksheet, rows)
+	sheet.Meta = &tableaupb.SheetMeta{
+		Sheet:    metaSheet.Worksheet,
+		Alias:    metaSheet.Worksheet,
+		Namerow:  header.Namerow,
+		Typerow:  header.Typerow,
+		Noterow:  header.Noterow,
+		Datarow:  header.Datarow,
+		Nameline: 1,
+		Typeline: 1,
+		Nested:   true,
+	}
+	return sheet, nil
 }
 
 // parseNodeType parse and convert an xml file to sheet format
-func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, isMeta, isFirstChild bool) error {
+func parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, prefixMap map[string]Range, isMeta, isFirstChild bool) error {
 	// preprocess
 	prefix := ""
 	continueFindNude := true
@@ -394,8 +353,8 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 	for i, attr := range nav.Current().Attr {
 		attrName := attr.Name.Local
 		attrValue := attr.Value
-		_, prefixExist := x.prefixMaps[metaSheet.Worksheet][prefix]
-		x.tryAddCol(metaSheet, parentList, strcase.ToCamel(attrName))
+		_, prefixExist := prefixMap[prefix]
+		tryAddCol(metaSheet, parentList, prefixMap, strcase.ToCamel(attrName))
 
 		t, d := inferType(attrValue)
 		colName := prefix + strcase.ToCamel(attrName)
@@ -483,7 +442,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 			continue
 		}
 		tagName := navCopy.LocalName()
-		if err := x.parseNodeType(&navCopy, metaSheet, isMeta, i == 0); err != nil {
+		if err := parseNodeType(&navCopy, metaSheet, prefixMap, isMeta, i == 0); err != nil {
 			return errors.Wrapf(err, "failed to parseNodeType for the node %s", tagName)
 		}
 		i++
@@ -493,7 +452,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 }
 
 // parseNodeData parse and convert an xml file to sheet format
-func (x *XMLImporter) parseNodeData(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, cursor int) error {
+func parseNodeData(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, cursor int) error {
 	// preprocess
 	prefix := ""
 	// construct prefix
@@ -536,12 +495,12 @@ func (x *XMLImporter) parseNodeData(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 		if count, existed := nodeMap[tagName]; existed {
 			// duplicate means a list, should expand vertically
 			row := metaSheet.NewRow()
-			if err := x.parseNodeData(&navCopy, metaSheet, row.Index); err != nil {
+			if err := parseNodeData(&navCopy, metaSheet, row.Index); err != nil {
 				return errors.Wrapf(err, "parseNodeData for node %s (index:%d) failed", tagName, count+1)
 			}
 			nodeMap[tagName]++
 		} else {
-			if err := x.parseNodeData(&navCopy, metaSheet, cursor); err != nil {
+			if err := parseNodeData(&navCopy, metaSheet, cursor); err != nil {
 				return errors.Wrapf(err, "parseNodeData for the first node %s failed", tagName)
 			}
 			nodeMap[tagName] = 1
@@ -552,11 +511,10 @@ func (x *XMLImporter) parseNodeData(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 }
 
 // tryAddCol add a new column named `name` to an appropriate location in metaSheet if not exists or do nothing otherwise
-func (x *XMLImporter) tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []string, name string) {
+func tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []string, prefixMap map[string]Range, name string) {
 	prefix := ""
 	var reversedList []string
 	parentMap := make(map[string]bool)
-	prefixMap := x.prefixMaps[metaSheet.Worksheet]
 	for i := len(parentList) - 1; i >= 0; i-- {
 		prefix += parentList[i]
 		parentMap[prefix] = true
