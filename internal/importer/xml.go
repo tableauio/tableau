@@ -138,26 +138,23 @@ func escapeAttrs(doc string) string {
 	return escapedDoc
 }
 
-// contains check if sheets contains a specific sheet
-func contains(sheets []string, sheet string) bool {
-	for _, s := range sheets {
-		if sheet == s {
-			return true
-		}
-	}
-	return false
-}
-
 // TODO: options
 func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
-	book, err := parseXML(filename, sheets)
+	newBook, err := parseXML(filename, sheets)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
-	book.ExportCSV()
+	if newBook == nil {
+		atom.Log.Debugf("xml:%s parsed to an empty book", filename)
+		bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
+		return &XMLImporter{
+			Book: book.NewBook(bookName, filename, nil),
+		}, nil
+	}
+	newBook.ExportCSV()
 	
 	return &XMLImporter{
-		Book: book,
+		Book: newBook,
 	}, nil
 }
 

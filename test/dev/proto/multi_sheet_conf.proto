@@ -12,11 +12,44 @@ option (tableau.workbook) = {name:"xml/MultiSheet.xml"};
 message Server {
   option (tableau.worksheet) = {name:"Server" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
-  string desc = 1 [(tableau.field) = {name:"Desc"}];
-  repeated Node node_list = 2 [(tableau.field) = {name:"Node" key:"Addr" layout:LAYOUT_VERTICAL}];
+  MapConf map_conf = 1 [(tableau.field) = {name:"MapConf"}];
+  message MapConf {
+    repeated Weight weight_list = 1 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
+    message Weight {
+      int32 num = 1 [(tableau.field) = {name:"Num"}];
+      repeated Param param_list = 2 [(tableau.field) = {name:"Param" key:"Value" layout:LAYOUT_VERTICAL}];
+      message Param {
+        int32 value = 1 [(tableau.field) = {name:"Value"}];
+      }
+    }
+  }
+  string desc = 2 [(tableau.field) = {name:"Desc"}];
+  repeated Node node_list = 3 [(tableau.field) = {name:"Node" key:"Addr" layout:LAYOUT_VERTICAL}];
   message Node {
     string addr = 1 [(tableau.field) = {name:"Addr"}];
     int32 proc_num = 2 [(tableau.field) = {name:"ProcNum"}];
+  }
+  StructConf struct_conf = 4 [(tableau.field) = {name:"StructConf"}];
+  message StructConf {
+    Weight weight = 1 [(tableau.field) = {name:"Weight"}];
+    message Weight {
+      int32 num = 1 [(tableau.field) = {name:"Num"}];
+      Param param = 2 [(tableau.field) = {name:"Param"}];
+      message Param {
+        int32 value = 1 [(tableau.field) = {name:"Value"}];
+      }
+    }
+  }
+  ListConf list_conf = 5 [(tableau.field) = {name:"ListConf"}];
+  message ListConf {
+    repeated Weight weight_list = 1 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
+    message Weight {
+      int32 num = 1 [(tableau.field) = {name:"Num"}];
+      repeated Param param_list = 2 [(tableau.field) = {name:"Param" key:"Value" layout:LAYOUT_VERTICAL}];
+      message Param {
+        int32 value = 1 [(tableau.field) = {name:"Value"}];
+      }
+    }
   }
 }
 
@@ -27,15 +60,5 @@ message Client {
   message Version {
     string min = 1 [(tableau.field) = {name:"Min"}];
     string max = 2 [(tableau.field) = {name:"Max"}];
-  }
-}
-
-message TrashBin {
-  option (tableau.worksheet) = {name:"TrashBin" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
-
-  bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
-  repeated Trash trash_list = 2 [(tableau.field) = {name:"Trash" key:"Name" layout:LAYOUT_VERTICAL}];
-  message Trash {
-    string name = 1 [(tableau.field) = {name:"Name"}];
   }
 }
