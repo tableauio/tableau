@@ -43,11 +43,9 @@ type Range struct {
 	len     int // total number of columns with the same prefix, including attrs and children
 }
 type XMLImporter struct {
-	filename   string
-	sheetMap   map[string]*book.Sheet        // sheet name -> sheet
+	book *book.Book	
+	
 	metaMap    map[string]*xlsxgen.MetaSheet // sheet name -> meta
-	sheetNames []string
-
 	prefixMaps map[string](map[string]Range) // sheet -> { prefix -> [6, 9) }
 }
 
@@ -162,9 +160,9 @@ func contains(sheets []string, sheet string) bool {
 
 // TODO: options
 func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
+	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	return &XMLImporter{
-		filename:   filename,
-		sheetNames: sheets,
+		book: book.NewBook(bookName, filename, nil),
 		prefixMaps: make(map[string](map[string]Range)),
 	}, nil
 }
@@ -338,7 +336,7 @@ func (x *XMLImporter) parseSheet(doc *xmlquery.Node, sheetName string, pass Pass
 			return errors.Wrapf(err, "failed to parseNodeData for root node %s", sheetName)
 		}
 	}
-	// atom.Log.Info(metaSheet)
+	atom.Log.Debug(metaSheet)
 	if pass == secondPass {
 		// unpack rows from the MetaSheet struct
 		var rows [][]string
@@ -411,7 +409,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 			}
 		}
 
-		// atom.Log.Debug(t)		
+		atom.Log.Debug(t)		
 		curType := metaSheet.GetColType(colName)
 		matches := types.MatchStruct(curType)
 		// 1. <TABLEAU>
@@ -422,14 +420,13 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 		// 2. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)
 		setKeyedType := (!prefixExist || (len(matches) > 0 && repeated)) && nav.LocalName() != metaSheet.Worksheet
 		if needChangeType {
-			oldType := t
 			typePrefix :=  ""
 			for _, parentType := range nudeParentTypeList {
 				typePrefix = parentType + typePrefix
 			}
-			t = typePrefix + t
-			// atom.Log.Debug(typePrefix)
+			atom.Log.Debug(typePrefix)
 			if matches := types.MatchMap(t); len(matches) >= 3 {
+				t = typePrefix + t
 				// case 1: map<uint32,Type>
 				if !types.IsScalarType(matches[1]) && len(types.MatchEnum(matches[1])) == 0 {
 					return errors.Errorf("%s is not scalar type in node %s attr %s type %s", matches[1], nav.LocalName(), attrName, t)
@@ -439,6 +436,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 				}
 				metaSheet.SetColType(colName, t)
 			} else if matches := types.MatchKeyedList(t); len(matches) >= 3 {
+				t = typePrefix + t
 				// case 2: [Type]<uint32>
 				if i != 0 {
 					return errors.Errorf("KeyedList attr %s in node %s must be the first attr", attrName, nav.LocalName())
@@ -451,6 +449,7 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 				}
 				metaSheet.SetColType(colName, t)
 			} else if matches := types.MatchList(t); len(matches) >= 3 {
+				t = typePrefix + t
 				// case 3: [Type]uint32
 				if i != 0 {
 					return errors.Errorf("KeyedList attr %s in node %s must be the first attr", attrName, nav.LocalName())
@@ -462,16 +461,14 @@ func (x *XMLImporter) parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsx
 					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[1], attrName, t, nav.LocalName())
 				}
 				metaSheet.SetColType(colName, t)
-			} else if i == 0 && setKeyedType {
-				t = oldType
+			} else if i == 0 && setKeyedType {				
 				// case 4: {Type}uint32
 				if repeated {
 					metaSheet.SetColType(colName, fmt.Sprintf("%s[%s]<%s>", typePrefix, strcase.ToCamel(nav.LocalName()), t))
 				} else {
 					metaSheet.SetColType(colName, fmt.Sprintf("%s{%s}%s", typePrefix, strcase.ToCamel(nav.LocalName()), t))
 				}
-			} else {
-				t = oldType
+			} else {				
 				// default: built-in type
 				metaSheet.SetColType(colName, t)
 			}

@@ -1,11 +1,41 @@
 <!-- @TABLEAU
-<Server/>
+<Server>
+    <TestMapInStruct>
+        <Weight Num="map<uint32,Weight>"/>
+    </TestMapInStruct>
+</Server>
 <Client/>
 -->
 
 <Server desc="test">
     <Node Addr="9.123.134.1" ProcNum="2"/>
     <Node Addr="9.168.134.1" ProcNum="5"/>
+    
+    <TestStructInStruct>
+        <Weight Num="1">
+            <Param Value="100"/>
+        </Weight>
+    </TestStructInStruct>
+    
+    <TestListInStruct>
+        <Weight Num="1">
+            <Param Value="100"/>
+        </Weight>
+        <Weight Num="2">
+            <Param Value="30"/>
+            <Param Value="70"/>
+        </Weight>
+    </TestListInStruct>
+    
+    <TestMapInStruct>
+        <Weight Num="1">
+            <Param Value="100"/>
+        </Weight>
+        <Weight Num="2">
+            <Param Value="30"/>
+            <Param Value="70"/>
+        </Weight>
+    </TestMapInStruct>
 </Server>
 
 <Client>
