@@ -224,7 +224,6 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 		}
 	}
 	atom.Log.Debug(sheetNames)
-	atom.Log.Debug(string(buf))
 
 	// parse data sheets
 	noSheetInMeta := len(sheetNames) == 0
@@ -276,6 +275,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 		}
 		newBook.AddSheet(sheet)
 	}
+	newBook.Squeeze(sheetNames)
 
 	return newBook, nil
 }
@@ -374,6 +374,7 @@ func parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, pr
 		// 1. <TABLEAU>
 		// 2. type not set
 		// 3. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)
+		// NOTE: Map in struct not supported temporarily.
 		needChangeType := isMeta || curType == "" || (len(matches) > 0 && repeated)
 		// 1. new struct(list), not subsequent
 		// 2. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)

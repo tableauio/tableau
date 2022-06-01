@@ -27,7 +27,7 @@
         </Weight>
     </ListConf>
 
-    <MapConf>
+    <MapConf desc="NOT SUPPORT YET!">
         <Weight Num="1">
             <Param Value="100"/>
         </Weight>
