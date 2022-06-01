@@ -4,11 +4,10 @@ syntax = "proto3";
 
 package protoconf;
 
-option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-
 import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
+option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"excel/hero/Hero#*.csv"};
 
 message FirstHListField {

@@ -4,10 +4,9 @@ syntax = "proto3";
 
 package protoconf;
 
-option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-
 import "tableau/protobuf/tableau.proto";
 
+option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"xml/match/SimpleMatch.xml"};
 
 message SimpleMatchConf {

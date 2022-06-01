@@ -4,12 +4,11 @@ syntax = "proto3";
 
 package protoconf;
 
-option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-
 import "common/cs_dbkeyword.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
+option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"xml/FeatureToggle.xml"};
 
 message ToggleCfg {

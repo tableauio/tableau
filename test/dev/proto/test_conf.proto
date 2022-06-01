@@ -4,14 +4,13 @@ syntax = "proto3";
 
 package protoconf;
 
-option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-
 import "common/common.proto";
 import "common/time.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
+option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"excel/Test#*.csv"};
 
 message Activity {

@@ -29,7 +29,7 @@ func Test_GenProto(t *testing.T) {
 				},
 				Formats: []format.Format{
 					// format.Excel,
-					// format.CSV,
+					format.CSV,
 					format.XML,
 				},
 				// Formats: []format.Format{format.CSV},

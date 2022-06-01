@@ -4,10 +4,9 @@ syntax = "proto3";
 
 package protoconf;
 
-option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-
 import "tableau/protobuf/tableau.proto";
 
+option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"xml/MultiSheet.xml"};
 
 message Server {
@@ -29,5 +28,15 @@ message Client {
   message Version {
     string min = 1 [(tableau.field) = {name:"Min"}];
     string max = 2 [(tableau.field) = {name:"Max"}];
+  }
+}
+
+message TrashBin {
+  option (tableau.worksheet) = {name:"TrashBin" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
+
+  bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
+  repeated Trash trash_list = 2 [(tableau.field) = {name:"Trash" key:"Name" layout:LAYOUT_VERTICAL}];
+  message Trash {
+    string name = 1 [(tableau.field) = {name:"Name"}];
   }
 }

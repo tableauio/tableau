@@ -48,11 +48,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	g1.P("")
 	g1.P("package ", x.ProtoPackage, ";")
 	g1.P("")
-	for k, v := range x.ProtoFileOptions {
-		g1.P(`option `, k, ` = "`, v, `";`)
-	}
-	g1.P("")
-
+	
 	// keep the elements ordered by import path
 	set := treeset.NewWithStringComparator()
 	set.Add(tableauProtoPath) // default must be imported path
@@ -80,6 +76,9 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 		g2.P(`import "`, key, `";`)
 	}
 	g2.P("")
+	for k, v := range x.ProtoFileOptions {
+		g2.P(`option `, k, ` = "`, v, `";`)
+	}
 	g2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
 	g2.P("")
 
