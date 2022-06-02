@@ -151,7 +151,7 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	newBook.ExportCSV()
+	// newBook.ExportCSV()
 	
 	return &XMLImporter{
 		Book: newBook,
@@ -174,7 +174,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	if err != nil {
 		var noNeedParse *NoNeedParseError
 		if errors.As(err, &noNeedParse) {
-			atom.Log.Infof("%s no need parse: %s", xmlPath, noNeedParse)
+			atom.Log.Debugf("%s no need parse: %s", xmlPath, noNeedParse)
 			return nil, nil
 		} else {
 			return nil, errors.Wrapf(err, "failed to getMetaDoc from xml content:\n%s", string(buf))
