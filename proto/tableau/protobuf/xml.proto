@@ -1,0 +1,29 @@
+syntax = "proto3";
+package tableau;
+option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+
+message XMLProp {
+  map<string, SheetProp> sheet_prop_map = 1;  
+}
+
+message SheetProp {
+  MetaProp meta = 1;
+  DataProp data = 2;
+}
+
+message MetaProp {
+  string name = 1;
+  map<string, Attr> attr_map = 2;
+  map<string, MetaProp> child_map = 3;
+}
+
+message DataProp {
+  string name = 1;
+  map<string, Attr> attr_map = 2;
+  repeated DataProp child_list = 3;
+}
+
+message Attr {
+  string name = 1;
+  string value = 2;
+}
