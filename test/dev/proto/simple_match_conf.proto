@@ -12,19 +12,17 @@ option (tableau.workbook) = {name:"xml/match/SimpleMatch.xml"};
 message SimpleMatchConf {
   option (tableau.worksheet) = {name:"SimpleMatchConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
-  bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
-  ConfirmTimeOutPunish confirm_time_out_punish = 2 [(tableau.field) = {name:"ConfirmTimeOutPunish"}];
+  ConfirmTimeOutPunish confirm_time_out_punish = 1 [(tableau.field) = {name:"ConfirmTimeOutPunish"}];
   message ConfirmTimeOutPunish {
     string time = 1 [(tableau.field) = {name:"Time"}];
   }
-  MatchRoom match_room = 3 [(tableau.field) = {name:"MatchRoom"}];
+  MatchRoom match_room = 2 [(tableau.field) = {name:"MatchRoom"}];
   message MatchRoom {
     int32 max_loop = 1 [(tableau.field) = {name:"MaxLoop"}];
   }
-  TeamRatingWeight team_rating_weight = 4 [(tableau.field) = {name:"TeamRatingWeight"}];
+  TeamRatingWeight team_rating_weight = 3 [(tableau.field) = {name:"TeamRatingWeight"}];
   message TeamRatingWeight {
-    bool _placeholder = 1 [(tableau.field) = {name:"_placeholder"}];
-    repeated Weight weight_list = 2 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
+    repeated Weight weight_list = 1 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
     message Weight {
       int32 num = 1 [(tableau.field) = {name:"Num"}];
       repeated Param param_list = 2 [(tableau.field) = {name:"Param" key:"Value" layout:LAYOUT_VERTICAL}];

@@ -33,7 +33,7 @@ func Test_GenProto(t *testing.T) {
 					format.XML,
 				},
 				// Formats: []format.Format{format.CSV},
-				// Subdirs: []string{`excel/`},
+				// Subdirs: []string{`xml/`},
 				// SubdirRewrites: map[string]string{
 				// 	`excel/`: ``,
 				// },
@@ -55,6 +55,12 @@ func Test_GenProto(t *testing.T) {
 				FileOptions: map[string]string{
 					"go_package": "github.com/tableauio/tableau/test/dev/protoconf",
 				},
+			},
+		),
+		options.Log(
+			&options.LogOption{
+				Level: "INFO",
+				Mode:  "FULL",
 			},
 		),
 	)
