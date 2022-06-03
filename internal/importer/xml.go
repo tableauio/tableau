@@ -235,20 +235,23 @@ func parseDataNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp, data *
 	return nil
 }
 
+func newOrderedAttrMap() *tableaupb.OrderedAttrMap {
+	return &tableaupb.OrderedAttrMap{
+		Map: make(map[string]int32),
+	}
+}
 func newMetaProp(nodeName string) *tableaupb.MetaProp {
 	return &tableaupb.MetaProp{
 		Name: nodeName,
-		AttrMap: &tableaupb.OrderedAttrMap{
-			Map: make(map[string]int32),
-		},
-		ChildMap: make(map[string]*tableaupb.MetaProp),
+		AttrMap: newOrderedAttrMap(),
+		ChildMap: make(map[string]int32),
 	}
 }
 
 func newDataProp(nodeName string) *tableaupb.DataProp {
 	return &tableaupb.DataProp{
 		Name: nodeName,
-		AttrMap: make(map[string]*tableaupb.Attr),
+		AttrMap: newOrderedAttrMap(),
 	}
 }
 
@@ -284,17 +287,14 @@ func genSheetHeaderRows(metaProp *tableaupb.MetaProp, metaSheet *xlsxgen.MetaShe
 	return nil
 }
 
-func rearrangeAttrs(attrMap map[string]*tableaupb.Attr) []string {
-	attrNames := make([]string, 0, len(attrMap))
-	for _, attr := range attrMap {
+func rearrangeAttrs(attrMap *tableaupb.OrderedAttrMap) {
+	for i, attr := range attrMap.List {
 		mustFirst := types.IsMap(attr.Value) || types.IsList(attr.Value) || types.IsKeyedList(attr.Value) || types.IsStruct(attr.Value)
 		if mustFirst {
 			attrNames = append([]string{attr.Name}, attrNames...)
 			continue
 		}
-		attrNames = append(attrNames, attr.Name)
 	}
-	return attrNames
 }
 
 func fillSheetDataRows(dataProp *tableaupb.DataProp, metaSheet *xlsxgen.MetaSheet, prefix string, cursor int) error {
