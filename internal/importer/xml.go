@@ -160,15 +160,17 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 func parseMetaNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp) error {
 	for _, attr := range nav.Current().Attr {
 		attrName := attr.Name.Local
-		if propAttr, ok := meta.AttrMap[attrName]; !ok {
-			meta.AttrMap[attrName] = &tableaupb.Attr{
+		if idx, ok := meta.AttrMap.Map[attrName]; !ok {
+			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
+			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.Attr{
 				Name: attrName, 
 				Value: attr.Value,
-			}
+			})
 		} else {
 			// replace attribute value by metaSheet
+			propAttr := meta.AttrMap.List[idx]
 			propAttr.Value = attr.Value
-		}		
+		}
 	}
 	navCopy := *nav
 	for flag := navCopy.MoveToChild(); flag; flag = navCopy.MoveToNext() {
@@ -176,12 +178,14 @@ func parseMetaNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp) error 
 			continue
 		}
 		childName := navCopy.LocalName()
-		if child, ok := meta.ChildMap[childName]; !ok {
-			meta.ChildMap[childName] = newMetaProp(childName)
-			if err := parseMetaNode(&navCopy, meta.ChildMap[childName]); err != nil {
+		if idx, ok := meta.ChildMap[childName]; !ok {
+			meta.ChildMap[childName] = int32(len(meta.ChildList))
+			meta.ChildList = append(meta.ChildList, newMetaProp(childName))
+			if err := parseMetaNode(&navCopy, meta.ChildList[len(meta.ChildList)-1]); err != nil {
 				return errors.Wrapf(err, "failed to parseMetaNode for %s@%s", childName, meta.Name)
 			}
 		} else {
+			child := meta.ChildList[idx]
 			if err := parseMetaNode(&navCopy, child); err != nil {
 				return errors.Wrapf(err, "failed to parseMetaNode for %s@%s", childName, meta.Name)
 			}
@@ -194,16 +198,18 @@ func parseDataNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp, data *
 	for _, attr := range nav.Current().Attr {
 		attrName := attr.Name.Local
 		t, _ := inferType(attr.Value)
-		if _, ok := meta.AttrMap[attrName]; !ok {
-			meta.AttrMap[attrName] = &tableaupb.Attr{
+		if _, ok := meta.AttrMap.Map[attrName]; !ok {
+			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
+			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.Attr{
 				Name: attrName, 
 				Value: t,
-			}
+			})
 		}
-		data.AttrMap[attrName] = &tableaupb.Attr{
+		data.AttrMap.Map[attrName] = int32(len(data.AttrMap.List))
+		data.AttrMap.List = append(data.AttrMap.List, &tableaupb.Attr{
 			Name: attrName, 
 			Value: attr.Value,
-		}
+		})
 	}
 	navCopy := *nav
 	for flag := navCopy.MoveToChild(); flag; flag = navCopy.MoveToNext() {
@@ -212,12 +218,14 @@ func parseDataNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp, data *
 		}
 		childName := navCopy.LocalName()
 		dataChild := newDataProp(childName)
-		if metaChild, ok := meta.ChildMap[childName]; !ok {
-			meta.ChildMap[childName] = newMetaProp(childName)
-			if err := parseDataNode(&navCopy, meta.ChildMap[childName], dataChild); err != nil {
+		if idx, ok := meta.ChildMap[childName]; !ok {
+			meta.ChildMap[childName] = int32(len(meta.ChildList))
+			meta.ChildList = append(meta.ChildList, newMetaProp(childName))
+			if err := parseDataNode(&navCopy, meta.ChildList[len(meta.ChildList)-1], dataChild); err != nil {
 				return errors.Wrapf(err, "failed to parseDataNode for %s@%s", childName, meta.Name)
 			}
 		} else {
+			metaChild := meta.ChildList[idx]
 			if err := parseDataNode(&navCopy, metaChild, dataChild); err != nil {
 				return errors.Wrapf(err, "failed to parseDataNode for %s@%s", childName, meta.Name)
 			}
@@ -230,7 +238,9 @@ func parseDataNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp, data *
 func newMetaProp(nodeName string) *tableaupb.MetaProp {
 	return &tableaupb.MetaProp{
 		Name: nodeName,
-		AttrMap: make(map[string]*tableaupb.Attr),
+		AttrMap: &tableaupb.OrderedAttrMap{
+			Map: make(map[string]int32),
+		},
 		ChildMap: make(map[string]*tableaupb.MetaProp),
 	}
 }

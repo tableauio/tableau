@@ -11,15 +11,22 @@ message SheetProp {
   DataProp data = 2;
 }
 
+message OrderedAttrMap {
+  repeated Attr list = 1;
+  map<string, int32> map = 2;
+}
+
 message MetaProp {
   string name = 1;
-  map<string, Attr> attr_map = 2;
-  map<string, MetaProp> child_map = 3;
+  OrderedAttrMap attr_map = 2;
+  // Combine list and map to get an ordered map
+  repeated MetaProp child_list = 3;
+  map<string, int32> child_map = 4;
 }
 
 message DataProp {
   string name = 1;
-  map<string, Attr> attr_map = 2;
+  OrderedAttrMap attr_map = 2;
   repeated DataProp child_list = 3;
 }
 
