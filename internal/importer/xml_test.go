@@ -1,233 +1,12 @@
 package importer
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/antchfx/xmlquery"
 )
-
-func Test_isMetaBeginning(t *testing.T) {
-	type args struct {
-		s string
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "standard",
-			args: args{
-				s: "<!-- @TABLEAU\n",
-			},
-			want: true,
-		},
-		{
-			name: "with spaces",
-			args: args{
-				s: "   <!--      @TABLEAU           \n",
-			},
-			want: true,
-		},
-		{
-			name: "none space",
-			args: args{
-				s: "<!--@TABLEAU\n",
-			},
-			want: true,
-		},
-		{
-			name: "non-space heading",
-			args: args{
-				s: "test <!-- @TABLEAU\n",
-			},
-			want: false,
-		},
-		{
-			name: "non-space tailing",
-			args: args{
-				s: "<!-- @TABLEAU <conf>\n",
-			},
-			want: false,
-		},
-		{
-			name: "empty metaSheet with more spaces",
-			args: args{
-				s: "<!-- @TABLEAU -->\n",
-			},
-			want: true,
-		},
-		{
-			name: "empty metaSheet with less spaces",
-			args: args{
-				s: " <!--@TABLEAU -->   \n",
-			},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isMetaBeginning(tt.args.s); got != tt.want {
-				t.Errorf("isMetaBeginning() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_isMetaEnding(t *testing.T) {
-	type args struct {
-		s string
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "standard",
-			args: args{
-				s: "-->\n",
-			},
-			want: true,
-		},
-		{
-			name: "more spaces",
-			args: args{
-				s: "  --> \n",
-			},
-			want: true,
-		},
-		{
-			name: "empty metaSheet with more spaces",
-			args: args{
-				s: "<!-- @TABLEAU -->\n",
-			},
-			want: true,
-		},
-		{
-			name: "empty metaSheet with less spaces",
-			args: args{
-				s: " <!--@TABLEAU -->   \n",
-			},
-			want: true,
-		},
-		{
-			name: "non-space characters heading",
-			args: args{
-				s: "</Conf> -->\n",
-			},
-			want: false,
-		},
-		{
-			name: "non-space characters tailing",
-			args: args{
-				s: " --> <Conf> \n",
-			},
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isMetaEnding(tt.args.s); got != tt.want {
-				t.Errorf("isMetaEnding() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_getMetaDoc(t *testing.T) {
-	type args struct {
-		doc string
-	}
-	tests := []struct {
-		name        string
-		args        args
-		wantMetaDoc string
-		wantErr     bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "standard",
-			args: args{
-				doc: `
-<!-- @TABLEAU
-<Conf>
-    <Server Value="int32"/>
-</Conf>
--->
-
-<Conf>
-    <Server Value="100"/>
-</Conf>
-`,
-			},
-			wantMetaDoc: `<Conf>
-    <Server Value="int32"/>
-</Conf>
-`,
-			wantErr: false,
-		},
-		{
-			name: "empty metaSheet",
-			args: args{
-				doc: `
-<!--@TABLEAU -->
-
-<Conf>
-    <Server Value="100"/>
-</Conf>
-`,
-			},
-			wantMetaDoc: ``,
-			wantErr:     false,
-		},
-		{
-			name: "none metaSheet",
-			args: args{
-				doc: `
-
-<Conf>
-    <Server Value="100"/>
-</Conf>
-`,
-			},
-			wantMetaDoc: ``,
-			wantErr:     true,
-		},
-		{
-			name: "standard",
-			args: args{
-				doc: `
-<!-- @TABLEAU <Conf>
-    <Server Value="int32"/>
-</Conf>
--->
-
-<Conf>
-    <Server Value="100"/>
-</Conf>
-`,
-			},
-			wantMetaDoc: ``,
-			wantErr:     true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotMetaDoc, err := getMetaDoc(tt.args.doc)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getMetaDoc() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotMetaDoc != tt.wantMetaDoc {
-				t.Errorf("getMetaDoc() = %v, want %v", gotMetaDoc, tt.wantMetaDoc)
-			}
-		})
-	}
-}
 
 func Test_escapeAttrs(t *testing.T) {
 	type args struct {
@@ -254,6 +33,25 @@ func Test_escapeAttrs(t *testing.T) {
 </Conf>
 `,
 		},
+		{
+			name: "FeatureToggle",
+			args: args{
+				doc: `
+<Conf>
+	<Client EnvID="map<uint32,Client>">
+		<Toggle ID="map<enum<.ToggleType>, Toggle>" WorldID="uint32"/>
+	</Client>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<Client EnvID="map&lt;uint32,Client&gt;">
+		<Toggle ID="map&lt;enum&lt;.ToggleType&gt;, Toggle&gt;" WorldID="uint32"/>
+	</Client>
+</Conf>
+`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -265,9 +63,9 @@ func Test_escapeAttrs(t *testing.T) {
 }
 
 func Test_isRepeated(t *testing.T) {
-	doc1 := `
+	doc := `
 <?xml version='1.0' encoding='UTF-8'?>
-<MatchCfg>
+<MatchCfg Open="true">
 	<TeamRatingWeight>
 		<Weight Num="1">
 			<Param Value="100"/>
@@ -279,20 +77,13 @@ func Test_isRepeated(t *testing.T) {
 	</TeamRatingWeight>
 </MatchCfg>
 `
-	p, err := xmlquery.Parse(strings.NewReader(doc1))
-	if err != nil {
-		t.Errorf("failed to parse doc1")
-		return
-	}
-	t.Logf("doc1:%s", p.Data)
-	nav1 := xmlquery.CreateXPathNavigator(xmlquery.FindOne(p, "MatchCfg/TeamRatingWeight/Weight"))
-	t.Logf("nav1:%s", nav1.LocalName())
-	nav2 := xmlquery.CreateXPathNavigator(xmlquery.FindOne(p, "MatchCfg/TeamRatingWeight/Weight/Param"))
-	t.Logf("nav2:%s", nav2.LocalName())
-	nav3 := xmlquery.CreateXPathNavigator(xmlquery.FindOne(p, "MatchCfg/TeamRatingWeight"))
-	t.Logf("nav3:%s", nav3.LocalName())
+	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	node1 := xmlquery.FindOne(root, "MatchCfg/TeamRatingWeight/Weight")
+	node2 := xmlquery.FindOne(root, "MatchCfg/TeamRatingWeight/Weight/Param")
+	node3 := xmlquery.FindOne(root, "MatchCfg/TeamRatingWeight")
+	node4 := xmlquery.FindOne(root, "MatchCfg")
 	type args struct {
-		nav *xmlquery.NodeNavigator
+		root, curr *xmlquery.Node
 	}
 	tests := []struct {
 		name string
@@ -301,31 +92,235 @@ func Test_isRepeated(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "doc1-nav1",
+			name: "node1",
 			args: args{
-				nav: nav1,
+				root: root,
+				curr: node1,
 			},
 			want: true,
 		},
 		{
-			name: "doc1-nav2",
+			name: "node2",
 			args: args{
-				nav: nav2,
+				root: root,
+				curr: node2,
 			},
 			want: true,
 		},
 		{
-			name: "doc1-nav3",
+			name: "node3",
 			args: args{
-				nav: nav3,
+				root: root,
+				curr: node3,
+			},
+			want: false,
+		},
+		{
+			name: "sheet attr",
+			args: args{
+				root: root,
+				curr: node4,
 			},
 			want: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isRepeated(tt.args.nav); got != tt.want {
+			if got := isRepeated(tt.args.root, tt.args.curr); got != tt.want {
 				t.Errorf("isRepeated() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_matchAttr(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		// TODO: Add test cases.
+		{
+			name: "scalar type",
+			args: args{
+				s: `<AAA bb="bool" cc="int64" dd="enum<.EnumType>" >`,
+			},
+			want: []string{
+				`bb="bool"`, `bb`, `bool`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := matchAttr(tt.args.s); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("matchAttr() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_isFirstChild(t *testing.T) {
+	doc := `
+<?xml version='1.0' encoding='UTF-8'?>
+<Server>
+    <MapConf>
+        <Weight Num="map&lt;uint32,Weight&gt;"/>
+    </MapConf>
+</Server>
+`
+	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	node1 := xmlquery.FindOne(root, "Server/MapConf/Weight")
+	type args struct {
+		curr *xmlquery.Node
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Weight",
+			args: args{
+				curr: node1,
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isFirstChild(tt.args.curr); got != tt.want {
+				t.Errorf("isFirstChild() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_correctType(t *testing.T) {
+	doc := `
+<?xml version='1.0' encoding='UTF-8'?>
+<MatchCfg open="true">
+	<MatchMode MissionType="map&lt;enum&lt;.MissionType&gt;,MatchMode&gt;">
+		<MatchAI IsOpen="bool" PlayerOnlyOneCamp="bool">
+			<AI Type="[AI]&lt;enum&lt;.ENMAIWarmType&gt;&gt;" IsOpen="bool" MinTime="duration" MaxTime="duration" />
+		</MatchAI>
+    </MatchMode>
+	<MapConf>
+        <Weight Num="map&lt;uint32,Weight&gt;"/>
+    </MapConf>
+	<Client EnvID="map&lt;uint32,Client&gt;">
+		<Toggle ID="map&lt;enum&lt;.ToggleType&gt;, Toggle&gt;" WorldID="uint32"/>
+	</Client>
+</MatchCfg>
+
+<MatchCfg>
+	<StructConf>
+		<Weight Num="1">
+			<Param Value="100"/>
+		</Weight>
+	</StructConf>
+
+	<ListConf>
+        <Weight Num="1">
+            <Param Value="100"/>
+        </Weight>
+        <Weight Num="2">
+            <Param Value="30"/>
+            <Param Value="70"/>
+        </Weight>
+    </ListConf>
+</MatchCfg>
+`
+	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	node1 := xmlquery.FindOne(root, "MatchCfg/MatchMode/MatchAI/AI")
+	node2 := xmlquery.FindOne(root, "MatchCfg/MapConf/Weight")
+	node3 := xmlquery.FindOne(root, "MatchCfg/StructConf/Weight")
+	node4 := xmlquery.FindOne(root, "MatchCfg/ListConf/Weight")
+	node5 := xmlquery.FindOne(root, "MatchCfg/ListConf/Weight/Param")
+	node6 := xmlquery.FindOne(root, "MatchCfg/Client/Toggle")
+	node7 := xmlquery.FindOne(root, "MatchCfg")
+	type args struct {
+		root    *xmlquery.Node
+		curr    *xmlquery.Node
+		oriType string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		// TODO: Add test cases.
+		{
+			name: "MatchAI",
+			args: args{
+				root:    root,
+				curr:    node1,
+				oriType: `[AI]<enum<.ENMAIWarmType>>`,
+			},
+			want: `[AI]<enum<.ENMAIWarmType>>`,
+		},
+		{
+			name: "MapConf",
+			args: args{
+				root:    root,
+				curr:    node2,
+				oriType: `map<uint32,Weight>`,
+			},
+			want: `{MapConf}map<uint32,Weight>`,
+		},
+		{
+			name: "StructConf",
+			args: args{
+				root:    root,
+				curr:    node3,
+				oriType: `int32`,
+			},
+			want: `{StructConf}{Weight}int32`,
+		},
+		{
+			name: "ListConf",
+			args: args{
+				root:    root,
+				curr:    node4,
+				oriType: `int32`,
+			},
+			want: `{ListConf}[Weight]<int32>`,
+		},
+		{
+			name: "ListConf/Param",
+			args: args{
+				root:    root,
+				curr:    node5,
+				oriType: `int32`,
+			},
+			want: `[Param]<int32>`,
+		},
+		{
+			name: "FeatureToggle",
+			args: args{
+				root:    root,
+				curr:    node6,
+				oriType: `map<enum<.ToggleType>, Toggle>`,
+			},
+			want: `map<enum<.ToggleType>, Toggle>`,
+		},
+		{
+			name: "sheet attr",
+			args: args{
+				root:    root,
+				curr:    node7,
+				oriType: `bool`,
+			},
+			want: `bool`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := correctType(tt.args.root, tt.args.curr, tt.args.oriType); got != tt.want {
+				t.Errorf("correctType() = %v, want %v", got, tt.want)
 			}
 		})
 	}

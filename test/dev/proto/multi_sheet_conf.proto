@@ -9,12 +9,23 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"xml/MultiSheet.xml"};
 
+message Client {
+  option (tableau.worksheet) = {name:"Client" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
+
+  Version version = 1 [(tableau.field) = {name:"Version"}];
+  message Version {
+    string min = 1 [(tableau.field) = {name:"Min"}];
+    string max = 2 [(tableau.field) = {name:"Max"}];
+  }
+}
+
 message Server {
   option (tableau.worksheet) = {name:"Server" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
-  MapConf map_conf = 1 [(tableau.field) = {name:"MapConf"}];
+  string desc = 1 [(tableau.field) = {name:"Desc"}];
+  MapConf map_conf = 2 [(tableau.field) = {name:"MapConf"}];
   message MapConf {
-    repeated Weight weight_list = 1 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
+    map<int32, Weight> weight_map = 1 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
     message Weight {
       int32 num = 1 [(tableau.field) = {name:"Num"}];
       repeated Param param_list = 2 [(tableau.field) = {name:"Param" key:"Value" layout:LAYOUT_VERTICAL}];
@@ -23,7 +34,6 @@ message Server {
       }
     }
   }
-  string desc = 2 [(tableau.field) = {name:"Desc"}];
   repeated Node node_list = 3 [(tableau.field) = {name:"Node" key:"Addr" layout:LAYOUT_VERTICAL}];
   message Node {
     string addr = 1 [(tableau.field) = {name:"Addr"}];
@@ -50,15 +60,5 @@ message Server {
         int32 value = 1 [(tableau.field) = {name:"Value"}];
       }
     }
-  }
-}
-
-message Client {
-  option (tableau.worksheet) = {name:"Client" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
-
-  Version version = 1 [(tableau.field) = {name:"Version"}];
-  message Version {
-    string min = 1 [(tableau.field) = {name:"Min"}];
-    string max = 2 [(tableau.field) = {name:"Max"}];
   }
 }

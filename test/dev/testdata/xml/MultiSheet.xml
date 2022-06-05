@@ -1,7 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <!-- @TABLEAU
 <Server>
     <MapConf>
-        <Weight Num="map<uint32,Weight>"/>
+        <Weight Num="map<int32,Weight>"/>
     </MapConf>
 </Server>
 <Client/>
