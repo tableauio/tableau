@@ -1,7 +1,10 @@
 package importer
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/antchfx/xmlquery"
 )
 
 func Test_isMetaBeginning(t *testing.T) {
@@ -256,6 +259,73 @@ func Test_escapeAttrs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := escapeAttrs(tt.args.doc); got != tt.want {
 				t.Errorf("escapeAttrs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_isRepeated(t *testing.T) {
+	doc1 := `
+<?xml version='1.0' encoding='UTF-8'?>
+<MatchCfg>
+	<TeamRatingWeight>
+		<Weight Num="1">
+			<Param Value="100"/>
+		</Weight>
+		<Weight Num="2">
+			<Param Value="30"/>
+			<Param Value="70"/>
+		</Weight>
+	</TeamRatingWeight>
+</MatchCfg>
+`
+	p, err := xmlquery.Parse(strings.NewReader(doc1))
+	if err != nil {
+		t.Errorf("failed to parse doc1")
+		return
+	}
+	t.Logf("doc1:%s", p.Data)
+	nav1 := xmlquery.CreateXPathNavigator(xmlquery.FindOne(p, "MatchCfg/TeamRatingWeight/Weight"))
+	t.Logf("nav1:%s", nav1.LocalName())
+	nav2 := xmlquery.CreateXPathNavigator(xmlquery.FindOne(p, "MatchCfg/TeamRatingWeight/Weight/Param"))
+	t.Logf("nav2:%s", nav2.LocalName())
+	nav3 := xmlquery.CreateXPathNavigator(xmlquery.FindOne(p, "MatchCfg/TeamRatingWeight"))
+	t.Logf("nav3:%s", nav3.LocalName())
+	type args struct {
+		nav *xmlquery.NodeNavigator
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "doc1-nav1",
+			args: args{
+				nav: nav1,
+			},
+			want: true,
+		},
+		{
+			name: "doc1-nav2",
+			args: args{
+				nav: nav2,
+			},
+			want: true,
+		},
+		{
+			name: "doc1-nav3",
+			args: args{
+				nav: nav3,
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isRepeated(tt.args.nav); got != tt.want {
+				t.Errorf("isRepeated() = %v, want %v", got, tt.want)
 			}
 		})
 	}

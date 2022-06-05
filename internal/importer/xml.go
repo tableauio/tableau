@@ -57,7 +57,7 @@ var attrValRegexp *regexp.Regexp
 func init() {
 	metaBeginRegexp = regexp.MustCompile(`^\s*<!--\s*@TABLEAU\s*$|` + emptyMetaSheetRegexp) // e.g.: <!--    @TABLEAU
 	metaEndRegexp = regexp.MustCompile(`^\s*-->\s*$|` + emptyMetaSheetRegexp)               // e.g.:       -->
-	attrValRegexp = regexp.MustCompile(`"` + types.PubTypeGroup + `"`)                                             // e.g.: "map<uint32, Type>"
+	attrValRegexp = regexp.MustCompile(`"` + types.PubTypeGroup + `"`)                      // e.g.: "map<uint32, Type>"
 }
 
 func matchMetaBeginning(s string) []string {
@@ -150,26 +150,30 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	// newBook.ExportCSV()
-	
+	newBook.ExportCSV()
+
 	return &XMLImporter{
 		Book: newBook,
 	}, nil
 }
 
 func parseMetaNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp) error {
-	for _, attr := range nav.Current().Attr {
+	for i, attr := range nav.Current().Attr {
 		attrName := attr.Name.Local
+		t := attr.Value
+		if i == 0 {
+			t = correctType(nav, t)
+		}
 		if idx, ok := meta.AttrMap.Map[attrName]; !ok {
 			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
 			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.Attr{
-				Name: attrName, 
-				Value: attr.Value,
+				Name:  attrName,
+				Value: t,
 			})
 		} else {
 			// replace attribute value by metaSheet
 			propAttr := meta.AttrMap.List[idx]
-			propAttr.Value = attr.Value
+			propAttr.Value = t
 		}
 	}
 	navCopy := *nav
@@ -194,20 +198,75 @@ func parseMetaNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp) error 
 	return nil
 }
 
+func isFirstChild(nav *xmlquery.NodeNavigator) bool {
+	p := nav.Current().Parent
+	if p == nil {
+		return false
+	}
+	return p.FirstChild == nav.Current()
+}
+
+func isRepeated(nav *xmlquery.NodeNavigator) bool {
+	parentPath, navCopy := "", *nav
+	for flag := navCopy.MoveToParent(); flag; flag = navCopy.MoveToParent() {
+		if parentPath == "" {
+			parentPath = navCopy.LocalName()
+		} else {
+			parentPath = fmt.Sprintf("%s/%s", navCopy.LocalName(), parentPath)
+		}
+	}
+	navCopy.MoveToRoot()
+	for _, n := range xmlquery.Find(navCopy.Current(), parentPath) {
+		if len(xmlquery.Find(n, nav.LocalName())) > 1 {
+			return true
+		}
+	}
+	return false
+}
+
+func correctType(nav *xmlquery.NodeNavigator, oriType string) string {
+	t, navCopy, flag := oriType, *nav, true
+	if isComplexType(oriType) {
+		if !isFirstChild(nav) {
+			return t
+		}
+		flag = navCopy.MoveToParent()
+	}
+	for ; flag; flag = navCopy.MoveToParent() {
+		p := navCopy.Current().Parent
+		if p == nil || len(p.Data) == 0 {
+			break
+		}
+		if isRepeated(&navCopy) {
+			t = fmt.Sprintf("[%s]%s", navCopy.LocalName(), t)
+		} else {
+			t = fmt.Sprintf("{%s}%s", navCopy.LocalName(), t)
+		}
+		if len(p.Attr) > 0 {
+			break
+		}
+	}
+	return t
+}
+
 func parseDataNode(nav *xmlquery.NodeNavigator, meta *tableaupb.MetaProp, data *tableaupb.DataProp) error {
-	for _, attr := range nav.Current().Attr {
+	for i, attr := range nav.Current().Attr {
 		attrName := attr.Name.Local
 		t, _ := inferType(attr.Value)
+		// correct types
+		if i == 0 {
+			t = correctType(nav, t)
+		}
 		if _, ok := meta.AttrMap.Map[attrName]; !ok {
 			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
 			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.Attr{
-				Name: attrName, 
+				Name:  attrName,
 				Value: t,
 			})
 		}
 		data.AttrMap.Map[attrName] = int32(len(data.AttrMap.List))
 		data.AttrMap.List = append(data.AttrMap.List, &tableaupb.Attr{
-			Name: attrName, 
+			Name:  attrName,
 			Value: attr.Value,
 		})
 	}
@@ -242,15 +301,15 @@ func newOrderedAttrMap() *tableaupb.OrderedAttrMap {
 }
 func newMetaProp(nodeName string) *tableaupb.MetaProp {
 	return &tableaupb.MetaProp{
-		Name: nodeName,
-		AttrMap: newOrderedAttrMap(),
+		Name:     nodeName,
+		AttrMap:  newOrderedAttrMap(),
 		ChildMap: make(map[string]int32),
 	}
 }
 
 func newDataProp(nodeName string) *tableaupb.DataProp {
 	return &tableaupb.DataProp{
-		Name: nodeName,
+		Name:    nodeName,
 		AttrMap: newOrderedAttrMap(),
 	}
 }
@@ -275,11 +334,13 @@ func genSheetHeaderRows(metaProp *tableaupb.MetaProp, metaSheet *xlsxgen.MetaShe
 	if strcase.ToCamel(metaProp.Name) != metaSheet.Worksheet {
 		curPrefix = prefix + strcase.ToCamel(metaProp.Name)
 	}
-	attrNames := rearrangeAttrs(metaProp.AttrMap)
-	for _, attrName := range attrNames {
-		metaSheet.SetColType(curPrefix + strcase.ToCamel(attrName), metaProp.AttrMap[attrName].Value)
+	if err := rearrangeAttrs(metaProp.AttrMap); err != nil {
+		return errors.Wrapf(err, "failed to rearrangeAttrs")
 	}
-	for _, child := range metaProp.ChildMap {
+	for _, attr := range metaProp.AttrMap.List {
+		metaSheet.SetColType(curPrefix+strcase.ToCamel(attr.Name), attr.Value)
+	}
+	for _, child := range metaProp.ChildList {
 		if err := genSheetHeaderRows(child, metaSheet, curPrefix); err != nil {
 			return errors.Wrapf(err, "failed to genSheetHeaderRows for %s@%s", child.Name, curPrefix)
 		}
@@ -287,14 +348,27 @@ func genSheetHeaderRows(metaProp *tableaupb.MetaProp, metaSheet *xlsxgen.MetaShe
 	return nil
 }
 
-func rearrangeAttrs(attrMap *tableaupb.OrderedAttrMap) {
+func isComplexType(t string) bool {
+	return types.IsMap(t) || types.IsList(t) || types.IsKeyedList(t) || types.IsStruct(t)
+}
+
+func rearrangeAttrs(attrMap *tableaupb.OrderedAttrMap) error {
+	firstCnt := 0
 	for i, attr := range attrMap.List {
-		mustFirst := types.IsMap(attr.Value) || types.IsList(attr.Value) || types.IsKeyedList(attr.Value) || types.IsStruct(attr.Value)
+		mustFirst := isComplexType(attr.Value)
 		if mustFirst {
-			attrNames = append([]string{attr.Name}, attrNames...)
+			attrMap.Map[attr.Name] = 0
+			attrMap.Map[attrMap.List[0].Name] = int32(i)
+			attrMap.List[i] = attrMap.List[0]
+			attrMap.List[0] = attr
+			firstCnt++
 			continue
 		}
 	}
+	if firstCnt > 1 {
+		return fmt.Errorf("more than one non-scalar types found")
+	}
+	return nil
 }
 
 func fillSheetDataRows(dataProp *tableaupb.DataProp, metaSheet *xlsxgen.MetaSheet, prefix string, cursor int) error {
@@ -314,8 +388,8 @@ func fillSheetDataRows(dataProp *tableaupb.DataProp, metaSheet *xlsxgen.MetaShee
 			})
 		}
 	}
-	for _, attr := range dataProp.AttrMap {
-		colName := prefix + dataProp.Name + strcase.ToCamel(attr.Name)
+	for _, attr := range dataProp.AttrMap.List {
+		colName := curPrefix + strcase.ToCamel(attr.Name)
 		// fill values to the bottom when backtrace to top line
 		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
 			metaSheet.Cell(tmpCusor, len(metaSheet.Rows[metaSheet.Namerow-1].Cells), colName).Data = attr.Value
@@ -384,28 +458,30 @@ func genSheet(sheetProp *tableaupb.SheetProp) (sheet *book.Sheet, err error) {
 // in TABLEAU grammar which can be exported to protobuf by excel parser.
 func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	// open xml file and parse the document
-	xmlPath := filename
-	atom.Log.Debugf("xml: %s", xmlPath)
-	buf, err := os.ReadFile(xmlPath)
+	atom.Log.Debugf("xml: %s", filename)
+	f, err := os.Open(filename)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open %s", xmlPath)
+		return nil, errors.Wrapf(err, "failed to open %s", filename)
 	}
-	
-	doc, err := xmlquery.Parse(strings.NewReader(string(buf)))
+
+	doc, err := xmlquery.Parse(f)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse xml:%s", xmlPath)
+		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
 	xmlProp := &tableaupb.XMLProp{
 		SheetPropMap: make(map[string]*tableaupb.SheetProp),
 	}
 	nav := xmlquery.CreateXPathNavigator(doc)
 	noSheetByUser := len(sheetNames) == 0
+	foundMetaSheetName := false
 	for flag := nav.MoveToChild(); flag; flag = nav.MoveToNext() {
 		switch nav.NodeType() {
 		case xpath.CommentNode:
+			atom.Log.Debug(nav.LocalName())
 			if !strings.Contains(nav.LocalName(), book.MetasheetName) {
-				return nil, nil
+				continue
 			}
+			foundMetaSheetName = true
 			metaStr := escapeAttrs(strings.ReplaceAll(nav.LocalName(), book.MetasheetName, ""))
 			metaDoc, err := xmlquery.Parse(strings.NewReader(metaStr))
 			if err != nil {
@@ -435,6 +511,10 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 		default:
 		}
 	}
+	if !foundMetaSheetName {
+		atom.Log.Debugf("xml:%s no need parse: @TABLEAU not found", filename)
+		return nil, nil
+	}
 	atom.Log.Debugf("%v\n", xmlProp)
 
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
@@ -446,6 +526,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 		}
 		newBook.AddSheet(sheet)
 	}
+	atom.Log.Debug(sheetNames)
 
 	if len(sheetNames) > 0 {
 		newBook.Squeeze(sheetNames)
@@ -471,7 +552,7 @@ func secondParseSheet(root *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet
 		return nil, errors.Wrapf(err, "failed to parseNodeData for root node %s", metaSheet.Worksheet)
 	}
 	// atom.Log.Debug(metaSheet)
-	
+
 	// unpack rows from the MetaSheet struct
 	var rows [][]string
 	for i := 0; i < len(metaSheet.Rows); i++ {
@@ -503,7 +584,7 @@ func parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, pr
 	// preprocess
 	prefix := ""
 	continueFindNude := true
-	var parentList []string	
+	var parentList []string
 	var nudeParentTypeList []string
 	// construct prefix
 	for flag, navCopy := true, *nav; flag && navCopy.LocalName() != metaSheet.Worksheet; flag = navCopy.MoveToParent() {
@@ -515,7 +596,7 @@ func parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, pr
 				if navCopy.Current().Parent != nil && len(xmlquery.Find(navCopy.Current().Parent, navCopy.LocalName())) > 1 {
 					t = fmt.Sprintf("[%s]", navCopy.LocalName())
 				}
-				nudeParentTypeList = append(nudeParentTypeList, t)				
+				nudeParentTypeList = append(nudeParentTypeList, t)
 			}
 		}
 		prefix = strcase.ToCamel(navCopy.LocalName()) + prefix
@@ -542,7 +623,7 @@ func parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, pr
 			}
 		}
 
-		// atom.Log.Debug(t)		
+		// atom.Log.Debug(t)
 		curType := metaSheet.GetColType(colName)
 		matches := types.MatchStruct(curType)
 		// 1. <TABLEAU>
@@ -554,7 +635,7 @@ func parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, pr
 		// 2. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)
 		setKeyedType := (!prefixExist || (len(matches) > 0 && repeated)) && nav.LocalName() != metaSheet.Worksheet
 		if needChangeType {
-			typePrefix :=  ""
+			typePrefix := ""
 			for _, parentType := range nudeParentTypeList {
 				typePrefix = parentType + typePrefix
 			}
@@ -595,14 +676,14 @@ func parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, pr
 					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[1], attrName, t, nav.LocalName())
 				}
 				metaSheet.SetColType(colName, t)
-			} else if i == 0 && setKeyedType {				
+			} else if i == 0 && setKeyedType {
 				// case 4: {Type}uint32
 				if repeated {
 					metaSheet.SetColType(colName, fmt.Sprintf("%s[%s]<%s>", typePrefix, strcase.ToCamel(nav.LocalName()), t))
 				} else {
 					metaSheet.SetColType(colName, fmt.Sprintf("%s{%s}%s", typePrefix, strcase.ToCamel(nav.LocalName()), t))
 				}
-			} else {				
+			} else {
 				// default: built-in type
 				metaSheet.SetColType(colName, t)
 			}
