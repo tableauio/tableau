@@ -9,16 +9,6 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"xml/MultiSheet.xml"};
 
-message Client {
-  option (tableau.worksheet) = {name:"Client" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
-
-  Version version = 1 [(tableau.field) = {name:"Version"}];
-  message Version {
-    string min = 1 [(tableau.field) = {name:"Min"}];
-    string max = 2 [(tableau.field) = {name:"Max"}];
-  }
-}
-
 message Server {
   option (tableau.worksheet) = {name:"Server" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
@@ -60,5 +50,15 @@ message Server {
         int32 value = 1 [(tableau.field) = {name:"Value"}];
       }
     }
+  }
+}
+
+message Client {
+  option (tableau.worksheet) = {name:"Client" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
+
+  Version version = 1 [(tableau.field) = {name:"Version"}];
+  message Version {
+    string min = 1 [(tableau.field) = {name:"Min"}];
+    string max = 2 [(tableau.field) = {name:"Max"}];
   }
 }

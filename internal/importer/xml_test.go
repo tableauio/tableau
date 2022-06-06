@@ -52,6 +52,21 @@ func Test_escapeAttrs(t *testing.T) {
 </Conf>
 `,
 		},
+		{
+			name: "Prop",
+			args: args{
+				doc: `
+<Conf>
+	<Client ID="map<uint32, Client>|{unique:true range:"1,~"}" OpenTime="datetime|{default:"2022-01-23 15:40:00"}"/>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<Client ID="map&lt;uint32, Client&gt;|{unique:true range:&#34;1,~&#34;}" OpenTime="datetime|{default:&#34;2022-01-23 15:40:00&#34;}"/>
+</Conf>
+`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -149,7 +164,18 @@ func Test_matchAttr(t *testing.T) {
 				s: `<AAA bb="bool" cc="int64" dd="enum<.EnumType>" >`,
 			},
 			want: []string{
-				`bb="bool"`, `bb`, `bool`,
+				`bb="bool"`, `bb`, `bool`, ``,
+			},
+		},
+		// TODO: Add test cases.
+		{
+			name: "Prop",
+			args: args{
+				s: `<Client OpenTime="datetime|{default:"2022-01-23 15:40:00"}" CloseTime="datetime|{default:"2022-01-23 15:40:00"}"/>`,
+			},
+			want: []string{
+				`OpenTime="datetime|{default:"2022-01-23 15:40:00"}"`,
+				`OpenTime`, `datetime`, `|{default:"2022-01-23 15:40:00"}`,
 			},
 		},
 	}
