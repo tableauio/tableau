@@ -2,32 +2,32 @@ syntax = "proto3";
 package tableau;
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
-message XMLProp {
-  map<string, SheetProp> sheet_prop_map = 1;  
+message XMLMeta {
+  map<string, XMLSheet> sheet_map = 1;  
 }
 
-message SheetProp {
-  MetaProp meta = 1;
-  DataProp data = 2;
+message XMLSheet {
+  NodeMeta meta = 1;
+  NodeData data = 2;
+}
+
+message NodeMeta {
+  string name = 1;
+  OrderedAttrMap attr_map = 2;
+  // Combine list and map to get an ordered map
+  repeated NodeMeta child_list = 3;
+  map<string, int32> child_map = 4;
+}
+
+message NodeData {
+  string name = 1;
+  OrderedAttrMap attr_map = 2;
+  repeated NodeData child_list = 3;
 }
 
 message OrderedAttrMap {
   repeated Attr list = 1;
   map<string, int32> map = 2;
-}
-
-message MetaProp {
-  string name = 1;
-  OrderedAttrMap attr_map = 2;
-  // Combine list and map to get an ordered map
-  repeated MetaProp child_list = 3;
-  map<string, int32> child_map = 4;
-}
-
-message DataProp {
-  string name = 1;
-  OrderedAttrMap attr_map = 2;
-  repeated DataProp child_list = 3;
 }
 
 message Attr {

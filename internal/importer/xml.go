@@ -72,7 +72,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 		return nil, errors.Wrapf(err, "failed to open %s", filename)
 	}
 
-	xmlProp, sheetNames, err := readXMLFile(f, sheetNames)
+	xmlMeta, sheetNames, err := readXMLFile(f, sheetNames)
 	if err != nil {
 		switch e := err.(type) {
 		case *NoNeedParseError:
@@ -82,15 +82,15 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 			return nil, e
 		}
 	}
-	// atom.Log.Debugf("%v\n sheetNames:%v\n", xmlProp, sheetNames)
+	// atom.Log.Debugf("%v\n sheetNames:%v\n", xmlMeta, sheetNames)
 
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, nil)
-	for sheetName, sheetProp := range xmlProp.SheetPropMap {
-		if err := preprocess(sheetProp); err != nil {
+	for sheetName, xmlSheet := range xmlMeta.SheetMap {
+		if err := preprocess(xmlSheet); err != nil {
 			return nil, errors.Wrapf(err, "failed to preprocess for sheet: %s", sheetName)
 		}
-		sheet, err := genSheet(sheetProp)
+		sheet, err := genSheet(xmlSheet)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to genSheet for sheet: %s", sheetName)
 		}
@@ -105,22 +105,22 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	return newBook, nil
 }
 
-func preprocess(sheetProp *tableaupb.SheetProp) error {
-	if err := rearrangeAttrs(sheetProp.Meta.AttrMap); err != nil {
+func preprocess(xmlSheet *tableaupb.XMLSheet) error {
+	if err := rearrangeAttrs(xmlSheet.Meta.AttrMap); err != nil {
 		return errors.Wrapf(err, "failed to rearrangeAttrs")
 	}
 
 	return nil
 }
 
-func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLProp, []string, error) {
+func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLMeta, []string, error) {
 	filename := f.Name()
 	root, err := xmlquery.Parse(f)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
-	xmlProp := &tableaupb.XMLProp{
-		SheetPropMap: make(map[string]*tableaupb.SheetProp),
+	xmlMeta := &tableaupb.XMLMeta{
+		SheetMap: make(map[string]*tableaupb.XMLSheet),
 	}
 	noSheetByUser := len(sheetNames) == 0
 	foundMetaSheetName := false
@@ -142,8 +142,8 @@ func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLProp, []string,
 					continue
 				}
 				sheetName := n.Data
-				sheetProp := getSheetProp(xmlProp, sheetName)
-				if err := parseMetaNode(metaRoot, n, sheetProp.Meta); err != nil {
+				xmlSheet := getXMLSheet(xmlMeta, sheetName)
+				if err := parseMetaNode(metaRoot, n, xmlSheet.Meta); err != nil {
 					return nil, nil, errors.Wrapf(err, "failed to parseMetaNode for sheet:%s", sheetName)
 				}
 				// append if user not specified
@@ -153,8 +153,8 @@ func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLProp, []string,
 			}
 		case xmlquery.ElementNode:
 			sheetName := n.Data
-			sheetProp := getSheetProp(xmlProp, sheetName)
-			if err := parseDataNode(root, n, sheetProp.Meta, sheetProp.Data); err != nil {
+			xmlSheet := getXMLSheet(xmlMeta, sheetName)
+			if err := parseDataNode(root, n, xmlSheet.Meta, xmlSheet.Data); err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to parseDataNode for sheet:%s", sheetName)
 			}
 		default:
@@ -164,10 +164,10 @@ func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLProp, []string,
 		return nil, nil, &NoNeedParseError{}
 	}
 
-	return xmlProp, sheetNames, nil
+	return xmlMeta, sheetNames, nil
 }
 
-func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.MetaProp) error {
+func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.NodeMeta) error {
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
 		t := attr.Value
@@ -184,8 +184,8 @@ func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.MetaProp) error {
 			})
 		} else {
 			// replace attribute value by metaSheet
-			propAttr := meta.AttrMap.List[idx]
-			propAttr.Value = t
+			metaAttr := meta.AttrMap.List[idx]
+			metaAttr.Value = t
 		}
 	}
 	for n := curr.FirstChild; n != nil; n = n.NextSibling {
@@ -195,7 +195,7 @@ func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.MetaProp) error {
 		childName := n.Data
 		if idx, ok := meta.ChildMap[childName]; !ok {
 			meta.ChildMap[childName] = int32(len(meta.ChildList))
-			meta.ChildList = append(meta.ChildList, newMetaProp(childName))
+			meta.ChildList = append(meta.ChildList, newNodeMeta(childName))
 			if err := parseMetaNode(root, n, meta.ChildList[len(meta.ChildList)-1]); err != nil {
 				return errors.Wrapf(err, "failed to parseMetaNode for %s@%s", childName, meta.Name)
 			}
@@ -209,7 +209,7 @@ func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.MetaProp) error {
 	return nil
 }
 
-func parseDataNode(root, curr *xmlquery.Node, meta *tableaupb.MetaProp, data *tableaupb.DataProp) error {
+func parseDataNode(root, curr *xmlquery.Node, meta *tableaupb.NodeMeta, data *tableaupb.NodeData) error {
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
 		t := inferType(attr.Value)
@@ -235,10 +235,10 @@ func parseDataNode(root, curr *xmlquery.Node, meta *tableaupb.MetaProp, data *ta
 			continue
 		}
 		childName := n.Data
-		dataChild := newDataProp(childName)
+		dataChild := newNodeData(childName)
 		if idx, ok := meta.ChildMap[childName]; !ok {
 			meta.ChildMap[childName] = int32(len(meta.ChildList))
-			meta.ChildList = append(meta.ChildList, newMetaProp(childName))
+			meta.ChildList = append(meta.ChildList, newNodeMeta(childName))
 			if err := parseDataNode(root, n, meta.ChildList[len(meta.ChildList)-1], dataChild); err != nil {
 				return errors.Wrapf(err, "failed to parseDataNode for %s@%s", childName, meta.Name)
 			}
@@ -262,23 +262,23 @@ func newPrefix(prefix, curNode, sheetName string) string {
 	}
 }
 
-func genSheetHeaderRows(metaProp *tableaupb.MetaProp, metaSheet *xlsxgen.MetaSheet, prefix string) error {
-	curPrefix := newPrefix(prefix, metaProp.Name, metaSheet.Worksheet)
-	for _, attr := range metaProp.AttrMap.List {
+func genHeaderRows(nodeMeta *tableaupb.NodeMeta, metaSheet *xlsxgen.MetaSheet, prefix string) error {
+	curPrefix := newPrefix(prefix, nodeMeta.Name, metaSheet.Worksheet)
+	for _, attr := range nodeMeta.AttrMap.List {
 		metaSheet.SetColType(curPrefix+strcase.ToCamel(attr.Name), attr.Value)
 	}
-	for _, child := range metaProp.ChildList {
-		if err := genSheetHeaderRows(child, metaSheet, curPrefix); err != nil {
-			return errors.Wrapf(err, "failed to genSheetHeaderRows for %s@%s", child.Name, curPrefix)
+	for _, child := range nodeMeta.ChildList {
+		if err := genHeaderRows(child, metaSheet, curPrefix); err != nil {
+			return errors.Wrapf(err, "failed to genHeaderRows for %s@%s", child.Name, curPrefix)
 		}
 	}
 	return nil
 }
 
-func fillSheetDataRows(dataProp *tableaupb.DataProp, metaSheet *xlsxgen.MetaSheet, prefix string, cursor int) error {
-	curPrefix := newPrefix(prefix, dataProp.Name, metaSheet.Worksheet)
+func fillDataRows(nodeData *tableaupb.NodeData, metaSheet *xlsxgen.MetaSheet, prefix string, cursor int) error {
+	curPrefix := newPrefix(prefix, nodeData.Name, metaSheet.Worksheet)
 	// clear to the bottom, since `metaSheet.NewRow()` will copy all data of all columns to create a new row
-	if len(dataProp.ChildList) == 0 {
+	if len(nodeData.ChildList) == 0 {
 		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
 			metaSheet.ForEachCol(tmpCusor, func(name string, cell *xlsxgen.Cell) error {
 				if strings.HasPrefix(name, curPrefix) {
@@ -288,7 +288,7 @@ func fillSheetDataRows(dataProp *tableaupb.DataProp, metaSheet *xlsxgen.MetaShee
 			})
 		}
 	}
-	for _, attr := range dataProp.AttrMap.List {
+	for _, attr := range nodeData.AttrMap.List {
 		colName := curPrefix + strcase.ToCamel(attr.Name)
 		// fill values to the bottom when backtrace to top line
 		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
@@ -297,18 +297,18 @@ func fillSheetDataRows(dataProp *tableaupb.DataProp, metaSheet *xlsxgen.MetaShee
 	}
 	// iterate over child nodes
 	nodeMap := make(map[string]int)
-	for _, child := range dataProp.ChildList {
+	for _, child := range nodeData.ChildList {
 		tagName := child.Name
 		if count, existed := nodeMap[tagName]; existed {
 			// duplicate means a list, should expand vertically
 			row := metaSheet.NewRow()
-			if err := fillSheetDataRows(child, metaSheet, curPrefix, row.Index); err != nil {
-				return errors.Wrapf(err, "fillSheetDataRows %dth node %s@%s failed", count+1, tagName, curPrefix)
+			if err := fillDataRows(child, metaSheet, curPrefix, row.Index); err != nil {
+				return errors.Wrapf(err, "fillDataRows %dth node %s@%s failed", count+1, tagName, curPrefix)
 			}
 			nodeMap[tagName]++
 		} else {
-			if err := fillSheetDataRows(child, metaSheet, curPrefix, cursor); err != nil {
-				return errors.Wrapf(err, "fillSheetDataRows 1st node %s@%s failed", tagName, curPrefix)
+			if err := fillDataRows(child, metaSheet, curPrefix, cursor); err != nil {
+				return errors.Wrapf(err, "fillDataRows 1st node %s@%s failed", tagName, curPrefix)
 			}
 			nodeMap[tagName] = 1
 		}
@@ -317,17 +317,17 @@ func fillSheetDataRows(dataProp *tableaupb.DataProp, metaSheet *xlsxgen.MetaShee
 	return nil
 }
 
-func genSheet(sheetProp *tableaupb.SheetProp) (sheet *book.Sheet, err error) {
-	sheetName := strcase.ToCamel(sheetProp.Meta.Name)
+func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
+	sheetName := strcase.ToCamel(xmlSheet.Meta.Name)
 	header := options.NewDefault().Input.Proto.Header
 	metaSheet := xlsxgen.NewMetaSheet(sheetName, header, false)
 	// generate sheet header rows
-	if err := genSheetHeaderRows(sheetProp.Meta, metaSheet, ""); err != nil {
-		return nil, errors.Wrapf(err, "failed to genSheetHeaderRows for sheet: %s", sheetName)
+	if err := genHeaderRows(xmlSheet.Meta, metaSheet, ""); err != nil {
+		return nil, errors.Wrapf(err, "failed to genHeaderRows for sheet: %s", sheetName)
 	}
 	// fill sheet data rows
-	if err := fillSheetDataRows(sheetProp.Data, metaSheet, "", int(metaSheet.Datarow)-1); err != nil {
-		return nil, errors.Wrapf(err, "failed to fillSheetDataRows for sheet: %s", sheetName)
+	if err := fillDataRows(xmlSheet.Data, metaSheet, "", int(metaSheet.Datarow)-1); err != nil {
+		return nil, errors.Wrapf(err, "failed to fillDataRows for sheet: %s", sheetName)
 	}
 	// unpack rows from the MetaSheet struct
 	var rows [][]string
@@ -368,33 +368,33 @@ func newOrderedAttrMap() *tableaupb.OrderedAttrMap {
 	}
 }
 
-func newMetaProp(nodeName string) *tableaupb.MetaProp {
-	return &tableaupb.MetaProp{
+func newNodeMeta(nodeName string) *tableaupb.NodeMeta {
+	return &tableaupb.NodeMeta{
 		Name:     nodeName,
 		AttrMap:  newOrderedAttrMap(),
 		ChildMap: make(map[string]int32),
 	}
 }
 
-func newDataProp(nodeName string) *tableaupb.DataProp {
-	return &tableaupb.DataProp{
+func newNodeData(nodeName string) *tableaupb.NodeData {
+	return &tableaupb.NodeData{
 		Name:    nodeName,
 		AttrMap: newOrderedAttrMap(),
 	}
 }
 
-func newSheetProp(sheetName string) *tableaupb.SheetProp {
-	return &tableaupb.SheetProp{
-		Meta: newMetaProp(sheetName),
-		Data: newDataProp(sheetName),
+func newXMLSheet(sheetName string) *tableaupb.XMLSheet {
+	return &tableaupb.XMLSheet{
+		Meta: newNodeMeta(sheetName),
+		Data: newNodeData(sheetName),
 	}
 }
 
-func getSheetProp(xmlProp *tableaupb.XMLProp, sheetName string) *tableaupb.SheetProp {
-	if _, ok := xmlProp.SheetPropMap[sheetName]; !ok {
-		xmlProp.SheetPropMap[sheetName] = newSheetProp(sheetName)
+func getXMLSheet(xmlMeta *tableaupb.XMLMeta, sheetName string) *tableaupb.XMLSheet {
+	if _, ok := xmlMeta.SheetMap[sheetName]; !ok {
+		xmlMeta.SheetMap[sheetName] = newXMLSheet(sheetName)
 	}
-	return xmlProp.SheetPropMap[sheetName]
+	return xmlMeta.SheetMap[sheetName]
 }
 
 // escapeMetaDoc escape characters for all attribute values in the document. e.g.:
