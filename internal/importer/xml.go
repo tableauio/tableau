@@ -167,7 +167,7 @@ func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLMeta, []string,
 	return xmlMeta, sheetNames, nil
 }
 
-func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.NodeMeta) error {
+func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.Node) error {
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
 		t := attr.Value
@@ -195,7 +195,7 @@ func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.NodeMeta) error {
 		childName := n.Data
 		if idx, ok := meta.ChildMap[childName]; !ok {
 			meta.ChildMap[childName] = int32(len(meta.ChildList))
-			meta.ChildList = append(meta.ChildList, newNodeMeta(childName))
+			meta.ChildList = append(meta.ChildList, newNode(childName))
 			if err := parseMetaNode(root, n, meta.ChildList[len(meta.ChildList)-1]); err != nil {
 				return errors.Wrapf(err, "failed to parseMetaNode for %s@%s", childName, meta.Name)
 			}
@@ -209,7 +209,7 @@ func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.NodeMeta) error {
 	return nil
 }
 
-func parseDataNode(root, curr *xmlquery.Node, meta *tableaupb.NodeMeta, data *tableaupb.NodeData) error {
+func parseDataNode(root, curr *xmlquery.Node, meta, data *tableaupb.Node) error {
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
 		t := inferType(attr.Value)
@@ -235,10 +235,10 @@ func parseDataNode(root, curr *xmlquery.Node, meta *tableaupb.NodeMeta, data *ta
 			continue
 		}
 		childName := n.Data
-		dataChild := newNodeData(childName)
+		dataChild := newNode(childName)
 		if idx, ok := meta.ChildMap[childName]; !ok {
 			meta.ChildMap[childName] = int32(len(meta.ChildList))
-			meta.ChildList = append(meta.ChildList, newNodeMeta(childName))
+			meta.ChildList = append(meta.ChildList, newNode(childName))
 			if err := parseDataNode(root, n, meta.ChildList[len(meta.ChildList)-1], dataChild); err != nil {
 				return errors.Wrapf(err, "failed to parseDataNode for %s@%s", childName, meta.Name)
 			}
@@ -262,7 +262,7 @@ func newPrefix(prefix, curNode, sheetName string) string {
 	}
 }
 
-func genHeaderRows(nodeMeta *tableaupb.NodeMeta, metaSheet *xlsxgen.MetaSheet, prefix string) error {
+func genHeaderRows(nodeMeta *tableaupb.Node, metaSheet *xlsxgen.MetaSheet, prefix string) error {
 	curPrefix := newPrefix(prefix, nodeMeta.Name, metaSheet.Worksheet)
 	for _, attr := range nodeMeta.AttrMap.List {
 		metaSheet.SetColType(curPrefix+strcase.ToCamel(attr.Name), attr.Value)
@@ -275,7 +275,7 @@ func genHeaderRows(nodeMeta *tableaupb.NodeMeta, metaSheet *xlsxgen.MetaSheet, p
 	return nil
 }
 
-func fillDataRows(nodeData *tableaupb.NodeData, metaSheet *xlsxgen.MetaSheet, prefix string, cursor int) error {
+func fillDataRows(nodeData *tableaupb.Node, metaSheet *xlsxgen.MetaSheet, prefix string, cursor int) error {
 	curPrefix := newPrefix(prefix, nodeData.Name, metaSheet.Worksheet)
 	// clear to the bottom, since `metaSheet.NewRow()` will copy all data of all columns to create a new row
 	if len(nodeData.ChildList) == 0 {
@@ -368,25 +368,18 @@ func newOrderedAttrMap() *tableaupb.OrderedAttrMap {
 	}
 }
 
-func newNodeMeta(nodeName string) *tableaupb.NodeMeta {
-	return &tableaupb.NodeMeta{
+func newNode(nodeName string) *tableaupb.Node {
+	return &tableaupb.Node{
 		Name:     nodeName,
 		AttrMap:  newOrderedAttrMap(),
 		ChildMap: make(map[string]int32),
 	}
 }
 
-func newNodeData(nodeName string) *tableaupb.NodeData {
-	return &tableaupb.NodeData{
-		Name:    nodeName,
-		AttrMap: newOrderedAttrMap(),
-	}
-}
-
 func newXMLSheet(sheetName string) *tableaupb.XMLSheet {
 	return &tableaupb.XMLSheet{
-		Meta: newNodeMeta(sheetName),
-		Data: newNodeData(sheetName),
+		Meta: newNode(sheetName),
+		Data: newNode(sheetName),
 	}
 }
 

@@ -7,24 +7,21 @@ message XMLMeta {
 }
 
 message XMLSheet {
-  NodeMeta meta = 1;
-  NodeData data = 2;
+  Node meta = 1;
+  Node data = 2;
 }
 
-message NodeMeta {
+message Node {
   string name = 1;
   OrderedAttrMap attr_map = 2;
-  // Combine list and map to get an ordered map
-  repeated NodeMeta child_list = 3;
+
+  // - meta: Each child must be unique
+  // - data: Duplicated child is allowed, so map is useless
+  repeated Node child_list = 3;
   map<string, int32> child_map = 4;
 }
 
-message NodeData {
-  string name = 1;
-  OrderedAttrMap attr_map = 2;
-  repeated NodeData child_list = 3;
-}
-
+// Combine list and map to get an ordered map
 message OrderedAttrMap {
   repeated Attr list = 1;
   map<string, int32> map = 2;
