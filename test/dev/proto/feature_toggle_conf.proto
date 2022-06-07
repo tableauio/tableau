@@ -25,12 +25,11 @@ message ToggleCfg {
       uint32 zone_id = 3 [(tableau.field) = {name:"ZoneID"}];
       google.protobuf.Timestamp open_time = 4 [(tableau.field) = {name:"OpenTime" prop:{default:"2022-01-23 15:40:00"}}];
       google.protobuf.Timestamp close_time = 5 [(tableau.field) = {name:"CloseTime" prop:{default:"2022-01-23 15:40:00"}}];
-      int64 sys_key_1 = 6 [(tableau.field) = {name:"SysKey1"}];
-      int64 sys_key_2 = 7 [(tableau.field) = {name:"SysKey2"}];
+      int32 open_rate = 6 [(tableau.field) = {name:"OpenRate"}];
+      string desc = 7 [(tableau.field) = {name:"Desc"}];
       bool notify_closed = 8 [(tableau.field) = {name:"NotifyClosed"}];
       string name = 9 [(tableau.field) = {name:"Name"}];
-      int32 open_rate = 10 [(tableau.field) = {name:"OpenRate"}];
-      string desc = 11 [(tableau.field) = {name:"Desc"}];
+      repeated int64 sys_key_list = 10 [(tableau.field) = {name:"SysKey" layout:LAYOUT_HORIZONTAL}];
     }
   }
 }

@@ -151,10 +151,10 @@ type Node struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// duplicated attributes in one node are forbidden
 	AttrMap *OrderedAttrMap `protobuf:"bytes,2,opt,name=attr_map,json=attrMap,proto3" json:"attr_map,omitempty"`
-	// - meta: Each child must be unique
-	// - data: Duplicated children are allowed, so map is useless
-	ChildList []*Node          `protobuf:"bytes,3,rep,name=child_list,json=childList,proto3" json:"child_list,omitempty"`
-	ChildMap  map[string]int32 `protobuf:"bytes,4,rep,name=child_map,json=childMap,proto3" json:"child_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	// - meta: Each child must be unique, so len(IndexList) must be 1
+	// - data: Duplicated children are allowed, so len(IndexList) could be greater than 1
+	ChildList []*Node                    `protobuf:"bytes,3,rep,name=child_list,json=childList,proto3" json:"child_list,omitempty"`
+	ChildMap  map[string]*Node_IndexList `protobuf:"bytes,4,rep,name=child_map,json=childMap,proto3" json:"child_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// record parent node so that we can trace back
 	Parent *Node `protobuf:"bytes,5,opt,name=parent,proto3" json:"parent,omitempty"`
 	// path that walks from root to self node, e.g.: Conf/Server/Toggle
@@ -214,7 +214,7 @@ func (x *Node) GetChildList() []*Node {
 	return nil
 }
 
-func (x *Node) GetChildMap() map[string]int32 {
+func (x *Node) GetChildMap() map[string]*Node_IndexList {
 	if x != nil {
 		return x.ChildMap
 	}
@@ -393,6 +393,53 @@ func (x *XMLSheet_NodeList) GetNodes() []*Node {
 	return nil
 }
 
+type Node_IndexList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Indexes []int32 `protobuf:"varint,1,rep,packed,name=indexes,proto3" json:"indexes,omitempty"`
+}
+
+func (x *Node_IndexList) Reset() {
+	*x = Node_IndexList{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_xml_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Node_IndexList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Node_IndexList) ProtoMessage() {}
+
+func (x *Node_IndexList) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_xml_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Node_IndexList.ProtoReflect.Descriptor instead.
+func (*Node_IndexList) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_xml_proto_rawDescGZIP(), []int{2, 1}
+}
+
+func (x *Node_IndexList) GetIndexes() []int32 {
+	if x != nil {
+		return x.Indexes
+	}
+	return nil
+}
+
 var File_tableau_protobuf_xml_proto protoreflect.FileDescriptor
 
 var file_tableau_protobuf_xml_proto_rawDesc = []byte{
@@ -435,7 +482,7 @@ var file_tableau_protobuf_xml_proto_rawDesc = []byte{
 	0x74, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x2f, 0x0a, 0x08,
 	0x4e, 0x6f, 0x64, 0x65, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x23, 0x0a, 0x05, 0x6e, 0x6f, 0x64, 0x65,
 	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61,
-	0x75, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x22, 0xae, 0x02,
+	0x75, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x22, 0xee, 0x02,
 	0x0a, 0x04, 0x4e, 0x6f, 0x64, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x32, 0x0a, 0x08, 0x61, 0x74,
 	0x74, 0x72, 0x5f, 0x6d, 0x61, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74,
@@ -451,10 +498,14 @@ var file_tableau_protobuf_xml_proto_rawDesc = []byte{
 	0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75,
 	0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x06, 0x70, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x12, 0x12, 0x0a,
 	0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74,
-	0x68, 0x1a, 0x3b, 0x0a, 0x0d, 0x43, 0x68, 0x69, 0x6c, 0x64, 0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74,
+	0x68, 0x1a, 0x54, 0x0a, 0x0d, 0x43, 0x68, 0x69, 0x6c, 0x64, 0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74,
 	0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x05, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x9f,
+	0x03, 0x6b, 0x65, 0x79, 0x12, 0x2d, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2e, 0x4e, 0x6f,
+	0x64, 0x65, 0x2e, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x25, 0x0a, 0x09, 0x49, 0x6e, 0x64, 0x65, 0x78,
+	0x4c, 0x69, 0x73, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x65, 0x73, 0x18,
+	0x01, 0x20, 0x03, 0x28, 0x05, 0x52, 0x07, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x65, 0x73, 0x22, 0x9f,
 	0x01, 0x0a, 0x0e, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x64, 0x41, 0x74, 0x74, 0x72, 0x4d, 0x61,
 	0x70, 0x12, 0x21, 0x0a, 0x04, 0x6c, 0x69, 0x73, 0x74, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32,
 	0x0d, 0x2e, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2e, 0x41, 0x74, 0x74, 0x72, 0x52, 0x04,
@@ -486,7 +537,7 @@ func file_tableau_protobuf_xml_proto_rawDescGZIP() []byte {
 	return file_tableau_protobuf_xml_proto_rawDescData
 }
 
-var file_tableau_protobuf_xml_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_tableau_protobuf_xml_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_tableau_protobuf_xml_proto_goTypes = []interface{}{
 	(*XMLMeta)(nil),           // 0: tableau.XMLMeta
 	(*XMLSheet)(nil),          // 1: tableau.XMLSheet
@@ -498,7 +549,8 @@ var file_tableau_protobuf_xml_proto_goTypes = []interface{}{
 	nil,                       // 7: tableau.XMLSheet.DataNodeMapEntry
 	(*XMLSheet_NodeList)(nil), // 8: tableau.XMLSheet.NodeList
 	nil,                       // 9: tableau.Node.ChildMapEntry
-	nil,                       // 10: tableau.OrderedAttrMap.MapEntry
+	(*Node_IndexList)(nil),    // 10: tableau.Node.IndexList
+	nil,                       // 11: tableau.OrderedAttrMap.MapEntry
 }
 var file_tableau_protobuf_xml_proto_depIdxs = []int32{
 	5,  // 0: tableau.XMLMeta.sheet_map:type_name -> tableau.XMLMeta.SheetMapEntry
@@ -511,16 +563,17 @@ var file_tableau_protobuf_xml_proto_depIdxs = []int32{
 	9,  // 7: tableau.Node.child_map:type_name -> tableau.Node.ChildMapEntry
 	2,  // 8: tableau.Node.parent:type_name -> tableau.Node
 	4,  // 9: tableau.OrderedAttrMap.list:type_name -> tableau.Attr
-	10, // 10: tableau.OrderedAttrMap.map:type_name -> tableau.OrderedAttrMap.MapEntry
+	11, // 10: tableau.OrderedAttrMap.map:type_name -> tableau.OrderedAttrMap.MapEntry
 	1,  // 11: tableau.XMLMeta.SheetMapEntry.value:type_name -> tableau.XMLSheet
 	2,  // 12: tableau.XMLSheet.MetaNodeMapEntry.value:type_name -> tableau.Node
 	8,  // 13: tableau.XMLSheet.DataNodeMapEntry.value:type_name -> tableau.XMLSheet.NodeList
 	2,  // 14: tableau.XMLSheet.NodeList.nodes:type_name -> tableau.Node
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	10, // 15: tableau.Node.ChildMapEntry.value:type_name -> tableau.Node.IndexList
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_tableau_protobuf_xml_proto_init() }
@@ -601,6 +654,18 @@ func file_tableau_protobuf_xml_proto_init() {
 				return nil
 			}
 		}
+		file_tableau_protobuf_xml_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Node_IndexList); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -608,7 +673,7 @@ func file_tableau_protobuf_xml_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tableau_protobuf_xml_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

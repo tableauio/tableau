@@ -31,16 +31,20 @@ message Node {
   // duplicated attributes in one node are forbidden
   OrderedAttrMap attr_map = 2;
 
-  // - meta: Each child must be unique
-  // - data: Duplicated children are allowed, so map is useless
+  // - meta: Each child must be unique, so len(IndexList) must be 1 
+  // - data: Duplicated children are allowed, so len(IndexList) could be greater than 1
   repeated Node child_list = 3;
-  map<string, int32> child_map = 4;
+  map<string, IndexList> child_map = 4;
 
   // record parent node so that we can trace back
   Node parent = 5;
 
   // path that walks from root to self node, e.g.: Conf/Server/Toggle
   string path = 6;
+
+  message IndexList {
+    repeated int32 indexes = 1;
+  }
 }
 
 // Combine list and map to get an ordered map

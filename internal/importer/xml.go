@@ -35,7 +35,10 @@ func (e *NoNeedParseError) Error() string {
 var attrRegexp *regexp.Regexp
 var scalarListRegexp *regexp.Regexp
 
-const ungreedyPropGroup = `(\|\{[^\{\}]+\})?`
+const (
+	xmlProlog         = `<?xml version='1.0' encoding='UTF-8'?>`
+	ungreedyPropGroup = `(\|\{[^\{\}]+\})?`
+)
 
 func init() {
 	attrRegexp = regexp.MustCompile(`([0-9A-Za-z_]+)="` + types.TypeGroup + ungreedyPropGroup + `"`)
@@ -71,8 +74,12 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open %s", filename)
 	}
+	root, err := xmlquery.Parse(f)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
+	}
 
-	xmlMeta, sheetNames, err := readXMLFile(f, sheetNames)
+	xmlMeta, sheetNames, err := readXMLFile(root, sheetNames)
 	if err != nil {
 		switch e := err.(type) {
 		case *NoNeedParseError:
@@ -87,7 +94,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, nil)
 	for sheetName, xmlSheet := range xmlMeta.SheetMap {
-		if err := preprocess(xmlSheet); err != nil {
+		if err := preprocess(xmlSheet, xmlSheet.Meta); err != nil {
 			return nil, errors.Wrapf(err, "failed to preprocess for sheet: %s", sheetName)
 		}
 		sheet, err := genSheet(xmlSheet)
@@ -105,20 +112,25 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	return newBook, nil
 }
 
-func preprocess(xmlSheet *tableaupb.XMLSheet) error {
-	if err := rearrangeAttrs(xmlSheet.Meta.AttrMap); err != nil {
+func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.Node) error {
+	if err := rearrangeAttrs(node.AttrMap); err != nil {
 		return errors.Wrapf(err, "failed to rearrangeAttrs")
 	}
+	for i, attr := range node.AttrMap.List {
+		if i == 0 {
+			attr.Value = correctType(xmlSheet, node, attr.Value)
+		}
+	}
 
+	for _, child := range node.ChildList {
+		if err := preprocess(xmlSheet, child); err != nil {
+			return errors.Wrapf(err, "failed to preprocess node:%s", child.Name)
+		}
+	}
 	return nil
 }
 
-func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLMeta, []string, error) {
-	filename := f.Name()
-	root, err := xmlquery.Parse(f)
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
-	}
+func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLMeta, []string, error) {
 	xmlMeta := &tableaupb.XMLMeta{
 		SheetMap: make(map[string]*tableaupb.XMLSheet),
 	}
@@ -131,7 +143,7 @@ func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLMeta, []string,
 				continue
 			}
 			foundMetaSheetName = true
-			metaStr := escapeAttrs(strings.ReplaceAll(n.Data, book.MetasheetName, ""))
+			metaStr := xmlProlog + escapeAttrs(strings.ReplaceAll(n.Data, book.MetasheetName, ""))
 			atom.Log.Debug(metaStr)
 			metaRoot, err := xmlquery.Parse(strings.NewReader(metaStr))
 			if err != nil {
@@ -143,7 +155,7 @@ func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLMeta, []string,
 				}
 				sheetName := n.Data
 				xmlSheet := getXMLSheet(xmlMeta, sheetName)
-				if err := parseMetaNode(metaRoot, n, xmlSheet.Meta); err != nil {
+				if err := parseMetaNode(n, xmlSheet); err != nil {
 					return nil, nil, errors.Wrapf(err, "failed to parseMetaNode for sheet:%s", sheetName)
 				}
 				// append if user not specified
@@ -154,7 +166,7 @@ func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLMeta, []string,
 		case xmlquery.ElementNode:
 			sheetName := n.Data
 			xmlSheet := getXMLSheet(xmlMeta, sheetName)
-			if err := parseDataNode(root, n, xmlSheet.Meta, xmlSheet.Data); err != nil {
+			if err := parseDataNode(n, xmlSheet); err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to parseDataNode for sheet:%s", sheetName)
 			}
 		default:
@@ -167,13 +179,13 @@ func readXMLFile(f *os.File, sheetNames []string) (*tableaupb.XMLMeta, []string,
 	return xmlMeta, sheetNames, nil
 }
 
-func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.Node) error {
+func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
+	_, path := getNodePath(curr)
+	meta := xmlSheet.MetaNodeMap[path]
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
 		t := attr.Value
-		if len(meta.AttrMap.List) == 0 {
-			t = correctType(root, curr, t)
-		} else if isComplexType(t) {
+		if len(meta.AttrMap.List) > 0 && isComplexType(t) {
 			return fmt.Errorf("%s=\"%s\" is a complex type, must be the first attribute", attrName, t)
 		}
 		if idx, ok := meta.AttrMap.Map[attrName]; !ok {
@@ -193,30 +205,29 @@ func parseMetaNode(root, curr *xmlquery.Node, meta *tableaupb.Node) error {
 			continue
 		}
 		childName := n.Data
-		if idx, ok := meta.ChildMap[childName]; !ok {
-			meta.ChildMap[childName] = int32(len(meta.ChildList))
-			meta.ChildList = append(meta.ChildList, newNode(childName))
-			if err := parseMetaNode(root, n, meta.ChildList[len(meta.ChildList)-1]); err != nil {
-				return errors.Wrapf(err, "failed to parseMetaNode for %s@%s", childName, meta.Name)
+		if _, ok := meta.ChildMap[childName]; !ok {
+			newNode := newNode(childName, meta)
+			meta.ChildMap[childName] = &tableaupb.Node_IndexList{
+				Indexes: []int32{int32(len(meta.ChildList))},
 			}
-		} else {
-			child := meta.ChildList[idx]
-			if err := parseMetaNode(root, n, child); err != nil {
-				return errors.Wrapf(err, "failed to parseMetaNode for %s@%s", childName, meta.Name)
-			}
+			meta.ChildList = append(meta.ChildList, newNode)
+			registerMetaNode(xmlSheet, newNode)
+		}
+		if err := parseMetaNode(n, xmlSheet); err != nil {
+			return errors.Wrapf(err, "failed to parseMetaNode for %s@%s", childName, meta.Name)
 		}
 	}
 	return nil
 }
 
-func parseDataNode(root, curr *xmlquery.Node, meta, data *tableaupb.Node) error {
+func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
+	_, path := getNodePath(curr)
+	meta := xmlSheet.MetaNodeMap[path]
+	data_nodes := xmlSheet.DataNodeMap[path].Nodes
+	data := data_nodes[len(data_nodes)-1]
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
 		t := inferType(attr.Value)
-		// correct types
-		if len(meta.AttrMap.List) == 0 {
-			t = correctType(root, curr, t)
-		}
 		if _, ok := meta.AttrMap.Map[attrName]; !ok {
 			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
 			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.Attr{
@@ -235,18 +246,25 @@ func parseDataNode(root, curr *xmlquery.Node, meta, data *tableaupb.Node) error 
 			continue
 		}
 		childName := n.Data
-		dataChild := newNode(childName)
-		if idx, ok := meta.ChildMap[childName]; !ok {
-			meta.ChildMap[childName] = int32(len(meta.ChildList))
-			meta.ChildList = append(meta.ChildList, newNode(childName))
-			if err := parseDataNode(root, n, meta.ChildList[len(meta.ChildList)-1], dataChild); err != nil {
-				return errors.Wrapf(err, "failed to parseDataNode for %s@%s", childName, meta.Name)
+		dataChild := newNode(childName, data)
+		registerDataNode(xmlSheet, dataChild)
+		if _, ok := meta.ChildMap[childName]; !ok {
+			newNode := newNode(childName, meta)
+			meta.ChildMap[childName] = &tableaupb.Node_IndexList{
+				Indexes: []int32{int32(len(meta.ChildList))},
+			}
+			meta.ChildList = append(meta.ChildList, newNode)
+			registerMetaNode(xmlSheet, newNode)
+		}
+		if err := parseDataNode(n, xmlSheet); err != nil {
+			return errors.Wrapf(err, "failed to parseDataNode for %s@%s", childName, meta.Name)
+		}
+		if list, ok := data.ChildMap[childName]; !ok {
+			data.ChildMap[childName] = &tableaupb.Node_IndexList{
+				Indexes: []int32{int32(len(data.ChildList))},
 			}
 		} else {
-			metaChild := meta.ChildList[idx]
-			if err := parseDataNode(root, n, metaChild, dataChild); err != nil {
-				return errors.Wrapf(err, "failed to parseDataNode for %s@%s", childName, meta.Name)
-			}
+			list.Indexes = append(list.Indexes, int32(len(data.ChildList)))
 		}
 		data.ChildList = append(data.ChildList, dataChild)
 	}
@@ -368,24 +386,55 @@ func newOrderedAttrMap() *tableaupb.OrderedAttrMap {
 	}
 }
 
-func newNode(nodeName string) *tableaupb.Node {
-	return &tableaupb.Node{
+func newNode(nodeName string, parent *tableaupb.Node) *tableaupb.Node {
+	node := &tableaupb.Node{
 		Name:     nodeName,
 		AttrMap:  newOrderedAttrMap(),
-		ChildMap: make(map[string]int32),
+		ChildMap: make(map[string]*tableaupb.Node_IndexList),
+		Parent:   parent,
+	}
+	if parent != nil {
+		node.Path = fmt.Sprintf("%s/%s", parent.Path, nodeName)
+	} else {
+		node.Path = nodeName
+	}
+
+	return node
+}
+
+func registerMetaNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.Node) {
+	if _, ok := xmlSheet.MetaNodeMap[node.Path]; !ok {
+		xmlSheet.MetaNodeMap[node.Path] = node
+	} else {
+		atom.Log.Panicf("duplicated path registered in MetaNodeMap|Path:%s", node.Path)
+	}
+}
+
+func registerDataNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.Node) {
+	if list, ok := xmlSheet.DataNodeMap[node.Path]; !ok {
+		xmlSheet.DataNodeMap[node.Path] = &tableaupb.XMLSheet_NodeList{
+			Nodes: []*tableaupb.Node{node},
+		}
+	} else {
+		list.Nodes = append(list.Nodes, node)
 	}
 }
 
 func newXMLSheet(sheetName string) *tableaupb.XMLSheet {
 	return &tableaupb.XMLSheet{
-		Meta: newNode(sheetName),
-		Data: newNode(sheetName),
+		Meta:        newNode(sheetName, nil),
+		Data:        newNode(sheetName, nil),
+		MetaNodeMap: make(map[string]*tableaupb.Node),
+		DataNodeMap: make(map[string]*tableaupb.XMLSheet_NodeList),
 	}
 }
 
 func getXMLSheet(xmlMeta *tableaupb.XMLMeta, sheetName string) *tableaupb.XMLSheet {
 	if _, ok := xmlMeta.SheetMap[sheetName]; !ok {
-		xmlMeta.SheetMap[sheetName] = newXMLSheet(sheetName)
+		xmlSheet := newXMLSheet(sheetName)
+		registerMetaNode(xmlSheet, xmlSheet.Meta)
+		registerDataNode(xmlSheet, xmlSheet.Data)
+		xmlMeta.SheetMap[sheetName] = xmlSheet
 	}
 	return xmlMeta.SheetMap[sheetName]
 }
@@ -412,36 +461,43 @@ func escapeAttrs(doc string) string {
 	return escapedDoc
 }
 
-func isFirstChild(curr *xmlquery.Node) bool {
-	p := curr.Parent
-	if p == nil {
-		return false
-	}
-	for n := p.FirstChild; n != nil; n = n.NextSibling {
-		if n.Type == xmlquery.ElementNode {
-			return n == curr
+func getNodePath(curr *xmlquery.Node) (root *xmlquery.Node, path string) {
+	path = curr.Data
+	for n := curr.Parent; n != nil; n = n.Parent {
+		if n.Data == "" {
+			root = n
+		} else {
+			path = fmt.Sprintf("%s/%s", n.Data, path)
+
 		}
 	}
-
-	return false
+	return root, path
 }
 
-func isRepeated(root, curr *xmlquery.Node) bool {
-	parentPath := ""
-	// curr is a sheet node
-	if curr.Parent == nil || curr.Parent.Data == "" {
-		return false
-	}
-	for n := curr.Parent; n != nil; n = n.Parent {
-		if parentPath == "" {
-			parentPath = n.Data
-		} else {
-			parentPath = fmt.Sprintf("%s/%s", n.Data, parentPath)
-		}
-	}
-	for _, n := range xmlquery.Find(root, parentPath) {
-		if len(xmlquery.Find(n, curr.Data)) > 1 {
-			return true
+// func isRepeated(curr *xmlquery.Node) bool {
+// 	root, path := getNodePath(curr)
+// 	strList := strings.Split(path, "/")
+// 	parentPath := strings.Join(strList[:len(strList)-1], "/")
+// 	// curr is a sheet node
+// 	if parentPath == "" {
+// 		return false
+// 	}
+// 	for _, n := range xmlquery.Find(root, parentPath) {
+// 		if len(xmlquery.Find(n, curr.Data)) > 1 {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
+
+func isRepeated(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.Node) bool {
+	strList := strings.Split(curr.Path, "/")
+	parentPath := strings.Join(strList[:len(strList)-1], "/")
+	if nodes, ok := xmlSheet.DataNodeMap[parentPath]; ok {
+		for _, n := range nodes.Nodes {
+			if indexes, ok := n.ChildMap[curr.Name]; ok && len(indexes.Indexes) > 1 {
+				return true
+			}
 		}
 	}
 	return false
@@ -451,24 +507,24 @@ func isComplexType(t string) bool {
 	return types.IsMap(t) || types.IsList(t) || types.IsKeyedList(t) || types.IsStruct(t)
 }
 
-func correctType(root, curr *xmlquery.Node, oriType string) (t string) {
-	if !isComplexType(oriType) && (curr.Parent != nil && curr.Parent.Data != "") {
-		if isRepeated(root, curr) {
-			t = fmt.Sprintf("[%s]<%s>", curr.Data, oriType)
+func correctType(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.Node, oriType string) (t string) {
+	if !isComplexType(oriType) && curr.Parent != nil {
+		if isRepeated(xmlSheet, curr) {
+			t = fmt.Sprintf("[%s]<%s>", curr.Name, oriType)
 		} else {
-			t = fmt.Sprintf("{%s}%s", curr.Data, oriType)
+			t = fmt.Sprintf("{%s}%s", curr.Name, oriType)
 		}
 	} else {
 		t = oriType
 	}
-	for n := curr.Parent; n != nil && (n.Parent != nil && n.Parent.Data != ""); n = n.Parent {
-		if len(n.Attr) > 0 {
+	for n := curr.Parent; n != nil && n.Parent != nil; n = n.Parent {
+		if len(n.AttrMap.List) > 0 {
 			break
 		}
-		if isRepeated(root, n) {
-			t = fmt.Sprintf("[%s]%s", n.Data, t)
+		if isRepeated(xmlSheet, n) {
+			t = fmt.Sprintf("[%s]%s", n.Name, t)
 		} else {
-			t = fmt.Sprintf("{%s}%s", n.Data, t)
+			t = fmt.Sprintf("{%s}%s", n.Name, t)
 		}
 	}
 	return t
@@ -528,4 +584,19 @@ func inferType(value string) string {
 	} else {
 		return "string"
 	}
+}
+
+// ------------------------- deprecated  ------------------------- //
+func isFirstChild(curr *xmlquery.Node) bool {
+	p := curr.Parent
+	if p == nil {
+		return false
+	}
+	for n := p.FirstChild; n != nil; n = n.NextSibling {
+		if n.Type == xmlquery.ElementNode {
+			return n == curr
+		}
+	}
+
+	return false
 }

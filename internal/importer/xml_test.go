@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/antchfx/xmlquery"
+	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
 func Test_escapeAttrs(t *testing.T) {
@@ -77,9 +78,22 @@ func Test_escapeAttrs(t *testing.T) {
 	}
 }
 
+func FindMetaNode(xmlMeta *tableaupb.XMLMeta, path string) *tableaupb.Node {
+	strList := strings.Split(path, "/")
+	if len(strList) > 0 {
+		if sheet, ok := xmlMeta.SheetMap[strList[0]]; ok {
+			if node, ok := sheet.MetaNodeMap[path]; ok {
+				return node
+			}
+		}
+	}
+	return nil
+}
+
 func Test_isRepeated(t *testing.T) {
 	doc := `
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- @TABLEAU -->
 <MatchCfg Open="true">
 	<TeamRatingWeight>
 		<Weight Num="1">
@@ -93,12 +107,15 @@ func Test_isRepeated(t *testing.T) {
 </MatchCfg>
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
-	node1 := xmlquery.FindOne(root, "MatchCfg/TeamRatingWeight/Weight")
-	node2 := xmlquery.FindOne(root, "MatchCfg/TeamRatingWeight/Weight/Param")
-	node3 := xmlquery.FindOne(root, "MatchCfg/TeamRatingWeight")
-	node4 := xmlquery.FindOne(root, "MatchCfg")
+	xmlMeta, _, _ := readXMLFile(root, nil)
+	sheet1 := xmlMeta.SheetMap["MatchCfg"]
+	node1 := FindMetaNode(xmlMeta, "MatchCfg/TeamRatingWeight/Weight")
+	node2 := FindMetaNode(xmlMeta, "MatchCfg/TeamRatingWeight/Weight/Param")
+	node3 := FindMetaNode(xmlMeta, "MatchCfg/TeamRatingWeight")
+	node4 := FindMetaNode(xmlMeta, "MatchCfg")
 	type args struct {
-		root, curr *xmlquery.Node
+		xmlSheet *tableaupb.XMLSheet
+		curr     *tableaupb.Node
 	}
 	tests := []struct {
 		name string
@@ -109,39 +126,39 @@ func Test_isRepeated(t *testing.T) {
 		{
 			name: "node1",
 			args: args{
-				root: root,
-				curr: node1,
+				xmlSheet: sheet1,
+				curr:     node1,
 			},
 			want: true,
 		},
 		{
 			name: "node2",
 			args: args{
-				root: root,
-				curr: node2,
+				xmlSheet: sheet1,
+				curr:     node2,
 			},
 			want: true,
 		},
 		{
 			name: "node3",
 			args: args{
-				root: root,
-				curr: node3,
+				xmlSheet: sheet1,
+				curr:     node3,
 			},
 			want: false,
 		},
 		{
 			name: "sheet attr",
 			args: args{
-				root: root,
-				curr: node4,
+				xmlSheet: sheet1,
+				curr:     node4,
 			},
 			want: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isRepeated(tt.args.root, tt.args.curr); got != tt.want {
+			if got := isRepeated(tt.args.xmlSheet, tt.args.curr); got != tt.want {
 				t.Errorf("isRepeated() = %v, want %v", got, tt.want)
 			}
 		})
@@ -228,6 +245,7 @@ func Test_isFirstChild(t *testing.T) {
 func Test_correctType(t *testing.T) {
 	doc := `
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- @TABLEAU
 <MatchCfg open="true">
 	<MatchMode MissionType="map&lt;enum&lt;.MissionType&gt;,MatchMode&gt;">
 		<MatchAI IsOpen="bool" PlayerOnlyOneCamp="bool">
@@ -241,6 +259,7 @@ func Test_correctType(t *testing.T) {
 		<Toggle ID="map&lt;enum&lt;.ToggleType&gt;, Toggle&gt;" WorldID="uint32"/>
 	</Client>
 </MatchCfg>
+-->
 
 <MatchCfg>
 	<StructConf>
@@ -261,17 +280,19 @@ func Test_correctType(t *testing.T) {
 </MatchCfg>
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
-	node1 := xmlquery.FindOne(root, "MatchCfg/MatchMode/MatchAI/AI")
-	node2 := xmlquery.FindOne(root, "MatchCfg/MapConf/Weight")
-	node3 := xmlquery.FindOne(root, "MatchCfg/StructConf/Weight")
-	node4 := xmlquery.FindOne(root, "MatchCfg/ListConf/Weight")
-	node5 := xmlquery.FindOne(root, "MatchCfg/ListConf/Weight/Param")
-	node6 := xmlquery.FindOne(root, "MatchCfg/Client/Toggle")
-	node7 := xmlquery.FindOne(root, "MatchCfg")
+	xmlMeta, _, _ := readXMLFile(root, nil)
+	sheet1 := xmlMeta.SheetMap["MatchCfg"]
+	node1 := FindMetaNode(xmlMeta, "MatchCfg/MatchMode/MatchAI/AI")
+	node2 := FindMetaNode(xmlMeta, "MatchCfg/MapConf/Weight")
+	node3 := FindMetaNode(xmlMeta, "MatchCfg/StructConf/Weight")
+	node4 := FindMetaNode(xmlMeta, "MatchCfg/ListConf/Weight")
+	node5 := FindMetaNode(xmlMeta, "MatchCfg/ListConf/Weight/Param")
+	node6 := FindMetaNode(xmlMeta, "MatchCfg/Client/Toggle")
+	node7 := FindMetaNode(xmlMeta, "MatchCfg")
 	type args struct {
-		root    *xmlquery.Node
-		curr    *xmlquery.Node
-		oriType string
+		xmlSheet *tableaupb.XMLSheet
+		curr     *tableaupb.Node
+		oriType  string
 	}
 	tests := []struct {
 		name string
@@ -282,70 +303,70 @@ func Test_correctType(t *testing.T) {
 		{
 			name: "MatchAI",
 			args: args{
-				root:    root,
-				curr:    node1,
-				oriType: `[AI]<enum<.ENMAIWarmType>>`,
+				xmlSheet: sheet1,
+				curr:     node1,
+				oriType:  `[AI]<enum<.ENMAIWarmType>>`,
 			},
 			want: `[AI]<enum<.ENMAIWarmType>>`,
 		},
 		{
 			name: "MapConf",
 			args: args{
-				root:    root,
-				curr:    node2,
-				oriType: `map<uint32,Weight>`,
+				xmlSheet: sheet1,
+				curr:     node2,
+				oriType:  `map<uint32,Weight>`,
 			},
 			want: `{MapConf}map<uint32,Weight>`,
 		},
 		{
 			name: "StructConf",
 			args: args{
-				root:    root,
-				curr:    node3,
-				oriType: `int32`,
+				xmlSheet: sheet1,
+				curr:     node3,
+				oriType:  `int32`,
 			},
 			want: `{StructConf}{Weight}int32`,
 		},
 		{
 			name: "ListConf",
 			args: args{
-				root:    root,
-				curr:    node4,
-				oriType: `int32`,
+				xmlSheet: sheet1,
+				curr:     node4,
+				oriType:  `int32`,
 			},
 			want: `{ListConf}[Weight]<int32>`,
 		},
 		{
 			name: "ListConf/Param",
 			args: args{
-				root:    root,
-				curr:    node5,
-				oriType: `int32`,
+				xmlSheet: sheet1,
+				curr:     node5,
+				oriType:  `int32`,
 			},
 			want: `[Param]<int32>`,
 		},
 		{
 			name: "FeatureToggle",
 			args: args{
-				root:    root,
-				curr:    node6,
-				oriType: `map<enum<.ToggleType>, Toggle>`,
+				xmlSheet: sheet1,
+				curr:     node6,
+				oriType:  `map<enum<.ToggleType>, Toggle>`,
 			},
 			want: `map<enum<.ToggleType>, Toggle>`,
 		},
 		{
 			name: "sheet attr",
 			args: args{
-				root:    root,
-				curr:    node7,
-				oriType: `bool`,
+				xmlSheet: sheet1,
+				curr:     node7,
+				oriType:  `bool`,
 			},
 			want: `bool`,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := correctType(tt.args.root, tt.args.curr, tt.args.oriType); got != tt.want {
+			if got := correctType(tt.args.xmlSheet, tt.args.curr, tt.args.oriType); got != tt.want {
 				t.Errorf("correctType() = %v, want %v", got, tt.want)
 			}
 		})
