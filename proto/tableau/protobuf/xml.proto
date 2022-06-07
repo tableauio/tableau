@@ -1,24 +1,46 @@
 syntax = "proto3";
 package tableau;
+
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 message XMLMeta {
-  map<string, XMLSheet> sheet_map = 1;  
+  // SheetMap maps sheet name to a XMLSheet struct 
+  // containing two trees which describe the XML structure
+  map<string, XMLSheet> sheet_map = 1;
 }
 
-message XMLSheet {
+message XMLSheet {  
+  // meta tree, describing the types of attributes of all nodes in XML
   Node meta = 1;
+
+  // data tree, describing the values of attributes of the explicitly specified nodes in XML
   Node data = 2;
+
+  // NodeMap maps path to a list of nodes matched the specified path in the tree
+  map<string, Node> meta_node_map = 3;
+  map<string, NodeList> data_node_map = 4;
+
+  message NodeList {
+    repeated Node nodes = 1;
+  }
 }
 
 message Node {
   string name = 1;
+
+  // duplicated attributes in one node are forbidden
   OrderedAttrMap attr_map = 2;
 
   // - meta: Each child must be unique
-  // - data: Duplicated child is allowed, so map is useless
+  // - data: Duplicated children are allowed, so map is useless
   repeated Node child_list = 3;
   map<string, int32> child_map = 4;
+
+  // record parent node so that we can trace back
+  Node parent = 5;
+
+  // path that walks from root to self node, e.g.: Conf/Server/Toggle
+  string path = 6;
 }
 
 // Combine list and map to get an ordered map
