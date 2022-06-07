@@ -144,7 +144,7 @@ func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLMeta, 
 			}
 			foundMetaSheetName = true
 			metaStr := xmlProlog + escapeAttrs(strings.ReplaceAll(n.Data, book.MetasheetName, ""))
-			atom.Log.Debug(metaStr)
+			// atom.Log.Debug(metaStr)
 			metaRoot, err := xmlquery.Parse(strings.NewReader(metaStr))
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to parse @TABLEAU string: %s", metaStr)
@@ -507,6 +507,13 @@ func isComplexType(t string) bool {
 	return types.IsMap(t) || types.IsList(t) || types.IsKeyedList(t) || types.IsStruct(t)
 }
 
+func isFirstChild(node *tableaupb.Node) bool {
+	if node.Parent == nil {
+		return false
+	}
+	return node.Parent.ChildList[0] == node
+}
+
 func correctType(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.Node, oriType string) (t string) {
 	if !isComplexType(oriType) && curr.Parent != nil {
 		if isRepeated(xmlSheet, curr) {
@@ -517,6 +524,9 @@ func correctType(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.Node, oriType str
 	} else {
 		t = oriType
 	}
+	if !isFirstChild(curr) {
+		return t
+	}
 	for n := curr.Parent; n != nil && n.Parent != nil; n = n.Parent {
 		if len(n.AttrMap.List) > 0 {
 			break
@@ -525,6 +535,9 @@ func correctType(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.Node, oriType str
 			t = fmt.Sprintf("[%s]%s", n.Name, t)
 		} else {
 			t = fmt.Sprintf("{%s}%s", n.Name, t)
+		}
+		if !isFirstChild(n) {
+			break
 		}
 	}
 	return t
@@ -584,19 +597,4 @@ func inferType(value string) string {
 	} else {
 		return "string"
 	}
-}
-
-// ------------------------- deprecated  ------------------------- //
-func isFirstChild(curr *xmlquery.Node) bool {
-	p := curr.Parent
-	if p == nil {
-		return false
-	}
-	for n := p.FirstChild; n != nil; n = n.NextSibling {
-		if n.Type == xmlquery.ElementNode {
-			return n == curr
-		}
-	}
-
-	return false
 }

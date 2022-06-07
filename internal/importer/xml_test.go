@@ -78,14 +78,9 @@ func Test_escapeAttrs(t *testing.T) {
 	}
 }
 
-func FindMetaNode(xmlMeta *tableaupb.XMLMeta, path string) *tableaupb.Node {
-	strList := strings.Split(path, "/")
-	if len(strList) > 0 {
-		if sheet, ok := xmlMeta.SheetMap[strList[0]]; ok {
-			if node, ok := sheet.MetaNodeMap[path]; ok {
-				return node
-			}
-		}
+func FindMetaNode(xmlSheet *tableaupb.XMLSheet, path string) *tableaupb.Node {
+	if node, ok := xmlSheet.MetaNodeMap[path]; ok {
+		return node
 	}
 	return nil
 }
@@ -109,10 +104,10 @@ func Test_isRepeated(t *testing.T) {
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
 	xmlMeta, _, _ := readXMLFile(root, nil)
 	sheet1 := xmlMeta.SheetMap["MatchCfg"]
-	node1 := FindMetaNode(xmlMeta, "MatchCfg/TeamRatingWeight/Weight")
-	node2 := FindMetaNode(xmlMeta, "MatchCfg/TeamRatingWeight/Weight/Param")
-	node3 := FindMetaNode(xmlMeta, "MatchCfg/TeamRatingWeight")
-	node4 := FindMetaNode(xmlMeta, "MatchCfg")
+	node1 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight")
+	node2 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight/Param")
+	node3 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight")
+	node4 := FindMetaNode(sheet1, "MatchCfg")
 	type args struct {
 		xmlSheet *tableaupb.XMLSheet
 		curr     *tableaupb.Node
@@ -208,16 +203,20 @@ func Test_matchAttr(t *testing.T) {
 func Test_isFirstChild(t *testing.T) {
 	doc := `
 <?xml version='1.0' encoding='UTF-8'?>
+<!-- @TABLEAU
 <Server>
     <MapConf>
         <Weight Num="map&lt;uint32,Weight&gt;"/>
     </MapConf>
 </Server>
+-->
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
-	node1 := xmlquery.FindOne(root, "Server/MapConf/Weight")
+	xmlMeta, _, _ := readXMLFile(root, nil)
+	sheet1 := xmlMeta.SheetMap["Server"]
+	node1 := FindMetaNode(sheet1, "Server/MapConf/Weight")
 	type args struct {
-		curr *xmlquery.Node
+		curr *tableaupb.Node
 	}
 	tests := []struct {
 		name string
@@ -266,6 +265,7 @@ func Test_correctType(t *testing.T) {
 		<Weight Num="1">
 			<Param Value="100"/>
 		</Weight>
+		<Test Value="1"/>
 	</StructConf>
 
 	<ListConf>
@@ -282,13 +282,14 @@ func Test_correctType(t *testing.T) {
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
 	xmlMeta, _, _ := readXMLFile(root, nil)
 	sheet1 := xmlMeta.SheetMap["MatchCfg"]
-	node1 := FindMetaNode(xmlMeta, "MatchCfg/MatchMode/MatchAI/AI")
-	node2 := FindMetaNode(xmlMeta, "MatchCfg/MapConf/Weight")
-	node3 := FindMetaNode(xmlMeta, "MatchCfg/StructConf/Weight")
-	node4 := FindMetaNode(xmlMeta, "MatchCfg/ListConf/Weight")
-	node5 := FindMetaNode(xmlMeta, "MatchCfg/ListConf/Weight/Param")
-	node6 := FindMetaNode(xmlMeta, "MatchCfg/Client/Toggle")
-	node7 := FindMetaNode(xmlMeta, "MatchCfg")
+	node1 := FindMetaNode(sheet1, "MatchCfg/MatchMode/MatchAI/AI")
+	node2 := FindMetaNode(sheet1, "MatchCfg/MapConf/Weight")
+	node3 := FindMetaNode(sheet1, "MatchCfg/StructConf/Weight")
+	node4 := FindMetaNode(sheet1, "MatchCfg/ListConf/Weight")
+	node5 := FindMetaNode(sheet1, "MatchCfg/ListConf/Weight/Param")
+	node6 := FindMetaNode(sheet1, "MatchCfg/Client/Toggle")
+	node7 := FindMetaNode(sheet1, "MatchCfg")
+	node8 := FindMetaNode(sheet1, "MatchCfg/StructConf/Test")
 	type args struct {
 		xmlSheet *tableaupb.XMLSheet
 		curr     *tableaupb.Node
@@ -362,6 +363,15 @@ func Test_correctType(t *testing.T) {
 				oriType:  `bool`,
 			},
 			want: `bool`,
+		},
+		{
+			name: "children with different names",
+			args: args{
+				xmlSheet: sheet1,
+				curr:     node8,
+				oriType:  `int32`,
+			},
+			want: `{Test}int32`,
 		},
 	}
 	for _, tt := range tests {
