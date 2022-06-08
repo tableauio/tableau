@@ -382,3 +382,67 @@ func Test_correctType(t *testing.T) {
 		})
 	}
 }
+
+func Test_getNodePath(t *testing.T) {
+	metaDoc := `
+<?xml version='1.0' encoding='UTF-8'?>
+<MatchCfg open="true">
+	<MapConf>
+        <Weight Num="map&lt;uint32,Weight&gt;"/>
+    </MapConf>
+</MatchCfg>
+`
+	doc := `
+<?xml version='1.0' encoding='UTF-8'?>
+<MatchCfg>
+	<StructConf>
+		<Weight Num="1">
+			<Param Value="100"/>
+		</Weight>
+		<Test Value="1"/>
+	</StructConf>
+</MatchCfg>
+`
+	metaRoot, _ := xmlquery.Parse(strings.NewReader(metaDoc))
+	node1 := xmlquery.FindOne(metaRoot, "MatchCfg/MapConf/Weight")
+	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	node2 := xmlquery.FindOne(root, "MatchCfg/StructConf/Test")
+	type args struct {
+		curr *xmlquery.Node
+	}
+	tests := []struct {
+		name     string
+		args     args
+		wantRoot *xmlquery.Node
+		wantPath string
+	}{
+		// TODO: Add test cases.
+		{
+			name: "MatchCfg/MapConf/Weight",
+			args: args{
+				curr: node1,
+			},
+			wantRoot: metaRoot,
+			wantPath: "MatchCfg/MapConf/Weight",
+		},
+		{
+			name: "MatchCfg/StructConf/Test",
+			args: args{
+				curr: node2,
+			},
+			wantRoot: root,
+			wantPath: "MatchCfg/StructConf/Test",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRoot, gotPath := getNodePath(tt.args.curr)
+			if !reflect.DeepEqual(gotRoot, tt.wantRoot) {
+				t.Errorf("getNodePath() gotRoot = %v, want %v", gotRoot, tt.wantRoot)
+			}
+			if gotPath != tt.wantPath {
+				t.Errorf("getNodePath() gotPath = %v, want %v", gotPath, tt.wantPath)
+			}
+		})
+	}
+}

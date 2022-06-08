@@ -474,22 +474,6 @@ func getNodePath(curr *xmlquery.Node) (root *xmlquery.Node, path string) {
 	return root, path
 }
 
-// func isRepeated(curr *xmlquery.Node) bool {
-// 	root, path := getNodePath(curr)
-// 	strList := strings.Split(path, "/")
-// 	parentPath := strings.Join(strList[:len(strList)-1], "/")
-// 	// curr is a sheet node
-// 	if parentPath == "" {
-// 		return false
-// 	}
-// 	for _, n := range xmlquery.Find(root, parentPath) {
-// 		if len(xmlquery.Find(n, curr.Data)) > 1 {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
 func isRepeated(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.Node) bool {
 	strList := strings.Split(curr.Path, "/")
 	parentPath := strings.Join(strList[:len(strList)-1], "/")
