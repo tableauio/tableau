@@ -58,7 +58,7 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	newBook.ExportCSV()
+	// newBook.ExportCSV()
 
 	return &XMLImporter{
 		Book: newBook,
