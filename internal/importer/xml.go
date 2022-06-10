@@ -58,7 +58,7 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	// newBook.ExportCSV()
+	newBook.ExportCSV()
 
 	return &XMLImporter{
 		Book: newBook,
@@ -93,7 +93,8 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, nil)
-	for sheetName, xmlSheet := range xmlMeta.SheetMap {
+	for _, xmlSheet := range xmlMeta.SheetList {
+		sheetName := xmlSheet.Meta.Name
 		if err := preprocess(xmlSheet, xmlSheet.Meta); err != nil {
 			return nil, errors.Wrapf(err, "failed to preprocess for sheet: %s", sheetName)
 		}
@@ -132,7 +133,7 @@ func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.Node) error {
 
 func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLMeta, []string, error) {
 	xmlMeta := &tableaupb.XMLMeta{
-		SheetMap: make(map[string]*tableaupb.XMLSheet),
+		SheetMap: make(map[string]int32),
 	}
 	noSheetByUser := len(sheetNames) == 0
 	foundMetaSheetName := false
@@ -185,7 +186,7 @@ func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
 		t := attr.Value
-		if len(meta.AttrMap.List) > 0 && isComplexType(t) {
+		if len(meta.AttrMap.List) > 0 && isCrossCell(t) {
 			return fmt.Errorf("%s=\"%s\" is a complex type, must be the first attribute", attrName, t)
 		}
 		if idx, ok := meta.AttrMap.Map[attrName]; !ok {
@@ -430,13 +431,16 @@ func newXMLSheet(sheetName string) *tableaupb.XMLSheet {
 }
 
 func getXMLSheet(xmlMeta *tableaupb.XMLMeta, sheetName string) *tableaupb.XMLSheet {
-	if _, ok := xmlMeta.SheetMap[sheetName]; !ok {
+	if idx, ok := xmlMeta.SheetMap[sheetName]; !ok {
 		xmlSheet := newXMLSheet(sheetName)
 		registerMetaNode(xmlSheet, xmlSheet.Meta)
 		registerDataNode(xmlSheet, xmlSheet.Data)
-		xmlMeta.SheetMap[sheetName] = xmlSheet
+		xmlMeta.SheetMap[sheetName] = int32(len(xmlMeta.SheetList))
+		xmlMeta.SheetList = append(xmlMeta.SheetList, xmlSheet)
+		return xmlSheet
+	} else {
+		return xmlMeta.SheetList[idx]
 	}
-	return xmlMeta.SheetMap[sheetName]
 }
 
 // escapeMetaDoc escape characters for all attribute values in the document. e.g.:
@@ -487,8 +491,25 @@ func isRepeated(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.Node) bool {
 	return false
 }
 
-func isComplexType(t string) bool {
-	return types.IsMap(t) || types.IsList(t) || types.IsKeyedList(t) || types.IsStruct(t)
+func isCrossCell(t string) bool {
+	if types.IsMap(t) {
+		matches := types.MatchMap(t)
+		valueType := strings.TrimSpace(matches[2])
+		return !(types.IsScalarType(valueType) || types.IsEnum(valueType))
+	} else if types.IsList(t) {
+		matches := types.MatchList(t)
+		structType := strings.TrimSpace(matches[1])
+		return structType != ""
+	} else if types.IsKeyedList(t) {
+		matches := types.MatchKeyedList(t)
+		structType := strings.TrimSpace(matches[1])
+		return structType != ""
+	} else if types.IsStruct(t) {
+		matches := types.MatchStruct(t)
+		colType := strings.TrimSpace(matches[2])
+		return types.IsScalarType(colType) || types.IsEnum(colType)
+	}
+	return false
 }
 
 func isFirstChild(node *tableaupb.Node) bool {
@@ -499,29 +520,34 @@ func isFirstChild(node *tableaupb.Node) bool {
 }
 
 func correctType(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.Node, oriType string) (t string) {
-	if !isComplexType(oriType) && curr.Parent != nil {
-		if isRepeated(xmlSheet, curr) {
-			t = fmt.Sprintf("[%s]<%s>", curr.Name, oriType)
-		} else {
-			t = fmt.Sprintf("{%s}%s", curr.Name, oriType)
+	t = oriType
+	if types.IsList(t) {
+		matches := types.MatchList(t)
+		colType := strings.TrimSpace(matches[2])
+		if types.IsScalarType(colType) || types.IsEnum(colType) {
+			// list in xml must be keyed list
+			t = fmt.Sprintf("[%s]<%s>", matches[1], colType)
 		}
-	} else {
-		t = oriType
 	}
-	if !isFirstChild(curr) {
-		return t
-	}
-	for n := curr.Parent; n != nil && n.Parent != nil; n = n.Parent {
-		if len(n.AttrMap.List) > 0 {
-			break
+	// add type prefixes
+	for n, c := curr, curr; n != nil && n.Parent != nil; n, c = n.Parent, n {
+		if n == curr {
+			if isCrossCell(oriType) {
+				continue
+			}
+		} else {
+			if len(n.AttrMap.List) > 0 || !isFirstChild(c) {
+				break
+			}
 		}
 		if isRepeated(xmlSheet, n) {
-			t = fmt.Sprintf("[%s]%s", n.Name, t)
+			if n == curr {
+				t = fmt.Sprintf("[%s]<%s>", n.Name, t)
+			} else {
+				t = fmt.Sprintf("[%s]%s", n.Name, t)
+			}
 		} else {
 			t = fmt.Sprintf("{%s}%s", n.Name, t)
-		}
-		if !isFirstChild(n) {
-			break
 		}
 	}
 	return t
@@ -539,7 +565,7 @@ func rearrangeAttrs(attrMap *tableaupb.OrderedAttrMap) error {
 	typeMap := make(map[string]string)
 	indexMap := make(map[int]int)
 	for i, attr := range attrMap.List {
-		mustFirst := isComplexType(attr.Value)
+		mustFirst := isCrossCell(attr.Value)
 		if mustFirst {
 			swapAttr(attrMap, i, 0)
 			typeMap[attr.Name] = attr.Value

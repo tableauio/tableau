@@ -103,7 +103,7 @@ func Test_isRepeated(t *testing.T) {
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
 	xmlMeta, _, _ := readXMLFile(root, nil)
-	sheet1 := xmlMeta.SheetMap["MatchCfg"]
+	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight")
 	node2 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight/Param")
 	node3 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight")
@@ -213,7 +213,7 @@ func Test_isFirstChild(t *testing.T) {
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
 	xmlMeta, _, _ := readXMLFile(root, nil)
-	sheet1 := xmlMeta.SheetMap["Server"]
+	sheet1 := getXMLSheet(xmlMeta, "Server")
 	node1 := FindMetaNode(sheet1, "Server/MapConf/Weight")
 	type args struct {
 		curr *tableaupb.Node
@@ -251,8 +251,10 @@ func Test_correctType(t *testing.T) {
 			<AI Type="[AI]&lt;enum&lt;.ENMAIWarmType&gt;&gt;" IsOpen="bool" MinTime="duration" MaxTime="duration" />
 		</MatchAI>
     </MatchMode>
-	<MapConf>
-        <Weight Num="map&lt;uint32,Weight&gt;"/>
+	<MapConf Param="[]int64">
+		<Test>
+        	<Weight Num="map&lt;uint32,Weight&gt;"/>
+		</Test>
     </MapConf>
 	<Client EnvID="map&lt;uint32,Client&gt;">
 		<Toggle ID="map&lt;enum&lt;.ToggleType&gt;, Toggle&gt;" WorldID="uint32"/>
@@ -281,15 +283,16 @@ func Test_correctType(t *testing.T) {
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
 	xmlMeta, _, _ := readXMLFile(root, nil)
-	sheet1 := xmlMeta.SheetMap["MatchCfg"]
+	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/MatchMode/MatchAI/AI")
-	node2 := FindMetaNode(sheet1, "MatchCfg/MapConf/Weight")
+	node2 := FindMetaNode(sheet1, "MatchCfg/MapConf/Test/Weight")
 	node3 := FindMetaNode(sheet1, "MatchCfg/StructConf/Weight")
 	node4 := FindMetaNode(sheet1, "MatchCfg/ListConf/Weight")
 	node5 := FindMetaNode(sheet1, "MatchCfg/ListConf/Weight/Param")
 	node6 := FindMetaNode(sheet1, "MatchCfg/Client/Toggle")
 	node7 := FindMetaNode(sheet1, "MatchCfg")
 	node8 := FindMetaNode(sheet1, "MatchCfg/StructConf/Test")
+	node9 := FindMetaNode(sheet1, "MatchCfg/MapConf")
 	type args struct {
 		xmlSheet *tableaupb.XMLSheet
 		curr     *tableaupb.Node
@@ -302,7 +305,7 @@ func Test_correctType(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "MatchAI",
+			name: "MatchCfg/MatchMode/MatchAI/AI",
 			args: args{
 				xmlSheet: sheet1,
 				curr:     node1,
@@ -311,16 +314,16 @@ func Test_correctType(t *testing.T) {
 			want: `[AI]<enum<.ENMAIWarmType>>`,
 		},
 		{
-			name: "MapConf",
+			name: "MatchCfg/MapConf/Test/Weight",
 			args: args{
 				xmlSheet: sheet1,
 				curr:     node2,
 				oriType:  `map<uint32,Weight>`,
 			},
-			want: `{MapConf}map<uint32,Weight>`,
+			want: `{Test}map<uint32,Weight>`,
 		},
 		{
-			name: "StructConf",
+			name: "MatchCfg/StructConf/Weight",
 			args: args{
 				xmlSheet: sheet1,
 				curr:     node3,
@@ -329,7 +332,7 @@ func Test_correctType(t *testing.T) {
 			want: `{StructConf}{Weight}int32`,
 		},
 		{
-			name: "ListConf",
+			name: "MatchCfg/ListConf/Weight",
 			args: args{
 				xmlSheet: sheet1,
 				curr:     node4,
@@ -338,7 +341,7 @@ func Test_correctType(t *testing.T) {
 			want: `{ListConf}[Weight]<int32>`,
 		},
 		{
-			name: "ListConf/Param",
+			name: "MatchCfg/ListConf/Weight/Param",
 			args: args{
 				xmlSheet: sheet1,
 				curr:     node5,
@@ -347,7 +350,7 @@ func Test_correctType(t *testing.T) {
 			want: `[Param]<int32>`,
 		},
 		{
-			name: "FeatureToggle",
+			name: "MatchCfg/Client/Toggle",
 			args: args{
 				xmlSheet: sheet1,
 				curr:     node6,
@@ -356,7 +359,7 @@ func Test_correctType(t *testing.T) {
 			want: `map<enum<.ToggleType>, Toggle>`,
 		},
 		{
-			name: "sheet attr",
+			name: "MatchCfg",
 			args: args{
 				xmlSheet: sheet1,
 				curr:     node7,
@@ -365,13 +368,22 @@ func Test_correctType(t *testing.T) {
 			want: `bool`,
 		},
 		{
-			name: "children with different names",
+			name: "MatchCfg/StructConf/Test",
 			args: args{
 				xmlSheet: sheet1,
 				curr:     node8,
 				oriType:  `int32`,
 			},
 			want: `{Test}int32`,
+		},
+		{
+			name: "MatchCfg/MapConf@Param",
+			args: args{
+				xmlSheet: sheet1,
+				curr:     node9,
+				oriType:  `[]int64`,
+			},
+			want: `{MapConf}[]<int64>`,
 		},
 	}
 	for _, tt := range tests {
@@ -442,6 +454,75 @@ func Test_getNodePath(t *testing.T) {
 			}
 			if gotPath != tt.wantPath {
 				t.Errorf("getNodePath() gotPath = %v, want %v", gotPath, tt.wantPath)
+			}
+		})
+	}
+}
+
+func Test_isCrossCell(t *testing.T) {
+	type args struct {
+		t string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		// TODO: Add test cases.
+		{
+			name: "map<uint32, Item>",
+			args: args{
+				t: "map<uint32, Item>",
+			},
+			want: true,
+		},
+		{
+			name: "map<uint32, enum<.RankType>>",
+			args: args{
+				t: "map<uint32, enum<.RankType>>",
+			},
+			want: false,
+		},
+		{
+			name: "[]int32",
+			args: args{
+				t: "[]int32",
+			},
+			want: false,
+		},		
+		{
+			name: "[.Item]uint32",
+			args: args{
+				t: "[.Item]uint32",
+			},
+			want: true,
+		},
+		{
+			name: "[RankConf]<uint32>",
+			args: args{
+				t: "[RankConf]<uint32>",
+			},
+			want: true,
+		},
+		{
+			name: "{int32 ID,string Name,string Desc}Prop",
+			args: args{
+				t: "{int32 ID,string Name,string Desc}Prop",
+			},
+			want: false,
+		},	
+		{
+			name: "{.Item}uint32",
+			args: args{
+				t: "{.Item}uint32",
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isCrossCell(tt.args.t); got != tt.want {
+				t.Errorf("isCrossCell() = %v, want %v", got, tt.want)
 			}
 		})
 	}

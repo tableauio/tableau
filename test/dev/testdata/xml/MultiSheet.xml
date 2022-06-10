@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- @TABLEAU
 <Server>
-    <MapConf>
+    <MapConf Param="[]int64" TypeNum="map<int32, int32>">
         <Weight Num="map<int32,Weight>"/>
     </MapConf>
 </Server>
@@ -28,7 +28,7 @@
         </Weight>
     </ListConf>
 
-    <MapConf>
+    <MapConf Param="1,2,3" TypeNum="1:1,2:2">
         <Weight Num="1">
             <Param Value="100"/>
         </Weight>

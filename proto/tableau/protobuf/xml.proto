@@ -6,7 +6,8 @@ option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 message XMLMeta {
   // SheetMap maps sheet name to a XMLSheet struct 
   // containing two trees which describe the XML structure
-  map<string, XMLSheet> sheet_map = 1;
+  repeated XMLSheet sheet_list = 1;
+  map<string, int32> sheet_map = 2;
 }
 
 message XMLSheet {  
