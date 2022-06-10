@@ -50,6 +50,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		ProtoPackage: protoPackage,
 		InputDir:     indir,
 		OutputDir:    outdir,
+		LocationName: opts.LocationName,
 		InputOpt:     opts.Input.Conf,
 		OutputOpt:    opts.Output.Conf,
 		PerfStats:    sync.Map{},
