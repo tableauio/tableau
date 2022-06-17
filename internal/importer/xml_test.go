@@ -78,7 +78,7 @@ func Test_escapeAttrs(t *testing.T) {
 	}
 }
 
-func FindMetaNode(xmlSheet *tableaupb.XMLSheet, path string) *tableaupb.Node {
+func FindMetaNode(xmlSheet *tableaupb.XMLSheet, path string) *tableaupb.XMLNode {
 	if node, ok := xmlSheet.MetaNodeMap[path]; ok {
 		return node
 	}
@@ -110,7 +110,7 @@ func Test_isRepeated(t *testing.T) {
 	node4 := FindMetaNode(sheet1, "MatchCfg")
 	type args struct {
 		xmlSheet *tableaupb.XMLSheet
-		curr     *tableaupb.Node
+		curr     *tableaupb.XMLNode
 	}
 	tests := []struct {
 		name string
@@ -216,7 +216,7 @@ func Test_isFirstChild(t *testing.T) {
 	sheet1 := getXMLSheet(xmlMeta, "Server")
 	node1 := FindMetaNode(sheet1, "Server/MapConf/Weight")
 	type args struct {
-		curr *tableaupb.Node
+		curr *tableaupb.XMLNode
 	}
 	tests := []struct {
 		name string
@@ -295,7 +295,7 @@ func Test_fixNodeType(t *testing.T) {
 	node9 := FindMetaNode(sheet1, "MatchCfg/MapConf")
 	type args struct {
 		xmlSheet *tableaupb.XMLSheet
-		curr     *tableaupb.Node
+		curr     *tableaupb.XMLNode
 		oriType  string
 	}
 	tests := []struct {
