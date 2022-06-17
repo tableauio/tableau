@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/xml"
 	"fmt"
@@ -74,6 +75,19 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open %s", filename)
 	}
+	defer f.Close()
+	// pre check if exists `@TABLEAU`
+	scanner := bufio.NewScanner(f)
+	foundTableau := false
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), book.MetasheetName) {
+			foundTableau = true
+			break
+		}
+	}
+	if !foundTableau {
+		return nil, nil
+	}
 	root, err := xmlquery.Parse(f)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
@@ -84,7 +98,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	if err != nil {
 		switch e := err.(type) {
 		case *NoNeedParseError:
-			atom.Log.Debugf("xml:%s no need parse: @TABLEAU not found", filename)
+			atom.Log.Debugf("xml:%s no need parse: %s not found", filename, book.MetasheetName)
 			return nil, nil
 		default:
 			return nil, e
@@ -116,7 +130,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 }
 
 // --------------------------------------------- THE FIRST PASS ------------------------------------ //
-// The first pass simply read xml file with xmlquery, construct a recursively self-described tree 
+// The first pass simply reads xml file with xmlquery, construct a recursively self-described tree 
 // structure defined in xml.proto and put it into memory.
 //
 // readXMLFile read the raw xml rooted at `root`, specify which sheets to parse and return a XMLBook.
@@ -384,7 +398,7 @@ func getXMLSheet(xmlMeta *tableaupb.XMLBook, sheetName string) *tableaupb.XMLShe
 }
 
 // --------------------------------------------- THE SECOND PASS ------------------------------------ //
-// The second pass preprocess the tree structure. In this phase the parser will do some necessary jobs 
+// The second pass preprocesses the tree structure. In this phase the parser will do some necessary jobs 
 // before generating a 2-dimensional sheet, like correctType which make the types of attributes in the 
 // nodes meet the requirements of protogen.
 //
