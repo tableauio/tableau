@@ -38,7 +38,7 @@ func Test_GenProto(t *testing.T) {
 					},
 					Subdirs: []string{
 						// "xml/match",
-					},			
+					},
 				},
 			},
 		),
@@ -86,8 +86,9 @@ func Test_GenConf(t *testing.T) {
 		options.Output(
 			&options.OutputOption{
 				Conf: &options.OutputConfOption{
-					Pretty:  true,
-					Formats: []format.Format{format.JSON},
+					Pretty:          true,
+					Formats:         []format.Format{format.JSON},
+					EmitUnpopulated: true,
 				},
 			},
 		),

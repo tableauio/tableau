@@ -49,16 +49,18 @@ type RowCells struct {
 	// *MISSING-KEY*		ChapterConf
 	// *MISSING-KEY*		CollectionConf
 
-	prev *RowCells
+	SheetName string
+	prev      *RowCells
 
 	Row          int                 // row number
 	cells        map[string]*RowCell // name -> RowCell
 	indexedCells map[int]*RowCell    // column index -> RowCell
 }
 
-func NewRowCells(row int, prev *RowCells) *RowCells {
+func NewRowCells(row int, prev *RowCells, sheetName string) *RowCells {
 	return &RowCells{
-		prev: prev,
+		SheetName: sheetName,
+		prev:      prev,
 
 		Row:          row,
 		cells:        make(map[string]*RowCell),
@@ -86,19 +88,42 @@ func (r *RowCells) Cell(name string, optional bool) *RowCell {
 	return c
 }
 
+func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowCell) {
+	minCol, maxCol := -1, -1
+	for name, cell := range r.cells {
+		if strings.HasPrefix(name, prefix) {
+			if minCol == -1 || minCol > cell.Col {
+				minCol = cell.Col
+			}
+			if maxCol == -1 || maxCol < cell.Col {
+				maxCol = cell.Col
+			}
+		}
+	}
+	if minCol == -1 || maxCol == -1 {
+		return nil, nil
+	}
+	return r.indexedCells[minCol], r.indexedCells[maxCol]
+}
+
 func (r *RowCells) CellDebugString(name string) string {
 	pos := "?"
 	data := ""
 	rc := r.Cell(name, false)
 	if rc == nil {
-		return fmt.Sprintf("%s%d(%s), %s", pos, r.Row+1, data, name)
+		left, right := r.findCellRangeWithNamePrefix(name)
+		if left != nil && right != nil {
+			pos = fmt.Sprintf("[%s...%s]", excel.LetterAxis(left.Col), excel.LetterAxis(right.Col))
+			data = fmt.Sprintf("[%s...%s]", left.Data, right.Data)
+		}
+	} else {
+		data = rc.Data
+		if rc.autoPopulated {
+			data += "~"
+		}
+		pos = excel.LetterAxis(rc.Col)
 	}
-	data = rc.Data
-	if rc.autoPopulated {
-		data += "~"
-	}
-	pos = excel.LetterAxis(rc.Col)
-	return fmt.Sprintf("%s%d(%s), %s", pos, r.Row+1, data, name)
+	return fmt.Sprintf("%s %s%d(%s), %s", r.SheetName, pos, r.Row+1, data, name)
 }
 
 func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateKey bool) {

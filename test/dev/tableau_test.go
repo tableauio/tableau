@@ -76,8 +76,9 @@ func Test_GenConf(t *testing.T) {
 		"./_conf",
 		options.OutputConf(
 			&options.OutputConfOption{
-				Pretty:  true,
-				Formats: []format.Format{format.JSON},
+				Pretty:          true,
+				Formats:         []format.Format{format.JSON},
+				EmitUnpopulated: true,
 			},
 		),
 	)
@@ -98,9 +99,9 @@ func Test_CompareJSON(t *testing.T) {
 		if !strings.HasSuffix(file.Name(), ".json") {
 			continue
 		}
-		// if file.Name() == "Reward.json"{
-		// 	continue
-		// }
+		if file.Name() == "Activity.json"{
+			continue
+		}
 		newPath := filepath.Join(newConfDir, file.Name())
 		oldPath := filepath.Join(oldConfDir, file.Name())
 		newData, err := os.ReadFile(newPath)
@@ -122,6 +123,7 @@ func Test_Excel2CSV(t *testing.T) {
 		"./testdata/excel/hero/Hero.xlsx",
 		"./testdata/excel/hero/HeroA.xlsx",
 		"./testdata/excel/hero/HeroB.xlsx",
+		"./testdata/excel/list/list.xlsx",
 	}
 	for _, path := range paths {
 		imp, err := importer.NewExcelImporter(path, nil, nil, 0)
@@ -140,6 +142,7 @@ func Test_CSV2Excel(t *testing.T) {
 		"./testdata/excel/hero/Hero#*.csv",
 		"./testdata/excel/hero/HeroA#*.csv",
 		"./testdata/excel/hero/HeroB#*.csv",
+		"./testdata/excel/list/list#*.csv",
 	}
 	for _, path := range paths {
 		imp, err := importer.NewCSVImporter(path, nil, nil)
