@@ -38,6 +38,7 @@ func Test_GenProto(t *testing.T) {
 					},
 					Subdirs: []string{
 						// "xml/match",
+						// "xml/_test",
 					},
 				},
 			},
@@ -55,7 +56,7 @@ func Test_GenProto(t *testing.T) {
 		),
 		options.Log(
 			&options.LogOption{
-				Level: "INFO",
+				Level: "DEBUG",
 				Mode:  "FULL",
 			},
 		),

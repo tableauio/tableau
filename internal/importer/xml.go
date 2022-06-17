@@ -1,11 +1,9 @@
 package importer
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/antchfx/xmlquery"
-	"github.com/antchfx/xpath"
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/atom"
@@ -24,118 +21,28 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
-// metaName defines the meta data of each worksheet.
-const (
-	metaName             = "TABLEAU"
-	emptyMetaSheetRegexp = `^\s*<!--\s*@TABLEAU\s*-->\s*$` // e.g.: <!-- @TABLEAU -->
-)
-
-type Range struct {
-	begin   int // index that Range begins at
-	attrNum int // the number of attrs with the same prefix
-	len     int // total number of columns with the same prefix, including attrs and children
-}
 type XMLImporter struct {
 	*book.Book
 }
 
 type NoNeedParseError struct {
-	err error
 }
 
-func (e NoNeedParseError) Error() string {
-	return "`@TABLEAU` not found"
+func (e *NoNeedParseError) Error() string {
+	return fmt.Sprintf("`%s` not found", book.MetasheetName)
 }
 
-func (e NoNeedParseError) Unwrap() error {
-	return e.err
-}
+var attrRegexp *regexp.Regexp
+var scalarListRegexp *regexp.Regexp
 
-var metaBeginRegexp *regexp.Regexp
-var metaEndRegexp *regexp.Regexp
-var attrValRegexp *regexp.Regexp
+const (
+	xmlProlog         = `<?xml version='1.0' encoding='UTF-8'?>`
+	ungreedyPropGroup = `(\|\{[^\{\}]+\})?`
+)
 
 func init() {
-	metaBeginRegexp = regexp.MustCompile(`^\s*<!--\s*@TABLEAU\s*$|` + emptyMetaSheetRegexp) // e.g.: <!--    @TABLEAU
-	metaEndRegexp = regexp.MustCompile(`^\s*-->\s*$|` + emptyMetaSheetRegexp)               // e.g.:       -->
-	attrValRegexp = regexp.MustCompile(`"` + types.PubTypeGroup + `"`)                                             // e.g.: "map<uint32, Type>"
-}
-
-func matchMetaBeginning(s string) []string {
-	return metaBeginRegexp.FindStringSubmatch(s)
-}
-
-func isMetaBeginning(s string) bool {
-	return matchMetaBeginning(s) != nil
-}
-
-func matchMetaEnding(s string) []string {
-	return metaEndRegexp.FindStringSubmatch(s)
-}
-
-func isMetaEnding(s string) bool {
-	return matchMetaEnding(s) != nil
-}
-
-// getMetaDoc get metaSheet document from `@TABLEAU` comments block. e.g.:
-//
-// <!-- @TABLEAU
-// <ServerConf key="map<uint32,ServerConf> Open="bool">
-// 	...
-// </ServerConf>
-// -->
-//
-// will be converted to
-//
-// <ServerConf key="map<uint32,ServerConf> Open="bool">
-// 	...
-// </ServerConf>
-func getMetaDoc(doc string) (metaDoc string, err error) {
-	metaBuf := bytes.NewBuffer(make([]byte, 0, len(doc)))
-	scanner := bufio.NewScanner(strings.NewReader(doc))
-	inMetaBlock := false
-	foundMeta := false
-	for scanner.Scan() {
-		metaBeginning := isMetaBeginning(scanner.Text())
-		metaEnding := isMetaEnding(scanner.Text()) && (inMetaBlock || metaBeginning)
-		if metaBeginning {
-			foundMeta = true
-		}
-		// close a meta block
-		if metaEnding {
-			break
-		}
-		if metaBeginning && !metaEnding {
-			inMetaBlock = true
-		} else if inMetaBlock {
-			metaBuf.WriteString(scanner.Text() + "\n")
-		}
-	}
-	// `@TABLEAU` must exist
-	if !foundMeta {
-		return metaBuf.String(), &NoNeedParseError{}
-	}
-	return metaBuf.String(), nil
-}
-
-// escapeMetaDoc escape characters for all attribute values in the document. e.g.:
-//
-// <ServerConf key="map<uint32,ServerConf> Open="bool">
-// 	...
-// </ServerConf>
-//
-// will be converted to
-//
-// <ServerConf key="map&lt;uint32,ServerConf&gt; Open="bool">
-// 	...
-// </ServerConf>
-func escapeAttrs(doc string) string {
-	escapedDoc := attrValRegexp.ReplaceAllStringFunc(doc, func(s string) string {
-		var buf bytes.Buffer
-		xml.EscapeText(&buf, []byte(s[1:len(s)-1]))
-		return fmt.Sprintf("\"%s\"", buf.String())
-	})
-	return escapedDoc
+	attrRegexp = regexp.MustCompile(`([0-9A-Za-z_]+)="` + types.TypeGroup + ungreedyPropGroup + `"`)
+	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)
 }
 
 // TODO: options
@@ -152,7 +59,7 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 		}, nil
 	}
 	// newBook.ExportCSV()
-	
+
 	return &XMLImporter{
 		Book: newBook,
 	}, nil
@@ -162,139 +69,498 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 // in TABLEAU grammar which can be exported to protobuf by excel parser.
 func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	// open xml file and parse the document
-	xmlPath := filename
-	atom.Log.Debugf("xml: %s", xmlPath)
-	buf, err := os.ReadFile(xmlPath)
+	atom.Log.Debugf("xml: %s", filename)
+	f, err := os.Open(filename)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open %s", xmlPath)
+		return nil, errors.Wrapf(err, "failed to open %s", filename)
+	}
+	root, err := xmlquery.Parse(f)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
 
-	// get metaSheet document
-	metaDoc, err := getMetaDoc(string(buf))
+	// The first pass
+	xmlMeta, sheetNames, err := readXMLFile(root, sheetNames)
 	if err != nil {
-		var noNeedParse *NoNeedParseError
-		if errors.As(err, &noNeedParse) {
-			atom.Log.Debugf("%s no need parse: %s", xmlPath, noNeedParse)
+		switch e := err.(type) {
+		case *NoNeedParseError:
+			atom.Log.Debugf("xml:%s no need parse: @TABLEAU not found", filename)
 			return nil, nil
-		} else {
-			return nil, errors.Wrapf(err, "failed to getMetaDoc from xml content:\n%s", string(buf))
+		default:
+			return nil, e
 		}
 	}
 
-	// escape characters for attribute
-	metaDoc = escapeAttrs(metaDoc)
-	atom.Log.Debug(metaDoc)
-
-	//------------------------------ The first pass ------------------------------//	
-	// parse the metaSheet
-	// Note that one xml file only has one root
-	// So in order to have multiple roots, we need to use a stream parser
-	noSheetByUser := len(sheetNames) == 0
-	header := options.NewDefault().Input.Proto.Header
-	type SheetCache struct{
-		metaSheet *xlsxgen.MetaSheet // metaSheet begins with `<-- @TABLEAU`
-		prefixMap map[string]Range // prefix -> [6, 9)
-	}
-	sheetMap := make(map[string]*SheetCache)
-	p, err := xmlquery.CreateStreamParser(strings.NewReader(metaDoc), "/")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create stream parser from string %s", metaDoc)
-	}
-	for {
-		n, err := p.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read from stream parser")
-		}		
-		nav := xmlquery.CreateXPathNavigator(n)
-		sheetName := nav.LocalName()
-		// add new sheet to cache
-		sheetMap[sheetName] = &SheetCache{xlsxgen.NewMetaSheet(sheetName, header, false), make(map[string]Range)}
-		if err := firstParseSheet(nav, sheetMap[sheetName].metaSheet, sheetMap[sheetName].prefixMap, true); err != nil {
-			return nil, errors.Wrapf(err, "failed to parse `@%s` sheet: %s#%s", metaName, filename, sheetName)
-		}
-		// append if user not specified
-		if noSheetByUser {
-			sheetNames = append(sheetNames, sheetName)
-		}
-	}
-	atom.Log.Debug(sheetNames)
-
-	// parse data sheets
-	noSheetInMeta := len(sheetNames) == 0
-	p, err = xmlquery.CreateStreamParser(strings.NewReader(string(buf)), "/")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create stream parser from string %s", metaDoc)
-	}
-	for {
-		n, err := p.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read from stream parser")
-		}
-		nav := xmlquery.CreateXPathNavigator(n)
-		sheetName := nav.LocalName()
-		// add new sheet if not exist
-		if _, ok := sheetMap[sheetName]; !ok {
-			sheetMap[sheetName] = &SheetCache{xlsxgen.NewMetaSheet(sheetName, header, false), make(map[string]Range)}
-		}
-		if err := firstParseSheet(nav, sheetMap[sheetName].metaSheet, sheetMap[sheetName].prefixMap, false); err != nil {
-			return nil, errors.Wrapf(err, "failed to parse sheet: %s#%s", filename, sheetName)
-		}
-		// generate all if metaSheet not specified
-		if noSheetInMeta {
-			sheetNames = append(sheetNames, sheetName)
-		}
-	}
-	atom.Log.Debug(sheetNames)
-
-	//------------------------------ The second pass ------------------------------//
-	// only parse data sheets
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, nil)
-	p, _ = xmlquery.CreateStreamParser(strings.NewReader(string(buf)), "/")
-	for {
-		n, err := p.Read()
-		if err == io.EOF {
-			break
+	for _, xmlSheet := range xmlMeta.SheetList {
+		sheetName := xmlSheet.Meta.Name
+		// The second pass
+		if err := preprocess(xmlSheet, xmlSheet.Meta); err != nil {
+			return nil, errors.Wrapf(err, "failed to preprocess for sheet: %s", sheetName)
 		}
+		// The third pass
+		sheet, err := genSheet(xmlSheet)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read from stream parser")
-		}
-		nav := xmlquery.CreateXPathNavigator(n)
-		sheet, err := secondParseSheet(nav, sheetMap[nav.LocalName()].metaSheet)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse sheet: %s#%s", filename, nav.LocalName())
+			return nil, errors.Wrapf(err, "failed to genSheet for sheet: %s", sheetName)
 		}
 		newBook.AddSheet(sheet)
 	}
-	newBook.Squeeze(sheetNames)
+	atom.Log.Debug(sheetNames)
+
+	if len(sheetNames) > 0 {
+		newBook.Squeeze(sheetNames)
+	}
 
 	return newBook, nil
 }
 
-// firstParseSheet do the jobs of first pass of the XML parser. To be more specified, recursively explore the document rooted by `root`
-// and fill the header (first 2 rows) of `metaSheet`, which can fully describe the structure of document.
-func firstParseSheet(root *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, prefixMap map[string]Range, isMeta bool) error {
-	if err := parseNodeType(root, metaSheet, prefixMap, isMeta, true); err != nil {
-		return errors.Wrapf(err, "failed to parseNodeType for root node %s", metaSheet.Worksheet)
+// --------------------------------------------- THE FIRST PASS ------------------------------------ //
+// The first pass simply read xml file with xmlquery, construct a recursively self-described tree 
+// structure defined in xml.proto and put it into memory.
+//
+// readXMLFile read the raw xml rooted at `root`, specify which sheets to parse and return a XMLBook.
+func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLBook, []string, error) {
+	xmlMeta := &tableaupb.XMLBook{
+		SheetMap: make(map[string]int32),
 	}
-	atom.Log.Debug(metaSheet)
+	noSheetByUser := len(sheetNames) == 0
+	foundMetaSheetName := false
+	for n := root.FirstChild; n != nil; n = n.NextSibling {
+		switch n.Type {
+		case xmlquery.CommentNode:
+			if !strings.Contains(n.Data, book.MetasheetName) {
+				continue
+			}
+			foundMetaSheetName = true
+			metaStr := xmlProlog + escapeAttrs(strings.ReplaceAll(n.Data, book.MetasheetName, ""))
+			// atom.Log.Debug(metaStr)
+			metaRoot, err := xmlquery.Parse(strings.NewReader(metaStr))
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "failed to parse @TABLEAU string: %s", metaStr)
+			}
+			for n := metaRoot.FirstChild; n != nil; n = n.NextSibling {
+				if n.Type != xmlquery.ElementNode {
+					continue
+				}
+				sheetName := n.Data
+				xmlSheet := getXMLSheet(xmlMeta, sheetName)
+				if err := parseMetaNode(n, xmlSheet); err != nil {
+					return nil, nil, errors.Wrapf(err, "failed to parseMetaNode for sheet:%s", sheetName)
+				}
+				// append if user not specified
+				if noSheetByUser {
+					sheetNames = append(sheetNames, sheetName)
+				}
+			}
+		case xmlquery.ElementNode:
+			sheetName := n.Data
+			xmlSheet := getXMLSheet(xmlMeta, sheetName)
+			if err := parseDataNode(n, xmlSheet); err != nil {
+				return nil, nil, errors.Wrapf(err, "failed to parseDataNode for sheet:%s", sheetName)
+			}
+		default:
+		}
+	}
+	if !foundMetaSheetName && noSheetByUser {
+		return nil, nil, &NoNeedParseError{}
+	}
+
+	return xmlMeta, sheetNames, nil
+}
+
+// parseMetaNode parse xml node `curr` and construct the meta tree in `xmlSheet`.
+func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
+	_, path := getNodePath(curr)
+	meta := xmlSheet.MetaNodeMap[path]
+	for _, attr := range curr.Attr {
+		attrName := attr.Name.Local
+		t := attr.Value
+		if len(meta.AttrMap.List) > 0 && isCrossCell(t) {
+			return fmt.Errorf("%s=\"%s\" is a complex type, must be the first attribute", attrName, t)
+		}
+		if idx, ok := meta.AttrMap.Map[attrName]; !ok {
+			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
+			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.XMLNode_AttrMap_Attr{
+				Name:  attrName,
+				Value: t,
+			})
+		} else {
+			// replace attribute value by metaSheet
+			metaAttr := meta.AttrMap.List[idx]
+			metaAttr.Value = t
+		}
+	}
+	for n := curr.FirstChild; n != nil; n = n.NextSibling {
+		if n.Type != xmlquery.ElementNode {
+			continue
+		}
+		childName := n.Data
+		if _, ok := meta.ChildMap[childName]; !ok {
+			newNode := newNode(childName, meta)
+			meta.ChildMap[childName] = &tableaupb.XMLNode_IndexList{
+				Indexes: []int32{int32(len(meta.ChildList))},
+			}
+			meta.ChildList = append(meta.ChildList, newNode)
+			registerMetaNode(xmlSheet, newNode)
+		}
+		if err := parseMetaNode(n, xmlSheet); err != nil {
+			return errors.Wrapf(err, "failed to parseMetaNode for %s@%s", childName, meta.Name)
+		}
+	}
 	return nil
 }
 
-// secondParseSheet proceed filling the data rows (begins from 5th row) of `metaSheet` on the basis of `firstParseSheet` and
-// return a 2-dimensional book in TABLEAU grammar, which can fully describe both the structure and data of the document.
-func secondParseSheet(root *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet) (sheet *book.Sheet, err error) {
-	if err := parseNodeData(root, metaSheet, int(metaSheet.Datarow)-1); err != nil {
-		return nil, errors.Wrapf(err, "failed to parseNodeData for root node %s", metaSheet.Worksheet)
+// parseDataNode parse xml node `curr`, complete the meta tree and fill the data into `xmlSheet`.
+func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
+	_, path := getNodePath(curr)
+	meta := xmlSheet.MetaNodeMap[path]
+	data_nodes := xmlSheet.DataNodeMap[path].Nodes
+	data := data_nodes[len(data_nodes)-1]
+	for _, attr := range curr.Attr {
+		attrName := attr.Name.Local
+		t := inferType(attr.Value)
+		if _, ok := meta.AttrMap.Map[attrName]; !ok {
+			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
+			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.XMLNode_AttrMap_Attr{
+				Name:  attrName,
+				Value: t,
+			})
+		}
+		data.AttrMap.Map[attrName] = int32(len(data.AttrMap.List))
+		data.AttrMap.List = append(data.AttrMap.List, &tableaupb.XMLNode_AttrMap_Attr{
+			Name:  attrName,
+			Value: attr.Value,
+		})
 	}
-	atom.Log.Debug(metaSheet)
-	
+	for n := curr.FirstChild; n != nil; n = n.NextSibling {
+		if n.Type != xmlquery.ElementNode {
+			continue
+		}
+		childName := n.Data
+		dataChild := newNode(childName, data)
+		registerDataNode(xmlSheet, dataChild)
+		if _, ok := meta.ChildMap[childName]; !ok {
+			newNode := newNode(childName, meta)
+			meta.ChildMap[childName] = &tableaupb.XMLNode_IndexList{
+				Indexes: []int32{int32(len(meta.ChildList))},
+			}
+			meta.ChildList = append(meta.ChildList, newNode)
+			registerMetaNode(xmlSheet, newNode)
+		}
+		if err := parseDataNode(n, xmlSheet); err != nil {
+			return errors.Wrapf(err, "failed to parseDataNode for %s@%s", childName, meta.Name)
+		}
+		if list, ok := data.ChildMap[childName]; !ok {
+			data.ChildMap[childName] = &tableaupb.XMLNode_IndexList{
+				Indexes: []int32{int32(len(data.ChildList))},
+			}
+		} else {
+			list.Indexes = append(list.Indexes, int32(len(data.ChildList)))
+		}
+		data.ChildList = append(data.ChildList, dataChild)
+	}
+	return nil
+}
+
+// escapeMetaDoc escape characters for all attribute values in the document. e.g.:
+//
+//  <ServerConf key="map<uint32,ServerConf>" Open="bool">
+// 	 ...
+//  </ServerConf>
+//
+// will be converted to
+//
+//  <ServerConf key="map&lt;uint32,ServerConf&gt;" Open="bool">
+// 	 ...
+//  </ServerConf>
+func escapeAttrs(doc string) string {
+	escapedDoc := attrRegexp.ReplaceAllStringFunc(doc, func(s string) string {
+		matches := matchAttr(s)
+		var typeBuf, propBuf bytes.Buffer
+		xml.EscapeText(&typeBuf, []byte(matches[2]))
+		xml.EscapeText(&propBuf, []byte(matches[3]))
+		return fmt.Sprintf("%s=\"%s%s\"", matches[1], typeBuf.String(), propBuf.String())
+	})
+	return escapedDoc
+}
+
+// getNodePath get the root and the path walking from root to `curr` in the tree.
+func getNodePath(curr *xmlquery.Node) (root *xmlquery.Node, path string) {
+	path = curr.Data
+	for n := curr.Parent; n != nil; n = n.Parent {
+		if n.Data == "" {
+			root = n
+		} else {
+			path = fmt.Sprintf("%s/%s", n.Data, path)
+
+		}
+	}
+	return root, path
+}
+
+// inferType infer type from the node value, e.g.: 
+// - 4324342: `int32`
+// - 4324324324324343243432: `int64`
+// - 4535ffdr43t3r: `string`
+func inferType(value string) string {
+	if _, err := strconv.Atoi(value); err == nil {
+		return "int32"
+	} else if _, err := strconv.ParseInt(value, 10, 64); err == nil {
+		return "int64"
+	} else {
+		return "string"
+	}
+}
+
+func matchAttr(s string) []string {
+	return attrRegexp.FindStringSubmatch(s)
+}
+
+func matchScalarList(s string) []string {
+	return scalarListRegexp.FindStringSubmatch(s)
+}
+
+func newOrderedAttrMap() *tableaupb.XMLNode_AttrMap {
+	return &tableaupb.XMLNode_AttrMap{
+		Map: make(map[string]int32),
+	}
+}
+
+func newNode(nodeName string, parent *tableaupb.XMLNode) *tableaupb.XMLNode {
+	node := &tableaupb.XMLNode{
+		Name:     nodeName,
+		AttrMap:  newOrderedAttrMap(),
+		ChildMap: make(map[string]*tableaupb.XMLNode_IndexList),
+		Parent:   parent,
+	}
+	if parent != nil {
+		node.Path = fmt.Sprintf("%s/%s", parent.Path, nodeName)
+	} else {
+		node.Path = nodeName
+	}
+
+	return node
+}
+
+func registerMetaNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) {
+	if _, ok := xmlSheet.MetaNodeMap[node.Path]; !ok {
+		xmlSheet.MetaNodeMap[node.Path] = node
+	} else {
+		atom.Log.Panicf("duplicated path registered in MetaNodeMap|Path:%s", node.Path)
+	}
+}
+
+func registerDataNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) {
+	if list, ok := xmlSheet.DataNodeMap[node.Path]; !ok {
+		xmlSheet.DataNodeMap[node.Path] = &tableaupb.XMLSheet_NodeList{
+			Nodes: []*tableaupb.XMLNode{node},
+		}
+	} else {
+		list.Nodes = append(list.Nodes, node)
+	}
+}
+
+func newXMLSheet(sheetName string) *tableaupb.XMLSheet {
+	return &tableaupb.XMLSheet{
+		Meta:        newNode(sheetName, nil),
+		Data:        newNode(sheetName, nil),
+		MetaNodeMap: make(map[string]*tableaupb.XMLNode),
+		DataNodeMap: make(map[string]*tableaupb.XMLSheet_NodeList),
+	}
+}
+
+func getXMLSheet(xmlMeta *tableaupb.XMLBook, sheetName string) *tableaupb.XMLSheet {
+	if idx, ok := xmlMeta.SheetMap[sheetName]; !ok {
+		xmlSheet := newXMLSheet(sheetName)
+		registerMetaNode(xmlSheet, xmlSheet.Meta)
+		registerDataNode(xmlSheet, xmlSheet.Data)
+		xmlMeta.SheetMap[sheetName] = int32(len(xmlMeta.SheetList))
+		xmlMeta.SheetList = append(xmlMeta.SheetList, xmlSheet)
+		return xmlSheet
+	} else {
+		return xmlMeta.SheetList[idx]
+	}
+}
+
+// --------------------------------------------- THE SECOND PASS ------------------------------------ //
+// The second pass preprocess the tree structure. In this phase the parser will do some necessary jobs 
+// before generating a 2-dimensional sheet, like correctType which make the types of attributes in the 
+// nodes meet the requirements of protogen.
+//
+func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
+	// rearrange attributes
+	if err := rearrangeAttrs(node.AttrMap); err != nil {
+		return errors.Wrapf(err, "failed to rearrangeAttrs")
+	}
+	// fix node types when it is the first attribute
+	for i, attr := range node.AttrMap.List {
+		if i == 0 {
+			attr.Value = fixNodeType(xmlSheet, node, attr.Value)
+		}
+	}
+
+	// recursively preprocess
+	for _, child := range node.ChildList {
+		if err := preprocess(xmlSheet, child); err != nil {
+			return errors.Wrapf(err, "failed to preprocess node:%s", child.Name)
+		}
+	}
+	return nil
+}
+
+// rearrangeAttrs change the order of attributes, e.g.: 
+// - attributes with cross-type types, such as cross-cell map (list, keyed-list, etc.), 
+//   will be placed at the first.
+// - simple list like `Param1, Param2, Param3, ...` will be grouped together and 
+//   the type of `Param1` will be changed to something like `[]int32`.
+func rearrangeAttrs(attrMap *tableaupb.XMLNode_AttrMap) error {
+	typeMap := make(map[string]string)
+	indexMap := make(map[int]int)
+	for i, attr := range attrMap.List {
+		mustFirst := isCrossCell(attr.Value)
+		if mustFirst {
+			swapAttr(attrMap, i, 0)
+			typeMap[attr.Name] = attr.Value
+			continue
+		}
+		matches := matchScalarList(attr.Name)
+		if len(matches) > 0 && types.IsScalarType(attr.Value) {
+			num, err := strconv.Atoi(matches[2])
+			if err != nil {
+				atom.Log.Errorf("strconv.Atoi failed|attr:%s|num:%s|err:%s", attr.Name, matches[2], err)
+				continue
+			}
+			indexMap[num] = i
+		}
+	}
+	// start with 1, e.g.: Param1, Param2, ...
+	for i, dst := 1, len(attrMap.List)-len(indexMap); ; i, dst = i+1, dst+1 {
+		index, ok := indexMap[i]
+		if !ok {
+			break
+		}
+		if i == 1 {
+			attr := attrMap.List[index]
+			attr.Value = fmt.Sprintf("[]%s", attr.Value)
+		}
+		swapAttr(attrMap, index, dst)
+	}
+	if len(typeMap) > 1 {
+		return fmt.Errorf("more than one non-scalar types: %v", typeMap)
+	}
+	return nil
+}
+
+// fixNodeType fix the type of `curr` in the `xmlSheet` based on its `oriType`. e.g.:
+// - map<uint32,Weight>: {Test}map<uint32,Weight>
+// - int32: {StructConf}{Weight}int32
+// - []int64: {MapConf}[]<int64>
+func fixNodeType(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.XMLNode, oriType string) (t string) {
+	t = oriType
+	if types.IsList(t) {
+		matches := types.MatchList(t)
+		colType := strings.TrimSpace(matches[2])
+		if types.IsScalarType(colType) || types.IsEnum(colType) {
+			// list in xml must be keyed list
+			t = fmt.Sprintf("[%s]<%s>", matches[1], colType)
+		}
+	}
+	// add type prefixes
+	for n, c := curr, curr; n != nil && n.Parent != nil; n, c = n.Parent, n {
+		if n == curr {
+			// curr is cross-cell, parent should not add prefix
+			if isCrossCell(oriType) {
+				continue
+			}
+		} else {
+			// not the first attr or not the first child, fix ok
+			if len(n.AttrMap.List) > 0 || !isFirstChild(c) {
+				break
+			}
+		}
+		if isRepeated(xmlSheet, n) {
+			if n == curr {
+				t = fmt.Sprintf("[%s]<%s>", n.Name, t)
+			} else {
+				t = fmt.Sprintf("[%s]%s", n.Name, t)
+			}
+		} else {
+			t = fmt.Sprintf("{%s}%s", n.Name, t)
+		}
+	}
+	return t
+}
+
+// isRepeated check if `curr` has other sibling nodes with the same name with itself.
+func isRepeated(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.XMLNode) bool {
+	strList := strings.Split(curr.Path, "/")
+	parentPath := strings.Join(strList[:len(strList)-1], "/")
+	if nodes, ok := xmlSheet.DataNodeMap[parentPath]; ok {
+		for _, n := range nodes.Nodes {
+			if indexes, ok := n.ChildMap[curr.Name]; ok && len(indexes.Indexes) > 1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// isCrossCell check if type string `t` is a cross-cell type.
+func isCrossCell(t string) bool {
+	if types.IsMap(t) { // map case
+		matches := types.MatchMap(t)
+		valueType := strings.TrimSpace(matches[2])
+		return !(types.IsScalarType(valueType) || types.IsEnum(valueType))
+	} else if types.IsList(t) { // list case
+		matches := types.MatchList(t)
+		structType := strings.TrimSpace(matches[1])
+		return structType != ""
+	} else if types.IsKeyedList(t) { // keyed-list case
+		matches := types.MatchKeyedList(t)
+		structType := strings.TrimSpace(matches[1])
+		return structType != ""
+	} else if types.IsStruct(t) { // struct case
+		matches := types.MatchStruct(t)
+		colType := strings.TrimSpace(matches[2])
+		return types.IsScalarType(colType) || types.IsEnum(colType)
+	}
+	return false
+}
+
+// isFirstChild check if `node` is the first child of its parent node.
+func isFirstChild(node *tableaupb.XMLNode) bool {
+	if node.Parent == nil {
+		return false
+	}
+	return node.Parent.ChildList[0] == node
+}
+
+func swapAttr(attrMap *tableaupb.XMLNode_AttrMap, i, j int) {
+	attr := attrMap.List[i]
+	attrMap.Map[attr.Name] = int32(j)
+	attrMap.Map[attrMap.List[j].Name] = int32(i)
+	attrMap.List[i] = attrMap.List[j]
+	attrMap.List[j] = attr
+}
+
+// --------------------------------------------- THE THIRD PASS ------------------------------------ //
+// The third pass transforms the recursive tree structure into a 2-dimensional sheet, 
+// which can be further processed into protoconf.
+//
+// genSheet generates a `book.Sheet` which can furtherly processed by `protogen`.
+func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
+	sheetName := strcase.ToCamel(xmlSheet.Meta.Name)
+	header := options.NewDefault().Input.Proto.Header
+	metaSheet := xlsxgen.NewMetaSheet(sheetName, header, false)
+	// generate sheet header rows
+	if err := genHeaderRows(xmlSheet.Meta, metaSheet, ""); err != nil {
+		return nil, errors.Wrapf(err, "failed to genHeaderRows for sheet: %s", sheetName)
+	}
+	// fill sheet data rows
+	if err := fillDataRows(xmlSheet.Data, metaSheet, "", int(metaSheet.Datarow)-1); err != nil {
+		return nil, errors.Wrapf(err, "failed to fillDataRows for sheet: %s", sheetName)
+	}
 	// unpack rows from the MetaSheet struct
 	var rows [][]string
 	for i := 0; i < len(metaSheet.Rows); i++ {
@@ -305,11 +571,10 @@ func secondParseSheet(root *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet
 		rows = append(rows, row)
 	}
 	// insert sheets into map for importer
-	header := options.NewDefault().Input.Proto.Header
-	sheet = book.NewSheet(metaSheet.Worksheet, rows)
+	sheet = book.NewSheet(sheetName, rows)
 	sheet.Meta = &tableaupb.SheetMeta{
-		Sheet:    metaSheet.Worksheet,
-		Alias:    metaSheet.Worksheet,
+		Sheet:    sheetName,
+		Alias:    sheetName,
 		Namerow:  header.Namerow,
 		Typerow:  header.Typerow,
 		Noterow:  header.Noterow,
@@ -321,185 +586,55 @@ func secondParseSheet(root *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet
 	return sheet, nil
 }
 
-// parseNodeType parse and convert an xml file to sheet format
-func parseNodeType(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, prefixMap map[string]Range, isMeta, isFirstChild bool) error {
-	// preprocess
-	prefix := ""
-	continueFindNude := true
-	var parentList []string	
-	var nudeParentTypeList []string
-	// construct prefix
-	for flag, navCopy := true, *nav; flag && navCopy.LocalName() != metaSheet.Worksheet; flag = navCopy.MoveToParent() {
-		if prefix != "" && continueFindNude {
-			if len(navCopy.Current().Attr) > 0 {
-				continueFindNude = false
-			} else {
-				t := fmt.Sprintf("{%s}", navCopy.LocalName())
-				if navCopy.Current().Parent != nil && len(xmlquery.Find(navCopy.Current().Parent, navCopy.LocalName())) > 1 {
-					t = fmt.Sprintf("[%s]", navCopy.LocalName())
-				}
-				nudeParentTypeList = append(nudeParentTypeList, t)				
-			}
-		}
-		prefix = strcase.ToCamel(navCopy.LocalName()) + prefix
-		parentList = append(parentList, navCopy.LocalName())
+// genHeaderRows recursively read meta info from `node` and generates the header rows of `metaSheet`, which is a 2-dimensional IR.
+func genHeaderRows(node *tableaupb.XMLNode, metaSheet *xlsxgen.MetaSheet, prefix string) error {
+	curPrefix := newPrefix(prefix, node.Name, metaSheet.Worksheet)
+	for _, attr := range node.AttrMap.List {
+		metaSheet.SetColType(curPrefix+strcase.ToCamel(attr.Name), attr.Value)
 	}
-	repeated := len(xmlquery.Find(nav.Current().Parent, nav.LocalName())) > 1
-
-	// iterate over attributes
-	for i, attr := range nav.Current().Attr {
-		attrName := attr.Name.Local
-		attrValue := attr.Value
-		_, prefixExist := prefixMap[prefix]
-		tryAddCol(metaSheet, parentList, prefixMap, strcase.ToCamel(attrName))
-
-		t, d := inferType(attrValue)
-		colName := prefix + strcase.ToCamel(attrName)
-		metaSheet.SetDefaultValue(colName, d)
-		if isMeta {
-			if index := strings.Index(attrValue, "|"); index > 0 {
-				t = attrValue[:index]
-				metaSheet.SetDefaultValue(colName, attrValue[index+1:])
-			} else {
-				t = attrValue
-			}
-		}
-
-		atom.Log.Debug(t)		
-		curType := metaSheet.GetColType(colName)
-		matches := types.MatchStruct(curType)
-		// 1. <TABLEAU>
-		// 2. type not set
-		// 3. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)
-		// NOTE: Map in struct not supported temporarily.
-		needChangeType := isMeta || curType == "" || (len(matches) > 0 && repeated)
-		// 1. new struct(list), not subsequent
-		// 2. {Type}int32 -> [Type]int32 (when mistaken it as a struct at first but discover multiple elements later)
-		setKeyedType := (!prefixExist || (len(matches) > 0 && repeated)) && nav.LocalName() != metaSheet.Worksheet
-		if needChangeType {
-			typePrefix :=  ""
-			for _, parentType := range nudeParentTypeList {
-				typePrefix = parentType + typePrefix
-			}
-			atom.Log.Debug(typePrefix)
-			if matches := types.MatchMap(t); len(matches) >= 3 {
-				t = typePrefix + t
-				// case 1: map<uint32,Type>
-				if !types.IsScalarType(matches[1]) && len(types.MatchEnum(matches[1])) == 0 {
-					return errors.Errorf("%s is not scalar type in node %s attr %s type %s", matches[1], nav.LocalName(), attrName, t)
-				}
-				if strings.TrimSpace(matches[2]) != nav.LocalName() {
-					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[2], attrName, t, nav.LocalName())
-				}
-				metaSheet.SetColType(colName, t)
-			} else if matches := types.MatchKeyedList(t); len(matches) >= 3 {
-				t = typePrefix + t
-				// case 2: [Type]<uint32>
-				if i != 0 {
-					return errors.Errorf("KeyedList attr %s in node %s must be the first attr", attrName, nav.LocalName())
-				}
-				if !types.IsScalarType(matches[2]) && len(types.MatchEnum(matches[2])) == 0 {
-					return errors.Errorf("%s is not scalar type in node %s attr %s type %s", matches[2], nav.LocalName(), attrName, t)
-				}
-				if strings.TrimSpace(matches[1]) != nav.LocalName() {
-					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[1], attrName, t, nav.LocalName())
-				}
-				metaSheet.SetColType(colName, t)
-			} else if matches := types.MatchList(t); len(matches) >= 3 {
-				t = typePrefix + t
-				// case 3: [Type]uint32
-				if i != 0 {
-					return errors.Errorf("KeyedList attr %s in node %s must be the first attr", attrName, nav.LocalName())
-				}
-				if !types.IsScalarType(matches[2]) && len(types.MatchEnum(matches[2])) == 0 {
-					return errors.Errorf("%s is not scalar type in node %s attr %s type %s", matches[2], nav.LocalName(), attrName, t)
-				}
-				if strings.TrimSpace(matches[1]) != nav.LocalName() {
-					return errors.Errorf("%s in attr %s type %s must be the same as node name %s", matches[1], attrName, t, nav.LocalName())
-				}
-				metaSheet.SetColType(colName, t)
-			} else if i == 0 && setKeyedType {				
-				// case 4: {Type}uint32
-				if repeated {
-					metaSheet.SetColType(colName, fmt.Sprintf("%s[%s]<%s>", typePrefix, strcase.ToCamel(nav.LocalName()), t))
-				} else {
-					metaSheet.SetColType(colName, fmt.Sprintf("%s{%s}%s", typePrefix, strcase.ToCamel(nav.LocalName()), t))
-				}
-			} else {				
-				// default: built-in type
-				metaSheet.SetColType(colName, t)
-			}
+	for _, child := range node.ChildList {
+		if err := genHeaderRows(child, metaSheet, curPrefix); err != nil {
+			return errors.Wrapf(err, "failed to genHeaderRows for %s@%s", child.Name, curPrefix)
 		}
 	}
-
-	// iterate over child nodes
-	navCopy := *nav
-	for flag, i := navCopy.MoveToChild(), 0; flag; flag = navCopy.MoveToNext() {
-		// commentNode, documentNode and other meaningless nodes should be filtered
-		if navCopy.NodeType() != xpath.ElementNode {
-			continue
-		}
-		tagName := navCopy.LocalName()
-		if err := parseNodeType(&navCopy, metaSheet, prefixMap, isMeta, i == 0); err != nil {
-			return errors.Wrapf(err, "failed to parseNodeType for the node %s", tagName)
-		}
-		i++
-	}
-
 	return nil
 }
 
-// parseNodeData parse and convert an xml file to sheet format
-func parseNodeData(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, cursor int) error {
-	// preprocess
-	prefix := ""
-	// construct prefix
-	for flag, navCopy := true, *nav; flag && navCopy.LocalName() != metaSheet.Worksheet; flag = navCopy.MoveToParent() {
-		prefix = strcase.ToCamel(navCopy.LocalName()) + prefix
-	}
-
-	// clear to the bottom
-	if navCopy := *nav; !navCopy.MoveToChild() {
+// fillDataRows recursively read data from `node` and fill them to the data rows of `metaSheet`, which is a 2-dimensional IR.
+func fillDataRows(node *tableaupb.XMLNode, metaSheet *xlsxgen.MetaSheet, prefix string, cursor int) error {
+	curPrefix := newPrefix(prefix, node.Name, metaSheet.Worksheet)
+	// clear to the bottom, since `metaSheet.NewRow()` will copy all data of all columns to create a new row
+	if len(node.ChildList) == 0 {
 		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
 			metaSheet.ForEachCol(tmpCusor, func(name string, cell *xlsxgen.Cell) error {
-				if strings.HasPrefix(name, prefix) {
-					cell.Data = metaSheet.GetDefaultValue(name)
+				if strings.HasPrefix(name, curPrefix) {
+					cell.Data = ""
 				}
 				return nil
 			})
 		}
 	}
-
-	// iterate over attributes
-	for _, attr := range nav.Current().Attr {
-		attrName := attr.Name.Local
-		attrValue := attr.Value
-		colName := prefix + strcase.ToCamel(attrName)
+	for _, attr := range node.AttrMap.List {
+		colName := curPrefix + strcase.ToCamel(attr.Name)
 		// fill values to the bottom when backtrace to top line
 		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
-			metaSheet.Cell(tmpCusor, len(metaSheet.Rows[metaSheet.Namerow-1].Cells), colName).Data = attrValue
+			metaSheet.Cell(tmpCusor, len(metaSheet.Rows[metaSheet.Namerow-1].Cells), colName).Data = attr.Value
 		}
 	}
-
 	// iterate over child nodes
 	nodeMap := make(map[string]int)
-	navCopy := *nav
-	for flag := navCopy.MoveToChild(); flag; flag = navCopy.MoveToNext() {
-		// commentNode, documentNode and other meaningless nodes should be filtered
-		if navCopy.NodeType() != xpath.ElementNode {
-			continue
-		}
-		tagName := navCopy.LocalName()
+	for _, child := range node.ChildList {
+		tagName := child.Name
 		if count, existed := nodeMap[tagName]; existed {
 			// duplicate means a list, should expand vertically
 			row := metaSheet.NewRow()
-			if err := parseNodeData(&navCopy, metaSheet, row.Index); err != nil {
-				return errors.Wrapf(err, "parseNodeData for node %s (index:%d) failed", tagName, count+1)
+			if err := fillDataRows(child, metaSheet, curPrefix, row.Index); err != nil {
+				return errors.Wrapf(err, "fillDataRows %dth node %s@%s failed", count+1, tagName, curPrefix)
 			}
 			nodeMap[tagName]++
 		} else {
-			if err := parseNodeData(&navCopy, metaSheet, cursor); err != nil {
-				return errors.Wrapf(err, "parseNodeData for the first node %s failed", tagName)
+			if err := fillDataRows(child, metaSheet, curPrefix, cursor); err != nil {
+				return errors.Wrapf(err, "fillDataRows 1st node %s@%s failed", tagName, curPrefix)
 			}
 			nodeMap[tagName] = 1
 		}
@@ -508,61 +643,11 @@ func parseNodeData(nav *xmlquery.NodeNavigator, metaSheet *xlsxgen.MetaSheet, cu
 	return nil
 }
 
-// tryAddCol add a new column named `name` to an appropriate location in metaSheet if not exists or do nothing otherwise
-func tryAddCol(metaSheet *xlsxgen.MetaSheet, parentList []string, prefixMap map[string]Range, name string) {
-	prefix := ""
-	var reversedList []string
-	parentMap := make(map[string]bool)
-	for i := len(parentList) - 1; i >= 0; i-- {
-		prefix += parentList[i]
-		parentMap[prefix] = true
-		if i > 0 {
-			reversedList = append(reversedList, prefix)
-		}
-	}
-	colName := prefix + name
-	if metaSheet.HasCol(colName) {
-		return
-	}
-	shift := func(r Range) {
-		for i := 0; i < len(reversedList); i++ {
-			if r, ok := prefixMap[reversedList[i]]; ok {
-				prefixMap[reversedList[i]] = Range{r.begin, r.attrNum, r.len + 1}
-			}
-		}
-		for k, v := range prefixMap {
-			if _, ok := parentMap[k]; !ok && v.begin > r.begin {
-				prefixMap[k] = Range{v.begin + 1, v.attrNum, v.len}
-			}
-		}
-	}
-	// insert prefixMap
-	if r, ok := prefixMap[prefix]; !ok {
-		index := len(metaSheet.Rows[metaSheet.Namerow-1].Cells)
-		if len(reversedList) > 0 {
-			parentPrefix := reversedList[len(reversedList)-1]
-			if r2, ok := prefixMap[parentPrefix]; ok {
-				index = r2.begin + r2.len
-			}
-		}
-		prefixMap[prefix] = Range{index, 1, 1}
-		shift(prefixMap[prefix])
-		metaSheet.Cell(int(metaSheet.Namerow)-1, prefixMap[prefix].begin, colName).Data = colName
+func newPrefix(prefix, curNode, sheetName string) string {
+	// sheet name should not occur in the prefix
+	if strcase.ToCamel(curNode) != sheetName {
+		return prefix + strcase.ToCamel(curNode)
 	} else {
-		prefixMap[prefix] = Range{r.begin, r.attrNum + 1, r.len + 1}
-		shift(prefixMap[prefix])
-		metaSheet.Cell(int(metaSheet.Namerow)-1, r.begin+r.attrNum, colName).Data = colName
+		return prefix
 	}
-}
-
-func inferType(value string) (string, string) {
-	var t, d string
-	if _, err := strconv.Atoi(value); err == nil {
-		t, d = "int32", "0"
-	} else if _, err := strconv.ParseInt(value, 10, 64); err == nil {
-		t, d = "int64", "0"
-	} else {
-		t, d = "string", ""
-	}
-	return t, d
 }
