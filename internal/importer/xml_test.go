@@ -259,6 +259,11 @@ func Test_fixNodeType(t *testing.T) {
 	<Client EnvID="map&lt;uint32,Client&gt;">
 		<Toggle ID="map&lt;enum&lt;.ToggleType&gt;, Toggle&gt;" WorldID="uint32"/>
 	</Client>
+	
+	<Broadcast Id="[Broadcast]int32" Priority="int32">
+		<BroadcastTime BeginTime="datetime" EndTime="datetime" Gap="duration" />
+		<Content Txt="string"/>
+	</Broadcast>
 </MatchCfg>
 -->
 
@@ -279,6 +284,11 @@ func Test_fixNodeType(t *testing.T) {
             <Param Value="70"/>
         </Weight>
     </ListConf>
+	
+	<Broadcast Id="2" Priority="2">
+		<BroadcastTime BeginTime="2016-11-15 19:30:10" EndTime="2022-04-21 23:29:59" Gap="60s" />
+		<Content txt="每分钟发送一次测试"/>
+	</Broadcast>
 </MatchCfg>
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
@@ -293,6 +303,7 @@ func Test_fixNodeType(t *testing.T) {
 	node7 := FindMetaNode(sheet1, "MatchCfg")
 	node8 := FindMetaNode(sheet1, "MatchCfg/StructConf/Test")
 	node9 := FindMetaNode(sheet1, "MatchCfg/MapConf")
+	node10 := FindMetaNode(sheet1, "MatchCfg/Broadcast/Content")
 	type args struct {
 		xmlSheet *tableaupb.XMLSheet
 		curr     *tableaupb.XMLNode
@@ -384,6 +395,15 @@ func Test_fixNodeType(t *testing.T) {
 				oriType:  `[]int64`,
 			},
 			want: `{MapConf}[]<int64>`,
+		},
+		{
+			name: "MatchCfg/Broadcast/Content@txt",
+			args: args{
+				xmlSheet: sheet1,
+				curr:     node10,
+				oriType:  `string`,
+			},
+			want: `{Content}string`,
 		},
 	}
 	for _, tt := range tests {
