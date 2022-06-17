@@ -3,7 +3,7 @@ package tableau;
 
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
-message XMLMeta {
+message XMLBook {
   // SheetMap maps sheet name to a XMLSheet struct 
   // containing two trees which describe the XML structure
   repeated XMLSheet sheet_list = 1;
@@ -12,33 +12,33 @@ message XMLMeta {
 
 message XMLSheet {  
   // meta tree, describing the types of attributes of all nodes in XML
-  Node meta = 1;
+  XMLNode meta = 1;
 
   // data tree, describing the values of attributes of the explicitly specified nodes in XML
-  Node data = 2;
+  XMLNode data = 2;
 
   // NodeMap maps path to a list of nodes matched the specified path in the tree
-  map<string, Node> meta_node_map = 3;
+  map<string, XMLNode> meta_node_map = 3;
   map<string, NodeList> data_node_map = 4;
 
   message NodeList {
-    repeated Node nodes = 1;
+    repeated XMLNode nodes = 1;
   }
 }
 
-message Node {
+message XMLNode {
   string name = 1;
 
   // duplicated attributes in one node are forbidden
-  OrderedAttrMap attr_map = 2;
+  AttrMap attr_map = 2;
 
   // - meta: Each child must be unique, so len(IndexList) must be 1 
   // - data: Duplicated children are allowed, so len(IndexList) could be greater than 1
-  repeated Node child_list = 3;
+  repeated XMLNode child_list = 3;
   map<string, IndexList> child_map = 4;
 
   // record parent node so that we can trace back
-  Node parent = 5;
+  XMLNode parent = 5;
 
   // path that walks from root to self node, e.g.: Conf/Server/Toggle
   string path = 6;
@@ -46,15 +46,15 @@ message Node {
   message IndexList {
     repeated int32 indexes = 1;
   }
-}
-
-// Combine list and map to get an ordered map
-message OrderedAttrMap {
-  repeated Attr list = 1;
-  map<string, int32> map = 2;
-}
-
-message Attr {
-  string name = 1;
-  string value = 2;
+  
+  // Combine list and map to get an ordered map
+  message AttrMap {
+    repeated Attr list = 1;
+    map<string, int32> map = 2;
+    
+    message Attr {
+      string name = 1;
+      string value = 2;
+    }
+  }  
 }

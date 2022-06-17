@@ -241,7 +241,7 @@ func Test_isFirstChild(t *testing.T) {
 	}
 }
 
-func Test_correctType(t *testing.T) {
+func Test_fixNodeType(t *testing.T) {
 	doc := `
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- @TABLEAU
@@ -388,8 +388,8 @@ func Test_correctType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := correctType(tt.args.xmlSheet, tt.args.curr, tt.args.oriType); got != tt.want {
-				t.Errorf("correctType() = %v, want %v", got, tt.want)
+			if got := fixNodeType(tt.args.xmlSheet, tt.args.curr, tt.args.oriType); got != tt.want {
+				t.Errorf("fixNodeType() = %v, want %v", got, tt.want)
 			}
 		})
 	}
