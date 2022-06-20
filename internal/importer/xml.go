@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -69,16 +69,16 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 // in TABLEAU grammar which can be exported to protobuf by excel parser.
 func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	atom.Log.Debugf("xml: %s", filename)
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to ReadFile %s", filename)
 	}
 	// pre check if exists `@TABLEAU`
-	isExist, err := regexp.Match(book.MetasheetName, buf)
+	existed, err := regexp.Match(book.MetasheetName, buf)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to Match %s", book.MetasheetName)
 	}
-	if !isExist {
+	if !existed {
 		return nil, nil
 	}
 	root, err := xmlquery.Parse(strings.NewReader(string(buf)))
