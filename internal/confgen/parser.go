@@ -680,11 +680,26 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if !prop.InRange(field.opts.Prop, field.fd, fieldValue) {
 					return false, errors.Errorf("%s|incell list: value %s out of range [%s]", rc.CellDebugString(colName), incell, field.opts.Prop.Range)
 				}
-				if itemPresent {
-					reflectList.Append(fieldValue)
-				} else {
+				if !itemPresent {
 					// TODO: check the remaining keys all not present, otherwise report error!
 					break
+				}
+				if field.opts.Key != "" {
+					// keyed list
+					keyedListItemExisted := false
+					for i := 0; i < reflectList.Len(); i++ {
+						item := reflectList.Get(i)
+						if xproto.EqualValue(field.fd, item, fieldValue) {
+							keyedListItemExisted = true
+							break
+						}
+					}
+					if !keyedListItemExisted {
+						reflectList.Append(fieldValue)
+					}
+				} else {
+					// normal list
+					reflectList.Append(fieldValue)
 				}
 			}
 		}

@@ -15,7 +15,7 @@ message Server {
   string desc = 1 [(tableau.field) = {name:"Desc"}];
   MapConf map_conf = 2 [(tableau.field) = {name:"MapConf"}];
   message MapConf {
-    repeated int64 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}];
+    repeated int64 param_list = 1 [(tableau.field) = {name:"Param" key:"Param" layout:LAYOUT_INCELL}];
     map<int32, int32> type_num_map = 2 [(tableau.field) = {name:"TypeNum" layout:LAYOUT_INCELL}];
     map<int32, Weight> weight_map = 3 [(tableau.field) = {name:"Weight" key:"Num" layout:LAYOUT_VERTICAL}];
     message Weight {

@@ -469,7 +469,14 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell list
-		scalarField := p.parseScalarField(trimmedNameCell, elemType+rawPropText, noteCell)
+		key := ""
+		if matches := types.MatchKeyedList(typeCell); matches != nil {
+			// set column type and key if this is a keyed list.
+			colType = strings.TrimSpace(matches[2])
+			key = trimmedNameCell
+		}
+		colTypeWithProp := colType + rawPropText
+		scalarField := p.parseScalarField(trimmedNameCell, colTypeWithProp, noteCell)
 		proto.Merge(field, scalarField)
 		// auto add suffix "_list".
 		field.Name += listVarSuffix
@@ -480,6 +487,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			ElemFullType: scalarField.FullType,
 		}
 		field.Options.Layout = layout
+		field.Options.Key = key
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		atom.Log.Panicf("should not reach default layout: %s", layout)
 	}
