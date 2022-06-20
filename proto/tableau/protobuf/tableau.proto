@@ -84,6 +84,8 @@ message FieldProp {
   // Local perspective: ensure this field's value is a sequence and begins with this value.
   optional int64 sequence = 4;
   string default = 5; // default value.
+  bool fixed = 6; // fixed length of horizontal list/map.
+  uint32 length = 7; // specified fixed length of horizontal list/map.
 }
 
 // Layout of list and map.

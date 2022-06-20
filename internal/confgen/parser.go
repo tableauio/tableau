@@ -416,8 +416,9 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			// If s does not contain sep and sep is not empty, Split returns a
 			// slice of length 1 whose only element is s.
 			splits := strings.Split(cell.Data, field.opts.Sep)
-			for _, pair := range splits {
-				kv := strings.SplitN(pair, field.opts.Subsep, 2)
+			size := len(splits)
+			for i := 0; i < size; i++ {
+				kv := strings.SplitN(splits[i], field.opts.Subsep, 2)
 				if len(kv) == 1 {
 					// If value is not set, then treated it as default empty string.
 					kv = append(kv, "")
@@ -493,8 +494,8 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 		if err != nil {
 			return mapKey, false, errors.WithMessagef(err, "failed to parse key: %s", cellData)
 		}
-		// check range: key
-		if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
+		// check range: key, if it is present
+		if present && !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
 			return mapKey, false, errors.Errorf("%s out of range [%s]", cellData, field.opts.Prop.Range)
 		}
 		mapKey = fieldValue.MapKey()
@@ -598,9 +599,15 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			// has already been parsed.
 			break
 		}
-		size := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
-		if size <= 0 {
+		existedLength := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
+		if existedLength <= 0 {
 			return false, errors.Errorf("%s|horizontal list: no cell found with digit suffix", rc.CellDebugString(prefix+field.opts.Name))
+		}
+		fixedLen := prop.GetLength(field.opts.Prop, existedLength)
+		size := existedLength
+		if fixedLen > 0 && fixedLen < existedLength {
+			// squeeze to specified fixed length
+			size = fixedLen
 		}
 		checkRemainFlag := false
 		for i := 1; i <= size; i++ {
@@ -631,7 +638,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 					continue
 				}
-				if !itemPresent {
+				if !itemPresent && !prop.IsFixed(field.opts.Prop) {
 					checkRemainFlag = true
 					continue
 				}
@@ -653,11 +660,18 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 					continue
 				}
-				if !itemPresent {
+				if !itemPresent && !prop.IsFixed(field.opts.Prop) {
 					checkRemainFlag = true
 					continue
 				}
 				reflectList.Append(newListValue)
+			}
+		}
+		
+		if prop.IsFixed(field.opts.Prop) {
+			for reflectList.Len() < fixedLen {
+				// append empty elements to the specified length.
+				reflectList.Append(reflectList.NewElement())
 			}
 		}
 	case tableaupb.Layout_LAYOUT_INCELL:
@@ -667,40 +681,52 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 		if cell == nil {
 			return false, errors.Errorf("%s|incell list: column not found", rc.CellDebugString(colName))
 		}
-		if cell.Data != "" {
-			// If s does not contain sep and sep is not empty, Split returns a
-			// slice of length 1 whose only element is s.
-			splits := strings.Split(cell.Data, field.opts.Sep)
-			for _, incell := range splits {
-				fieldValue, itemPresent, err := sp.parseFieldValue(field.fd, incell)
-				if err != nil {
-					return false, errors.WithMessagef(err, "%s|incell list: failed to parse field value: %s", rc.CellDebugString(colName), incell)
-				}
-				// check range
-				if !prop.InRange(field.opts.Prop, field.fd, fieldValue) {
-					return false, errors.Errorf("%s|incell list: value %s out of range [%s]", rc.CellDebugString(colName), incell, field.opts.Prop.Range)
-				}
-				if !itemPresent {
-					// TODO: check the remaining keys all not present, otherwise report error!
-					break
-				}
-				if field.opts.Key != "" {
-					// keyed list
-					keyedListItemExisted := false
-					for i := 0; i < reflectList.Len(); i++ {
-						item := reflectList.Get(i)
-						if xproto.EqualValue(field.fd, item, fieldValue) {
-							keyedListItemExisted = true
-							break
-						}
+		// If s does not contain sep and sep is not empty, Split returns a
+		// slice of length 1 whose only element is s.
+		splits := strings.Split(cell.Data, field.opts.Sep)
+		existedLength := len(splits)
+		fixedLen := prop.GetLength(field.opts.Prop, existedLength)
+		size := existedLength
+		if fixedLen > 0 && fixedLen < existedLength {
+			// squeeze to specified fixed length
+			size = fixedLen
+		}
+		for i := 0; i < size; i++ {
+			elem := splits[i]
+			fieldValue, itemPresent, err := sp.parseFieldValue(field.fd, elem)
+			if err != nil {
+				return false, errors.WithMessagef(err, "%s|incell list: failed to parse field value: %s", rc.CellDebugString(colName), elem)
+			}
+			if !itemPresent && !prop.IsFixed(field.opts.Prop) {
+				// TODO: check the remaining keys all not present, otherwise report error!
+				break
+			}
+			// check range
+			if !prop.InRange(field.opts.Prop, field.fd, fieldValue) {
+				return false, errors.Errorf("%s|incell list: value %s out of range [%s]", rc.CellDebugString(colName), elem, field.opts.Prop.Range)
+			}
+			if field.opts.Key != "" {
+				// keyed list
+				keyedListItemExisted := false
+				for i := 0; i < reflectList.Len(); i++ {
+					item := reflectList.Get(i)
+					if xproto.EqualValue(field.fd, item, fieldValue) {
+						keyedListItemExisted = true
+						break
 					}
-					if !keyedListItemExisted {
-						reflectList.Append(fieldValue)
-					}
-				} else {
-					// normal list
+				}
+				if !keyedListItemExisted {
 					reflectList.Append(fieldValue)
 				}
+			} else {
+				// normal list
+				reflectList.Append(fieldValue)
+			}
+		}
+		if prop.IsFixed(field.opts.Prop) {
+			for reflectList.Len() < fixedLen {
+				// append empty elements to the specified length.
+				reflectList.Append(reflectList.NewElement())
 			}
 		}
 	}
@@ -834,14 +860,15 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	if err != nil {
 		return false, errors.WithMessagef(err, "%s|scalar: failed to parse field value: %s", rc.CellDebugString(colName), cell.Data)
 	}
+	if !present {
+		return false, nil
+	}
 	// check range
 	if !prop.InRange(field.opts.Prop, field.fd, newValue) {
 		return false, errors.Errorf("%s|scalar: value %v out of range [%s]", rc.CellDebugString(colName), newValue, field.opts.Prop.Range)
 	}
-	if present {
-		msg.Set(field.fd, newValue)
-	}
-	return present, nil
+	msg.Set(field.fd, newValue)
+	return true, nil
 }
 
 func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue string) (v protoreflect.Value, present bool, err error) {

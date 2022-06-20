@@ -432,9 +432,16 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		}
 		// auto add suffix "_list".
 		field.Name = strcase.ToSnake(listName) + listVarSuffix
-
-		field.Options.Name = listName // name is empty for vertical list
+		field.Options.Name = listName
 		field.Options.Layout = layout
+
+		if prop := types.ParseProp(rawPropText); prop != nil && (prop.Fixed || prop.Length != 0) {
+			// only set prop if fixed or length is set.
+			field.Options.Prop = &tableaupb.FieldProp{
+				Fixed:  prop.Fixed,
+				Length: prop.Length,
+			}
+		}
 
 		// Parse first field
 		colTypeWithProp := colType + rawPropText

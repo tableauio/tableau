@@ -145,3 +145,24 @@ func getPrevValueOfSequence(kind protoreflect.Kind, value protoreflect.Value) (p
 	}
 	return prevValue, nil
 }
+
+// IsFixed check the horizontal list/map is fixed length or not.
+func IsFixed(prop *tableaupb.FieldProp) bool {
+	if prop != nil {
+		return prop.Fixed || prop.Length > 0
+	}
+	return false
+}
+
+// GetLength returns the specified length of horizontal list/map.
+// existedLength is the scanned length.
+func GetLength(prop *tableaupb.FieldProp, existedLength int) int {
+	if prop != nil {
+		if prop.Length > 0 {
+			return int(prop.Length)
+		} else if prop.Fixed {
+			return existedLength
+		}
+	}
+	return 0
+}

@@ -10,6 +10,22 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"excel/list/list#*.csv"};
 
+message FixedList {
+  option (tableau.worksheet) = {name:"FixedList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Reward {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    repeated Section section_list = 3 [(tableau.field) = {name:"Section" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
+    message Section {
+      uint32 id = 1 [(tableau.field) = {name:"ID" prop:{fixed:true}}];
+    }
+    repeated uint32 value_list = 4 [(tableau.field) = {name:"Value" layout:LAYOUT_HORIZONTAL prop:{length:2}}];
+    repeated uint32 tip_list = 5 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL prop:{length:3}}];
+  }
+}
+
 message ListEmptyCell {
   option (tableau.worksheet) = {name:"ListEmptyCell" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
 
@@ -34,5 +50,19 @@ message ScalarKeyedList {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
     repeated uint32 tip_list = 3 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL}];
+  }
+}
+
+message StructKeyedList {
+  option (tableau.worksheet) = {name:"StructKeyedList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+
+  repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    repeated Tip tip_list = 3 [(tableau.field) = {key:"TipID" layout:LAYOUT_VERTICAL}];
+    message Tip {
+      uint32 tip_id = 1 [(tableau.field) = {name:"TipID"}];
+    }
   }
 }

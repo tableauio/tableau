@@ -1,0 +1,7 @@
+ID,Desc,Section1ID,Section2ID,Section3ID,Value1,Value2,Value3,Tip
+"map<uint32, Reward>",string,[Section]uint32|{fixed:true},uint32,uint32,[]uint32|{length:2},uint32,uint32,[]<uint32>|{length:3}
+奖励ID,描述,节ID,,,buff值,,,提示
+1,奖励1,1,2,3,1,2,3,"1,2,3"
+2,奖励2,0,2,,0,2,,"2,,"
+3,奖励3,1,,,1,,,1
+4,奖励4,,,,,,,
