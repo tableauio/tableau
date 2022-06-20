@@ -68,13 +68,20 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 // parseXML parse sheets in the XML file named `filename` and return a book with multiple sheets
 // in TABLEAU grammar which can be exported to protobuf by excel parser.
 func parseXML(filename string, sheetNames []string) (*book.Book, error) {
-	// open xml file and parse the document
 	atom.Log.Debugf("xml: %s", filename)
-	f, err := os.Open(filename)
+	buf, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open %s", filename)
+		return nil, errors.Wrapf(err, "failed to ReadFile %s", filename)
 	}
-	root, err := xmlquery.Parse(f)
+	// pre check if exists `@TABLEAU`
+	existed, err := regexp.Match(book.MetasheetName, buf)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to Match %s", book.MetasheetName)
+	}
+	if !existed {
+		return nil, nil
+	}
+	root, err := xmlquery.Parse(strings.NewReader(string(buf)))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
@@ -84,7 +91,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	if err != nil {
 		switch e := err.(type) {
 		case *NoNeedParseError:
-			atom.Log.Debugf("xml:%s no need parse: @TABLEAU not found", filename)
+			atom.Log.Debugf("xml:%s no need parse: %s not found", filename, book.MetasheetName)
 			return nil, nil
 		default:
 			return nil, e
@@ -116,7 +123,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 }
 
 // --------------------------------------------- THE FIRST PASS ------------------------------------ //
-// The first pass simply read xml file with xmlquery, construct a recursively self-described tree 
+// The first pass simply reads xml file with xmlquery, construct a recursively self-described tree 
 // structure defined in xml.proto and put it into memory.
 //
 // readXMLFile read the raw xml rooted at `root`, specify which sheets to parse and return a XMLBook.
@@ -134,7 +141,7 @@ func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLBook, 
 			}
 			foundMetaSheetName = true
 			metaStr := xmlProlog + escapeAttrs(strings.ReplaceAll(n.Data, book.MetasheetName, ""))
-			// atom.Log.Debug(metaStr)
+			atom.Log.Debug(metaStr)
 			metaRoot, err := xmlquery.Parse(strings.NewReader(metaStr))
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to parse @TABLEAU string: %s", metaStr)
@@ -143,7 +150,7 @@ func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLBook, 
 				if n.Type != xmlquery.ElementNode {
 					continue
 				}
-				sheetName := n.Data
+				sheetName := strcase.ToCamel(n.Data)
 				xmlSheet := getXMLSheet(xmlMeta, sheetName)
 				if err := parseMetaNode(n, xmlSheet); err != nil {
 					return nil, nil, errors.Wrapf(err, "failed to parseMetaNode for sheet:%s", sheetName)
@@ -154,7 +161,7 @@ func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLBook, 
 				}
 			}
 		case xmlquery.ElementNode:
-			sheetName := n.Data
+			sheetName := strcase.ToCamel(n.Data)
 			xmlSheet := getXMLSheet(xmlMeta, sheetName)
 			if err := parseDataNode(n, xmlSheet); err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to parseDataNode for sheet:%s", sheetName)
@@ -174,7 +181,7 @@ func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	_, path := getNodePath(curr)
 	meta := xmlSheet.MetaNodeMap[path]
 	for _, attr := range curr.Attr {
-		attrName := attr.Name.Local
+		attrName := strcase.ToCamel(attr.Name.Local)
 		t := attr.Value
 		if len(meta.AttrMap.List) > 0 && isCrossCell(t) {
 			return fmt.Errorf("%s=\"%s\" is a complex type, must be the first attribute", attrName, t)
@@ -195,7 +202,7 @@ func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 		if n.Type != xmlquery.ElementNode {
 			continue
 		}
-		childName := n.Data
+		childName := strcase.ToCamel(n.Data)
 		if _, ok := meta.ChildMap[childName]; !ok {
 			newNode := newNode(childName, meta)
 			meta.ChildMap[childName] = &tableaupb.XMLNode_IndexList{
@@ -218,7 +225,7 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	data_nodes := xmlSheet.DataNodeMap[path].Nodes
 	data := data_nodes[len(data_nodes)-1]
 	for _, attr := range curr.Attr {
-		attrName := attr.Name.Local
+		attrName := strcase.ToCamel(attr.Name.Local)
 		t := inferType(attr.Value)
 		if _, ok := meta.AttrMap.Map[attrName]; !ok {
 			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
@@ -237,7 +244,7 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 		if n.Type != xmlquery.ElementNode {
 			continue
 		}
-		childName := n.Data
+		childName := strcase.ToCamel(n.Data)
 		dataChild := newNode(childName, data)
 		registerDataNode(xmlSheet, dataChild)
 		if _, ok := meta.ChildMap[childName]; !ok {
@@ -384,7 +391,7 @@ func getXMLSheet(xmlMeta *tableaupb.XMLBook, sheetName string) *tableaupb.XMLShe
 }
 
 // --------------------------------------------- THE SECOND PASS ------------------------------------ //
-// The second pass preprocess the tree structure. In this phase the parser will do some necessary jobs 
+// The second pass preprocesses the tree structure. In this phase the parser will do some necessary jobs 
 // before generating a 2-dimensional sheet, like correctType which make the types of attributes in the 
 // nodes meet the requirements of protogen.
 //
@@ -550,7 +557,7 @@ func swapAttr(attrMap *tableaupb.XMLNode_AttrMap, i, j int) {
 //
 // genSheet generates a `book.Sheet` which can furtherly processed by `protogen`.
 func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
-	sheetName := strcase.ToCamel(xmlSheet.Meta.Name)
+	sheetName := xmlSheet.Meta.Name
 	header := options.NewDefault().Input.Proto.Header
 	metaSheet := xlsxgen.NewMetaSheet(sheetName, header, false)
 	// generate sheet header rows
@@ -590,7 +597,7 @@ func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
 func genHeaderRows(node *tableaupb.XMLNode, metaSheet *xlsxgen.MetaSheet, prefix string) error {
 	curPrefix := newPrefix(prefix, node.Name, metaSheet.Worksheet)
 	for _, attr := range node.AttrMap.List {
-		metaSheet.SetColType(curPrefix+strcase.ToCamel(attr.Name), attr.Value)
+		metaSheet.SetColType(curPrefix+attr.Name, attr.Value)
 	}
 	for _, child := range node.ChildList {
 		if err := genHeaderRows(child, metaSheet, curPrefix); err != nil {
@@ -615,7 +622,7 @@ func fillDataRows(node *tableaupb.XMLNode, metaSheet *xlsxgen.MetaSheet, prefix 
 		}
 	}
 	for _, attr := range node.AttrMap.List {
-		colName := curPrefix + strcase.ToCamel(attr.Name)
+		colName := curPrefix + attr.Name
 		// fill values to the bottom when backtrace to top line
 		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
 			metaSheet.Cell(tmpCusor, len(metaSheet.Rows[metaSheet.Namerow-1].Cells), colName).Data = attr.Value
@@ -645,8 +652,8 @@ func fillDataRows(node *tableaupb.XMLNode, metaSheet *xlsxgen.MetaSheet, prefix 
 
 func newPrefix(prefix, curNode, sheetName string) string {
 	// sheet name should not occur in the prefix
-	if strcase.ToCamel(curNode) != sheetName {
-		return prefix + strcase.ToCamel(curNode)
+	if curNode != sheetName {
+		return prefix + curNode
 	} else {
 		return prefix
 	}

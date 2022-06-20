@@ -7,7 +7,7 @@ message XMLBook {
   // SheetMap maps sheet name to a XMLSheet struct 
   // containing two trees which describe the XML structure
   repeated XMLSheet sheet_list = 1;
-  map<string, int32> sheet_map = 2;
+  map<string, int32> sheet_map = 2; // sheet name -> index
 }
 
 message XMLSheet {  
@@ -18,8 +18,8 @@ message XMLSheet {
   XMLNode data = 2;
 
   // NodeMap maps path to a list of nodes matched the specified path in the tree
-  map<string, XMLNode> meta_node_map = 3;
-  map<string, NodeList> data_node_map = 4;
+  map<string, XMLNode> meta_node_map = 3; // path -> XMLNode
+  map<string, NodeList> data_node_map = 4; // path -> XMLNode list
 
   message NodeList {
     repeated XMLNode nodes = 1;
@@ -35,7 +35,7 @@ message XMLNode {
   // - meta: Each child must be unique, so len(IndexList) must be 1 
   // - data: Duplicated children are allowed, so len(IndexList) could be greater than 1
   repeated XMLNode child_list = 3;
-  map<string, IndexList> child_map = 4;
+  map<string, IndexList> child_map = 4; // child name -> index list of child
 
   // record parent node so that we can trace back
   XMLNode parent = 5;
@@ -50,7 +50,7 @@ message XMLNode {
   // Combine list and map to get an ordered map
   message AttrMap {
     repeated Attr list = 1;
-    map<string, int32> map = 2;
+    map<string, int32> map = 2; // attribute name -> index
     
     message Attr {
       string name = 1;
