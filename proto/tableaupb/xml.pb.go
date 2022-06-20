@@ -28,7 +28,7 @@ type XMLBook struct {
 	// SheetMap maps sheet name to a XMLSheet struct
 	// containing two trees which describe the XML structure
 	SheetList []*XMLSheet      `protobuf:"bytes,1,rep,name=sheet_list,json=sheetList,proto3" json:"sheet_list,omitempty"`
-	SheetMap  map[string]int32 `protobuf:"bytes,2,rep,name=sheet_map,json=sheetMap,proto3" json:"sheet_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	SheetMap  map[string]int32 `protobuf:"bytes,2,rep,name=sheet_map,json=sheetMap,proto3" json:"sheet_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"` // sheet name -> index
 }
 
 func (x *XMLBook) Reset() {
@@ -87,8 +87,8 @@ type XMLSheet struct {
 	// data tree, describing the values of attributes of the explicitly specified nodes in XML
 	Data *XMLNode `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	// NodeMap maps path to a list of nodes matched the specified path in the tree
-	MetaNodeMap map[string]*XMLNode           `protobuf:"bytes,3,rep,name=meta_node_map,json=metaNodeMap,proto3" json:"meta_node_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	DataNodeMap map[string]*XMLSheet_NodeList `protobuf:"bytes,4,rep,name=data_node_map,json=dataNodeMap,proto3" json:"data_node_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	MetaNodeMap map[string]*XMLNode           `protobuf:"bytes,3,rep,name=meta_node_map,json=metaNodeMap,proto3" json:"meta_node_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // path -> XMLNode
+	DataNodeMap map[string]*XMLSheet_NodeList `protobuf:"bytes,4,rep,name=data_node_map,json=dataNodeMap,proto3" json:"data_node_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // path -> XMLNode list
 }
 
 func (x *XMLSheet) Reset() {
@@ -162,7 +162,7 @@ type XMLNode struct {
 	// - meta: Each child must be unique, so len(IndexList) must be 1
 	// - data: Duplicated children are allowed, so len(IndexList) could be greater than 1
 	ChildList []*XMLNode                    `protobuf:"bytes,3,rep,name=child_list,json=childList,proto3" json:"child_list,omitempty"`
-	ChildMap  map[string]*XMLNode_IndexList `protobuf:"bytes,4,rep,name=child_map,json=childMap,proto3" json:"child_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	ChildMap  map[string]*XMLNode_IndexList `protobuf:"bytes,4,rep,name=child_map,json=childMap,proto3" json:"child_map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"` // child name -> index list of child
 	// record parent node so that we can trace back
 	Parent *XMLNode `protobuf:"bytes,5,opt,name=parent,proto3" json:"parent,omitempty"`
 	// path that walks from root to self node, e.g.: Conf/Server/Toggle
@@ -344,7 +344,7 @@ type XMLNode_AttrMap struct {
 	unknownFields protoimpl.UnknownFields
 
 	List []*XMLNode_AttrMap_Attr `protobuf:"bytes,1,rep,name=list,proto3" json:"list,omitempty"`
-	Map  map[string]int32        `protobuf:"bytes,2,rep,name=map,proto3" json:"map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	Map  map[string]int32        `protobuf:"bytes,2,rep,name=map,proto3" json:"map,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"` // attribute name -> index
 }
 
 func (x *XMLNode_AttrMap) Reset() {

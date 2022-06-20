@@ -24,16 +24,9 @@ import (
 )
 
 const (
-	App                 = "protogen"
-	Version             = "0.3.3"
 	TableauProtoPackage = "tableau"
-
-	defaultTopN = 10 // default top N rows for importer's TopN option
+	defaultTopN         = 10 // default top N rows for importer's TopN option
 )
-
-func AppVersion() string {
-	return fmt.Sprintf("%s v%s", App, Version)
-}
 
 type Generator struct {
 	ProtoPackage string // protobuf package name.
@@ -60,8 +53,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputDir:     indir,
 		OutputDir:    outdir,
 		LocationName: opts.LocationName,
-		InputOpt:  opts.Input.Proto,
-		OutputOpt: opts.Output.Proto,
+		InputOpt:     opts.Input.Proto,
+		OutputOpt:    opts.Output.Proto,
 	}
 
 	// parse custom imported proto files

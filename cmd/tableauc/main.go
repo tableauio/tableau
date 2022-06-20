@@ -17,7 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.4.2"
+const version = "0.5.0"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"
@@ -137,6 +137,6 @@ func outputConfTmpl() {
 
 func genVersion() string {
 	ver := version
-	ver += fmt.Sprintf(" (%s)", protogen.AppVersion())
+	ver += fmt.Sprintf(" (%s, %s)", protogen.AppVersion(), confgen.AppVersion())
 	return ver
 }
