@@ -99,7 +99,7 @@ func Test_CompareJSON(t *testing.T) {
 		if !strings.HasSuffix(file.Name(), ".json") {
 			continue
 		}
-		// if file.Name() == "ListEmptyCell.json"{
+		// if file.Name() == "Activity.json"{
 		// 	continue
 		// }
 		newPath := filepath.Join(newConfDir, file.Name())

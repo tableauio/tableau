@@ -48,6 +48,15 @@ func init() {
 	DefaultDurationValue = pref.ValueOf(du.ProtoReflect())
 }
 
+func getFieldDefaultValue(fd pref.FieldDescriptor) string {
+	opts := fd.Options().(*descriptorpb.FieldOptions)
+	fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
+	if fieldOpts != nil && fieldOpts.Prop != nil {
+		return fieldOpts.Prop.Default
+	}
+	return ""
+}
+
 func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string) (v pref.Value, present bool, err error) {
 	purifyInteger := func(s string) string {
 		// trim integer boring suffix matched by regexp `.0*$`
@@ -58,10 +67,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 	}
 
 	value := strings.TrimSpace(rawValue)
-	opts := fd.Options().(*descriptorpb.FieldOptions)
-	fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
-	if value == "" && fieldOpts != nil && fieldOpts.Prop != nil {
-		value = fieldOpts.Prop.Default
+	defaultValue := getFieldDefaultValue(fd)
+	if value == "" {
+		value = strings.TrimSpace(defaultValue)
 	}
 
 	switch fd.Kind() {
@@ -124,9 +132,17 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		return pref.ValueOf(float64(val)), true, errors.WithStack(err)
 
 	case pref.StringKind:
-		return pref.ValueOf(rawValue), rawValue != "", nil
+		val := rawValue
+		if rawValue == "" {
+			val = defaultValue
+		}
+		return pref.ValueOf(val), val != "", nil
 	case pref.BytesKind:
-		return pref.ValueOf([]byte(rawValue)), rawValue != "", nil
+		val := rawValue
+		if rawValue == "" {
+			val = defaultValue
+		}
+		return pref.ValueOf([]byte(val)), val != "", nil
 	case pref.EnumKind:
 		return parseEnumValue(fd, value)
 	case pref.MessageKind:
