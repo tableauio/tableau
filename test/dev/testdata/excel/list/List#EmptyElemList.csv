@@ -1,0 +1,7 @@
+ID,Desc,RewardItem1Id,RewardItem1Num,RewardItem2Id,RewardItem2Num,RewardItem3Id,RewardItem3Num,Section1ID,Section2ID,Section3ID,Value1,Value2,Value3,Bonus1Id,Bonus1Num,Bonus2Id,Bonus2Num
+"map<uint32, Reward>|{unique:true sequence:1}",string,"map<int32,.Item>",int32,int32,int32,int32,int32,[Section]uint32,uint32,uint32,[]uint32,uint32,uint32,[.Item]int32,int32,int32,int32
+奖励ID,描述,奖励1Id,奖励1Num,奖励2Id,奖励2Num,奖励2Id,奖励2Num,节ID,,,buff值,,,奖励1Id,奖励1Num,奖励2Id,奖励2Num
+1,奖励1,1001,1,1002,2,1003,3,1,2,3,1,2,3,1001,1,1002,2
+2,奖励2,2001,1,2002,2,,,0,2,,0,2,,,,,
+3,奖励3,3001,1,0,0,,,1,,,1,,,,,,
+4,奖励4,4001,1,,,,,,,,,,,,,,

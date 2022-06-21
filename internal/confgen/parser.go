@@ -285,12 +285,6 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if err != nil {
 				return false, errors.WithMessagef(err, "%s|vertical map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
 			}
-
-			if !keyPresent {
-				// key field is not present.
-				break
-			}
-
 			var newMapValue protoreflect.Value
 			if reflectMap.Has(newMapKey) {
 				// check uniqueness
@@ -301,9 +295,13 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			} else {
 				newMapValue = reflectMap.NewValue()
 			}
-			_, err = sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name)
+			valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name)
 			if err != nil {
 				return false, errors.WithMessagef(err, "%s|vertical map: failed to parse field options with prefix: %s", rc.CellDebugString(keyColName), prefix+field.opts.Name)
+			}
+			if !keyPresent && !valuePresent {
+				// key and value are both not present.
+				break
 			}
 			reflectMap.Set(newMapKey, newMapValue)
 		} else {
@@ -319,16 +317,6 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			fieldValue, keyPresent, err := sp.parseFieldValue(keyFd, cell.Data)
 			if err != nil {
 				return false, errors.WithMessagef(err, "%s|failed to parse field value: %s", rc.CellDebugString(keyColName), cell.Data)
-			}
-
-			if !keyPresent {
-				// key field is not present.
-				break
-			}
-
-			// check range
-			if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
-				return false, errors.Errorf("%s|vertical map(scalar): value %s out of range [%s]", rc.CellDebugString(keyColName), cell.Data, field.opts.Prop.Range)
 			}
 
 			newMapKey := fieldValue.MapKey()
@@ -348,9 +336,17 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if cell == nil {
 				return false, errors.Errorf("%s|vertical map(scalar): value colum not found", rc.CellDebugString(valueColName))
 			}
-			newMapValue, _, err = sp.parseFieldValue(field.fd, cell.Data)
+			newMapValue, valuePresent, err := sp.parseFieldValue(field.fd, cell.Data)
 			if err != nil {
 				return false, errors.WithMessagef(err, "%s|vertical map(scalar): failed to parse field value: %s", rc.CellDebugString(valueColName), cell.Data)
+			}
+			if !keyPresent && !valuePresent {
+				// key and value are both not present.
+				break
+			}
+			// check key range
+			if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
+				return false, errors.Errorf("%s|vertical map(scalar): value %s out of range [%s]", rc.CellDebugString(keyColName), cell.Data, field.opts.Prop.Range)
 			}
 			if !reflectMap.Has(newMapKey) {
 				reflectMap.Set(newMapKey, newMapValue)
@@ -378,12 +374,6 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					return false, errors.WithMessagef(err, "%s|horizontal map: failed to parse key: %s", rc.CellDebugString(keyColName), cell.Data)
 				}
 
-				if !keyPresent {
-					// key field is not present.
-					// TODO: check the remaining keys all not present, otherwise report error!
-					break
-				}
-
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
 					// check uniqueness
@@ -394,9 +384,14 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				} else {
 					newMapValue = reflectMap.NewValue()
 				}
-				_, err = sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
+				valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
 				if err != nil {
 					return false, errors.WithMessagef(err, "%s|horizontal map: failed to parse field options with prefix: %s", rc.CellDebugString(keyColName), prefix+field.opts.Name+strconv.Itoa(i))
+				}
+				if !keyPresent && !valuePresent {
+					// key and value are both not present.
+					// TODO: check the remaining keys all not present, otherwise report error!
+					break
 				}
 				reflectMap.Set(newMapKey, newMapValue)
 			}
@@ -430,24 +425,24 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					return false, errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), key)
 				}
 
-				if !keyPresent {
-					// key field is not present.
-					// TODO: check the remaining keys all not present, otherwise report error!
-					break
-				}
-
-				// check range: key
-				if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
-					return false, errors.Errorf("%s|incell map: %s out of range [%s]", rc.CellDebugString(colName), key, field.opts.Prop.Range)
-				}
-
 				newMapKey := fieldValue.MapKey()
-				fieldValue, _, err = sp.parseFieldValue(valueFd, value)
+				fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value)
 				if err != nil {
 					return false, errors.WithMessagef(err, "%s|incell map: failed to parse field value: %s", rc.CellDebugString(colName), value)
 				}
 				newMapValue := reflectMap.NewValue()
 				newMapValue = fieldValue
+
+				if !keyPresent && !valuePresent {
+					// key and value are both not present.
+					// TODO: check the remaining keys all not present, otherwise report error!
+					break
+				}
+
+				// check key range
+				if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
+					return false, errors.Errorf("%s|incell map: %s out of range [%s]", rc.CellDebugString(colName), key, field.opts.Prop.Range)
+				}
 
 				reflectMap.Set(newMapKey, newMapValue)
 			}
@@ -667,7 +662,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				reflectList.Append(newListValue)
 			}
 		}
-		
+
 		if prop.IsFixed(field.opts.Prop) {
 			for reflectList.Len() < fixedLen {
 				// append empty elements to the specified length.

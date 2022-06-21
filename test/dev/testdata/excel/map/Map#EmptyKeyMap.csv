@@ -1,0 +1,6 @@
+ID,Desc
+"map<uint32, Reward>",string
+Reward ID,Reward Description
+,Desc 0
+,
+3,Desc 3
