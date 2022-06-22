@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/xlsxgen"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
 
@@ -29,7 +30,7 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) err
 // GenProto can convert Excel/CSV/XML files to protoconf files.
 func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
 	opts := options.ParseOptions(setters...)
-	if err := InitLog(opts.Log); err != nil {
+	if err := log.Init(opts.Log); err != nil {
 		return err
 	}
 	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
@@ -40,7 +41,7 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (er
 // GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
-	if err := InitLog(opts.Log); err != nil {
+	if err := log.Init(opts.Log); err != nil {
 		return err
 	}
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
@@ -67,11 +68,4 @@ func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
 	)
 }
 
-// InitLog set the log options for debugging.
-func InitLog(opt *options.LogOption) error {
-	if opt.Filename == "" {
-		return atom.InitConsoleLog(opt.Mode, opt.Level)
-	} else {
-		return atom.InitMultiLog(opt.Mode, opt.Level, opt.Filename)
-	}
-}
+

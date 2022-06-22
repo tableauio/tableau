@@ -10,10 +10,10 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/protogen"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"gopkg.in/yaml.v2"
 )
@@ -74,7 +74,7 @@ func runCmd(cmd *cobra.Command, args []string) {
 		atom.Log.Errorf("load config(options) failed: %+v", err)
 		os.Exit(-1)
 	}
-	if err := tableau.InitLog(opts.Log); err != nil {
+	if err := log.Init(opts.Log); err != nil {
 		atom.Log.Errorf("init log failed: %+v", err)
 		os.Exit(-1)
 	}

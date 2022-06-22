@@ -37,6 +37,11 @@ func init() {
 	}
 }
 
+func updateLogger(logger *zap.Logger) {
+	zaplogger = logger
+	Log = zaplogger.Sugar()
+}
+
 // InitConsoleLog set the console log level and mode for debugging.
 func InitConsoleLog(mode, level string) error {
 	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
@@ -49,8 +54,7 @@ func InitConsoleLog(mode, level string) error {
 		ws,
 		zapLevel,
 	)
-	zaplogger := zap.New(core, zap.AddCaller())
-	Log = zaplogger.Sugar()
+	updateLogger(zap.New(core, zap.AddCaller()))
 	return nil
 }
 
@@ -69,10 +73,7 @@ func InitFileLog(mode, level, filename string) error {
 		ws,
 		zapLevel,
 	)
-	zaplogger := zap.New(core, zap.AddCaller())
-	// zap.ReplaceGlobals(zaplogger)
-	Log = zaplogger.Sugar()
-
+	updateLogger(zap.New(core, zap.AddCaller()))
 	return nil
 }
 
@@ -96,10 +97,7 @@ func InitMultiLog(mode, level, filename string) error {
 		),
 		zapLevel,
 	)
-
-	zaplogger := zap.New(core, zap.AddCaller())
-	Log = zaplogger.Sugar()
-
+	updateLogger(zap.New(core, zap.AddCaller()))
 	return nil
 }
 
