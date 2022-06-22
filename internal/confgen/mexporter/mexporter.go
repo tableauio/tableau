@@ -85,7 +85,7 @@ func (x *messageExporter) export(fmt format.Format) error {
 		return errors.Wrapf(err, "failed to write file: %s", fpath)
 	}
 	// out.WriteTo(os.Stdout)
-	atom.Log.Infof("%17s: %s", "generated conf", filename)
+	atom.Log.Infof("%18s: %s", "generated conf", filename)
 	return nil
 }
 

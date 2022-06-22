@@ -27,10 +27,9 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) err
 }
 
 // GenProto can convert Excel/CSV/XML files to protoconf files.
-func GenProto(protoPackage, indir, outdir string, setters ...options.Option) error {
+func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
 	opts := options.ParseOptions(setters...)
-	err := atom.InitConsoleLog(opts.Log.Level, opts.Log.Mode)
-	if err != nil {
+	if err := InitLog(opts.Log); err != nil {
 		return err
 	}
 	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
@@ -41,8 +40,7 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) err
 // GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Wire.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
-	err := atom.InitConsoleLog(opts.Log.Level, opts.Log.Mode)
-	if err != nil {
+	if err := InitLog(opts.Log); err != nil {
 		return err
 	}
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
@@ -69,12 +67,11 @@ func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
 	)
 }
 
-// SetLog set the log level and path for debugging.
-// If dir is empty, the log will be written to console,
-// otherwise it will be written to files in dir.
-func SetLog(level, mode, dir string) error {
-	if dir == "" {
-		return atom.InitConsoleLog(level, mode)
+// InitLog set the log options for debugging.
+func InitLog(opt *options.LogOption) error {
+	if opt.Filename == "" {
+		return atom.InitConsoleLog(opt.Mode, opt.Level)
+	} else {
+		return atom.InitMultiLog(opt.Mode, opt.Level, opt.Filename)
 	}
-	return atom.InitFileLog(level, dir, "tableau.log")
 }

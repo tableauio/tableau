@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/load"
 	"github.com/tableauio/tableau/test/dev/protoconf"
 )
@@ -21,7 +21,7 @@ func Test_LoadJSON(t *testing.T) {
 
 func Test_LoadCSVFailed(t *testing.T) {
 	msg := &protoconf.Activity{}
-	tableau.SetLog("DEBUG", "FULL", "./_logs/")
+	atom.InitFileLog("FULL", "DEBUG", "_logs/tableau.log")
 	err := load.Load(msg, "./testdata/", format.CSV, load.SubdirRewrites(map[string]string{"excel": ""}))
 	if err == nil {
 		t.Errorf("shoud have failed")

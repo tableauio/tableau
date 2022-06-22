@@ -536,14 +536,6 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if err != nil {
 					return false, errors.Errorf("%s|vertical keyed list: failed to parse field value: %s", rc.CellDebugString(keyColName), cell.Data)
 				}
-				if !keyPresent {
-					// break switch
-					break
-				}
-
-				if keyColName == "ServerConfConditionType" {
-					atom.Log.Warnf("key: (%s)", cell.Data)
-				}
 				for i := 0; i < reflectList.Len(); i++ {
 					item := reflectList.Get(i)
 					if xproto.EqualValue(fd, item.Message().Get(fd), key) {
@@ -552,15 +544,18 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						break
 					}
 				}
-				_, err = sp.parseFieldOptions(listItemValue.Message(), rc, depth+1, prefix+field.opts.Name)
+				elemPresent, err := sp.parseFieldOptions(listItemValue.Message(), rc, depth+1, prefix+field.opts.Name)
 				if err != nil {
 					return false, errors.WithMessagef(err, "%s|vertical list: failed to parse struct", rc.CellDebugString(prefix+field.opts.Name))
+				}
+				if !keyPresent && !elemPresent {
+					break
 				}
 				if !keyedListItemExisted {
 					reflectList.Append(listItemValue)
 				}
 			} else {
-				itemPresent := false
+				elemPresent := false
 				newListValue := reflectList.NewElement()
 				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 					// incell-struct list
@@ -569,16 +564,16 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					if cell == nil {
 						return false, errors.Errorf("%s|incell struct: column not found", rc.CellDebugString(colName))
 					}
-					if itemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
 						return false, errors.WithMessagef(err, "%s|vertical list: failed to parse incell struct", rc.CellDebugString(colName))
 					}
 				} else {
-					itemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name)
+					elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name)
 					if err != nil {
 						return false, errors.WithMessagef(err, "%s|vertical list: failed to parse struct", rc.CellDebugString(prefix+field.opts.Name))
 					}
 				}
-				if itemPresent {
+				if elemPresent {
 					reflectList.Append(newListValue)
 				}
 			}
@@ -608,7 +603,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 		for i := 1; i <= size; i++ {
 			newListValue := reflectList.NewElement()
 			colName := prefix + field.opts.Name + strconv.Itoa(i)
-			itemPresent := false
+			elemPresent := false
 			if field.fd.Kind() == protoreflect.MessageKind {
 				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 					// incell-struct list
@@ -616,24 +611,24 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					if cell == nil {
 						return false, errors.Errorf("%s|horizontal incell-struct list: column not found", rc.CellDebugString(colName))
 					}
-					if itemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
 						return false, errors.WithMessagef(err, "%s|horizontal incell-struct list: failed to parse incell struct", rc.CellDebugString(colName))
 					}
 				} else {
 					// struct list
-					itemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, colName)
+					elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, colName)
 					if err != nil {
 						return false, errors.WithMessagef(err, "%s|horizontal struct list: failed to parse struct", rc.CellDebugString(colName))
 					}
 				}
 				if checkRemainFlag {
 					// check the remaining keys all not present, otherwise report error!
-					if itemPresent {
+					if elemPresent {
 						return false, errors.Errorf("%s|horizontal list(struct): items are not present continuously", rc.CellDebugString(colName))
 					}
 					continue
 				}
-				if !itemPresent && !prop.IsFixed(field.opts.Prop) {
+				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
 					checkRemainFlag = true
 					continue
 				}
@@ -644,18 +639,18 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if cell == nil {
 					return false, errors.Errorf("%s|horizontal list(scalar): column not found", rc.CellDebugString(colName))
 				}
-				newListValue, itemPresent, err = sp.parseFieldValue(field.fd, cell.Data)
+				newListValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data)
 				if err != nil {
 					return false, errors.WithMessagef(err, "%s|horizontal list(scalar): failed to parse field value", rc.CellDebugString(colName))
 				}
 				if checkRemainFlag {
 					// check the remaining keys all not present, otherwise report error!
-					if itemPresent {
+					if elemPresent {
 						return false, errors.Errorf("%s|horizontal list(scalar): items are not present continuously", rc.CellDebugString(colName))
 					}
 					continue
 				}
-				if !itemPresent && !prop.IsFixed(field.opts.Prop) {
+				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
 					checkRemainFlag = true
 					continue
 				}
@@ -688,11 +683,11 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 		}
 		for i := 0; i < size; i++ {
 			elem := splits[i]
-			fieldValue, itemPresent, err := sp.parseFieldValue(field.fd, elem)
+			fieldValue, elemPresent, err := sp.parseFieldValue(field.fd, elem)
 			if err != nil {
 				return false, errors.WithMessagef(err, "%s|incell list: failed to parse field value: %s", rc.CellDebugString(colName), elem)
 			}
-			if !itemPresent && !prop.IsFixed(field.opts.Prop) {
+			if !elemPresent && !prop.IsFixed(field.opts.Prop) {
 				// TODO: check the remaining keys all not present, otherwise report error!
 				break
 			}

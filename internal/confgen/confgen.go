@@ -239,7 +239,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		}
 		md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
 		// atom.Log.Debugf("%s", md.FullName())
-		atom.Log.Infof("%17s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), md.Name(), workbook.Name, sheetName)
+		atom.Log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), md.Name(), workbook.Name, sheetName)
 		newMsg := dynamicpb.NewMessage(md)
 		parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
 
@@ -290,7 +290,7 @@ func getMergerImporters(primaryWorkbookPath, sheetName string, merger []string) 
 	}
 	var importers []importer.Importer
 	for fpath := range mergerWorkbookPaths {
-		atom.Log.Infof("merge workbook: %s", fpath)
+		atom.Log.Infof("%18s: %s", "merge workbook", fpath)
 		importer, err := importer.New(fpath, importer.Sheets([]string{sheetName}))
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)

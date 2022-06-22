@@ -164,8 +164,9 @@ func Test_Generate(t *testing.T) {
 		),
 		options.Log(
 			&options.LogOption{
-				Level: "DEBUG",
-				Mode:  "FULL",
+				Level:    "INFO",
+				Mode:     "SIMPLE",
+				Filename: "_logs/tableau.log",
 			},
 		),
 	)

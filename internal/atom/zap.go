@@ -3,7 +3,6 @@ package atom
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
@@ -32,20 +31,17 @@ var zaplogger *zap.Logger
 // }
 
 func init() {
-	err := InitConsoleLog("DEBUG", "FULL")
+	err := InitConsoleLog("FULL", "DEBUG")
 	if err != nil {
 		panic(err)
 	}
 }
 
-func InitConsoleLog(level, mode string) error {
-	zapLevel, ok := levelMap[strings.ToUpper(level)]
-	if !ok {
-		return fmt.Errorf("illegal log level: %s", level)
-	}
-	modeEncoder, ok := modeMap[strings.ToUpper(mode)]
-	if !ok {
-		return fmt.Errorf("illegal log mode: %s", mode)
+// InitConsoleLog set the console log level and mode for debugging.
+func InitConsoleLog(mode, level string) error {
+	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
+	if err != nil {
+		return err
 	}
 	ws := createConsoleWriter()
 	core := zapcore.NewCore(
@@ -58,17 +54,18 @@ func InitConsoleLog(level, mode string) error {
 	return nil
 }
 
-func InitFileLog(level string, dir string, filename string) error {
-	zapLevel, ok := levelMap[strings.ToUpper(level)]
-	if !ok {
-		return fmt.Errorf("illegal log level: %s", level)
+// InitFileLog set the file log level and filename for debugging.
+func InitFileLog(mode, level, filename string) error {
+	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
+	if err != nil {
+		return err
 	}
-	ws, err := createFileWriter(dir, filename)
+	ws, err := createFileWriter(filename)
 	if err != nil {
 		return fmt.Errorf("create file logger failed: %s", err)
 	}
 	core := zapcore.NewCore(
-		getFullEncoder(),
+		modeEncoder(),
 		ws,
 		zapLevel,
 	)
@@ -79,6 +76,45 @@ func InitFileLog(level string, dir string, filename string) error {
 	return nil
 }
 
+// InitMultiLog set the log mode, level, filename for debugging.
+// The logger will print both to console and files.
+func InitMultiLog(mode, level, filename string) error {
+	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
+	if err != nil {
+		return err
+	}
+	consoleSyncer := createConsoleWriter()
+	fileSyncer, err := createFileWriter(filename)
+	if err != nil {
+		return fmt.Errorf("create file logger failed: %s", err)
+	}
+	core := zapcore.NewCore(
+		modeEncoder(),
+		zapcore.NewMultiWriteSyncer(
+			consoleSyncer,
+			fileSyncer,
+		),
+		zapLevel,
+	)
+
+	zaplogger := zap.New(core, zap.AddCaller())
+	Log = zaplogger.Sugar()
+
+	return nil
+}
+
+func getEncoderAndLevel(mode, level string) (LogModeEncoder, zapcore.Level, error) {
+	modeEncoder, ok := modeMap[strings.ToUpper(mode)]
+	if !ok {
+		return nil, zapcore.DebugLevel, fmt.Errorf("illegal log mode: %s", mode)
+	}
+	zapLevel, ok := levelMap[strings.ToUpper(level)]
+	if !ok {
+		return nil, zapcore.DebugLevel, fmt.Errorf("illegal log level: %s", level)
+	}
+	return modeEncoder, zapLevel, nil
+}
+
 func NewSugar(name string) *zap.SugaredLogger {
 	return zaplogger.Named(name).Sugar()
 }
@@ -87,27 +123,28 @@ func createConsoleWriter() zapcore.WriteSyncer {
 	return zapcore.AddSync(os.Stdout)
 }
 
-func createFileWriter(dir string, filename string) (zapcore.WriteSyncer, error) {
-	logger, err := createLumberjackLogger(dir, filename)
+func createFileWriter(filename string) (zapcore.WriteSyncer, error) {
+	logger, err := createLumberjackLogger(filename)
 	if err != nil {
 		return nil, fmt.Errorf("create lumberjack logger failed: %s", err)
 	}
 	return zapcore.AddSync(logger), nil
 }
 
-func createLumberjackLogger(dir string, filename string) (*lumberjack.Logger, error) {
+func createLumberjackLogger(filename string) (*lumberjack.Logger, error) {
 	// create output dir
-	err := os.MkdirAll(dir, 0700)
-	if err != nil {
-		return nil, err
-	}
+	// dir := filepath.Dir(filename)
+	// err := os.MkdirAll(dir, 0700)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	return &lumberjack.Logger{
-		Filename:   filepath.Join(dir, filename),
-		MaxSize:    100, // megabytes
-		MaxAge:     7,   //days
-		MaxBackups: 3,
+		Filename:   filename,
+		MaxSize:    10, // megabytes
+		MaxAge:     30, //days
+		MaxBackups: 7,
 		LocalTime:  true,
-		Compress:   true, // disabled by default
+		// Compress:   true, // disabled by default
 	}, nil
 }
 

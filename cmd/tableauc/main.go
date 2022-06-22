@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/protogen"
@@ -17,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.5.1"
+const version = "0.5.2"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"
@@ -70,12 +71,11 @@ func runCmd(cmd *cobra.Command, args []string) {
 	opts := &options.Options{}
 	err := loadConf(configPath, opts)
 	if err != nil {
-		fmt.Printf("load config(options) failed: %+v\n", err)
+		atom.Log.Errorf("load config(options) failed: %+v", err)
 		os.Exit(-1)
 	}
-	err = atom.InitConsoleLog(opts.Log.Level, opts.Log.Mode)
-	if err != nil {
-		fmt.Printf("init log failed: %+v\n", err)
+	if err := tableau.InitLog(opts.Log); err != nil {
+		atom.Log.Errorf("init log failed: %+v", err)
 		os.Exit(-1)
 	}
 	atom.Log.Debugf("loaded tableau config: %+v", spew.Sdump(opts))
@@ -88,7 +88,7 @@ func runCmd(cmd *cobra.Command, args []string) {
 	case ModeConf:
 		genConf(args, opts)
 	default:
-		fmt.Printf("unknown mode: %s\n", mode)
+		atom.Log.Errorf("unknown mode: %s", mode)
 		os.Exit(-1)
 	}
 }

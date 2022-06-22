@@ -20,12 +20,15 @@ type Options struct {
 }
 
 type LogOption struct {
-	// Log level: DEBUG, INFO, WARN, ERROR.
-	// Default: "INFO".
-	Level string `yaml:"level"`
 	// Log mode: SIMPLE, FULL.
 	// Default: "FULL".
 	Mode string `yaml:"mode"`
+	// Log level: DEBUG, INFO, WARN, ERROR.
+	// Default: "INFO".
+	Level string `yaml:"level"`
+	// Log filename: set this if you also want to write log messages to files.
+	// Default: "".
+	Filename string `yaml:"filename"`
 }
 type HeaderOption struct {
 	// Exact row number of column name definition at a worksheet.
@@ -103,14 +106,14 @@ type InputConfOption struct {
 	ProtoPaths []string `yaml:"protoPaths"`
 	// The files to be parsed to generate configurations.
 	//
-	// NOTE: Glob patterns is supported, which can specify sets 
+	// NOTE: Glob patterns is supported, which can specify sets
 	// of filenames with wildcard characters.
 	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
 	// The files not to be parsed to generate configurations.
 	//
-	// NOTE: Glob patterns is supported, which can specify sets 
+	// NOTE: Glob patterns is supported, which can specify sets
 	// of filenames with wildcard characters.
 	//
 	// Default: nil.
@@ -251,7 +254,7 @@ func NewDefault() *Options {
 	return &Options{
 		LocationName: "Local",
 		Log: &LogOption{
-			Mode:  "FULL",
+			Mode:  "SIMPLE",
 			Level: "INFO",
 		},
 		Input: &InputOption{
