@@ -26,9 +26,12 @@ type LogOption struct {
 	// Log level: DEBUG, INFO, WARN, ERROR.
 	// Default: "INFO".
 	Level string `yaml:"level"`
-	// Log filename: set this if you also want to write log messages to files.
+	// Log filename: set this if you want to write log messages to files.
 	// Default: "".
 	Filename string `yaml:"filename"`
+	// Log sink: CONSOLE, FILE, and MULTI.
+	// Default: "CONSOLE".
+	Sink string `yaml:"sink"`
 }
 type HeaderOption struct {
 	// Exact row number of column name definition at a worksheet.
@@ -256,6 +259,7 @@ func NewDefault() *Options {
 		Log: &LogOption{
 			Mode:  "SIMPLE",
 			Level: "INFO",
+			Sink:  "CONSOLE",
 		},
 		Input: &InputOption{
 			Proto: &InputProtoOption{

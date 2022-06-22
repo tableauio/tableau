@@ -10,6 +10,16 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var Log *zap.SugaredLogger
+var zaplogger *zap.Logger
+
+func init() {
+	err := InitConsoleLog("FULL", "DEBUG")
+	if err != nil {
+		panic(err)
+	}
+}
+
 var levelMap = map[string]zapcore.Level{
 	"DEBUG": zapcore.DebugLevel,
 	"INFO":  zapcore.InfoLevel,
@@ -23,18 +33,27 @@ var modeMap = map[string]LogModeEncoder{
 	"FULL":   getFullEncoder,
 }
 
-var Log *zap.SugaredLogger
-var zaplogger *zap.Logger
+type SinkType int
 
-// func GetZapLogger() *zap.Logger {
-// 	return zaplogger
-// }
+const (
+	SinkConsole SinkType = iota // default
+	SinkFile
+	SinkMulti
+)
 
-func init() {
-	err := InitConsoleLog("FULL", "DEBUG")
-	if err != nil {
-		panic(err)
+var sinkMap = map[string]SinkType{
+	"":        SinkConsole,
+	"CONSOLE": SinkConsole,
+	"FILE":    SinkFile,
+	"MULTI":   SinkMulti,
+}
+
+func GetSinkType(sink string) (SinkType, error) {
+	sinkType, ok := sinkMap[strings.ToUpper(sink)]
+	if !ok {
+		return SinkConsole, fmt.Errorf("illegal sink: %s", sink)
 	}
+	return sinkType, nil
 }
 
 func updateLogger(logger *zap.Logger) {
