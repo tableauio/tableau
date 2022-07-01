@@ -24,13 +24,13 @@ func Test_LoadCSVFailed(t *testing.T) {
 	atom.InitFileLog("FULL", "DEBUG", "_logs/tableau.log")
 	err := load.Load(msg, "./testdata/", format.CSV, load.SubdirRewrites(map[string]string{"excel": ""}))
 	if err == nil {
-		t.Errorf("shoud have failed")
+		t.Errorf("should have failed")
 	}
 	fmt.Printf("%+v\n", err)
 }
 
 func Test_LoadExcel(t *testing.T) {
-	msg := &protoconf.Activity{}
+	msg := &protoconf.Hero{}
 	err := load.Load(msg, "./testdata/", format.Excel)
 	if err != nil {
 		t.Errorf("%+v", err)

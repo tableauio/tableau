@@ -244,7 +244,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
 
 		// get merger importers
-		importers, err := getMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
+		importers, err := GetMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
 		if err != nil {
 			return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
 		}
@@ -264,10 +264,10 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 	return nil
 }
 
-// getMergerImporters gathers all merger importers.
+// GetMergerImporters gathers all merger importers.
 // 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 // 	2. exclude self
-func getMergerImporters(primaryWorkbookPath, sheetName string, merger []string) ([]importer.Importer, error) {
+func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) ([]importer.Importer, error) {
 	if len(merger) == 0 {
 		return nil, nil
 	}

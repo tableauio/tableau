@@ -19,6 +19,11 @@ type Options struct {
 	// Rewrite subdir path (relative to workbook name option in .proto file).
 	// Default: nil.
 	SubdirRewrites map[string]string
+	// Location represents the collection of time offsets in use in a geographical area.
+	// If the name is "" or "UTC", LoadLocation returns UTC.
+	// If the name is "Local", LoadLocation returns Local.
+	// Default: "Local".
+	LocationName string
 }
 
 // Option is the functional option type.
@@ -31,10 +36,18 @@ func SubdirRewrites(subdirRewrites map[string]string) Option {
 	}
 }
 
+// LocationName sets TZ location name for parsing datetime format.
+func LocationName(o string) Option {
+	return func(opts *Options) {
+		opts.LocationName = o
+	}
+}
+
 // newDefault returns a default Options.
 func newDefault() *Options {
 	return &Options{
 		SubdirRewrites: nil,
+		LocationName:   "Local",
 	}
 }
 
@@ -130,16 +143,17 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 		return errors.WithMessagef(err, "failed to import workbook: %v", wbPath)
 	}
 
-	sheet := imp.GetSheet(wsOpts.Name)
-	if sheet == nil {
-		return errors.WithMessagef(err, "%v|sheet %s not found", msgName, wsOpts.Name)
+	// get merger importers
+	importers, err := confgen.GetMergerImporters(wbPath, wsOpts.Name, wsOpts.Merger)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
 	}
-	pkgName := md.ParentFile().Package()
-	// TODO: support LocationName setting by using Functional Options
-	locationName := ""
-	parser := confgen.NewSheetParser(string(pkgName), locationName, wsOpts)
-	if err := parser.Parse(msg, sheet); err != nil {
-		return errors.WithMessagef(err, "%v|failed to parse sheet: %s", msgName, wsOpts.Name)
+	// append self
+	importers = append(importers, imp)
+
+	parser := confgen.NewSheetParser(string(md.ParentFile().Package()), opts.LocationName, wsOpts)
+	if err := confgen.ParseMessage(parser, msg, wsOpts.Name, importers...); err != nil {
+		return errors.WithMessagef(err, "failed to parse message %s", msgName)
 	}
 	return nil
 }

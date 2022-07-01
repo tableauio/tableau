@@ -37,19 +37,26 @@ func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, impo
 	md := protomsg.ProtoReflect().Descriptor()
 	msgName, wsOpts := ParseMessageOptions(md)
 
-	for _, imp := range importers {
-		sheet := imp.GetSheet(wsOpts.Name)
-		if sheet == nil {
-			return errors.Errorf("sheet %s not found", wsOpts.Name)
-		}
-
-		if err := parser.Parse(protomsg, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse sheet: %s", msgName)
-		}
+	if err := ParseMessage(parser, protomsg, wsOpts.Name, importers...); err != nil {
+		return errors.WithMessagef(err, "failed to parse message %s", msgName)
 	}
 
 	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.OutputOpt, wsOpts)
 	return exporter.Export()
+}
+
+func ParseMessage(parser *sheetParser, protomsg proto.Message, sheetName string, importers ...importer.Importer) error {
+	for _, imp := range importers {
+		sheet := imp.GetSheet(sheetName)
+		if sheet == nil {
+			return errors.Errorf("sheet %s not found", sheetName)
+		}
+
+		if err := parser.Parse(protomsg, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse sheet %s to %s", sheetName, protomsg.ProtoReflect().Descriptor().FullName())
+		}
+	}
+	return nil
 }
 
 type sheetParser struct {
