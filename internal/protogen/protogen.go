@@ -257,7 +257,7 @@ func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.Heade
 	}
 }
 
-func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool) error {
+func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool) (err error) {
 	absPath := filepath.Join(dir, filename)
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser), importer.TopN(defaultTopN))
@@ -324,11 +324,14 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 			noterow: sheet.Rows[gen.InputOpt.Header.Noterow-1],
 		}
 
-		var ok bool
+		var parsed bool
 		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
 			field := &tableaupb.Field{}
-			cursor, ok = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
-			if ok {
+			cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
+			if err != nil {
+				return errors.WithMessagef(err, "failed to parse field")
+			}
+			if parsed {
 				ws.Fields = append(ws.Fields, field)
 			}
 		}
