@@ -5,6 +5,7 @@ import (
 
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
 
@@ -55,7 +56,7 @@ func Test_GenProto(t *testing.T) {
 			},
 		),
 		options.Log(
-			&options.LogOption{
+			&log.Options{
 				Level: "DEBUG",
 				Mode:  "FULL",
 			},
@@ -163,7 +164,7 @@ func Test_Generate(t *testing.T) {
 			},
 		),
 		options.Log(
-			&options.LogOption{
+			&log.Options{
 				Level: "DEBUG",
 				Mode:  "FULL",
 				// Filename: "_logs/tableau.log",
@@ -208,7 +209,7 @@ func Test_GenConf1(t *testing.T) {
 			},
 		),
 		options.Log(
-			&options.LogOption{
+			&log.Options{
 				Level: "DEBUG",
 				Mode:  "FULL",
 			},

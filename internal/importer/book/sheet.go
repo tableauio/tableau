@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/csv"
 	"io"
+	"log"
 	"math"
 
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/protobuf/proto"
@@ -92,7 +92,7 @@ func (s *Sheet) String() string {
 	w := csv.NewWriter(&buffer)
 	err := w.WriteAll(s.Rows) // calls Flush internally
 	if err != nil {
-		atom.Log.Panicf("write csv failed: %v", err)
+		log.Panicf("write csv failed: %v", err)
 	}
 	return buffer.String()
 }
@@ -103,7 +103,7 @@ func (s *Sheet) ExportCSV(writer io.Writer) error {
 	// TODO: deepcopy a new rows!
 	for nrow, row := range s.Rows {
 		for i := len(row); i < s.MaxCol; i++ {
-			// atom.Log.Debugf("add empty cell: %s", s.Name)
+			// log.Debugf("add empty cell: %s", s.Name)
 			row = append(row, "")
 		}
 		s.Rows[nrow] = row

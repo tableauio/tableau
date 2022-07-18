@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -85,7 +85,7 @@ func (x *messageExporter) export(fmt format.Format) error {
 		return errors.Wrapf(err, "failed to write file: %s", fpath)
 	}
 	// out.WriteTo(os.Stdout)
-	atom.Log.Infof("%18s: %s", "generated conf", filename)
+	log.Infof("%18s: %s", "generated conf", filename)
 	return nil
 }
 

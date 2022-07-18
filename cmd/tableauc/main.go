@@ -10,7 +10,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/log"
@@ -71,14 +70,14 @@ func runCmd(cmd *cobra.Command, args []string) {
 	opts := &options.Options{}
 	err := loadConf(configPath, opts)
 	if err != nil {
-		atom.Log.Errorf("load config(options) failed: %+v", err)
+		log.Errorf("load config(options) failed: %+v", err)
 		os.Exit(-1)
 	}
 	if err := log.Init(opts.Log); err != nil {
-		atom.Log.Errorf("init log failed: %+v", err)
+		log.Errorf("init log failed: %+v", err)
 		os.Exit(-1)
 	}
-	atom.Log.Debugf("loaded tableau config: %+v", spew.Sdump(opts))
+	log.Debugf("loaded tableau config: %+v", spew.Sdump(opts))
 	switch mode {
 	case ModeDefault:
 		genProto(args, opts)
@@ -88,7 +87,7 @@ func runCmd(cmd *cobra.Command, args []string) {
 	case ModeConf:
 		genConf(args, opts)
 	default:
-		atom.Log.Errorf("unknown mode: %s", mode)
+		log.Errorf("unknown mode: %s", mode)
 		os.Exit(-1)
 	}
 }
@@ -98,7 +97,7 @@ func genProto(workbooks []string, opts *options.Options) {
 	// generate proto files
 	gen := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
 	if err := gen.Generate(workbooks...); err != nil {
-		atom.Log.Errorf(red("generate proto file failed: %+v", err))
+		log.Errorf(red("generate proto file failed: %+v", err))
 		os.Exit(-1)
 	}
 }
@@ -108,7 +107,7 @@ func genConf(workbooks []string, opts *options.Options) {
 	// generate conf files
 	gen := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
 	if err := gen.Generate(workbooks...); err != nil {
-		atom.Log.Errorf(red("generate conf file failed: %+v", err))
+		log.Errorf(red("generate conf file failed: %+v", err))
 		os.Exit(-1)
 	}
 }

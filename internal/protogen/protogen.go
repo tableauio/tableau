@@ -11,13 +11,13 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"golang.org/x/sync/errgroup"
@@ -62,7 +62,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		g.InputOpt.ProtoPaths,
 		g.InputOpt.ImportedProtoFiles...)
 	if err != nil {
-		atom.Log.Panic(err)
+		log.Panic(err)
 	}
 	g.fileDescs = fileDescs
 	g.typeInfos = xproto.GetAllTypeInfo(fileDescs)
@@ -184,7 +184,7 @@ func (gen *Generator) generate(dir string) (err error) {
 
 			if !fileInfo.IsDir() {
 				// is not a directory
-				atom.Log.Warnf("symlink: %s is not a directory, currently not processed", dstPath)
+				log.Warnf("symlink: %s is not a directory, currently not processed", dstPath)
 			}
 			err = gen.generate(dstPath)
 			if err != nil {
@@ -197,7 +197,7 @@ func (gen *Generator) generate(dir string) (err error) {
 			// ignore temp file named with prefix "~$"
 			continue
 		}
-		// atom.Log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
+		// log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
 		fmt := format.Ext2Format(filepath.Ext(entry.Name()))
 		// check if this workbook format need to be converted
 		if !format.FilterInput(fmt, gen.InputOpt.Formats) {
@@ -280,7 +280,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	if rewrittenWorkbookName != relativePath {
 		debugWorkbookName += " (rewrite: " + rewrittenWorkbookName + ")"
 	}
-	atom.Log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugWorkbookName, len(sheets))
+	log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugWorkbookName, len(sheets))
 	// creat a book parser
 	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen)
 	for _, sheet := range sheets {
@@ -291,7 +291,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 			sheetMsgName = sheet.Meta.Alias
 			debugSheetName += " (alias: " + sheet.Meta.Alias + ")"
 		}
-		atom.Log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 		mergeHeaderOptions(sheet.Meta, gen.InputOpt.Header)
 		ws := &tableaupb.Worksheet{
 			Options: &tableaupb.WorksheetOptions{

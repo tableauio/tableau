@@ -7,9 +7,9 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 )
@@ -33,7 +33,7 @@ type bookParser struct {
 }
 
 func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
-	// atom.Log.Debugf("filenameWithSubdirPrefix: %v", filenameWithSubdirPrefix)
+	// log.Debugf("filenameWithSubdirPrefix: %v", filenameWithSubdirPrefix)
 	filename := strcase.ToSnake(bookName)
 	if gen.OutputOpt.FilenameWithSubdirPrefix {
 		bookPath := filepath.Join(filepath.Dir(relSlashPath), bookName)
@@ -66,9 +66,9 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	nameCell := header.getNameCell(cursor)
 	typeCell := header.getTypeCell(cursor)
 	noteCell := header.getNoteCell(cursor)
-	// atom.Log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)
+	// log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)
 	if nameCell == "" || typeCell == "" {
-		atom.Log.Debugf("no need to parse column %d, as name(%s) or type(%s) is empty", cursor, nameCell, typeCell)
+		log.Debugf("no need to parse column %d, as name(%s) or type(%s) is empty", cursor, nameCell, typeCell)
 		return cursor, false, nil
 	}
 

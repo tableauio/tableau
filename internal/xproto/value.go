@@ -158,7 +158,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			if err != nil {
 				return DefaultTimestampValue, true, errors.WithMessagef(err, "illegal timestamp string format: %v", value)
 			}
-			// atom.Log.Debugf("timeStr: %v, unix timestamp: %v", value, t.Unix())
+			// log.Debugf("timeStr: %v, unix timestamp: %v", value, t.Unix())
 			ts := timestamppb.New(t)
 			if err := ts.CheckValid(); err != nil {
 				return DefaultTimestampValue, true, errors.WithMessagef(err, "invalid timestamp: %v", value)
@@ -183,7 +183,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			return pref.Value{}, false, errors.Errorf("not supported message type: %s", msgName)
 		}
 	// case pref.GroupKind:
-	// 	atom.Log.Panicf("not supported key type: %s", fd.Kind().String())
+	// 	log.Panicf("not supported key type: %s", fd.Kind().String())
 	// 	return pref.Value{}
 	default:
 		return pref.Value{}, false, errors.Errorf("not supported scalar type: %s", fd.Kind().String())

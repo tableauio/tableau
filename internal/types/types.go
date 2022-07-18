@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/prototext"
 )
@@ -97,7 +97,7 @@ func ParseProp(text string) *tableaupb.FieldProp {
 		}
 		prop := &tableaupb.FieldProp{}
 		if err := prototext.Unmarshal([]byte(propText), prop); err != nil {
-			atom.Log.Errorf("parse prop failed: %s", err)
+			log.Errorf("parse prop failed: %s", err)
 			return nil
 		}
 		return prop

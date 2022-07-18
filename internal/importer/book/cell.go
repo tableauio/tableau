@@ -7,10 +7,10 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/camelcase"
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/log"
 )
 
 var newlineRegex *regexp.Regexp
@@ -33,7 +33,7 @@ func ExtractFromCell(cell string, line int32) string {
 	if int32(len(lines)) >= line {
 		return strings.TrimSpace(lines[line-1])
 	}
-	// atom.Log.Debugf("No enough lines in cell: %s, want at least %d lines", cell, line)
+	// log.Debugf("No enough lines in cell: %s, want at least %d lines", cell, line)
 	return ""
 }
 
@@ -170,7 +170,7 @@ func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateK
 					cell.Data = prevCell.Data
 					cell.autoPopulated = true
 				} else {
-					atom.Log.Errorf("failed to find prev cell for name: %s, row: %d", name, r.Row)
+					log.Errorf("failed to find prev cell for name: %s, row: %d", name, r.Row)
 				}
 			}
 		}
@@ -182,14 +182,14 @@ func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateK
 }
 
 func (r *RowCells) GetCellCountWithPrefix(prefix string) int {
-	// atom.Log.Debug("name prefix: ", prefix)
+	// log.Debug("name prefix: ", prefix)
 	size := 0
 	for name := range r.cells {
 		if strings.HasPrefix(name, prefix) {
 			num := 0
-			// atom.Log.Debug("name: ", name)
+			// log.Debug("name: ", name)
 			colSuffix := name[len(prefix):]
-			// atom.Log.Debug("name: suffix ", colSuffix)
+			// log.Debug("name: suffix ", colSuffix)
 			for _, r := range colSuffix {
 				if unicode.IsDigit(r) {
 					num = num*10 + int(r-'0')

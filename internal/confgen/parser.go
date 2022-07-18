@@ -6,12 +6,12 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen/mexporter"
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
@@ -74,7 +74,7 @@ func NewSheetParser(protoPackage, locationName string, opts *tableaupb.Worksheet
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
-	// atom.Log.Debugf("parse sheet: %s", sheet.Name)
+	// log.Debugf("parse sheet: %s", sheet.Name)
 	msg := protomsg.ProtoReflect()
 	if sp.opts.Transpose {
 		// interchange the rows and columns
@@ -171,11 +171,11 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 	// if worksheet != nil {
 	// 	worksheetName = worksheet.Name
 	// }
-	// atom.Log.Debugf("%s// %s, '%s', %v, %v, %v", printer.Indent(depth), md.FullName(), worksheetName, md.IsMapEntry(), prefix, pkg)
+	// log.Debugf("%s// %s, '%s', %v, %v, %v", printer.Indent(depth), md.FullName(), worksheetName, md.IsMapEntry(), prefix, pkg)
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		if string(pkg) != sp.ProtoPackage && pkg != "google.protobuf" {
-			atom.Log.Debugf("no need to process package: %v", pkg)
+			log.Debugf("no need to process package: %v", pkg)
 			return false, nil
 		}
 
@@ -254,7 +254,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 }
 
 func (sp *sheetParser) parseField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
-	// atom.Log.Debug(field.fd.ContainingMessage().FullName())
+	// log.Debug(field.fd.ContainingMessage().FullName())
 	if field.fd.IsMap() {
 		return sp.parseMapField(field, msg, rc, depth, prefix)
 	} else if field.fd.IsList() {
@@ -369,7 +369,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				break
 			}
 			size := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
-			// atom.Log.Debug("prefix size: ", size)
+			// log.Debug("prefix size: ", size)
 			for i := 1; i <= size; i++ {
 				keyColName := prefix + field.opts.Name + strconv.Itoa(i) + field.opts.Key
 				cell := rc.Cell(keyColName, field.opts.Optional)
@@ -824,7 +824,7 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 	subMd := structValue.Message().Descriptor()
 	for i := 0; i < subMd.Fields().Len() && i < len(splits); i++ {
 		fd := subMd.Fields().Get(i)
-		// atom.Log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
+		// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
 		incell := splits[i]
 		value, fieldPresent, err := sp.parseFieldValue(fd, incell)
 		if err != nil {
@@ -899,6 +899,6 @@ func ParseMessageOptions(md protoreflect.MessageDescriptor) (string, *tableaupb.
 	if wsOpts.Datarow == 0 {
 		wsOpts.Datarow = 4 // default
 	}
-	// atom.Log.Debugf("msg: %v, wsOpts: %+v", msgName, wsOpts)
+	// log.Debugf("msg: %v, wsOpts: %+v", msgName, wsOpts)
 	return msgName, wsOpts
 }

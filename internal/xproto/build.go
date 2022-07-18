@@ -6,8 +6,8 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/log"
 	_ "github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -15,8 +15,8 @@ import (
 
 // ParseProtos parses the proto paths and proto files to desc.FileDescriptor slices.
 func ParseProtos(protoPaths []string, protoFiles ...string) ([]*desc.FileDescriptor, error) {
-	atom.Log.Debugf("proto paths: %v", protoPaths)
-	atom.Log.Debugf("proto files: %v", protoFiles)
+	log.Debugf("proto paths: %v", protoPaths)
+	log.Debugf("proto files: %v", protoFiles)
 	parser := &protoparse.Parser{
 		ImportPaths:  protoPaths,
 		LookupImport: desc.LoadFileDescriptor,
@@ -64,7 +64,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 		// 		}
 		// 		importCleanSlashPath := fs.GetCleanSlashPath(importPath)
 		// 		if !strings.HasPrefix(cleanSlashPath, importCleanSlashPath) {
-		// 			atom.Log.Debugf("add proto file: %s", originMatch)
+		// 			log.Debugf("add proto file: %s", originMatch)
 		// 			parsedProtoFiles = append(parsedProtoFiles, originMatch)
 		// 		} else {
 		// 			parsedProtoFiles = append(parsedProtoFiles, strings.TrimPrefix(cleanSlashPath, importCleanSlashPath+"/"))
@@ -73,7 +73,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 		// }
 	}
 
-	atom.Log.Debugf("proto files: %v", parsedProtoFiles)
+	log.Debugf("proto files: %v", parsedProtoFiles)
 
 	descFileDescriptors, err := ParseProtos(protoPaths, parsedProtoFiles...)
 	if err != nil {

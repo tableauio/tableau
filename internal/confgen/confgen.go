@@ -9,10 +9,10 @@ import (
 	"github.com/emirpasic/gods/lists/arraylist"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"golang.org/x/sync/errgroup"
@@ -44,7 +44,7 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	// TODO: define tableau in package constants.
 	if protoPackage == "tableau" {
-		atom.Log.Panicf(`proto package can not be "tableau" which is reserved`)
+		log.Panicf(`proto package can not be "tableau" which is reserved`)
 	}
 	g := &Generator{
 		ProtoPackage: protoPackage,
@@ -85,7 +85,7 @@ func PrintPerfStats(gen *Generator) {
 	})
 	list.Each(func(index int, value interface{}) {
 		info := value.(*messagerStatsInfo)
-		atom.Log.Debugf("timespan|%v: %vs", info.Name, float64(info.Milliseconds)/1000)
+		log.Debugf("timespan|%v: %vs", info.Name, float64(info.Milliseconds)/1000)
 	})
 }
 
@@ -111,7 +111,7 @@ func (gen *Generator) GenAll() error {
 		return errors.WithMessagef(err, "failed to create files")
 	}
 
-	atom.Log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 
 	var eg errgroup.Group
 	prFiles.RangeFilesByPackage(
@@ -141,7 +141,7 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 	if err != nil {
 		return errors.Wrapf(err, "failed to get relative path from %s to %s", gen.InputDir, relWorkbookPath)
 	}
-	atom.Log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", relWorkbookPath, relCleanSlashPath)
+	log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", relWorkbookPath, relCleanSlashPath)
 	relWorkbookPath = relCleanSlashPath
 
 	// create output dir
@@ -154,7 +154,7 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
-	atom.Log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 
 	workbookFound := false
 	prFiles.RangeFilesByPackage(
@@ -222,7 +222,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
 	wbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
-	atom.Log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
+	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
 	imp, err := importer.New(wbPath, importer.Sheets(sheets))
 	if err != nil {
 		return errors.WithMessagef(err, "failed to import workbook: %s", wbPath)
@@ -238,8 +238,8 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 			worksheetFound = true
 		}
 		md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
-		// atom.Log.Debugf("%s", md.FullName())
-		atom.Log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), md.Name(), workbook.Name, sheetName)
+		// log.Debugf("%s", md.FullName())
+		log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), md.Name(), workbook.Name, sheetName)
 		newMsg := dynamicpb.NewMessage(md)
 		parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
 
@@ -290,7 +290,7 @@ func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) 
 	}
 	var importers []importer.Importer
 	for fpath := range mergerWorkbookPaths {
-		atom.Log.Infof("%18s: %s", "merge workbook", fpath)
+		log.Infof("%18s: %s", "merge workbook", fpath)
 		importer, err := importer.New(fpath, importer.Sheets([]string{sheetName}))
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
@@ -311,7 +311,7 @@ func getProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles 
 			return false
 		})
 	if count != 0 {
-		atom.Log.Debugf("use already injected protoregistry.GlobalFiles")
+		log.Debugf("use already injected protoregistry.GlobalFiles")
 		return prFiles, nil
 	}
 	return xproto.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)

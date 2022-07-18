@@ -4,13 +4,8 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/options"
 )
-
-func init() {
-	atom.InitZap("debug")
-}
 
 const (
 	protoPackage    = "protoconf"

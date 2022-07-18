@@ -13,8 +13,8 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/xuri/excelize/v2"
@@ -192,24 +192,24 @@ func (gen *Generator) Generate() {
 
 	protoPackage := protoreflect.FullName(gen.ProtoPackage)
 	protoregistry.GlobalFiles.RangeFilesByPackage(protoPackage, func(fd protoreflect.FileDescriptor) bool {
-		atom.Log.Debugf("filepath: %s\n", fd.Path())
+		log.Debugf("filepath: %s\n", fd.Path())
 		opts := fd.Options().(*descriptorpb.FileOptions)
 		workbook := proto.GetExtension(opts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
 		if workbook == nil {
 			return true
 		}
 
-		atom.Log.Debugf("proto: %s => workbook: %s\n", fd.Path(), workbook)
+		log.Debugf("proto: %s => workbook: %s\n", fd.Path(), workbook)
 		msgs := fd.Messages()
 		for i := 0; i < msgs.Len(); i++ {
 			md := msgs.Get(i)
-			// atom.Log.Debugf("%s\n", md.FullName())
+			// log.Debugf("%s\n", md.FullName())
 			opts := md.Options().(*descriptorpb.MessageOptions)
 			worksheetOpt := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
 			if worksheetOpt == nil {
 				continue
 			}
-			atom.Log.Infof("generate: %s, message: %s@%s, worksheet: %s@%s", md.Name(), fd.Path(), md.Name(), workbook, worksheetOpt.Name)
+			log.Infof("generate: %s, message: %s@%s, worksheet: %s@%s", md.Name(), fd.Path(), md.Name(), workbook, worksheetOpt.Name)
 			// export the protomsg message.
 			_, workbook := TestParseFileOptions(md.ParentFile())
 			fmt.Println("==================", workbook)
@@ -345,7 +345,7 @@ func (gen *Generator) ExportSheet(metaSheet *MetaSheet) error {
 				if err != nil {
 					panic(err)
 				}
-				// atom.Log.Debugf("%s(%v) ", cell.Data, width)
+				// log.Debugf("%s(%v) ", cell.Data, width)
 
 				gen.setDataValidation(wb, metaSheet, i)
 			}
@@ -468,7 +468,7 @@ func TestParseFileOptions(fd protoreflect.FileDescriptor) (string, *tableaupb.Wo
 	opts := fd.Options().(*descriptorpb.FileOptions)
 	protofile := string(fd.FullName())
 	workbook := proto.GetExtension(opts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
-	atom.Log.Debugf("file:%s, workbook:%s\n", fd.Path(), workbook)
+	log.Debugf("file:%s, workbook:%s\n", fd.Path(), workbook)
 	return protofile, workbook
 }
 
@@ -492,7 +492,7 @@ func TestParseMessageOptions(md protoreflect.MessageDescriptor) (string, string,
 		datarow = 2 // default
 	}
 	transpose := worksheet.Transpose
-	atom.Log.Debugf("message:%s, worksheetName:%s, namerow:%d, noterow:%d, datarow:%d, transpose:%v\n", msgName, worksheetName, namerow, noterow, datarow, transpose)
+	log.Debugf("message:%s, worksheetName:%s, namerow:%d, noterow:%d, datarow:%d, transpose:%v\n", msgName, worksheetName, namerow, noterow, datarow, transpose)
 	return msgName, worksheetName, namerow, noterow, datarow, transpose
 }
 
@@ -513,11 +513,11 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 		worksheetName = worksheet.Name
 	}
 	pkg := md.ParentFile().Package()
-	atom.Log.Debugf("%s// %s, '%s', %v, %v, %v\n", getTabStr(depth), md.FullName(), worksheetName, md.IsMapEntry(), prefix, pkg)
+	log.Debugf("%s// %s, '%s', %v, %v, %v\n", getTabStr(depth), md.FullName(), worksheetName, md.IsMapEntry(), prefix, pkg)
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		if string(pkg) != gen.ProtoPackage && pkg != "google.protobuf" {
-			atom.Log.Debugf("%s// no need to proces package: %v\n", getTabStr(depth), pkg)
+			log.Debugf("%s// no need to proces package: %v\n", getTabStr(depth), pkg)
 			return
 		}
 		msgName := ""
@@ -560,9 +560,9 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 		if subsep == "" {
 			subsep = ":"
 		}
-		atom.Log.Debugf("%s%s(%v) %s(%s) %s = %d [(name) = \"%s\", (type) = %s, (key) = \"%s\", (layout) = \"%s\", (sep) = \"%s\"];",
+		log.Debugf("%s%s(%v) %s(%s) %s = %d [(name) = \"%s\", (type) = %s, (key) = \"%s\", (layout) = \"%s\", (sep) = \"%s\"];",
 			getTabStr(depth), fd.Cardinality().String(), fd.IsMap(), fd.Kind().String(), msgName, fd.FullName().Name(), fd.Number(), prefix+name, span.String(), key, layout.String(), sep)
-		atom.Log.Debugw("field metadata",
+		log.Debugw("field metadata",
 			"tabs", depth,
 			"cardinality", fd.Cardinality().String(),
 			"isMap", fd.IsMap(),

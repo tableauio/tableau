@@ -1,4 +1,4 @@
-package atom
+package log
 
 import (
 	"fmt"
@@ -10,8 +10,10 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var Log *zap.SugaredLogger
 var zaplogger *zap.Logger
+
+// SkipUntilTrueCaller is the skip level which prints out the actual caller instead of slf4go or slf4go-zap wrappers
+const SkipUntilTrueCaller = 1
 
 func init() {
 	err := InitConsoleLog("FULL", "DEBUG")
@@ -58,7 +60,6 @@ func GetSinkType(sink string) (SinkType, error) {
 
 func updateLogger(logger *zap.Logger) {
 	zaplogger = logger
-	Log = zaplogger.Sugar()
 }
 
 // InitConsoleLog set the console log level and mode for debugging.
@@ -73,7 +74,7 @@ func InitConsoleLog(mode, level string) error {
 		ws,
 		zapLevel,
 	)
-	updateLogger(zap.New(core, zap.AddCaller()))
+	updateLogger(zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)))
 	return nil
 }
 
@@ -92,7 +93,7 @@ func InitFileLog(mode, level, filename string) error {
 		ws,
 		zapLevel,
 	)
-	updateLogger(zap.New(core, zap.AddCaller()))
+	updateLogger(zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)))
 	return nil
 }
 
@@ -116,7 +117,7 @@ func InitMultiLog(mode, level, filename string) error {
 		),
 		zapLevel,
 	)
-	updateLogger(zap.New(core, zap.AddCaller()))
+	updateLogger(zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)))
 	return nil
 }
 

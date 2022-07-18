@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/log"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -92,7 +92,7 @@ func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][
 		rows = append(rows, row)
 	}
 	if sheetName == book.MetasheetName {
-		atom.Log.Debugf("read %d rows (topN:%d) from sheet: %s#%s", len(rows), topN, f.Path, sheetName)
+		log.Debugf("read %d rows (topN:%d) from sheet: %s#%s", len(rows), topN, f.Path, sheetName)
 	}
 	return rows, nil
 }

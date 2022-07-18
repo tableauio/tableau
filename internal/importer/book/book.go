@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/excel"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
@@ -54,7 +54,7 @@ func (b *Book) AddSheet(sheet *Sheet) {
 
 // DelSheet deletes a sheet from the book.
 func (b *Book) DelSheet(sheetName string) {
-	atom.Log.Debugf("delete sheet: %s", sheetName)
+	log.Debugf("delete sheet: %s", sheetName)
 	delete(b.sheets, sheetName)
 	b.delSheetName(sheetName)
 }
@@ -114,7 +114,7 @@ func (b *Book) Clear() {
 func (b *Book) ParseMeta() error {
 	sheet := b.GetSheet(MetasheetName)
 	if sheet == nil {
-		atom.Log.Debugf("sheet %s not found in book %s", MetasheetName, b.Filename())
+		log.Debugf("sheet %s not found in book %s", MetasheetName, b.Filename())
 		b.Clear()
 		return nil
 	}
@@ -134,7 +134,7 @@ func (b *Book) ParseMeta() error {
 		}
 	}
 
-	atom.Log.Debugf("%s#%s: %+v", b.Filename(), MetasheetName, b.meta)
+	log.Debugf("%s#%s: %+v", b.Filename(), MetasheetName, b.meta)
 
 	var keepedSheetNames []string
 	for sheetName, sheetMeta := range b.meta.SheetMetaMap {
@@ -147,9 +147,9 @@ func (b *Book) ParseMeta() error {
 	}
 	// NOTE: only keep the sheets that are specified in meta
 	b.Squeeze(keepedSheetNames)
-	atom.Log.Debugf("squeezed: %s#%s: %+v", b.Filename(), MetasheetName, keepedSheetNames)
+	log.Debugf("squeezed: %s#%s: %+v", b.Filename(), MetasheetName, keepedSheetNames)
 	for sheetName := range b.sheets {
-		atom.Log.Debugf("sheet: %s", sheetName)
+		log.Debugf("sheet: %s", sheetName)
 	}
 	return nil
 }

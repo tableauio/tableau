@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	_ "github.com/tableauio/tableau/test/dev/protoconf"
 )
@@ -58,7 +59,7 @@ func Test_GenProto(t *testing.T) {
 			},
 		),
 		options.Log(
-			&options.LogOption{
+			&log.Options{
 				Level: "INFO",
 				Mode:  "FULL",
 			},

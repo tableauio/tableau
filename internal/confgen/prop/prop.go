@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -29,7 +29,7 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if leftStr != "~" {
 			left, err := strconv.ParseInt(leftStr, 10, 64)
 			if err != nil {
-				atom.Log.Errorf("invalid range left: %s", prop.Range)
+				log.Errorf("invalid range left: %s", prop.Range)
 				return false
 			}
 			if v < left {
@@ -39,7 +39,7 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if rightStr != "~" {
 			right, err := strconv.ParseInt(rightStr, 10, 64)
 			if err != nil {
-				atom.Log.Errorf("invalid range right: %s", prop.Range)
+				log.Errorf("invalid range right: %s", prop.Range)
 				return false
 			}
 			if v > right {
@@ -52,7 +52,7 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if leftStr != "~" {
 			left, err := strconv.ParseUint(leftStr, 10, 64)
 			if err != nil {
-				atom.Log.Errorf("invalid range(left): %s", prop.Range)
+				log.Errorf("invalid range(left): %s", prop.Range)
 				return false
 			}
 			if v < left {
@@ -62,7 +62,7 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if rightStr != "~" {
 			right, err := strconv.ParseUint(rightStr, 10, 64)
 			if err != nil {
-				atom.Log.Errorf("invalid range right: %s", prop.Range)
+				log.Errorf("invalid range right: %s", prop.Range)
 				return false
 			}
 			if v > right {
@@ -74,7 +74,7 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if leftStr != "~" {
 			left, err := strconv.ParseFloat(leftStr, 64)
 			if err != nil {
-				atom.Log.Errorf("invalid range left: %s", prop.Range)
+				log.Errorf("invalid range left: %s", prop.Range)
 				return false
 			}
 			if v < left {
@@ -84,7 +84,7 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if rightStr != "~" {
 			right, err := strconv.ParseFloat(rightStr, 64)
 			if err != nil {
-				atom.Log.Errorf("invalid range right: %s", prop.Range)
+				log.Errorf("invalid range right: %s", prop.Range)
 				return false
 			}
 			if v > right {
@@ -102,14 +102,14 @@ func CheckMapKeySequence(prop *tableaupb.FieldProp, kind protoreflect.Kind, mapk
 	if prefMap.Len() == 0 {
 		val, err := convertValueToInt64(kind, mapkey.Value())
 		if err != nil {
-			atom.Log.Errorf("convert map key to int64 failed: %s", err)
+			log.Errorf("convert map key to int64 failed: %s", err)
 			return false
 		}
 		return prop.GetSequence() == val
 	}
 	prevValue, err := getPrevValueOfSequence(kind, mapkey.Value())
 	if err != nil {
-		atom.Log.Errorf("get prev value of sequence error: %s", err)
+		log.Errorf("get prev value of sequence error: %s", err)
 		return false
 	}
 	return prefMap.Has(prevValue.MapKey())

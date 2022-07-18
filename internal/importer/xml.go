@@ -13,10 +13,10 @@ import (
 	"github.com/antchfx/xmlquery"
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xlsxgen"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
@@ -52,7 +52,7 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
 	if newBook == nil {
-		atom.Log.Debugf("xml:%s parsed to an empty book", filename)
+		log.Debugf("xml:%s parsed to an empty book", filename)
 		bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 		return &XMLImporter{
 			Book: book.NewBook(bookName, filename, nil),
@@ -68,7 +68,7 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 // parseXML parse sheets in the XML file named `filename` and return a book with multiple sheets
 // in TABLEAU grammar which can be exported to protobuf by excel parser.
 func parseXML(filename string, sheetNames []string) (*book.Book, error) {
-	atom.Log.Debugf("xml: %s", filename)
+	log.Debugf("xml: %s", filename)
 	buf, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to ReadFile %s", filename)
@@ -91,7 +91,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	if err != nil {
 		switch e := err.(type) {
 		case *NoNeedParseError:
-			atom.Log.Debugf("xml:%s no need parse: %s not found", filename, book.MetasheetName)
+			log.Debugf("xml:%s no need parse: %s not found", filename, book.MetasheetName)
 			return nil, nil
 		default:
 			return nil, e
@@ -113,7 +113,7 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 		}
 		newBook.AddSheet(sheet)
 	}
-	atom.Log.Debug(sheetNames)
+	log.Debug(sheetNames)
 
 	if len(sheetNames) > 0 {
 		newBook.Squeeze(sheetNames)
@@ -141,7 +141,7 @@ func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLBook, 
 			}
 			foundMetaSheetName = true
 			metaStr := xmlProlog + escapeAttrs(strings.ReplaceAll(n.Data, book.MetasheetName, ""))
-			atom.Log.Debug(metaStr)
+			log.Debug(metaStr)
 			metaRoot, err := xmlquery.Parse(strings.NewReader(metaStr))
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to parse @TABLEAU string: %s", metaStr)
@@ -354,7 +354,7 @@ func registerMetaNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) {
 	if _, ok := xmlSheet.MetaNodeMap[node.Path]; !ok {
 		xmlSheet.MetaNodeMap[node.Path] = node
 	} else {
-		atom.Log.Panicf("duplicated path registered in MetaNodeMap|Path:%s", node.Path)
+		log.Panicf("duplicated path registered in MetaNodeMap|Path:%s", node.Path)
 	}
 }
 
@@ -435,7 +435,7 @@ func rearrangeAttrs(attrMap *tableaupb.XMLNode_AttrMap) error {
 		if len(matches) > 0 && types.IsScalarType(attr.Value) {
 			num, err := strconv.Atoi(matches[2])
 			if err != nil {
-				atom.Log.Errorf("strconv.Atoi failed|attr:%s|num:%s|err:%s", attr.Name, matches[2], err)
+				log.Errorf("strconv.Atoi failed|attr:%s|num:%s|err:%s", attr.Name, matches[2], err)
 				continue
 			}
 			indexMap[num] = i

@@ -2,6 +2,7 @@ package options
 
 import (
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/log"
 )
 
 // Options is the wrapper of tableau params.
@@ -13,26 +14,12 @@ type Options struct {
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
 
-	Log *LogOption // Log options.
+	Log *log.Options // Log options.
 
 	Input  *InputOption  `yaml:"input"`  // Input options.
 	Output *OutputOption `yaml:"output"` // Output options.
 }
 
-type LogOption struct {
-	// Log mode: SIMPLE, FULL.
-	// Default: "FULL".
-	Mode string `yaml:"mode"`
-	// Log level: DEBUG, INFO, WARN, ERROR.
-	// Default: "INFO".
-	Level string `yaml:"level"`
-	// Log filename: set this if you want to write log messages to files.
-	// Default: "".
-	Filename string `yaml:"filename"`
-	// Log sink: CONSOLE, FILE, and MULTI.
-	// Default: "CONSOLE".
-	Sink string `yaml:"sink"`
-}
 type HeaderOption struct {
 	// Exact row number of column name definition at a worksheet.
 	// Default: 1.
@@ -189,7 +176,7 @@ type OutputConfOption struct {
 type Option func(*Options)
 
 // Log sets log options.
-func Log(o *LogOption) Option {
+func Log(o *log.Options) Option {
 	return func(opts *Options) {
 		opts.Log = o
 	}
@@ -256,7 +243,7 @@ func OutputConf(o *OutputConfOption) Option {
 func NewDefault() *Options {
 	return &Options{
 		LocationName: "Local",
-		Log: &LogOption{
+		Log: &log.Options{
 			Mode:  "SIMPLE",
 			Level: "INFO",
 			Sink:  "CONSOLE",

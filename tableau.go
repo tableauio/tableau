@@ -5,7 +5,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -34,7 +33,7 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (er
 		return err
 	}
 	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
-	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
+	log.Debugf("options inited: %+v", spew.Sdump(opts))
 	return g.Generate()
 }
 
@@ -45,7 +44,7 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) erro
 		return err
 	}
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
-	atom.Log.Debugf("options inited: %+v", spew.Sdump(opts))
+	log.Debugf("options inited: %+v", spew.Sdump(opts))
 	return g.Generate()
 }
 

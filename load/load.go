@@ -6,10 +6,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/atom"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -130,7 +130,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, opts.SubdirRewrites)
 	wbPath := filepath.Join(dir, rewrittenWorkbookName)
-	atom.Log.Debugf("load origin file: %v", wbPath)
+	log.Debugf("load origin file: %v", wbPath)
 	// get sheet name
 	msgName, wsOpts := confgen.ParseMessageOptions(md)
 	sheets := []string{wsOpts.Name}
