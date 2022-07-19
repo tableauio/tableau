@@ -122,7 +122,43 @@ func (l *Logger) Fatalf(format string, args ...interface{}) {
 	os.Exit(-1)
 }
 
-func (s *Logger) log(lvl core.Level, format string, fmtArgs []interface{}, context []interface{}) {
+// Debugw logs a message with some additional context. The variadic key-value
+// pairs are treated as they are in With.
+func (l *Logger) Debugw(msg string, keysAndValues ...interface{}) {
+	l.log(core.DebugLevel, msg, nil, keysAndValues)
+}
+
+// Infow logs a message with some additional context.
+func (l *Logger) Infow(msg string, keysAndValues ...interface{}) {
+	l.log(core.InfoLevel, msg, nil, keysAndValues)
+}
+
+// Warnw logs a message with some additional context.
+func (l *Logger) Warnw(msg string, keysAndValues ...interface{}) {
+	l.log(core.WarnLevel, msg, nil, keysAndValues)
+}
+
+// Errorw logs a message with some additional context.
+func (l *Logger) Errorw(msg string, keysAndValues ...interface{}) {
+	l.log(core.ErrorLevel, msg, nil, keysAndValues)
+}
+
+// DPanicw logs a message with some additional context.
+func (l *Logger) DPanicw(msg string, keysAndValues ...interface{}) {
+	l.log(core.DPanicLevel, msg, nil, keysAndValues)
+}
+
+// Panicw logs a message with some additional context.
+func (l *Logger) Panicw(msg string, keysAndValues ...interface{}) {
+	l.log(core.PanicLevel, msg, nil, keysAndValues)
+}
+
+// Fatalw logs a message with some additional context.
+func (l *Logger) Fatalw(msg string, keysAndValues ...interface{}) {
+	l.log(core.FatalLevel, msg, nil, keysAndValues)
+}
+
+func (l *Logger) log(lvl core.Level, format string, fmtArgs []interface{}, kvs []interface{}) {
 	// If logging at this level is completely disabled, skip the overhead of
 	// string formatting.
 	// if lvl < DPanicLevel {
@@ -133,7 +169,9 @@ func (s *Logger) log(lvl core.Level, format string, fmtArgs []interface{}, conte
 		Level:  lvl,
 		Format: &format,
 		Args:   fmtArgs,
+
+		KVs: kvs,
 	}
 
-	s.driver.Print(r)
+	l.driver.Print(r)
 }

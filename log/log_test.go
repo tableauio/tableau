@@ -39,7 +39,6 @@ func TestInfow(t *testing.T) {
 		args args
 	}{
 		// TODO: Add test cases.
-		// TODO: Add test cases.
 		{
 			name: "test",
 			args: args{
@@ -50,7 +49,7 @@ func TestInfow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// With("key1", 123).Debug(tt.args.keysAndValues...)
+			Infow(tt.args.msg, tt.args.keysAndValues...)
 		})
 	}
 }

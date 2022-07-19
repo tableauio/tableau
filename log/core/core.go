@@ -17,8 +17,8 @@ type Record struct {
 	Format *string
 	Args   []interface{}
 
-	Fields    Fields // additional custom fields
-	CxtFields Fields // caller's goroutine context fields
+	KVs       []interface{} // additional custom variadic key-value pairs
+	CxtFields Fields        // caller's goroutine context fields
 }
 
 type Mode string

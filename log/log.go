@@ -113,3 +113,39 @@ func Panicf(template string, args ...interface{}) {
 func Fatalf(template string, args ...interface{}) {
 	defaultLogger.Fatalf(template, args...)
 }
+
+// Debugw logs a message with some additional context. The variadic key-value
+// pairs are treated as they are in With.
+func Debugw(msg string, keysAndValues ...interface{}) {
+	defaultLogger.Debugw(msg, keysAndValues...)
+}
+
+// Infow logs a message with some additional context.
+func Infow(msg string, keysAndValues ...interface{}) {
+	defaultLogger.Infow(msg, keysAndValues...)
+}
+
+// Warnw logs a message with some additional context.
+func Warnw(msg string, keysAndValues ...interface{}) {
+	defaultLogger.Warnw(msg, keysAndValues...)
+}
+
+// Errorw logs a message with some additional context.
+func Errorw(msg string, keysAndValues ...interface{}) {
+	defaultLogger.Errorw(msg, keysAndValues...)
+}
+
+// DPanicw logs a message with some additional context.
+func DPanicw(msg string, keysAndValues ...interface{}) {
+	defaultLogger.DPanicw(msg, keysAndValues...)
+}
+
+// Panicw logs a message with some additional context.
+func Panicw(msg string, keysAndValues ...interface{}) {
+	defaultLogger.Panicw(msg, keysAndValues...)
+}
+
+// Fatalw logs a message with some additional context.
+func Fatalw(msg string, keysAndValues ...interface{}) {
+	defaultLogger.Fatalw(msg, keysAndValues...)
+}
