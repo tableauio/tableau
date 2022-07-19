@@ -1,72 +1,42 @@
-package log
+package zapdriver
 
 import (
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/tableauio/tableau/log/core"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
-
-var zaplogger *zap.Logger
-
-// SkipUntilTrueCaller is the skip level which prints out the actual caller instead of slf4go or slf4go-zap wrappers
-const SkipUntilTrueCaller = 1
-
-func init() {
-	err := InitConsoleLog("FULL", "DEBUG")
-	if err != nil {
-		panic(err)
-	}
-}
-
-var levelMap = map[string]zapcore.Level{
-	"DEBUG": zapcore.DebugLevel,
-	"INFO":  zapcore.InfoLevel,
-	"WARN":  zapcore.WarnLevel,
-	"ERROR": zapcore.ErrorLevel,
-	"FATAL": zapcore.FatalLevel,
-}
 
 var modeMap = map[string]LogModeEncoder{
 	"SIMPLE": getSimpleEncoder,
 	"FULL":   getFullEncoder,
 }
 
-type SinkType int
-
-const (
-	SinkConsole SinkType = iota // default
-	SinkFile
-	SinkMulti
-)
-
-var sinkMap = map[string]SinkType{
-	"":        SinkConsole,
-	"CONSOLE": SinkConsole,
-	"FILE":    SinkFile,
-	"MULTI":   SinkMulti,
-}
-
-func GetSinkType(sink string) (SinkType, error) {
-	sinkType, ok := sinkMap[strings.ToUpper(sink)]
-	if !ok {
-		return SinkConsole, fmt.Errorf("illegal sink: %s", sink)
+// Init set the log options for debugging.
+func NewLogger(mode, level, filename, sink string) (*zap.Logger, error) {
+	sinkType, err := core.GetSinkType(sink)
+	if err != nil {
+		return nil, err
 	}
-	return sinkType, nil
+	switch sinkType {
+	case core.SinkFile:
+		return newFileLogger(mode, level, filename)
+	case core.SinkMulti:
+		return newMultiLogger(mode, level, filename)
+	default:
+		return newConsoleLogger(mode, level)
+	}
 }
 
-func updateLogger(logger *zap.Logger) {
-	zaplogger = logger
-}
-
-// InitConsoleLog set the console log level and mode for debugging.
-func InitConsoleLog(mode, level string) error {
+// newConsoleLogger set the console log level and mode for debugging.
+func newConsoleLogger(mode, level string) (*zap.Logger, error) {
 	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ws := createConsoleWriter()
 	core := zapcore.NewCore(
@@ -74,40 +44,38 @@ func InitConsoleLog(mode, level string) error {
 		ws,
 		zapLevel,
 	)
-	updateLogger(zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)))
-	return nil
+	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)), nil
 }
 
-// InitFileLog set the file log level and filename for debugging.
-func InitFileLog(mode, level, filename string) error {
+// newFileLogger set the file log level and filename for debugging.
+func newFileLogger(mode, level, filename string) (*zap.Logger, error) {
 	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ws, err := createFileWriter(filename)
 	if err != nil {
-		return fmt.Errorf("create file logger failed: %s", err)
+		return nil, fmt.Errorf("create file logger failed: %s", err)
 	}
 	core := zapcore.NewCore(
 		modeEncoder(),
 		ws,
 		zapLevel,
 	)
-	updateLogger(zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)))
-	return nil
+	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)), nil
 }
 
-// InitMultiLog set the log mode, level, filename for debugging.
+// newMultiLogger set the log mode, level, filename for debugging.
 // The logger will print both to console and files.
-func InitMultiLog(mode, level, filename string) error {
+func newMultiLogger(mode, level, filename string) (*zap.Logger, error) {
 	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	consoleSyncer := createConsoleWriter()
 	fileSyncer, err := createFileWriter(filename)
 	if err != nil {
-		return fmt.Errorf("create file logger failed: %s", err)
+		return nil, fmt.Errorf("create file logger failed: %s", err)
 	}
 	core := zapcore.NewCore(
 		modeEncoder(),
@@ -117,8 +85,7 @@ func InitMultiLog(mode, level, filename string) error {
 		),
 		zapLevel,
 	)
-	updateLogger(zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)))
-	return nil
+	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)), nil
 }
 
 func getEncoderAndLevel(mode, level string) (LogModeEncoder, zapcore.Level, error) {
@@ -126,15 +93,11 @@ func getEncoderAndLevel(mode, level string) (LogModeEncoder, zapcore.Level, erro
 	if !ok {
 		return nil, zapcore.DebugLevel, fmt.Errorf("illegal log mode: %s", mode)
 	}
-	zapLevel, ok := levelMap[strings.ToUpper(level)]
-	if !ok {
+	var zapLevel zapcore.Level
+	if err := zapLevel.UnmarshalText([]byte(level)); err != nil {
 		return nil, zapcore.DebugLevel, fmt.Errorf("illegal log level: %s", level)
 	}
 	return modeEncoder, zapLevel, nil
-}
-
-func NewSugar(name string) *zap.SugaredLogger {
-	return zaplogger.Named(name).Sugar()
 }
 
 func createConsoleWriter() zapcore.WriteSyncer {

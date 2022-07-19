@@ -562,20 +562,20 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 		}
 		log.Debugf("%s%s(%v) %s(%s) %s = %d [(name) = \"%s\", (type) = %s, (key) = \"%s\", (layout) = \"%s\", (sep) = \"%s\"];",
 			getTabStr(depth), fd.Cardinality().String(), fd.IsMap(), fd.Kind().String(), msgName, fd.FullName().Name(), fd.Number(), prefix+name, span.String(), key, layout.String(), sep)
-		log.Debugw("field metadata",
-			"tabs", depth,
-			"cardinality", fd.Cardinality().String(),
-			"isMap", fd.IsMap(),
-			"kind", fd.Kind().String(),
-			"msgName", msgName,
-			"fullName", fd.FullName(),
-			"number", fd.Number(),
-			"name", prefix+name,
-			"span", span.String(),
-			"key", key,
-			"layout", layout.String(),
-			"sep", sep,
-		)
+		// log.Debugw("field metadata",
+		// 	"tabs", depth,
+		// 	"cardinality", fd.Cardinality().String(),
+		// 	"isMap", fd.IsMap(),
+		// 	"kind", fd.Kind().String(),
+		// 	"msgName", msgName,
+		// 	"fullName", fd.FullName(),
+		// 	"number", fd.Number(),
+		// 	"name", prefix+name,
+		// 	"span", span.String(),
+		// 	"key", key,
+		// 	"layout", layout.String(),
+		// 	"sep", sep,
+		// )
 		if fd.IsMap() {
 			valueFd := fd.MapValue()
 			if layout == tableaupb.Layout_LAYOUT_INCELL {

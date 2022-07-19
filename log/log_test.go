@@ -2,6 +2,8 @@ package log
 
 import (
 	"testing"
+
+	_ "github.com/tableauio/tableau/log/driver/zapdriver"
 )
 
 func TestDebug(t *testing.T) {
@@ -48,8 +50,7 @@ func TestInfow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Infow(tt.args.msg, tt.args.keysAndValues...)
-			With("key1", 123).Debug(tt.args.keysAndValues...)
+			// With("key1", 123).Debug(tt.args.keysAndValues...)
 		})
 	}
 }
