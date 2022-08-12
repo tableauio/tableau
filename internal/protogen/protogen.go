@@ -319,9 +319,9 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 		}
 		shHeader := &sheetHeader{
 			meta:    sheet.Meta,
-			namerow: sheet.Rows[gen.InputOpt.Header.Namerow-1],
-			typerow: sheet.Rows[gen.InputOpt.Header.Typerow-1],
-			noterow: sheet.Rows[gen.InputOpt.Header.Noterow-1],
+			namerow: sheet.Rows[sheet.Meta.Namerow-1],
+			typerow: sheet.Rows[sheet.Meta.Typerow-1],
+			noterow: sheet.Rows[sheet.Meta.Noterow-1],
 		}
 
 		var parsed bool
