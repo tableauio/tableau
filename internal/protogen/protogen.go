@@ -317,11 +317,38 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 			Fields: []*tableaupb.Field{},
 			Name:   sheetMsgName,
 		}
+
 		shHeader := &sheetHeader{
-			meta:    sheet.Meta,
-			namerow: sheet.Rows[sheet.Meta.Namerow-1],
-			typerow: sheet.Rows[sheet.Meta.Typerow-1],
-			noterow: sheet.Rows[sheet.Meta.Noterow-1],
+			meta: sheet.Meta,
+		}
+		// transpose or not
+		if sheet.Meta.Transpose {
+			for row := 0; row < sheet.MaxRow; row++ {
+				nameCol := int(sheet.Meta.Namerow) - 1
+				nameCell, err := sheet.Cell(row, nameCol)
+				if err != nil {
+					return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, nameCol)
+				}
+				shHeader.namerow = append(shHeader.namerow, nameCell)
+
+				typeCol := int(sheet.Meta.Typerow) - 1
+				typeCell, err := sheet.Cell(row, typeCol)
+				if err != nil {
+					return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, typeCol)
+				}
+				shHeader.typerow = append(shHeader.typerow, typeCell)
+
+				noteCol := int(sheet.Meta.Noterow) - 1
+				noteCell, err := sheet.Cell(row, noteCol)
+				if err != nil {
+					return errors.WithMessagef(err, "failed to get note cell: %d, %d", row, noteCol)
+				}
+				shHeader.noterow = append(shHeader.noterow, noteCell)
+			}
+		} else {
+			shHeader.namerow = sheet.Rows[sheet.Meta.Namerow-1]
+			shHeader.typerow = sheet.Rows[sheet.Meta.Typerow-1]
+			shHeader.noterow = sheet.Rows[sheet.Meta.Noterow-1]
 		}
 
 		var parsed bool

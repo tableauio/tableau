@@ -126,6 +126,7 @@ func Test_Excel2CSV(t *testing.T) {
 		"./testdata/excel/hero/HeroB.xlsx",
 		"./testdata/excel/list/List.xlsx",
 		"./testdata/excel/map/Map.xlsx",
+		"./testdata/excel/metasheet/Metasheet.xlsx",
 	}
 	for _, path := range paths {
 		imp, err := importer.NewExcelImporter(path, nil, nil, 0)
