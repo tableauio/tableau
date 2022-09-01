@@ -90,7 +90,7 @@ func Test_GenConf(t *testing.T) {
 				Conf: &options.OutputConfOption{
 					Pretty:          true,
 					Formats:         []format.Format{format.JSON},
-					EmitUnpopulated: true,
+					// EmitUnpopulated: true,
 				},
 			},
 		),

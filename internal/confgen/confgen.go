@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -104,12 +105,12 @@ func (gen *Generator) GenAll() error {
 	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	err := os.MkdirAll(outputConfDir, 0700)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
+		return xerrors.WrapKV(err, "OutputDir", outputConfDir)
 	}
 
 	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to create files")
+		return err
 	}
 
 	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
@@ -260,7 +261,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		gen.PerfStats.Store(sheetInfo.MessageName, seconds)
 	}
 	if worksheetName != "" && !worksheetFound {
-		return errors.Errorf("worksheet not found: %s", worksheetName)
+		return xerrors.ErrorKV(fmt.Sprintf("worksheet not found: %s", worksheetName))
 	}
 	return nil
 }

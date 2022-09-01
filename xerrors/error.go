@@ -14,20 +14,25 @@ func WithStack(err error) error {
 	if err == nil {
 		return nil
 	}
-	stackErr := fmt.Errorf("%s", CombineKV(Error, err))
-	return errors.WithStack(stackErr)
+	return ErrorKV(err.Error())
 }
 
-// Errorw formats the key-value pairs as `[|key: value]...` string and
+// WrapKV formats the key-value pairs as `[|key: value]...` string and
 // returns the string as a value that satisfies error.
-// Errorw also records the stack trace at the point it was called.
-func ErrorKV(err error, keysAndValues ...interface{}) error {
-	msg := CombineKV(keysAndValues...) + CombineKV(Error, err)
-	return errors.Errorf(msg)
+// WrapKV also records the stack trace at the point it was called.
+func WrapKV(err error, keysAndValues ...interface{}) error {
+	return ErrorKV(err.Error(), keysAndValues...)
+}
+
+// ErrorKV returns an error with the supplied message and the key-value pairs
+// as `[|key: value]...` string.
+// ErrorKV also records the stack trace at the point it was called.
+func ErrorKV(msg string, keysAndValues ...interface{}) error {
+	return errors.New(CombineKV(keysAndValues...) + CombineKV(Error, msg))
 }
 
 // WithMessageKV annotates err with the key-value pairs as `[|key: value]...` string.
-// If err is nil, WithMessagef returns nil.
+// If err is nil, WithMessageKV returns nil.
 func WithMessageKV(err error, keysAndValues ...interface{}) error {
 	if err == nil {
 		return nil

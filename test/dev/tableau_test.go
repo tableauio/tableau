@@ -80,7 +80,7 @@ func Test_GenConf(t *testing.T) {
 			&options.OutputConfOption{
 				Pretty:          true,
 				Formats:         []format.Format{format.JSON},
-				EmitUnpopulated: true,
+				// EmitUnpopulated: true,
 			},
 		),
 	)
@@ -95,7 +95,7 @@ func Test_GenConf(t *testing.T) {
 func Test_CompareJSON(t *testing.T) {
 	newConfDir := "_conf"
 	// oldConfDir := "_old_conf"
-	oldConfDir := "dynamic/_conf"
+	oldConfDir := "dynamic/_out/conf"
 	files, err := os.ReadDir(newConfDir)
 	if err != nil {
 		t.Errorf("failed to read dir: %s", newConfDir)
@@ -104,7 +104,7 @@ func Test_CompareJSON(t *testing.T) {
 		if !strings.HasSuffix(file.Name(), ".json") {
 			continue
 		}
-		// if file.Name() == "Activity.json"{
+		// if file.Name() == "Loader.json"{
 		// 	continue
 		// }
 		newPath := filepath.Join(newConfDir, file.Name())

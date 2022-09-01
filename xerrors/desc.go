@@ -86,13 +86,13 @@ func (d *Desc) UpdateField(name, value string) {
 // StringZh render description in English.
 func (d *Desc) String() string {
 	overview := fmt.Sprintf("Error: Workbook: %s, Worksheet: %s, parse Cell[%s] value \"%s\" failed: %s", d.BookName, d.SheetName, d.CellPos, d.CellData, d.Error)
-	details := fmt.Sprintf("\nDetails: \n\tPBMessage: %s\n\tPBFieldType: %s\n\tPBFieldName: %s\n\tPBFieldOpts: %s", d.PBMessage, d.PBFieldName, d.PBFieldType, d.PBFieldOpts)
+	details := fmt.Sprintf("\nDetails: \n\tPBMessage: %s\n\tPBFieldType: %s\n\tPBFieldName: %s\n\tPBFieldOpts: %s", d.PBMessage, d.PBFieldType, d.PBFieldName, d.PBFieldOpts)
 	return overview + details
 }
 
 // StringZh render description in Chinese.
 func (d *Desc) StringZh() string {
 	overview := fmt.Sprintf("Error: 工作簿: %s, 表单: %s, 单元格[%s]中的值\"%s\"解析失败: %s", d.BookName, d.SheetName, d.CellPos, d.CellData, d.Error)
-	details := fmt.Sprintf("\nDetails: \n\t表单结构: %s\n\t字段类型: %s\n\t字段名称: %s\n\t字段选项: %s", d.PBMessage, d.PBFieldName, d.PBFieldType, d.PBFieldOpts)
+	details := fmt.Sprintf("\nDetails: \n\t表单结构: %s\n\t字段类型: %s\n\t字段名称: %s\n\t字段选项: %s", d.PBMessage, d.PBFieldType, d.PBFieldName, d.PBFieldOpts)
 	return overview + details
 }

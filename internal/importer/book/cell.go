@@ -77,7 +77,7 @@ type RowCell struct {
 	autoPopulated bool   // auto-populated
 }
 
-func (r *RowCells) Cell(name string, optional bool) *RowCell {
+func (r *RowCells) Cell(name string, optional bool) (*RowCell, error) {
 	c := r.cells[name]
 	if c == nil && optional {
 		// if optional, return an empty cell.
@@ -86,7 +86,10 @@ func (r *RowCells) Cell(name string, optional bool) *RowCell {
 			Data: "",
 		}
 	}
-	return c
+	if c == nil {
+		return nil, xerrors.ErrorKV(fmt.Sprintf("column %s not found", name))
+	}
+	return c, nil
 }
 
 func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowCell) {
@@ -107,11 +110,11 @@ func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowC
 	return r.indexedCells[minCol], r.indexedCells[maxCol]
 }
 
-func (r *RowCells) CellDebugString(name string) string {
+func (r *RowCells) CellDebugKV(name string) []interface{} {
 	col := "?"
 	data := ""
-	rc := r.Cell(name, false)
-	if rc == nil {
+	rc, err := r.Cell(name, false)
+	if err != nil {
 		left, right := r.findCellRangeWithNamePrefix(name)
 		if left != nil && right != nil {
 			col = fmt.Sprintf("[%s...%s]", excel.LetterAxis(left.Col), excel.LetterAxis(right.Col))
@@ -126,12 +129,12 @@ func (r *RowCells) CellDebugString(name string) string {
 	}
 	pos := fmt.Sprintf("%s%d", col, r.Row+1)
 
-	return xerrors.CombineKV(
+	return []interface{}{
 		xerrors.SheetName, r.SheetName,
 		xerrors.CellPos, pos,
 		xerrors.CellData, data,
 		xerrors.ColumnName, name,
-	)
+	}
 }
 
 func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateKey bool) {
@@ -174,11 +177,11 @@ func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateK
 			}
 
 			if needPopulate {
-				if prevCell := r.prev.Cell(name, false); prevCell != nil {
+				if prevCell, err := r.prev.Cell(name, false); err != nil {
+					log.Errorf("failed to find prev cell for name: %s, row: %d", name, r.Row)
+				} else {
 					cell.Data = prevCell.Data
 					cell.autoPopulated = true
-				} else {
-					log.Errorf("failed to find prev cell for name: %s, row: %d", name, r.Row)
 				}
 			}
 		}
