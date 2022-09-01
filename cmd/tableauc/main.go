@@ -7,7 +7,6 @@ import (
 	_ "time/tzdata"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau/internal/confgen"
@@ -93,21 +92,19 @@ func runCmd(cmd *cobra.Command, args []string) {
 }
 
 func genProto(workbooks []string, opts *options.Options) {
-	red := color.New(color.FgRed).SprintfFunc()
 	// generate proto files
 	gen := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
 	if err := gen.Generate(workbooks...); err != nil {
-		log.Errorf(red("generate proto file failed: %+v", err))
+		log.Errorf("generate proto file failed: %+v", err)
 		os.Exit(-1)
 	}
 }
 
 func genConf(workbooks []string, opts *options.Options) {
-	red := color.New(color.FgRed).SprintfFunc()
 	// generate conf files
 	gen := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
 	if err := gen.Generate(workbooks...); err != nil {
-		log.Errorf(red("generate conf file failed: %+v", err))
+		log.Errorf("generate conf file failed: %+v", err)
 		os.Exit(-1)
 	}
 }

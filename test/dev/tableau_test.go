@@ -14,6 +14,7 @@ import (
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	_ "github.com/tableauio/tableau/test/dev/protoconf"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 func Test_GenProto(t *testing.T) {
@@ -85,6 +86,9 @@ func Test_GenConf(t *testing.T) {
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
+		t.Errorf("%v", err)
+		t.Errorf("%s", xerrors.ExtractDesc(err).String())
+		t.Errorf("%s", xerrors.ExtractDesc(err).StringZh())
 	}
 }
 

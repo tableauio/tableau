@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -83,7 +84,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// - decimal fraction: 1.0
 		// - scientific notation: 1.0000001e7
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(int32(val)), true, errors.WithStack(err)
+		return pref.ValueOf(int32(val)), true, xerrors.WithStack(err)
 
 	case pref.Uint32Kind, pref.Fixed32Kind:
 		if value == "" {
@@ -92,7 +93,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseUint(value, 10, 32)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(uint32(val)), true, errors.WithStack(err)
+		return pref.ValueOf(uint32(val)), true, xerrors.WithStack(err)
 	case pref.Int64Kind, pref.Sint64Kind, pref.Sfixed64Kind:
 		if value == "" {
 			return DefaultInt64Value, false, nil
@@ -100,7 +101,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseInt(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(int64(val)), true, errors.WithStack(err)
+		return pref.ValueOf(int64(val)), true, xerrors.WithStack(err)
 	case pref.Uint64Kind, pref.Fixed64Kind:
 		if value == "" {
 			return DefaultUint64Value, false, nil
@@ -108,28 +109,28 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseUint(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(uint64(val)), true, errors.WithStack(err)
+		return pref.ValueOf(uint64(val)), true, xerrors.WithStack(err)
 	case pref.BoolKind:
 		if value == "" {
 			return DefaultBoolValue, false, nil
 		}
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseBool(purifyInteger(value))
-		return pref.ValueOf(val), true, errors.WithStack(err)
+		return pref.ValueOf(val), true, xerrors.WithStack(err)
 
 	case pref.FloatKind:
 		if value == "" {
 			return DefaultFloat32Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 32)
-		return pref.ValueOf(float32(val)), true, errors.WithStack(err)
+		return pref.ValueOf(float32(val)), true, xerrors.WithStack(err)
 
 	case pref.DoubleKind:
 		if value == "" {
 			return DefaultFloat64Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(float64(val)), true, errors.WithStack(err)
+		return pref.ValueOf(float64(val)), true, xerrors.WithStack(err)
 
 	case pref.StringKind:
 		val := rawValue

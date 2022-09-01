@@ -14,6 +14,7 @@ import (
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -38,7 +39,7 @@ func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, impo
 	msgName, wsOpts := ParseMessageOptions(md)
 
 	if err := ParseMessage(parser, protomsg, wsOpts.Name, importers...); err != nil {
-		return errors.WithMessagef(err, "failed to parse message %s", msgName)
+		return err
 	}
 
 	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.OutputOpt, wsOpts)
@@ -53,7 +54,7 @@ func ParseMessage(parser *sheetParser, protomsg proto.Message, sheetName string,
 		}
 
 		if err := parser.Parse(protomsg, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse sheet %s to %s", sheetName, protomsg.ProtoReflect().Descriptor().FullName())
+			return xerrors.WithMessageKV(err, xerrors.SheetName, sheetName, xerrors.PBMessage, protomsg.ProtoReflect().Descriptor().FullName())
 		}
 	}
 	return nil
@@ -243,7 +244,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 		}
 		fieldPresent, err := sp.parseField(field, msg, rc, depth, prefix)
 		if err != nil {
-			return false, errors.WithMessagef(err, "failed to parse field: %s, opts: %v", fd.FullName().Name(), field.opts)
+			return false, xerrors.WithMessageKV(err, xerrors.PBFieldName, fd.FullName().Name(), xerrors.PBFieldOpts, field.opts)
 		}
 		if fieldPresent {
 			// The message is treated as present only if one field is present.
@@ -851,11 +852,11 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	colName := prefix + field.opts.Name
 	cell := rc.Cell(colName, field.opts.Optional)
 	if cell == nil {
-		return false, errors.Errorf("%s|scalar: column not found", rc.CellDebugString(colName))
+		return false, errors.Errorf("%s|%s: scalar|%s: column not found", rc.CellDebugString(colName), xerrors.PBFieldType, xerrors.Error)
 	}
 	newValue, present, err = sp.parseFieldValue(field.fd, cell.Data)
 	if err != nil {
-		return false, errors.WithMessagef(err, "%s|scalar: failed to parse field value: %s", rc.CellDebugString(colName), cell.Data)
+		return false, errors.WithMessagef(err, "%s|%s: scalar", rc.CellDebugString(colName), xerrors.PBFieldType)
 	}
 	if !present {
 		return false, nil

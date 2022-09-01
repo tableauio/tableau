@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 var newlineRegex *regexp.Regexp
@@ -107,13 +108,13 @@ func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowC
 }
 
 func (r *RowCells) CellDebugString(name string) string {
-	pos := "?"
+	col := "?"
 	data := ""
 	rc := r.Cell(name, false)
 	if rc == nil {
 		left, right := r.findCellRangeWithNamePrefix(name)
 		if left != nil && right != nil {
-			pos = fmt.Sprintf("[%s...%s]", excel.LetterAxis(left.Col), excel.LetterAxis(right.Col))
+			col = fmt.Sprintf("[%s...%s]", excel.LetterAxis(left.Col), excel.LetterAxis(right.Col))
 			data = fmt.Sprintf("[%s...%s]", left.Data, right.Data)
 		}
 	} else {
@@ -121,9 +122,16 @@ func (r *RowCells) CellDebugString(name string) string {
 		if rc.autoPopulated {
 			data += "~"
 		}
-		pos = excel.LetterAxis(rc.Col)
+		col = excel.LetterAxis(rc.Col)
 	}
-	return fmt.Sprintf("%s %s%d(%s), %s", r.SheetName, pos, r.Row+1, data, name)
+	pos := fmt.Sprintf("%s%d", col, r.Row+1)
+
+	return xerrors.CombineKV(
+		xerrors.SheetName, r.SheetName,
+		xerrors.CellPos, pos,
+		xerrors.CellData, data,
+		xerrors.ColumnName, name,
+	)
 }
 
 func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateKey bool) {

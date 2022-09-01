@@ -15,6 +15,7 @@ import (
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -253,7 +254,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 
 		exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 		if err := exporter.Export(parser, newMsg, importers...); err != nil {
-			return err
+			return xerrors.WithMessageKV(err, xerrors.BookName, workbook.Name)
 		}
 		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
 		gen.PerfStats.Store(sheetInfo.MessageName, seconds)
