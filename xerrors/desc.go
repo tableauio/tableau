@@ -2,7 +2,9 @@ package xerrors
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -16,12 +18,18 @@ const (
 	// module: default, proto, conf.
 	Module = "Module"
 
-	BookName  = "BookName"  // workbook name
-	SheetName = "SheetName" // worksheet name
-	CellPos   = "CellPos"   // cell position
-	CellData  = "CellData"  // cell data
-	NameCell  = "NameCell"  // name cell
-	TypeCell  = "TypeCell"  // type cell
+	Indir           = "Indir"           // input dir
+	Subdir          = "Subdir"          // input subdir
+	Outdir          = "Outdir"          // output dir
+	BookName        = "BookName"        // workbook name
+	SheetName       = "SheetName"       // worksheet name
+	NameCellPos     = "NameCellPos"     // name cell position
+	NameCell        = "NameCell"        // name cell value
+	TrimmedNameCell = "TrimmedNameCell" // trimmed name cell value
+	TypeCellPos     = "TypeCellPos"     // type cell position
+	TypeCell        = "TypeCell"        // type cell value
+	DataCellPos     = "DataCellPos"     // data cell position
+	DataCell        = "DataCell"        // data data value
 
 	PBMessage   = "PBMessage"   // protobuf message name
 	PBFieldName = "PBFieldName" // protobuf message field name
@@ -35,12 +43,18 @@ const (
 type Desc struct {
 	Module string
 
-	BookName  string
-	SheetName string
-	CellPos   string
-	CellData  string
-	NameCell  string
-	TypeCell  string
+	Indir           string
+	Subdir          string
+	Outdir          string
+	BookName        string
+	SheetName       string
+	NameCellPos     string
+	NameCell        string
+	TrimmedNameCell string
+	TypeCellPos     string
+	TypeCell        string
+	DataCellPos     string
+	DataCell        string
 
 	PBMessage   string
 	PBFieldName string
@@ -50,29 +64,37 @@ type Desc struct {
 
 	Reason string
 
-	Error error
+	err error
 }
+
+const unknown = "UNKNOWN"
 
 func NewDesc(err error) *Desc {
 	desc := &Desc{
 		Module: ModuleDefault,
 
-		BookName:  "UNKNOWN",
-		SheetName: "UNKNOWN",
-		CellPos:   "UNKNOWN",
-		CellData:  "UNKNOWN",
-		NameCell:  "UNKNOWN",
-		TypeCell:  "UNKNOWN",
+		Indir:           unknown,
+		Subdir:          unknown,
+		Outdir:          unknown,
+		BookName:        unknown,
+		SheetName:       unknown,
+		NameCellPos:     unknown,
+		NameCell:        unknown,
+		TrimmedNameCell: unknown,
+		TypeCellPos:     unknown,
+		TypeCell:        unknown,
+		DataCellPos:     unknown,
+		DataCell:        unknown,
 
-		PBMessage:   "UNKNOWN",
-		PBFieldName: "UNKNOWN",
-		PBFieldType: "UNKNOWN",
-		PBFieldOpts: "UNKNOWN",
-		ColumnName:  "UNKNOWN",
+		PBMessage:   unknown,
+		PBFieldName: unknown,
+		PBFieldType: unknown,
+		PBFieldOpts: unknown,
+		ColumnName:  unknown,
 
-		Reason: "UNKNOWN",
+		Reason: unknown,
 
-		Error: err,
+		err: err,
 	}
 
 	splits := strings.Split(err.Error(), "|")
@@ -90,18 +112,31 @@ func (d *Desc) updateField(name, value string) {
 	switch name {
 	case Module:
 		d.Module = value
+
+	case Indir:
+		d.Indir = value
+	case Subdir:
+		d.Subdir = value
+	case Outdir:
+		d.Outdir = value
 	case BookName:
 		d.BookName = value
 	case SheetName:
 		d.SheetName = value
-	case CellPos:
-		d.CellPos = value
-	case CellData:
-		d.CellData = value
+	case NameCellPos:
+		d.NameCellPos = value
 	case NameCell:
 		d.NameCell = value
+	case TrimmedNameCell:
+		d.TrimmedNameCell = value
+	case TypeCellPos:
+		d.TypeCellPos = value
 	case TypeCell:
 		d.TypeCell = value
+	case DataCellPos:
+		d.DataCellPos = value
+	case DataCell:
+		d.DataCell = value
 
 	case PBMessage:
 		d.PBMessage = value
@@ -121,28 +156,56 @@ func (d *Desc) updateField(name, value string) {
 
 // StringZh render description in English.
 func (d *Desc) String() string {
+	if d.Reason == unknown {
+		return fmt.Sprintf("Error: %s", d.err.Error())
+	}
 	switch d.Module {
 	case ModuleProto:
-		return d.Error.Error()
+		overview := fmt.Sprintf("Error: Workbook: %s, Worksheet: %s, parse NameCell[%s] \"%s\" and TypeCell[%s] \"%s\" failed: %s", d.BookName, d.SheetName, d.NameCellPos, d.NameCell, d.TypeCellPos, d.TypeCell, d.Reason)
+		details := fmt.Sprintf("\nDebugging: \n%s", d.DebugString())
+		return overview + details
 	case ModuleConf:
-		overview := fmt.Sprintf("Error: Workbook: %s, Worksheet: %s, parse Cell[%s] value \"%s\" failed: %s", d.BookName, d.SheetName, d.CellPos, d.CellData, d.Reason)
-		details := fmt.Sprintf("\nDetails: \n\tPBMessage: %s\n\tPBFieldType: %s\n\tPBFieldName: %s\n\tPBFieldOpts: %s", d.PBMessage, d.PBFieldType, d.PBFieldName, d.PBFieldOpts)
+		overview := fmt.Sprintf("Error: Workbook: %s, Worksheet: %s, parse Cell[%s] \"%s\" failed: %s", d.BookName, d.SheetName, d.DataCellPos, d.DataCell, d.Reason)
+		details := fmt.Sprintf("\nDebugging: \n%s", d.DebugString())
 		return overview + details
 	default:
-		return fmt.Sprintf("Error: %s", d.Reason)
+		return fmt.Sprintf("Error: %s", d.err)
 	}
 }
 
 // StringZh render description in Chinese.
 func (d *Desc) StringZh() string {
+	if d.Reason == unknown {
+		return fmt.Sprintf("Error: %s", d.err.Error())
+	}
+
 	switch d.Module {
 	case ModuleProto:
-		return d.Error.Error()
+		overview := fmt.Sprintf("Error: 工作簿: %s, 表单: %s, 命名单元格[%s]的值\"%s\"和类型单元格[%s]的值\"%s\"解析失败: %s", d.BookName, d.SheetName, d.NameCellPos, d.NameCell, d.TypeCellPos, d.TypeCell, d.Reason)
+		details := fmt.Sprintf("\nDebugging: \n%s", d.DebugString())
+		return overview + details
 	case ModuleConf:
-		overview := fmt.Sprintf("Error: 工作簿: %s, 表单: %s, 单元格[%s]中的值\"%s\"解析失败: %s", d.BookName, d.SheetName, d.CellPos, d.CellData, d.Reason)
-		details := fmt.Sprintf("\nDetails: \n\t表单结构: %s\n\t字段类型: %s\n\t字段名称: %s\n\t字段选项: %s", d.PBMessage, d.PBFieldType, d.PBFieldName, d.PBFieldOpts)
+		overview := fmt.Sprintf("Error: 工作簿: %s, 表单: %s, 单元格[%s]中的值\"%s\"解析失败: %s", d.BookName, d.SheetName, d.DataCellPos, d.DataCell, d.Reason)
+		details := fmt.Sprintf("\nDebugging: \n%s", d.DebugString())
 		return overview + details
 	default:
-		return fmt.Sprintf("Error: %s", d.Error)
+		return fmt.Sprintf("Error: %s", d.err)
 	}
+}
+
+func (d *Desc) DebugString() (str string) {
+	v := reflect.ValueOf(*d)
+	typeOfS := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		name := string(typeOfS.Field(i).Name)
+		firstRune := rune(name[0])
+		if unicode.IsLetter(firstRune) && unicode.IsUpper(firstRune) {
+			value := v.Field(i).Interface().(string)
+			if value != unknown {
+				str += fmt.Sprintf("\t%s: %v\n", name, value)
+			}
+		}
+	}
+	return str
 }

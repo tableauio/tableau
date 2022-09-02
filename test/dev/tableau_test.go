@@ -62,23 +62,22 @@ func Test_GenProto(t *testing.T) {
 		options.Log(
 			&log.Options{
 				Level: "INFO",
-				Mode:  "FULL",
+				Mode:  "SIMPLE",
+				Lang:  "en",
 			},
 		),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
-		// t.Errorf("%v", err)
-		// t.Errorf("%s", xerrors.NewDesc(err).String())
-		// t.Errorf("%s", xerrors.NewDesc(err).StringZh())
+		t.Errorf("%v", err)
 
 		if log.Mode() == log.ModeFull {
-			log.Errorf("generate conf failed: %+v", err)
+			t.Errorf("generate conf failed: %+v", err)
 		}
 		if log.Lang() == log.LangEn {
-			log.Errorf("%s", xerrors.NewDesc(err).String())
+			t.Errorf("%s", xerrors.NewDesc(err).String())
 		} else {
-			log.Errorf("%s", xerrors.NewDesc(err).StringZh())
+			t.Errorf("%s", xerrors.NewDesc(err).StringZh())
 		}
 	}
 }
@@ -105,17 +104,14 @@ func Test_GenConf(t *testing.T) {
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
-		// t.Errorf("%v", err)
-		// t.Errorf("%s", xerrors.NewDesc(err).String())
-		// t.Errorf("%s", xerrors.NewDesc(err).StringZh())
-
+		t.Errorf("%v", err)
 		if log.Mode() == log.ModeFull {
-			log.Errorf("generate conf failed: %+v", err)
+			t.Errorf("generate conf failed: %+v", err)
 		}
 		if log.Lang() == log.LangEn {
-			log.Errorf("%s", xerrors.NewDesc(err).String())
+			t.Errorf("%s", xerrors.NewDesc(err).String())
 		} else {
-			log.Errorf("%s", xerrors.NewDesc(err).StringZh())
+			t.Errorf("%s", xerrors.NewDesc(err).StringZh())
 		}
 	}
 }
@@ -179,6 +175,7 @@ func Test_CSV2Excel(t *testing.T) {
 		"./testdata/excel/hero/HeroB#*.csv",
 		"./testdata/excel/list/List#*.csv",
 		"./testdata/excel/map/Map#*.csv",
+		"./testdata/excel/metasheet/Metasheet#*.csv",
 	}
 	for _, path := range paths {
 		imp, err := importer.NewCSVImporter(path, nil, nil)

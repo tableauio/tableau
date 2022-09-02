@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/jhump/protoreflect/desc"
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/excel"
@@ -75,7 +74,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 func prepareOutpuDir(outdir string, importFiles []string, delExsited bool) error {
 	existed, err := fs.Exists(outdir)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check existence of output dir: %s", outdir)
+		return xerrors.WrapKV(err, xerrors.Outdir, outdir)
 	}
 	if existed && delExsited {
 		// remove all *.proto file but not Imports
@@ -85,7 +84,7 @@ func prepareOutpuDir(outdir string, importFiles []string, delExsited bool) error
 		}
 		files, err := os.ReadDir(outdir)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read dir: %s", outdir)
+			return xerrors.WrapKV(err, xerrors.Outdir, outdir)
 		}
 		for _, file := range files {
 			if !strings.HasSuffix(file.Name(), ".proto") {
@@ -97,14 +96,14 @@ func prepareOutpuDir(outdir string, importFiles []string, delExsited bool) error
 			fpath := filepath.Join(outdir, file.Name())
 			err := os.Remove(fpath)
 			if err != nil {
-				return errors.Wrapf(err, "failed to remove file: %s", fpath)
+				return xerrors.WrapKV(err)
 			}
 		}
 	} else {
 		// create output dir
 		err = os.MkdirAll(outdir, 0700)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create output dir: %s", outdir)
+			return xerrors.WrapKV(err, xerrors.Outdir, outdir)
 		}
 	}
 
@@ -121,13 +120,13 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 func (gen *Generator) GenAll() error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, true); err != nil {
-		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
+		return err
 	}
 	if len(gen.InputOpt.Subdirs) != 0 {
 		for _, subdir := range gen.InputOpt.Subdirs {
 			dir := filepath.Join(gen.InputDir, subdir)
 			if err := gen.generate(dir); err != nil {
-				return errors.WithMessagef(err, "failed to generate %s", dir)
+				return err
 			}
 		}
 		return nil
@@ -138,13 +137,13 @@ func (gen *Generator) GenAll() error {
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, false); err != nil {
-		return errors.Wrapf(err, "failed to prepare output dir: %s", outputProtoDir)
+		return err
 	}
 	var eg errgroup.Group
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
 		eg.Go(func() error {
-			return gen.convert(filepath.Dir(absPath), filepath.Base(absPath), false)
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false)
 		})
 	}
 	return eg.Wait()
@@ -160,7 +159,7 @@ func (gen *Generator) generate(dir string) (err error) {
 
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read input dir: %s", gen.InputDir)
+		return xerrors.WrapKV(err, xerrors.Indir, gen.InputDir)
 	}
 
 	// book name -> existence(bool)
@@ -171,17 +170,17 @@ func (gen *Generator) generate(dir string) (err error) {
 			subdir := filepath.Join(dir, entry.Name())
 			err = gen.generate(subdir)
 			if err != nil {
-				return errors.WithMessagef(err, "failed to generate subdir: %s", subdir)
+				return xerrors.WithMessageKV(err, xerrors.Subdir, subdir)
 			}
 			continue
 		} else if gen.InputOpt.FollowSymlink && entry.Type() == iofs.ModeSymlink {
 			dstPath, err := os.Readlink(filepath.Join(dir, entry.Name()))
 			if err != nil {
-				return errors.Wrapf(err, "failed to read symlink: %s", filepath.Join(dir, entry.Name()))
+				return xerrors.WrapKV(err)
 			}
 			fileInfo, err := os.Stat(dstPath)
 			if err != nil {
-				return errors.Wrapf(err, "failed to stat symlink: %s", dstPath)
+				return xerrors.WrapKV(err)
 			}
 
 			if !fileInfo.IsDir() {
@@ -190,7 +189,7 @@ func (gen *Generator) generate(dir string) (err error) {
 			}
 			err = gen.generate(dstPath)
 			if err != nil {
-				return errors.WithMessagef(err, "failed to generate subdir: %s", dstPath)
+				return xerrors.WithMessageKV(err, xerrors.Subdir, dstPath)
 			}
 			continue
 		}
@@ -209,7 +208,7 @@ func (gen *Generator) generate(dir string) (err error) {
 		if fmt == format.CSV {
 			bookName, _, err := importer.ParseCSVFilenamePattern(entry.Name())
 			if err != nil {
-				return errors.WithMessagef(err, "failed to parse book name from entiry: %s", entry.Name())
+				return err
 			}
 			if _, ok := csvBooks[bookName]; ok {
 				// NOTE: multiple CSV files construct the same book.
@@ -220,7 +219,7 @@ func (gen *Generator) generate(dir string) (err error) {
 
 		filename := entry.Name()
 		eg.Go(func() error {
-			return gen.convert(dir, filename, true)
+			return gen.convertWithErrorModule(dir, filename, true)
 		})
 	}
 	return nil
@@ -229,7 +228,7 @@ func (gen *Generator) generate(dir string) (err error) {
 func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 	relativeDir, err := filepath.Rel(rootdir, dir)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get relative path from %s to %s", rootdir, dir)
+		return "", xerrors.Errorf("failed to get relative path from %s to %s: %s", rootdir, dir, err)
 	}
 	// relative slash separated path
 	relativePath := filepath.Join(relativeDir, filename)
@@ -259,6 +258,13 @@ func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.Heade
 	}
 }
 
+func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFileConflicts bool) error {
+	if err := gen.convert(dir, filename, checkProtoFileConflicts); err != nil {
+		return xerrors.WithMessageKV(err, xerrors.Module, xerrors.ModuleProto)
+	}
+	return nil
+}
+
 func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool) (err error) {
 	absPath := filepath.Join(dir, filename)
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
@@ -274,7 +280,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	basename := filepath.Base(imp.Filename())
 	relativePath, err := getRelCleanSlashPath(gen.InputDir, dir, basename)
 	if err != nil {
-		return errors.WithMessagef(err, "get relative path failed")
+		return err
 	}
 	debugWorkbookName := relativePath
 	// rewrite subdir
@@ -329,21 +335,21 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 				nameCol := int(sheet.Meta.Namerow) - 1
 				nameCell, err := sheet.Cell(row, nameCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.CellPos, excel.Postion(row, nameCol))
+					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.NameCellPos, excel.Postion(row, nameCol))
 				}
 				shHeader.namerow = append(shHeader.namerow, nameCell)
 
 				typeCol := int(sheet.Meta.Typerow) - 1
 				typeCell, err := sheet.Cell(row, typeCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.CellPos, excel.Postion(row, typeCol))
+					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.NameCellPos, excel.Postion(row, typeCol))
 				}
 				shHeader.typerow = append(shHeader.typerow, typeCell)
 
 				noteCol := int(sheet.Meta.Noterow) - 1
 				noteCell, err := sheet.Cell(row, noteCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.CellPos, excel.Postion(row, noteCol))
+					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.NameCellPos, excel.Postion(row, noteCol))
 				}
 				shHeader.noterow = append(shHeader.noterow, noteCell)
 			}
@@ -358,14 +364,17 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 			field := &tableaupb.Field{}
 			cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
 			if err != nil {
-				pos := excel.Postion(int(sheet.Meta.Namerow-1), cursor)
+				nameCellPos := excel.Postion(int(sheet.Meta.Namerow-1), cursor)
+				typeCellPos := excel.Postion(int(sheet.Meta.Typerow-1), cursor)
 				if sheet.Meta.Transpose {
-					pos = excel.Postion(cursor, int(sheet.Meta.Namerow-1))
+					nameCellPos = excel.Postion(cursor, int(sheet.Meta.Namerow-1))
+					typeCellPos = excel.Postion(cursor, int(sheet.Meta.Typerow-1))
 				}
 				return xerrors.WithMessageKV(err,
 					xerrors.BookName, debugWorkbookName,
 					xerrors.SheetName, debugSheetName,
-					xerrors.CellPos, pos,
+					xerrors.NameCellPos, nameCellPos,
+					xerrors.TypeCellPos, typeCellPos,
 					xerrors.NameCell, shHeader.getNameCell(cursor),
 					xerrors.TypeCell, shHeader.getTypeCell(cursor))
 			}

@@ -131,8 +131,8 @@ func (r *RowCells) CellDebugKV(name string) []interface{} {
 
 	return []interface{}{
 		xerrors.SheetName, r.SheetName,
-		xerrors.CellPos, pos,
-		xerrors.CellData, data,
+		xerrors.DataCellPos, pos,
+		xerrors.DataCell, data,
 		xerrors.ColumnName, name,
 	}
 }
