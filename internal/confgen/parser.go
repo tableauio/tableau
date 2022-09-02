@@ -40,11 +40,14 @@ func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, impo
 	msgName, wsOpts := ParseMessageOptions(md)
 
 	if err := ParseMessage(parser, protomsg, wsOpts.Name, importers...); err != nil {
-		return err
+		return xerrors.WithMessageKV(err, xerrors.Module, xerrors.ModuleConf)
 	}
 
 	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.OutputOpt, wsOpts)
-	return exporter.Export()
+	if err := exporter.Export(); err != nil {
+		return xerrors.WithMessageKV(err, xerrors.Module, xerrors.ModuleConf)
+	}
+	return nil
 }
 
 func ParseMessage(parser *sheetParser, protomsg proto.Message, sheetName string, importers ...importer.Importer) error {

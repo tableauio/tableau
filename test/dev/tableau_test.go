@@ -68,6 +68,18 @@ func Test_GenProto(t *testing.T) {
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
+		// t.Errorf("%v", err)
+		// t.Errorf("%s", xerrors.NewDesc(err).String())
+		// t.Errorf("%s", xerrors.NewDesc(err).StringZh())
+
+		if log.Mode() == log.ModeFull {
+			log.Errorf("generate conf failed: %+v", err)
+		}
+		if log.Lang() == log.LangEn {
+			log.Errorf("%s", xerrors.NewDesc(err).String())
+		} else {
+			log.Errorf("%s", xerrors.NewDesc(err).StringZh())
+		}
 	}
 }
 
@@ -78,17 +90,33 @@ func Test_GenConf(t *testing.T) {
 		"./_conf",
 		options.OutputConf(
 			&options.OutputConfOption{
-				Pretty:          true,
-				Formats:         []format.Format{format.JSON},
+				Pretty:  true,
+				Formats: []format.Format{format.JSON},
 				// EmitUnpopulated: true,
+			},
+		),
+		options.Log(
+			&log.Options{
+				Level: "INFO",
+				Mode:  "SIMPLE",
+				Lang:  "zh",
 			},
 		),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
-		t.Errorf("%v", err)
-		t.Errorf("%s", xerrors.ExtractDesc(err).String())
-		t.Errorf("%s", xerrors.ExtractDesc(err).StringZh())
+		// t.Errorf("%v", err)
+		// t.Errorf("%s", xerrors.NewDesc(err).String())
+		// t.Errorf("%s", xerrors.NewDesc(err).StringZh())
+
+		if log.Mode() == log.ModeFull {
+			log.Errorf("generate conf failed: %+v", err)
+		}
+		if log.Lang() == log.LangEn {
+			log.Errorf("%s", xerrors.NewDesc(err).String())
+		} else {
+			log.Errorf("%s", xerrors.NewDesc(err).StringZh())
+		}
 	}
 }
 

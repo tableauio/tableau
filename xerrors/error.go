@@ -2,7 +2,6 @@ package xerrors
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/log"
@@ -24,11 +23,17 @@ func WrapKV(err error, keysAndValues ...interface{}) error {
 	return ErrorKV(err.Error(), keysAndValues...)
 }
 
+// Errorf formats according to a format specifier and returns the string as a
+// value that satisfies error.
+func Errorf(format string, args ...interface{}) error {
+	return WithStack(fmt.Errorf(format, args...))
+}
+
 // ErrorKV returns an error with the supplied message and the key-value pairs
 // as `[|key: value]...` string.
 // ErrorKV also records the stack trace at the point it was called.
 func ErrorKV(msg string, keysAndValues ...interface{}) error {
-	return errors.New(CombineKV(keysAndValues...) + CombineKV(Error, msg))
+	return errors.New(CombineKV(keysAndValues...) + CombineKV(Reason, msg))
 }
 
 // WithMessageKV annotates err with the key-value pairs as `[|key: value]...` string.
@@ -51,17 +56,4 @@ func CombineKV(keysAndValues ...interface{}) string {
 		msg += fmt.Sprintf("|%s: %s", key, val)
 	}
 	return msg
-}
-
-func ExtractDesc(err error) *Desc {
-	desc := NewDesc()
-	splits := strings.Split(err.Error(), "|")
-	for _, s := range splits {
-		kv := strings.SplitN(s, ":", 2)
-		if len(kv) == 2 {
-			key, val := strings.Trim(kv[0], " :"), strings.Trim(kv[1], " :")
-			desc.UpdateField(key, val)
-		}
-	}
-	return desc
 }

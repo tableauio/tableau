@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/pkg/errors"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/printer"
@@ -13,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -99,26 +99,26 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 
 	if checkProtoFileConflicts {
 		if existed, err := fs.Exists(path); err != nil {
-			return errors.WithMessagef(err, "failed to check if file exists: %s", path)
+			return xerrors.WrapKV(err)
 		} else {
 			if existed {
-				return errors.Errorf("file already exists: %s", path)
+				return xerrors.Errorf("file already exists: %s", path)
 			}
 		}
 	}
 
 	if f, err := lockedfile.Create(path); err != nil {
-		return errors.Wrapf(err, "failed to create output file: %s", path)
+		return xerrors.WrapKV(err)
 	} else {
 		defer f.Close()
 		if _, err = f.Write(g1.Content()); err != nil {
-			return errors.Wrapf(err, "failed to write output file: %s", path)
+			return xerrors.WrapKV(err)
 		}
 		if _, err = f.Write(g2.Content()); err != nil {
-			return errors.Wrapf(err, "failed to write output file: %s", path)
+			return xerrors.WrapKV(err)
 		}
 		if _, err = f.Write(g3.Content()); err != nil {
-			return errors.Wrapf(err, "failed to write output file: %s", path)
+			return xerrors.WrapKV(err)
 		}
 	}
 

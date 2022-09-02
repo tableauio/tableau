@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -79,24 +80,24 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	if types.IsMap(typeCell) {
 		cursor, err = p.parseMapField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, errors.WithMessagef(err, "failed to parse map field: %s", typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.PBFieldType, "map", xerrors.TypeCell, typeCell)
 		}
 	} else if types.IsList(typeCell) {
 		cursor, err = p.parseListField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, errors.WithMessagef(err, "failed to parse list field: %s", typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.PBFieldType, "list", xerrors.TypeCell, typeCell)
 		}
 	} else if types.IsStruct(typeCell) {
 		cursor, err = p.parseStructField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, errors.WithMessagef(err, "failed to parse struct field: %s", typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.PBFieldType, "struct", xerrors.TypeCell, typeCell)
 		}
 	} else {
 		// scalar or enum type
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		scalarField, err := p.parseScalarField(trimmedNameCell, typeCell, noteCell)
 		if err != nil {
-			return cursor, false, errors.WithMessagef(err, "failed to parse scalar or enum field: %s", typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.PBFieldType, "scalar/enum", xerrors.TypeCell, typeCell)
 		}
 		proto.Merge(field, scalarField)
 	}
@@ -108,7 +109,7 @@ func (p *bookParser) parseSubField(field *tableaupb.Field, header *sheetHeader, 
 	subField := &tableaupb.Field{}
 	cursor, parsed, err := p.parseField(subField, header, cursor, prefix, options...)
 	if err != nil {
-		return cursor, errors.WithMessagef(err, "parse sub field failed")
+		return cursor, xerrors.WithMessageKV(err, xerrors.PBFieldType, "scalar/enum")
 	}
 	if parsed {
 		field.Fields = append(field.Fields, subField)
@@ -146,7 +147,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	}
 	valueTypeDesc, err := p.parseType(valueType)
 	if err != nil {
-		return cursor, errors.WithMessagef(err, "failed to parse map value type: %s", valueType)
+		return cursor, xerrors.WithMessageKV(err, xerrors.PBFieldType, fmt.Sprintf("map value type: %s", valueType))
 	}
 
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, valueTypeDesc.Name)
@@ -223,7 +224,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		}
 		scalarField, err := p.parseScalarField(trimmedNameCell, keyType, noteCell)
 		if err != nil {
-			return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", trimmedNameCell)
+			return cursor, xerrors.WithMessageKV(err, xerrors.PBFieldType, fmt.Sprintf("scalar field: %s", trimmedNameCell))
 		}
 		field.Fields = append(field.Fields, scalarField)
 		for cursor++; cursor < len(header.namerow); cursor++ {
@@ -266,7 +267,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		name := strings.TrimPrefix(nameCell, prefix+"1")
 		scalarField, err := p.parseScalarField(name, keyType, noteCell)
 		if err != nil {
-			return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", name)
+			return cursor, xerrors.WithMessageKV(err, xerrors.PBFieldType, fmt.Sprintf("scalar field: %s", name))
 		}
 		field.Fields = append(field.Fields, scalarField)
 
@@ -305,7 +306,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Prop:   types.ParseProp(rawPropText),
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
-		return cursor, errors.Errorf("should not reach default layout: %v", layout)
+		return cursor, xerrors.Errorf("should not reach default layout: %v", layout)
 	}
 
 	return cursor, nil
@@ -349,7 +350,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				elemType = structType
 				typeDesc, err := p.parseType(structType)
 				if err != nil {
-					return cursor, errors.WithMessagef(err, "failed to parse struct type: %s", structType)
+					return cursor, xerrors.WithMessageKV(err, xerrors.PBFieldType, fmt.Sprintf("struct type: %s", structType))
 				}
 				pureElemTypeName = typeDesc.Name
 			}
@@ -399,7 +400,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		// vertical list: all columns belong to this list after this cursor.
 		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		if err != nil {
-			return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", trimmedNameCell)
+			return cursor, xerrors.WithMessageKV(err, xerrors.PBFieldType, fmt.Sprintf("scalar field: %s", trimmedNameCell))
 		}
 		proto.Merge(field, scalarField)
 		field.Type = "repeated " + scalarField.Type
@@ -441,7 +442,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				field.Options.Span = tempField.Options.Span
 				field.Options.Name = tempField.Options.Name
 			} else {
-				return cursor, errors.Errorf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
+				return cursor, xerrors.Errorf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
 			}
 		} else {
 			cursor, err = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
@@ -471,7 +472,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 
 		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		if err != nil {
-			return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", trimmedNameCell)
+			return cursor, xerrors.WithMessageKV(err, xerrors.PBFieldType, fmt.Sprintf("scalar field: %s", trimmedNameCell))
 		}
 		proto.Merge(field, scalarField)
 		field.Type = "repeated " + scalarField.Type
@@ -508,7 +509,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				field.Predefined = tempField.Predefined
 				field.Options.Span = tempField.Options.Span
 			} else {
-				return cursor, errors.Errorf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
+				return cursor, xerrors.Errorf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
 			}
 		} else {
 			// cross cell element
@@ -544,7 +545,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		colTypeWithProp := colType + rawPropText
 		scalarField, err := p.parseScalarField(trimmedNameCell, colTypeWithProp, noteCell)
 		if err != nil {
-			return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", trimmedNameCell)
+			return cursor, errors.WithMessagef(err, "scalar field: %s", trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 		// auto add suffix "_list".
@@ -558,7 +559,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.Options.Layout = layout
 		field.Options.Key = key
 	case tableaupb.Layout_LAYOUT_DEFAULT:
-		return cursor, errors.Errorf("should not reach default layout: %s", layout)
+		return cursor, xerrors.Errorf("should not reach default layout: %s", layout)
 	}
 	return cursor, nil
 }
@@ -584,7 +585,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		// incell predefined struct
 		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		if err != nil {
-			return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", trimmedNameCell)
+			return cursor, errors.WithMessagef(err, "scalar field: %s", trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
@@ -593,12 +594,12 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 
 	fieldPairs, err := ParseIncellStruct(elemType)
 	if err != nil {
-		return cursor, errors.WithMessagef(err, "failed to parse incell struct: %s", elemType)
+		return cursor, errors.WithMessagef(err, "incell struct: %s", elemType)
 	}
 	if fieldPairs != nil {
 		scalarField, err := p.parseScalarField(trimmedNameCell, colType, noteCell)
 		if err != nil {
-			return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", trimmedNameCell)
+			return cursor, errors.WithMessagef(err, "scalar field: %s", trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
@@ -608,7 +609,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 			fieldName := fieldPairs[i+1]
 			scalarField, err := p.parseScalarField(fieldName, fieldType, "")
 			if err != nil {
-				return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", trimmedNameCell)
+				return cursor, errors.WithMessagef(err, "scalar field: %s", trimmedNameCell)
 			}
 			field.Fields = append(field.Fields, scalarField)
 		}
@@ -617,7 +618,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		// NOTE(wenchy): treated as nested named struct
 		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		if err != nil {
-			return cursor, errors.WithMessagef(err, "failed to parse scalar field: %s", trimmedNameCell)
+			return cursor, errors.WithMessagef(err, "scalar field: %s", trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 
@@ -692,7 +693,7 @@ func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field,
 	}
 	typeDesc, err := p.parseType(typ)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to parse scalar field type: %s", typ)
+		return nil, errors.WithMessagef(err, "scalar field type: %s", typ)
 	}
 
 	return &tableaupb.Field{
@@ -732,7 +733,7 @@ func (p *bookParser) parseType(rawType string) (*typeDesc, error) {
 				Predefined: true,
 			}, nil
 		} else {
-			return nil, errors.Errorf("predefined type not found: %s", name)
+			return nil, xerrors.Errorf("predefined type not found: %s", name)
 		}
 	}
 	switch rawType {
@@ -768,7 +769,7 @@ func ParseIncellStruct(elemType string) ([]string, error) {
 	for _, pair := range strings.Split(elemType, ",") {
 		kv := strings.Split(strings.TrimSpace(pair), " ")
 		if len(kv) != 2 {
-			return nil, errors.Errorf("illegal type-variable pair: %v in incell struct: %s", pair, elemType)
+			return nil, xerrors.Errorf("illegal type-variable pair: %v in incell struct: %s", pair, elemType)
 		}
 		fieldPairs = append(fieldPairs, kv...)
 	}

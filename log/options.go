@@ -13,4 +13,17 @@ type Options struct {
 	// Log sink: CONSOLE, FILE, and MULTI.
 	// Default: "CONSOLE".
 	Sink string
+	// log language: en, zh
+	// Default: "en".
+	Lang string
 }
+
+const (
+	ModeSimple = "SIMPLE"
+	ModeFull   = "FULL"
+)
+
+const (
+	LangEn = "en"
+	LangZh = "zh"
+)

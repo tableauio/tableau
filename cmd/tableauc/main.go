@@ -13,6 +13,7 @@ import (
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
+	"github.com/tableauio/tableau/xerrors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -95,7 +96,7 @@ func genProto(workbooks []string, opts *options.Options) {
 	// generate proto files
 	gen := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
 	if err := gen.Generate(workbooks...); err != nil {
-		log.Errorf("generate proto file failed: %+v", err)
+		logError(ModeProto, err)
 		os.Exit(-1)
 	}
 }
@@ -104,8 +105,19 @@ func genConf(workbooks []string, opts *options.Options) {
 	// generate conf files
 	gen := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
 	if err := gen.Generate(workbooks...); err != nil {
-		log.Errorf("generate conf file failed: %+v", err)
+		logError(ModeConf, err)
 		os.Exit(-1)
+	}
+}
+
+func logError(mode string, err error) {
+	if log.Mode() == log.ModeFull {
+		log.Errorf("generate %s file failed: %+v", mode, err)
+	}
+	if log.Lang() == log.LangEn {
+		log.Errorf("%s", xerrors.NewDesc(err).String())
+	} else {
+		log.Errorf("%s", xerrors.NewDesc(err).StringZh())
 	}
 }
 

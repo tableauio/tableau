@@ -189,7 +189,7 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 
 // convert a workbook related to parameter fd, and only convert the
 // specified worksheet if the input parameter worksheetName is not empty.
-func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName string) error {
+func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName string) (err error) {
 	bookBeginTime := time.Now()
 	_, workbook := ParseFileOptions(fd)
 	if workbook == nil {

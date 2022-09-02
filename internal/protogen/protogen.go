@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
+	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -20,6 +21,7 @@ import (
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -262,7 +264,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser), importer.TopN(defaultTopN))
 	if err != nil {
-		return errors.Wrapf(err, "failed to import workbook: %s", absPath)
+		return xerrors.WrapKV(err, xerrors.BookName, absPath)
 	}
 
 	sheets := imp.GetSheets()
@@ -327,21 +329,21 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 				nameCol := int(sheet.Meta.Namerow) - 1
 				nameCell, err := sheet.Cell(row, nameCol)
 				if err != nil {
-					return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, nameCol)
+					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.CellPos, excel.Postion(row, nameCol))
 				}
 				shHeader.namerow = append(shHeader.namerow, nameCell)
 
 				typeCol := int(sheet.Meta.Typerow) - 1
 				typeCell, err := sheet.Cell(row, typeCol)
 				if err != nil {
-					return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, typeCol)
+					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.CellPos, excel.Postion(row, typeCol))
 				}
 				shHeader.typerow = append(shHeader.typerow, typeCell)
 
 				noteCol := int(sheet.Meta.Noterow) - 1
 				noteCell, err := sheet.Cell(row, noteCol)
 				if err != nil {
-					return errors.WithMessagef(err, "failed to get note cell: %d, %d", row, noteCol)
+					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.CellPos, excel.Postion(row, noteCol))
 				}
 				shHeader.noterow = append(shHeader.noterow, noteCell)
 			}
@@ -356,7 +358,16 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 			field := &tableaupb.Field{}
 			cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
 			if err != nil {
-				return errors.WithMessagef(err, "failed to parse field")
+				pos := excel.Postion(int(sheet.Meta.Namerow-1), cursor)
+				if sheet.Meta.Transpose {
+					pos = excel.Postion(cursor, int(sheet.Meta.Namerow-1))
+				}
+				return xerrors.WithMessageKV(err,
+					xerrors.BookName, debugWorkbookName,
+					xerrors.SheetName, debugSheetName,
+					xerrors.CellPos, pos,
+					xerrors.NameCell, shHeader.getNameCell(cursor),
+					xerrors.TypeCell, shHeader.getTypeCell(cursor))
 			}
 			if parsed {
 				ws.Fields = append(ws.Fields, field)
@@ -375,7 +386,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 		bp.gen,
 	)
 	if err := be.export(checkProtoFileConflicts); err != nil {
-		return errors.WithMessagef(err, "failed to export workbook: %s", relativePath)
+		return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName)
 	}
 
 	return nil

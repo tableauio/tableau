@@ -247,6 +247,7 @@ func NewDefault() *Options {
 			Mode:  "SIMPLE",
 			Level: "INFO",
 			Sink:  "CONSOLE",
+			Lang:  "en",
 		},
 		Input: &InputOption{
 			Proto: &InputProtoOption{

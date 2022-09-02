@@ -1,6 +1,7 @@
 package excel
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -21,6 +22,12 @@ func LetterAxis(index int) string {
 		colCode += LetterAxis(loop - 1)
 	}
 	return colCode + string(key+int32(index)%26)
+}
+
+// Postion generate the position in a sheet.
+// row and col both are 0-based.
+func Postion(row, col int) string {
+	return fmt.Sprintf("%s%d", LetterAxis(col), row+1)
 }
 
 func Open(filename string, sheetName string) (*excelize.File, error) {

@@ -15,6 +15,8 @@ import (
 
 var defaultLogger *Logger
 
+var gOpts *Options
+
 func init() {
 	defaultLogger = &Logger{
 		level: core.DebugLevel,
@@ -23,9 +25,12 @@ func init() {
 		// },
 		driver: zapdriver.New(zap.NewDevelopmentConfig(), []zap.Option{zap.AddCallerSkip(4)}),
 	}
+	gOpts = &Options{}
 }
 
 func Init(opts *Options) error {
+	gOpts = opts // remember as global options.
+
 	zapLogger, err := zapdriver.NewLogger(opts.Mode, opts.Level, opts.Filename, opts.Sink)
 	if err != nil {
 		return err
@@ -36,6 +41,14 @@ func Init(opts *Options) error {
 	}
 	SetDriver(zapdriver.NewWithLogger(zapLevel, zapLogger))
 	return nil
+}
+
+func Mode() string {
+	return gOpts.Mode
+}
+
+func Lang() string {
+	return gOpts.Lang
 }
 
 func SetDriver(driver driver.Driver) {
