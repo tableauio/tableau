@@ -4,16 +4,16 @@ option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 import "tableau/protobuf/tableau.proto";
 
-message WorkbookMeta {
+message Metabook {
   option (tableau.worksheet) = {
-    name:"@TABLEAU"
+    name: "@TABLEAU"
     namerow: 1
     datarow: 2
   };
 
-  map<string, SheetMeta> sheet_meta_map = 1 [(tableau.field).key = "Sheet"];
+  map<string, Metasheet> metasheet_map = 1 [(tableau.field).key = "Sheet"];
 }
-message SheetMeta {
+message Metasheet {
   string sheet = 1 [(tableau.field) = { name:"Sheet" optional:false }];
   string alias = 2 [(tableau.field) = { name:"Alias" optional:true }];
   int32 namerow = 3 [(tableau.field) = { name:"Namerow" optional:true }];

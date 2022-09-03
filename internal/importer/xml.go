@@ -579,7 +579,7 @@ func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
 	}
 	// insert sheets into map for importer
 	sheet = book.NewSheet(sheetName, rows)
-	sheet.Meta = &tableaupb.SheetMeta{
+	sheet.Meta = &tableaupb.Metasheet{
 		Sheet:    sheetName,
 		Alias:    sheetName,
 		Namerow:  header.Namerow,

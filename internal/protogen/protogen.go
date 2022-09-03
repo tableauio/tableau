@@ -236,8 +236,8 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 	return relSlashPath, nil
 }
 
-// mergeHeaderOptions merge from options.HeaderOption to tableaupb.SheetMeta.
-func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.HeaderOption) {
+// mergeHeaderOptions merge from options.HeaderOption to tableaupb.Metasheet.
+func mergeHeaderOptions(sheetMeta *tableaupb.Metasheet, headerOpt *options.HeaderOption) {
 	if sheetMeta.Namerow == 0 {
 		sheetMeta.Namerow = headerOpt.Namerow
 	}
@@ -402,7 +402,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 }
 
 type sheetHeader struct {
-	meta    *tableaupb.SheetMeta
+	meta    *tableaupb.Metasheet
 	namerow []string
 	typerow []string
 	noterow []string

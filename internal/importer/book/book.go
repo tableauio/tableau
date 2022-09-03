@@ -18,7 +18,7 @@ type Book struct {
 	sheets     map[string]*Sheet // sheet name -> sheet
 	sheetNames []string          // ordered sheet names
 
-	meta       *tableaupb.WorkbookMeta
+	meta       *tableaupb.Metabook
 	metaParser SheetParser
 }
 
@@ -27,8 +27,8 @@ func NewBook(bookName, filename string, parser SheetParser) *Book {
 		name:     bookName,
 		filename: filename,
 		sheets:   make(map[string]*Sheet),
-		meta: &tableaupb.WorkbookMeta{
-			SheetMetaMap: make(map[string]*tableaupb.SheetMeta),
+		meta: &tableaupb.Metabook{
+			MetasheetMap: make(map[string]*tableaupb.Metasheet),
 		},
 		metaParser: parser,
 	}
@@ -123,7 +123,7 @@ func (b *Book) ParseMeta() error {
 		// need all sheets except the metasheet "@TABLEAU"
 		for _, sheet := range b.GetSheets() {
 			if sheet.Name != MetasheetName {
-				b.meta.SheetMetaMap[sheet.Name] = &tableaupb.SheetMeta{
+				b.meta.MetasheetMap[sheet.Name] = &tableaupb.Metasheet{
 					Sheet: sheet.Name,
 				}
 			}
@@ -137,7 +137,7 @@ func (b *Book) ParseMeta() error {
 	log.Debugf("%s#%s: %+v", b.Filename(), MetasheetName, b.meta)
 
 	var keepedSheetNames []string
-	for sheetName, sheetMeta := range b.meta.SheetMetaMap {
+	for sheetName, sheetMeta := range b.meta.MetasheetMap {
 		sheet := b.GetSheet(sheetName)
 		if sheet == nil {
 			return errors.Errorf("sheet %s not found in book %s", sheetName, b.Filename())

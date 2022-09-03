@@ -27,7 +27,7 @@ type Sheet struct {
 
 	Rows [][]string // 2D array of string.
 
-	Meta *tableaupb.SheetMeta
+	Meta *tableaupb.Metasheet
 }
 
 // NewSheet creats a new Sheet.
