@@ -1,0 +1,55 @@
+name: Testing
+
+# Trigger on pushes, PRs (excluding documentation changes), and nightly.
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: 0 0 * * * # daily at 00:00
+
+permissions:
+  contents: read
+
+# Always force the use of Go modules
+env:
+  GO111MODULE: on
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: [1.17.x, 1.18.x, 1.19.x]
+        os: [ubuntu-latest]
+        targetplatform: [x86, x64]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: "3.x"
+
+      - name: Installing protoc-gen-go
+        run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup test environment
+        run: ./test/setup.sh
+      - name: Get dependencies
+        run: go vet ./...
+      - name: Test
+        run: go test -timeout 30m -race ./... -coverprofile=coverage.txt -covermode=atomic
+
+      - name: Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage.txt
+          flags: unittests
+          name: codecov-umbrella
