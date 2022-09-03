@@ -1,0 +1,42 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "desc": "item1",
+            "propertyMap": {
+                "1": {
+                    "id": 1,
+                    "value": "10"
+                },
+                "2": {
+                    "id": 2,
+                    "value": "20"
+                }
+            }
+        },
+        "2": {
+            "id": 2,
+            "desc": "item2",
+            "propertyMap": {
+                "3": {
+                    "id": 3,
+                    "value": "30"
+                },
+                "4": {
+                    "id": 4,
+                    "value": "40"
+                }
+            }
+        },
+        "3": {
+            "id": 3,
+            "desc": "item3",
+            "propertyMap": {
+                "5": {
+                    "id": 5,
+                    "value": "50"
+                }
+            }
+        }
+    }
+}
