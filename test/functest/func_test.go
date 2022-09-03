@@ -32,6 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
@@ -202,19 +203,19 @@ func genConf(t *testing.T) {
 // 	}
 // }
 
-// func Test_CSV2Excel(t *testing.T) {
-// 	paths := []string{
-// 		"./testdata/excel/map/Map#*.csv",
-// 		"./testdata/excel/metasheet/Metasheet#*.csv",
-// 		"./testdata/excel/nesting/NestedInMap#*.csv",
-// 	}
-// 	for _, path := range paths {
-// 		imp, err := importer.NewCSVImporter(path, nil, nil)
-// 		if err != nil {
-// 			t.Errorf("%+v", err)
-// 		}
-// 		if err := imp.ExportExcel(); err != nil {
-// 			t.Errorf("%+v", err)
-// 		}
-// 	}
-// }
+func Test_CSV2Excel(t *testing.T) {
+	paths := []string{
+		"./testdata/excel/map/Map#*.csv",
+		"./testdata/excel/metasheet/Metasheet#*.csv",
+		"./testdata/excel/nesting/NestedInMap#*.csv",
+	}
+	for _, path := range paths {
+		imp, err := importer.NewCSVImporter(path, nil, nil)
+		if err != nil {
+			t.Errorf("%+v", err)
+		}
+		if err := imp.ExportExcel(); err != nil {
+			t.Errorf("%+v", err)
+		}
+	}
+}

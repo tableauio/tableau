@@ -11,7 +11,7 @@ import (
 
 func Test_LoadJSON(t *testing.T) {
 	msg := &protoconf.Activity{}
-	err := load.Load(msg, "./_conf/", format.JSON)
+	err := load.Load(msg, "./testdata/json/", format.JSON)
 	if err != nil {
 		t.Error(err)
 	}
@@ -20,12 +20,11 @@ func Test_LoadJSON(t *testing.T) {
 
 func Test_LoadCSVFailed(t *testing.T) {
 	msg := &protoconf.Activity{}
-	// log.InitFileLog("FULL", "DEBUG", "_logs/tableau.log")
 	err := load.Load(msg, "./testdata/", format.CSV, load.SubdirRewrites(map[string]string{"excel": ""}))
 	if err == nil {
 		t.Errorf("should have failed")
 	}
-	fmt.Printf("%+v\n", err)
+	// fmt.Printf("%+v\n", err)
 }
 
 func Test_LoadExcel(t *testing.T) {

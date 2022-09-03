@@ -116,7 +116,7 @@ func Test_GenConf(t *testing.T) {
 	}
 }
 
-func Test_CompareJSON(t *testing.T) {
+func test_CompareJSON(t *testing.T) {
 	newConfDir := "_conf"
 	// oldConfDir := "_old_conf"
 	oldConfDir := "dynamic/_out/conf"
@@ -146,26 +146,26 @@ func Test_CompareJSON(t *testing.T) {
 	}
 }
 
-func Test_Excel2CSV(t *testing.T) {
-	paths := []string{
-		"./testdata/excel/Test.xlsx",
-		"./testdata/excel/hero/Hero.xlsx",
-		"./testdata/excel/hero/HeroA.xlsx",
-		"./testdata/excel/hero/HeroB.xlsx",
-		"./testdata/excel/list/List.xlsx",
-		"./testdata/excel/map/Map.xlsx",
-		"./testdata/excel/metasheet/Metasheet.xlsx",
-	}
-	for _, path := range paths {
-		imp, err := importer.NewExcelImporter(path, nil, nil, 0)
-		if err != nil {
-			t.Errorf("%+v", err)
-		}
-		if err := imp.ExportCSV(); err != nil {
-			t.Errorf("%+v", err)
-		}
-	}
-}
+// func Test_Excel2CSV(t *testing.T) {
+// 	paths := []string{
+// 		"./testdata/excel/Test.xlsx",
+// 		"./testdata/excel/hero/Hero.xlsx",
+// 		"./testdata/excel/hero/HeroA.xlsx",
+// 		"./testdata/excel/hero/HeroB.xlsx",
+// 		"./testdata/excel/list/List.xlsx",
+// 		"./testdata/excel/map/Map.xlsx",
+// 		"./testdata/excel/metasheet/Metasheet.xlsx",
+// 	}
+// 	for _, path := range paths {
+// 		imp, err := importer.NewExcelImporter(path, nil, nil, 0)
+// 		if err != nil {
+// 			t.Errorf("%+v", err)
+// 		}
+// 		if err := imp.ExportCSV(); err != nil {
+// 			t.Errorf("%+v", err)
+// 		}
+// 	}
+// }
 
 func Test_CSV2Excel(t *testing.T) {
 	paths := []string{
