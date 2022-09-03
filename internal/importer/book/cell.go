@@ -130,10 +130,10 @@ func (r *RowCells) CellDebugKV(name string) []interface{} {
 	pos := fmt.Sprintf("%s%d", col, r.Row+1)
 
 	return []interface{}{
-		xerrors.SheetName, r.SheetName,
-		xerrors.DataCellPos, pos,
-		xerrors.DataCell, data,
-		xerrors.ColumnName, name,
+		xerrors.KeySheetName, r.SheetName,
+		xerrors.KeyDataCellPos, pos,
+		xerrors.KeyDataCell, data,
+		xerrors.KeyColumnName, name,
 	}
 }
 

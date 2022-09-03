@@ -79,24 +79,24 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	if types.IsMap(typeCell) {
 		cursor, err = p.parseMapField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.PBFieldType, "map", xerrors.TypeCell, typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "map", xerrors.KeyTypeCell, typeCell)
 		}
 	} else if types.IsList(typeCell) {
 		cursor, err = p.parseListField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.PBFieldType, "list", xerrors.TypeCell, typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "list", xerrors.KeyTypeCell, typeCell)
 		}
 	} else if types.IsStruct(typeCell) {
 		cursor, err = p.parseStructField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.PBFieldType, "struct", xerrors.TypeCell, typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "struct", xerrors.KeyTypeCell, typeCell)
 		}
 	} else {
 		// scalar or enum type
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		scalarField, err := p.parseScalarField(trimmedNameCell, typeCell, noteCell)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.PBFieldType, "scalar/enum", xerrors.TypeCell, typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum", xerrors.KeyTypeCell, typeCell)
 		}
 		proto.Merge(field, scalarField)
 	}
@@ -108,7 +108,7 @@ func (p *bookParser) parseSubField(field *tableaupb.Field, header *sheetHeader, 
 	subField := &tableaupb.Field{}
 	cursor, parsed, err := p.parseField(subField, header, cursor, prefix, options...)
 	if err != nil {
-		return cursor, xerrors.WithMessageKV(err, xerrors.PBFieldType, "scalar/enum")
+		return cursor, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum")
 	}
 	if parsed {
 		field.Fields = append(field.Fields, subField)
@@ -147,8 +147,8 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	valueTypeDesc, err := p.parseType(valueType)
 	if err != nil {
 		return cursor, xerrors.WithMessageKV(err,
-			xerrors.PBFieldType, valueType+" (map value)",
-			xerrors.PBFieldOpts, rawPropText)
+			xerrors.KeyPBFieldType, valueType+" (map value)",
+			xerrors.KeyPBFieldOpts, rawPropText)
 	}
 
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, valueTypeDesc.Name)
@@ -226,9 +226,9 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		scalarField, err := p.parseScalarField(trimmedNameCell, keyType, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.PBFieldType, keyType+" (map key)",
-				xerrors.PBFieldOpts, rawPropText,
-				xerrors.TrimmedNameCell, trimmedNameCell)
+				xerrors.KeyPBFieldType, keyType+" (map key)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		field.Fields = append(field.Fields, scalarField)
 		for cursor++; cursor < len(header.namerow); cursor++ {
@@ -272,9 +272,9 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		scalarField, err := p.parseScalarField(name, keyType, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.PBFieldType, keyType+" (map key)",
-				xerrors.PBFieldOpts, rawPropText,
-				xerrors.TrimmedNameCell, name)
+				xerrors.KeyPBFieldType, keyType+" (map key)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, name)
 		}
 		field.Fields = append(field.Fields, scalarField)
 
@@ -358,8 +358,8 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				typeDesc, err := p.parseType(structType)
 				if err != nil {
 					return cursor, xerrors.WithMessageKV(err,
-						xerrors.PBFieldType, structType,
-						xerrors.PBFieldOpts, rawPropText)
+						xerrors.KeyPBFieldType, structType,
+						xerrors.KeyPBFieldOpts, rawPropText)
 				}
 				pureElemTypeName = typeDesc.Name
 			}
@@ -410,9 +410,9 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.PBFieldType, elemType+" (list element)",
-				xerrors.PBFieldOpts, rawPropText,
-				xerrors.TrimmedNameCell, trimmedNameCell)
+				xerrors.KeyPBFieldType, elemType+" (list element)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 		field.Type = "repeated " + scalarField.Type
@@ -485,9 +485,9 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.PBFieldType, elemType+" (list element)",
-				xerrors.PBFieldOpts, rawPropText,
-				xerrors.TrimmedNameCell, trimmedNameCell)
+				xerrors.KeyPBFieldType, elemType+" (list element)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 		field.Type = "repeated " + scalarField.Type
@@ -561,9 +561,9 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		scalarField, err := p.parseScalarField(trimmedNameCell, colTypeWithProp, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.PBFieldType, colType,
-				xerrors.PBFieldOpts, rawPropText,
-				xerrors.TrimmedNameCell, trimmedNameCell)
+				xerrors.KeyPBFieldType, colType,
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 		// auto add suffix "_list".
@@ -604,9 +604,9 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.PBFieldType, elemType,
-				xerrors.PBFieldOpts, rawPropText,
-				xerrors.TrimmedNameCell, trimmedNameCell)
+				xerrors.KeyPBFieldType, elemType,
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
@@ -621,9 +621,9 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		scalarField, err := p.parseScalarField(trimmedNameCell, colType, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.PBFieldType, colType,
-				xerrors.PBFieldOpts, rawPropText,
-				xerrors.TrimmedNameCell, trimmedNameCell)
+				xerrors.KeyPBFieldType, colType,
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
@@ -634,9 +634,9 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 			scalarField, err := p.parseScalarField(fieldName, fieldType, "")
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
-					xerrors.PBFieldType, fieldType,
-					xerrors.PBFieldOpts, rawPropText,
-					xerrors.TrimmedNameCell, trimmedNameCell)
+					xerrors.KeyPBFieldType, fieldType,
+					xerrors.KeyPBFieldOpts, rawPropText,
+					xerrors.KeyTrimmedNameCell, trimmedNameCell)
 			}
 			field.Fields = append(field.Fields, scalarField)
 		}
@@ -646,9 +646,9 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.PBFieldType, elemType,
-				xerrors.PBFieldOpts, rawPropText,
-				xerrors.TrimmedNameCell, trimmedNameCell)
+				xerrors.KeyPBFieldType, elemType,
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
 
@@ -724,9 +724,9 @@ func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field,
 	typeDesc, err := p.parseType(typ)
 	if err != nil {
 		return nil, xerrors.WithMessageKV(err,
-			xerrors.PBFieldOpts, rawPropText,
-			xerrors.PBFieldType, typ,
-			xerrors.TrimmedNameCell, name)
+			xerrors.KeyPBFieldOpts, rawPropText,
+			xerrors.KeyPBFieldType, typ,
+			xerrors.KeyTrimmedNameCell, name)
 	}
 
 	return &tableaupb.Field{

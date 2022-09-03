@@ -40,12 +40,12 @@ func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, impo
 	msgName, wsOpts := ParseMessageOptions(md)
 
 	if err := ParseMessage(parser, protomsg, wsOpts.Name, importers...); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.Module, xerrors.ModuleConf)
+		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
 
 	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.OutputOpt, wsOpts)
 	if err := exporter.Export(); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.Module, xerrors.ModuleConf)
+		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
 	return nil
 }
@@ -54,11 +54,11 @@ func ParseMessage(parser *sheetParser, protomsg proto.Message, sheetName string,
 	for _, imp := range importers {
 		sheet := imp.GetSheet(sheetName)
 		if sheet == nil {
-			return xerrors.ErrorKV(fmt.Sprintf("sheet %s not found", sheetName), xerrors.SheetName, sheetName)
+			return xerrors.ErrorKV(fmt.Sprintf("sheet %s not found", sheetName), xerrors.KeySheetName, sheetName)
 		}
 
 		if err := parser.Parse(protomsg, sheet); err != nil {
-			return xerrors.WithMessageKV(err, xerrors.SheetName, sheetName, xerrors.PBMessage, protomsg.ProtoReflect().Descriptor().FullName())
+			return xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, protomsg.ProtoReflect().Descriptor().FullName())
 		}
 	}
 	return nil
@@ -248,7 +248,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 		}
 		fieldPresent, err := sp.parseField(field, msg, rc, depth, prefix)
 		if err != nil {
-			return false, xerrors.WithMessageKV(err, xerrors.PBFieldName, fd.FullName().Name(), xerrors.PBFieldOpts, field.opts)
+			return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldName, fd.FullName().Name(), xerrors.KeyPBFieldOpts, field.opts)
 		}
 		if fieldPresent {
 			// The message is treated as present only if one field is present.
@@ -289,7 +289,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		if valueFd.Kind() == protoreflect.MessageKind {
 			keyColName := prefix + field.opts.Name + field.opts.Key
-			kvs := append(rc.CellDebugKV(keyColName), xerrors.PBFieldType, "vertical map")
+			kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "vertical map")
 			cell, err := rc.Cell(keyColName, field.opts.Optional)
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, kvs...)
@@ -323,7 +323,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			value := "Value" // default value name
 			// key cell
 			keyColName := prefix + field.opts.Name + key
-			kvs := append(rc.CellDebugKV(keyColName), xerrors.PBFieldType, "vertical scalar map")
+			kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "vertical scalar map")
 			cell, err := rc.Cell(keyColName, field.opts.Optional)
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, kvs...)
@@ -343,7 +343,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			}
 			// value cell
 			valueColName := prefix + field.opts.Name + value
-			kvs = append(rc.CellDebugKV(valueColName), xerrors.PBFieldType, "vertical scalar map")
+			kvs = append(rc.CellDebugKV(valueColName), xerrors.KeyPBFieldType, "vertical scalar map")
 			cell, err = rc.Cell(valueColName, field.opts.Optional)
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, kvs...)
@@ -378,7 +378,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			// log.Debug("prefix size: ", size)
 			for i := 1; i <= size; i++ {
 				keyColName := prefix + field.opts.Name + strconv.Itoa(i) + field.opts.Key
-				kvs := append(rc.CellDebugKV(keyColName), xerrors.PBFieldType, "horizontal map")
+				kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "horizontal map")
 				cell, err := rc.Cell(keyColName, field.opts.Optional)
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, kvs...)
@@ -414,7 +414,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 
 	case tableaupb.Layout_LAYOUT_INCELL:
 		colName := prefix + field.opts.Name
-		kvs := append(rc.CellDebugKV(colName), xerrors.PBFieldType, "incell map")
+		kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell map")
 		cell, err := rc.Cell(colName, field.opts.Optional)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, kvs...)
@@ -542,7 +542,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				md := listItemValue.Message().Descriptor()
 				keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
 
-				kvs := append(rc.CellDebugKV(keyColName), xerrors.PBFieldType, "vertical keyed list")
+				kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "vertical keyed list")
 				fd := md.Fields().ByName(keyProtoName)
 				if fd == nil {
 					return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", keyProtoName), kvs...)
@@ -579,7 +579,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 					// incell-struct list
 					colName := prefix + field.opts.Name
-					kvs := append(rc.CellDebugKV(colName), xerrors.PBFieldType, "incell struct list")
+					kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell struct list")
 					cell, err := rc.Cell(colName, field.opts.Optional)
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, kvs...)
@@ -612,7 +612,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 		}
 		existedLength := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
 		if existedLength <= 0 {
-			return false, xerrors.ErrorKV("no cell found with digit suffix", xerrors.PBFieldType, "horizontal list")
+			return false, xerrors.ErrorKV("no cell found with digit suffix", xerrors.KeyPBFieldType, "horizontal list")
 		}
 		fixedLen := prop.GetLength(field.opts.Prop, existedLength)
 		size := existedLength
@@ -629,7 +629,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			if field.fd.Kind() == protoreflect.MessageKind {
 				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 					// horizontal incell-struct list
-					kvs = append(kvs, xerrors.PBFieldType, "horizontal incell-struct list")
+					kvs = append(kvs, xerrors.KeyPBFieldType, "horizontal incell-struct list")
 					cell, err := rc.Cell(colName, field.opts.Optional)
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, kvs...)
@@ -641,14 +641,14 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					// horizontal struct list
 					elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, colName)
 					if err != nil {
-						kvs = append(kvs, xerrors.PBFieldType, "horizontal struct list")
+						kvs = append(kvs, xerrors.KeyPBFieldType, "horizontal struct list")
 						return false, xerrors.WithMessageKV(err, kvs...)
 					}
 				}
 				if checkRemainFlag {
 					// check the remaining keys all not present, otherwise report error!
 					if elemPresent {
-						kvs = append(kvs, xerrors.PBFieldType, "horizontal struct list")
+						kvs = append(kvs, xerrors.KeyPBFieldType, "horizontal struct list")
 						return false, xerrors.ErrorKV("elements are not present continuously", kvs...)
 					}
 					continue
@@ -660,7 +660,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				reflectList.Append(newListValue)
 			} else {
 				// scalar list
-				kvs = append(kvs, xerrors.PBFieldType, "horizontal scalar list")
+				kvs = append(kvs, xerrors.KeyPBFieldType, "horizontal scalar list")
 				cell, err := rc.Cell(colName, field.opts.Optional)
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, kvs...)
@@ -693,7 +693,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell list
 		colName := prefix + field.opts.Name
-		kvs := append(rc.CellDebugKV(colName), xerrors.PBFieldType, "incell list")
+		kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell list")
 		cell, err := rc.Cell(colName, field.opts.Optional)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, kvs...)
@@ -790,7 +790,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 	kvs := rc.CellDebugKV(colName)
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		kvs = append(kvs, xerrors.PBFieldType, "incell struct")
+		kvs = append(kvs, xerrors.KeyPBFieldType, "incell struct")
 		cell, err := rc.Cell(colName, field.opts.Optional)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, kvs...)
@@ -804,7 +804,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 		}
 		return present, nil
 	} else {
-		kvs = append(kvs, xerrors.PBFieldType, "cross-cell struct")
+		kvs = append(kvs, xerrors.KeyPBFieldType, "cross-cell struct")
 		subMsgName := string(field.fd.Message().FullName())
 		_, found := xproto.WellKnownMessages[subMsgName]
 		if found {
@@ -874,7 +874,7 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 
 	newValue := msg.NewField(field.fd)
 	colName := prefix + field.opts.Name
-	kvs := append(rc.CellDebugKV(colName), xerrors.PBFieldType, "scalar")
+	kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "scalar")
 	cell, err := rc.Cell(colName, field.opts.Optional)
 	if err != nil {
 		return false, xerrors.WithMessageKV(err, kvs...)

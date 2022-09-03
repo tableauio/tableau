@@ -74,7 +74,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 func prepareOutpuDir(outdir string, importFiles []string, delExsited bool) error {
 	existed, err := fs.Exists(outdir)
 	if err != nil {
-		return xerrors.WrapKV(err, xerrors.Outdir, outdir)
+		return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
 	}
 	if existed && delExsited {
 		// remove all *.proto file but not Imports
@@ -84,7 +84,7 @@ func prepareOutpuDir(outdir string, importFiles []string, delExsited bool) error
 		}
 		files, err := os.ReadDir(outdir)
 		if err != nil {
-			return xerrors.WrapKV(err, xerrors.Outdir, outdir)
+			return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
 		}
 		for _, file := range files {
 			if !strings.HasSuffix(file.Name(), ".proto") {
@@ -103,7 +103,7 @@ func prepareOutpuDir(outdir string, importFiles []string, delExsited bool) error
 		// create output dir
 		err = os.MkdirAll(outdir, 0700)
 		if err != nil {
-			return xerrors.WrapKV(err, xerrors.Outdir, outdir)
+			return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
 		}
 	}
 
@@ -159,7 +159,7 @@ func (gen *Generator) generate(dir string) (err error) {
 
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		return xerrors.WrapKV(err, xerrors.Indir, gen.InputDir)
+		return xerrors.WrapKV(err, xerrors.KeyIndir, gen.InputDir)
 	}
 
 	// book name -> existence(bool)
@@ -170,7 +170,7 @@ func (gen *Generator) generate(dir string) (err error) {
 			subdir := filepath.Join(dir, entry.Name())
 			err = gen.generate(subdir)
 			if err != nil {
-				return xerrors.WithMessageKV(err, xerrors.Subdir, subdir)
+				return xerrors.WithMessageKV(err, xerrors.KeySubdir, subdir)
 			}
 			continue
 		} else if gen.InputOpt.FollowSymlink && entry.Type() == iofs.ModeSymlink {
@@ -189,7 +189,7 @@ func (gen *Generator) generate(dir string) (err error) {
 			}
 			err = gen.generate(dstPath)
 			if err != nil {
-				return xerrors.WithMessageKV(err, xerrors.Subdir, dstPath)
+				return xerrors.WithMessageKV(err, xerrors.KeySubdir, dstPath)
 			}
 			continue
 		}
@@ -260,7 +260,7 @@ func mergeHeaderOptions(sheetMeta *tableaupb.SheetMeta, headerOpt *options.Heade
 
 func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFileConflicts bool) error {
 	if err := gen.convert(dir, filename, checkProtoFileConflicts); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.Module, xerrors.ModuleProto)
+		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 	}
 	return nil
 }
@@ -270,7 +270,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser), importer.TopN(defaultTopN))
 	if err != nil {
-		return xerrors.WrapKV(err, xerrors.BookName, absPath)
+		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
 	}
 
 	sheets := imp.GetSheets()
@@ -335,21 +335,21 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 				nameCol := int(sheet.Meta.Namerow) - 1
 				nameCell, err := sheet.Cell(row, nameCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.NameCellPos, excel.Postion(row, nameCol))
+					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugWorkbookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, nameCol))
 				}
 				shHeader.namerow = append(shHeader.namerow, nameCell)
 
 				typeCol := int(sheet.Meta.Typerow) - 1
 				typeCell, err := sheet.Cell(row, typeCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.NameCellPos, excel.Postion(row, typeCol))
+					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugWorkbookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, typeCol))
 				}
 				shHeader.typerow = append(shHeader.typerow, typeCell)
 
 				noteCol := int(sheet.Meta.Noterow) - 1
 				noteCell, err := sheet.Cell(row, noteCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName, xerrors.SheetName, debugSheetName, xerrors.NameCellPos, excel.Postion(row, noteCol))
+					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugWorkbookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, noteCol))
 				}
 				shHeader.noterow = append(shHeader.noterow, noteCell)
 			}
@@ -371,12 +371,12 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 					typeCellPos = excel.Postion(cursor, int(sheet.Meta.Typerow-1))
 				}
 				return xerrors.WithMessageKV(err,
-					xerrors.BookName, debugWorkbookName,
-					xerrors.SheetName, debugSheetName,
-					xerrors.NameCellPos, nameCellPos,
-					xerrors.TypeCellPos, typeCellPos,
-					xerrors.NameCell, shHeader.getNameCell(cursor),
-					xerrors.TypeCell, shHeader.getTypeCell(cursor))
+					xerrors.KeyBookName, debugWorkbookName,
+					xerrors.KeySheetName, debugSheetName,
+					xerrors.KeyNameCellPos, nameCellPos,
+					xerrors.KeyTypeCellPos, typeCellPos,
+					xerrors.KeyNameCell, shHeader.getNameCell(cursor),
+					xerrors.KeyTypeCell, shHeader.getTypeCell(cursor))
 			}
 			if parsed {
 				ws.Fields = append(ws.Fields, field)
@@ -395,7 +395,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 		bp.gen,
 	)
 	if err := be.export(checkProtoFileConflicts); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.BookName, debugWorkbookName)
+		return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugWorkbookName)
 	}
 
 	return nil

@@ -255,7 +255,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 
 		exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 		if err := exporter.Export(parser, newMsg, importers...); err != nil {
-			return xerrors.WithMessageKV(err, xerrors.BookName, workbook.Name)
+			return xerrors.WithMessageKV(err, xerrors.KeyBookName, workbook.Name)
 		}
 		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
 		gen.PerfStats.Store(sheetInfo.MessageName, seconds)
