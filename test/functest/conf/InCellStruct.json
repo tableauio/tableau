@@ -1,0 +1,28 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "property": {
+                "id": 1,
+                "name": "Apple",
+                "desc": "A kind of delicious fruit."
+            }
+        },
+        "2": {
+            "id": 2,
+            "property": {
+                "id": 2,
+                "name": "Orange",
+                "desc": ""
+            }
+        },
+        "3": {
+            "id": 3,
+            "property": {
+                "id": 3,
+                "name": "",
+                "desc": ""
+            }
+        }
+    }
+}

@@ -188,6 +188,8 @@ func genConf(t *testing.T) {
 
 // func Test_Excel2CSV(t *testing.T) {
 // 	paths := []string{
+// 		"./testdata/excel/scalar/Scalar.xlsx",
+// 		"./testdata/excel/struct/Struct.xlsx",
 // 		"./testdata/excel/map/Map.xlsx",
 // 		"./testdata/excel/metasheet/Metasheet.xlsx",
 // 		"./testdata/excel/nesting/NestedInMap.xlsx",
@@ -205,6 +207,8 @@ func genConf(t *testing.T) {
 
 func Test_CSV2Excel(t *testing.T) {
 	paths := []string{
+		"./testdata/excel/scalar/Scalar#*.csv",
+		"./testdata/excel/struct/Struct#*.csv",
 		"./testdata/excel/map/Map#*.csv",
 		"./testdata/excel/metasheet/Metasheet#*.csv",
 		"./testdata/excel/nesting/NestedInMap#*.csv",

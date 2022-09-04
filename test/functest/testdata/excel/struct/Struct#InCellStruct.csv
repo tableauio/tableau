@@ -1,0 +1,6 @@
+ID,Property
+"map<uint32, Item>","{int32 ID,string Name,string Desc}Property"
+Item's ID,Item's property
+1,"1,Apple,A kind of delicious fruit."
+2,"2,Orange"
+3,3
