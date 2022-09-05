@@ -121,7 +121,9 @@ func rangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath st
 		switch fmt {
 		case format.Excel:
 			bookPath := filepath.Join(dir, entry.Name())
-			return callback(bookPath)
+			if err := callback(bookPath); err != nil {
+				return err
+			}
 		case format.CSV:
 			bookName, _, err := importer.ParseCSVFilenamePattern(entry.Name())
 			if err != nil {
@@ -132,7 +134,9 @@ func rangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath st
 				continue
 			}
 			csvBooks[bookName] = true
-			return callback(importer.GenCSVBookFilenamePattern(dir, bookName))
+			if err := callback(importer.GenCSVBookFilenamePattern(dir, bookName)); err != nil {
+				return err
+			}
 		default:
 			return errors.New("unknown fommat: " + string(fmt))
 		}

@@ -1,3 +1,4 @@
-ID,int32,ID,123
-Name,string,Name,Robin
-Desc,string,Desc,Big hero!
+ID,int32,Hero's ID,123
+Name,string,Hero's name,Robin
+Desc,string,Hero's description,A big hero!
+Skill,[]int32,Hero's skills,"100,101,102"

@@ -1,0 +1,16 @@
+{
+    "itemList": [
+        {
+            "id": 1,
+            "name": "Apple"
+        },
+        {
+            "id": 0,
+            "name": ""
+        },
+        {
+            "id": 3,
+            "name": "Banana"
+        }
+    ]
+}
