@@ -63,7 +63,7 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 }
 
 func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
-	nameCell := header.getNameCell(cursor)
+	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	noteCell := header.getNoteCell(cursor)
 	// log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)
@@ -126,7 +126,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	// key_type. The value_type can be any type except another map.
 	opts := parseroptions.ParseOptions(options...)
 
-	nameCell := header.getNameCell(cursor)
+	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
@@ -171,7 +171,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			// map<int32, int32>	map<int32, int32>	map<int32, int32>
 
 			// check next cursor
-			nextNameCell := header.getNameCell(nextCursor)
+			nextNameCell := header.getValidNameCell(&nextCursor)
 			trimmedNextNameCell := strings.TrimPrefix(nextNameCell, prefix)
 			if index2 := strings.Index(trimmedNextNameCell, "2"); index2 > 0 {
 				nextTypeCell := header.getTypeCell(nextCursor)
@@ -233,7 +233,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Fields = append(field.Fields, scalarField)
 		for cursor++; cursor < len(header.namerow); cursor++ {
 			if opts.Nested {
-				nameCell := header.getNameCell(cursor)
+				nameCell := header.getValidNameCell(&cursor)
 				if !strings.HasPrefix(nameCell, prefix) {
 					cursor--
 					return cursor, nil
@@ -279,7 +279,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Fields = append(field.Fields, scalarField)
 
 		for cursor++; cursor < len(header.namerow); cursor++ {
-			nameCell := header.getNameCell(cursor)
+			nameCell := header.getValidNameCell(&cursor)
 			if types.BelongToFirstElement(nameCell, prefix) {
 				cursor, err = p.parseSubField(field, header, cursor, prefix+"1", options...)
 				if err != nil {
@@ -322,7 +322,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
 	opts := parseroptions.ParseOptions(options...)
 
-	nameCell := header.getNameCell(cursor)
+	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
@@ -381,7 +381,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			// []int32			[]int32			[]int32
 
 			// check next cursor
-			nextNameCell := header.getNameCell(nextCursor)
+			nextNameCell := header.getValidNameCell(&nextCursor)
 			trimmedNextNameCell := strings.TrimPrefix(nextNameCell, prefix)
 			if index2 := strings.Index(trimmedNextNameCell, "2"); index2 > 0 {
 				nextTypeCell := header.getTypeCell(nextCursor)
@@ -465,7 +465,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		// Parse other fields
 		for cursor++; cursor < len(header.namerow); cursor++ {
 			if opts.Nested {
-				nameCell := header.getNameCell(cursor)
+				nameCell := header.getValidNameCell(&cursor)
 				if !strings.HasPrefix(nameCell, prefix) {
 					cursor--
 					return cursor, nil
@@ -535,7 +535,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		}
 		// Parse other fields or skip cotinuous N columns of the same element type.
 		for cursor++; cursor < len(header.namerow); cursor++ {
-			nameCell := header.getNameCell(cursor)
+			nameCell := header.getValidNameCell(&cursor)
 			if !listElemSpanInnerCell && types.BelongToFirstElement(nameCell, prefix) {
 				cursor, err = p.parseSubField(field, header, cursor, prefix+"1", options...)
 				if err != nil {
@@ -585,7 +585,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
 	opts := parseroptions.ParseOptions(options...)
 
-	nameCell := header.getNameCell(cursor)
+	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
@@ -691,7 +691,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 			return cursor, err
 		}
 		for cursor++; cursor < len(header.namerow); cursor++ {
-			nameCell := header.getNameCell(cursor)
+			nameCell := header.getValidNameCell(&cursor)
 			if !strings.HasPrefix(nameCell, prefix) {
 				cursor--
 				return cursor, nil

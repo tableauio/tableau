@@ -57,7 +57,7 @@ func readCSVBook(filename string, parser book.SheetParser) (*book.Book, error) {
 	if err != nil {
 		return nil, errors.Errorf("cannot parse the book name from filename: %s", filename)
 	}
-	globFilename := genCSVBookFilenamePattern(filepath.Dir(filename), bookName)
+	globFilename := GenCSVBookFilenamePattern(filepath.Dir(filename), bookName)
 	matches, err := filepath.Glob(globFilename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to glob %s", globFilename)
@@ -90,7 +90,7 @@ func readCSVBook(filename string, parser book.SheetParser) (*book.Book, error) {
 	return newBook, nil
 }
 
-func genCSVBookFilenamePattern(dir, bookName string) string {
+func GenCSVBookFilenamePattern(dir, bookName string) string {
 	bookNamePattern := bookName + "#*" + format.CSVExt
 	return filepath.Join(dir, bookNamePattern)
 }

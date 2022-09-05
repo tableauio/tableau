@@ -420,6 +420,21 @@ func (sh *sheetHeader) getNameCell(cursor int) string {
 	return getCell(sh.namerow, cursor, sh.meta.Nameline)
 }
 
+// getValidNameCell try best to get a none-empty cell, starting from 
+// the specified cursor. Current and subsequent empty cells are skipped
+// to find the first none-empty name cell.
+func (sh *sheetHeader) getValidNameCell(cursor *int) string {
+	for *cursor < len(sh.namerow) {
+		cell := getCell(sh.namerow, *cursor, sh.meta.Nameline)
+		if cell == "" {
+			*cursor++
+			continue
+		}
+		return cell
+	}
+	return ""
+}
+
 func (sh *sheetHeader) getTypeCell(cursor int) string {
 	return getCell(sh.typerow, cursor, sh.meta.Typeline)
 }
