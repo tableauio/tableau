@@ -227,7 +227,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
 	imp, err := importer.New(wbPath, importer.Sheets(sheets))
 	if err != nil {
-		return errors.WithMessagef(err, "failed to import workbook: %s", wbPath)
+		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
 	worksheetFound := false
@@ -248,20 +248,23 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		// get merger importers
 		importers, err := GetMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
 		if err != nil {
-			return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
+			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 		}
 		// append self
 		importers = append(importers, imp)
 
 		exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 		if err := exporter.Export(parser, newMsg, importers...); err != nil {
-			return xerrors.WithMessageKV(err, xerrors.KeyBookName, workbook.Name)
+			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 		}
 		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
 		gen.PerfStats.Store(sheetInfo.MessageName, seconds)
 	}
 	if worksheetName != "" && !worksheetFound {
-		return xerrors.ErrorKV(fmt.Sprintf("worksheet not found: %s", worksheetName))
+		return xerrors.ErrorKV(fmt.Sprintf("worksheet not found: %s", worksheetName),
+			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeyBookName, workbook.Name,
+			xerrors.KeySheetName, worksheetName)
 	}
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -157,12 +156,12 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			// NOTE(wenchy): There is no "Asia/Beijing" location name. Whoa!!! Big surprize?
 			t, err := parseTimeWithLocation(locationName, value)
 			if err != nil {
-				return DefaultTimestampValue, true, errors.WithMessagef(err, "illegal timestamp string format: %v", value)
+				return DefaultTimestampValue, true, xerrors.Errorf("illegal timestamp format: %s, %s", value, err)
 			}
 			// log.Debugf("timeStr: %v, unix timestamp: %v", value, t.Unix())
 			ts := timestamppb.New(t)
 			if err := ts.CheckValid(); err != nil {
-				return DefaultTimestampValue, true, errors.WithMessagef(err, "invalid timestamp: %v", value)
+				return DefaultTimestampValue, true, xerrors.WrapKV(err)
 			}
 			return pref.ValueOf(ts.ProtoReflect()), true, nil
 
@@ -172,22 +171,22 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			}
 			d, err := parseDuration(value)
 			if err != nil {
-				return DefaultDurationValue, true, errors.WithMessagef(err, "illegal duration string format: %v", value)
+				return DefaultDurationValue, true, xerrors.Errorf("illegal duration format: %s, %s", value, err)
 			}
 			du := durationpb.New(d)
 			if err := du.CheckValid(); err != nil {
-				return DefaultDurationValue, true, errors.WithMessagef(err, "invalid duration: %v", value)
+				return DefaultDurationValue, true, xerrors.WrapKV(err)
 			}
 			return pref.ValueOf(du.ProtoReflect()), true, nil
 
 		default:
-			return pref.Value{}, false, errors.Errorf("not supported message type: %s", msgName)
+			return pref.Value{}, false, xerrors.Errorf("not supported message type: %s", msgName)
 		}
 	// case pref.GroupKind:
 	// 	log.Panicf("not supported key type: %s", fd.Kind().String())
 	// 	return pref.Value{}
 	default:
-		return pref.Value{}, false, errors.Errorf("not supported scalar type: %s", fd.Kind().String())
+		return pref.Value{}, false, xerrors.Errorf("not supported scalar type: %s", fd.Kind().String())
 	}
 }
 
@@ -209,7 +208,7 @@ func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, pre
 		if evd != nil {
 			return pref.ValueOfEnum(evd.Number()), true, nil
 		}
-		return DefaultEnumValue, true, errors.Errorf("enum: enum value name not defined: %v", value)
+		return DefaultEnumValue, true, xerrors.Errorf("enum value name not defined: %v", value)
 	}
 
 	// try enum value name
@@ -228,13 +227,13 @@ func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, pre
 			return pref.ValueOfEnum(evd.Number()), true, nil
 		}
 	}
-	return DefaultEnumValue, true, errors.Errorf("enum: enum(%s) value options not found: %v", ed.FullName(), value)
+	return DefaultEnumValue, true, xerrors.Errorf("enum(%s) value not found: %v", ed.FullName(), value)
 }
 
 func parseTimeWithLocation(locationName string, timeStr string) (time.Time, error) {
 	// see https://golang.org/pkg/time/#LoadLocation
 	if location, err := time.LoadLocation(locationName); err != nil {
-		return time.Time{}, errors.Wrapf(err, "LoadLocation failed: %s", locationName)
+		return time.Time{}, xerrors.WrapKV(err)
 	} else {
 		timeStr = strings.TrimSpace(timeStr)
 		layout := "2006-01-02 15:04:05"
@@ -249,7 +248,7 @@ func parseTimeWithLocation(locationName string, timeStr string) (time.Time, erro
 		}
 		t, err := time.ParseInLocation(layout, timeStr, location)
 		if err != nil {
-			return time.Time{}, errors.Wrapf(err, "ParseInLocation failed, timeStr: %v, locationName: %v", timeStr, locationName)
+			return time.Time{}, xerrors.WrapKV(err)
 		}
 		return t, nil
 	}

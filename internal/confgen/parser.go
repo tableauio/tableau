@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/iancoleman/strcase"
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/confgen/mexporter"
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
@@ -40,12 +39,12 @@ func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, impo
 	msgName, wsOpts := ParseMessageOptions(md)
 
 	if err := ParseMessage(parser, protomsg, wsOpts.Name, importers...); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		return err
 	}
 
 	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.OutputOpt, wsOpts)
 	if err := exporter.Export(); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		return err
 	}
 	return nil
 }
@@ -93,7 +92,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				nameCol := int(sp.opts.Namerow) - 1
 				nameCell, err := sheet.Cell(row, nameCol)
 				if err != nil {
-					return errors.WithMessagef(err, "failed to get name cell: %d, %d", row, nameCol)
+					return xerrors.WrapKV(err)
 				}
 				name := book.ExtractFromCell(nameCell, sp.opts.Nameline)
 
@@ -103,14 +102,14 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 					typeCol := int(sp.opts.Typerow) - 1
 					typeCell, err := sheet.Cell(row, typeCol)
 					if err != nil {
-						return errors.WithMessagef(err, "failed to get type cell: %d, %d", row, typeCol)
+						return xerrors.WrapKV(err)
 					}
 					typ = book.ExtractFromCell(typeCell, sp.opts.Typeline)
 				}
 
 				data, err := sheet.Cell(row, col)
 				if err != nil {
-					return errors.WithMessagef(err, "failed to get data cell: %d, %d", row, col)
+					return xerrors.WrapKV(err)
 				}
 				curr.SetCell(name, row, data, typ, sp.opts.AdjacentKey)
 			}
@@ -130,7 +129,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				nameRow := int(sp.opts.Namerow) - 1
 				nameCell, err := sheet.Cell(nameRow, col)
 				if err != nil {
-					return errors.WithMessagef(err, "failed to get name cell: %d, %d", nameRow, col)
+					return xerrors.WrapKV(err)
 				}
 				name := book.ExtractFromCell(nameCell, sp.opts.Nameline)
 
@@ -140,14 +139,14 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 					typeRow := int(sp.opts.Typerow) - 1
 					typeCell, err := sheet.Cell(typeRow, col)
 					if err != nil {
-						return errors.WithMessagef(err, "failed to get type cell: %d, %d", typeRow, col)
+						return xerrors.WrapKV(err)
 					}
 					typ = book.ExtractFromCell(typeCell, sp.opts.Typeline)
 				}
 
 				data, err := sheet.Cell(row, col)
 				if err != nil {
-					return errors.WithMessagef(err, "failed to get data cell: %d, %d", row, col)
+					return xerrors.WrapKV(err)
 				}
 				curr.SetCell(name, col, data, typ, sp.opts.AdjacentKey)
 			}
@@ -491,29 +490,29 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 		}
 	}
 	if keyFd == nil {
-		return mapKey, false, errors.Errorf("opts.Key %s not found in proto definition", field.opts.Key)
+		return mapKey, false, xerrors.Errorf("opts.Key %s not found in map value-type definition", field.opts.Key)
 	}
 	var fieldValue protoreflect.Value
 	if keyFd.Kind() == protoreflect.EnumKind {
 		fieldValue, present, err = sp.parseFieldValue(keyFd, cellData)
 		if err != nil {
-			return mapKey, false, errors.Errorf("failed to parse key: %s", cellData)
+			return mapKey, false, err
 		}
 		v := protoreflect.ValueOfInt32(int32(fieldValue.Enum()))
 		mapKey = v.MapKey()
 	} else {
 		fieldValue, present, err = sp.parseFieldValue(keyFd, cellData)
 		if err != nil {
-			return mapKey, false, errors.WithMessagef(err, "failed to parse key: %s", cellData)
+			return mapKey, false, xerrors.WrapKV(err)
 		}
 		// check range: key, if it is present
 		if present && !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
-			return mapKey, false, errors.Errorf("%s out of range [%s]", cellData, field.opts.Prop.Range)
+			return mapKey, false, xerrors.Errorf("\"%s\" out of range [%s]", cellData, field.opts.Prop.Range)
 		}
 		mapKey = fieldValue.MapKey()
 	}
 	if !prop.CheckMapKeySequence(field.opts.Prop, keyFd.Kind(), mapKey, reflectMap) {
-		return mapKey, false, errors.Errorf("prop.sequence|map key %s is not the initial or next sequence number", cellData)
+		return mapKey, false, xerrors.Errorf("map key \"%s\" is not the initial or next sequence number", cellData)
 	}
 	return mapKey, present, nil
 }
@@ -853,7 +852,7 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 		incell := splits[i]
 		value, fieldPresent, err := sp.parseFieldValue(fd, incell)
 		if err != nil {
-			return false, errors.WithMessagef(err, "incell struct(%s): failed to parse field value: %s", cellData, incell)
+			return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct")
 		}
 		structValue.Message().Set(fd, value)
 		if fieldPresent {

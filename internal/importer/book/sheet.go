@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/protobuf/proto"
 )
@@ -74,10 +75,10 @@ func ExtendSheet(sheet *Sheet, rows [][]string) {
 // Cell returns the cell at (row, col).
 func (s *Sheet) Cell(row, col int) (string, error) {
 	if row < 0 || row >= s.MaxRow {
-		return "", errors.Errorf("row %d out of range", row)
+		return "", xerrors.Errorf("cell row %d out of range", row)
 	}
 	if col < 0 || col >= s.MaxCol {
-		return "", errors.Errorf("col %d out of range", col)
+		return "", xerrors.Errorf("cell col %d out of range", col)
 	}
 	// MOTE: different row may have different length.
 	if col >= len(s.Rows[row]) {
