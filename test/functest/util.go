@@ -8,25 +8,51 @@ import (
 
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
 
 func genProto(t *testing.T) {
-	err := tableau.GenProto(
+	// prepare output common dir
+	outdir := "./_proto"
+	err := os.MkdirAll(outdir, 0700)
+	if err != nil {
+		t.Fatalf("failed to create output dir: %v", err)
+	}
+	outCommDir := filepath.Join(outdir, "common")
+	err = os.MkdirAll(outCommDir, 0700)
+	if err != nil {
+		t.Fatalf("failed to create output common dir: %v", err)
+	}
+
+	srcCommDir := "./proto/common"
+	dirEntries, err := os.ReadDir(srcCommDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range dirEntries {
+		if !entry.IsDir() {
+			src := filepath.Join(srcCommDir, entry.Name())
+			dst := filepath.Join(outCommDir, entry.Name())
+			if err := fs.CopyFile(src, dst); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	err = tableau.GenProto(
 		"protoconf",
 		"./testdata",
-		"./_proto",
+		outdir,
 		options.Input(
 			&options.InputOption{
 				Proto: &options.InputProtoOption{
-					ProtoPaths: []string{"./_proto"},
-					// ImportedProtoFiles: []string{
-					// 	"common/cs_dbkeyword.proto",
-					// 	"common/common.proto",
-					// 	"common/time.proto",
-					// },
+					ProtoPaths: []string{outdir},
+					ImportedProtoFiles: []string{
+						"common/common.proto",
+					},
 					Formats: []format.Format{
 						// format.Excel,
 						format.CSV,
@@ -59,7 +85,7 @@ func genProto(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Errorf("%+v", err)
+		t.Fatalf("%+v", err)
 	}
 }
 
@@ -92,7 +118,7 @@ func genConf(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Errorf("%+v", err)
+		t.Fatalf("%+v", err)
 	}
 }
 

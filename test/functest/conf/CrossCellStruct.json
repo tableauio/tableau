@@ -1,7 +1,7 @@
 {
-    "item": {
-        "id": 1,
-        "name": "Orange",
-        "desc": "A kind of sour fruit."
+    "item":  {
+        "id":  1,
+        "name":  "Orange",
+        "desc":  "A kind of sour fruit."
     }
 }

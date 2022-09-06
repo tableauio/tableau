@@ -1,12 +1,16 @@
 {
-    "rewardMap": {
-        "0": {
-            "id": 0,
-            "desc": "Desc 0"
+    "itemMap":  {
+        "0":  {
+            "id":  0,
+            "desc":  "Orange"
         },
-        "3": {
-            "id": 3,
-            "desc": "Desc 3"
+        "1":  {
+            "id":  1,
+            "desc":  "Apple"
+        },
+        "3":  {
+            "id":  3,
+            "desc":  "Banana"
         }
     }
 }

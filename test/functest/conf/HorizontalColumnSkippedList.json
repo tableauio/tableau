@@ -1,37 +1,37 @@
 {
-    "itemMap": {
-        "1": {
-            "id": 1,
-            "propList": [
+    "itemMap":  {
+        "1":  {
+            "id":  1,
+            "propList":  [
                 {
-                    "id": 1,
-                    "value": 100
+                    "id":  1,
+                    "value":  100
                 },
                 {
-                    "id": 2,
-                    "value": 200
+                    "id":  2,
+                    "value":  200
                 }
             ]
         },
-        "2": {
-            "id": 2,
-            "propList": [
+        "2":  {
+            "id":  2,
+            "propList":  [
                 {
-                    "id": 3,
-                    "value": 300
+                    "id":  3,
+                    "value":  300
                 },
                 {
-                    "id": 4,
-                    "value": 400
+                    "id":  4,
+                    "value":  400
                 }
             ]
         },
-        "3": {
-            "id": 3,
-            "propList": [
+        "3":  {
+            "id":  3,
+            "propList":  [
                 {
-                    "id": 5,
-                    "value": 500
+                    "id":  5,
+                    "value":  500
                 }
             ]
         }

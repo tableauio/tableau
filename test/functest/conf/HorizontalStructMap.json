@@ -1,16 +1,16 @@
 {
-    "itemList":  [
-        {
+    "itemMap":  {
+        "1":  {
             "id":  1,
             "name":  "Apple"
         },
-        {
+        "2":  {
             "id":  2,
             "name":  "Orange"
         },
-        {
+        "3":  {
             "id":  3,
             "name":  "Banana"
         }
-    ]
+    }
 }

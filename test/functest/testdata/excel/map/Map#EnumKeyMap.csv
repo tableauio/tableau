@@ -1,0 +1,6 @@
+Type,Price
+"map<enum<.FruitType>, Item>",int32
+Item's type,Item's price
+Apple,100
+Orange,200
+Banana,300

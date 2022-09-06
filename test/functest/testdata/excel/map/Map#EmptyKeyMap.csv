@@ -1,7 +1,6 @@
 ID,Desc
-"map<uint32, Reward>",string
-Reward ID,Reward Description
-,Desc 0
-,
-3,Desc 3
-3,Desc 3
+"map<uint32, Item>",string
+Item's ID,Item's name
+1,Apple
+,Orange
+3,Banana

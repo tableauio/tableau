@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -12,23 +13,45 @@ option (tableau.workbook) = {name:"excel/map/Map#*.csv"};
 message EmptyKeyMap {
   option (tableau.worksheet) = {name:"EmptyKeyMap" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message Reward {
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
   }
 }
 
-message HorizontalColumnSkippedMap {
-  option (tableau.worksheet) = {name:"HorizontalColumnSkippedMap" namerow:1 typerow:2 noterow:3 datarow:4};
+message EnumKeyMap {
+  option (tableau.worksheet) = {name:"EnumKeyMap" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<int32, Item> item_map = 1 [(tableau.field) = {key:"Type" layout:LAYOUT_VERTICAL}];
+  message Item {
+    protoconf.FruitType type = 1 [(tableau.field) = {name:"Type"}];
+    int32 price = 2 [(tableau.field) = {name:"Price"}];
+  }
+}
+
+message HorizontalExplicitFixedSizeMap {
+  option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeMap" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{length:2}}];
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    map<int32, Prop> prop_map = 2 [(tableau.field) = {name:"Prop" key:"ID" layout:LAYOUT_HORIZONTAL}];
-    message Prop {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int32 value = 2 [(tableau.field) = {name:"Value"}];
-    }
+    string name = 2 [(tableau.field) = {name:"Name"}];
   }
+}
+
+message HorizontalImplicitFixedSizeMap {
+  option (tableau.worksheet) = {name:"HorizontalImplicitFixedSizeMap" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+message IncellMap {
+  option (tableau.worksheet) = {name:"IncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, string> items_map = 1 [(tableau.field) = {name:"Items" layout:LAYOUT_INCELL}];
 }

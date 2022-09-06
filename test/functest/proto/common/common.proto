@@ -1,0 +1,19 @@
+
+
+syntax = "proto3";
+package protoconf;
+option go_package = "github.com/tableauio/tableau/test/functest/protoconf/common";
+
+import "tableau/protobuf/tableau.proto";
+
+enum FruitType {
+  FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+  FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
+  FRUIT_TYPE_ORANGE  = 3 [(tableau.evalue).name = "Orange"];
+  FRUIT_TYPE_BANANA  = 4 [(tableau.evalue).name = "Banana"];
+}
+
+message Item {
+  int32 id = 1 [(tableau.field).name = "ID"];
+  int32 num = 2 [(tableau.field).name = "Num"];
+}
