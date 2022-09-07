@@ -12,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 func genProto(t *testing.T) {
@@ -85,7 +86,12 @@ func genProto(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("%+v", err)
+		t.Errorf("%+v", err)
+		if log.Lang() == log.LangEn {
+			t.Fatalf("%s", xerrors.NewDesc(err).String())
+		} else {
+			t.Fatalf("%s", xerrors.NewDesc(err).StringZh())
+		}
 	}
 }
 
@@ -118,7 +124,12 @@ func genConf(t *testing.T) {
 		),
 	)
 	if err != nil {
-		t.Fatalf("%+v", err)
+		t.Errorf("%+v", err)
+		if log.Lang() == log.LangEn {
+			t.Fatalf("%s", xerrors.NewDesc(err).String())
+		} else {
+			t.Fatalf("%s", xerrors.NewDesc(err).StringZh())
+		}
 	}
 }
 

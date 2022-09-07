@@ -1,5 +1,10 @@
+// Protoconf - Tableau's data interchange format
+// https://tableauio.github.io/
+
 syntax = "proto3";
+
 package tableau;
+
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 import "tableau/protobuf/tableau.proto";
@@ -23,16 +28,16 @@ message Field {
   ListEntry list_entry = 3;
   MapEntry map_entry = 4;
   // Indicate this field's related type is predefined.
-  // - message: message type
   // - enum: enum type
+  // - struct: message type
   // - list: list's element type
   // - map: map's value type
   bool predefined = 5;
   string name = 6;
   FieldOptions options = 7;
-  
-  // This filed is map or list if fields's length is not 0.
-  repeated Field fields = 10;  
+
+  // This field is struct, list or map if fields's length is not 0.
+  repeated Field fields = 10;
 
   message ListEntry {
     string elem_type = 1;
@@ -42,7 +47,5 @@ message Field {
     string key_type = 1;
     string value_type = 2;
     string value_full_type = 3;
-  }    
+  }
 }
-
-

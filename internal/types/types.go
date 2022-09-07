@@ -1,12 +1,13 @@
 package types
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"unicode"
 
-	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
@@ -88,21 +89,20 @@ func MatchBoringInteger(text string) []string {
 	return boringIntegerRegexp.FindStringSubmatch(text)
 }
 
-func ParseProp(text string) *tableaupb.FieldProp {
+func ParseProp(text string) (*tableaupb.FieldProp, error) {
 	matches := propRegexp.FindStringSubmatch(text)
 	if len(matches) > 0 {
 		propText := strings.TrimSpace(matches[1])
 		if propText == "" {
-			return nil
+			return nil, nil
 		}
 		prop := &tableaupb.FieldProp{}
 		if err := prototext.Unmarshal([]byte(propText), prop); err != nil {
-			log.Errorf("parse prop failed: %s", err)
-			return nil
+			return nil, xerrors.ErrorKV(fmt.Sprintf("failed to parse field prop: %s", err), xerrors.KeyPBFieldOpts, strings.TrimLeft(text, " |"))
 		}
-		return prop
+		return prop, nil
 	}
-	return nil
+	return nil, nil
 }
 
 // BelongToFirstElement returns true if the name has specified `prefix+"1"`

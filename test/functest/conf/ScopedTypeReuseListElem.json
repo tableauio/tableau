@@ -1,0 +1,22 @@
+{
+    "itemList":  [
+        {
+            "id":  1,
+            "name":  "Apple"
+        },
+        {
+            "id":  2,
+            "name":  "Orange"
+        }
+    ],
+    "rewardList":  [
+        {
+            "id":  3,
+            "name":  "Banana"
+        },
+        {
+            "id":  4,
+            "name":  "Watermelon"
+        }
+    ]
+}

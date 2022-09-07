@@ -100,7 +100,7 @@ func (d *Desc) String() string {
 	debugging := fmt.Sprintf("Debugging: \n%s\n", d.DebugString())
 	switch d.fields[KeyModule] {
 	case ModuleProto:
-		errLine := fmt.Sprintf("Error: Workbook: %s, Worksheet: %s, parse KeyNameCell[%s] \"%s\" and KeyTypeCell[%s] \"%s\" failed: %s", d.fields[KeyBookName], d.fields[KeySheetName], d.fields[KeyNameCellPos], d.fields[KeyNameCell], d.fields[KeyTypeCellPos], d.fields[KeyTypeCell], d.fields[keyReason])
+		errLine := fmt.Sprintf("Error: Workbook: %s, Worksheet: %s, parse KeyNameCell[%s] \"%s\" and KeyTypeCell[%s] \"%s|%s\" failed: %s", d.fields[KeyBookName], d.fields[KeySheetName], d.fields[KeyNameCellPos], d.fields[KeyNameCell], d.fields[KeyTypeCellPos], d.fields[KeyTypeCell], d.fields[KeyPBFieldOpts], d.fields[keyReason])
 		return debugging + errLine
 	case ModuleConf:
 		errLine := fmt.Sprintf("Error: Workbook: %s, Worksheet: %s, parse Cell[%s] \"%s\" failed: %s", d.fields[KeyBookName], d.fields[KeySheetName], d.fields[KeyDataCellPos], d.fields[KeyDataCell], d.fields[keyReason])
@@ -119,7 +119,7 @@ func (d *Desc) StringZh() string {
 	debugging := fmt.Sprintf("Debugging: \n%s\n", d.DebugString())
 	switch d.fields[KeyModule] {
 	case ModuleProto:
-		errLine := fmt.Sprintf("Error: 工作簿: %s, 表单: %s, 命名单元格[%s]的值\"%s\"和类型单元格[%s]的值\"%s\"解析失败: %s", d.fields[KeyBookName], d.fields[KeySheetName], d.fields[KeyNameCellPos], d.fields[KeyNameCell], d.fields[KeyTypeCellPos], d.fields[KeyTypeCell], d.fields[keyReason])
+		errLine := fmt.Sprintf("Error: 工作簿: %s, 表单: %s, 命名单元格[%s]的值\"%s\"和类型单元格[%s]的值\"%s|%s\"解析失败: %s", d.fields[KeyBookName], d.fields[KeySheetName], d.fields[KeyNameCellPos], d.fields[KeyNameCell], d.fields[KeyTypeCellPos], d.fields[KeyTypeCell], d.fields[KeyPBFieldOpts], d.fields[keyReason])
 		return debugging + errLine
 	case ModuleConf:
 		errLine := fmt.Sprintf("Error: 工作簿: %s, 表单: %s, 单元格[%s]中的值\"%s\"解析失败: %s", d.fields[KeyBookName], d.fields[KeySheetName], d.fields[KeyDataCellPos], d.fields[KeyDataCell], d.fields[keyReason])

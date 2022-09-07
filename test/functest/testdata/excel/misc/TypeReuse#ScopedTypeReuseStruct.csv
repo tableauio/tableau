@@ -1,0 +1,4 @@
+ItemID,ItemName,RewardID,RewardName
+{Item}uint32,string,{Reward}uint32,string
+Item's ID,Item's name,Reward's ID,Reward's name
+1,Apple,2,Orange

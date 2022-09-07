@@ -1,16 +1,20 @@
+// Protoconf - Tableau's data interchange format
+// https://tableauio.github.io/
+
 syntax = "proto3";
+
 package tableau;
 
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 message XMLBook {
-  // SheetMap maps sheet name to a XMLSheet struct 
+  // SheetMap maps sheet name to a XMLSheet struct
   // containing two trees which describe the XML structure
   repeated XMLSheet sheet_list = 1;
-  map<string, int32> sheet_map = 2; // sheet name -> index
+  map<string, int32> sheet_map = 2;  // sheet name -> index
 }
 
-message XMLSheet {  
+message XMLSheet {
   // meta tree, describing the types of attributes of all nodes in XML
   XMLNode meta = 1;
 
@@ -18,8 +22,8 @@ message XMLSheet {
   XMLNode data = 2;
 
   // NodeMap maps path to a list of nodes matched the specified path in the tree
-  map<string, XMLNode> meta_node_map = 3; // path -> XMLNode
-  map<string, NodeList> data_node_map = 4; // path -> XMLNode list
+  map<string, XMLNode> meta_node_map = 3;   // path -> XMLNode
+  map<string, NodeList> data_node_map = 4;  // path -> XMLNode list
 
   message NodeList {
     repeated XMLNode nodes = 1;
@@ -32,10 +36,10 @@ message XMLNode {
   // duplicated attributes in one node are forbidden
   AttrMap attr_map = 2;
 
-  // - meta: Each child must be unique, so len(IndexList) must be 1 
+  // - meta: Each child must be unique, so len(IndexList) must be 1
   // - data: Duplicated children are allowed, so len(IndexList) could be greater than 1
   repeated XMLNode child_list = 3;
-  map<string, IndexList> child_map = 4; // child name -> index list of child
+  map<string, IndexList> child_map = 4;  // child name -> index list of child
 
   // record parent node so that we can trace back
   XMLNode parent = 5;
@@ -46,15 +50,15 @@ message XMLNode {
   message IndexList {
     repeated int32 indexes = 1;
   }
-  
+
   // Combine list and map to get an ordered map
   message AttrMap {
     repeated Attr list = 1;
-    map<string, int32> map = 2; // attribute name -> index
-    
+    map<string, int32> map = 2;  // attribute name -> index
+
     message Attr {
       string name = 1;
       string value = 2;
     }
-  }  
+  }
 }

@@ -215,10 +215,17 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		}
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
+		prop, err := types.ParseProp(rawPropText)
+		if err != nil {
+			return cursor, xerrors.WithMessageKV(err,
+				xerrors.KeyPBFieldType, keyType+" (map key)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
 		field.Options = &tableaupb.FieldOptions{
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   types.ParseProp(rawPropText),
+			Prop:   prop,
 		}
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
@@ -261,20 +268,25 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		}
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix+"1")
-		field.Options = &tableaupb.FieldOptions{
-			Name:   mapName,
-			Key:    trimmedNameCell,
-			Layout: layout,
-			Prop:   types.ParseProp(rawPropText),
-		}
-
-		name := strings.TrimPrefix(nameCell, prefix+"1")
-		scalarField, err := p.parseScalarField(name, keyType, noteCell)
+		prop, err := types.ParseProp(rawPropText)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, keyType+" (map key)",
 				xerrors.KeyPBFieldOpts, rawPropText,
-				xerrors.KeyTrimmedNameCell, name)
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
+		field.Options = &tableaupb.FieldOptions{
+			Name:   mapName,
+			Key:    trimmedNameCell,
+			Layout: layout,
+			Prop:   prop,
+		}
+		scalarField, err := p.parseScalarField(trimmedNameCell, keyType, noteCell)
+		if err != nil {
+			return cursor, xerrors.WithMessageKV(err,
+				xerrors.KeyPBFieldType, keyType+" (map key)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		field.Fields = append(field.Fields, scalarField)
 
@@ -307,10 +319,17 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			ValueType:     valueTypeDesc.Name,
 			ValueFullType: valueTypeDesc.FullName,
 		}
+		prop, err := types.ParseProp(rawPropText)
+		if err != nil {
+			return cursor, xerrors.WithMessageKV(err,
+				xerrors.KeyPBFieldType, mapType+" (incell map)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,
-			Prop:   types.ParseProp(rawPropText),
+			Prop:   prop,
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		return cursor, xerrors.Errorf("should not reach default layout: %v", layout)
@@ -501,7 +520,14 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.Options.Name = listName
 		field.Options.Layout = layout
 
-		if prop := types.ParseProp(rawPropText); prop != nil && (prop.Fixed || prop.Length != 0) {
+		prop, err := types.ParseProp(rawPropText)
+		if err != nil {
+			return cursor, xerrors.WithMessageKV(err,
+				xerrors.KeyPBFieldType, field.Type+" (horizontal list)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
+		if prop != nil && (prop.Fixed || prop.Length != 0) {
 			// only set prop if fixed or length is set.
 			field.Options.Prop = &tableaupb.FieldProp{
 				Fixed:  prop.Fixed,
@@ -667,7 +693,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 					break
 				}
 				fd := fds[0]
-				// fist field
+				// first field
 				opts := fd.GetFieldOptions()
 				fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
 				if fieldOpts != nil {
@@ -729,6 +755,14 @@ func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field,
 			xerrors.KeyTrimmedNameCell, name)
 	}
 
+	prop, err := types.ParseProp(rawPropText)
+	if err != nil {
+		return nil, xerrors.WithMessageKV(err,
+			xerrors.KeyPBFieldOpts, rawPropText,
+			xerrors.KeyPBFieldType, typ,
+			xerrors.KeyTrimmedNameCell, name)
+	}
+
 	return &tableaupb.Field{
 		Name:       strcase.ToSnake(name),
 		Type:       typeDesc.Name,
@@ -737,7 +771,7 @@ func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field,
 		Options: &tableaupb.FieldOptions{
 			Name: name,
 			Note: p.genNote(note),
-			Prop: types.ParseProp(rawPropText),
+			Prop: prop,
 		},
 	}, nil
 }

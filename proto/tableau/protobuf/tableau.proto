@@ -1,8 +1,13 @@
+// Protoconf - Tableau's data interchange format
+// https://tableauio.github.io/
+
 syntax = "proto3";
+
 package tableau;
-option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 // Option field numbers must be in the range 50000-99999. This range
 // is reserved for internal use within individual organizations.
@@ -32,26 +37,26 @@ message WorkbookOptions {
 }
 
 message WorksheetOptions {
-  string name = 1;       // worksheet name
-  int32 namerow = 2;     // [default = 1]; // exact row number of name at worksheet.
-  int32 typerow = 3;     // [default = 2]; // exact row number of type at worksheet, for generating protos.
-  int32 noterow = 4;     // [default = 3]; // exact row number of note at worksheet.
-  int32 datarow = 5;     // [default = 4]; // start row number of data at worksheet.
-  bool transpose = 6;    // [default = false]; // interchange the rows and columns
-  string tags = 7;       // [default = ""]; // tags for usage, e.g.: "1,2" specifying loading servers. Speciallly, "*"
-                         // means all servers.
-  int32 nameline = 8;    // [default = 0]; // specify which line in cell as name, '0' means the whole cell is name.
-  int32 typeline = 9;    // [default = 0]; // specify which line in cell as type,'0' means the whole cell is type.
-  bool nested = 10;      // [default = false]; // whether the naming of name row is nested.
-  string sep = 11;       // separator, default: ","
-  string subsep = 12;    // subseparator, default: ":"
-  repeated string merger = 13; // [default = ""]; // merge multiple sheets by the merger pattern.
-  bool adjacent_key = 14;   // [default = false]; // whether the rows with the same key is adjacent together.
-  bool field_presence = 15; // [default = false]; // whether add the optional label to basic types.
+  string name = 1;     // worksheet name
+  int32 namerow = 2;   // [default = 1]; // exact row number of name at worksheet.
+  int32 typerow = 3;   // [default = 2]; // exact row number of type at worksheet, for generating protos.
+  int32 noterow = 4;   // [default = 3]; // exact row number of note at worksheet.
+  int32 datarow = 5;   // [default = 4]; // start row number of data at worksheet.
+  bool transpose = 6;  // [default = false]; // interchange the rows and columns
+  string tags = 7;     // [default = ""]; // tags for usage, e.g.: "1,2" specifying loading servers. Speciallly, "*"
+                       // means all servers.
+  int32 nameline = 8;  // [default = 0]; // specify which line in cell as name, '0' means the whole cell is name.
+  int32 typeline = 9;  // [default = 0]; // specify which line in cell as type,'0' means the whole cell is type.
+  bool nested = 10;    // [default = false]; // whether the naming of name row is nested.
+  string sep = 11;     // separator, default: ","
+  string subsep = 12;  // subseparator, default: ":"
+  repeated string merger = 13;  // [default = ""]; // merge multiple sheets by the merger pattern.
+  bool adjacent_key = 14;       // [default = false]; // whether the rows with the same key is adjacent together.
+  bool field_presence = 15;     // [default = false]; // whether add the optional label to basic types.
 
   ////////// Loader related options below //////////
-  bool ordered_map = 50; // generate ordered map accessers.
-  repeated string index = 51; // generate index accessers.
+  bool ordered_map = 50;       // generate ordered map accessers.
+  repeated string index = 51;  // generate index accessers.
 }
 
 message FieldOptions {
@@ -64,7 +69,7 @@ message FieldOptions {
   string subsep = 7;  // subseparator, default: ":"
   bool optional = 8;  // whether the field is optional.
 
-  FieldProp prop = 15; // property of field.
+  FieldProp prop = 15;  // property of field.
 }
 
 message FieldProp {
@@ -78,14 +83,14 @@ message FieldProp {
   //   - number: value range
   //   - repeated: size range of array
   //   - string: count of utf-8 code point
-  string range = 1;      // Local perspective:  format: "1,10", "1,~", "~,10"
-  bool unique = 2;       // Local perspective:  whether the field's value is unique.
-  string refer = 3;      // Global perspective: ensure this field is in another message's field range. Example: "XXXConf.ID"
+  string range = 1;  // Local perspective:  format: "1,10", "1,~", "~,10"
+  bool unique = 2;   // Local perspective:  whether the field's value is unique.
+  string refer = 3;  // Global perspective: ensure this field is in another message's field range. Example: "XXXConf.ID"
   // Local perspective: ensure this field's value is a sequence and begins with this value.
   optional int64 sequence = 4;
-  string default = 5; // default value.
-  bool fixed = 6; // fixed length of horizontal list/map.
-  uint32 length = 7; // specified fixed length of horizontal list/map.
+  string default = 5;  // default value.
+  bool fixed = 6;      // fixed length of horizontal list/map.
+  uint32 length = 7;   // specified fixed length of horizontal list/map.
 }
 
 // Layout of list and map.
@@ -107,8 +112,8 @@ enum Span {
   //  - inner cell for scalar type: bool, string, bytes, number, and enum.
   //  - cross cell for struct type: map-value, list-element, and struct-field.
   SPAN_DEFAULT = 0;
-  SPAN_CROSS_CELL = 1; // The field data spans cross multiple cells.
-  SPAN_INNER_CELL = 2; // The field data spans only in one cell.
+  SPAN_CROSS_CELL = 1;  // The field data spans cross multiple cells.
+  SPAN_INNER_CELL = 2;  // The field data spans only in one cell.
 }
 
 message EnumOptions {

@@ -1,8 +1,13 @@
+// Protoconf - Tableau's data interchange format
+// https://tableauio.github.io/
+
 syntax = "proto3";
+
 package tableau;
-option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 import "tableau/protobuf/tableau.proto";
+
+option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 message Metabook {
   option (tableau.worksheet) = {
@@ -14,42 +19,42 @@ message Metabook {
   map<string, Metasheet> metasheet_map = 1 [(tableau.field).key = "Sheet"];
 }
 message Metasheet {
-  string sheet = 1 [(tableau.field) = { name:"Sheet" optional:false }];
-  string alias = 2 [(tableau.field) = { name:"Alias" optional:true }];
-  int32 namerow = 3 [(tableau.field) = { name:"Namerow" optional:true }];
-  int32 typerow = 4 [(tableau.field) = { name:"Typerow" optional:true }];
-  int32 noterow = 5 [(tableau.field) = { name:"Noterow" optional:true }];
-  int32 datarow = 6 [(tableau.field) = { name:"Datarow" optional:true }];
-  int32 nameline = 7 [(tableau.field) = { name:"Nameline" optional:true }];
-  int32 typeline = 8 [(tableau.field) = { name:"Typeline" optional:true }];
-  bool transpose = 9 [(tableau.field) = { name:"Transpose" optional:true }];
+  string sheet = 1 [(tableau.field) = { name: "Sheet" optional: false }];
+  string alias = 2 [(tableau.field) = { name: "Alias" optional: true }];
+  int32 namerow = 3 [(tableau.field) = { name: "Namerow" optional: true }];
+  int32 typerow = 4 [(tableau.field) = { name: "Typerow" optional: true }];
+  int32 noterow = 5 [(tableau.field) = { name: "Noterow" optional: true }];
+  int32 datarow = 6 [(tableau.field) = { name: "Datarow" optional: true }];
+  int32 nameline = 7 [(tableau.field) = { name: "Nameline" optional: true }];
+  int32 typeline = 8 [(tableau.field) = { name: "Typeline" optional: true }];
+  bool transpose = 9 [(tableau.field) = { name: "Transpose" optional: true }];
   // nested naming of namerow
-  bool nested = 10 [(tableau.field) = { name:"Nested" optional:true }];
-  string sep = 11 [(tableau.field) = { name:"Sep" optional:true }];
-  string subsep = 12 [(tableau.field) = { name:"Subsep" optional:true }];
+  bool nested = 10 [(tableau.field) = { name: "Nested" optional: true }];
+  string sep = 11 [(tableau.field) = { name: "Sep" optional: true }];
+  string subsep = 12 [(tableau.field) = { name: "Subsep" optional: true }];
   // merger of multiple sheets: [Element]...
   // each element is:
-  // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>, 
+  // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>,
   //   then the sheet name is the same as this sheet.
   // - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
-  repeated string merger = 13 [(tableau.field) = { name:"Merger" optional:true layout:LAYOUT_INCELL}];
-  // Tableau will merge adjacent rows with the same key. If the key cell is not set, 
+  repeated string merger = 13 [(tableau.field) = { name: "Merger" optional: true layout: LAYOUT_INCELL }];
+  // Tableau will merge adjacent rows with the same key. If the key cell is not set,
   // it will be treated as the same as the most nearest key above the same column.
   //
   // This option is only useful for map or keyed-list.
-  bool adjacent_key = 14 [(tableau.field) = { name:"AdjacentKey" optional:true }];
+  bool adjacent_key = 14 [(tableau.field) = { name: "AdjacentKey" optional: true }];
   // Field presence is the notion of whether a protobuf field has a value. If set as true,
-  // in order to track presence for basic types (numeric, string, bytes, and enums), the 
+  // in order to track presence for basic types (numeric, string, bytes, and enums), the
   // generated .proto will add the `optional` label to them.
   //
   // Singular proto3 fields of basic types (numeric, string, bytes, and enums) which are defined
   // with the optional label have explicit presence, like proto2 (this feature is enabled by default
   // as release 3.15). Refer: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
-  bool field_presence = 15 [(tableau.field) = { name:"FieldPresence" optional:true }];
-  
+  bool field_presence = 15 [(tableau.field) = { name: "FieldPresence" optional: true }];
+
   ////////// Loader related options below //////////
   // generate ordered map accessers
-  bool ordered_map = 50 [(tableau.field) = { name:"OrderedMap" optional:true }];
+  bool ordered_map = 50 [(tableau.field) = { name: "OrderedMap" optional: true }];
   // generate index accessers.
   // The key-value pair is `<ColumnName>[@IndexName]`, if IndexName is not set,
   // it will be this column's parent struct type name.
@@ -59,5 +64,5 @@ message Metasheet {
   // C++:
   // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
-  repeated string index = 51 [(tableau.field) = { name:"Index" optional:true layout:LAYOUT_INCELL}];
+  repeated string index = 51 [(tableau.field) = { name: "Index" optional: true layout: LAYOUT_INCELL }];
 }
