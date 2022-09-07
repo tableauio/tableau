@@ -36,7 +36,7 @@ message FixedList {
     string desc = 2 [(tableau.field) = {name:"Desc"}];
     repeated Section section_list = 3 [(tableau.field) = {name:"Section" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
     message Section {
-      uint32 id = 1 [(tableau.field) = {name:"ID" prop:{fixed:true}}];
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
     }
     repeated uint32 value_list = 4 [(tableau.field) = {name:"Value" layout:LAYOUT_HORIZONTAL prop:{length:2}}];
     repeated uint32 tip_list = 5 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL prop:{length:3}}];

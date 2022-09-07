@@ -1,0 +1,4 @@
+ID,Prop1ID,Prop1Flavor,Prop2ID,Prop2Flavor,AppearanceColor,AppearanceShape
+"map<uint32, Item>|{refer:""ItemConf.ID"" range: ""1,100"" sequence: 1 unique:true}","[Prop]int32|{refer:""PropConf.ID"" fixed:true range:""1,10""}","string|{refer:""NameConf.Name""}",int32,string,"{Appearance}string|{refer:""ColorConf.Name""}","string|{refer:""ShapeConf.Name""}"
+Item1’s ID,Prop1’s ID,Prop1’s flavor,Prop2’s ID,Prop2’s flavor,Appearance color,Appearance shape
+1,1,sour,2,sweet,red,round

@@ -8,10 +8,10 @@ type Options struct {
 	// NOTE: need to used with prefix.
 	//
 	// e.g.:
-	// - fist field type is incell-struct: []{int32 Id, string Name}
-	// - fist field type is struct: []Item
-	// - fist field type is also list: [][]int
-	// - fist field type is map: []map<int, Item>
+	// - first field type is incell-struct: []{int32 Id, string Name}
+	// - first field type is struct: []Item
+	// - first field type is also list: [][]int
+	// - first field type is map: []map<int, Item>
 	vTypeCells map[int]string // cursor -> virtual type cell
 }
 

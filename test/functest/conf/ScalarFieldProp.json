@@ -1,0 +1,21 @@
+{
+    "itemMap":  {
+        "1":  {
+            "id":  1,
+            "propList":  [
+                {
+                    "id":  1,
+                    "flavor":  "sour"
+                },
+                {
+                    "id":  2,
+                    "flavor":  "sweet"
+                }
+            ],
+            "appearance":  {
+                "color":  "red",
+                "shape":  "round"
+            }
+        }
+    }
+}

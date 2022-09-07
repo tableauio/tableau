@@ -14,7 +14,7 @@ message HorizontalExplicitFixedSizeList {
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{length:2}}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{length:2}}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
 }
@@ -24,7 +24,7 @@ message HorizontalImplicitFixedSizeList {
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{fixed:true}}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
 }

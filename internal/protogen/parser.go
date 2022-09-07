@@ -215,6 +215,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		}
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
+		// extract map field property
 		prop, err := types.ParseProp(rawPropText)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
@@ -225,7 +226,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Options = &tableaupb.FieldOptions{
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   prop,
+			Prop:   ExtractMapFieldProp(prop),
 		}
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
@@ -237,6 +238,10 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 				xerrors.KeyPBFieldOpts, rawPropText,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
+		if scalarField.Options != nil {
+			scalarField.Options.Prop = ExtractMapKeyFieldProp(prop)
+		}
+
 		field.Fields = append(field.Fields, scalarField)
 		for cursor++; cursor < len(header.namerow); cursor++ {
 			if opts.Nested {
@@ -252,7 +257,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			}
 		}
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
-		// horizontal list: continuous N columns belong to this list after this cursor.
+		// horizontal map: continuous N columns belong to this map after this cursor.
 		mapName := trimmedNameCell[:firstElemIndex]
 		prefix += mapName
 		// auto add suffix "_map".
@@ -268,6 +273,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		}
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix+"1")
+		// extract map field property
 		prop, err := types.ParseProp(rawPropText)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
@@ -279,7 +285,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Name:   mapName,
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   prop,
+			Prop:   ExtractMapFieldProp(prop),
 		}
 		scalarField, err := p.parseScalarField(trimmedNameCell, keyType, noteCell)
 		if err != nil {
@@ -287,6 +293,9 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 				xerrors.KeyPBFieldType, keyType+" (map key)",
 				xerrors.KeyPBFieldOpts, rawPropText,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
+		if scalarField.Options != nil {
+			scalarField.Options.Prop = ExtractMapKeyFieldProp(prop)
 		}
 		field.Fields = append(field.Fields, scalarField)
 
@@ -329,7 +338,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,
-			Prop:   prop,
+			Prop:   prop, // for incell scalar map, need whole prop
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		return cursor, xerrors.Errorf("should not reach default layout: %v", layout)
@@ -442,9 +451,17 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		}
 		// auto add suffix "_list".
 		field.Name = strcase.ToSnake(pureElemTypeName) + listVarSuffix
-
 		field.Options.Name = "" // Default, name is empty for vertical list
 		field.Options.Layout = layout
+
+		prop, err := types.ParseProp(rawPropText)
+		if err != nil {
+			return cursor, xerrors.WithMessageKV(err,
+				xerrors.KeyPBFieldType, field.Type+" (vertical list)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
+		field.Options.Prop = ExtractListFieldProp(prop)
 
 		if opts.Nested {
 			prefix += field.ListEntry.ElemType // add prefix with value type
@@ -520,6 +537,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		field.Options.Name = listName
 		field.Options.Layout = layout
 
+		// extract list field property
 		prop, err := types.ParseProp(rawPropText)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
@@ -527,13 +545,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				xerrors.KeyPBFieldOpts, rawPropText,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
-		if prop != nil && (prop.Fixed || prop.Length != 0) {
-			// only set prop if fixed or length is set.
-			field.Options.Prop = &tableaupb.FieldProp{
-				Fixed:  prop.Fixed,
-				Length: prop.Length,
-			}
-		}
+		field.Options.Prop = ExtractListFieldProp(prop)
 
 		// Parse first field
 		colTypeWithProp := colType + rawPropText
@@ -592,6 +604,17 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
+
+		prop, err := types.ParseProp(rawPropText)
+		if err != nil {
+			return cursor, xerrors.WithMessageKV(err,
+				xerrors.KeyPBFieldType, field.Type+" (incell list)",
+				xerrors.KeyPBFieldOpts, rawPropText,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
+		// for incell scalar list, need whole prop
+		field.Options.Prop = prop
+
 		// auto add suffix "_list".
 		field.Name += listVarSuffix
 		field.Type = "repeated " + scalarField.Type
@@ -771,7 +794,7 @@ func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field,
 		Options: &tableaupb.FieldOptions{
 			Name: name,
 			Note: p.genNote(note),
-			Prop: prop,
+			Prop: ExtractScalarFieldProp(prop),
 		},
 	}, nil
 }
