@@ -1,0 +1,6 @@
+ID,Prop
+"map<uint32, Item>",[]int32
+Item’s ID,Item's props
+1,"10,20,30"
+2,"10,20"
+3,10

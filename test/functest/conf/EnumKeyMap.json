@@ -1,16 +1,16 @@
 {
-    "itemMap":  {
-        "1":  {
-            "type":  "FRUIT_TYPE_APPLE",
-            "price":  100
+    "itemMap": {
+        "1": {
+            "type": "FRUIT_TYPE_APPLE",
+            "price": 100
         },
-        "3":  {
-            "type":  "FRUIT_TYPE_ORANGE",
-            "price":  200
+        "3": {
+            "type": "FRUIT_TYPE_ORANGE",
+            "price": 200
         },
-        "4":  {
-            "type":  "FRUIT_TYPE_BANANA",
-            "price":  300
+        "4": {
+            "type": "FRUIT_TYPE_BANANA",
+            "price": 300
         }
     }
 }

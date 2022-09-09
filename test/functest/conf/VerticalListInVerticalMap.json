@@ -1,0 +1,28 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "name": "Apple",
+            "propList": [
+                {
+                    "propId": 1,
+                    "propValue": "10"
+                }
+            ]
+        },
+        "2": {
+            "id": 2,
+            "name": "Orange",
+            "propList": [
+                {
+                    "propId": 1,
+                    "propValue": "20"
+                },
+                {
+                    "propId": 2,
+                    "propValue": "30"
+                }
+            ]
+        }
+    }
+}

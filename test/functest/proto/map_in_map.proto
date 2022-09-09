@@ -7,7 +7,7 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/nesting/NestedInVerticalMap#*.csv"};
+option (tableau.workbook) = {name:"excel/nesting/MapInMap#*.csv"};
 
 message HorizontalMapInVerticalMap {
   option (tableau.worksheet) = {name:"HorizontalMapInVerticalMap" namerow:1 typerow:2 noterow:3 datarow:4};
@@ -31,5 +31,20 @@ message IncellMapInVerticalMap {
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     map<int32, string> props_map = 2 [(tableau.field) = {name:"Props" layout:LAYOUT_INCELL}];
+  }
+}
+
+message VerticalMapInVerticalMap {
+  option (tableau.worksheet) = {name:"VerticalMapInVerticalMap" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+    map<int32, Prop> prop_map = 3 [(tableau.field) = {key:"PropID" layout:LAYOUT_VERTICAL}];
+    message Prop {
+      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}];
+      int64 prop_value = 2 [(tableau.field) = {name:"PropValue"}];
+    }
   }
 }

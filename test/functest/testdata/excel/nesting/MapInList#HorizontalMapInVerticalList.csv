@@ -1,0 +1,6 @@
+ID,Name,Prop1ID,Prop1Value,Prop2ID,Prop2Value
+[Item]uint32,string,"map<int32, Prop>",int64,int32,int64
+Item's ID,Item's name,Prop1's ID,Prop1's value,Prop2's ID,Prop2's value
+1,Apple,1,10,2,20
+2,Orange,3,30,,
+3,Banana,,,,

@@ -12,7 +12,7 @@
 // 	- Expected output
 // 	- Notes (if any)
 //
-// “Requirement-Based” and “Business scenario-based” are the two
+// "Requirement-Based" and "Business scenario-based" are the two
 // forms of functional testing that are carried out.
 //
 // In Requirement based testing, test cases are created as per the
@@ -24,7 +24,6 @@ package functest
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,7 +41,7 @@ func Test_CompareGeneratedProto(t *testing.T) {
 	newConfDir := "_proto"
 	files, err := os.ReadDir(oldConfDir)
 	if err != nil {
-		t.Errorf("failed to read dir: %s", oldConfDir)
+		t.Fatalf("failed to read dir: %s", oldConfDir)
 	}
 	for _, file := range files {
 		if !strings.HasSuffix(file.Name(), ".proto") {
@@ -51,12 +50,12 @@ func Test_CompareGeneratedProto(t *testing.T) {
 		oldPath := filepath.Join(oldConfDir, file.Name())
 		oldfile, err := os.Open(oldPath)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		newPath := filepath.Join(newConfDir, file.Name())
 		newfile, err := os.Open(newPath)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 
 		sscan := bufio.NewScanner(oldfile)
@@ -80,7 +79,7 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 	newConfDir := "_conf"
 	files, err := os.ReadDir(oldConfDir)
 	if err != nil {
-		t.Errorf("failed to read dir: %s", oldConfDir)
+		t.Fatalf("failed to read dir: %s", oldConfDir)
 	}
 	for _, file := range files {
 		if !strings.HasSuffix(file.Name(), ".json") {
@@ -90,11 +89,11 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 		oldPath := filepath.Join(oldConfDir, file.Name())
 		newData, err := os.ReadFile(newPath)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		oldData, err := os.ReadFile(oldPath)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		fmt.Printf("compare json file: %s\n", file.Name())
 		require.JSONEqf(t, string(oldData), string(newData), "%s -> %s content not same.", oldPath, newPath)
@@ -103,7 +102,7 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 
 func Test_Excel2CSV(t *testing.T) {
 	err := rangeFilesByFormat("./testdata", format.Excel, func(bookPath string) error {
-		log.Printf("path: %s", bookPath)
+		// log.Printf("path: %s", bookPath)
 		imp, err := importer.NewExcelImporter(bookPath, nil, nil, 0)
 		if err != nil {
 			return err
@@ -117,10 +116,10 @@ func Test_Excel2CSV(t *testing.T) {
 
 func Test_CSV2Excel(t *testing.T) {
 	err := rangeFilesByFormat("./testdata", format.CSV, func(bookPath string) error {
-		log.Printf("path: %s", bookPath)
+		// log.Printf("path: %s", bookPath)
 		imp, err := importer.NewCSVImporter(bookPath, nil, nil)
 		if err != nil {
-			t.Errorf("%+v", err)
+			return err
 		}
 		return imp.ExportExcel()
 	})

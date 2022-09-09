@@ -2,23 +2,25 @@
     "itemList": [
         {
             "id": 1,
+            "name": "Apple",
             "propMap": {
                 "1": {
                     "propId": 1,
-                    "propName": "sweet"
+                    "propValue": "10"
                 }
             }
         },
         {
             "id": 2,
+            "name": "Orange",
             "propMap": {
                 "1": {
                     "propId": 1,
-                    "propName": "sweet"
+                    "propValue": "20"
                 },
                 "2": {
                     "propId": 2,
-                    "propName": "delicious"
+                    "propValue": "30"
                 }
             }
         }

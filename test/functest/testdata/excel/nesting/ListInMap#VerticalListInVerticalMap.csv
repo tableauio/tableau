@@ -1,0 +1,6 @@
+ID,Name,PropID,PropValue
+"map<uint32, Item>",string,[Prop]int32,int64
+Item's ID,Item's name,Prop's ID,Prop's value
+1,Apple,1,10
+2,Orange,1,20
+2,Banana,2,30

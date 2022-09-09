@@ -1,12 +1,12 @@
 {
-    "itemList":  [
+    "itemList": [
         {
-            "id":  1,
-            "name":  "Apple"
+            "id": 1,
+            "name": "Apple"
         },
         {
-            "id":  0,
-            "name":  ""
+            "id": 0,
+            "name": ""
         }
     ]
 }

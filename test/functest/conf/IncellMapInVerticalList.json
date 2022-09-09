@@ -1,6 +1,6 @@
 {
-    "itemMap": {
-        "1": {
+    "itemList": [
+        {
             "id": 1,
             "propsMap": {
                 "1": "sour",
@@ -8,18 +8,18 @@
                 "3": "delicious"
             }
         },
-        "2": {
+        {
             "id": 2,
             "propsMap": {
                 "1": "sour",
                 "2": "sweet"
             }
         },
-        "3": {
+        {
             "id": 3,
             "propsMap": {
                 "1": "sour"
             }
         }
-    }
+    ]
 }

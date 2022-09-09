@@ -1,33 +1,33 @@
 {
-    "itemMap": {
-        "1": {
+    "itemList": [
+        {
             "id": 1,
             "name": "Apple",
-            "propMap": {
-                "1": {
+            "propList": [
+                {
                     "id": 1,
                     "value": "10"
                 },
-                "2": {
+                {
                     "id": 2,
                     "value": "20"
                 }
-            }
+            ]
         },
-        "2": {
+        {
             "id": 2,
             "name": "Orange",
-            "propMap": {
-                "3": {
+            "propList": [
+                {
                     "id": 3,
                     "value": "30"
                 }
-            }
+            ]
         },
-        "3": {
+        {
             "id": 3,
             "name": "Banana",
-            "propMap": {}
+            "propList": []
         }
-    }
+    ]
 }

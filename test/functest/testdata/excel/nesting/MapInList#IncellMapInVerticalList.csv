@@ -1,0 +1,6 @@
+ID,Props
+[Item]uint32,"map<int32, string>"
+Item’s ID,Item's props
+1,"1:sour,2:sweet,3:delicious"
+2,"1:sour,2:sweet"
+3,1:sour
