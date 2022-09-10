@@ -9,13 +9,6 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/map/VerticalMap#*.csv"};
 
-message VerticalScalarMap {
-  option (tableau.worksheet) = {name:"VerticalScalarMap" namerow:1 typerow:2 noterow:3 datarow:4};
-
-  map<uint32, string> id_map = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}];
-  string name = 2 [(tableau.field) = {name:"Name"}];
-}
-
 message VerticalStructMap {
   option (tableau.worksheet) = {name:"VerticalStructMap" namerow:1 typerow:2 noterow:3 datarow:4};
 

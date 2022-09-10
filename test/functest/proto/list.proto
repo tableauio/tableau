@@ -32,5 +32,5 @@ message HorizontalImplicitFixedSizeList {
 message IncellScalarList {
   option (tableau.worksheet) = {name:"IncellScalarList" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  repeated uint32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}];
+  repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}];
 }
