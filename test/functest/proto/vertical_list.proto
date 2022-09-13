@@ -4,10 +4,17 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/list/VerticalList#*.csv"};
+
+message VerticalIncellPredefStructList {
+  option (tableau.worksheet) = {name:"VerticalIncellPredefStructList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_VERTICAL span:SPAN_INNER_CELL}];
+}
 
 message VerticalIncellStructList {
   option (tableau.worksheet) = {name:"VerticalIncellStructList" namerow:1 typerow:2 noterow:3 datarow:4};
@@ -17,6 +24,12 @@ message VerticalIncellStructList {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
   }
+}
+
+message VerticalPredefinedStructList {
+  option (tableau.worksheet) = {name:"VerticalPredefinedStructList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated protoconf.Item _item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
 }
 
 message VerticalStructList {

@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -23,6 +24,18 @@ message HorizontalColumnSkippedList {
   }
 }
 
+message HorizontalEnumList {
+  option (tableau.worksheet) = {name:"HorizontalEnumList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated protoconf.FruitType param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}];
+}
+
+message HorizontalIncellPdefStructList {
+  option (tableau.worksheet) = {name:"HorizontalIncellPdefStructList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
+}
+
 message HorizontalIncellStructList {
   option (tableau.worksheet) = {name:"HorizontalIncellStructList" namerow:1 typerow:2 noterow:3 datarow:4};
 
@@ -31,6 +44,12 @@ message HorizontalIncellStructList {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
+}
+
+message HorizontalPredefinedStructList {
+  option (tableau.worksheet) = {name:"HorizontalPredefinedStructList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
 }
 
 message HorizontalScalarList {

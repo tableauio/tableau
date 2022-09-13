@@ -1,0 +1,4 @@
+Param1,Param2,Param3
+[]enum<.FruitType>,enum<.FruitType>,enum<.FruitType>
+Param1's value,Param2's value,Param3's value
+1,FRUIT_TYPE_ORANGE,Banana
