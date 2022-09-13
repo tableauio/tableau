@@ -4,10 +4,17 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/map/VerticalMap#*.csv"};
+
+message VerticalPredefinedStructMap {
+  option (tableau.worksheet) = {name:"VerticalPredefinedStructMap" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<int32, protoconf.Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+}
 
 message VerticalStructMap {
   option (tableau.worksheet) = {name:"VerticalStructMap" namerow:1 typerow:2 noterow:3 datarow:4};

@@ -4,6 +4,7 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -21,6 +22,12 @@ message HorizontalColumnSkippedMap {
       int32 value = 2 [(tableau.field) = {name:"Value"}];
     }
   }
+}
+
+message HorizontalPredefinedStructMap {
+  option (tableau.worksheet) = {name:"HorizontalPredefinedStructMap" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<int32, protoconf.Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
 }
 
 message HorizontalStructMap {

@@ -1,0 +1,4 @@
+Item1ID,Item1Num,Item2ID,Item2Num,Item3ID,Item3Num
+"map<int32, .Item>",int32,int32,int32,int32,int32
+Item1's ID,Item1's num,Item2's ID,Item3's num,Item3's ID,Item3's num
+1,100,2,200,3,300
