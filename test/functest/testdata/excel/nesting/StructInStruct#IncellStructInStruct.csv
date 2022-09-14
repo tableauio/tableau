@@ -1,0 +1,5 @@
+RewardID,RewardItem
+{Reward}int32,"{int32 ID, int32 Num}Item"
+Reward's ID,Reward's item
+1,"1,100"
+,"2,200"

@@ -1,0 +1,4 @@
+RewardID,RewardItemID,RewardItemNum
+{Reward}int32,{Item}int32,int32
+Reward's ID,Item's ID,Item's num
+1,1,10

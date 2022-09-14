@@ -1,0 +1,6 @@
+ID,ItemID,ItemNum
+"map<int32, Reward>",{.Item}int32,int32
+Reward's ID,Item's ID,Item's Num
+1,1,10
+2,2,20
+3,,
