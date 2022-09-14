@@ -1,0 +1,6 @@
+ID,Name,PropID
+[Item]uint32,string,"{int32 ID,int64 Value}Prop"
+Item's ID,Item's name,Prop's ID
+1,Apple,"1,100"
+2,Orange,"2,200"
+3,Banana,

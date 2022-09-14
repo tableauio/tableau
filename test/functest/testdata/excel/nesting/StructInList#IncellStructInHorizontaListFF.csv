@@ -1,0 +1,4 @@
+Reward1Item,Reward1Name,Reward2Item,Reward2Name
+"[Reward]{int32 ID, int32 Num}Item",string,Item,string
+Reward1's item,Reward's name,Reward2's item,Reward's name
+"1,10",Lotto,"2,20",Super Lotto

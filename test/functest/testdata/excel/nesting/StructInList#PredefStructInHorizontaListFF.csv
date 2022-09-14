@@ -1,0 +1,4 @@
+Reward1ItemID,Reward1ItemNum,Reward1Name,Reward2ItemID,Reward2ItemNum,Reward2Name
+[Reward]{.Item}int32,int32,string,int32,int32,string
+Item1's ID,Item1's num,Reward's name,Item1's ID,Item1's num,Reward's name
+1,10,Lotto,10,100,Super Lotto

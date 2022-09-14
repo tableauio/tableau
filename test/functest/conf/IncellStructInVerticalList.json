@@ -1,0 +1,25 @@
+{
+    "itemList": [
+        {
+            "id": 1,
+            "name": "Apple",
+            "propId": {
+                "id": 1,
+                "value": "100"
+            }
+        },
+        {
+            "id": 2,
+            "name": "Orange",
+            "propId": {
+                "id": 2,
+                "value": "200"
+            }
+        },
+        {
+            "id": 3,
+            "name": "Banana",
+            "propId": null
+        }
+    ]
+}
