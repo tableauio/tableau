@@ -4,10 +4,35 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/nesting/ListInList#*.csv"};
+
+message HPredefStructListInHListFF {
+  option (tableau.worksheet) = {name:"HPredefStructListInHListFF" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
+  message Reward {
+    repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+message HorizontalListInHorizontaListFF {
+  option (tableau.worksheet) = {name:"HorizontalListInHorizontaListFF" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
+  message Reward {
+    repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
+    message Item {
+      int32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 num = 2 [(tableau.field) = {name:"Num"}];
+    }
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
 
 message HorizontalListInVerticalList {
   option (tableau.worksheet) = {name:"HorizontalListInVerticalList" namerow:1 typerow:2 noterow:3 datarow:4};

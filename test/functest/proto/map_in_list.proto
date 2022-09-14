@@ -4,10 +4,35 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/nesting/MapInList#*.csv"};
+
+message HPredefStructMapInHListFF {
+  option (tableau.worksheet) = {name:"HPredefStructMapInHListFF" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
+  message Reward {
+    map<int32, protoconf.Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+message HorizontalMapInHorizontalListFF {
+  option (tableau.worksheet) = {name:"HorizontalMapInHorizontalListFF" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
+  message Reward {
+    map<int32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
+    message Item {
+      int32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 num = 2 [(tableau.field) = {name:"Num"}];
+    }
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
 
 message HorizontalMapInVerticalList {
   option (tableau.worksheet) = {name:"HorizontalMapInVerticalList" namerow:1 typerow:2 noterow:3 datarow:4};
