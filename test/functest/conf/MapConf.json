@@ -1,16 +1,17 @@
 {
-    "itemMap":  {
+    "open":  true,
+    "entryMap":  {
         "1":  {
             "id":  1,
-            "name":  "Apple"
+            "value":  1
         },
         "2":  {
             "id":  2,
-            "name":  "Orange"
+            "value":  2
         },
         "3":  {
             "id":  3,
-            "name":  "Banana"
+            "value":  3
         }
     }
 }

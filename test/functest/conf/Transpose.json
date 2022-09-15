@@ -1,8 +1,8 @@
 {
-    "id": 123,
-    "name": "Robin",
-    "desc": "A big hero!",
-    "skillList": [
+    "id":  123,
+    "name":  "Robin",
+    "desc":  "A big hero!",
+    "skillList":  [
         100,
         101,
         102

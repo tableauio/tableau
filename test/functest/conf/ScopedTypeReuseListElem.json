@@ -1,22 +1,22 @@
 {
-    "itemList": [
+    "itemList":  [
         {
-            "id": 1,
-            "name": "Apple"
+            "id":  1,
+            "name":  "Apple"
         },
         {
-            "id": 2,
-            "name": "Orange"
+            "id":  2,
+            "name":  "Orange"
         }
     ],
-    "rewardList": [
+    "rewardList":  [
         {
-            "id": 3,
-            "name": "Banana"
+            "id":  3,
+            "name":  "Banana"
         },
         {
-            "id": 4,
-            "name": "Watermelon"
+            "id":  4,
+            "name":  "Watermelon"
         }
     ]
 }

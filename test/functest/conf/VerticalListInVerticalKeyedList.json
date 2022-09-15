@@ -1,26 +1,26 @@
 {
-    "itemList": [
+    "itemList":  [
         {
-            "id": 1,
-            "name": "Apple",
-            "propList": [
+            "id":  1,
+            "name":  "Apple",
+            "propList":  [
                 {
-                    "propId": 1,
-                    "propValue": "10"
+                    "propId":  1,
+                    "propValue":  "10"
                 }
             ]
         },
         {
-            "id": 2,
-            "name": "Orange",
-            "propList": [
+            "id":  2,
+            "name":  "Orange",
+            "propList":  [
                 {
-                    "propId": 1,
-                    "propValue": "20"
+                    "propId":  1,
+                    "propValue":  "20"
                 },
                 {
-                    "propId": 2,
-                    "propValue": "30"
+                    "propId":  2,
+                    "propValue":  "30"
                 }
             ]
         }

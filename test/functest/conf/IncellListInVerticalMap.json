@@ -1,23 +1,23 @@
 {
-    "itemMap": {
-        "1": {
-            "id": 1,
-            "propList": [
+    "itemMap":  {
+        "1":  {
+            "id":  1,
+            "propList":  [
                 10,
                 20,
                 30
             ]
         },
-        "2": {
-            "id": 2,
-            "propList": [
+        "2":  {
+            "id":  2,
+            "propList":  [
                 10,
                 20
             ]
         },
-        "3": {
-            "id": 3,
-            "propList": [
+        "3":  {
+            "id":  3,
+            "propList":  [
                 10
             ]
         }
