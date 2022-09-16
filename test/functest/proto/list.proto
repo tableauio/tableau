@@ -12,7 +12,7 @@ option (tableau.workbook) = {name:"excel/list/List#*.csv"};
 message HorizontalExplicitFixedSizeList {
   option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeList" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{length:2}}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{size:2}}];
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];

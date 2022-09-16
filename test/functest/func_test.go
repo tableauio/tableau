@@ -48,11 +48,15 @@ func Test_CompareGeneratedProto(t *testing.T) {
 			continue
 		}
 		oldPath := filepath.Join(oldConfDir, file.Name())
+		absOldPath, err := filepath.Abs(oldPath)
+		require.ErrorIs(t, err, nil)
 		oldfile, err := os.Open(oldPath)
 		if err != nil {
 			t.Fatal(err)
 		}
 		newPath := filepath.Join(newConfDir, file.Name())
+		absNewPath, err := filepath.Abs(oldPath)
+		require.ErrorIs(t, err, nil)
 		newfile, err := os.Open(newPath)
 		if err != nil {
 			t.Fatal(err)
@@ -67,7 +71,7 @@ func Test_CompareGeneratedProto(t *testing.T) {
 				// as the first line is one line comment (including dynamic version number), ignore it.
 				continue
 			}
-			require.Equalf(t, string(sscan.Bytes()), string(dscan.Bytes()), "%s -> %s content not same at line: %d", oldPath, newPath, line)
+			require.Equalf(t, string(sscan.Bytes()), string(dscan.Bytes()), "unequal: %s:%d -> %s:%d", absOldPath, line, absNewPath, line)
 		}
 	}
 }

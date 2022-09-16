@@ -15,7 +15,7 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Unique:   prop.Unique,
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
-		Length:   prop.Length,
+		Size:     prop.Size,
 		Range:    prop.Range,
 	}
 	if proto.Equal(emptyFieldProp, p) {
@@ -32,7 +32,7 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Unique:   prop.Unique, // only for keyed list ?
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
-		Length:   prop.Length,
+		Size:     prop.Size,
 	}
 	if proto.Equal(emptyFieldProp, p) {
 		return nil

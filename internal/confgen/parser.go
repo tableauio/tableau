@@ -609,15 +609,15 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			// has already been parsed.
 			break
 		}
-		existedLength := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
-		if existedLength <= 0 {
+		detectedSize := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
+		if detectedSize <= 0 {
 			return false, xerrors.ErrorKV("no cell found with digit suffix", xerrors.KeyPBFieldType, "horizontal list")
 		}
-		fixedLen := prop.GetLength(field.opts.Prop, existedLength)
-		size := existedLength
-		if fixedLen > 0 && fixedLen < existedLength {
-			// squeeze to specified fixed length
-			size = fixedLen
+		fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
+		size := detectedSize
+		if fixedSize > 0 && fixedSize < detectedSize {
+			// squeeze to specified fixed size
+			size = fixedSize
 		}
 		checkRemainFlag := false
 		for i := 1; i <= size; i++ {
@@ -684,7 +684,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 		}
 
 		if prop.IsFixed(field.opts.Prop) {
-			for reflectList.Len() < fixedLen {
+			for reflectList.Len() < fixedSize {
 				// append empty elements to the specified length.
 				reflectList.Append(reflectList.NewElement())
 			}
@@ -701,12 +701,12 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 		// If s does not contain sep and sep is not empty, Split returns a
 		// slice of length 1 whose only element is s.
 		splits := strings.Split(cell.Data, field.opts.Sep)
-		existedLength := len(splits)
-		fixedLen := prop.GetLength(field.opts.Prop, existedLength)
-		size := existedLength
-		if fixedLen > 0 && fixedLen < existedLength {
-			// squeeze to specified fixed length
-			size = fixedLen
+		detectedSize := len(splits)
+		fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
+		size := detectedSize
+		if fixedSize > 0 && fixedSize < detectedSize {
+			// squeeze to specified fixed size
+			size = fixedSize
 		}
 		for i := 0; i < size; i++ {
 			elem := splits[i]
@@ -741,7 +741,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			}
 		}
 		if prop.IsFixed(field.opts.Prop) {
-			for reflectList.Len() < fixedLen {
+			for reflectList.Len() < fixedSize {
 				// append empty elements to the specified length.
 				reflectList.Append(reflectList.NewElement())
 			}

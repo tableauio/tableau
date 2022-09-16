@@ -83,7 +83,6 @@ message FieldProp {
   //
   // Different interpretations of range:
   //   - number: value range
-  //   - repeated: size range of array
   //   - string: count of utf-8 code point
   string range = 1;
   // Local perspective: whether the map key's value is unique.
@@ -96,13 +95,13 @@ message FieldProp {
   optional int64 sequence = 4;
   // Local perspective: default value of scalar field if not set.
   string default = 5;
-  // Local perspective: auto-detected fixed length of horizontal list/map.
+  // Local perspective: auto-detected fixed size of horizontal list/map.
   //
   // The list size is auto-detected by size of the max present list elements in namerow.
   // The map size is auto-detected by size of the max present map items in namerow.
   bool fixed = 6;
-  // Local perspective: specified fixed length of horizontal list/map.
-  uint32 length = 7;
+  // Local perspective: specified fixed size of horizontal list/map.
+  uint32 size = 7;
 }
 
 // Layout of list and map.
