@@ -182,7 +182,7 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 		if relWorkbookPath == "" {
 			return errors.Errorf("There's no any workbook found, maybe you forget to use `blank identifier` to inject the protoconf package.")
 		}
-		return errors.Errorf("workbook not found: %s", relWorkbookPath)
+		return errors.Errorf("workbook not found: %s, protoPaths: %v", relWorkbookPath, gen.InputOpt.ProtoPaths)
 	}
 	return nil
 }

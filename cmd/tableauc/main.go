@@ -7,7 +7,6 @@ import (
 	_ "time/tzdata"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/protogen"
@@ -20,40 +19,38 @@ import (
 const version = "0.5.4"
 const (
 	ModeDefault = "default" // generate both proto and conf files
-	ModeProto   = "proto"
-	ModeConf    = "conf"
+	ModeProto   = "proto"   // generate proto files only
+	ModeConf    = "conf"    // generate conf files only.
 )
 
 var (
-	protoPackage string
-	indir        string
-	outdir       string
-	mode         string
-	// protoFiles         []string
-	configPath         string
-	needOutputConfTmpl bool
+	protoPackage     string
+	indir            string
+	outdir           string
+	mode             string
+	configPath       string
+	showConfigSample bool
 )
 
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:     "tableauc [FILE]...",
 		Version: genVersion(),
-		Short:   "Tableauc is a modern configuration converter",
-		Long:    `Complete documentation is available at https://tableauio.github.io`,
-		Run:     runCmd,
+		Short:   "tableauc is a modern configuration converter.",
+		Long:    `Complete documentation is available on https://tableauio.github.io.`,
+		Run:     run,
 	}
 
-	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "Proto package name")
-	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "Input directory, default is current directory")
-	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "Output directory, default is current directory")
-	// rootCmd.Flags().StringSliceVarP(&protoFiles, "proto-files", "", nil, "Specify proto files to generate configurations. Glob pattern is supported")
-	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `Available mode: default, proto, and conf. 
-- default: generate both proto and conf files.
-- proto: generate proto files only.
-- conf: generate conf files only.
+	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "proto package name")
+	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "input directory, default is current directory")
+	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "output directory, default is current directory")
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `available mode: default, proto, and conf. 
+  - default: generate both proto and conf files.
+  - proto: generate proto files only.
+  - conf: generate conf files only.
 `)
-	rootCmd.Flags().StringVarP(&configPath, "config", "c", "./config.yaml", "Config file path")
-	rootCmd.Flags().BoolVarP(&needOutputConfTmpl, "output-config-template", "t", false, "Output config template")
+	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path, e.g.: ./config.yaml")
+	rootCmd.Flags().BoolVarP(&showConfigSample, "show-config-sample", "s", false, "show config sample")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -61,53 +58,65 @@ func main() {
 	}
 }
 
-func runCmd(cmd *cobra.Command, args []string) {
-	if needOutputConfTmpl {
-		outputConfTmpl()
-		return
+func run(cmd *cobra.Command, args []string) {
+	// hook all errors and exit -1
+	if err := runE(cmd, args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(-1)
+	}
+}
+
+func runE(cmd *cobra.Command, args []string) error {
+	if showConfigSample {
+		return ShowConfigSample()
 	}
 
-	opts := &options.Options{}
-	err := loadConf(configPath, opts)
+	config, err := loadConfig(configPath)
 	if err != nil {
-		log.Errorf("load config(options) failed: %+v", err)
-		os.Exit(-1)
+		return fmt.Errorf("load config failed: %s", err)
 	}
-	if err := log.Init(opts.Log); err != nil {
-		log.Errorf("init log failed: %+v", err)
-		os.Exit(-1)
+	if err := log.Init(config.Log); err != nil {
+		return fmt.Errorf("init log failed: %s", err)
 	}
-	log.Debugf("loaded tableau config: %+v", spew.Sdump(opts))
+	log.Debugf("load config success: %+v", spew.Sdump(config))
+
 	switch mode {
 	case ModeDefault:
-		genProto(args, opts)
-		genConf(args, opts)
+		if err := genProto(args, config); err != nil {
+			return err
+		}
+		if err := genConf(args, config); err != nil {
+			return err
+		}
 	case ModeProto:
-		genProto(args, opts)
+		return genProto(args, config)
 	case ModeConf:
-		genConf(args, opts)
+		return genConf(args, config)
 	default:
-		log.Errorf("unknown mode: %s", mode)
-		os.Exit(-1)
+		return fmt.Errorf("unknown mode: %s", mode)
 	}
+
+	return nil
 }
 
-func genProto(workbooks []string, opts *options.Options) {
+func genProto(workbooks []string, config *options.Options) error {
 	// generate proto files
-	gen := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
+	gen := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, config)
 	if err := gen.Generate(workbooks...); err != nil {
 		logError(ModeProto, err)
-		os.Exit(-1)
+		return fmt.Errorf("generate proto failed")
 	}
+	return nil
 }
 
-func genConf(workbooks []string, opts *options.Options) {
+func genConf(workbooks []string, config *options.Options) error {
 	// generate conf files
-	gen := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, opts)
+	gen := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, config)
 	if err := gen.Generate(workbooks...); err != nil {
 		logError(ModeConf, err)
-		os.Exit(-1)
+		return fmt.Errorf("generate conf failed")
 	}
+	return nil
 }
 
 func logError(mode string, err error) {
@@ -121,26 +130,29 @@ func logError(mode string, err error) {
 	}
 }
 
-func loadConf(path string, out interface{}) error {
+func loadConfig(path string) (*options.Options, error) {
+	if path == "" {
+		return options.NewDefault(), nil
+	}
+	config := &options.Options{}
 	d, err := os.ReadFile(path)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, err
 	}
-	err = yaml.Unmarshal(d, out)
-	if err != nil {
-		return errors.WithStack(err)
+	if err := yaml.Unmarshal(d, config); err != nil {
+		return nil, err
 	}
-	return nil
+	return config, nil
 }
 
-func outputConfTmpl() {
+func ShowConfigSample() error {
 	defaultConf := options.NewDefault()
 	d, err := yaml.Marshal(defaultConf)
 	if err != nil {
-		fmt.Printf("marshal failed: %+v\n", err)
-		os.Exit(-1)
+		return err
 	}
 	fmt.Println(string(d))
+	return nil
 }
 
 func genVersion() string {

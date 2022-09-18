@@ -28,11 +28,11 @@ func TestExtractListFieldProp(t *testing.T) {
 			name: "noneEmptyListFieldProp",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Length: 2,
+					Size: 2,
 				},
 			},
 			want: &tableaupb.FieldProp{
-				Length: 2,
+				Size: 2,
 			},
 		},
 	}

@@ -11,6 +11,7 @@ type Options struct {
 	// Location represents the collection of time offsets in use in a geographical area.
 	// If the name is "" or "UTC", LoadLocation returns UTC.
 	// If the name is "Local", LoadLocation returns Local.
+	//
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
 
@@ -22,24 +23,30 @@ type Options struct {
 
 type HeaderOption struct {
 	// Exact row number of column name definition at a worksheet.
+	//
 	// Default: 1.
 	Namerow int32
 	// Exact row number of column type definition at a worksheet.
+	//
 	// Default: 2.
 	Typerow int32
 	// Exact row number of column note at a worksheet.
+	//
 	// Default: 3.
 	Noterow int32
 	// Start row number of data at a worksheet.
+	//
 	// Default: 4.
 	Datarow int32
 
 	// The line number of column name definition in a cell.
 	// Value 0 means the whole cell.
+	//
 	// Default: 0.
 	Nameline int32
 	// The line number of column type definition in a cell.
 	// Value 0 means the whole cell.
+	//
 	// Default: 0.
 	Typeline int32
 }
@@ -65,23 +72,30 @@ type InputProtoOption struct {
 	// The proto paths are used to search for dependencies that are referenced in import
 	// statements in proto source files. If no import paths are provided then
 	// "." (current directory) is assumed to be the only import path.
+	//
 	// Default: nil.
 	ProtoPaths []string `yaml:"protoPaths"`
 	// The enums and messages in ImportedProtoFiles can be used in Excel/CSV/XML as
 	// common types.
+	//
 	// Default: nil.
 	ImportedProtoFiles []string `yaml:"importedProtoFiles"`
 	// Specify input file formats.
 	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
+	//
 	// Default: nil.
 	Formats []format.Format `yaml:"formats"`
 	// Specify only these subdirs (relative to input dir) to be processed.
+	//
+	// Default: nil.
 	Subdirs []string `yaml:"subdirs"`
 	// Specify rewrite subdir path (relative to input dir).
+	//
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
 	// Follow the symbolic links when traversing directories recursively.
 	// WARN: be careful to use this option, it may lead to infinite loop.
+	//
 	// Default: false.
 	FollowSymlink bool `yaml:"followSymlink"`
 }
@@ -96,25 +110,31 @@ type InputConfOption struct {
 	ProtoPaths []string `yaml:"protoPaths"`
 	// The files to be parsed to generate configurations.
 	//
-	// NOTE: Glob patterns is supported, which can specify sets
-	// of filenames with wildcard characters.
+	// NOTE:
+	//  - Recognize "*.proto" pattern if not set (value is nil).
+	//  - Glob patterns are supported, which can specify sets
+	//    of filenames with wildcard characters.
 	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
 	// The files not to be parsed to generate configurations.
 	//
-	// NOTE: Glob patterns is supported, which can specify sets
+	// NOTE: Glob patterns are supported, which can specify sets
 	// of filenames with wildcard characters.
 	//
 	// Default: nil.
 	ExcludedProtoFiles []string `yaml:"excludedProtoFiles"`
 	// Specify input file formats to be parsed.
 	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
+	//
 	// Default: nil.
 	Formats []format.Format
 	// Specify only these subdirs (relative to workbook name option in proto file).
+	//
+	// Default: nil.
 	Subdirs []string
 	// Specify rewrite subdir path (relative to workbook name option in proto file).
+	//
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
 }
@@ -122,17 +142,21 @@ type InputConfOption struct {
 // Output options for generating proto files. Only for protogen.
 type OutputProtoOption struct {
 	// Specify subdir (relative to output dir) for generated proto files.
+	//
 	// Default: "".
 	Subdir string `yaml:"subdir"`
 	// Dir separator `/` or `\`  in filename is replaced by "__".
+	//
 	// Default: false.
 	FilenameWithSubdirPrefix bool `yaml:"filenameWithSubdirPrefix"`
-	// Append suffix to generated proto filename.
+	// Append suffix to each generated proto filename.
+	//
 	// Default: "".
 	FilenameSuffix string `yaml:"filenameSuffix"`
 
 	// Specify proto file options.
 	// Example: go_package, csharp_namespace...
+	//
 	// Default: nil.
 	FileOptions map[string]string `yaml:"fileOptions"`
 }
@@ -140,13 +164,16 @@ type OutputProtoOption struct {
 // Output options for generating conf files. Only for confgen.
 type OutputConfOption struct {
 	// Specify subdir (relative to output dir) for generated configuration files.
+	//
 	// Default: "".
 	Subdir string `yaml:"subdir"`
-	// Specify generated conf file formats. If not set, it will generate all formats
-	// (JSON, Text, and Wire) .
+	// Specify generated conf file formats. If not set, it will generate all
+	// formats (JSON/Text/Wire).
+	//
 	// Default: nil.
 	Formats []format.Format
-	// Output pretty format, with multiline and indent.
+	// Output pretty format of JSON, with multiline and indent.
+	//
 	// Default: false.
 	Pretty bool
 	// EmitUnpopulated specifies whether to emit unpopulated fields. It does not
@@ -257,12 +284,19 @@ func NewDefault() *Options {
 					Noterow: 3,
 					Datarow: 4,
 				},
+				ProtoPaths: []string{"."},
 			},
-			Conf: &InputConfOption{},
+			Conf: &InputConfOption{
+				ProtoPaths: []string{"."},
+				ProtoFiles: []string{"*.proto"},
+			},
 		},
 		Output: &OutputOption{
 			Proto: &OutputProtoOption{},
-			Conf:  &OutputConfOption{},
+			Conf: &OutputConfOption{
+				Formats: []format.Format{format.JSON},
+				Pretty:  true,
+			},
 		},
 	}
 }
