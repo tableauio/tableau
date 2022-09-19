@@ -23,19 +23,18 @@ A modern configuration converter based on Protobuf (proto3).
 
 ## Features
 
-- Convert **Excel/CSV/XML** to **JSON/Text/Wire**, JSON is the first-class citizen of exporting targets.
-- Use **Protoconf** as the IDL(Interface Description Language) to define the structure of **Excel/CSV/XML**.
+- Convert **Excel/CSV/XML** to **JSON/Text/Bin**, JSON is the first-class citizen of exporting targets.
+- Use **Protobuf** to define the structure of **Excel/CSV/XML**.
 - Use **Golang** to develop the conversion engine.
 - Support multiple programming languages, thanks to **Protobuf (proto3)**.
 
 ## Concepts
 
-- Importer: Excel/XML importer.
+- Importer: Excel/CSV/XML importer.
 - IR: Intermediate Representation.
 - Filter: filter the IR.
-- Exporter: JSON (protojson), Text (prototext), and wire (protowire).
-- Protoconf: a configuration metadata format based on protobuf.
-
+- Exporter: JSON, Text, and Bin.
+- Protoconf: a dialect of Protobuf (proto3) extended with tableau options.
 
 ## Design
 

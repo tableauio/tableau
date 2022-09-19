@@ -11,8 +11,8 @@ const (
 	XML   Format = "xml"
 	// output formats
 	JSON Format = "json"
-	Wire Format = "wire"
-	Text Format = "text"
+	Bin  Format = "bin"
+	Text Format = "txt"
 )
 
 // File format extension
@@ -24,8 +24,8 @@ const (
 	XMLExt   string = ".xml"
 	// output formats
 	JSONExt string = ".json"
-	WireExt string = ".wire"
-	TextExt string = ".text"
+	BinExt  string = ".bin"
+	TextExt string = ".txt"
 )
 
 func Ext2Format(ext string) Format {
@@ -40,8 +40,8 @@ func Ext2Format(ext string) Format {
 		return JSON
 	case TextExt:
 		return Text
-	case WireExt:
-		return Wire
+	case BinExt:
+		return Bin
 	default:
 		return UnknownFormat
 	}
@@ -59,15 +59,15 @@ func Format2Ext(fmt Format) string {
 		return JSONExt
 	case Text:
 		return TextExt
-	case Wire:
-		return WireExt
+	case Bin:
+		return BinExt
 	default:
 		return UnknownExt
 	}
 }
 
 var InputFormats = []Format{Excel, CSV, XML}
-var OutputFormats = []Format{JSON, Wire, Text}
+var OutputFormats = []Format{JSON, Bin, Text}
 
 func IsInputFormat(fmt Format) bool {
 	for _, f := range InputFormats {

@@ -67,8 +67,8 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 		return loadJSON(msg, dir, options...)
 	case format.Text:
 		return loadText(msg, dir, options...)
-	case format.Wire:
-		return loadWire(msg, dir, options...)
+	case format.Bin:
+		return loadBin(msg, dir, options...)
 	case format.Excel, format.CSV, format.XML:
 		return loadOrigin(msg, dir, options...)
 	default:
@@ -104,9 +104,9 @@ func loadText(msg proto.Message, dir string, options ...Option) error {
 	return nil
 }
 
-func loadWire(msg proto.Message, dir string, options ...Option) error {
+func loadBin(msg proto.Message, dir string, options ...Option) error {
 	msgName := string(msg.ProtoReflect().Descriptor().Name())
-	path := filepath.Join(dir, msgName+format.WireExt)
+	path := filepath.Join(dir, msgName+format.BinExt)
 
 	if content, err := os.ReadFile(path); err != nil {
 		return errors.Wrapf(err, "failed to read file: %v", path)

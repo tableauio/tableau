@@ -168,7 +168,7 @@ type OutputConfOption struct {
 	// Default: "".
 	Subdir string `yaml:"subdir"`
 	// Specify generated conf file formats. If not set, it will generate all
-	// formats (JSON/Text/Wire).
+	// formats (JSON/Text/Bin).
 	//
 	// Default: nil.
 	Formats []format.Format

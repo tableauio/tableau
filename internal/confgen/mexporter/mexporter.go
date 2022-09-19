@@ -1,5 +1,5 @@
 // mexporter is the message exporter package, which can export one
-// single message to different formts: JSON, Text, and Wire.
+// single message to different formts: JSON, Text, and Bin.
 package mexporter
 
 import (
@@ -69,11 +69,11 @@ func (x *messageExporter) export(fmt format.Format) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Text", x.name)
 		}
-	case format.Wire:
-		filename += format.WireExt
-		out, err = x.marshalToWire()
+	case format.Bin:
+		filename += format.BinExt
+		out, err = x.marshalToBin()
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to Wire", x.name)
+			return errors.Wrapf(err, "failed to export %s to Bin", x.name)
 		}
 	default:
 		return errors.Errorf("unknown output format: %v", fmt)
@@ -113,6 +113,6 @@ func (x *messageExporter) marshalToText() (out []byte, err error) {
 	return prototext.Marshal(x.msg)
 }
 
-func (x *messageExporter) marshalToWire() (out []byte, err error) {
+func (x *messageExporter) marshalToBin() (out []byte, err error) {
 	return proto.Marshal(x.msg)
 }
