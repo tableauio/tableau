@@ -1,0 +1,20 @@
+{
+    "parent": {
+        "parent2": {
+            "crossCellList": [
+                {
+                    "value": 1,
+                    "name": "Apple"
+                },
+                {
+                    "value": 2,
+                    "name": "Banana"
+                },
+                {
+                    "value": 3,
+                    "name": "Orange"
+                }
+            ]
+        }
+    }
+}

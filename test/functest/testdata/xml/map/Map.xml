@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- @TABLEAU
+<!--
+<@TABLEAU>
+    <Item Sheet="MapConf" />
+</@TABLEAU>
+
 <MapConf Open="bool">
     <Entry Id="map<uint32, Entry>" Value="int32" />
 </MapConf>

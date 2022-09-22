@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/antchfx/xmlquery"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
@@ -88,7 +89,10 @@ func FindMetaNode(xmlSheet *tableaupb.XMLSheet, path string) *tableaupb.XMLNode 
 func Test_isRepeated(t *testing.T) {
 	doc := `
 <?xml version='1.0' encoding='UTF-8'?>
-<!-- @TABLEAU -->
+<!-- 
+<@TABLEAU />
+-->
+
 <MatchCfg Open="true">
 	<TeamRatingWeight>
 		<Weight Num="1">
@@ -102,7 +106,8 @@ func Test_isRepeated(t *testing.T) {
 </MatchCfg>
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
-	xmlMeta, _, _ := readXMLFile(root, nil)
+	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
+	xmlMeta, _ := readXMLFile(root, newBook)
 	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight")
 	node2 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight/Param")
@@ -203,7 +208,11 @@ func Test_matchAttr(t *testing.T) {
 func Test_isFirstChild(t *testing.T) {
 	doc := `
 <?xml version='1.0' encoding='UTF-8'?>
-<!-- @TABLEAU
+<!--
+<@TABLEAU>
+	<Item Sheet="Server" />
+</@TABLEAU>
+
 <Server>
     <MapConf>
         <Weight Num="map&lt;uint32,Weight&gt;"/>
@@ -212,7 +221,8 @@ func Test_isFirstChild(t *testing.T) {
 -->
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
-	xmlMeta, _, _ := readXMLFile(root, nil)
+	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
+	xmlMeta, _ := readXMLFile(root, newBook)
 	sheet1 := getXMLSheet(xmlMeta, "Server")
 	node1 := FindMetaNode(sheet1, "Server/MapConf/Weight")
 	type args struct {
@@ -244,7 +254,11 @@ func Test_isFirstChild(t *testing.T) {
 func Test_fixNodeType(t *testing.T) {
 	doc := `
 <?xml version='1.0' encoding='UTF-8'?>
-<!-- @TABLEAU
+<!--
+<@TABLEAU>
+	<Item Sheet="MatchCfg" />
+</@TABLEAU>
+
 <MatchCfg open="true">
 	<MatchMode MissionType="map&lt;enum&lt;.MissionType&gt;,MatchMode&gt;">
 		<MatchAI IsOpen="bool" PlayerOnlyOneCamp="bool">
@@ -292,7 +306,8 @@ func Test_fixNodeType(t *testing.T) {
 </MatchCfg>
 `
 	root, _ := xmlquery.Parse(strings.NewReader(doc))
-	xmlMeta, _, _ := readXMLFile(root, nil)
+	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
+	xmlMeta, _ := readXMLFile(root, newBook)
 	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/MatchMode/MatchAI/AI")
 	node2 := FindMetaNode(sheet1, "MatchCfg/MapConf/Test/Weight")
@@ -394,7 +409,7 @@ func Test_fixNodeType(t *testing.T) {
 				curr:     node9,
 				oriType:  `[]int64`,
 			},
-			want: `{MapConf}[]<int64>`,
+			want: `{MapConf}[]int64`,
 		},
 		{
 			name: "MatchCfg/Broadcast/Content@txt",
