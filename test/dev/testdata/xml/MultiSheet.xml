@@ -1,5 +1,10 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!-- @TABLEAU
+<!--
+<@TABLEAU>
+    <Item Sheet="Server" />
+    <Item Sheet="Client" />
+</@TABLEAU>
+    
 <Server>
     <MapConf Param="[]int64" TypeNum="map<int32, int32>">
         <Weight Num="map<int32,Weight>"/>
