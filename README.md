@@ -1,6 +1,6 @@
 <p align="center">
-  <a href="https://getdoks.org/">
-    <img alt="Tableau" src="https://avatars.githubusercontent.com/u/97329105?s=200&v=4" width="200">
+  <a href="https://tableauio.github.io/">
+    <img alt="Tableau" src="https://avatars.githubusercontent.com/u/97329105?s=200&v=4" width="160">
   </a>
 </p>
 
@@ -34,7 +34,7 @@ A modern configuration converter based on Protobuf (proto3).
 - IR: Intermediate Representation.
 - Filter: filter the IR.
 - Exporter: JSON, Text, and Bin.
-- Protoconf: a dialect of Protobuf (proto3) extended with tableau options.
+- Protoconf: a dialect of Protobuf (proto3) extended with tableau options, also a conversion spec with expressive, elegant syntax.
 
 ## Design
 

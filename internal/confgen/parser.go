@@ -33,7 +33,7 @@ func NewSheetExporter(outputDir string, output *options.OutputConfOption) *sheet
 	}
 }
 
-// export the protomsg message.
+// parse and export the protomsg message.
 func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, importers ...importer.Importer) error {
 	md := protomsg.ProtoReflect().Descriptor()
 	msgName, wsOpts := ParseMessageOptions(md)
@@ -53,7 +53,7 @@ func ParseMessage(parser *sheetParser, protomsg proto.Message, sheetName string,
 	for _, imp := range importers {
 		sheet := imp.GetSheet(sheetName)
 		if sheet == nil {
-			return xerrors.ErrorKV(fmt.Sprintf("sheet %s not found", sheetName), xerrors.KeySheetName, sheetName)
+			return xerrors.ErrorKV(fmt.Sprintf("sheet %s not found in book %s", sheetName, imp.BookName()), xerrors.KeySheetName, sheetName)
 		}
 
 		if err := parser.Parse(protomsg, sheet); err != nil {
@@ -66,13 +66,25 @@ func ParseMessage(parser *sheetParser, protomsg proto.Message, sheetName string,
 type sheetParser struct {
 	ProtoPackage string
 	LocationName string
-	opts         *tableaupb.WorksheetOptions
+
+	gen  *Generator // nil if this is a simple parser
+	opts *tableaupb.WorksheetOptions
+}
+
+func NewSheetParserWithGen(gen *Generator, opts *tableaupb.WorksheetOptions) *sheetParser {
+	return &sheetParser{
+		ProtoPackage: gen.ProtoPackage,
+		LocationName: gen.LocationName,
+		gen:          gen,
+		opts:         opts,
+	}
 }
 
 func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
 	return &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
+		gen:          nil,
 		opts:         opts,
 	}
 }
@@ -889,6 +901,26 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	// check range
 	if !prop.InRange(field.opts.Prop, field.fd, newValue) {
 		return false, xerrors.ErrorKV(fmt.Sprintf("value %v out of range [%s]", newValue, field.opts.Prop.Range), kvs...)
+	}
+	if field.opts.Prop != nil {
+		if field.opts.Prop.Refer != "" {
+			if sp.gen == nil {
+				return false, xerrors.ErrorKV("field prop refer not empty, but Geneator was not provided", kvs...)
+			}
+			input := &prop.Input{
+				ProtoPackage:   sp.gen.ProtoPackage,
+				InputDir:       sp.gen.InputDir,
+				SubdirRewrites: sp.gen.InputOpt.SubdirRewrites,
+				PRFiles:        sp.gen.prFiles,
+			}
+			ok, err := prop.InReferredSpace(field.opts.Prop.Refer, cell.Data, input)
+			if err != nil {
+				return false, err
+			}
+			if !ok {
+				return false, xerrors.ErrorKV(fmt.Sprintf("value %s not in refered space: %s", cell.Data, field.opts.Prop.Refer), kvs...)
+			}
+		}
 	}
 	msg.Set(field.fd, newValue)
 	return true, nil

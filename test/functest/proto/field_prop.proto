@@ -9,6 +9,16 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/fieldprop/FieldProp#*.csv"};
 
+message ItemConf {
+  option (tableau.worksheet) = {name:"ItemConf" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 num = 2 [(tableau.field) = {name:"Num"}];
+  }
+}
+
 message ScalarFieldProp {
   option (tableau.worksheet) = {name:"ScalarFieldProp" namerow:1 typerow:2 noterow:3 datarow:4};
 
@@ -17,13 +27,13 @@ message ScalarFieldProp {
     uint32 id = 1 [(tableau.field) = {name:"ID" prop:{refer:"ItemConf.ID"}}];
     repeated Prop prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
     message Prop {
-      int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10" refer:"PropConf.ID"}}];
-      string flavor = 2 [(tableau.field) = {name:"Flavor" prop:{refer:"NameConf.Name"}}];
+      int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}];
+      string flavor = 2 [(tableau.field) = {name:"Flavor"}];
     }
     Appearance appearance = 3 [(tableau.field) = {name:"Appearance"}];
     message Appearance {
-      string color = 1 [(tableau.field) = {name:"Color" prop:{refer:"ColorConf.Name"}}];
-      string shape = 2 [(tableau.field) = {name:"Shape" prop:{refer:"ShapeConf.Name"}}];
+      string color = 1 [(tableau.field) = {name:"Color"}];
+      string shape = 2 [(tableau.field) = {name:"Shape"}];
     }
   }
 }

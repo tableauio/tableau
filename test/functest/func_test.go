@@ -55,7 +55,7 @@ func Test_CompareGeneratedProto(t *testing.T) {
 			t.Fatal(err)
 		}
 		newPath := filepath.Join(newConfDir, file.Name())
-		absNewPath, err := filepath.Abs(oldPath)
+		absNewPath, err := filepath.Abs(newPath)
 		require.ErrorIs(t, err, nil)
 		newfile, err := os.Open(newPath)
 		if err != nil {

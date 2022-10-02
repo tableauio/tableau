@@ -34,6 +34,9 @@ type Generator struct {
 	InputOpt     *options.InputConfOption  // Input settings.
 	OutputOpt    *options.OutputConfOption // output settings.
 
+	// protoregistry
+	prFiles *protoregistry.Files
+
 	// Performace stats
 	PerfStats sync.Map
 }
@@ -108,15 +111,15 @@ func (gen *Generator) GenAll() error {
 		return xerrors.WrapKV(err, "OutputDir", outputConfDir)
 	}
 
-	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+	err = gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, gen.prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 
 	var eg errgroup.Group
-	prFiles.RangeFilesByPackage(
+	gen.prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
 			eg.Go(func() error {
@@ -152,14 +155,14 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
 	}
-	prFiles, err := getProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+	err = gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
-	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, gen.prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 
 	workbookFound := false
-	prFiles.RangeFilesByPackage(
+	gen.prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
 			_, workbook := ParseFileOptions(fd)
@@ -243,10 +246,10 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		// log.Debugf("%s", md.FullName())
 		log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), md.Name(), workbook.Name, sheetName)
 		newMsg := dynamicpb.NewMessage(md)
-		parser := NewSheetParser(gen.ProtoPackage, gen.LocationName, sheetInfo.opts)
+		parser := NewSheetParserWithGen(gen, sheetInfo.opts)
 
 		// get merger importers
-		importers, err := GetMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
+		importers, err := importer.GetMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
 		if err != nil {
 			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 		}
@@ -269,44 +272,8 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 	return nil
 }
 
-// GetMergerImporters gathers all merger importers.
-// 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
-// 	2. exclude self
-func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) ([]importer.Importer, error) {
-	if len(merger) == 0 {
-		return nil, nil
-	}
-
-	curDir := filepath.Dir(primaryWorkbookPath)
-	mergerWorkbookPaths := map[string]bool{}
-	for _, merger := range merger {
-		pattern := filepath.Join(curDir, merger)
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
-		}
-		for _, match := range matches {
-			if fs.IsSamePath(match, primaryWorkbookPath) {
-				// exclude self
-				continue
-			}
-			mergerWorkbookPaths[match] = true
-		}
-	}
-	var importers []importer.Importer
-	for fpath := range mergerWorkbookPaths {
-		log.Infof("%18s: %s", "merge workbook", fpath)
-		importer, err := importer.New(fpath, importer.Sheets([]string{sheetName}))
-		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
-		}
-		importers = append(importers, importer)
-	}
-	return importers, nil
-}
-
 // get protoregistry.Files with specified package name
-func getProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles []string, excludeProtoFiles ...string) (*protoregistry.Files, error) {
+func (gen *Generator) loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles []string, excludeProtoFiles ...string) error {
 	count := 0
 	prFiles := protoregistry.GlobalFiles
 	prFiles.RangeFilesByPackage(
@@ -317,7 +284,13 @@ func getProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles 
 		})
 	if count != 0 {
 		log.Debugf("use already injected protoregistry.GlobalFiles")
-		return prFiles, nil
+		gen.prFiles = prFiles
+		return nil
 	}
-	return xproto.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
+	prFiles, err := xproto.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
+	if err != nil {
+		return err
+	}
+	gen.prFiles = prFiles
+	return nil
 }

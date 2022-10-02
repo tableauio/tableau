@@ -1,0 +1,6 @@
+ID,Num
+"map<uint32, Item>",int32
+Item1's ID,
+1,100
+2,200
+3,300

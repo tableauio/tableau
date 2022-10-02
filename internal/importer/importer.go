@@ -5,7 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/log"
 )
 
 type Importer interface {
@@ -25,6 +27,7 @@ type Importer interface {
 	GetSheet(name string) *book.Sheet
 }
 
+// New creates a new importer.
 func New(filename string, setters ...Option) (Importer, error) {
 	opts := parseOptions(setters...)
 	fmt := format.Ext2Format(filepath.Ext(filename))
@@ -38,4 +41,40 @@ func New(filename string, setters ...Option) (Importer, error) {
 	default:
 		return nil, errors.Errorf("unsupported format: %v", fmt)
 	}
+}
+
+// GetMergerImporters gathers all merger importers.
+// 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
+// 	2. exclude self
+func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) ([]Importer, error) {
+	if len(merger) == 0 {
+		return nil, nil
+	}
+
+	curDir := filepath.Dir(primaryWorkbookPath)
+	mergerWorkbookPaths := map[string]bool{}
+	for _, merger := range merger {
+		pattern := filepath.Join(curDir, merger)
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
+		}
+		for _, match := range matches {
+			if fs.IsSamePath(match, primaryWorkbookPath) {
+				// exclude self
+				continue
+			}
+			mergerWorkbookPaths[match] = true
+		}
+	}
+	var importers []Importer
+	for fpath := range mergerWorkbookPaths {
+		log.Infof("%18s: %s", "merge workbook", fpath)
+		importer, err := New(fpath, Sheets([]string{sheetName}))
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+		}
+		importers = append(importers, importer)
+	}
+	return importers, nil
 }

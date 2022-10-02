@@ -73,7 +73,7 @@ message FieldOptions {
 }
 
 message FieldProp {
-  // Usage: {range:"1,10" refer:"XXXConf.ID"}
+  // Usage: {range:"1,10" refer:"Item.ID"}
 
   // NOTE: two perspectives of the check:
   //   - Local perspective, the check only depends on configuration of itself.
@@ -87,8 +87,15 @@ message FieldProp {
   string range = 1;
   // Local perspective: whether the map key's value is unique.
   bool unique = 2;
-  // Global perspective: ensure this field is in another message's field range.
-  // E.g: "XXXConf.ID".
+  // Global perspective: ensure this field value is in another sheet's
+  // column value space (aka message's field value space).
+  //
+  // Format: "<SheetName>[(SheetAlias)].<ColumnName>"
+  //
+  // E.g: 
+  //  - "Item.ID" : sheet name is unique.
+  //  - "Item(ItemConf).ID" : different workbooks have the same sheet name, 
+  //    but sheet alias is unique inherently.
   string refer = 3;
   // Local perspective: ensure this field's value is a sequence and begins with this value.
   // Effect: key of map or keyed list.
