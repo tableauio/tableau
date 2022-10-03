@@ -1,0 +1,9 @@
+{{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
+Workbook: {{.BookName}}
+Worksheet: {{.SheetName}}
+NameCellPos: {{.NameCellPos}}
+NameCell: {{.NameCell}}
+TypeCellPos: {{.TypeCellPos}}
+TypeCell: {{.TypeCell}}|{{.PBFieldOpts}}
+Reason: {{.Reason}}
+{{ if .Help }}Help: {{.Help}}{{ end }}

@@ -90,7 +90,7 @@ message FieldProp {
   // Global perspective: ensure this field value is in another sheet's
   // column value space (aka message's field value space).
   //
-  // Format: "<SheetName>[(SheetAlias)].<ColumnName>"
+  // Format: "SheetName(SheetAlias).ColumnName"
   //
   // E.g: 
   //  - "Item.ID" : sheet name is unique.

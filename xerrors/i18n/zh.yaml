@@ -1,0 +1,8 @@
+E2001:
+  desc: field prop "refer" not configured correctly
+  text: 解析refer值空间校验 "{{.Refer}}" 时，找不到对应表单 "{{.MessageName}}"
+  help: '尝试加上sheet别名，格式： "SheetName(SheetAlias).ColumnName"'
+E2002:
+  desc: field value not in referred space
+  text: '值"{{.Value}}"不在"{{.Refer}}"所指定的值空间中'
+  help: 请确保在"{{.Refer}}"所指定的值空间中提前配置好值"{{.Value}}"

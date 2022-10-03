@@ -8,6 +8,11 @@ import (
 // Options is the wrapper of tableau params.
 // Options follow the design of Functional Options (https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md).
 type Options struct {
+	// error language: en, zh.
+	//
+	// Default: "en".
+	Lang string
+
 	// Location represents the collection of time offsets in use in a geographical area.
 	// If the name is "" or "UTC", LoadLocation returns UTC.
 	// If the name is "Local", LoadLocation returns Local.
@@ -269,12 +274,12 @@ func OutputConf(o *OutputConfOption) Option {
 // NewDefault returns a default Options.
 func NewDefault() *Options {
 	return &Options{
+		Lang:         "en",
 		LocationName: "Local",
 		Log: &log.Options{
 			Mode:  "SIMPLE",
 			Level: "INFO",
 			Sink:  "CONSOLE",
-			Lang:  "en",
 		},
 		Input: &InputOption{
 			Proto: &InputProtoOption{

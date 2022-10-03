@@ -130,7 +130,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	fullName := protoreflect.FullName(input.ProtoPackage + "." + referInfo.GetMessageName())
 	desc, err := input.PRFiles.FindDescriptorByName(fullName)
 	if err != nil {
-		return nil, xerrors.WithStack(err)
+		return nil, xerrors.E2001(refer, referInfo.GetMessageName())
 	}
 
 	// get workbook name and worksheet name

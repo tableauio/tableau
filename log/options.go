@@ -17,18 +17,9 @@ type Options struct {
 	//
 	// Default: "CONSOLE".
 	Sink string
-	// Log language: en, zh.
-	//
-	// Default: "en".
-	Lang string
 }
 
 const (
 	ModeSimple = "SIMPLE"
 	ModeFull   = "FULL"
-)
-
-const (
-	LangEn = "en"
-	LangZh = "zh"
 )

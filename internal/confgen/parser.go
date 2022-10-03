@@ -918,7 +918,8 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 				return false, err
 			}
 			if !ok {
-				return false, xerrors.ErrorKV(fmt.Sprintf("value %s not in refered space: %s", cell.Data, field.opts.Prop.Refer), kvs...)
+				err := xerrors.E2002(cell.Data, field.opts.Prop.Refer)
+				return false, xerrors.WithMessageKV(err, kvs...)
 			}
 		}
 	}

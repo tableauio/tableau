@@ -87,11 +87,7 @@ func genProto(t *testing.T) {
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
-		if log.Lang() == log.LangEn {
-			t.Fatalf("%s", xerrors.NewDesc(err).String())
-		} else {
-			t.Fatalf("%s", xerrors.NewDesc(err).StringZh())
-		}
+		t.Fatalf("%s", xerrors.NewDesc(err))
 	}
 }
 
@@ -125,11 +121,7 @@ func genConf(t *testing.T) {
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
-		if log.Lang() == log.LangEn {
-			t.Fatalf("%s", xerrors.NewDesc(err).String())
-		} else {
-			t.Fatalf("%s", xerrors.NewDesc(err).StringZh())
-		}
+		t.Fatalf("%s", xerrors.NewDesc(err))
 	}
 }
 

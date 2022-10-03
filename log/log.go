@@ -47,10 +47,6 @@ func Mode() string {
 	return gOpts.Mode
 }
 
-func Lang() string {
-	return gOpts.Lang
-}
-
 func SetDriver(driver driver.Driver) {
 	defaultLogger.driver = driver
 }

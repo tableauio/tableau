@@ -1,0 +1,8 @@
+E2001:
+  desc: field prop "refer" not configured correctly
+  text: in configured refer "{{.Refer}}", message "{{.MessageName}}" not found
+  help: 'try using format with sheet alias: "SheetName(SheetAlias).ColumnName"'
+E2002:
+  desc: field value not in referred space
+  text: value "{{.Value}}" not in referred space "{{.Refer}}"
+  help: guarantee value "{{.Value}}" was configured in referred space "{{.Refer}}" ahead

@@ -1,0 +1,9 @@
+{{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
+工作簿: {{.BookName}}
+表单: {{.SheetName}}
+命名单元格位置: {{.NameCellPos}}
+命名单元格的值: {{.NameCell}}
+类型单元格位置: {{.TypeCellPos}}
+类型单元格的值: {{.TypeCell}}|{{.PBFieldOpts}}
+错误原因: {{.Reason}}
+{{ if .Help }}修复建议: {{.Help}}{{ end }}

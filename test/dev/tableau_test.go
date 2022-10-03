@@ -63,7 +63,6 @@ func Test_GenProto(t *testing.T) {
 			&log.Options{
 				Level: "INFO",
 				Mode:  "SIMPLE",
-				Lang:  "en",
 			},
 		),
 	)
@@ -74,11 +73,7 @@ func Test_GenProto(t *testing.T) {
 		if log.Mode() == log.ModeFull {
 			t.Errorf("generate conf failed: %+v", err)
 		}
-		if log.Lang() == log.LangEn {
-			t.Errorf("%s", xerrors.NewDesc(err).String())
-		} else {
-			t.Errorf("%s", xerrors.NewDesc(err).StringZh())
-		}
+		t.Errorf("%s", xerrors.NewDesc(err))
 	}
 }
 
@@ -98,7 +93,6 @@ func Test_GenConf(t *testing.T) {
 			&log.Options{
 				Level: "INFO",
 				Mode:  "SIMPLE",
-				Lang:  "zh",
 			},
 		),
 	)
@@ -108,11 +102,7 @@ func Test_GenConf(t *testing.T) {
 		if log.Mode() == log.ModeFull {
 			t.Errorf("generate conf failed: %+v", err)
 		}
-		if log.Lang() == log.LangEn {
-			t.Errorf("%s", xerrors.NewDesc(err).String())
-		} else {
-			t.Errorf("%s", xerrors.NewDesc(err).StringZh())
-		}
+		t.Errorf("%s", xerrors.NewDesc(err))
 	}
 }
 
