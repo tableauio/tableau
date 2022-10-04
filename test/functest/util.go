@@ -119,7 +119,7 @@ func genConf(t *testing.T) {
 				},
 			},
 		),
-		// options.Lang("zh"),
+		options.Lang("zh"),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)

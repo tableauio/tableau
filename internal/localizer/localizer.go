@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
-	"reflect"
-	"strings"
 	"text/template"
 
 	"gopkg.in/yaml.v2"
@@ -28,7 +26,7 @@ func Get(lang string) *Localizer {
 type Localizer struct {
 	lang   string
 	ecodes ecodeMap
-	tmpl   *template.Template
+	kvs    kvMap
 }
 
 func (l Localizer) RenderEcode(ecode string, data interface{}) *EcodeDetail {
@@ -44,13 +42,12 @@ func (l Localizer) RenderEcode(ecode string, data interface{}) *EcodeDetail {
 	}
 }
 
-func (l Localizer) RenderSummary(module string, data interface{}) string {
-	buf := bytes.NewBufferString("")
-	name := fmt.Sprintf("%s_%s.tmpl", module, l.lang)
-	if err := l.tmpl.ExecuteTemplate(buf, name, data); err != nil {
-		panic(err)
+func (l Localizer) RenderKV(key string, data interface{}) string {
+	text, ok := l.kvs[key]
+	if !ok {
+		panic(fmt.Sprintf("key %s not found", key))
 	}
-	return buf.String()
+	return render(text, data)
 }
 
 // See https://rustc-dev-guide.rust-lang.org/diagnostics.html
@@ -63,6 +60,7 @@ type EcodeDetail struct {
 
 // ecode -> ecode detail
 type ecodeMap map[string]EcodeDetail
+type kvMap map[string]string
 
 func init() {
 	localizers = make((map[string]*Localizer))
@@ -77,27 +75,22 @@ func init() {
 		if err := yaml.Unmarshal(data, &ecodes); err != nil {
 			panic(err)
 		}
-		// init summary
-		// refer: https://stackoverflow.com/questions/22367337/last-item-in-a-template-range
-		funcMap := template.FuncMap{
-			"last": func(x int, a interface{}) bool {
-				return x == reflect.ValueOf(a).Len()-1
-			},
-			"notlast": func(x int, a interface{}) bool {
-				return x != reflect.ValueOf(a).Len()-1
-			},
-			"hasprefix": strings.HasPrefix,
-		}
-		t := template.New("ERR-TMPL")
-		t, err = t.Funcs(funcMap).ParseFS(localeFS, "i18n/summary/*.tmpl")
+
+		// init kv
+		filename = "i18n/kv/" + lang + ".yaml"
+		data, err = localeFS.ReadFile(filename)
 		if err != nil {
+			panic(err)
+		}
+		var kvs kvMap
+		if err := yaml.Unmarshal(data, &kvs); err != nil {
 			panic(err)
 		}
 
 		localizers[lang] = &Localizer{
 			lang:   lang,
 			ecodes: ecodes,
-			tmpl:   t,
+			kvs:    kvs,
 		}
 	}
 	// set default localizer of lang

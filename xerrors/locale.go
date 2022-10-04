@@ -4,8 +4,8 @@ import (
 	"github.com/tableauio/tableau/internal/localizer"
 )
 
-func renderSummary(module string, data interface{}) string {
-	return localizer.Default.RenderSummary(module, data)
+func renderSummary(module string, data map[string]interface{}) string {
+	return localizer.Default.RenderKV(module, data)
 }
 
 func renderEcode(ecode string, data interface{}) error {
