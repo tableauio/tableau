@@ -8,7 +8,7 @@ import (
 // Options is the wrapper of tableau params.
 // Options follow the design of Functional Options (https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md).
 type Options struct {
-	// error language: en, zh.
+	// locale BCP 47 language tags: en, zh.
 	//
 	// Default: "en".
 	Lang string
@@ -207,17 +207,24 @@ type OutputConfOption struct {
 // Option is the functional option type.
 type Option func(*Options)
 
-// Log sets log options.
-func Log(o *log.Options) Option {
-	return func(opts *Options) {
-		opts.Log = o
-	}
-}
-
 // LocationName sets TZ location name for parsing datetime format.
 func LocationName(o string) Option {
 	return func(opts *Options) {
 		opts.LocationName = o
+	}
+}
+
+// Lang sets BCP 47 language tags: en, zh.
+func Lang(o string) Option {
+	return func(opts *Options) {
+		opts.Lang = o
+	}
+}
+
+// Log sets log options.
+func Log(o *log.Options) Option {
+	return func(opts *Options) {
+		opts.Log = o
 	}
 }
 

@@ -16,9 +16,9 @@ option (tableau.workbook) = {name:"excel/Test#*.csv"};
 message Activity {
   option (tableau.worksheet) = {name:"Activity" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," ordered_map:true};
 
-  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL prop:{range:"~,999999"}}];
+  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL}];
   message Activity {
-    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID"}];
+    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID" prop:{range:"~,999999"}}];
     string activity_name = 2 [(tableau.field) = {name:"ActivityName"}];
     map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
     message Chapter {

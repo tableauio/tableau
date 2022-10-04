@@ -8,6 +8,7 @@ import (
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/log"
@@ -29,6 +30,9 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) err
 // GenProto can convert Excel/CSV/XML files to protoconf files.
 func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
 	opts := options.ParseOptions(setters...)
+	if err := localizer.SetLang(opts.Lang); err != nil {
+		return err
+	}
 	if err := log.Init(opts.Log); err != nil {
 		return err
 	}
@@ -40,6 +44,9 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (er
 // GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Bin.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
+	if err := localizer.SetLang(opts.Lang); err != nil {
+		return err
+	}
 	if err := log.Init(opts.Log); err != nil {
 		return err
 	}
@@ -66,5 +73,3 @@ func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
 		importer.Parser(parser),
 	)
 }
-
-

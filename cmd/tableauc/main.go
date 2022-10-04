@@ -9,6 +9,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau/internal/confgen"
+	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -74,6 +75,9 @@ func runE(cmd *cobra.Command, args []string) error {
 	config, err := loadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("load config failed: %s", err)
+	}
+	if err := localizer.SetLang(config.Lang); err != nil {
+		return fmt.Errorf("set lang failed: %s", err)
 	}
 	if err := log.Init(config.Log); err != nil {
 		return fmt.Errorf("init log failed: %s", err)

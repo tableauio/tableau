@@ -84,6 +84,7 @@ func genProto(t *testing.T) {
 				Mode:  "FULL",
 			},
 		),
+		// options.Lang("zh"),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
@@ -118,6 +119,7 @@ func genConf(t *testing.T) {
 				},
 			},
 		),
+		// options.Lang("zh"),
 	)
 	if err != nil {
 		t.Errorf("%+v", err)
