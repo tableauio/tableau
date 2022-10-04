@@ -311,9 +311,9 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			}
 			var newMapValue protoreflect.Value
 			if reflectMap.Has(newMapKey) {
-				// check uniqueness
-				if prop.IsUnique(field.opts.Prop) {
-					return false, xerrors.ErrorKV(fmt.Sprintf("key %s already exists", cell.Data), kvs...)
+				// check key uniqueness
+				if err := prop.CheckKeyUnique(field.opts.Prop, cell.Data, true); err != nil {
+					return false, xerrors.WrapKV(err, kvs...)
 				}
 				newMapValue = reflectMap.Mutable(newMapKey)
 			} else {
@@ -347,9 +347,9 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 
 			newMapKey := fieldValue.MapKey()
 			if reflectMap.Has(newMapKey) {
-				// check uniqueness
-				if prop.IsUnique(field.opts.Prop) {
-					return false, xerrors.ErrorKV(fmt.Sprintf("key %s already exists", cell.Data), kvs...)
+				// check key uniqueness
+				if err := prop.CheckKeyUnique(field.opts.Prop, cell.Data, true); err != nil {
+					return false, xerrors.WrapKV(err, kvs...)
 				}
 			}
 			// value cell
@@ -367,10 +367,6 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if !keyPresent && !valuePresent {
 				// key and value are both not present.
 				break
-			}
-			// check key range
-			if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
-				return false, xerrors.ErrorKV(fmt.Sprintf("value %s out of range [%s]", cell.Data, field.opts.Prop.Range), kvs...)
 			}
 			if !reflectMap.Has(newMapKey) {
 				reflectMap.Set(newMapKey, newMapValue)
@@ -402,9 +398,9 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
-					// check uniqueness
-					if prop.IsUnique(field.opts.Prop) {
-						return false, xerrors.ErrorKV(fmt.Sprintf("key %s already exists", cell.Data), kvs...)
+					// check key uniqueness
+					if err := prop.CheckKeyUnique(field.opts.Prop, cell.Data, true); err != nil {
+						return false, xerrors.WrapKV(err, kvs...)
 					}
 					newMapValue = reflectMap.Mutable(newMapKey)
 				} else {
@@ -467,11 +463,6 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					break
 				}
 
-				// check key range
-				if !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
-					return false, xerrors.ErrorKV(fmt.Sprintf("key %s out of range [%s]", key, field.opts.Prop.Range), kvs...)
-				}
-
 				reflectMap.Set(newMapKey, newMapValue)
 			}
 		}
@@ -517,14 +508,10 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 		if err != nil {
 			return mapKey, false, xerrors.WrapKV(err)
 		}
-		// check range: key, if it is present
-		if present && !prop.InRange(field.opts.Prop, keyFd, fieldValue) {
-			return mapKey, false, xerrors.Errorf("\"%s\" out of range [%s]", cellData, field.opts.Prop.Range)
-		}
 		mapKey = fieldValue.MapKey()
 	}
 	if !prop.CheckMapKeySequence(field.opts.Prop, keyFd.Kind(), mapKey, reflectMap) {
-		return mapKey, false, xerrors.Errorf("map key \"%s\" is not the initial or next sequence number", cellData)
+		return mapKey, false, xerrors.E2003(cellData, field.opts.Prop.GetSequence())
 	}
 	return mapKey, present, nil
 }
@@ -730,9 +717,9 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				// TODO: check the remaining keys all not present, otherwise report error!
 				break
 			}
-			// check range
-			if !prop.InRange(field.opts.Prop, field.fd, fieldValue) {
-				return false, xerrors.ErrorKV(fmt.Sprintf("value %s out of range [%s]", elem, field.opts.Prop.Range), kvs...)
+			// check incell list element range
+			if err := prop.CheckInRange(field.opts.Prop, field.fd, fieldValue); err != nil {
+				return false, xerrors.WrapKV(err, kvs...)
 			}
 			if field.opts.Key != "" {
 				// keyed list
@@ -899,8 +886,8 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 		return false, nil
 	}
 	// check range
-	if !prop.InRange(field.opts.Prop, field.fd, newValue) {
-		return false, xerrors.ErrorKV(fmt.Sprintf("value %v out of range [%s]", newValue, field.opts.Prop.Range), kvs...)
+	if err := prop.CheckInRange(field.opts.Prop, field.fd, newValue); err != nil {
+		return false, xerrors.WrapKV(err, kvs...)
 	}
 	if field.opts.Prop != nil {
 		if field.opts.Prop.Refer != "" {

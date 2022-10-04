@@ -7,16 +7,21 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func IsUnique(prop *tableaupb.FieldProp) bool {
-	return prop != nil && prop.Unique
+func CheckKeyUnique(prop *tableaupb.FieldProp, key string, existed bool) error {
+	unique := prop != nil && prop.Unique
+	if unique && existed {
+		return xerrors.E2005(key)
+	}
+	return nil
 }
 
-func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value) bool {
+func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value) error {
 	if prop == nil || strings.TrimSpace(prop.Range) == "" {
-		return true
+		return nil
 	}
 	splits := strings.SplitN(prop.Range, ",", 2)
 	leftStr := strings.TrimSpace(splits[0])
@@ -29,21 +34,19 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if leftStr != "~" {
 			left, err := strconv.ParseInt(leftStr, 10, 64)
 			if err != nil {
-				log.Errorf("invalid range left: %s", prop.Range)
-				return false
+				return xerrors.Errorf("invalid range left: %s", prop.Range)
 			}
 			if v < left {
-				return false
+				return xerrors.E2004(v, prop.Range)
 			}
 		}
 		if rightStr != "~" {
 			right, err := strconv.ParseInt(rightStr, 10, 64)
 			if err != nil {
-				log.Errorf("invalid range right: %s", prop.Range)
-				return false
+				return xerrors.Errorf("invalid range right: %s", prop.Range)
 			}
 			if v > right {
-				return false
+				return xerrors.E2004(v, prop.Range)
 			}
 		}
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
@@ -52,21 +55,19 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if leftStr != "~" {
 			left, err := strconv.ParseUint(leftStr, 10, 64)
 			if err != nil {
-				log.Errorf("invalid range(left): %s", prop.Range)
-				return false
+				return xerrors.Errorf("invalid range(left): %s", prop.Range)
 			}
 			if v < left {
-				return false
+				return xerrors.E2004(v, prop.Range)
 			}
 		}
 		if rightStr != "~" {
 			right, err := strconv.ParseUint(rightStr, 10, 64)
 			if err != nil {
-				log.Errorf("invalid range right: %s", prop.Range)
-				return false
+				return xerrors.Errorf("invalid range right: %s", prop.Range)
 			}
 			if v > right {
-				return false
+				return xerrors.E2004(v, prop.Range)
 			}
 		}
 	case protoreflect.FloatKind, protoreflect.DoubleKind:
@@ -74,25 +75,23 @@ func InRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value p
 		if leftStr != "~" {
 			left, err := strconv.ParseFloat(leftStr, 64)
 			if err != nil {
-				log.Errorf("invalid range left: %s", prop.Range)
-				return false
+				return xerrors.Errorf("invalid range left: %s", prop.Range)
 			}
 			if v < left {
-				return false
+				return xerrors.E2004(v, prop.Range)
 			}
 		}
 		if rightStr != "~" {
 			right, err := strconv.ParseFloat(rightStr, 64)
 			if err != nil {
-				log.Errorf("invalid range right: %s", prop.Range)
-				return false
+				return xerrors.Errorf("invalid range right: %s", prop.Range)
 			}
 			if v > right {
-				return false
+				return xerrors.E2004(v, prop.Range)
 			}
 		}
 	}
-	return true
+	return nil
 }
 
 func CheckMapKeySequence(prop *tableaupb.FieldProp, kind protoreflect.Kind, mapkey protoreflect.MapKey, prefMap protoreflect.Map) bool {

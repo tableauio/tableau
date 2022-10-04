@@ -22,9 +22,9 @@ message ItemConf {
 message ScalarFieldProp {
   option (tableau.worksheet) = {name:"ScalarFieldProp" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{range:"1,100" unique:true sequence:1}}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true sequence:1}}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{refer:"ItemConf.ID"}}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,100" refer:"ItemConf.ID"}}];
     repeated Prop prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
     message Prop {
       int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}];

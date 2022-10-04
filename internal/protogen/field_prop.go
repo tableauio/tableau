@@ -16,7 +16,6 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
-		Range:    prop.Range,
 	}
 	if proto.Equal(emptyFieldProp, p) {
 		return nil
@@ -33,19 +32,6 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
-	}
-	if proto.Equal(emptyFieldProp, p) {
-		return nil
-	}
-	return p
-}
-
-func ExtractMapKeyFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
-	if prop == nil {
-		return nil
-	}
-	p := &tableaupb.FieldProp{
-		Refer: prop.Refer,
 	}
 	if proto.Equal(emptyFieldProp, p) {
 		return nil

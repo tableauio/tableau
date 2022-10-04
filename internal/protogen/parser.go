@@ -231,15 +231,12 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
 		}
-		scalarField, err := p.parseScalarField(trimmedNameCell, keyType, noteCell)
+		scalarField, err := p.parseScalarField(trimmedNameCell, keyType+rawPropText, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, keyType+" (map key)",
 				xerrors.KeyPBFieldOpts, rawPropText,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
-		}
-		if scalarField.Options != nil {
-			scalarField.Options.Prop = ExtractMapKeyFieldProp(prop)
 		}
 
 		field.Fields = append(field.Fields, scalarField)
@@ -287,15 +284,12 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Layout: layout,
 			Prop:   ExtractMapFieldProp(prop),
 		}
-		scalarField, err := p.parseScalarField(trimmedNameCell, keyType, noteCell)
+		scalarField, err := p.parseScalarField(trimmedNameCell, keyType+rawPropText, noteCell)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, keyType+" (map key)",
 				xerrors.KeyPBFieldOpts, rawPropText,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
-		}
-		if scalarField.Options != nil {
-			scalarField.Options.Prop = ExtractMapKeyFieldProp(prop)
 		}
 		field.Fields = append(field.Fields, scalarField)
 
