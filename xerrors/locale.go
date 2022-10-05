@@ -5,7 +5,7 @@ import (
 )
 
 func renderSummary(module string, data map[string]interface{}) string {
-	return localizer.Default.RenderKV(module, data)
+	return localizer.Default.RenderMessage(module, data)
 }
 
 func renderEcode(ecode string, data interface{}) error {
