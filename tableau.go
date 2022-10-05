@@ -73,3 +73,43 @@ func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
 		importer.Parser(parser),
 	)
 }
+
+// NewProtoGenerator creates a new proto generator.
+func NewProtoGenerator(protoPackage, indir, outdir string, options ...options.Option) *protogen.Generator {
+	return protogen.NewGenerator(protoPackage, indir, outdir, options...)
+}
+
+// NewProtoGeneratorWithOptions creates a new proto generator with options.
+func NewProtoGeneratorWithOptions(protoPackage, indir, outdir string, options *options.Options) *protogen.Generator {
+	return protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, options)
+}
+
+// NewConfGenerator creates a new conf generator.
+func NewConfGenerator(protoPackage, indir, outdir string, options ...options.Option) *confgen.Generator {
+	return confgen.NewGenerator(protoPackage, indir, outdir, options...)
+}
+
+// NewConfGeneratorWithOptions creates a new conf generator with options.
+func NewConfGeneratorWithOptions(protoPackage, indir, outdir string, options *options.Options) *confgen.Generator {
+	return confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, options)
+}
+
+// VersionInfo holds versions of tableau'd main modules.
+type VersionInfo struct {
+	ProtoGenVer string // version of protogen module
+	ConfGenVer  string // version of confgen module
+}
+
+// GetVersionInfo returns VersionInfo of tableau.
+func GetVersionInfo() *VersionInfo {
+	return &VersionInfo{
+		ProtoGenVer: protogen.AppVersion(),
+		ConfGenVer:  confgen.AppVersion(),
+	}
+}
+
+// SetLang sets the default language. 
+// E.g: en, zh.
+func SetLang(lang string) error{
+	return localizer.SetLang(lang)
+}

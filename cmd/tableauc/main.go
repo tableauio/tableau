@@ -8,9 +8,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
-	"github.com/tableauio/tableau/internal/confgen"
-	"github.com/tableauio/tableau/internal/localizer"
-	"github.com/tableauio/tableau/internal/protogen"
+	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/xerrors"
@@ -76,7 +74,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("load config failed: %s", err)
 	}
-	if err := localizer.SetLang(config.Lang); err != nil {
+	if err := tableau.SetLang(config.Lang); err != nil {
 		return fmt.Errorf("set lang failed: %s", err)
 	}
 	if err := log.Init(config.Log); err != nil {
@@ -105,7 +103,7 @@ func runE(cmd *cobra.Command, args []string) error {
 
 func genProto(workbooks []string, config *options.Options) error {
 	// generate proto files
-	gen := protogen.NewGeneratorWithOptions(protoPackage, indir, outdir, config)
+	gen := tableau.NewProtoGeneratorWithOptions(protoPackage, indir, outdir, config)
 	if err := gen.Generate(workbooks...); err != nil {
 		logError(ModeProto, err)
 		return fmt.Errorf("generate proto failed")
@@ -115,7 +113,7 @@ func genProto(workbooks []string, config *options.Options) error {
 
 func genConf(workbooks []string, config *options.Options) error {
 	// generate conf files
-	gen := confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, config)
+	gen := tableau.NewConfGeneratorWithOptions(protoPackage, indir, outdir, config)
 	if err := gen.Generate(workbooks...); err != nil {
 		logError(ModeConf, err)
 		return fmt.Errorf("generate conf failed")
@@ -156,7 +154,8 @@ func ShowConfigSample() error {
 }
 
 func genVersion() string {
+	verInfo := tableau.GetVersionInfo()
 	ver := version
-	ver += fmt.Sprintf(" (%s, %s)", protogen.AppVersion(), confgen.AppVersion())
+	ver += fmt.Sprintf(" (%s, %s)", verInfo.ProtoGenVer, verInfo.ConfGenVer)
 	return ver
 }
