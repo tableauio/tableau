@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+<@TABLEAU>
+    <Item Sheet="MetasheetConf" Sep=";" />
+    <Item Sheet="TemplateConf" Template="true" />
+</@TABLEAU>
+
+<MetasheetConf>
+    <SepConf number="[]int32" />
+</MetasheetConf>
+
+<TemplateConf>
+    <OutputType Type="int32" />
+</TemplateConf>
+-->
+
+<MetasheetConf>
+    <SepConf number="1;2;3" />
+</MetasheetConf>
+
+<TemplateConf>
+    {% if proc.name == 'gamesvr' %}
+    <OutputType Type="{{ proc.output_type|default('0') }}" />
+    {% endif %}
+</TemplateConf>

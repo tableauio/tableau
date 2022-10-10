@@ -71,7 +71,7 @@ func genProto(t *testing.T) {
 		options.Output(
 			&options.OutputOption{
 				Proto: &options.OutputProtoOption{
-					FilenameWithSubdirPrefix: false,
+					FilenameWithSubdirPrefix: true,
 					FileOptions: map[string]string{
 						"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
 					},

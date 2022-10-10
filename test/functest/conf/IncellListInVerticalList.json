@@ -1,23 +1,23 @@
 {
-    "itemList": [
+    "itemList":  [
         {
-            "id": 1,
-            "propList": [
+            "id":  1,
+            "propList":  [
                 10,
                 20,
                 30
             ]
         },
         {
-            "id": 2,
-            "propList": [
+            "id":  2,
+            "propList":  [
                 10,
                 20
             ]
         },
         {
-            "id": 3,
-            "propList": [
+            "id":  3,
+            "propList":  [
                 10
             ]
         }

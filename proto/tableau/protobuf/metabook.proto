@@ -51,6 +51,9 @@ message Metasheet {
   // with the optional label have explicit presence, like proto2 (this feature is enabled by default
   // as release 3.15). Refer: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
   bool field_presence = 15 [(tableau.field) = { name: "FieldPresence" optional: true }];
+  // declares if sheet is a template config, which only generates protobuf IDL and not generates json data.
+  // NOTE: currently only used for XML protogen.
+  bool template = 16 [(tableau.field) = { name: "Template" optional: true }];
 
   ////////// Loader related options below //////////
   // generate ordered map accessers
@@ -64,5 +67,5 @@ message Metasheet {
   // C++:
   // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
-  repeated string index = 51 [(tableau.field) = { name: "Index" optional: true layout: LAYOUT_INCELL }];
+  repeated string index = 51 [(tableau.field) = { name: "Index" optional: true layout: LAYOUT_INCELL }];  
 }

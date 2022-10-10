@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/antchfx/xmlquery"
-	"github.com/iancoleman/strcase"
+	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
@@ -36,8 +36,9 @@ var attrRegexp *regexp.Regexp
 var scalarListRegexp *regexp.Regexp
 
 const (
-	xmlProlog         = `<?xml version='1.0' encoding='UTF-8'?>`
-	ungreedyPropGroup = `(\|\{[^\{\}]+\})?`
+	xmlProlog             = `<?xml version='1.0' encoding='UTF-8'?>`
+	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`
+	atTableauDisplacement = `ATABLEAU`
 )
 
 func init() {
@@ -46,8 +47,8 @@ func init() {
 }
 
 // TODO: options
-func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
-	newBook, err := parseXML(filename, sheets)
+func NewXMLImporter(filename string, sheets []string, parser book.SheetParser) (*XMLImporter, error) {
+	newBook, err := parseXML(filename, sheets, parser)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
@@ -67,7 +68,7 @@ func NewXMLImporter(filename string, sheets []string) (*XMLImporter, error) {
 
 // parseXML parse sheets in the XML file named `filename` and return a book with multiple sheets
 // in TABLEAU grammar which can be exported to protobuf by excel parser.
-func parseXML(filename string, sheetNames []string) (*book.Book, error) {
+func parseXML(filename string, sheetNames []string, parser book.SheetParser) (*book.Book, error) {
 	log.Debugf("xml: %s", filename)
 	buf, err := os.ReadFile(filename)
 	if err != nil {
@@ -87,7 +88,9 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 	}
 
 	// The first pass
-	xmlMeta, sheetNames, err := readXMLFile(root, sheetNames)
+	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
+	newBook := book.NewBook(bookName, filename, parser)
+	xmlMeta, err := readXMLFile(root, newBook)
 	if err != nil {
 		switch e := err.(type) {
 		case *NoNeedParseError:
@@ -98,8 +101,6 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 		}
 	}
 
-	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	newBook := book.NewBook(bookName, filename, nil)
 	for _, xmlSheet := range xmlMeta.SheetList {
 		sheetName := xmlSheet.Meta.Name
 		// The second pass
@@ -113,7 +114,13 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 		}
 		newBook.AddSheet(sheet)
 	}
-	log.Debug(sheetNames)
+
+	// parse meta sheet
+	if parser != nil {
+		if err := newBook.ParseMeta(); err != nil {
+			return nil, errors.WithMessage(err, "failed to parse metasheet")
+		}
+	}
 
 	if len(sheetNames) > 0 {
 		newBook.Squeeze(sheetNames)
@@ -123,57 +130,103 @@ func parseXML(filename string, sheetNames []string) (*book.Book, error) {
 }
 
 // --------------------------------------------- THE FIRST PASS ------------------------------------ //
-// The first pass simply reads xml file with xmlquery, construct a recursively self-described tree 
+// The first pass simply reads xml file with xmlquery, construct a recursively self-described tree
 // structure defined in xml.proto and put it into memory.
 //
 // readXMLFile read the raw xml rooted at `root`, specify which sheets to parse and return a XMLBook.
-func readXMLFile(root *xmlquery.Node, sheetNames []string) (*tableaupb.XMLBook, []string, error) {
+func readXMLFile(root *xmlquery.Node, newBook *book.Book) (*tableaupb.XMLBook, error) {
 	xmlMeta := &tableaupb.XMLBook{
 		SheetMap: make(map[string]int32),
 	}
-	noSheetByUser := len(sheetNames) == 0
 	foundMetaSheetName := false
+	metasheetMap := make(map[string]map[string]string)
 	for n := root.FirstChild; n != nil; n = n.NextSibling {
 		switch n.Type {
 		case xmlquery.CommentNode:
 			if !strings.Contains(n.Data, book.MetasheetName) {
 				continue
 			}
-			foundMetaSheetName = true
-			metaStr := xmlProlog + escapeAttrs(strings.ReplaceAll(n.Data, book.MetasheetName, ""))
-			log.Debug(metaStr)
+			metaStr := xmlProlog + escapeAttrs(strings.ReplaceAll(n.Data, book.MetasheetName, atTableauDisplacement))
 			metaRoot, err := xmlquery.Parse(strings.NewReader(metaStr))
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "failed to parse @TABLEAU string: %s", metaStr)
+				return nil, errors.Wrapf(err, "failed to parse @TABLEAU string: %s", metaStr)
 			}
 			for n := metaRoot.FirstChild; n != nil; n = n.NextSibling {
 				if n.Type != xmlquery.ElementNode {
 					continue
 				}
-				sheetName := strcase.ToCamel(n.Data)
+				if n.Data == atTableauDisplacement {
+					foundMetaSheetName = true
+					nameRow := book.MetasheetOptions().Namerow - 1
+					dataRow := book.MetasheetOptions().Datarow - 1
+					set := treeset.NewWithStringComparator()
+					for n := n.FirstChild; n != nil; n = n.NextSibling {
+						if n.Type != xmlquery.ElementNode {
+							continue
+						}
+						sheetMap := make(map[string]string)
+						for _, attr := range n.Attr {
+							sheetMap[attr.Name.Local] = attr.Value
+						}
+						sheetMap["Nameline"] = "1"
+						sheetMap["Typeline"] = "1"
+						sheetMap["Nested"] = "true"
+						sheetName, ok := sheetMap["Sheet"]
+						if !ok {
+							return nil, fmt.Errorf("@TABLEAU not specified sheetName by keyword `Sheet`")
+						}
+						metasheetMap[sheetName] = sheetMap
+						for k := range sheetMap {
+							set.Add(k)
+						}
+					}
+					rows := make([][]string, len(metasheetMap)+int(dataRow))
+					for _, k := range set.Values() {
+						rows[nameRow] = append(rows[nameRow], k.(string))
+					}
+					for _, sheet := range metasheetMap {
+						for _, k := range set.Values() {
+							if v, ok := sheet[k.(string)]; ok {
+								rows[dataRow] = append(rows[dataRow], v)
+							} else {
+								rows[dataRow] = append(rows[dataRow], "")
+							}
+						}
+						dataRow++
+					}
+					sheet := book.NewSheet(book.MetasheetName, rows)
+					newBook.AddSheet(sheet)
+					continue
+				}
+				sheetName := n.Data
 				xmlSheet := getXMLSheet(xmlMeta, sheetName)
 				if err := parseMetaNode(n, xmlSheet); err != nil {
-					return nil, nil, errors.Wrapf(err, "failed to parseMetaNode for sheet:%s", sheetName)
-				}
-				// append if user not specified
-				if noSheetByUser {
-					sheetNames = append(sheetNames, sheetName)
+					return nil, errors.Wrapf(err, "failed to parseMetaNode for sheet:%s", sheetName)
 				}
 			}
 		case xmlquery.ElementNode:
-			sheetName := strcase.ToCamel(n.Data)
+			sheet, ok := metasheetMap[n.Data]
+			// metasheet not empty and sheet not explicitly declared
+			if len(metasheetMap) != 0 && !ok {
+				log.Debugf("sheet not set in @TABLEAU, skilpped|sheetName:%v", n.Data)
+				continue
+			}
+			if template, ok := sheet["Template"]; ok && template == "true" {
+				continue
+			}
+			sheetName := n.Data
 			xmlSheet := getXMLSheet(xmlMeta, sheetName)
 			if err := parseDataNode(n, xmlSheet); err != nil {
-				return nil, nil, errors.Wrapf(err, "failed to parseDataNode for sheet:%s", sheetName)
+				return nil, errors.Wrapf(err, "failed to parseDataNode for sheet:%s", sheetName)
 			}
 		default:
 		}
 	}
-	if !foundMetaSheetName && noSheetByUser {
-		return nil, nil, &NoNeedParseError{}
+	if !foundMetaSheetName {
+		return nil, &NoNeedParseError{}
 	}
 
-	return xmlMeta, sheetNames, nil
+	return xmlMeta, nil
 }
 
 // parseMetaNode parse xml node `curr` and construct the meta tree in `xmlSheet`.
@@ -181,7 +234,7 @@ func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	_, path := getNodePath(curr)
 	meta := xmlSheet.MetaNodeMap[path]
 	for _, attr := range curr.Attr {
-		attrName := strcase.ToCamel(attr.Name.Local)
+		attrName := attr.Name.Local
 		t := attr.Value
 		if len(meta.AttrMap.List) > 0 && isCrossCell(t) {
 			return fmt.Errorf("%s=\"%s\" is a complex type, must be the first attribute", attrName, t)
@@ -202,7 +255,7 @@ func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 		if n.Type != xmlquery.ElementNode {
 			continue
 		}
-		childName := strcase.ToCamel(n.Data)
+		childName := n.Data
 		if _, ok := meta.ChildMap[childName]; !ok {
 			newNode := newNode(childName, meta)
 			meta.ChildMap[childName] = &tableaupb.XMLNode_IndexList{
@@ -225,7 +278,7 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	data_nodes := xmlSheet.DataNodeMap[path].Nodes
 	data := data_nodes[len(data_nodes)-1]
 	for _, attr := range curr.Attr {
-		attrName := strcase.ToCamel(attr.Name.Local)
+		attrName := attr.Name.Local
 		t := inferType(attr.Value)
 		if _, ok := meta.AttrMap.Map[attrName]; !ok {
 			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
@@ -244,7 +297,7 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 		if n.Type != xmlquery.ElementNode {
 			continue
 		}
-		childName := strcase.ToCamel(n.Data)
+		childName := n.Data
 		dataChild := newNode(childName, data)
 		registerDataNode(xmlSheet, dataChild)
 		if _, ok := meta.ChildMap[childName]; !ok {
@@ -306,7 +359,7 @@ func getNodePath(curr *xmlquery.Node) (root *xmlquery.Node, path string) {
 	return root, path
 }
 
-// inferType infer type from the node value, e.g.: 
+// inferType infer type from the node value, e.g.:
 // - 4324342: `int32`
 // - 4324324324324343243432: `int64`
 // - 4535ffdr43t3r: `string`
@@ -391,8 +444,8 @@ func getXMLSheet(xmlMeta *tableaupb.XMLBook, sheetName string) *tableaupb.XMLShe
 }
 
 // --------------------------------------------- THE SECOND PASS ------------------------------------ //
-// The second pass preprocesses the tree structure. In this phase the parser will do some necessary jobs 
-// before generating a 2-dimensional sheet, like correctType which make the types of attributes in the 
+// The second pass preprocesses the tree structure. In this phase the parser will do some necessary jobs
+// before generating a 2-dimensional sheet, like correctType which make the types of attributes in the
 // nodes meet the requirements of protogen.
 //
 func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
@@ -416,10 +469,10 @@ func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
 	return nil
 }
 
-// rearrangeAttrs change the order of attributes, e.g.: 
-// - attributes with cross-type types, such as cross-cell map (list, keyed-list, etc.), 
+// rearrangeAttrs change the order of attributes, e.g.:
+// - attributes with cross-type types, such as cross-cell map (list, keyed-list, etc.),
 //   will be placed at the first.
-// - simple list like `Param1, Param2, Param3, ...` will be grouped together and 
+// - simple list like `Param1, Param2, Param3, ...` will be grouped together and
 //   the type of `Param1` will be changed to something like `[]int32`.
 func rearrangeAttrs(attrMap *tableaupb.XMLNode_AttrMap) error {
 	typeMap := make(map[string]string)
@@ -462,17 +515,11 @@ func rearrangeAttrs(attrMap *tableaupb.XMLNode_AttrMap) error {
 // fixNodeType fix the type of `curr` in the `xmlSheet` based on its `oriType`. e.g.:
 // - map<uint32,Weight>: {Test}map<uint32,Weight>
 // - int32: {StructConf}{Weight}int32
-// - []int64: {MapConf}[]<int64>
+// - []int64: {MapConf}[]int64
+//
+// NOTE: list and keyedlist auto-deduction not supported temporarily
 func fixNodeType(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.XMLNode, oriType string) (t string) {
 	t = oriType
-	if types.IsList(t) {
-		matches := types.MatchList(t)
-		colType := strings.TrimSpace(matches[2])
-		if types.IsScalarType(colType) || types.IsEnum(colType) {
-			// list in xml must be keyed list
-			t = fmt.Sprintf("[%s]<%s>", matches[1], colType)
-		}
-	}
 	// add type prefixes
 	for n, c := curr, curr; n != nil && n.Parent != nil; n, c = n.Parent, n {
 		if n == curr {
@@ -552,10 +599,10 @@ func swapAttr(attrMap *tableaupb.XMLNode_AttrMap, i, j int) {
 }
 
 // --------------------------------------------- THE THIRD PASS ------------------------------------ //
-// The third pass transforms the recursive tree structure into a 2-dimensional sheet, 
+// The third pass transforms the recursive tree structure into a 2-dimensional sheet,
 // which can be further processed into protoconf.
 //
-// genSheet generates a `book.Sheet` which can furtherly processed by `protogen`.
+// genSheet generates a `book.Sheet` which can be furtherly processed by `protogen`.
 func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
 	sheetName := xmlSheet.Meta.Name
 	header := options.NewDefault().Input.Proto.Header
@@ -579,17 +626,6 @@ func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
 	}
 	// insert sheets into map for importer
 	sheet = book.NewSheet(sheetName, rows)
-	sheet.Meta = &tableaupb.Metasheet{
-		Sheet:    sheetName,
-		Alias:    sheetName,
-		Namerow:  header.Namerow,
-		Typerow:  header.Typerow,
-		Noterow:  header.Noterow,
-		Datarow:  header.Datarow,
-		Nameline: 1,
-		Typeline: 1,
-		Nested:   true,
-	}
 	return sheet, nil
 }
 

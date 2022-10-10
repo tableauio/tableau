@@ -1,19 +1,19 @@
 {
-    "itemMap": {
-        "1": {
-            "id": 1,
-            "name": "Apple",
-            "desc": "A kind of delicious fruit."
+    "itemMap":  {
+        "1":  {
+            "id":  1,
+            "name":  "Apple",
+            "desc":  "A kind of delicious fruit."
         },
-        "2": {
-            "id": 2,
-            "name": "Orange",
-            "desc": "A kind of sour fruit."
+        "2":  {
+            "id":  2,
+            "name":  "Orange",
+            "desc":  "A kind of sour fruit."
         },
-        "3": {
-            "id": 3,
-            "name": "Banana",
-            "desc": "A kind of calorie-rich fruit."
+        "3":  {
+            "id":  3,
+            "name":  "Banana",
+            "desc":  "A kind of calorie-rich fruit."
         }
     }
 }

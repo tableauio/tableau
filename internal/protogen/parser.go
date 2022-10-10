@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/iancoleman/strcase"
+	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
@@ -37,7 +38,7 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 	filename := strcase.ToSnake(bookName)
 	if gen.OutputOpt.FilenameWithSubdirPrefix {
 		bookPath := filepath.Join(filepath.Dir(relSlashPath), bookName)
-		snakePath := strcase.ToSnake(bookPath)
+		snakePath := strcase.ToSnake(fs.GetCleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
 	bp := &bookParser{

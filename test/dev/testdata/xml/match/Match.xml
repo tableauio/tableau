@@ -1,5 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!-- @TABLEAU
+<!--
+<@TABLEAU>
+    <Item Sheet="MatchCfg" />
+</@TABLEAU>
+    
 <MatchCfg>
     <ConfirmTimeOutPunish Time="duration" />
     <MatchStatInfo ReportInterval="duration"/>
@@ -37,33 +41,33 @@
         </Weight>
     </TeamRatingWeight>
 
-    <MatchMode MissionType="MT_PVP_Low_Rank_RoundBattle_1V1" desc="排位赛">
+    <MatchMode MissionType="MT_PVP_Low_Rank_RoundBattle_1V1" Desc="排位赛">
         <Time MinTime="5s" MaxTime="90s" Freq="3" ConfirmTime="15s" />
         <Open BeginDate="20200506" BeginTime="000000" EndDate="20500506" EndTime="235959" />
-        <Camp CampID="0" PlayerNum="1" desc="阵营1" />
-        <Camp CampID="1" PlayerNum="1" desc="阵营2" />
-        <Strategy StrategyID="MatchStrategy_Glicko2" desc="匹配策略" />
-        <Scope ScopeID="MatchScope_All" desc="范围" />
-        <Filter FilterID="MatchFilter_Platform" Open="false" Value="1" desc="平台过滤器Open为1表示开启" />
-        <Filter FilterID="MatchFilter_MaxRatingGap" Open="true" UpdInterval="5s" desc="过滤器"/>
-        <Route Key="1" desc="路由哈希值" />
+        <Camp CampID="0" PlayerNum="1" Desc="阵营1" />
+        <Camp CampID="1" PlayerNum="1" Desc="阵营2" />
+        <Strategy StrategyID="MatchStrategy_Glicko2" Desc="匹配策略" />
+        <Scope ScopeID="MatchScope_All" Desc="范围" />
+        <Filter FilterID="MatchFilter_Platform" Open="false" Value="1" Desc="平台过滤器Open为1表示开启" />
+        <Filter FilterID="MatchFilter_MaxRatingGap" Open="true" UpdInterval="5s" Desc="过滤器"/>
+        <Route Key="1" Desc="路由哈希值" />
 
         <MatchAI IsOpen="true" PlayerOnlyOneCamp="false" GuaranteeAIRatio="0">
-            <AI Type="ENM_AI_NEWER" IsOpen="true" MinTime="2s" MaxTime="5s" desc="新手温暖局" />
-            <AI Type="ENM_AI_DAILY" IsOpen="true" MinTime="5s" MaxTime="15s" desc="每日温暖局" />
-            <AI Type="ENM_AI_TIMEOUT" IsOpen="true" MinTime="30s" MaxTime="50s" desc="匹配超时AI" />
+            <AI Type="ENM_AI_NEWER" IsOpen="true" MinTime="2s" MaxTime="5s" Desc="新手温暖局" />
+            <AI Type="ENM_AI_DAILY" IsOpen="true" MinTime="5s" MaxTime="15s" Desc="每日温暖局" />
+            <AI Type="ENM_AI_TIMEOUT" IsOpen="true" MinTime="30s" MaxTime="50s" Desc="匹配超时AI" />
         </MatchAI>
     </MatchMode>
 
-    <MatchMode MissionType="MT_CLASSIC_PVP_1V1" desc="旧经典1v1">
+    <MatchMode MissionType="MT_CLASSIC_PVP_1V1" Desc="旧经典1v1">
         <Time MinTime="8s" MaxTime="70s" Freq="3"/>
         <Open BeginDate="20201216" BeginTime="200000" EndDate="20201220" EndTime="203000" />
-        <Camp CampID="0" PlayerNum="1" desc="阵营1" />
-        <Camp CampID="1" PlayerNum="1" desc="阵营2" />
-        <Strategy StrategyID="MatchStrategy_RoleHonorPower" desc="荣耀战力匹配策略" />
-        <Scope ScopeID="MatchScope_All" desc="范围" />
-        <Filter FilterID="MatchFilter_Platform" Open="false" Value="1" desc="平台过滤器Open为1表示开启" />
-        <Filter FilterID="MatchFilter_MaxHornorPowerGap" Open="true" UpdInterval="10s" desc="荣耀战力匹配过滤器">
+        <Camp CampID="0" PlayerNum="1" Desc="阵营1" />
+        <Camp CampID="1" PlayerNum="1" Desc="阵营2" />
+        <Strategy StrategyID="MatchStrategy_RoleHonorPower" Desc="荣耀战力匹配策略" />
+        <Scope ScopeID="MatchScope_All" Desc="范围" />
+        <Filter FilterID="MatchFilter_Platform" Open="false" Value="1" Desc="平台过滤器Open为1表示开启" />
+        <Filter FilterID="MatchFilter_MaxHornorPowerGap" Open="true" UpdInterval="10s" Desc="荣耀战力匹配过滤器">
             <Power HornorPower="300">
                 <Param Value="100"/>
                 <Param Value="200"/>
@@ -73,12 +77,12 @@
                 <Param Value="300"/>
             </Power>
         </Filter>
-        <Route Key="1" desc="路由哈希值" />
+        <Route Key="1" Desc="路由哈希值" />
 
         <MatchAI IsOpen="true" PlayerOnlyOneCamp="false" GuaranteeAIRatio="0">
-            <AI Type="ENM_AI_NEWER" IsOpen="true" MinTime="2s" MaxTime="5s" desc="新手温暖局" />
-            <AI Type="ENM_AI_DAILY" IsOpen="true" MinTime="5s" MaxTime="15s" desc="每日温暖局" />
-            <AI Type="ENM_AI_TRAIN" IsOpen="false" MinTime="5s" MaxTime="15s" desc="训练玩家AI" />
+            <AI Type="ENM_AI_NEWER" IsOpen="true" MinTime="2s" MaxTime="5s" Desc="新手温暖局" />
+            <AI Type="ENM_AI_DAILY" IsOpen="true" MinTime="5s" MaxTime="15s" Desc="每日温暖局" />
+            <AI Type="ENM_AI_TRAIN" IsOpen="false" MinTime="5s" MaxTime="15s" Desc="训练玩家AI" />
         </MatchAI>
     </MatchMode>
 </MatchCfg>

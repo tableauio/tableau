@@ -1,24 +1,24 @@
 {
-    "itemList": [
+    "itemList":  [
         {
-            "id": 1,
-            "propMap": {
-                "1": {
-                    "propId": 1,
-                    "propName": "sweet"
+            "id":  1,
+            "propMap":  {
+                "1":  {
+                    "propId":  1,
+                    "propName":  "sweet"
                 }
             }
         },
         {
-            "id": 2,
-            "propMap": {
-                "1": {
-                    "propId": 1,
-                    "propName": "sweet"
+            "id":  2,
+            "propMap":  {
+                "1":  {
+                    "propId":  1,
+                    "propName":  "sweet"
                 },
-                "2": {
-                    "propId": 2,
-                    "propName": "delicious"
+                "2":  {
+                    "propId":  2,
+                    "propName":  "delicious"
                 }
             }
         }

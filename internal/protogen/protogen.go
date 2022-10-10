@@ -318,6 +318,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 				Merger:        sheet.Meta.Merger,
 				AdjacentKey:   sheet.Meta.AdjacentKey,
 				FieldPresence: sheet.Meta.FieldPresence,
+				Template:      sheet.Meta.Template,
 				// Loader options:
 				OrderedMap: sheet.Meta.OrderedMap,
 				Index:      sheet.Meta.Index,
@@ -420,7 +421,7 @@ func (sh *sheetHeader) getNameCell(cursor int) string {
 	return getCell(sh.namerow, cursor, sh.meta.Nameline)
 }
 
-// getValidNameCell try best to get a none-empty cell, starting from 
+// getValidNameCell try best to get a none-empty cell, starting from
 // the specified cursor. Current and subsequent empty cells are skipped
 // to find the first none-empty name cell.
 func (sh *sheetHeader) getValidNameCell(cursor *int) string {

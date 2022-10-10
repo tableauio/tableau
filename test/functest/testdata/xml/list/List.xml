@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+<@TABLEAU>
+    <Item Sheet="ListConf" />
+    <Item Sheet="ListConf2" />
+</@TABLEAU>
+
+<ListConf>
+    <Parent>
+        <Parent2>
+            <CrossCell Value="[CrossCell]int32" Name="string" />
+        </Parent2>
+    </Parent>
+</ListConf>
+
+<ListConf2>
+    <Parent>
+        <Parent2>
+            <Incell Value="[]int32" />
+        </Parent2>
+    </Parent>
+</ListConf2>
+-->
+
+<ListConf>
+    <Parent>
+        <Parent2>
+            <CrossCell Value="1" Name="Apple" />
+            <CrossCell Value="2" Name="Banana" />
+            <CrossCell Value="3" Name="Orange" />
+            <CrossCell Value="1" Name="Grape" />    
+        </Parent2>
+    </Parent>
+</ListConf>
+
+<ListConf2>
+    <Parent>
+        <Parent2>
+            <Incell Value="1,2,3,1" />
+        </Parent2>
+    </Parent>
+</ListConf2>
