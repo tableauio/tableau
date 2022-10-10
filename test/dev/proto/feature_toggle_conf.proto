@@ -12,15 +12,15 @@ option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
 option (tableau.workbook) = {name:"xml/FeatureToggle.xml"};
 
 message ToggleCfg {
-  option (tableau.worksheet) = {name:"ToggleCfg" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
+  option (tableau.worksheet) = {name:"ToggleCfg" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 nested:true};
 
   map<uint32, FeatureToggle> feature_toggle_map = 1 [(tableau.field) = {name:"FeatureToggle" key:"EnvID" layout:LAYOUT_VERTICAL}];
   message FeatureToggle {
     uint32 env_id = 1 [(tableau.field) = {name:"EnvID"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
-    map<int32, Toggle> toggle_map = 3 [(tableau.field) = {name:"Toggle" key:"Id" layout:LAYOUT_VERTICAL}];
+    map<int32, Toggle> toggle_map = 3 [(tableau.field) = {name:"Toggle" key:"ID" layout:LAYOUT_VERTICAL}];
     message Toggle {
-      protoconf.FeatureToggleMacroType id = 1 [(tableau.field) = {name:"Id"}];
+      protoconf.FeatureToggleMacroType id = 1 [(tableau.field) = {name:"ID"}];
       uint32 world_id = 2 [(tableau.field) = {name:"WorldID"}];
       uint32 zone_id = 3 [(tableau.field) = {name:"ZoneID"}];
       google.protobuf.Timestamp open_time = 4 [(tableau.field) = {name:"OpenTime" prop:{default:"2022-01-23 15:40:00"}}];
@@ -28,7 +28,7 @@ message ToggleCfg {
       int32 open_rate = 6 [(tableau.field) = {name:"OpenRate"}];
       string desc = 7 [(tableau.field) = {name:"Desc"}];
       bool notify_closed = 8 [(tableau.field) = {name:"NotifyClosed"}];
-      string name = 9 [(tableau.field) = {name:"Name"}];
+      string name = 9 [(tableau.field) = {name:"name"}];
       repeated int64 sys_key_list = 10 [(tableau.field) = {name:"SysKey" layout:LAYOUT_HORIZONTAL}];
     }
   }

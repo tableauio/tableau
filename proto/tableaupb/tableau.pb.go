@@ -491,8 +491,15 @@ type FieldProp struct {
 	Range string `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
 	// Local perspective: whether the map key's value is unique.
 	Unique bool `protobuf:"varint,2,opt,name=unique,proto3" json:"unique,omitempty"`
-	// Global perspective: ensure this field is in another message's field range.
-	// E.g: "XXXConf.ID".
+	// Global perspective: ensure this field value is in another sheet's
+	// column value space (aka message's field value space).
+	//
+	// Format: "SheetName(SheetAlias).ColumnName"
+	//
+	// E.g:
+	//  - "Item.ID" : sheet name is unique.
+	//  - "Item(ItemConf).ID" : different workbooks have the same sheet name,
+	//    but sheet alias is unique inherently.
 	Refer string `protobuf:"bytes,3,opt,name=refer,proto3" json:"refer,omitempty"`
 	// Local perspective: ensure this field's value is a sequence and begins with this value.
 	// Effect: key of map or keyed list.
