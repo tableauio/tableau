@@ -12,7 +12,7 @@
 -->
 
 <ToggleCfg>
-    <FeatureToggle EnvID="0" desc="common: 通用环境的配置，需要包含全量的开关。common没有且对应环境也没有的开关会被默认为关闭。">
+    <FeatureToggle EnvID="0" Desc="common: 通用环境的配置，需要包含全量的开关。common没有且对应环境也没有的开关会被默认为关闭。">
         <!--
         - ID				系统对应的toggleid
         - OpenRate			开放比例[0,10000], 0表示关闭，10000全开
@@ -28,14 +28,14 @@
         <Toggle name="事件" ID="TOGGLE_EVENT" OpenRate="10000" />
         <Toggle name="公会" ID="TOGGLE_GUILD" OpenRate="10000"/>
         <Toggle name="记忆(意志)出售" ID="TOGGLE_EQUIP_SELL" OpenRate="10000" />
-        <Toggle name="记忆(意志)装配" ID="TOGGLE_EQUIP_SWITCH" OpenRate="10000" SysKey1="0" desc="SysKey1->EquipID"/>
+        <Toggle name="记忆(意志)装配" ID="TOGGLE_EQUIP_SWITCH" OpenRate="10000" SysKey1="0" Desc="SysKey1->EquipID"/>
         <Toggle name="记忆(意志)强化" ID="TOGGLE_EQUIP_UPGRADE" OpenRate="10000" />
-        <Toggle name="意志进阶" ID="TOGGLE_WEAPON_STAR_UP" OpenRate="10000" SysKey1="0" desc="SysKey1->EquipID"/>
+        <Toggle name="意志进阶" ID="TOGGLE_WEAPON_STAR_UP" OpenRate="10000" SysKey1="0" Desc="SysKey1->EquipID"/>
         <Toggle name="创建队伍" ID="TOGGLE_TEAM_CREATE_TEAM" OpenRate="10000" />
         <Toggle name="队伍匹配" ID="TOGGLE_TEAM_REQ_MATCH" OpenRate="10000" />
     </FeatureToggle>
 
-    <FeatureToggle EnvID="21" desc="审核服: 以下开关配置只会在审核服生效，会覆盖上面common的配置。">
+    <FeatureToggle EnvID="21" Desc="审核服: 以下开关配置只会在审核服生效，会覆盖上面common的配置。">
         <Toggle name="会员、超会入口" ID="TOGGLE_VIP_ENTRY" OpenRate="10000" />
         <Toggle name="邀请" ID="TOGGLE_INVITE" OpenRate="10000" />
         <Toggle name="游戏特权" ID="TOGGLE_GAME_PRIVILEGE" OpenRate="10000" />
