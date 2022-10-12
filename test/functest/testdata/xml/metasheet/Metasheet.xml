@@ -7,6 +7,7 @@
 
 <MetasheetConf>
     <SepConf number="[]int32" />
+    <MaxNum>int32</MaxNum>
 </MetasheetConf>
 
 <TemplateConf>
@@ -16,6 +17,9 @@
 
 <MetasheetConf>
     <SepConf number="1;2;3" />
+    
+    <!-- Test -->
+    <MaxNum>100</MaxNum>
 </MetasheetConf>
 
 <TemplateConf>

@@ -139,6 +139,7 @@ func readXMLFile(root *xmlquery.Node, newBook *book.Book) (*tableaupb.XMLBook, e
 		SheetMap: make(map[string]int32),
 	}
 	foundMetaSheetName := false
+	// sheetName -> {colName -> val}
 	metasheetMap := make(map[string]map[string]string)
 	for n := root.FirstChild; n != nil; n = n.NextSibling {
 		switch n.Type {
@@ -157,44 +158,10 @@ func readXMLFile(root *xmlquery.Node, newBook *book.Book) (*tableaupb.XMLBook, e
 				}
 				if n.Data == atTableauDisplacement {
 					foundMetaSheetName = true
-					nameRow := book.MetasheetOptions().Namerow - 1
-					dataRow := book.MetasheetOptions().Datarow - 1
-					set := treeset.NewWithStringComparator()
-					for n := n.FirstChild; n != nil; n = n.NextSibling {
-						if n.Type != xmlquery.ElementNode {
-							continue
-						}
-						sheetMap := make(map[string]string)
-						for _, attr := range n.Attr {
-							sheetMap[attr.Name.Local] = attr.Value
-						}
-						sheetMap["Nameline"] = "1"
-						sheetMap["Typeline"] = "1"
-						sheetMap["Nested"] = "true"
-						sheetName, ok := sheetMap["Sheet"]
-						if !ok {
-							return nil, fmt.Errorf("@TABLEAU not specified sheetName by keyword `Sheet`")
-						}
-						metasheetMap[sheetName] = sheetMap
-						for k := range sheetMap {
-							set.Add(k)
-						}
+					var sheet *book.Sheet
+					if metasheetMap, sheet, err = genMetasheet(n); err != nil {
+						return nil, errors.Wrapf(err, "failed to generate metasheet")
 					}
-					rows := make([][]string, len(metasheetMap)+int(dataRow))
-					for _, k := range set.Values() {
-						rows[nameRow] = append(rows[nameRow], k.(string))
-					}
-					for _, sheet := range metasheetMap {
-						for _, k := range set.Values() {
-							if v, ok := sheet[k.(string)]; ok {
-								rows[dataRow] = append(rows[dataRow], v)
-							} else {
-								rows[dataRow] = append(rows[dataRow], "")
-							}
-						}
-						dataRow++
-					}
-					sheet := book.NewSheet(book.MetasheetName, rows)
 					newBook.AddSheet(sheet)
 					continue
 				}
@@ -229,6 +196,83 @@ func readXMLFile(root *xmlquery.Node, newBook *book.Book) (*tableaupb.XMLBook, e
 	return xmlMeta, nil
 }
 
+// genMetasheet generates metasheet according to `
+//   <@TABLEAU>
+//       <Item Sheet="XXXConf" />
+//   </@TABLEAU>`
+func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *book.Sheet, error) {
+	// sheetName -> {colName -> val}
+	metasheetMap := make(map[string]map[string]string)
+	nameRow := book.MetasheetOptions().Namerow - 1
+	dataRow := book.MetasheetOptions().Datarow - 1
+	set := treeset.NewWithStringComparator()
+	for n := tableauNode.FirstChild; n != nil; n = n.NextSibling {
+		if n.Type != xmlquery.ElementNode {
+			continue
+		}
+		sheetMap := make(map[string]string)
+		for _, attr := range n.Attr {
+			sheetMap[attr.Name.Local] = attr.Value
+		}
+		sheetMap["Nested"] = "true"
+		sheetName, ok := sheetMap["Sheet"]
+		if !ok {
+			return metasheetMap, nil, fmt.Errorf("@TABLEAU not specified sheetName by keyword `Sheet`")
+		}
+		metasheetMap[sheetName] = sheetMap
+		for k := range sheetMap {
+			set.Add(k)
+		}
+	}
+	rows := make([][]string, len(metasheetMap)+int(dataRow))
+	for _, k := range set.Values() {
+		rows[nameRow] = append(rows[nameRow], k.(string))
+	}
+	for _, sheet := range metasheetMap {
+		for _, k := range set.Values() {
+			if v, ok := sheet[k.(string)]; ok {
+				rows[dataRow] = append(rows[dataRow], v)
+			} else {
+				rows[dataRow] = append(rows[dataRow], "")
+			}
+		}
+		dataRow++
+	}
+	sheet := book.NewSheet(book.MetasheetName, rows)
+	return metasheetMap, sheet, nil
+}
+
+// addMetaNodeAttr adds an attribute to MetaNode AttrMap if not exists and otherwise replaces the attribute value
+func addMetaNodeAttr(attrMap *tableaupb.XMLNode_AttrMap, name, val string) {
+	if idx, ok := attrMap.Map[name]; !ok {
+		attrMap.Map[name] = int32(len(attrMap.List))
+		attrMap.List = append(attrMap.List, &tableaupb.XMLNode_AttrMap_Attr{
+			Name:  name,
+			Value: val,
+		})
+	} else {
+		// replace attribute value by metaSheet
+		metaAttr := attrMap.List[idx]
+		metaAttr.Value = val
+	}
+}
+
+// addDataNodeAttr adds an attribute to DataNode AttrMap
+func addDataNodeAttr(metaMap, dataMap *tableaupb.XMLNode_AttrMap, name, val string) {
+	if _, ok := metaMap.Map[name]; !ok {
+		metaMap.Map[name] = int32(len(metaMap.List))
+		metaMap.List = append(metaMap.List, &tableaupb.XMLNode_AttrMap_Attr{
+			Name:  name,
+			Value: inferType(val),
+		})
+	}
+	dataMap.Map[name] = int32(len(dataMap.List))
+	dataMap.List = append(dataMap.List, &tableaupb.XMLNode_AttrMap_Attr{
+		Name:  name,
+		Value: val,
+	})
+}
+
 // parseMetaNode parse xml node `curr` and construct the meta tree in `xmlSheet`.
 func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	_, path := getNodePath(curr)
@@ -239,20 +283,16 @@ func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 		if len(meta.AttrMap.List) > 0 && isCrossCell(t) {
 			return fmt.Errorf("%s=\"%s\" is a complex type, must be the first attribute", attrName, t)
 		}
-		if idx, ok := meta.AttrMap.Map[attrName]; !ok {
-			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
-			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.XMLNode_AttrMap_Attr{
-				Name:  attrName,
-				Value: t,
-			})
-		} else {
-			// replace attribute value by metaSheet
-			metaAttr := meta.AttrMap.List[idx]
-			metaAttr.Value = t
-		}
+		addMetaNodeAttr(meta.AttrMap, attrName, t)
 	}
 	for n := curr.FirstChild; n != nil; n = n.NextSibling {
 		if n.Type != xmlquery.ElementNode {
+			continue
+		}
+		// e.g.: <MaxNum>int32</MaxNum>
+		if innerText := strings.TrimSpace(n.InnerText()); innerText != "" {
+			attrName := n.Data
+			addMetaNodeAttr(meta.AttrMap, attrName, innerText)
 			continue
 		}
 		childName := n.Data
@@ -279,22 +319,16 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	data := data_nodes[len(data_nodes)-1]
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
-		t := inferType(attr.Value)
-		if _, ok := meta.AttrMap.Map[attrName]; !ok {
-			meta.AttrMap.Map[attrName] = int32(len(meta.AttrMap.List))
-			meta.AttrMap.List = append(meta.AttrMap.List, &tableaupb.XMLNode_AttrMap_Attr{
-				Name:  attrName,
-				Value: t,
-			})
-		}
-		data.AttrMap.Map[attrName] = int32(len(data.AttrMap.List))
-		data.AttrMap.List = append(data.AttrMap.List, &tableaupb.XMLNode_AttrMap_Attr{
-			Name:  attrName,
-			Value: attr.Value,
-		})
+		addDataNodeAttr(meta.AttrMap, data.AttrMap, attrName, attr.Value)
 	}
 	for n := curr.FirstChild; n != nil; n = n.NextSibling {
 		if n.Type != xmlquery.ElementNode {
+			continue
+		}
+		// e.g.: <MaxNum>100</MaxNum>
+		if innerText := strings.TrimSpace(n.InnerText()); innerText != "" {
+			attrName := n.Data
+			addDataNodeAttr(meta.AttrMap, data.AttrMap, attrName, innerText)
 			continue
 		}
 		childName := n.Data

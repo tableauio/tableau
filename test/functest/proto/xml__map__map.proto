@@ -10,7 +10,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"xml/map/Map.xml"};
 
 message MapConf {
-  option (tableau.worksheet) = {name:"MapConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
+  option (tableau.worksheet) = {name:"MapConf" namerow:1 typerow:2 noterow:3 datarow:4 nested:true};
 
   bool open = 1 [(tableau.field) = {name:"Open"}];
   map<uint32, Entry> entry_map = 2 [(tableau.field) = {name:"Entry" key:"Id" layout:LAYOUT_VERTICAL}];

@@ -10,7 +10,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"xml/keyedlist/KeyedList.xml"};
 
 message KeyedListConf {
-  option (tableau.worksheet) = {name:"KeyedListConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
+  option (tableau.worksheet) = {name:"KeyedListConf" namerow:1 typerow:2 noterow:3 datarow:4 nested:true};
 
   Parent parent = 1 [(tableau.field) = {name:"Parent"}];
   message Parent {
@@ -26,7 +26,7 @@ message KeyedListConf {
 }
 
 message KeyedListConf2 {
-  option (tableau.worksheet) = {name:"KeyedListConf2" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
+  option (tableau.worksheet) = {name:"KeyedListConf2" namerow:1 typerow:2 noterow:3 datarow:4 nested:true};
 
   Parent parent = 1 [(tableau.field) = {name:"Parent"}];
   message Parent {
