@@ -59,7 +59,7 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser) (
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	// newBook.ExportCSV()
+	newBook.ExportCSV()
 
 	return &XMLImporter{
 		Book: newBook,
@@ -273,6 +273,29 @@ func addDataNodeAttr(metaMap, dataMap *tableaupb.XMLNode_AttrMap, name, val stri
 	})
 }
 
+// hasChild check if xml node has any child element node
+func hasChild(n *xmlquery.Node) bool {
+	for n := n.FirstChild; n != nil; n = n.NextSibling {
+		if n.Type == xmlquery.ElementNode {
+			return true
+		}
+	}
+	return false
+}
+
+// getTextContent get the text node from xml node
+func getTextContent(n *xmlquery.Node) string {
+	if hasChild(n) {
+		return ""
+	}
+	for n := n.FirstChild; n != nil; n = n.NextSibling {
+		if n.Type == xmlquery.TextNode {
+			return strings.TrimSpace(n.Data)
+		}
+	}
+	return ""
+}
+
 // parseMetaNode parse xml node `curr` and construct the meta tree in `xmlSheet`.
 func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	_, path := getNodePath(curr)
@@ -290,7 +313,7 @@ func parseMetaNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 			continue
 		}
 		// e.g.: <MaxNum>int32</MaxNum>
-		if innerText := strings.TrimSpace(n.InnerText()); innerText != "" {
+		if innerText := getTextContent(n); innerText != "" {
 			attrName := n.Data
 			addMetaNodeAttr(meta.AttrMap, attrName, innerText)
 			continue
@@ -326,7 +349,7 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 			continue
 		}
 		// e.g.: <MaxNum>100</MaxNum>
-		if innerText := strings.TrimSpace(n.InnerText()); innerText != "" {
+		if innerText := getTextContent(n); innerText != "" {
 			attrName := n.Data
 			addDataNodeAttr(meta.AttrMap, data.AttrMap, attrName, innerText)
 			continue

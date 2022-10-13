@@ -681,26 +681,26 @@ func Test_addDataNodeAttr(t *testing.T) {
 }
 
 func Test_readXMLFile(t *testing.T) {
-// 	doc := `
-// <?xml version='1.0' encoding='UTF-8'?>
-// <!--
-// <@TABLEAU>
-// 	<Item Sheet="Server" />
-// </@TABLEAU>
+	// 	doc := `
+	// <?xml version='1.0' encoding='UTF-8'?>
+	// <!--
+	// <@TABLEAU>
+	// 	<Item Sheet="Server" />
+	// </@TABLEAU>
 
-// <Server>
-// 	<Weight Num="map&lt;uint32,Weight&gt;"/>	
-// </Server>
-// -->
+	// <Server>
+	// 	<Weight Num="map&lt;uint32,Weight&gt;"/>
+	// </Server>
+	// -->
 
-// <Server>
-// 	<Weight Num="1"/>
-// 	<Weight Num="2"/>
-// </Server>
-// `
-// 		root, _ := xmlquery.Parse(strings.NewReader(doc))
-// 		newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-		
+	// <Server>
+	// 	<Weight Num="1"/>
+	// 	<Weight Num="2"/>
+	// </Server>
+	// `
+	// 		root, _ := xmlquery.Parse(strings.NewReader(doc))
+	// 		newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
+
 	type args struct {
 		root    *xmlquery.Node
 		newBook *book.Book
@@ -766,6 +766,138 @@ func Test_readXMLFile(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("readXMLFile() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_hasChild(t *testing.T) {
+	doc := `
+<Conf>
+	<Client Open="true">
+		<Num>100</Num>	
+		<Item ID="123" />
+	</Client>
+	
+	<Server>
+		<!-- Comments -->
+	
+	</Server>
+</Conf>
+`
+	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	node1 := xmlquery.FindOne(root, "Conf/Client")
+	node2 := xmlquery.FindOne(root, "Conf/Client/Num")
+	node3 := xmlquery.FindOne(root, "Conf/Client/Item")
+	node4 := xmlquery.FindOne(root, "Conf/Server")
+
+	type args struct {
+		n *xmlquery.Node
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Conf/Client",	
+			args: args{
+				n: node1,
+			},
+			want: true,
+		},
+		{
+			name: "Conf/Client/Num",
+			args: args{
+				n: node2,
+			},
+			want: false,
+		},
+		{
+			name: "Conf/Client/Item",
+			args: args{
+				n: node3,
+			},
+			want: false,
+		},
+		{
+			name: "Conf/Server",	
+			args: args{
+				n: node4,
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := hasChild(tt.args.n); got != tt.want {
+				t.Errorf("hasChild() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getTextContent(t *testing.T) {
+	doc := `
+<Conf>
+	<Client Open="true">
+		<Num>100</Num>	
+		<Item ID="123" />
+	</Client>
+	
+	<Server>
+		<!-- Comments -->
+	
+	</Server>
+</Conf>
+`
+	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	node1 := xmlquery.FindOne(root, "Conf/Client")
+	node2 := xmlquery.FindOne(root, "Conf/Client/Num")
+	node3 := xmlquery.FindOne(root, "Conf/Client/Item")
+	node4 := xmlquery.FindOne(root, "Conf/Server")
+	
+	type args struct {
+		n *xmlquery.Node
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Conf/Client",	
+			args: args{
+				n: node1,
+			},
+			want: "",
+		},
+		{
+			name: "Conf/Client/Num",
+			args: args{
+				n: node2,
+			},
+			want: "100",
+		},
+		{
+			name: "Conf/Client/Item",
+			args: args{
+				n: node3,
+			},
+			want: "",
+		},
+		{
+			name: "Conf/Server",	
+			args: args{
+				n: node4,
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getTextContent(tt.args.n); got != tt.want {
+				t.Errorf("getTextContent() = %v, want %v", got, tt.want)
 			}
 		})
 	}
