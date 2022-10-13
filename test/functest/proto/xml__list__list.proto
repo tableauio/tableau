@@ -10,7 +10,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"xml/list/List.xml"};
 
 message ListConf {
-  option (tableau.worksheet) = {name:"ListConf" namerow:1 typerow:2 noterow:3 datarow:4 nested:true};
+  option (tableau.worksheet) = {name:"ListConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
   Parent parent = 1 [(tableau.field) = {name:"Parent"}];
   message Parent {
@@ -26,7 +26,7 @@ message ListConf {
 }
 
 message ListConf2 {
-  option (tableau.worksheet) = {name:"ListConf2" namerow:1 typerow:2 noterow:3 datarow:4 nested:true};
+  option (tableau.worksheet) = {name:"ListConf2" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
   Parent parent = 1 [(tableau.field) = {name:"Parent"}];
   message Parent {

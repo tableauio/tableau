@@ -59,7 +59,7 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser) (
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	newBook.ExportCSV()
+	// newBook.ExportCSV()
 
 	return &XMLImporter{
 		Book: newBook,
@@ -215,6 +215,9 @@ func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *bo
 			sheetMap[attr.Name.Local] = attr.Value
 		}
 		sheetMap["Nested"] = "true"
+		// param in `config.yaml` may not be one
+		sheetMap["Nameline"] = "1"
+		sheetMap["Typeline"] = "1"
 		sheetName, ok := sheetMap["Sheet"]
 		if !ok {
 			return metasheetMap, nil, fmt.Errorf("@TABLEAU not specified sheetName by keyword `Sheet`")
