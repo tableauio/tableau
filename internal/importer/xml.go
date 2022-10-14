@@ -182,15 +182,6 @@ func readXMLFile(metasheet, content string, newBook *book.Book) (*tableaupb.XMLB
 		if n.Type != xmlquery.ElementNode {
 			continue
 		}
-		sheet, ok := metasheetMap[n.Data]
-		// metasheet not empty and sheet not explicitly declared
-		if len(metasheetMap) != 0 && !ok {
-			log.Debugf("sheet not set in @TABLEAU, skilpped|sheetName:%v", n.Data)
-			continue
-		}
-		if template, ok := sheet["Template"]; ok && template == "true" {
-			continue
-		}
 		sheetName := n.Data
 		xmlSheet := getXMLSheet(xmlMeta, sheetName)
 		if err := parseDataNode(n, xmlSheet); err != nil {
