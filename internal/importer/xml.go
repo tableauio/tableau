@@ -40,7 +40,7 @@ const (
 func init() {
 	attrRegexp = regexp.MustCompile(`([0-9A-Za-z_]+)="` + types.TypeGroup + ungreedyPropGroup + `"`)
 	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)
-	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>`+metasheetItemBlock+`</%v>|\s*/>)(.*\n)+)-->`, book.MetasheetName, book.MetasheetName))
+	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>`+metasheetItemBlock+`</%v>|\s*/>)(.*\n)+?)-->`, book.MetasheetName, book.MetasheetName))
 }
 
 // TODO: options

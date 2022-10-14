@@ -922,6 +922,12 @@ func Test_matchMetasheet(t *testing.T) {
 </Server>
 -->
 
+<!--
+		Comments
+		Comments
+		Comments	
+-->
+
 <Server>
 	<Weight Num="1"/>
 	<Weight Num="2"/>
