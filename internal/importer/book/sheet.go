@@ -26,7 +26,7 @@ type Sheet struct {
 	MaxRow int
 	MaxCol int
 
-	Rows [][]string // 2D array of string.
+	Rows [][]string // 2D array of strings.
 
 	Meta *tableaupb.Metasheet
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
 type Importer interface {
@@ -21,6 +22,8 @@ type Importer interface {
 	// 	- CSV: recognizes pattern: "<BookName>#<SheetName>.csv", and returns "<BookName>".
 	// 	- XML: the base filename without file extension.
 	BookName() string
+	// Metabook returns the metadata of the book.
+	Metabook() *tableaupb.Metabook
 	// GetSheets returns all sheets in order of the book.
 	GetSheets() []*book.Sheet
 	// GetSheet returns a Sheet of the specified sheet name.

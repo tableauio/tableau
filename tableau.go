@@ -13,6 +13,7 @@ import (
 	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
+	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
 // Generate can convert Excel/CSV/XML files to protoconf files and
@@ -55,25 +56,6 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) erro
 	return g.Generate()
 }
 
-// Proto2Excel converts protoconf files to excel files (with tableau header).
-func Proto2Excel(protoPackage, indir, outdir string) {
-	g := xlsxgen.Generator{
-		ProtoPackage: protoPackage,
-		InputDir:     indir,
-		OutputDir:    outdir,
-	}
-	g.Generate()
-}
-
-// ParseMeta parses the metasheet "@TABLEAU" in a workbook.
-func ParseMeta(indir, relWorkbookPath string) (importer.Importer, error) {
-	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", book.MetasheetOptions())
-	return importer.New(
-		filepath.Join(indir, relWorkbookPath),
-		importer.Parser(parser),
-	)
-}
-
 // NewProtoGenerator creates a new proto generator.
 func NewProtoGenerator(protoPackage, indir, outdir string, options ...options.Option) *protogen.Generator {
 	return protogen.NewGenerator(protoPackage, indir, outdir, options...)
@@ -108,8 +90,30 @@ func GetVersionInfo() *VersionInfo {
 	}
 }
 
-// SetLang sets the default language. 
+// SetLang sets the default language.
 // E.g: en, zh.
-func SetLang(lang string) error{
+func SetLang(lang string) error {
 	return localizer.SetLang(lang)
+}
+
+// Proto2Excel converts protoconf files to excel files (with tableau header).
+// TODO: fully usable generation of excel templates.
+func Proto2Excel(protoPackage, indir, outdir string) {
+	g := xlsxgen.Generator{
+		ProtoPackage: protoPackage,
+		InputDir:     indir,
+		OutputDir:    outdir,
+	}
+	g.Generate()
+}
+
+// ParseMetabook parses and returns metadata of the specified workbook.
+func ParseMetabook(indir, relWorkbookPath string) (*tableaupb.Metabook, error) {
+	workbookPath := filepath.Join(indir, relWorkbookPath)
+	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", book.MetasheetOptions())
+	imp, err := importer.New(workbookPath, importer.Parser(parser))
+	if err != nil {
+		return nil, err
+	}
+	return imp.Metabook(), nil
 }

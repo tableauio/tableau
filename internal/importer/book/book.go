@@ -39,9 +39,32 @@ func (b *Book) Filename() string {
 	return b.filename
 }
 
-// BookNames returns this book's name.
+// BookName returns this book's name.
 func (b *Book) BookName() string {
 	return b.name
+}
+
+// Metabook returns the metadata of this book.
+func (b *Book) Metabook() *tableaupb.Metabook {
+	return b.meta
+}
+
+// GetSheets returns all sheets in order in the book.
+func (b *Book) GetSheets() []*Sheet {
+	var sheets []*Sheet
+	for _, sheetName := range b.sheetNames {
+		sheet := b.GetSheet(sheetName)
+		if sheet == nil {
+			panic("sheet not found" + sheetName)
+		}
+		sheets = append(sheets, sheet)
+	}
+	return sheets
+}
+
+// GetSheet returns a Sheet of the specified sheet name.
+func (b *Book) GetSheet(name string) *Sheet {
+	return b.sheets[name]
 }
 
 // AddSheet adds a sheet to the book and keep the sheet order.
@@ -68,24 +91,6 @@ func (b *Book) delSheetName(sheetName string) {
 	}
 }
 
-// GetSheets returns all sheets in order in the book.
-func (b *Book) GetSheets() []*Sheet {
-	var sheets []*Sheet
-	for _, sheetName := range b.sheetNames {
-		sheet := b.GetSheet(sheetName)
-		if sheet == nil {
-			panic("sheet not found" + sheetName)
-		}
-		sheets = append(sheets, sheet)
-	}
-	return sheets
-}
-
-// GetSheet returns a Sheet of the specified sheet name.
-func (b *Book) GetSheet(name string) *Sheet {
-	return b.sheets[name]
-}
-
 // Squeeze keeps only the inputed sheet names and removes other sheets from the book.
 func (b *Book) Squeeze(sheetNames []string) {
 	sheetNameMap := map[string]bool{} // sheet name -> keep or not (bool)
@@ -93,7 +98,7 @@ func (b *Book) Squeeze(sheetNames []string) {
 		sheetNameMap[sheetName] = true
 	}
 
-	// NOTE(wenchgy): must deep-copy the sheetNames, as we will delete 
+	// NOTE(wenchgy): must deep-copy the sheetNames, as we will delete
 	// the elements when looping the slice at the same time.
 	deeplyCopiedSheetNames := make([]string, len(b.sheetNames))
 	copy(deeplyCopiedSheetNames, b.sheetNames)
@@ -145,7 +150,7 @@ func (b *Book) ParseMeta() error {
 		keepedSheetNames = append(keepedSheetNames, sheetName)
 		sheet.Meta = sheetMeta
 	}
-	// NOTE: only keep the sheets that are specified in meta
+	// NOTE: only keep the sheets that are specified in metasheet
 	b.Squeeze(keepedSheetNames)
 	log.Debugf("squeezed: %s#%s: %+v", b.Filename(), MetasheetName, keepedSheetNames)
 	for sheetName := range b.sheets {
