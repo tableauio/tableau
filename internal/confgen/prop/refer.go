@@ -1,7 +1,6 @@
 package prop
 
 import (
-	"fmt"
 	"path/filepath"
 	"regexp"
 	"sync"
@@ -164,7 +163,8 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	for _, imp := range importers {
 		sheet := imp.GetSheet(sheetName)
 		if sheet == nil {
-			return nil, xerrors.ErrorKV(fmt.Sprintf("sheet %s not found in book %s", sheetName, imp.BookName()), xerrors.KeySheetName, sheetName)
+			err := xerrors.E0001(sheetName, imp.Filename())
+			return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyBookName, imp.Filename())
 		}
 
 		if sheetOpts.Transpose {

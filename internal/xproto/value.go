@@ -156,7 +156,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			// NOTE(wenchy): There is no "Asia/Beijing" location name. Whoa!!! Big surprize?
 			t, err := parseTimeWithLocation(locationName, value)
 			if err != nil {
-				return DefaultTimestampValue, true, xerrors.Errorf("illegal timestamp format: %s, %s", value, err)
+				return DefaultTimestampValue, true, xerrors.E2007(value, err)
 			}
 			// log.Debugf("timeStr: %v, unix timestamp: %v", value, t.Unix())
 			ts := timestamppb.New(t)
@@ -171,7 +171,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			}
 			d, err := parseDuration(value)
 			if err != nil {
-				return DefaultDurationValue, true, xerrors.Errorf("illegal duration format: %s, %s", value, err)
+				return DefaultDurationValue, true, xerrors.E2008(value, err)
 			}
 			du := durationpb.New(d)
 			if err := du.CheckValid(); err != nil {
@@ -208,7 +208,7 @@ func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, pre
 		if evd != nil {
 			return pref.ValueOfEnum(evd.Number()), true, nil
 		}
-		return DefaultEnumValue, true, xerrors.Errorf("enum value name not defined: %v", value)
+		return DefaultEnumValue, true, xerrors.E2006(value, ed.FullName())
 	}
 
 	// try enum value name
@@ -227,7 +227,7 @@ func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, pre
 			return pref.ValueOfEnum(evd.Number()), true, nil
 		}
 	}
-	return DefaultEnumValue, true, xerrors.Errorf("enum(%s) value not found: %v", ed.FullName(), value)
+	return DefaultEnumValue, true, xerrors.E2006(value, ed.FullName())
 }
 
 func parseTimeWithLocation(locationName string, timeStr string) (time.Time, error) {

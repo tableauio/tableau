@@ -289,7 +289,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 		debugWorkbookName += " (rewrite: " + rewrittenWorkbookName + ")"
 	}
 	log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugWorkbookName, len(sheets))
-	// creat a book parser
+	// create a book parser
 	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen)
 	for _, sheet := range sheets {
 		// parse sheet header

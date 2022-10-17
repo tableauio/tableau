@@ -53,7 +53,8 @@ func ParseMessage(parser *sheetParser, protomsg proto.Message, sheetName string,
 	for _, imp := range importers {
 		sheet := imp.GetSheet(sheetName)
 		if sheet == nil {
-			return xerrors.ErrorKV(fmt.Sprintf("sheet %s not found in book %s", sheetName, imp.BookName()), xerrors.KeySheetName, sheetName)
+			err := xerrors.E0001(sheetName, imp.Filename())
+			return xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, protomsg.ProtoReflect().Descriptor().FullName())
 		}
 
 		if err := parser.Parse(protomsg, sheet); err != nil {

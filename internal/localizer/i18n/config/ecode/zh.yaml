@@ -1,4 +1,7 @@
-# [0000, 0999]: common system error
+# (0000, 0999]: common error
+E0001:
+  desc: sheet not found in book
+  text: 表单 "{{.SheetName}}" 在工作簿 "{{.BookName}}" 中未找到
 # [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2001:
@@ -21,4 +24,16 @@ E2005:
   desc: map key not unique
   text: map的key "{{.Key}}" 已存在
   help: 'map的key已被配置为唯一 "unique:true"，不允许重复配置相同的key值'
+E2006:
+  desc: enum value not defined in enum type
+  text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
+  help: 将 enum 值 "{{.Value}}" 添加到 enum 类型 "{{.EnumName}}" 定义中
+E2007:
+  desc: invalid datetime format
+  text: '"{{.Value}}" 是无效的日期时间(datetime)格式, {{.Error}}'
+  help: '请遵循日期时间(datetime)格式: "yyyy-MM-dd HH:mm:ss", 示例: "2020-01-01 01:00:00"'
+E2008:
+  desc: invalid duration format
+  text: '"{{.Value}}" 是无效的时间段(duration)格式, {{.Error}}'
+  help: '请遵循时间段(duration)格式，以 "72h3m0.5s" 这种形式来配置'
 # [3000, 3999]: importer error

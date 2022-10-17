@@ -10,6 +10,7 @@ import (
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 type Book struct {
@@ -145,7 +146,7 @@ func (b *Book) ParseMeta() error {
 	for sheetName, sheetMeta := range b.meta.MetasheetMap {
 		sheet := b.GetSheet(sheetName)
 		if sheet == nil {
-			return errors.Errorf("sheet %s not found in book %s", sheetName, b.Filename())
+			return xerrors.E0001(sheetName, b.Filename())
 		}
 		keepedSheetNames = append(keepedSheetNames, sheetName)
 		sheet.Meta = sheetMeta

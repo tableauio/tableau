@@ -1,11 +1,19 @@
 package xerrors
 
 // Error code space sections:
-//	[0000, 0999]: common system error
+//	(0000, 0999]: common error
 //  [1000, 1999]: protogen error
 //  [2000, 2999]: confgen error
 //	[3000, 3999]: importer error
 //  [4000, ~]: reserved
+
+// E0001 describes sheet not found in book.
+func E0001(sheetName, BookName string) error {
+	return renderEcode("E0001", map[string]interface{}{
+		"SheetName": sheetName,
+		"BookName":  BookName,
+	})
+}
 
 // E2001 describes field prop "refer" not configured correctly.
 func E2001(refer string, messageName string) error {
@@ -43,5 +51,29 @@ func E2004(value interface{}, vrange string) error {
 func E2005(key interface{}) error {
 	return renderEcode("E2005", map[string]interface{}{
 		"Key": key,
+	})
+}
+
+// E2006 describes enum value not defined in enum type.
+func E2006(value, enumName interface{}) error {
+	return renderEcode("E2006", map[string]interface{}{
+		"Value":    value,
+		"EnumName": enumName,
+	})
+}
+
+// E2007 describes invalid datetime format.
+func E2007(value, err interface{}) error {
+	return renderEcode("E2007", map[string]interface{}{
+		"Value": value,
+		"Error": err,
+	})
+}
+
+// E2008 describes invalid duration format.
+func E2008(value, err interface{}) error {
+	return renderEcode("E2008", map[string]interface{}{
+		"Value": value,
+		"Error": err,
 	})
 }

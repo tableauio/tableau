@@ -1,4 +1,7 @@
-# [0000, 0999]: common system error
+# (0000, 0999]: common error
+E0001:
+  desc: sheet not found in book
+  text: sheet "{{.SheetName}}" not found in book "{{.BookName}}"
 # [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2001:
@@ -21,4 +24,16 @@ E2005:
   desc: map key not unique
   text: map key "{{.Key}}" already exists
   help: 'map key is configured as "unique:true"'
+E2006:
+  desc: enum value not defined in enum type
+  text: enum value "{{.Value}}" not defined in enum "{{.EnumName}}"
+  help: add enum value "{{.Value}}" to enum "{{.EnumName}}" definition
+E2007:
+  desc: invalid datetime format
+  text: '"{{.Value}}" is invalid datetime format, {{.Error}}'
+  help: 'follow datetime format: "yyyy-MM-dd HH:mm:ss", e.g.: "2020-01-01 01:00:00"'
+E2008:
+  desc: invalid duration format
+  text: '"{{.Value}}" is invalid duration format, {{.Error}}'
+  help: 'follow duration format in the form "72h3m0.5s"'
 # [3000, 3999]: importer error
