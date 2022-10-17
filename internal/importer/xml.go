@@ -31,15 +31,26 @@ var metasheetRegexp *regexp.Regexp
 
 const (
 	xmlProlog             = `<?xml version='1.0' encoding='UTF-8'?>`
-	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`
 	atTableauDisplacement = `ATABLEAU`
-	metasheetItemBlock    = `(\s+<Item(\s+\S+\s*=\s*"\S+")+\s*/>\s+)*`
-	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`
+	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`                        // e.g.: |{default:"100"}
+	metasheetItemBlock    = `(\s+<Item(\s+\S+\s*=\s*"\S+")+\s*/>\s+)*` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
+	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`                 // e.g.: <XXXConf>...</XXXConf>
 )
 
 func init() {
-	attrRegexp = regexp.MustCompile(`([0-9A-Za-z_]+)="` + types.TypeGroup + ungreedyPropGroup + `"`)
-	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)
+	attrRegexp = regexp.MustCompile(`([0-9A-Za-z_]+)\s*=\s*"` + types.TypeGroup + ungreedyPropGroup + `"`) // e.g.: Num = "int32|{range:"1,~"}"
+	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)                                          // e.g.: Para1, Para2, Para3, ...
+
+	// metasheet regexp, e.g.:
+	// <!--
+	// <@TABLEAU>
+	// 		<Item Sheet="Server" />
+	// </@TABLEAU>
+
+	// <Server>
+	// 		<Weight Num="map<uint32, Weight>"/>
+	// </Server>
+	// -->
 	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>`+metasheetItemBlock+`</%v>|\s*/>)(.*\n)+?)-->`, book.MetasheetName, book.MetasheetName))
 }
 
@@ -160,7 +171,7 @@ func readXMLFile(metasheet, content string, newBook *book.Book) (*tableaupb.XMLB
 			return nil, errors.Wrapf(err, "failed to parseMetaNode for sheet:%s", sheetName)
 		}
 	}
-	
+
 	// strip template sheets
 	for sheet, colMap := range metasheetMap {
 		if template, ok := colMap["Template"]; !ok || template != "true" {

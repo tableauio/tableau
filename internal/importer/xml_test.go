@@ -25,7 +25,7 @@ func Test_escapeAttrs(t *testing.T) {
 			args: args{
 				doc: `
 <Conf>
-    <Server Type="map<enum<.ServerType>, Server>" Value="int32"/>
+    <Server Type = "map<enum<.ServerType>, Server>" Value = "int32"/>
 </Conf>
 `,
 			},
@@ -176,10 +176,10 @@ func Test_matchAttr(t *testing.T) {
 		{
 			name: "scalar type",
 			args: args{
-				s: `<AAA bb="bool" cc="int64" dd="enum<.EnumType>" >`,
+				s: `<AAA bb = "bool" cc = "int64" dd = "enum<.EnumType>" >`,
 			},
 			want: []string{
-				`bb="bool"`, `bb`, `bool`, ``,
+				`bb = "bool"`, `bb`, `bool`, ``,
 			},
 		},
 		{
@@ -584,9 +584,9 @@ func Test_genMetasheet(t *testing.T) {
 			},
 			want: map[string]map[string]string{
 				"ServerConf": {
-					"Nested": "true",
-					"Sheet":  "ServerConf",
-					"Sep":    "|",
+					"Nested":   "true",
+					"Sheet":    "ServerConf",
+					"Sep":      "|",
 					"Nameline": "1",
 					"Typeline": "1",
 				},
@@ -709,7 +709,7 @@ func Test_readXMLFile(t *testing.T) {
 
 	type args struct {
 		metasheet, content string
-		newBook *book.Book
+		newBook            *book.Book
 	}
 	tests := []struct {
 		name    string
@@ -1064,7 +1064,7 @@ func Test_matchSheetBlock(t *testing.T) {
 <Client>
 	<Weight Num="1"/>
 </Client>`
-	
+
 	type args struct {
 		xml       string
 		sheetName string
@@ -1077,11 +1077,11 @@ func Test_matchSheetBlock(t *testing.T) {
 		{
 			name: "General",
 			args: args{
-				xml: doc,
+				xml:       doc,
 				sheetName: "Server",
 			},
 			want: []string{
-`<Server>
+				`<Server>
 	<Weight Num="1"/>
 	{{ if a == 1 }}
 	<Weight Num="2">
@@ -1091,7 +1091,7 @@ func Test_matchSheetBlock(t *testing.T) {
 		<Param value="1" />
 	</Weight>
 </Server>`,
-`>
+				`>
 	<Weight Num="1"/>
 	{{ if a == 1 }}
 	<Weight Num="2">
@@ -1101,7 +1101,7 @@ func Test_matchSheetBlock(t *testing.T) {
 		<Param value="1" />
 	</Weight>
 </Server>`,
-`	</Weight>
+				`	</Weight>
 `,
 			},
 		},
