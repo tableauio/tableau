@@ -71,12 +71,12 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return g
 }
 
-func prepareOutpuDir(outdir string, importFiles []string, delExsited bool) error {
+func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 	existed, err := fs.Exists(outdir)
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
 	}
-	if existed && delExsited {
+	if existed && delExisted {
 		// remove all *.proto file but not Imports
 		imports := make(map[string]int)
 		for _, path := range importFiles {
@@ -119,7 +119,7 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 
 func (gen *Generator) GenAll() error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, true); err != nil {
+	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, true); err != nil {
 		return err
 	}
 	if len(gen.InputOpt.Subdirs) != 0 {
@@ -136,7 +136,7 @@ func (gen *Generator) GenAll() error {
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutpuDir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, false); err != nil {
+	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, false); err != nil {
 		return err
 	}
 	var eg errgroup.Group

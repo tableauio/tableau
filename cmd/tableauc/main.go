@@ -26,6 +26,7 @@ var (
 	protoPackage     string
 	indir            string
 	outdir           string
+	confOutputSubdir string
 	mode             string
 	configPath       string
 	showConfigSample bool
@@ -40,15 +41,16 @@ func main() {
 		Run:     run,
 	}
 
-	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "proto package name")
+	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "protobuf package name")
 	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "input directory, default is current directory")
 	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "output directory, default is current directory")
+	rootCmd.Flags().StringVarP(&confOutputSubdir, "conf-output-subdir", "", "", "conf output sub-directory, set it to override output.conf.subdir")
 	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `available mode: default, proto, and conf. 
   - default: generate both proto and conf files.
   - proto: generate proto files only.
   - conf: generate conf files only.
 `)
-	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", "config file path, e.g.: ./config.yaml")
+	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", "tableauc config file path, e.g.: ./config.yaml")
 	rootCmd.Flags().BoolVarP(&showConfigSample, "show-config-sample", "s", false, "show config sample")
 
 	if err := rootCmd.Execute(); err != nil {
@@ -113,6 +115,11 @@ func genProto(workbooks []string, config *options.Options) error {
 
 func genConf(workbooks []string, config *options.Options) error {
 	// generate conf files
+	if confOutputSubdir != "" {
+		// override conf.output.subdir field in config file, in order
+		// to gain dynamic output subdir ability.
+		config.Output.Conf.Subdir = confOutputSubdir
+	}
 	gen := tableau.NewConfGeneratorWithOptions(protoPackage, indir, outdir, config)
 	if err := gen.Generate(workbooks...); err != nil {
 		logError(ModeConf, err)

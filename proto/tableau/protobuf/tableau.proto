@@ -33,44 +33,88 @@ extend google.protobuf.EnumValueOptions {
 }
 
 message WorkbookOptions {
-  string name = 1;  // workbook name
+  string name = 1;  // Workbook name
 }
 
 message WorksheetOptions {
-  string name = 1;     // worksheet name
-  int32 namerow = 2;   // [default = 1]; // exact row number of name at worksheet.
-  int32 typerow = 3;   // [default = 2]; // exact row number of type at worksheet, for generating protos.
-  int32 noterow = 4;   // [default = 3]; // exact row number of note at worksheet.
-  int32 datarow = 5;   // [default = 4]; // start row number of data at worksheet.
-  bool transpose = 6;  // [default = false]; // interchange the rows and columns
-  string tags = 7;     // [default = ""]; // tags for usage, e.g.: "1,2" specifying loading servers. Speciallly, "*"
-                       // means all servers.
-  int32 nameline = 8;  // [default = 0]; // specify which line in cell as name, '0' means the whole cell is name.
-  int32 typeline = 9;  // [default = 0]; // specify which line in cell as type,'0' means the whole cell is type.
-  bool nested = 10;    // [default = false]; // whether the naming of name row is nested.
-  string sep = 11;     // separator, default: ","
-  string subsep = 12;  // subseparator, default: ":"
-  repeated string merger = 13;  // [default = ""]; // merge multiple sheets by the merger pattern.
-  bool adjacent_key = 14;       // [default = false]; // whether the rows with the same key is adjacent together.
-  bool field_presence = 15;     // [default = false]; // whether add the optional label to basic types.
-  bool template = 16; // [default = false]; // declares if sheet is a template config
+  // Worksheet name
+  string name = 1;
+  // Exact row number of column name definition at a worksheet.
+  //
+  // Default: 1.
+  int32 namerow = 2;
+  // Exact row number of column type definition at a worksheet.
+  //
+  // Default: 2.
+  int32 typerow = 3;
+  // Exact row number of column note definition at a worksheet.
+  //
+  // Default: 3.
+  int32 noterow = 4;
+  // Start row number of data at a worksheet.
+  //
+  // Default: 4.
+  int32 datarow = 5;
+  // Interchange the rows and columns of worksheet.
+  bool transpose = 6;
+  // Tags for usage, e.g.: "1,2" specifying loading servers. Specially,
+  // "*" means all servers.
+  string tags = 7;
+  // The line number of column name definition in a cell. 0 means
+  // the whole cell.
+  //
+  // Default: 0.
+  int32 nameline = 8;
+  // The line number of column type definition in a cell. 0 means
+  // the whole cell.
+  //
+  // Default: 0.
+  int32 typeline = 9;
+  // Nested naming of the namerow.
+  bool nested = 10;
+  // Separator for:
+  //    1. separating in-cell list elements.
+  //    2. separating in-cell map items.
+  //
+  // Default: ",".
+  string sep = 11;
+  // Subseparator for separating in-cell map Key-Value pair.
+  //
+  // Default: ":".
+  string subsep = 12;
+  // Merge multiple workbook sheets (comma-separated) into this one
+  // with the same structure. E.g.: Item1.xlsx,Item2.xlsx.
+  repeated string merger = 13;
+  // Merge adjacent rows with the same key. If the key cell is not set,
+  // it will be treated the same as the nearest key above the same column.
+  bool adjacent_key = 14;
+  // In order to track field presence of basic types (numeric, string, bytes,
+  // and enums), the generated field will be labeled "optional".
+  bool field_presence = 15;
+  // Indicate this XML sheet is a template or not. Template sheet structure will
+  // only be parsed based on metasheet "@TABLEAU" in comments.
+  bool template = 16;
 
   ////////// Loader related options below //////////
-  bool ordered_map = 50;       // generate ordered map accessers.
-  repeated string index = 51;  // generate index accessers.
+  // Generate OrderedMap accessers or not.
+  bool ordered_map = 50;
+  // Generate index accessers, and multiple index columns is comma-separated.
+  // Format: <ColumnName>[@IndexName], if IndexName is not set, it will be
+  // this column’s parent struct type name. E.g.: ItemID,ShopID@Shop.
+  repeated string index = 51;
 }
 
 message FieldOptions {
-  string name = 1;    // scalar type's varible name or composite type's varible name (prefix).
-  string note = 2;    // note of name, maybe in another language (Chinese) other than variable name (English).
-  string key = 3;     // only set when type is map or keyed-list.
+  string name = 1;    // Scalar type's variable name or composite type's variable name (prefix).
+  string note = 2;    // Field note, maybe in another language (Chinese) other than variable name (English).
+  string key = 3;     // Only set when this field type is map or keyed-list.
   Layout layout = 4;  // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
   Span span = 5;      // For list element or map value types. Default: SPAN_CROSS_CELL.
-  string sep = 6;     // separator, default: ","
-  string subsep = 7;  // subseparator, default: ":"
-  bool optional = 8;  // whether the field is optional.
+  string sep = 6;     // NOT USED yet. Default: ",".
+  string subsep = 7;  // NOT USED yet. Default: ":".
+  bool optional = 8;  // Whether the field is optional.
 
-  FieldProp prop = 15;  // property of field.
+  FieldProp prop = 15;  // Property of field.
 }
 
 message FieldProp {
@@ -93,9 +137,9 @@ message FieldProp {
   //
   // Format: "SheetName(SheetAlias).ColumnName"
   //
-  // E.g: 
+  // E.g:
   //  - "Item.ID" : sheet name is unique.
-  //  - "Item(ItemConf).ID" : different workbooks have the same sheet name, 
+  //  - "Item(ItemConf).ID" : different workbooks have the same sheet name,
   //    but sheet alias is unique inherently.
   string refer = 3;
   // Local perspective: ensure this field's value is a sequence and begins with this value.

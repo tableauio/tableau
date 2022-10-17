@@ -140,7 +140,7 @@ type WorkbookOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // workbook name
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Workbook name
 }
 
 func (x *WorkbookOptions) Reset() {
@@ -187,26 +187,70 @@ type WorksheetOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name      string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`            // worksheet name
-	Namerow   int32  `protobuf:"varint,2,opt,name=namerow,proto3" json:"namerow,omitempty"`     // [default = 1]; // exact row number of name at worksheet.
-	Typerow   int32  `protobuf:"varint,3,opt,name=typerow,proto3" json:"typerow,omitempty"`     // [default = 2]; // exact row number of type at worksheet, for generating protos.
-	Noterow   int32  `protobuf:"varint,4,opt,name=noterow,proto3" json:"noterow,omitempty"`     // [default = 3]; // exact row number of note at worksheet.
-	Datarow   int32  `protobuf:"varint,5,opt,name=datarow,proto3" json:"datarow,omitempty"`     // [default = 4]; // start row number of data at worksheet.
-	Transpose bool   `protobuf:"varint,6,opt,name=transpose,proto3" json:"transpose,omitempty"` // [default = false]; // interchange the rows and columns
-	Tags      string `protobuf:"bytes,7,opt,name=tags,proto3" json:"tags,omitempty"`            // [default = ""]; // tags for usage, e.g.: "1,2" specifying loading servers. Speciallly, "*"
-	// means all servers.
-	Nameline      int32    `protobuf:"varint,8,opt,name=nameline,proto3" json:"nameline,omitempty"`                                 // [default = 0]; // specify which line in cell as name, '0' means the whole cell is name.
-	Typeline      int32    `protobuf:"varint,9,opt,name=typeline,proto3" json:"typeline,omitempty"`                                 // [default = 0]; // specify which line in cell as type,'0' means the whole cell is type.
-	Nested        bool     `protobuf:"varint,10,opt,name=nested,proto3" json:"nested,omitempty"`                                    // [default = false]; // whether the naming of name row is nested.
-	Sep           string   `protobuf:"bytes,11,opt,name=sep,proto3" json:"sep,omitempty"`                                           // separator, default: ","
-	Subsep        string   `protobuf:"bytes,12,opt,name=subsep,proto3" json:"subsep,omitempty"`                                     // subseparator, default: ":"
-	Merger        []string `protobuf:"bytes,13,rep,name=merger,proto3" json:"merger,omitempty"`                                     // [default = ""]; // merge multiple sheets by the merger pattern.
-	AdjacentKey   bool     `protobuf:"varint,14,opt,name=adjacent_key,json=adjacentKey,proto3" json:"adjacent_key,omitempty"`       // [default = false]; // whether the rows with the same key is adjacent together.
-	FieldPresence bool     `protobuf:"varint,15,opt,name=field_presence,json=fieldPresence,proto3" json:"field_presence,omitempty"` // [default = false]; // whether add the optional label to basic types.
-	Template      bool     `protobuf:"varint,16,opt,name=template,proto3" json:"template,omitempty"`                                // [default = false]; // declares if sheet is a template config
+	// Worksheet name
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Exact row number of column name definition at a worksheet.
+	//
+	// Default: 1.
+	Namerow int32 `protobuf:"varint,2,opt,name=namerow,proto3" json:"namerow,omitempty"`
+	// Exact row number of column type definition at a worksheet.
+	//
+	// Default: 2.
+	Typerow int32 `protobuf:"varint,3,opt,name=typerow,proto3" json:"typerow,omitempty"`
+	// Exact row number of column note definition at a worksheet.
+	//
+	// Default: 3.
+	Noterow int32 `protobuf:"varint,4,opt,name=noterow,proto3" json:"noterow,omitempty"`
+	// Start row number of data at a worksheet.
+	//
+	// Default: 4.
+	Datarow int32 `protobuf:"varint,5,opt,name=datarow,proto3" json:"datarow,omitempty"`
+	// Interchange the rows and columns of worksheet.
+	Transpose bool `protobuf:"varint,6,opt,name=transpose,proto3" json:"transpose,omitempty"`
+	// Tags for usage, e.g.: "1,2" specifying loading servers. Specially,
+	// "*" means all servers.
+	Tags string `protobuf:"bytes,7,opt,name=tags,proto3" json:"tags,omitempty"`
+	// The line number of column name definition in a cell. 0 means
+	// the whole cell.
+	//
+	// Default: 0.
+	Nameline int32 `protobuf:"varint,8,opt,name=nameline,proto3" json:"nameline,omitempty"`
+	// The line number of column type definition in a cell. 0 means
+	// the whole cell.
+	//
+	// Default: 0.
+	Typeline int32 `protobuf:"varint,9,opt,name=typeline,proto3" json:"typeline,omitempty"`
+	// Nested naming of the namerow.
+	Nested bool `protobuf:"varint,10,opt,name=nested,proto3" json:"nested,omitempty"`
+	// Separator for:
+	//    1. separating in-cell list elements.
+	//    2. separating in-cell map items.
+	//
+	// Default: ",".
+	Sep string `protobuf:"bytes,11,opt,name=sep,proto3" json:"sep,omitempty"`
+	// Subseparator for separating in-cell map Key-Value pair.
+	//
+	// Default: ":".
+	Subsep string `protobuf:"bytes,12,opt,name=subsep,proto3" json:"subsep,omitempty"`
+	// Merge multiple workbook sheets (comma-separated) into this one
+	// with the same structure. E.g.: Item1.xlsx,Item2.xlsx.
+	Merger []string `protobuf:"bytes,13,rep,name=merger,proto3" json:"merger,omitempty"`
+	// Merge adjacent rows with the same key. If the key cell is not set,
+	// it will be treated the same as the nearest key above the same column.
+	AdjacentKey bool `protobuf:"varint,14,opt,name=adjacent_key,json=adjacentKey,proto3" json:"adjacent_key,omitempty"`
+	// In order to track field presence of basic types (numeric, string, bytes,
+	// and enums), the generated field will be labeled "optional".
+	FieldPresence bool `protobuf:"varint,15,opt,name=field_presence,json=fieldPresence,proto3" json:"field_presence,omitempty"`
+	// Indicate this XML sheet is a template or not. Template sheet structure will
+	// only be parsed based on metasheet "@TABLEAU" in comments.
+	Template bool `protobuf:"varint,16,opt,name=template,proto3" json:"template,omitempty"`
 	////////// Loader related options below //////////
-	OrderedMap bool     `protobuf:"varint,50,opt,name=ordered_map,json=orderedMap,proto3" json:"ordered_map,omitempty"` // generate ordered map accessers.
-	Index      []string `protobuf:"bytes,51,rep,name=index,proto3" json:"index,omitempty"`                              // generate index accessers.
+	// Generate OrderedMap accessers or not.
+	OrderedMap bool `protobuf:"varint,50,opt,name=ordered_map,json=orderedMap,proto3" json:"ordered_map,omitempty"`
+	// Generate index accessers, and multiple index columns is comma-separated.
+	// Format: <ColumnName>[@IndexName], if IndexName is not set, it will be
+	// this column’s parent struct type name. E.g.: ItemID,ShopID@Shop.
+	Index []string `protobuf:"bytes,51,rep,name=index,proto3" json:"index,omitempty"`
 }
 
 func (x *WorksheetOptions) Reset() {
@@ -372,15 +416,15 @@ type FieldOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name     string     `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                          // scalar type's varible name or composite type's varible name (prefix).
-	Note     string     `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`                          // note of name, maybe in another language (Chinese) other than variable name (English).
-	Key      string     `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`                            // only set when type is map or keyed-list.
+	Name     string     `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                          // Scalar type's variable name or composite type's variable name (prefix).
+	Note     string     `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`                          // Field note, maybe in another language (Chinese) other than variable name (English).
+	Key      string     `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`                            // Only set when this field type is map or keyed-list.
 	Layout   Layout     `protobuf:"varint,4,opt,name=layout,proto3,enum=tableau.Layout" json:"layout,omitempty"` // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
 	Span     Span       `protobuf:"varint,5,opt,name=span,proto3,enum=tableau.Span" json:"span,omitempty"`       // For list element or map value types. Default: SPAN_CROSS_CELL.
-	Sep      string     `protobuf:"bytes,6,opt,name=sep,proto3" json:"sep,omitempty"`                            // separator, default: ","
-	Subsep   string     `protobuf:"bytes,7,opt,name=subsep,proto3" json:"subsep,omitempty"`                      // subseparator, default: ":"
-	Optional bool       `protobuf:"varint,8,opt,name=optional,proto3" json:"optional,omitempty"`                 // whether the field is optional.
-	Prop     *FieldProp `protobuf:"bytes,15,opt,name=prop,proto3" json:"prop,omitempty"`                         // property of field.
+	Sep      string     `protobuf:"bytes,6,opt,name=sep,proto3" json:"sep,omitempty"`                            // NOT USED yet. Default: ",".
+	Subsep   string     `protobuf:"bytes,7,opt,name=subsep,proto3" json:"subsep,omitempty"`                      // NOT USED yet. Default: ":".
+	Optional bool       `protobuf:"varint,8,opt,name=optional,proto3" json:"optional,omitempty"`                 // Whether the field is optional.
+	Prop     *FieldProp `protobuf:"bytes,15,opt,name=prop,proto3" json:"prop,omitempty"`                         // Property of field.
 }
 
 func (x *FieldOptions) Reset() {
