@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -19,7 +20,6 @@ func Test_escapeAttrs(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "standard",
 			args: args{
@@ -105,9 +105,9 @@ func Test_isRepeated(t *testing.T) {
 	</TeamRatingWeight>
 </MatchCfg>
 `
-	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(root, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
 	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight")
 	node2 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight/Param")
@@ -122,7 +122,6 @@ func Test_isRepeated(t *testing.T) {
 		args args
 		want bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "node1",
 			args: args{
@@ -174,7 +173,6 @@ func Test_matchAttr(t *testing.T) {
 		args args
 		want []string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "scalar type",
 			args: args{
@@ -184,7 +182,6 @@ func Test_matchAttr(t *testing.T) {
 				`bb="bool"`, `bb`, `bool`, ``,
 			},
 		},
-		// TODO: Add test cases.
 		{
 			name: "Prop",
 			args: args{
@@ -220,9 +217,9 @@ func Test_isFirstChild(t *testing.T) {
 </Server>
 -->
 `
-	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(root, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
 	sheet1 := getXMLSheet(xmlMeta, "Server")
 	node1 := FindMetaNode(sheet1, "Server/MapConf/Weight")
 	type args struct {
@@ -233,7 +230,6 @@ func Test_isFirstChild(t *testing.T) {
 		args args
 		want bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "Weight",
 			args: args{
@@ -305,9 +301,9 @@ func Test_fixNodeType(t *testing.T) {
 	</Broadcast>
 </MatchCfg>
 `
-	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(root, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
 	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/MatchMode/MatchAI/AI")
 	node2 := FindMetaNode(sheet1, "MatchCfg/MapConf/Test/Weight")
@@ -329,7 +325,6 @@ func Test_fixNodeType(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "MatchCfg/MatchMode/MatchAI/AI",
 			args: args{
@@ -463,7 +458,6 @@ func Test_getNodePath(t *testing.T) {
 		wantRoot *xmlquery.Node
 		wantPath string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "MatchCfg/MapConf/Weight",
 			args: args{
@@ -503,7 +497,6 @@ func Test_isCrossCell(t *testing.T) {
 		args args
 		want bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "map<uint32, Item>",
 			args: args{
@@ -524,7 +517,7 @@ func Test_isCrossCell(t *testing.T) {
 				t: "[]int32",
 			},
 			want: false,
-		},		
+		},
 		{
 			name: "[.Item]uint32",
 			args: args{
@@ -545,7 +538,7 @@ func Test_isCrossCell(t *testing.T) {
 				t: "{int32 ID,string Name,string Desc}Prop",
 			},
 			want: false,
-		},	
+		},
 		{
 			name: "{.Item}uint32",
 			args: args{
@@ -558,6 +551,565 @@ func Test_isCrossCell(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := isCrossCell(tt.args.t); got != tt.want {
 				t.Errorf("isCrossCell() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_genMetasheet(t *testing.T) {
+	metaDoc := fmt.Sprintf(`
+<?xml version='1.0' encoding='UTF-8'?>
+<%v>
+	<Item Sheet="ServerConf" Sep="|" />
+</%v>
+`, atTableauDisplacement, atTableauDisplacement)
+
+	metaRoot, _ := xmlquery.Parse(strings.NewReader(metaDoc))
+	node := xmlquery.FindOne(metaRoot, atTableauDisplacement)
+
+	type args struct {
+		tableauNode *xmlquery.Node
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string]map[string]string
+		want1   *book.Sheet
+		wantErr bool
+	}{
+		{
+			name: "Common Case",
+			args: args{
+				tableauNode: node,
+			},
+			want: map[string]map[string]string{
+				"ServerConf": {
+					"Nested": "true",
+					"Sheet":  "ServerConf",
+					"Sep":    "|",
+					"Nameline": "1",
+					"Typeline": "1",
+				},
+			},
+			want1: &book.Sheet{
+				Name:   book.MetasheetName,
+				MaxRow: 2,
+				MaxCol: 5,
+				Rows: [][]string{
+					{
+						"Nameline",
+						"Nested",
+						"Sep",
+						"Sheet",
+						"Typeline",
+					},
+					{
+						"1",
+						"true",
+						"|",
+						"ServerConf",
+						"1",
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1, err := genMetasheet(tt.args.tableauNode)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("genMetasheet() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("genMetasheet() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("genMetasheet() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func Test_addMetaNodeAttr(t *testing.T) {
+	type args struct {
+		attrMap *tableaupb.XMLNode_AttrMap
+		name    string
+		val     string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "Common Case",
+			args: args{
+				attrMap: newOrderedAttrMap(),
+				name:    "Num",
+				val:     "int32",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			addMetaNodeAttr(tt.args.attrMap, tt.args.name, tt.args.val)
+		})
+	}
+}
+
+func Test_addDataNodeAttr(t *testing.T) {
+	type args struct {
+		metaMap *tableaupb.XMLNode_AttrMap
+		dataMap *tableaupb.XMLNode_AttrMap
+		name    string
+		val     string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "Common Case",
+			args: args{
+				metaMap: newOrderedAttrMap(),
+				dataMap: newOrderedAttrMap(),
+				name:    "Num",
+				val:     "100",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			addDataNodeAttr(tt.args.metaMap, tt.args.dataMap, tt.args.name, tt.args.val)
+		})
+	}
+}
+
+func Test_readXMLFile(t *testing.T) {
+	// 	doc := `
+	// <?xml version='1.0' encoding='UTF-8'?>
+	// <!--
+	// <@TABLEAU>
+	// 	<Item Sheet="Server" />
+	// </@TABLEAU>
+
+	// <Server>
+	// 	<Weight Num="map&lt;uint32,Weight&gt;"/>
+	// </Server>
+	// -->
+
+	// <Server>
+	// 	<Weight Num="1"/>
+	// 	<Weight Num="2"/>
+	// </Server>
+	// `
+	// 		root, _ := xmlquery.Parse(strings.NewReader(doc))
+	// 		newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
+
+	type args struct {
+		metasheet, content string
+		newBook *book.Book
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *tableaupb.XMLBook
+		wantErr bool
+	}{
+		// TODO:
+		// {
+		// 	name: "MapConf",
+		// 	args: args{
+		// 		root: root,
+		// 		newBook: newBook,
+		// 	},
+		// 	want: &tableaupb.XMLBook{
+		// 		SheetMap: map[string]int32{
+		// 			"Server": 0,
+		// 		},
+		// 		SheetList: []*tableaupb.XMLSheet{
+		// 			{
+		// 				Meta: &tableaupb.XMLNode{
+		// 					Name: "Server",
+		// 					Path: "Server",
+		// 					AttrMap: newOrderedAttrMap(),
+		// 					ChildMap: map[string]*tableaupb.XMLNode_IndexList{
+		// 						"Weight": {
+		// 							Indexes: []int32{
+		// 								0,
+		// 							},
+		// 						},
+		// 					},
+		// 					ChildList: []*tableaupb.XMLNode{
+		// 						{
+		// 							Name: "Weight",
+		// 							AttrMap: &tableaupb.XMLNode_AttrMap{
+		// 								Map: map[string]int32{
+		// 									"Num": 0,
+		// 								},
+		// 								List: []*tableaupb.XMLNode_AttrMap_Attr{
+		// 									{
+		// 										Name: "Num",
+		// 										Value: "map<uint32,Weight>",
+		// 									},
+		// 								},
+		// 							},
+		// 						},
+		// 					},
+		// 				},
+		// 			},
+		// 		},
+		// 	},
+		// },
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := readXMLFile(tt.args.metasheet, tt.args.content, tt.args.newBook)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("readXMLFile() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("readXMLFile() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_hasChild(t *testing.T) {
+	doc := `
+<Conf>
+	<Client Open="true">
+		<Num>100</Num>	
+		<Item ID="123" />
+	</Client>
+	
+	<Server>
+		<!-- Comments -->
+	
+	</Server>
+</Conf>
+`
+	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	node1 := xmlquery.FindOne(root, "Conf/Client")
+	node2 := xmlquery.FindOne(root, "Conf/Client/Num")
+	node3 := xmlquery.FindOne(root, "Conf/Client/Item")
+	node4 := xmlquery.FindOne(root, "Conf/Server")
+
+	type args struct {
+		n *xmlquery.Node
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Conf/Client",
+			args: args{
+				n: node1,
+			},
+			want: true,
+		},
+		{
+			name: "Conf/Client/Num",
+			args: args{
+				n: node2,
+			},
+			want: false,
+		},
+		{
+			name: "Conf/Client/Item",
+			args: args{
+				n: node3,
+			},
+			want: false,
+		},
+		{
+			name: "Conf/Server",
+			args: args{
+				n: node4,
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := hasChild(tt.args.n); got != tt.want {
+				t.Errorf("hasChild() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getTextContent(t *testing.T) {
+	doc := `
+<Conf>
+	<Client Open="true">
+		<Num>100</Num>	
+		<Item ID="123" />
+	</Client>
+	
+	<Server>
+		<!-- Comments -->
+	
+	</Server>
+</Conf>
+`
+	root, _ := xmlquery.Parse(strings.NewReader(doc))
+	node1 := xmlquery.FindOne(root, "Conf/Client")
+	node2 := xmlquery.FindOne(root, "Conf/Client/Num")
+	node3 := xmlquery.FindOne(root, "Conf/Client/Item")
+	node4 := xmlquery.FindOne(root, "Conf/Server")
+
+	type args struct {
+		n *xmlquery.Node
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Conf/Client",
+			args: args{
+				n: node1,
+			},
+			want: "",
+		},
+		{
+			name: "Conf/Client/Num",
+			args: args{
+				n: node2,
+			},
+			want: "100",
+		},
+		{
+			name: "Conf/Client/Item",
+			args: args{
+				n: node3,
+			},
+			want: "",
+		},
+		{
+			name: "Conf/Server",
+			args: args{
+				n: node4,
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getTextContent(tt.args.n); got != tt.want {
+				t.Errorf("getTextContent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_matchMetasheet(t *testing.T) {
+	doc := `
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+<@TABLEAU>
+	<Item Sheet="Server" />
+</@TABLEAU>
+
+<Server>
+	<Weight Num="map<uint32, Weight>"/>
+</Server>
+-->
+
+<!--
+		Comments
+		Comments
+		Comments	
+-->
+
+<Server>
+	<Weight Num="1"/>
+	<Weight Num="2"/>
+</Server>
+`
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "Whole document",
+			args: args{
+				s: doc,
+			},
+			want: []string{
+				`<!--
+<@TABLEAU>
+	<Item Sheet="Server" />
+</@TABLEAU>
+
+<Server>
+	<Weight Num="map<uint32, Weight>"/>
+</Server>
+-->`,
+				`<@TABLEAU>
+	<Item Sheet="Server" />
+</@TABLEAU>
+
+<Server>
+	<Weight Num="map<uint32, Weight>"/>
+</Server>
+`,
+				`>
+	<Item Sheet="Server" />
+</@TABLEAU>`,
+				`
+	<Item Sheet="Server" />
+`,
+				` Sheet="Server"`,
+				`</Server>
+`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := matchMetasheet(tt.args.s); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("matchMetasheet() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_splitRawXML(t *testing.T) {
+	doc := `<?xml version='1.0' encoding='UTF-8'?>
+<!--
+<@TABLEAU>
+	<Item Sheet="Server" />
+</@TABLEAU>
+
+<Server>
+	<Weight Num="map<uint32, Weight>"/>
+</Server>
+-->
+
+<Server>
+	<Weight Num="1"/>
+	<Weight Num="2"/>
+</Server>`
+
+	type args struct {
+		rawXML string
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantMetasheet string
+		wantContent   string
+	}{
+		{
+			name: "Whole document",
+			args: args{
+				rawXML: doc,
+			},
+			wantMetasheet: `<?xml version='1.0' encoding='UTF-8'?>
+<ATABLEAU>
+	<Item Sheet="Server" />
+</ATABLEAU>
+
+<Server>
+	<Weight Num="map&lt;uint32, Weight&gt;"/>
+</Server>
+`,
+			wantContent: `<?xml version='1.0' encoding='UTF-8'?>
+
+
+<Server>
+	<Weight Num="1"/>
+	<Weight Num="2"/>
+</Server>`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotMetasheet, gotContent := splitRawXML(tt.args.rawXML)
+			if gotMetasheet != tt.wantMetasheet {
+				t.Errorf("splitRawXML() gotMetasheet = %v, want %v", gotMetasheet, tt.wantMetasheet)
+			}
+			if gotContent != tt.wantContent {
+				t.Errorf("splitRawXML() gotContent = %v, want %v", gotContent, tt.wantContent)
+			}
+		})
+	}
+}
+
+func Test_matchSheetBlock(t *testing.T) {
+	doc := `<?xml version='1.0' encoding='UTF-8'?>
+
+<Server>
+	<Weight Num="1"/>
+	{{ if a == 1 }}
+	<Weight Num="2">
+	{{ else }}
+	<Weight Num="3">
+	{{ endif }}
+		<Param value="1" />
+	</Weight>
+</Server>
+
+<Client>
+	<Weight Num="1"/>
+</Client>`
+	
+	type args struct {
+		xml       string
+		sheetName string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "General",
+			args: args{
+				xml: doc,
+				sheetName: "Server",
+			},
+			want: []string{
+`<Server>
+	<Weight Num="1"/>
+	{{ if a == 1 }}
+	<Weight Num="2">
+	{{ else }}
+	<Weight Num="3">
+	{{ endif }}
+		<Param value="1" />
+	</Weight>
+</Server>`,
+`>
+	<Weight Num="1"/>
+	{{ if a == 1 }}
+	<Weight Num="2">
+	{{ else }}
+	<Weight Num="3">
+	{{ endif }}
+		<Param value="1" />
+	</Weight>
+</Server>`,
+`	</Weight>
+`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := matchSheetBlock(tt.args.xml, tt.args.sheetName); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("matchSheetBlock() = %v, want %v", got, tt.want)
 			}
 		})
 	}

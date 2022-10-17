@@ -1,6 +1,7 @@
 {
-    "sepConf": {
-        "numberList": [
+    "maxNum":  100,
+    "sepConf":  {
+        "numberList":  [
             1,
             2,
             3
