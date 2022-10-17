@@ -1,8 +1,6 @@
 package tableau
 
 import (
-	"path/filepath"
-
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/confgen"
@@ -13,7 +11,6 @@ import (
 	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
 // Generate can convert Excel/CSV/XML files to protoconf files and
@@ -107,13 +104,8 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 	g.Generate()
 }
 
-// ParseMetabook parses and returns metadata of the specified workbook.
-func ParseMetabook(indir, relWorkbookPath string) (*tableaupb.Metabook, error) {
-	workbookPath := filepath.Join(indir, relWorkbookPath)
+// NewImporter creates a new importer of the specified workbook.
+func NewImporter(workbookPath string) (importer.Importer, error) {
 	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", book.MetasheetOptions())
-	imp, err := importer.New(workbookPath, importer.Parser(parser))
-	if err != nil {
-		return nil, err
-	}
-	return imp.Metabook(), nil
+	return importer.New(workbookPath, importer.Parser(parser))
 }

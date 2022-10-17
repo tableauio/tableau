@@ -20,11 +20,11 @@ type messageExporter struct {
 	name      string
 	msg       proto.Message
 	outputDir string
-	outputOpt *options.OutputConfOption
+	outputOpt *options.ConfOutputOption
 	wsOpts    *tableaupb.WorksheetOptions
 }
 
-func New(name string, msg proto.Message, outputDir string, outputOpt *options.OutputConfOption, wsOpts *tableaupb.WorksheetOptions) *messageExporter {
+func New(name string, msg proto.Message, outputDir string, outputOpt *options.ConfOutputOption, wsOpts *tableaupb.WorksheetOptions) *messageExporter {
 	return &messageExporter{
 		name:      name,
 		msg:       msg,

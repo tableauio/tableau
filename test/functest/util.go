@@ -47,11 +47,11 @@ func genProto(t *testing.T) {
 		"protoconf",
 		"./testdata",
 		outdir,
-		options.Input(
-			&options.InputOption{
-				Proto: &options.InputProtoOption{
+		options.Proto(
+			&options.ProtoOption{
+				Input: &options.ProtoInputOption{
 					ProtoPaths: []string{outdir},
-					ImportedProtoFiles: []string{
+					ProtoFiles: []string{
 						"common/common.proto",
 					},
 					Formats: []format.Format{
@@ -66,11 +66,7 @@ func genProto(t *testing.T) {
 						Datarow: 4,
 					},
 				},
-			},
-		),
-		options.Output(
-			&options.OutputOption{
-				Proto: &options.OutputProtoOption{
+				Output: &options.ProtoOutputOption{
 					FilenameWithSubdirPrefix: true,
 					FileOptions: map[string]string{
 						"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
@@ -97,9 +93,9 @@ func genConf(t *testing.T) {
 		"protoconf",
 		"./testdata",
 		"./_conf",
-		options.Input(
-			&options.InputOption{
-				Conf: &options.InputConfOption{
+		options.Conf(
+			&options.ConfOption{
+				Input: &options.ConfInputOption{
 					ProtoPaths: []string{"./_proto", "."},
 					ProtoFiles: []string{"./_proto/*.proto"},
 					Formats: []format.Format{
@@ -108,11 +104,7 @@ func genConf(t *testing.T) {
 						format.XML,
 					},
 				},
-			},
-		),
-		options.Output(
-			&options.OutputOption{
-				Conf: &options.OutputConfOption{
+				Output: &options.ConfOutputOption{
 					Pretty:          true,
 					Formats:         []format.Format{format.JSON},
 					EmitUnpopulated: true,

@@ -22,11 +22,11 @@ import (
 
 type sheetExporter struct {
 	OutputDir string
-	OutputOpt *options.OutputConfOption // output settings.
+	OutputOpt *options.ConfOutputOption // output settings.
 
 }
 
-func NewSheetExporter(outputDir string, output *options.OutputConfOption) *sheetExporter {
+func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheetExporter {
 	return &sheetExporter{
 		OutputDir: outputDir,
 		OutputOpt: output,

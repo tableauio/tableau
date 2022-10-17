@@ -670,7 +670,7 @@ func swapAttr(attrMap *tableaupb.XMLNode_AttrMap, i, j int) {
 // genSheet generates a `book.Sheet` which can be furtherly processed by `protogen`.
 func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
 	sheetName := xmlSheet.Meta.Name
-	header := options.NewDefault().Input.Proto.Header
+	header := options.NewDefault().Proto.Input.Header
 	metaSheet := xlsxgen.NewMetaSheet(sheetName, header, false)
 	// generate sheet header rows
 	if err := genHeaderRows(xmlSheet.Meta, metaSheet, ""); err != nil {

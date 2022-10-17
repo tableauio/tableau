@@ -57,7 +57,7 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 	}
 
 	// custom imported proto files
-	for _, path := range gen.InputOpt.ImportedProtoFiles {
+	for _, path := range gen.InputOpt.ProtoFiles {
 		bp.wb.Imports[path] = 1
 	}
 	return bp

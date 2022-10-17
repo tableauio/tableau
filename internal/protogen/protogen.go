@@ -35,8 +35,8 @@ type Generator struct {
 	OutputDir    string // output dir of generated protoconf files.
 
 	LocationName string // TZ location name.
-	InputOpt     *options.InputProtoOption
-	OutputOpt    *options.OutputProtoOption
+	InputOpt     *options.ProtoInputOption
+	OutputOpt    *options.ProtoOutputOption
 
 	// internal
 	fileDescs []*desc.FileDescriptor      // all parsed imported proto file descriptors.
@@ -54,14 +54,14 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputDir:     indir,
 		OutputDir:    outdir,
 		LocationName: opts.LocationName,
-		InputOpt:     opts.Input.Proto,
-		OutputOpt:    opts.Output.Proto,
+		InputOpt:     opts.Proto.Input,
+		OutputOpt:    opts.Proto.Output,
 	}
 
 	// parse custom imported proto files
 	fileDescs, err := xproto.ParseProtos(
 		g.InputOpt.ProtoPaths,
-		g.InputOpt.ImportedProtoFiles...)
+		g.InputOpt.ProtoFiles...)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -119,7 +119,7 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 
 func (gen *Generator) GenAll() error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, true); err != nil {
+	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ProtoFiles, true); err != nil {
 		return err
 	}
 	if len(gen.InputOpt.Subdirs) != 0 {
@@ -136,7 +136,7 @@ func (gen *Generator) GenAll() error {
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ImportedProtoFiles, false); err != nil {
+	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ProtoFiles, false); err != nil {
 		return err
 	}
 	var eg errgroup.Group

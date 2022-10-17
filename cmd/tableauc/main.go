@@ -118,7 +118,7 @@ func genConf(workbooks []string, config *options.Options) error {
 	if confOutputSubdir != "" {
 		// override conf.output.subdir field in config file, in order
 		// to gain dynamic output subdir ability.
-		config.Output.Conf.Subdir = confOutputSubdir
+		config.Conf.Output.Subdir = confOutputSubdir
 	}
 	gen := tableau.NewConfGeneratorWithOptions(protoPackage, indir, outdir, config)
 	if err := gen.Generate(workbooks...); err != nil {

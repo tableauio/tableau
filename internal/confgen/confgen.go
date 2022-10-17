@@ -31,8 +31,8 @@ type Generator struct {
 	OutputDir    string // output dir of generated files.
 
 	LocationName string                    // TZ location name.
-	InputOpt     *options.InputConfOption  // Input settings.
-	OutputOpt    *options.OutputConfOption // output settings.
+	InputOpt     *options.ConfInputOption  // Input settings.
+	OutputOpt    *options.ConfOutputOption // output settings.
 
 	// protoregistry
 	prFiles *protoregistry.Files
@@ -56,8 +56,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputDir:     indir,
 		OutputDir:    outdir,
 		LocationName: opts.LocationName,
-		InputOpt:     opts.Input.Conf,
-		OutputOpt:    opts.Output.Conf,
+		InputOpt:     opts.Conf.Input,
+		OutputOpt:    opts.Conf.Output,
 		PerfStats:    sync.Map{},
 	}
 	return g

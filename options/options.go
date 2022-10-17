@@ -22,8 +22,8 @@ type Options struct {
 
 	Log *log.Options // Log options.
 
-	Input  *InputOption  `yaml:"input"`  // Input options.
-	Output *OutputOption `yaml:"output"` // Output options.
+	Proto *ProtoOption `yaml:"proto"` // Proto generation options.
+	Conf  *ConfOption  `yaml:"conf"`  // Conf generation options.
 }
 
 type HeaderOption struct {
@@ -56,22 +56,22 @@ type HeaderOption struct {
 	Typeline int32
 }
 
-type InputOption struct {
+type ProtoOption struct {
 	// Input options for generating proto files.
-	Proto *InputProtoOption `yaml:"proto"`
-	// Input options for generating conf files.
-	Conf *InputConfOption `yaml:"conf"`
+	Input *ProtoInputOption `yaml:"input"`
+	// Output options for generating proto files.
+	Output *ProtoOutputOption `yaml:"output"`
 }
 
-type OutputOption struct {
-	// Output options for generating proto files.
-	Proto *OutputProtoOption `yaml:"proto"`
+type ConfOption struct {
+	// Input options for generating conf files.
+	Input *ConfInputOption `yaml:"input"`
 	// Output options for generating conf files.
-	Conf *OutputConfOption `yaml:"conf"`
+	Output *ConfOutputOption `yaml:"output"`
 }
 
 // Input options for generating proto files. Only for protogen.
-type InputProtoOption struct {
+type ProtoInputOption struct {
 	// Header options of worksheet.
 	Header *HeaderOption `yaml:"header"`
 	// The proto paths are used to search for dependencies that are referenced in import
@@ -80,11 +80,11 @@ type InputProtoOption struct {
 	//
 	// Default: nil.
 	ProtoPaths []string `yaml:"protoPaths"`
-	// The enums and messages in ImportedProtoFiles can be used in Excel/CSV/XML as
+	// The enums and messages in ProtoFiles can be used in Excel/CSV/XML as
 	// common types.
 	//
 	// Default: nil.
-	ImportedProtoFiles []string `yaml:"importedProtoFiles"`
+	ProtoFiles []string `yaml:"protoFiles"`
 	// Specify input file formats.
 	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
 	//
@@ -106,7 +106,7 @@ type InputProtoOption struct {
 }
 
 // Input options for generating conf files. Only for confgen.
-type InputConfOption struct {
+type ConfInputOption struct {
 	// The proto paths are used to search for dependencies that are referenced in import
 	// statements in proto source files. If no import paths are provided then
 	// "." (current directory) is assumed to be the only import path.
@@ -145,7 +145,7 @@ type InputConfOption struct {
 }
 
 // Output options for generating proto files. Only for protogen.
-type OutputProtoOption struct {
+type ProtoOutputOption struct {
 	// Specify subdir (relative to output dir) for generated proto files.
 	//
 	// Default: "".
@@ -167,7 +167,7 @@ type OutputProtoOption struct {
 }
 
 // Output options for generating conf files. Only for confgen.
-type OutputConfOption struct {
+type ConfOutputOption struct {
 	// Specify subdir (relative to output dir) for generated configuration files.
 	//
 	// Default: "".
@@ -228,53 +228,17 @@ func Log(o *log.Options) Option {
 	}
 }
 
-// Input sets InputOption.
-func Input(o *InputOption) Option {
+// Proto sets ProtoOption.
+func Proto(o *ProtoOption) Option {
 	return func(opts *Options) {
-		opts.Input = o
+		opts.Proto = o
 	}
 }
 
-// InputProto set options for generating proto files.
-func InputProto(o *InputProtoOption) Option {
+// Conf sets ConfOption.
+func Conf(o *ConfOption) Option {
 	return func(opts *Options) {
-		opts.Input = &InputOption{
-			Proto: o,
-		}
-	}
-}
-
-// InputConf set options for generating conf files.
-func InputConf(o *InputConfOption) Option {
-	return func(opts *Options) {
-		opts.Input = &InputOption{
-			Conf: o,
-		}
-	}
-}
-
-// Output sets OutputOption.
-func Output(o *OutputOption) Option {
-	return func(opts *Options) {
-		opts.Output = o
-	}
-}
-
-// OutputProto set options for generating proto files.
-func OutputProto(o *OutputProtoOption) Option {
-	return func(opts *Options) {
-		opts.Output = &OutputOption{
-			Proto: o,
-		}
-	}
-}
-
-// OutputConf set options for generating conf files.
-func OutputConf(o *OutputConfOption) Option {
-	return func(opts *Options) {
-		opts.Output = &OutputOption{
-			Conf: o,
-		}
+		opts.Conf = o
 	}
 }
 
@@ -288,8 +252,8 @@ func NewDefault() *Options {
 			Level: "INFO",
 			Sink:  "CONSOLE",
 		},
-		Input: &InputOption{
-			Proto: &InputProtoOption{
+		Proto: &ProtoOption{
+			Input: &ProtoInputOption{
 				Header: &HeaderOption{
 					Namerow: 1,
 					Typerow: 2,
@@ -298,14 +262,14 @@ func NewDefault() *Options {
 				},
 				ProtoPaths: []string{"."},
 			},
-			Conf: &InputConfOption{
+			Output: &ProtoOutputOption{},
+		},
+		Conf: &ConfOption{
+			Input: &ConfInputOption{
 				ProtoPaths: []string{"."},
 				ProtoFiles: []string{"*.proto"},
 			},
-		},
-		Output: &OutputOption{
-			Proto: &OutputProtoOption{},
-			Conf: &OutputConfOption{
+			Output: &ConfOutputOption{
 				Formats: []format.Format{format.JSON},
 				Pretty:  true,
 			},
