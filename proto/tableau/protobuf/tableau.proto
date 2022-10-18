@@ -113,6 +113,7 @@ message FieldOptions {
   string sep = 6;     // NOT USED yet. Default: ",".
   string subsep = 7;  // NOT USED yet. Default: ":".
   bool optional = 8;  // Whether the field is optional.
+  Type type = 9;      // Field's type, used to label special type process, e.g.: date, time.
 
   FieldProp prop = 15;  // Property of field.
 }
@@ -177,6 +178,13 @@ enum Span {
   SPAN_DEFAULT = 0;
   SPAN_CROSS_CELL = 1;  // The field data spans cross multiple cells.
   SPAN_INNER_CELL = 2;  // The field data spans only in one cell.
+}
+
+// Field type for special process.
+enum Type {
+  TYPE_DEFAULT = 0;
+  TYPE_DATE = 1;  // Format: "yyyy-MM-dd" or "yyMMdd".
+  TYPE_TIME = 2;  // Format: "HH:mm:ss" or "HHmmss".
 }
 
 message EnumOptions {

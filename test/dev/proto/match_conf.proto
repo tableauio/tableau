@@ -36,10 +36,10 @@ message MatchCfg {
     }
     Open open = 4 [(tableau.field) = {name:"Open"}];
     message Open {
-      google.protobuf.Timestamp begin_date = 1 [(tableau.field) = {name:"BeginDate"}];
-      google.protobuf.Duration begin_time = 2 [(tableau.field) = {name:"BeginTime"}];
-      google.protobuf.Timestamp end_date = 3 [(tableau.field) = {name:"EndDate"}];
-      google.protobuf.Duration end_time = 4 [(tableau.field) = {name:"EndTime"}];
+      google.protobuf.Timestamp begin_date = 1 [(tableau.field) = {name:"BeginDate" type:TYPE_DATE}];
+      google.protobuf.Duration begin_time = 2 [(tableau.field) = {name:"BeginTime" type:TYPE_TIME}];
+      google.protobuf.Timestamp end_date = 3 [(tableau.field) = {name:"EndDate" type:TYPE_DATE}];
+      google.protobuf.Duration end_time = 4 [(tableau.field) = {name:"EndTime" type:TYPE_TIME}];
     }
     repeated Camp camp_list = 5 [(tableau.field) = {name:"Camp" key:"CampID" layout:LAYOUT_VERTICAL}];
     message Camp {

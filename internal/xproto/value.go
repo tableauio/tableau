@@ -147,11 +147,28 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		return parseEnumValue(fd, value)
 	case pref.MessageKind:
 		msgName := fd.Message().FullName()
+		opts := fd.Options().(*descriptorpb.FieldOptions)
+		fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
+		var optType tableaupb.Type
+		if fieldOpts != nil {
+			optType = fieldOpts.Type
+		}
 		switch msgName {
 		case "google.protobuf.Timestamp":
 			if value == "" {
 				return DefaultTimestampValue, false, nil
 			}
+
+			if optType == tableaupb.Type_TYPE_DATE {
+				if !strings.Contains(value, "-") {
+					// convert "yyMMdd" to "yyyy-MM-dd"
+					if len(value) != 6 {
+						return DefaultTimestampValue, true, xerrors.Errorf("invalid date format like: yyMMdd")
+					}
+					value = "20" + value[0:2] + "-" + value[2:4] + "-" + value[4:]
+				}
+			}
+
 			// location name examples: "Asia/Shanghai" or "Asia/Chongqing".
 			// NOTE(wenchy): There is no "Asia/Beijing" location name. Whoa!!! Big surprize?
 			t, err := parseTimeWithLocation(locationName, value)
@@ -168,6 +185,23 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		case "google.protobuf.Duration":
 			if value == "" {
 				return DefaultDurationValue, false, nil
+			}
+			if optType == tableaupb.Type_TYPE_TIME {
+				// convert 10:10:10 to 10h10m10s
+				splits := strings.SplitN(value, ":", 3)
+				// TODO: check hour < 24, minute < 60, second < 60
+				switch len(splits) {
+				case 1:
+					// convert "yyMMdd" to "yyyy-MM-dd"
+					if len(value) != 6 {
+						return DefaultTimestampValue, true, xerrors.Errorf("invalid time format like: HHmmss")
+					}
+					value = value[0:2] + ":" + value[2:4] + ":" + value[4:]
+				case 2:
+					value = splits[0] + "h" + splits[1] + "m" // 10:10 -> 10h10m
+				case 3:
+					value = splits[0] + "h" + splits[1] + "m" + splits[2] + "s" // 10:10:10 -> 10h10m10s
+				}
 			}
 			d, err := parseDuration(value)
 			if err != nil {
