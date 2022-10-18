@@ -103,6 +103,9 @@ func genConf(t *testing.T) {
 						format.CSV,
 						format.XML,
 					},
+					ExcludedProtoFiles: []string{
+						"./_proto/xml__metasheet__metasheet.proto",
+					},
 				},
 				Output: &options.ConfOutputOption{
 					Pretty:          true,

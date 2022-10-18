@@ -107,7 +107,7 @@ func Test_isRepeated(t *testing.T) {
 `
 	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook, Protogen)
 	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight")
 	node2 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight/Param")
@@ -219,7 +219,7 @@ func Test_isFirstChild(t *testing.T) {
 `
 	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook, Protogen)
 	sheet1 := getXMLSheet(xmlMeta, "Server")
 	node1 := FindMetaNode(sheet1, "Server/MapConf/Weight")
 	type args struct {
@@ -303,7 +303,7 @@ func Test_fixNodeType(t *testing.T) {
 `
 	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook, Protogen)
 	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/MatchMode/MatchAI/AI")
 	node2 := FindMetaNode(sheet1, "MatchCfg/MapConf/Test/Weight")
@@ -765,7 +765,7 @@ func Test_readXMLFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := readXMLFile(tt.args.metasheet, tt.args.content, tt.args.newBook)
+			got, err := readXMLFile(tt.args.metasheet, tt.args.content, tt.args.newBook, Protogen)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("readXMLFile() error = %v, wantErr %v", err, tt.wantErr)
 				return

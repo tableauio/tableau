@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+<@TABLEAU>
+    <Item Sheet="GamesvrConf" Template="true"/>
+</@TABLEAU>
+
+<GamesvrConf>
+    <Log Path="string">
+        <Msg QueueType="int32" CatType="int32" IsOpen="bool" BufferedLen="int32">
+            <Output Path="string" BaseName="string" />
+            <WhiteList ID="[]uint32" />
+        </Msg>
+    </Log>
+    <Addr InnerIP="string" />
+    <GID InitSeq="int32" />
+    <World ID="uint32" Platform="[]string" />
+    <Tconnd Addr="string" />
+    <UDP Port="int32" />
+    <CenterList>
+        <GameCoreCenter ServerID="[GameCoreCenter]string" InternalIP="string" UdpPort="int32"/>
+    </CenterList>
+    <CenterPolaris NameSpace="string" SimulatorService="string" TransformService="string" />
+</GamesvrConf>
+-->
+
+<GamesvrConf>
+    <!-- 必选项 -->
+    <Log Path="/data/home/user00/log/gamesvr_1.0.13.1">
+        <Msg QueueType="0" CatType="99" IsOpen="1" BufferedLen="0">
+            <!--相对路径：相对于$Home/log/appname.进程号, 不配默认在$Home/log/Appname.进程号/ 路径下 -->
+            <Output Path="player" BaseName="player" />
+            <WhiteList ID="11111" />
+        </Msg>
+    </Log>
+    <Addr InnerIP="9.134.54.48" />
+    <GID InitSeq="58" />
+    <World ID="1" Platform="AQQ,IQQ,AWX,IWX" />
+
+    <!-- 可选项 -->
+    <Tconnd Addr="1.0.15.1" />
+    <UDP Port="12869" />
+
+    <!-- NOTE(reekerliu): gamecore通过传统TCM模式部署时生成，目前仅dev私服会使用这组配置，不支持隔离对局和复盘 -->
+    <CenterList>
+        <!--  <GameCoreCenter ServerID="x.x.x.x" InternalIP="x.x.x.x" UdpPort="x"/>  -->
+        <GameCoreCenter ServerID="1.0.44.1" InternalIP="9.134.54.48" UdpPort="8120" />
+    </CenterList>
+
+    <!-- NOTE(reekerliu): gamecore通过k8s集群部署时，使用这组配置，支持隔离对局和复盘workload -->
+    <CenterPolaris NameSpace="Test" SimulatorService="test-wedo" TransformService="transform-test-wedo" />
+</GamesvrConf>

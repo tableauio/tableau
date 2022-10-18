@@ -228,7 +228,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
 	wbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
 	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
-	imp, err := importer.New(wbPath, importer.Sheets(sheets))
+	imp, err := importer.New(wbPath, importer.Sheets(sheets), importer.ImporterMode(importer.Confgen))
 	if err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
