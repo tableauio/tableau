@@ -97,7 +97,7 @@ func loadJSON(msg proto.Message, dir string, options ...Option) error {
 	}
 	opts := ParseOptions(options...)
 	unmarshOpts := protojson.UnmarshalOptions{
-		AllowPartial: opts.IgnoreUnknownFields,
+		DiscardUnknown: opts.IgnoreUnknownFields,
 	}
 	if err := unmarshOpts.Unmarshal(content, msg); err != nil {
 		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
