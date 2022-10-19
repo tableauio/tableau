@@ -71,8 +71,8 @@ message ExchangeInfo {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
     google.protobuf.Timestamp begin_time = 3 [(tableau.field) = {name:"BeginTime"}];
-    google.protobuf.Timestamp date = 4 [(tableau.field) = {name:"Date" type:TYPE_DATE}];
-    google.protobuf.Duration time = 5 [(tableau.field) = {name:"Time" type:TYPE_TIME}];
+    google.protobuf.Timestamp date = 4 [(tableau.field) = {name:"Date"}];
+    google.protobuf.Duration time = 5 [(tableau.field) = {name:"Time"}];
   }
 }
 

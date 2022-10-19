@@ -147,28 +147,11 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		return parseEnumValue(fd, value)
 	case pref.MessageKind:
 		msgName := fd.Message().FullName()
-		opts := fd.Options().(*descriptorpb.FieldOptions)
-		fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
-		var optType tableaupb.Type
-		if fieldOpts != nil {
-			optType = fieldOpts.Type
-		}
 		switch msgName {
 		case "google.protobuf.Timestamp":
 			if value == "" {
 				return DefaultTimestampValue, false, nil
 			}
-
-			if optType == tableaupb.Type_TYPE_DATE {
-				if !strings.Contains(value, "-") {
-					// convert "yyMMdd" to "yyyy-MM-dd"
-					if len(value) != 6 {
-						return DefaultTimestampValue, true, xerrors.Errorf("invalid date format like: yyMMdd")
-					}
-					value = "20" + value[0:2] + "-" + value[2:4] + "-" + value[4:]
-				}
-			}
-
 			// location name examples: "Asia/Shanghai" or "Asia/Chongqing".
 			// NOTE(wenchy): There is no "Asia/Beijing" location name. Whoa!!! Big surprize?
 			t, err := parseTimeWithLocation(locationName, value)
@@ -185,23 +168,6 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		case "google.protobuf.Duration":
 			if value == "" {
 				return DefaultDurationValue, false, nil
-			}
-			if optType == tableaupb.Type_TYPE_TIME {
-				// convert 10:10:10 to 10h10m10s
-				splits := strings.SplitN(value, ":", 3)
-				// TODO: check hour < 24, minute < 60, second < 60
-				switch len(splits) {
-				case 1:
-					// convert "yyMMdd" to "yyyy-MM-dd"
-					if len(value) != 6 {
-						return DefaultTimestampValue, true, xerrors.Errorf("invalid time format like: HHmmss")
-					}
-					value = value[0:2] + ":" + value[2:4] + ":" + value[4:]
-				case 2:
-					value = splits[0] + "h" + splits[1] + "m" // 10:10 -> 10h10m
-				case 3:
-					value = splits[0] + "h" + splits[1] + "m" + splits[2] + "s" // 10:10:10 -> 10h10m10s
-				}
 			}
 			d, err := parseDuration(value)
 			if err != nil {
@@ -275,9 +241,13 @@ func parseTimeWithLocation(locationName string, timeStr string) (time.Time, erro
 			layout = "2006-01-02 15:04:05"
 		} else {
 			layout = "2006-01-02"
-			if !strings.Contains(timeStr, "-") && len(timeStr) == 8 {
-				// convert "yyyymmdd" to "yyyy-mm-dd"
-				timeStr = timeStr[0:4] + "-" + timeStr[4:6] + "-" + timeStr[6:8]
+			if !strings.Contains(timeStr, "-") {
+				if len(timeStr) == 8 {
+					// convert "yyyymmdd" to "yyyy-mm-dd"
+					timeStr = timeStr[0:4] + "-" + timeStr[4:6] + "-" + timeStr[6:8]
+				} else {
+					return time.Time{}, xerrors.Errorf(`invalid date format, please follow format like: "yyyy-MM-dd" or "yyMMdd"`)
+				}
 			}
 		}
 		t, err := time.ParseInLocation(layout, timeStr, location)
@@ -290,11 +260,31 @@ func parseTimeWithLocation(locationName string, timeStr string) (time.Time, erro
 
 func parseDuration(duration string) (time.Duration, error) {
 	duration = strings.TrimSpace(duration)
-	if !strings.ContainsAny(duration, ":hmsµu") && len(duration) == 6 {
-		duration = duration[0:2] + "h" + duration[2:4] + "m" + duration[4:6] + "s"
-	} else if strings.Contains(duration, ":") && len(duration) == 8 {
-		// convert "hh:mm:ss" to "<hh>h<mm>m:<ss>s"
-		duration = duration[0:2] + "h" + duration[3:5] + "m" + duration[6:8] + "s"
+	if !strings.ContainsAny(duration, ":hmsµu") {
+		switch len(duration) {
+		case 4:
+			// "HHmm" -> "<HH>h<mm>m", e.g.:  "1010" -> "10h10m"
+			duration = duration[0:2] + "h" + duration[2:4] + "m"
+		case 6:
+			// "HHmmss" -> "<HH>h<mm>m<ss>s", e.g.: "101010" -> "10h10m10s"
+			duration = duration[0:2] + "h" + duration[2:4] + "m" + duration[4:] + "s"
+		default:
+			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HHmmss" or "HHmm"`)
+		}
+	} else if strings.Contains(duration, ":") {
+		// TODO: check hour < 24, minute < 60, second < 60
+		splits := strings.SplitN(duration, ":", 3)
+		switch len(splits) {
+		case 2:
+			// "HH:mm" -> "<HH>h<mm>m", e.g.: "10:10" -> "10h10m"
+			duration = splits[0] + "h" + splits[1] + "m"
+		case 3:
+			// "HH:mm:ss" -> "<HH>h<mm>m<ss>s", e.g.: "10:10:10" -> "10h10m10s"
+			duration = splits[0] + "h" + splits[1] + "m" + splits[2] + "s"
+		default:
+			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HH:mm:ss" or "HH:mm"`)
+		}
+
 	}
 
 	return time.ParseDuration(duration)

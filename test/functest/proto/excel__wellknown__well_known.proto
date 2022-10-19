@@ -14,15 +14,15 @@ option (tableau.workbook) = {name:"excel/wellknown/WellKnown#*.csv"};
 message WellKnownTypeDate {
   option (tableau.worksheet) = {name:"WellKnownTypeDate" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  google.protobuf.Timestamp end_day = 1 [(tableau.field) = {name:"EndDay" type:TYPE_DATE}];
-  repeated google.protobuf.Timestamp begin_day_list = 2 [(tableau.field) = {name:"BeginDay" layout:LAYOUT_HORIZONTAL type:TYPE_DATE}];
-  repeated google.protobuf.Timestamp trigger_list = 3 [(tableau.field) = {name:"Trigger" layout:LAYOUT_INCELL type:TYPE_DATE}];
+  google.protobuf.Timestamp end_day = 1 [(tableau.field) = {name:"EndDay"}];
+  repeated google.protobuf.Timestamp begin_day_list = 2 [(tableau.field) = {name:"BeginDay" layout:LAYOUT_HORIZONTAL}];
+  repeated google.protobuf.Timestamp trigger_list = 3 [(tableau.field) = {name:"Trigger" layout:LAYOUT_INCELL}];
 }
 
 message WellKnownTypeTime {
   option (tableau.worksheet) = {name:"WellKnownTypeTime" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  google.protobuf.Duration day_begin_time = 1 [(tableau.field) = {name:"DayBeginTime" type:TYPE_TIME}];
-  repeated google.protobuf.Duration sale_time_list = 2 [(tableau.field) = {name:"SaleTime" layout:LAYOUT_HORIZONTAL type:TYPE_TIME}];
-  repeated google.protobuf.Duration trigger_list = 3 [(tableau.field) = {name:"Trigger" layout:LAYOUT_INCELL type:TYPE_TIME}];
+  google.protobuf.Duration day_begin_time = 1 [(tableau.field) = {name:"DayBeginTime"}];
+  repeated google.protobuf.Duration sale_time_list = 2 [(tableau.field) = {name:"SaleTime" layout:LAYOUT_HORIZONTAL}];
+  repeated google.protobuf.Duration trigger_list = 3 [(tableau.field) = {name:"Trigger" layout:LAYOUT_INCELL}];
 }

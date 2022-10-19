@@ -333,7 +333,6 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,
-			Type:   valueTypeDesc.OptType,
 			Prop:   prop, // for incell scalar map, need whole prop
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
@@ -790,7 +789,6 @@ func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field,
 		Options: &tableaupb.FieldOptions{
 			Name: name,
 			Note: p.genNote(note),
-			Type: typeDesc.OptType,
 			Prop: ExtractScalarFieldProp(prop),
 		},
 	}, nil
@@ -807,7 +805,6 @@ type typeDesc struct {
 	Name       string
 	FullName   string
 	Predefined bool
-	OptType    tableaupb.Type
 }
 
 func (p *bookParser) parseType(rawType string) (*typeDesc, error) {
@@ -825,27 +822,13 @@ func (p *bookParser) parseType(rawType string) (*typeDesc, error) {
 		}
 	}
 	switch rawType {
-	case "datetime":
+	case "datetime", "date":
 		return &typeDesc{
 			Name:       "google.protobuf.Timestamp",
 			FullName:   "google.protobuf.Timestamp",
 			Predefined: true,
 		}, nil
-	case "date":
-		return &typeDesc{
-			Name:       "google.protobuf.Timestamp",
-			FullName:   "google.protobuf.Timestamp",
-			Predefined: true,
-			OptType:    tableaupb.Type_TYPE_DATE,
-		}, nil
-	case "time":
-		return &typeDesc{
-			Name:       "google.protobuf.Duration",
-			FullName:   "google.protobuf.Duration",
-			Predefined: true,
-			OptType:    tableaupb.Type_TYPE_TIME,
-		}, nil
-	case "duration":
+	case "time", "duration":
 		return &typeDesc{
 			Name:       "google.protobuf.Duration",
 			FullName:   "google.protobuf.Duration",
