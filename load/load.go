@@ -40,9 +40,16 @@ func SubdirRewrites(subdirRewrites map[string]string) Option {
 }
 
 // LocationName sets TZ location name for parsing datetime format.
-func LocationName(o string) Option {
+func LocationName(name string) Option {
 	return func(opts *Options) {
-		opts.LocationName = o
+		opts.LocationName = name
+	}
+}
+
+// IgnoreUnknownFields sets whether to ignore unknown JSON fields during parsing.
+func IgnoreUnknownFields(ignore bool) Option {
+	return func(opts *Options) {
+		opts.IgnoreUnknownFields = ignore
 	}
 }
 
