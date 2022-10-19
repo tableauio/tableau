@@ -24,6 +24,9 @@ type Options struct {
 	// If the name is "Local", LoadLocation returns Local.
 	// Default: "Local".
 	LocationName string
+	// Whether to ignore unknown JSON fields during parsing.
+	// Default: false.
+	IgnoreUnknownFields bool
 }
 
 // Option is the functional option type.
@@ -46,8 +49,9 @@ func LocationName(o string) Option {
 // newDefault returns a default Options.
 func newDefault() *Options {
 	return &Options{
-		SubdirRewrites: nil,
-		LocationName:   "Local",
+		SubdirRewrites:      nil,
+		LocationName:        "Local",
+		IgnoreUnknownFields: false,
 	}
 }
 
@@ -80,12 +84,16 @@ func loadJSON(msg proto.Message, dir string, options ...Option) error {
 	msgName := string(msg.ProtoReflect().Descriptor().Name())
 	path := filepath.Join(dir, msgName+format.JSONExt)
 
-	if content, err := os.ReadFile(path); err != nil {
+	content, err := os.ReadFile(path)
+	if err != nil {
 		return errors.Wrapf(err, "failed to read file: %v", path)
-	} else {
-		if err := protojson.Unmarshal(content, msg); err != nil {
-			return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-		}
+	}
+	opts := ParseOptions(options...)
+	unmarshOpts := protojson.UnmarshalOptions{
+		AllowPartial: opts.IgnoreUnknownFields,
+	}
+	if err := unmarshOpts.Unmarshal(content, msg); err != nil {
+		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
 	}
 	return nil
 }
@@ -94,12 +102,12 @@ func loadText(msg proto.Message, dir string, options ...Option) error {
 	msgName := string(msg.ProtoReflect().Descriptor().Name())
 	path := filepath.Join(dir, msgName+format.TextExt)
 
-	if content, err := os.ReadFile(path); err != nil {
+	content, err := os.ReadFile(path)
+	if err != nil {
 		return errors.Wrapf(err, "failed to read file: %v", path)
-	} else {
-		if err := prototext.Unmarshal(content, msg); err != nil {
-			return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-		}
+	}
+	if err := prototext.Unmarshal(content, msg); err != nil {
+		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
 	}
 	return nil
 }
@@ -108,12 +116,12 @@ func loadBin(msg proto.Message, dir string, options ...Option) error {
 	msgName := string(msg.ProtoReflect().Descriptor().Name())
 	path := filepath.Join(dir, msgName+format.BinExt)
 
-	if content, err := os.ReadFile(path); err != nil {
+	content, err := os.ReadFile(path)
+	if err != nil {
 		return errors.Wrapf(err, "failed to read file: %v", path)
-	} else {
-		if err := proto.Unmarshal(content, msg); err != nil {
-			return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-		}
+	}
+	if err := proto.Unmarshal(content, msg); err != nil {
+		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
 	}
 	return nil
 }

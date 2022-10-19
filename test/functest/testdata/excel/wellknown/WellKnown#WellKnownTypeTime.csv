@@ -1,4 +1,4 @@
 DayBeginTime,SaleTime1,SaleTime2,Trigger
 time,[]time,time,[]time
 day begin time,Sale time 1,Sale time 2,Trigger
-1:10,00:00,12:00:00,"02:00,12:00:00,1:10"
+1:10,02:00,12:00:00,"02:00,12:00:00,1:10"
