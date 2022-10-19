@@ -14,8 +14,12 @@ type Options struct {
 	Lang string
 
 	// Location represents the collection of time offsets in use in a geographical area.
-	// If the name is "" or "UTC", LoadLocation returns UTC.
-	// If the name is "Local", LoadLocation returns Local.
+	//  - If the name is "" or "UTC", LoadLocation returns UTC.
+	//  - If the name is "Local", LoadLocation returns Local.
+	//  - Otherwise, the name is taken to be a location name corresponding to a file in the
+	//    IANA Time Zone database, such as "America/New_York", "Asia/Shanghai", and so on.
+	//
+	// See https://go.dev/src/time/zoneinfo_abbrs_windows.go.
 	//
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
@@ -56,6 +60,7 @@ type HeaderOption struct {
 	Typeline int32
 }
 
+// Options for generating proto files. Only for protogen.
 type ProtoOption struct {
 	// Input options for generating proto files.
 	Input *ProtoInputOption `yaml:"input"`
@@ -63,14 +68,7 @@ type ProtoOption struct {
 	Output *ProtoOutputOption `yaml:"output"`
 }
 
-type ConfOption struct {
-	// Input options for generating conf files.
-	Input *ConfInputOption `yaml:"input"`
-	// Output options for generating conf files.
-	Output *ConfOutputOption `yaml:"output"`
-}
-
-// Input options for generating proto files. Only for protogen.
+// Input options for generating proto files.
 type ProtoInputOption struct {
 	// Header options of worksheet.
 	Header *HeaderOption `yaml:"header"`
@@ -105,7 +103,37 @@ type ProtoInputOption struct {
 	FollowSymlink bool `yaml:"followSymlink"`
 }
 
-// Input options for generating conf files. Only for confgen.
+// Output options for generating proto files.
+type ProtoOutputOption struct {
+	// Specify subdir (relative to output dir) for generated proto files.
+	//
+	// Default: "".
+	Subdir string `yaml:"subdir"`
+	// Dir separator `/` or `\`  in filename is replaced by "__".
+	//
+	// Default: false.
+	FilenameWithSubdirPrefix bool `yaml:"filenameWithSubdirPrefix"`
+	// Append suffix to each generated proto filename.
+	//
+	// Default: "".
+	FilenameSuffix string `yaml:"filenameSuffix"`
+
+	// Specify proto file options.
+	// Example: go_package, csharp_namespace...
+	//
+	// Default: nil.
+	FileOptions map[string]string `yaml:"fileOptions"`
+}
+
+// Options for generating conf files. Only for confgen.
+type ConfOption struct {
+	// Input options for generating conf files.
+	Input *ConfInputOption `yaml:"input"`
+	// Output options for generating conf files.
+	Output *ConfOutputOption `yaml:"output"`
+}
+
+// Input options for generating conf files.
 type ConfInputOption struct {
 	// The proto paths are used to search for dependencies that are referenced in import
 	// statements in proto source files. If no import paths are provided then
@@ -144,29 +172,7 @@ type ConfInputOption struct {
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
 }
 
-// Output options for generating proto files. Only for protogen.
-type ProtoOutputOption struct {
-	// Specify subdir (relative to output dir) for generated proto files.
-	//
-	// Default: "".
-	Subdir string `yaml:"subdir"`
-	// Dir separator `/` or `\`  in filename is replaced by "__".
-	//
-	// Default: false.
-	FilenameWithSubdirPrefix bool `yaml:"filenameWithSubdirPrefix"`
-	// Append suffix to each generated proto filename.
-	//
-	// Default: "".
-	FilenameSuffix string `yaml:"filenameSuffix"`
-
-	// Specify proto file options.
-	// Example: go_package, csharp_namespace...
-	//
-	// Default: nil.
-	FileOptions map[string]string `yaml:"fileOptions"`
-}
-
-// Output options for generating conf files. Only for confgen.
+// Output options for generating conf files.
 type ConfOutputOption struct {
 	// Specify subdir (relative to output dir) for generated configuration files.
 	//
