@@ -1,6 +1,6 @@
-ID,Prop1ID,,Prop1Value,Prop2ID,,Prop2Value
-"map<uint32, Item>",[Prop]int32,,int32,int32,,int32
-Item's ID,Prop1's ID,Prop1's name,Prop1's value,Prop2's ID,Prop2's name,Prop2's value
-1,1,Apple,100,2,Orange,200
-2,3,Banana,300,4,Pomelo,400
-3,5,Watermelon,500,,,
+ID,Prop1ID,Prop1Name,Prop1Value,NotPrefixProp1Price,Prop2ID,NotPrefixProp2Name,Prop2Value,Prop2Price
+"map<uint32, Item>",[Prop]int32,,int32,,int32,,int32,
+Item's ID,Prop1's ID,Prop1's name (skipped),Prop1's value,Prop1's price (skipped),Prop2's ID,Prop2's name (skipped),Prop2's value,Prop2's price (skipped)
+1,1,Apple,100,40,2,Orange,200,30
+2,3,Banana,300,20,4,Pomelo,400,20
+3,5,Watermelon,500,100,,,,

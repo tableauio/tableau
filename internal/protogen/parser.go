@@ -294,7 +294,12 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		}
 		field.Fields = append(field.Fields, scalarField)
 
+		// Parse other fields or skip continuous N columns of the same element type.
 		for cursor++; cursor < len(header.namerow); cursor++ {
+			typeCell := header.getTypeCell(cursor)
+			if typeCell == "" {
+				continue // continue to skip this column if type cell is empty
+			}
 			nameCell := header.getValidNameCell(&cursor)
 			if types.BelongToFirstElement(nameCell, prefix) {
 				cursor, err = p.parseSubField(field, header, cursor, prefix+"1", options...)
@@ -566,8 +571,12 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				return cursor, err
 			}
 		}
-		// Parse other fields or skip cotinuous N columns of the same element type.
+		// Parse other fields or skip continuous N columns of the same element type.
 		for cursor++; cursor < len(header.namerow); cursor++ {
+			typeCell := header.getTypeCell(cursor)
+			if typeCell == "" {
+				continue // continue to skip this column if type cell is empty
+			}
 			nameCell := header.getValidNameCell(&cursor)
 			if !listElemSpanInnerCell && types.BelongToFirstElement(nameCell, prefix) {
 				cursor, err = p.parseSubField(field, header, cursor, prefix+"1", options...)
