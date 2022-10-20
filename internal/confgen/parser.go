@@ -915,10 +915,8 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 		return false, xerrors.WrapKV(err, kvs...)
 	}
 	if field.opts.Prop != nil {
-		if field.opts.Prop.Refer != "" {
-			if sp.gen == nil {
-				return false, xerrors.ErrorKV("field prop refer not empty, but Geneator was not provided", kvs...)
-			}
+		// NOTE: if use NewSheetParser, sp.gen is nil, which means Geneator is not provided.
+		if field.opts.Prop.Refer != "" && sp.gen != nil {
 			input := &prop.Input{
 				ProtoPackage:   sp.gen.ProtoPackage,
 				InputDir:       sp.gen.InputDir,
