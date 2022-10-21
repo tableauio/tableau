@@ -25,7 +25,7 @@ func Test_escapeAttrs(t *testing.T) {
 			args: args{
 				doc: `
 <Conf>
-    <Server Type="map<enum<.ServerType>, Server>" Value="int32"/>
+    <Server Type = "map<enum<.ServerType>, Server>" Value = "int32"/>
 </Conf>
 `,
 			},
@@ -107,7 +107,7 @@ func Test_isRepeated(t *testing.T) {
 `
 	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook, Protogen)
 	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight")
 	node2 := FindMetaNode(sheet1, "MatchCfg/TeamRatingWeight/Weight/Param")
@@ -176,10 +176,10 @@ func Test_matchAttr(t *testing.T) {
 		{
 			name: "scalar type",
 			args: args{
-				s: `<AAA bb="bool" cc="int64" dd="enum<.EnumType>" >`,
+				s: `<AAA bb = "bool" cc = "int64" dd = "enum<.EnumType>" >`,
 			},
 			want: []string{
-				`bb="bool"`, `bb`, `bool`, ``,
+				`bb = "bool"`, `bb`, `bool`, ``,
 			},
 		},
 		{
@@ -219,7 +219,7 @@ func Test_isFirstChild(t *testing.T) {
 `
 	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook, Protogen)
 	sheet1 := getXMLSheet(xmlMeta, "Server")
 	node1 := FindMetaNode(sheet1, "Server/MapConf/Weight")
 	type args struct {
@@ -303,7 +303,7 @@ func Test_fixNodeType(t *testing.T) {
 `
 	metasheet, content := splitRawXML(doc)
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
-	xmlMeta, _ := readXMLFile(metasheet, content, newBook)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook, Protogen)
 	sheet1 := getXMLSheet(xmlMeta, "MatchCfg")
 	node1 := FindMetaNode(sheet1, "MatchCfg/MatchMode/MatchAI/AI")
 	node2 := FindMetaNode(sheet1, "MatchCfg/MapConf/Test/Weight")
@@ -721,7 +721,7 @@ func Test_readXMLFile(t *testing.T) {
 
 	type args struct {
 		metasheet, content string
-		newBook *book.Book
+		newBook            *book.Book
 	}
 	tests := []struct {
 		name    string
@@ -777,7 +777,7 @@ func Test_readXMLFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := readXMLFile(tt.args.metasheet, tt.args.content, tt.args.newBook)
+			got, err := readXMLFile(tt.args.metasheet, tt.args.content, tt.args.newBook, Protogen)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("readXMLFile() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1076,7 +1076,7 @@ func Test_matchSheetBlock(t *testing.T) {
 <Client>
 	<Weight Num="1"/>
 </Client>`
-	
+
 	type args struct {
 		xml       string
 		sheetName string
@@ -1089,11 +1089,11 @@ func Test_matchSheetBlock(t *testing.T) {
 		{
 			name: "General",
 			args: args{
-				xml: doc,
+				xml:       doc,
 				sheetName: "Server",
 			},
 			want: []string{
-`<Server>
+				`<Server>
 	<Weight Num="1"/>
 	{{ if a == 1 }}
 	<Weight Num="2">
@@ -1103,7 +1103,7 @@ func Test_matchSheetBlock(t *testing.T) {
 		<Param value="1" />
 	</Weight>
 </Server>`,
-`>
+				`>
 	<Weight Num="1"/>
 	{{ if a == 1 }}
 	<Weight Num="2">
@@ -1113,7 +1113,7 @@ func Test_matchSheetBlock(t *testing.T) {
 		<Param value="1" />
 	</Weight>
 </Server>`,
-`	</Weight>
+				`	</Weight>
 `,
 			},
 		},

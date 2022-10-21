@@ -31,21 +31,32 @@ var metasheetRegexp *regexp.Regexp
 
 const (
 	xmlProlog             = `<?xml version='1.0' encoding='UTF-8'?>`
-	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`
 	atTableauDisplacement = `ATABLEAU`
-	metasheetItemBlock    = `(\s+<Item(\s+\S+\s*=\s*"\S+")+\s*/>\s+)*`
-	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`
+	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`                        // e.g.: |{default:"100"}
+	metasheetItemBlock    = `(\s+<Item(\s+\S+\s*=\s*"\S+")+\s*/>\s+)*` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
+	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`                 // e.g.: <XXXConf>...</XXXConf>
 )
 
 func init() {
-	attrRegexp = regexp.MustCompile(`([0-9A-Za-z_]+)="` + types.TypeGroup + ungreedyPropGroup + `"`)
-	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)
+	attrRegexp = regexp.MustCompile(`([0-9A-Za-z_]+)\s*=\s*"` + types.TypeGroup + ungreedyPropGroup + `"`) // e.g.: Num = "int32|{range:"1,~"}"
+	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)                                          // e.g.: Para1, Para2, Para3, ...
+
+	// metasheet regexp, e.g.:
+	// <!--
+	// <@TABLEAU>
+	// 		<Item Sheet="Server" />
+	// </@TABLEAU>
+
+	// <Server>
+	// 		<Weight Num="map<uint32, Weight>"/>
+	// </Server>
+	// -->
 	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>`+metasheetItemBlock+`</%v>|\s*/>)(.*\n)+?)-->`, book.MetasheetName, book.MetasheetName))
 }
 
 // TODO: options
-func NewXMLImporter(filename string, sheets []string, parser book.SheetParser) (*XMLImporter, error) {
-	newBook, err := parseXML(filename, sheets, parser)
+func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, mode Mode) (*XMLImporter, error) {
+	newBook, err := parseXML(filename, sheets, parser, mode)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
@@ -76,7 +87,7 @@ func splitRawXML(rawXML string) (metasheet, content string) {
 
 // parseXML parse sheets in the XML file named `filename` and return a book with multiple sheets
 // in TABLEAU grammar which can be exported to protobuf by excel parser.
-func parseXML(filename string, sheetNames []string, parser book.SheetParser) (*book.Book, error) {
+func parseXML(filename string, sheetNames []string, parser book.SheetParser, mode Mode) (*book.Book, error) {
 	log.Debugf("xml: %s", filename)
 	buf, err := os.ReadFile(filename)
 	if err != nil {
@@ -92,7 +103,7 @@ func parseXML(filename string, sheetNames []string, parser book.SheetParser) (*b
 	// The first pass
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, parser)
-	xmlMeta, err := readXMLFile(metasheet, content, newBook)
+	xmlMeta, err := readXMLFile(metasheet, content, newBook, mode)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +141,7 @@ func parseXML(filename string, sheetNames []string, parser book.SheetParser) (*b
 // structure defined in xml.proto and put it into memory.
 //
 // readXMLFile read the raw xml rooted at `root`, specify which sheets to parse and return a XMLBook.
-func readXMLFile(metasheet, content string, newBook *book.Book) (*tableaupb.XMLBook, error) {
+func readXMLFile(metasheet, content string, newBook *book.Book, mode Mode) (*tableaupb.XMLBook, error) {
 	xmlMeta := &tableaupb.XMLBook{
 		SheetMap: make(map[string]int32),
 	}
@@ -161,16 +172,18 @@ func readXMLFile(metasheet, content string, newBook *book.Book) (*tableaupb.XMLB
 		}
 	}
 
-	// strip template sheets
-	for sheet, colMap := range metasheetMap {
-		if template, ok := colMap["Template"]; !ok || template != "true" {
-			continue
+	if mode == Protogen {
+		// strip template sheets
+		for sheet, colMap := range metasheetMap {
+			if template, ok := colMap["Template"]; !ok || template != "true" {
+				continue
+			}
+			matches := matchSheetBlock(content, sheet)
+			if len(matches) == 0 {
+				continue
+			}
+			content = strings.ReplaceAll(content, matches[0], "")
 		}
-		matches := matchSheetBlock(content, sheet)
-		if len(matches) == 0 {
-			continue
-		}
-		content = strings.ReplaceAll(content, matches[0], "")
 	}
 
 	// parse data content
