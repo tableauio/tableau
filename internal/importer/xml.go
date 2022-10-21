@@ -183,7 +183,7 @@ func readXMLFile(metasheet, content string, newBook *book.Book, mode Mode) (*tab
 				continue
 			}
 			content = strings.ReplaceAll(content, matches[0], "")
-		}		
+		}
 	}
 
 	// parse data content
@@ -224,7 +224,11 @@ func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *bo
 			sheetMap[attr.Name.Local] = attr.Value
 		}
 		sheetMap["Nested"] = "true"
-		// param in `config.yaml` may not be one
+		// use explicit settings to avoid implicit settings exception.
+		sheetMap["Namerow"] = "1"
+		sheetMap["Typerow"] = "2"
+		sheetMap["Noterow"] = "3"
+		sheetMap["Datarow"] = "4"
 		sheetMap["Nameline"] = "1"
 		sheetMap["Typeline"] = "1"
 		sheetName, ok := sheetMap["Sheet"]

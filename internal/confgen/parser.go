@@ -633,15 +633,39 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, kvs...)
 					}
-					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
-						return false, xerrors.WithMessageKV(err, kvs...)
+					subMsgName := string(field.fd.Message().FullName())
+					_, found := xproto.WellKnownMessages[subMsgName]
+					if found {
+						// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
+						newListValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data)
+						if err != nil {
+							return false, xerrors.WithMessageKV(err, kvs...)
+						}
+					} else {
+						if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+							return false, xerrors.WithMessageKV(err, kvs...)
+						}
 					}
 				} else {
 					// horizontal struct list
-					elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, colName)
-					if err != nil {
-						kvs = append(kvs, xerrors.KeyPBFieldType, "horizontal struct list")
-						return false, xerrors.WithMessageKV(err, kvs...)
+					subMsgName := string(field.fd.Message().FullName())
+					_, found := xproto.WellKnownMessages[subMsgName]
+					if found {
+						// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
+						cell, err := rc.Cell(colName, field.opts.Optional)
+						if err != nil {
+							return false, xerrors.WithMessageKV(err, kvs...)
+						}
+						newListValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data)
+						if err != nil {
+							return false, xerrors.WithMessageKV(err, kvs...)
+						}
+					} else {
+						elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, colName)
+						if err != nil {
+							kvs = append(kvs, xerrors.KeyPBFieldType, "horizontal struct list")
+							return false, xerrors.WithMessageKV(err, kvs...)
+						}
 					}
 				}
 				if checkRemainFlag {
@@ -891,10 +915,8 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 		return false, xerrors.WrapKV(err, kvs...)
 	}
 	if field.opts.Prop != nil {
-		if field.opts.Prop.Refer != "" {
-			if sp.gen == nil {
-				return false, xerrors.ErrorKV("field prop refer not empty, but Geneator was not provided", kvs...)
-			}
+		// NOTE: if use NewSheetParser, sp.gen is nil, which means Geneator is not provided.
+		if field.opts.Prop.Refer != "" && sp.gen != nil {
 			input := &prop.Input{
 				ProtoPackage:   sp.gen.ProtoPackage,
 				InputDir:       sp.gen.InputDir,

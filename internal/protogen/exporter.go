@@ -161,11 +161,11 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 	}
 	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " [(tableau.field) = {", marshalToText(field.Options), "}];")
 
-	if field.FullType == "google.protobuf.Timestamp" {
-		x.Imports[timestampProtoPath] = true
-	} else if field.FullType == "google.protobuf.Duration" {
-		x.Imports[durationProtoPath] = true
-	}
+	// if field.FullType == "google.protobuf.Timestamp" {
+	// 	x.Imports[timestampProtoPath] = true
+	// } else if field.FullType == "google.protobuf.Duration" {
+	// 	x.Imports[durationProtoPath] = true
+	// }
 
 	typeName := field.Type
 	if field.ListEntry != nil {
@@ -173,6 +173,12 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 	}
 	if field.MapEntry != nil {
 		typeName = field.MapEntry.ValueType
+	}
+
+	if typeName == "google.protobuf.Timestamp" {
+		x.Imports[timestampProtoPath] = true
+	} else if typeName == "google.protobuf.Duration" {
+		x.Imports[durationProtoPath] = true
 	}
 
 	if field.Predefined {

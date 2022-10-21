@@ -35,5 +35,5 @@ E2007:
 E2008:
   desc: invalid duration format
   text: '"{{.Value}}" 是无效的时间段(duration)格式, {{.Error}}'
-  help: '请遵循时间段(duration)格式，以 "72h3m0.5s" 这种形式来配置'
+  help: '请遵循时间段(duration)格式，以 "72h3m0.5s" 形式来配置'
 # [3000, 3999]: importer error

@@ -93,6 +93,7 @@ func genConf(t *testing.T) {
 		"protoconf",
 		"./testdata",
 		"./_conf",
+		options.LocationName("Asia/Shanghai"),
 		options.Conf(
 			&options.ConfOption{
 				Input: &options.ConfInputOption{
