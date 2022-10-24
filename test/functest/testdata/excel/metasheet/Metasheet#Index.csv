@@ -1,0 +1,6 @@
+ID,Name,Price
+"map<int32, Item>",string,int32
+Item’s ID,Item’s name,Item’s price
+1,Apple,40
+2,Orange,20
+3,Banana,10

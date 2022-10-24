@@ -98,9 +98,18 @@ message WorksheetOptions {
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
   bool ordered_map = 50;
-  // Generate index accessers, and multiple index columns is comma-separated.
-  // Format: <ColumnName>[@IndexName], if IndexName is not set, it will be
-  // this column’s parent struct type name. E.g.: ItemID,ShopID@Shop.
+  // Generate index accessers, and multiple index columns are comma-separated.
+  // Format: <ColumnName>[@IndexName], if IndexName is not set, it will be this
+  // column’s parent struct type name.
+  //
+  // Composite indexes (or multicolumn indexes) are in the form: ([column1, column2, column3,...])[@IndexName]
+  //
+  // Examples:
+  //  - ID
+  //  - ID@Item
+  //  - (ID,Type)
+  //  - (ID,Type)@Item
+  //  - ID, (ID,Type)@Item
   repeated string index = 51;
 }
 

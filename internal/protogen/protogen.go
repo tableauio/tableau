@@ -321,7 +321,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 				Template:      sheet.Meta.Template,
 				// Loader options:
 				OrderedMap: sheet.Meta.OrderedMap,
-				Index:      sheet.Meta.Index,
+				Index:      parseIndexes(sheet.Meta.Index),
 			},
 			Fields: []*tableaupb.Field{},
 			Name:   sheetMsgName,

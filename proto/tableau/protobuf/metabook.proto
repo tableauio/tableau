@@ -56,16 +56,25 @@ message Metasheet {
   bool template = 16 [(tableau.field) = { name: "Template" optional: true }];
 
   ////////// Loader related options below //////////
-  // generate ordered map accessers
+  // Generate ordered map accessers
   bool ordered_map = 50 [(tableau.field) = { name: "OrderedMap" optional: true }];
-  // generate index accessers.
-  // The key-value pair is `<ColumnName>[@IndexName]`, if IndexName is not set,
-  // it will be this column's parent struct type name.
+  // Generate index accessers, and multiple index columns are comma-separated.
+  // Format: <ColumnName>[@IndexName], if IndexName is not set, it will be this
+  // column’s parent struct type name.
+  //
+  // Composite indexes (or multicolumn indexes) are in the form: ([column1, column2, column3,...])[@IndexName]
+  //
+  // Examples:
+  //  - ID
+  //  - ID@Item
+  //  - (ID,Type)
+  //  - (ID,Type)@Item
+  //  - ID, (ID,Type)@Item
   //
   // Generated APIs are:
   //
   // C++:
   // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
-  repeated string index = 51 [(tableau.field) = { name: "Index" optional: true layout: LAYOUT_INCELL }];
+  string index = 51 [(tableau.field) = { name: "Index" optional: true }];
 }

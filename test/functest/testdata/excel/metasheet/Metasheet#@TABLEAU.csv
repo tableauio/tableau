@@ -1,2 +1,3 @@
-Sheet,Transpose
-Transpose,true
+Sheet,Transpose,Index
+Transpose,true,
+Index,,"ID, (ID,Name)@SpecialItem"

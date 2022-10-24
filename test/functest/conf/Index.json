@@ -1,0 +1,19 @@
+{
+    "itemMap":  {
+        "1":  {
+            "id":  1,
+            "name":  "Apple",
+            "price":  40
+        },
+        "2":  {
+            "id":  2,
+            "name":  "Orange",
+            "price":  20
+        },
+        "3":  {
+            "id":  3,
+            "name":  "Banana",
+            "price":  10
+        }
+    }
+}

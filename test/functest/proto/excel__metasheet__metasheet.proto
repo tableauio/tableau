@@ -9,6 +9,17 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/metasheet/Metasheet#*.csv"};
 
+message Index {
+  option (tableau.worksheet) = {name:"Index" namerow:1 typerow:2 noterow:3 datarow:4 index:"ID" index:"(ID,Name)@SpecialItem"};
+
+  map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+    int32 price = 3 [(tableau.field) = {name:"Price"}];
+  }
+}
+
 message Transpose {
   option (tableau.worksheet) = {name:"Transpose" namerow:1 typerow:2 noterow:3 datarow:4 transpose:true};
 
