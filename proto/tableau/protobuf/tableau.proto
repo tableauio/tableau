@@ -25,7 +25,7 @@ extend google.protobuf.FieldOptions {
 }
 
 extend google.protobuf.EnumOptions {
-  EnumOptions enum = 50000;
+  EnumOptions etype = 50000;
 }
 
 extend google.protobuf.EnumValueOptions {
