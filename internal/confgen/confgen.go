@@ -169,7 +169,9 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 			if workbook == nil {
 				return true
 			}
-			if relWorkbookPath != "" && relWorkbookPath != workbook.Name {
+			// rewrite subdir
+			rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
+			if relWorkbookPath != "" && relWorkbookPath != rewrittenWorkbookName {
 				return true
 			}
 			workbookFound = true
