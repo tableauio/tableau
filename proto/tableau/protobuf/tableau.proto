@@ -8,6 +8,11 @@ package tableau;
 import "google/protobuf/descriptor.proto";
 
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+option java_package = "com.tableau.protobuf";
+option java_outer_classname = "TableauProto";
+option java_multiple_files = true;
+option objc_class_prefix = "TPB";
+option csharp_namespace = "Tableau.Protobuf.Tableau";
 
 // Option field numbers must be in the range 50000-99999. This range
 // is reserved for internal use within individual organizations.
