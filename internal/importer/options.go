@@ -4,20 +4,20 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 )
 
-type Mode int
+type ImporterMode int
 
 // Importer mode
 const (
-	UnknownMode Mode = 0
-	Protogen    Mode = 1
-	Confgen     Mode = 2
+	UnknownMode ImporterMode = 0
+	Protogen    ImporterMode = 1
+	Confgen     ImporterMode = 2
 )
 
 type Options struct {
 	Sheets []string         // sheet names to import
 	Parser book.SheetParser // parser to parse the worksheet
 	TopN   uint             // read top N rows, 0 means read all rows
-	Mode   Mode             // importer mode, e.g.: Protogen
+	Mode   ImporterMode     // importer mode
 }
 
 // Option is the functional option type.
@@ -41,7 +41,7 @@ func TopN(n uint) Option {
 	}
 }
 
-func ImporterMode(m Mode) Option {
+func Mode(m ImporterMode) Option {
 	return func(opts *Options) {
 		opts.Mode = m
 	}

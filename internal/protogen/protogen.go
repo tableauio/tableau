@@ -58,6 +58,10 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		OutputOpt:    opts.Proto.Output,
 	}
 
+	if opts.Proto.Input.MetasheetName != "" {
+		book.SetMetasheetName(opts.Proto.Input.MetasheetName)
+	}
+
 	// parse custom imported proto files
 	fileDescs, err := xproto.ParseProtos(
 		g.InputOpt.ProtoPaths,
@@ -268,7 +272,7 @@ func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFil
 func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool) (err error) {
 	absPath := filepath.Join(dir, filename)
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
-	imp, err := importer.New(absPath, importer.Parser(parser), importer.TopN(defaultTopN), importer.ImporterMode(importer.Protogen))
+	imp, err := importer.New(absPath, importer.Parser(parser), importer.TopN(defaultTopN), importer.Mode(importer.Protogen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
 	}

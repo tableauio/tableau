@@ -101,6 +101,10 @@ type ProtoInputOption struct {
 	//
 	// Default: false.
 	FollowSymlink bool `yaml:"followSymlink"`
+	// Specify metasheet name. Metasheet is "@TABLEAU" if not set.
+	//
+	// Default: "".
+	MetasheetName string `yaml:"metasheetName"`
 }
 
 // Output options for generating proto files.

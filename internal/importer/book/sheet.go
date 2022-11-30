@@ -14,8 +14,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// MetasheetName defines the metadata of each worksheet.
-const MetasheetName = "@TABLEAU"
+// MetasheetName is the name of metasheet which defines the metadata
+// of each worksheet. Default metasheet name is "@TABLEAU".
+var MetasheetName = "@TABLEAU"
+
+// SetMetasheetName change the metasheet name to the specified name.
+//
+// NOTE: If will not change MetasheetName value if the specified name
+// is empty.
+func SetMetasheetName(name string) {
+	if name != "" {
+		MetasheetName = name
+	}
+}
 
 type SheetParser interface {
 	Parse(protomsg proto.Message, sheet *Sheet) error
