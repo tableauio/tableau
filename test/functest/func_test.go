@@ -5,12 +5,12 @@
 // the desired output on providing a certain input.
 //
 // Test cases basically comprise of the following parts:
-// 	- Test Summary
-//	- Prerequisites (if any)
-//	- Test case input steps
-//	- Test data (if any)
-// 	- Expected output
-// 	- Notes (if any)
+//   - Test Summary
+//   - Prerequisites (if any)
+//   - Test case input steps
+//   - Test data (if any)
+//   - Expected output
+//   - Notes (if any)
 //
 // "Requirement-Based" and "Business scenario-based" are the two
 // forms of functional testing that are carried out.
@@ -32,10 +32,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 func Test_CompareGeneratedProto(t *testing.T) {
-	genProto(t)
+	err := genProto("DEBUG")
+	if err != nil {
+		t.Errorf("%+v", err)
+		t.Fatalf("%s", xerrors.NewDesc(err))
+	}
 
 	oldConfDir := "proto"
 	newConfDir := "_proto"
@@ -77,7 +82,11 @@ func Test_CompareGeneratedProto(t *testing.T) {
 }
 
 func Test_CompareGeneratedJSON(t *testing.T) {
-	genConf(t)
+	err := genConf("DEBUG")
+	if err != nil {
+		t.Errorf("%+v", err)
+		t.Fatalf("%s", xerrors.NewDesc(err))
+	}
 
 	oldConfDir := "conf"
 	newConfDir := "_conf"

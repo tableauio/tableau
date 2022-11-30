@@ -53,9 +53,9 @@ type RowCells struct {
 	SheetName string
 	prev      *RowCells
 
-	Row          int                 // row number
-	cells        map[string]*RowCell // name -> RowCell
-	indexedCells map[int]*RowCell    // column index -> RowCell
+	Row         int                 // row number
+	cells       map[uint32]*RowCell // column index (started with 0) -> RowCell
+	lookupTable ColumnLookupTable   // name -> column index
 }
 
 func NewRowCells(row int, prev *RowCells, sheetName string) *RowCells {
@@ -63,39 +63,66 @@ func NewRowCells(row int, prev *RowCells, sheetName string) *RowCells {
 		SheetName: sheetName,
 		prev:      prev,
 
-		Row:          row,
-		cells:        make(map[string]*RowCell),
-		indexedCells: make(map[int]*RowCell),
+		Row:   row,
+		cells: make(map[uint32]*RowCell),
 	}
 }
 
+// TODO: pooled cells
+// var cellPool *sync.Pool
+
+// func init() {
+// 	cellPool = &sync.Pool{
+// 		New: func() interface{} {
+// 			return new(RowCell)
+// 		},
+// 	}
+// }
+
 type RowCell struct {
-	Col           int    // cell column (0-based)
-	Data          string // cell data
-	Type          string // cell type
-	Name          string // cell name
-	autoPopulated bool   // auto-populated
+	Col           int     // cell column (0-based)
+	Name          *string // cell name
+	Type          *string // cell type
+	Data          string  // cell data
+	autoPopulated bool    // auto-populated
+}
+
+func (r *RowCell) GetName() string {
+	if r.Name == nil {
+		return ""
+	}
+	return *r.Name
+}
+
+func (r *RowCell) GetType() string {
+	if r.Type == nil {
+		return ""
+	}
+	return *r.Type
 }
 
 func (r *RowCells) Cell(name string, optional bool) (*RowCell, error) {
-	c := r.cells[name]
-	if c == nil && optional {
+	var cell *RowCell
+	col, ok := r.lookupTable[name]
+	if ok {
+		cell = r.cells[col]
+	} else if optional {
 		// if optional, return an empty cell.
-		c = &RowCell{
+		cell = &RowCell{
 			Col:  -1,
 			Data: "",
 		}
 	}
-	if c == nil {
+	if cell == nil {
 		return nil, xerrors.ErrorKV(fmt.Sprintf("column %s not found", name))
 	}
-	return c, nil
+	return cell, nil
 }
 
 func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowCell) {
 	minCol, maxCol := -1, -1
-	for name, cell := range r.cells {
-		if strings.HasPrefix(name, prefix) {
+	for _, cell := range r.cells {
+		if strings.HasPrefix(cell.GetName(), prefix) {
 			if minCol == -1 || minCol > cell.Col {
 				minCol = cell.Col
 			}
@@ -107,7 +134,7 @@ func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowC
 	if minCol == -1 || maxCol == -1 {
 		return nil, nil
 	}
-	return r.indexedCells[minCol], r.indexedCells[maxCol]
+	return r.cells[uint32(minCol)], r.cells[uint32(maxCol)]
 }
 
 func (r *RowCells) CellDebugKV(name string) []interface{} {
@@ -137,23 +164,30 @@ func (r *RowCells) CellDebugKV(name string) []interface{} {
 	}
 }
 
-func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateKey bool) {
+// column name -> column index (started with 0)
+type ColumnLookupTable = map[string]uint32
+
+func (r *RowCells) SetColumnLookupTable(table ColumnLookupTable) {
+	r.lookupTable = table
+}
+
+func (r *RowCells) SetCell(name *string, colIndex int, data string, typ *string, needPopulateKey bool) {
 	cell := &RowCell{
-		Col:  col,
+		Col:  colIndex,
 		Data: data,
 		Type: typ,
 		Name: name,
 	}
 
 	// TODO: Parser(first-pass), check if this sheet is nested.
-	if needPopulateKey && data == "" {
-		if (types.MatchMap(typ) != nil || types.MatchKeyedList(typ) != nil) && r.prev != nil {
+	if needPopulateKey && cell.Data == "" {
+		if (types.MatchMap(cell.GetType()) != nil || types.MatchKeyedList(cell.GetType()) != nil) && r.prev != nil {
 			// NOTE: populate the missing map key from the prev row's corresponding cell.
 			// TODO(wenchy): this is a flawed hack, need to be taken into more consideration.
 			// Check: reverse backward to find the previous same nested-level keyed cell and
 			// compare them to make sure they are the same.
 			prefix := ""
-			splits := camelcase.Split(name)
+			splits := camelcase.Split(cell.GetName())
 			if len(splits) >= 2 {
 				prefix = strings.Join(splits[:len(splits)-2], "")
 			}
@@ -161,14 +195,15 @@ func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateK
 			if prefix == "" {
 				needPopulate = true
 			} else {
-				for i := col - 1; i >= 0; i-- {
-					// prevData := r.prev.indexedCells[col].Data
-					backCell := r.indexedCells[i]
-					if !strings.HasPrefix(backCell.Name, prefix) {
+				for i := colIndex - 1; i >= 0; i-- {
+					// prevData := r.prev.cells[col].Data
+					ui := uint32(i)
+					backCell := r.cells[ui]
+					if !strings.HasPrefix(backCell.GetName(), prefix) {
 						break
 					}
-					if types.MatchMap(backCell.Type) != nil || types.MatchKeyedList(backCell.Type) != nil {
-						if r.prev.indexedCells[i].Data == r.indexedCells[i].Data {
+					if types.MatchMap(backCell.GetType()) != nil || types.MatchKeyedList(backCell.GetType()) != nil {
+						if r.prev.cells[ui].Data == r.cells[ui].Data {
 							needPopulate = true
 							break
 						}
@@ -177,7 +212,7 @@ func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateK
 			}
 
 			if needPopulate {
-				if prevCell, err := r.prev.Cell(name, false); err != nil {
+				if prevCell, err := r.prev.Cell(cell.GetName(), false); err != nil {
 					log.Errorf("failed to find prev cell for name: %s, row: %d", name, r.Row)
 				} else {
 					cell.Data = prevCell.Data
@@ -188,14 +223,15 @@ func (r *RowCells) SetCell(name string, col int, data, typ string, needPopulateK
 	}
 
 	// add new cell
-	r.cells[name] = cell
-	r.indexedCells[col] = cell
+	index := uint32(colIndex)
+	r.cells[index] = cell
 }
 
 func (r *RowCells) GetCellCountWithPrefix(prefix string) int {
 	// log.Debug("name prefix: ", prefix)
 	size := 0
-	for name := range r.cells {
+	for _, cell := range r.cells {
+		name := cell.GetName()
 		if strings.HasPrefix(name, prefix) {
 			num := 0
 			// log.Debug("name: ", name)

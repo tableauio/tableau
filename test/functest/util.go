@@ -2,9 +2,9 @@ package functest
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-	"testing"
 
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
@@ -12,38 +12,37 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/xerrors"
 )
 
-func genProto(t *testing.T) {
+func genProto(logLevel string) error {
 	// prepare output common dir
 	outdir := "./_proto"
 	err := os.MkdirAll(outdir, 0700)
 	if err != nil {
-		t.Fatalf("failed to create output dir: %v", err)
+		return fmt.Errorf("failed to create output dir: %v", err)
 	}
 	outCommDir := filepath.Join(outdir, "common")
 	err = os.MkdirAll(outCommDir, 0700)
 	if err != nil {
-		t.Fatalf("failed to create output common dir: %v", err)
+		return fmt.Errorf("failed to create output common dir: %v", err)
 	}
 
 	srcCommDir := "./proto/common"
 	dirEntries, err := os.ReadDir(srcCommDir)
 	if err != nil {
-		t.Fatal(err)
+		return fmt.Errorf("read dir failed: %+v", err)
 	}
 	for _, entry := range dirEntries {
 		if !entry.IsDir() {
 			src := filepath.Join(srcCommDir, entry.Name())
 			dst := filepath.Join(outCommDir, entry.Name())
 			if err := fs.CopyFile(src, dst); err != nil {
-				t.Fatal(err)
+				return fmt.Errorf("copy file failed: %+v", err)
 			}
 		}
 	}
 
-	err = tableau.GenProto(
+	return tableau.GenProto(
 		"protoconf",
 		"./testdata",
 		outdir,
@@ -76,20 +75,16 @@ func genProto(t *testing.T) {
 		),
 		options.Log(
 			&log.Options{
-				Level: "DEBUG",
+				Level: logLevel,
 				Mode:  "FULL",
 			},
 		),
 		// options.Lang("zh"),
 	)
-	if err != nil {
-		t.Errorf("%+v", err)
-		t.Fatalf("%s", xerrors.NewDesc(err))
-	}
 }
 
-func genConf(t *testing.T) {
-	err := tableau.GenConf(
+func genConf(logLevel string) error {
+	return tableau.GenConf(
 		"protoconf",
 		"./testdata",
 		"./_conf",
@@ -115,12 +110,14 @@ func genConf(t *testing.T) {
 				},
 			},
 		),
+		options.Log(
+			&log.Options{
+				Level: logLevel,
+				Mode:  "FULL",
+			},
+		),
 		options.Lang("zh"),
 	)
-	if err != nil {
-		t.Errorf("%+v", err)
-		t.Fatalf("%s", xerrors.NewDesc(err))
-	}
 }
 
 func rangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath string) error) error {
