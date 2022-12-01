@@ -166,9 +166,14 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	// append self
 	importers = append(importers, imp)
 
-	parser := confgen.NewSheetParser(string(md.ParentFile().Package()), opts.LocationName, wsOpts)
-	if err := confgen.ParseMessage(parser, msg, wsOpts.Name, importers...); err != nil {
+	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, md, wsOpts)
+
+	protomsg, err := confgen.ParseMessage(sheetInfo, importers...)
+	if err != nil {
 		return errors.WithMessagef(err, "failed to parse message %s", msgName)
 	}
+	// cost: deep copy
+	proto.Merge(msg, protomsg)
+
 	return nil
 }

@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/emirpasic/gods/lists/arraylist"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/fs"
@@ -60,39 +59,6 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		PerfStats:    sync.Map{},
 	}
 	return g
-}
-
-type sheetInfo struct {
-	SheetName   string // sheet name
-	MessageName string // protobuf message name
-	gen         *Generator
-	opts        *tableaupb.WorksheetOptions
-}
-
-type messagerStatsInfo struct {
-	Name         string
-	Milliseconds int64
-}
-
-func PrintPerfStats(gen *Generator) {
-	// print performance stats
-	list := arraylist.New()
-	gen.PerfStats.Range(func(key, value interface{}) bool {
-		list.Add(&messagerStatsInfo{
-			Name:         key.(string),
-			Milliseconds: value.(int64),
-		})
-		return true
-	})
-	list.Sort(func(a, b interface{}) int {
-		infoA := a.(*messagerStatsInfo)
-		infoB := b.(*messagerStatsInfo)
-		return int(infoB.Milliseconds - infoA.Milliseconds)
-	})
-	list.Each(func(index int, value interface{}) {
-		info := value.(*messagerStatsInfo)
-		log.Debugf("timespan|%v: %vs", info.Name, float64(info.Milliseconds)/1000)
-	})
 }
 
 func (gen *Generator) Generate(relWorkbookPaths ...string) (err error) {
@@ -215,15 +181,21 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 
 	var sheets []string
 	// sheet name -> message name
-	sheetMap := map[string]sheetInfo{}
+	sheetMap := map[string]SheetInfo{}
 	msgs := fd.Messages()
 	for i := 0; i < msgs.Len(); i++ {
 		md := msgs.Get(i)
 		opts := md.Options().(*descriptorpb.MessageOptions)
-		worksheet := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
-		if worksheet != nil {
-			sheetMap[worksheet.Name] = sheetInfo{worksheet.Name, string(md.Name()), gen, worksheet}
-			sheets = append(sheets, worksheet.Name)
+		sheetOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
+		if sheetOpts != nil {
+			sheetMap[sheetOpts.Name] = SheetInfo{
+				ProtoPackage: gen.ProtoPackage,
+				LocationName: gen.LocationName,
+				MD:           md,
+				Opts:         sheetOpts,
+				gen:          gen,
+			}
+			sheets = append(sheets, sheetOpts.Name)
 		}
 	}
 
@@ -245,13 +217,11 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 			}
 			worksheetFound = true
 		}
-		md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
 		// log.Debugf("%s", md.FullName())
-		log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), md.Name(), workbook.Name, sheetName)
-		
+		log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), sheetInfo.MD.Name(), workbook.Name, sheetName)
 
 		// get merger importers
-		importers, err := importer.GetMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
+		importers, err := importer.GetMergerImporters(wbPath, sheetName, sheetInfo.Opts.Merger)
 		if err != nil {
 			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 		}
@@ -259,11 +229,11 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		importers = append(importers, imp)
 
 		exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
-		if err := exporter.Export(&sheetInfo, md, importers...); err != nil {
+		if err := exporter.Export(&sheetInfo, importers...); err != nil {
 			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 		}
 		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
-		gen.PerfStats.Store(sheetInfo.MessageName, seconds)
+		gen.PerfStats.Store(sheetInfo.MD.Name(), seconds)
 	}
 	if worksheetName != "" && !worksheetFound {
 		return xerrors.ErrorKV(fmt.Sprintf("worksheet not found: %s", worksheetName),

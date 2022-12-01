@@ -37,30 +37,29 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheet
 }
 
 // parse and export the protomsg message.
-func (x *sheetExporter) Export(info *sheetInfo, md protoreflect.MessageDescriptor, importers ...importer.Importer) error {
-	protomsg, err := ParseMessage(info, md, importers...)
+func (x *sheetExporter) Export(info *SheetInfo, importers ...importer.Importer) error {
+	protomsg, err := ParseMessage(info, importers...)
 	if err != nil {
 		return err
 	}
-	exporter := mexporter.New(info.MessageName, protomsg, x.OutputDir, x.OutputOpt, info.opts)
+	exporter := mexporter.New(string(info.MD.Name()), protomsg, x.OutputDir, x.OutputOpt, info.Opts)
 	if err := exporter.Export(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func ParseMessage(info *sheetInfo, md protoreflect.MessageDescriptor, importers ...importer.Importer) (proto.Message, error) {
+func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Message, error) {
 	if len(importers) == 1 {
-		return parseMessageFromOneImporter(info, md, importers[0])
+		return parseMessageFromOneImporter(info, importers[0])
 	} else if len(importers) == 0 {
-		return nil, xerrors.ErrorKV("no protomsg parsed", xerrors.KeySheetName, info.SheetName, xerrors.KeyPBMessage, info.MessageName)
+		return nil, xerrors.ErrorKV("no protomsg parsed", xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 
 	// NOTE: use map-reduce pattern to accelerate parsing multiple importers.
 	// - check: first field must be map or list
 	// - errgroup
 	// - proto.Merge
-
 	var mu sync.Mutex // guard msgs
 	var msgs []proto.Message
 
@@ -69,7 +68,7 @@ func ParseMessage(info *sheetInfo, md protoreflect.MessageDescriptor, importers 
 		imp := imp
 		// map-reduce: map jobs for concurrent processing
 		eg.Go(func() error {
-			protomsg, err := parseMessageFromOneImporter(info, md, imp)
+			protomsg, err := parseMessageFromOneImporter(info, imp)
 			if err != nil {
 				return err
 			}
@@ -86,24 +85,60 @@ func ParseMessage(info *sheetInfo, md protoreflect.MessageDescriptor, importers 
 	// map-reduce: reduce results to one
 	mainMsg := msgs[0] // treat the first one as main msg
 	for i := 1; i < len(msgs); i++ {
-		// WARNIG: panic: proto: google.protobuf.Timestamp.seconds: field descriptor does not belong to this message
-		proto.Merge(mainMsg, msgs[i])
+		xproto.Merge(mainMsg, msgs[i])
 	}
 	return mainMsg, nil
 }
 
-func parseMessageFromOneImporter(info *sheetInfo, md protoreflect.MessageDescriptor, imp importer.Importer) (proto.Message, error) {
-	sheet := imp.GetSheet(info.SheetName)
+func parseMessageFromOneImporter(info *SheetInfo, imp importer.Importer) (proto.Message, error) {
+	sheetName := info.Opts.Name
+	sheet := imp.GetSheet(sheetName)
 	if sheet == nil {
-		err := xerrors.E0001(info.SheetName, imp.Filename())
-		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, info.SheetName, xerrors.KeyPBMessage, info.MessageName)
+		err := xerrors.E0001(sheetName, imp.Filename())
+		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
-	parser := NewSheetParserWithGen(info.gen, info.opts)
-	protomsg := dynamicpb.NewMessage(md)
+	parser := newSheetParserInternal(info)
+	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
-		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, info.SheetName, xerrors.KeyPBMessage, info.MessageName)
+		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	return protomsg, nil
+}
+
+type SheetInfo struct {
+	ProtoPackage string
+	LocationName string
+
+	MD   protoreflect.MessageDescriptor
+	Opts *tableaupb.WorksheetOptions
+
+	gen *Generator // NOTE: only set in internal package, currently only for refer check.
+}
+
+func NewSheetInfo(protoPackage, locationName string, md protoreflect.MessageDescriptor, opts *tableaupb.WorksheetOptions) *SheetInfo {
+	return &SheetInfo{
+		ProtoPackage: protoPackage,
+		LocationName: locationName,
+		MD:           md,
+		Opts:         opts,
+	}
+}
+
+func newSheetParserInternal(info *SheetInfo) *sheetParser {
+	parser := NewSheetParser(info.ProtoPackage, info.LocationName, info.Opts)
+	parser.gen = info.gen // set generator
+	return parser
+}
+
+// NewSheetParser create a new sheet parser without Generator.
+func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
+	return &sheetParser{
+		ProtoPackage: protoPackage,
+		LocationName: locationName,
+		gen:          nil,
+		opts:         opts,
+		lookupTable:  map[string]uint32{},
+	}
 }
 
 type sheetParser struct {
@@ -117,26 +152,6 @@ type sheetParser struct {
 	names       []string               // names[col] -> name
 	types       []string               // types[col] -> name
 	lookupTable book.ColumnLookupTable // name -> column index (started with 0)
-}
-
-func NewSheetParserWithGen(gen *Generator, opts *tableaupb.WorksheetOptions) *sheetParser {
-	return &sheetParser{
-		ProtoPackage: gen.ProtoPackage,
-		LocationName: gen.LocationName,
-		gen:          gen,
-		opts:         opts,
-		lookupTable:  map[string]uint32{},
-	}
-}
-
-func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
-	return &sheetParser{
-		ProtoPackage: protoPackage,
-		LocationName: locationName,
-		gen:          nil,
-		opts:         opts,
-		lookupTable:  map[string]uint32{},
-	}
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {

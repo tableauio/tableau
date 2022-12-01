@@ -30,22 +30,22 @@ var DefaultTimestampValue pref.Value
 var DefaultDurationValue pref.Value
 
 func init() {
-	DefaultBoolValue = pref.ValueOf(false)
-	DefaultInt32Value = pref.ValueOf(int32(0))
-	DefaultUint32Value = pref.ValueOf(uint32(0))
-	DefaultInt64Value = pref.ValueOf(int64(0))
-	DefaultUint64Value = pref.ValueOf(uint64(0))
-	DefaultFloat32Value = pref.ValueOf(float32(0))
-	DefaultFloat64Value = pref.ValueOf(float64(0))
-	DefaultStringValue = pref.ValueOf("")
-	DefaultBytesValue = pref.ValueOf([]byte{})
+	DefaultBoolValue = pref.ValueOfBool(false)
+	DefaultInt32Value = pref.ValueOfInt32(0)
+	DefaultUint32Value = pref.ValueOfUint32(0)
+	DefaultInt64Value = pref.ValueOfInt64(0)
+	DefaultUint64Value = pref.ValueOfUint64(0)
+	DefaultFloat32Value = pref.ValueOfFloat32(0)
+	DefaultFloat64Value = pref.ValueOfFloat64(0)
+	DefaultStringValue = pref.ValueOfString("")
+	DefaultBytesValue = pref.ValueOfBytes(nil)
 	DefaultEnumValue = pref.ValueOfEnum(pref.EnumNumber(0))
 
 	var ts *timestamppb.Timestamp
-	DefaultTimestampValue = pref.ValueOf(ts.ProtoReflect())
+	DefaultTimestampValue = pref.ValueOfMessage(ts.ProtoReflect())
 
 	var du *durationpb.Duration
-	DefaultDurationValue = pref.ValueOf(du.ProtoReflect())
+	DefaultDurationValue = pref.ValueOfMessage(du.ProtoReflect())
 }
 
 func getFieldDefaultValue(fd pref.FieldDescriptor) string {
@@ -83,7 +83,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// - decimal fraction: 1.0
 		// - scientific notation: 1.0000001e7
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(int32(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfInt32(int32(val)), true, xerrors.WithStack(err)
 
 	case pref.Uint32Kind, pref.Fixed32Kind:
 		if value == "" {
@@ -92,7 +92,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseUint(value, 10, 32)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(uint32(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfUint32(uint32(val)), true, xerrors.WithStack(err)
 	case pref.Int64Kind, pref.Sint64Kind, pref.Sfixed64Kind:
 		if value == "" {
 			return DefaultInt64Value, false, nil
@@ -100,7 +100,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseInt(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(int64(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfInt64(int64(val)), true, xerrors.WithStack(err)
 	case pref.Uint64Kind, pref.Fixed64Kind:
 		if value == "" {
 			return DefaultUint64Value, false, nil
@@ -108,41 +108,33 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseUint(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(uint64(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfUint64(uint64(val)), true, xerrors.WithStack(err)
 	case pref.BoolKind:
 		if value == "" {
 			return DefaultBoolValue, false, nil
 		}
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseBool(purifyInteger(value))
-		return pref.ValueOf(val), true, xerrors.WithStack(err)
+		return pref.ValueOfBool(val), true, xerrors.WithStack(err)
 
 	case pref.FloatKind:
 		if value == "" {
 			return DefaultFloat32Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 32)
-		return pref.ValueOf(float32(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfFloat32(float32(val)), true, xerrors.WithStack(err)
 
 	case pref.DoubleKind:
 		if value == "" {
 			return DefaultFloat64Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOf(float64(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfFloat64(val), true, xerrors.WithStack(err)
 
 	case pref.StringKind:
-		val := rawValue
-		if rawValue == "" {
-			val = defaultValue
-		}
-		return pref.ValueOf(val), val != "", nil
+		return pref.ValueOfString(value), value != "", nil
 	case pref.BytesKind:
-		val := rawValue
-		if rawValue == "" {
-			val = defaultValue
-		}
-		return pref.ValueOf([]byte(val)), val != "", nil
+		return pref.ValueOfBytes([]byte(value)), value != "", nil
 	case pref.EnumKind:
 		return parseEnumValue(fd, value)
 	case pref.MessageKind:
