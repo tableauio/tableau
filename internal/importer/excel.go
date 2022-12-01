@@ -49,6 +49,12 @@ func readExcelBook(filename string, parser book.SheetParser, topN uint) (*book.B
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file %s", filename)
 	}
+	defer func() {
+        // Close the spreadsheet.
+        if err := file.Close(); err != nil {
+            log.Error(err)
+        }
+    }()
 
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, parser)

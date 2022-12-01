@@ -23,6 +23,10 @@ type Book struct {
 	metaParser SheetParser
 }
 
+// NewBook creates a new book.
+// Example:
+// 	- bookName: Test
+// 	- filename: testdata/Test.xlsx
 func NewBook(bookName, filename string, parser SheetParser) *Book {
 	return &Book{
 		name:     bookName,

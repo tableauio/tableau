@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/iancoleman/strcase"
 	"github.com/tableauio/tableau/internal/confgen/mexporter"
@@ -15,9 +16,11 @@ import (
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type sheetExporter struct {
@@ -34,34 +37,73 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheet
 }
 
 // parse and export the protomsg message.
-func (x *sheetExporter) Export(parser *sheetParser, protomsg proto.Message, importers ...importer.Importer) error {
-	md := protomsg.ProtoReflect().Descriptor()
-	msgName, wsOpts := ParseMessageOptions(md)
-
-	if err := ParseMessage(parser, protomsg, wsOpts.Name, importers...); err != nil {
+func (x *sheetExporter) Export(info *sheetInfo, md protoreflect.MessageDescriptor, importers ...importer.Importer) error {
+	protomsg, err := ParseMessage(info, md, importers...)
+	if err != nil {
 		return err
 	}
-
-	exporter := mexporter.New(msgName, protomsg, x.OutputDir, x.OutputOpt, wsOpts)
+	exporter := mexporter.New(info.MessageName, protomsg, x.OutputDir, x.OutputOpt, info.opts)
 	if err := exporter.Export(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func ParseMessage(parser *sheetParser, protomsg proto.Message, sheetName string, importers ...importer.Importer) error {
-	for _, imp := range importers {
-		sheet := imp.GetSheet(sheetName)
-		if sheet == nil {
-			err := xerrors.E0001(sheetName, imp.Filename())
-			return xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, protomsg.ProtoReflect().Descriptor().FullName())
-		}
-
-		if err := parser.Parse(protomsg, sheet); err != nil {
-			return xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, protomsg.ProtoReflect().Descriptor().FullName())
-		}
+func ParseMessage(info *sheetInfo, md protoreflect.MessageDescriptor, importers ...importer.Importer) (proto.Message, error) {
+	if len(importers) == 1 {
+		return parseMessageFromOneImporter(info, md, importers[0])
+	} else if len(importers) == 0 {
+		return nil, xerrors.ErrorKV("no protomsg parsed", xerrors.KeySheetName, info.SheetName, xerrors.KeyPBMessage, info.MessageName)
 	}
-	return nil
+
+	// NOTE: use map-reduce pattern to accelerate parsing multiple importers.
+	// - check: first field must be map or list
+	// - errgroup
+	// - proto.Merge
+
+	var mu sync.Mutex // guard msgs
+	var msgs []proto.Message
+
+	var eg errgroup.Group
+	for _, imp := range importers {
+		imp := imp
+		// map-reduce: map jobs for concurrent processing
+		eg.Go(func() error {
+			protomsg, err := parseMessageFromOneImporter(info, md, imp)
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			msgs = append(msgs, protomsg)
+			mu.Unlock()
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	// map-reduce: reduce results to one
+	mainMsg := msgs[0] // treat the first one as main msg
+	for i := 1; i < len(msgs); i++ {
+		// WARNIG: panic: proto: google.protobuf.Timestamp.seconds: field descriptor does not belong to this message
+		proto.Merge(mainMsg, msgs[i])
+	}
+	return mainMsg, nil
+}
+
+func parseMessageFromOneImporter(info *sheetInfo, md protoreflect.MessageDescriptor, imp importer.Importer) (proto.Message, error) {
+	sheet := imp.GetSheet(info.SheetName)
+	if sheet == nil {
+		err := xerrors.E0001(info.SheetName, imp.Filename())
+		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, info.SheetName, xerrors.KeyPBMessage, info.MessageName)
+	}
+	parser := NewSheetParserWithGen(info.gen, info.opts)
+	protomsg := dynamicpb.NewMessage(md)
+	if err := parser.Parse(protomsg, sheet); err != nil {
+		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, info.SheetName, xerrors.KeyPBMessage, info.MessageName)
+	}
+	return protomsg, nil
 }
 
 type sheetParser struct {
@@ -134,7 +176,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
-				
+
 				curr.SetCell(&sp.names[row], row, data, &sp.types[row], sp.opts.AdjacentKey)
 				sp.lookupTable[sp.names[row]] = uint32(row)
 			}

@@ -26,7 +26,7 @@ import (
 
 const (
 	TableauProtoPackage = "tableau"
-	defaultTopN         = 10 // default top N rows for importer's TopN option
+	defaultTopN         = 20 // default top N rows for importer's TopN option
 )
 
 type Generator struct {

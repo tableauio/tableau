@@ -22,7 +22,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type Generator struct {
@@ -64,7 +63,9 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 }
 
 type sheetInfo struct {
-	MessageName string
+	SheetName   string // sheet name
+	MessageName string // protobuf message name
+	gen         *Generator
 	opts        *tableaupb.WorksheetOptions
 }
 
@@ -221,7 +222,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		opts := md.Options().(*descriptorpb.MessageOptions)
 		worksheet := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
 		if worksheet != nil {
-			sheetMap[worksheet.Name] = sheetInfo{string(md.Name()), worksheet}
+			sheetMap[worksheet.Name] = sheetInfo{worksheet.Name, string(md.Name()), gen, worksheet}
 			sheets = append(sheets, worksheet.Name)
 		}
 	}
@@ -247,8 +248,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		md := msgs.ByName(protoreflect.Name(sheetInfo.MessageName))
 		// log.Debugf("%s", md.FullName())
 		log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), md.Name(), workbook.Name, sheetName)
-		newMsg := dynamicpb.NewMessage(md)
-		parser := NewSheetParserWithGen(gen, sheetInfo.opts)
+		
 
 		// get merger importers
 		importers, err := importer.GetMergerImporters(wbPath, sheetName, sheetInfo.opts.Merger)
@@ -259,7 +259,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		importers = append(importers, imp)
 
 		exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
-		if err := exporter.Export(parser, newMsg, importers...); err != nil {
+		if err := exporter.Export(&sheetInfo, md, importers...); err != nil {
 			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 		}
 		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
