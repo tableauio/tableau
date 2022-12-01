@@ -191,8 +191,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
-
-				curr.SetCell(&sp.names[row], row, data, &sp.types[row], sp.opts.AdjacentKey)
+				curr.NewCell(row, &sp.names[row], &sp.types[row], data, sp.opts.AdjacentKey)
 				sp.lookupTable[sp.names[row]] = uint32(row)
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
@@ -201,7 +200,10 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 			if err != nil {
 				return err
 			}
-
+			
+			if prev != nil {
+				prev.Free()
+			}
 			prev = curr
 		}
 	} else {
@@ -236,7 +238,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
-				curr.SetCell(&sp.names[col], col, data, &sp.types[col], sp.opts.AdjacentKey)
+				curr.NewCell(col, &sp.names[col], &sp.types[col], data, sp.opts.AdjacentKey)
 				sp.lookupTable[sp.names[col]] = uint32(col)
 			}
 
@@ -247,6 +249,9 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				return err
 			}
 
+			if prev != nil {
+				prev.Free()
+			}
 			prev = curr
 		}
 	}

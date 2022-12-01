@@ -5,6 +5,7 @@ import (
 	"math"
 	"regexp"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/tableauio/tableau/internal/camelcase"
@@ -68,19 +69,39 @@ func NewRowCells(row int, prev *RowCells, sheetName string) *RowCells {
 	}
 }
 
-// TODO: pooled cells
-// var cellPool *sync.Pool
+func (rc *RowCells) Free() {
+	for _, cell := range rc.cells {
+		freeRowCell(cell)
+	}
+}
 
-// func init() {
-// 	cellPool = &sync.Pool{
-// 		New: func() interface{} {
-// 			return new(RowCell)
-// 		},
-// 	}
-// }
+var cellPool *sync.Pool
+
+func init() {
+	cellPool = &sync.Pool{
+		New: func() interface{} {
+			return new(RowCell)
+		},
+	}
+}
+
+func newRowCell(col int, name, typ *string, data string) *RowCell {
+	cell := cellPool.Get().(*RowCell)
+	// set
+	cell.Col = col
+	cell.Name = name
+	cell.Type = typ
+	cell.Data = data
+	cell.autoPopulated = false
+	return cell
+}
+
+func freeRowCell(cell *RowCell) {
+	cellPool.Put(cell)
+}
 
 type RowCell struct {
-	Col           int     // cell column (0-based)
+	Col           int     // cell column index (0-based)
 	Name          *string // cell name
 	Type          *string // cell type
 	Data          string  // cell data
@@ -171,14 +192,8 @@ func (r *RowCells) SetColumnLookupTable(table ColumnLookupTable) {
 	r.lookupTable = table
 }
 
-func (r *RowCells) SetCell(name *string, colIndex int, data string, typ *string, needPopulateKey bool) {
-	cell := &RowCell{
-		Col:  colIndex,
-		Data: data,
-		Type: typ,
-		Name: name,
-	}
-
+func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulateKey bool) {
+	cell := newRowCell(col, name, typ, data)
 	// TODO: Parser(first-pass), check if this sheet is nested.
 	if needPopulateKey && cell.Data == "" {
 		if (types.MatchMap(cell.GetType()) != nil || types.MatchKeyedList(cell.GetType()) != nil) && r.prev != nil {
@@ -195,7 +210,7 @@ func (r *RowCells) SetCell(name *string, colIndex int, data string, typ *string,
 			if prefix == "" {
 				needPopulate = true
 			} else {
-				for i := colIndex - 1; i >= 0; i-- {
+				for i := cell.Col - 1; i >= 0; i-- {
 					// prevData := r.prev.cells[col].Data
 					ui := uint32(i)
 					backCell := r.cells[ui]
@@ -223,7 +238,7 @@ func (r *RowCells) SetCell(name *string, colIndex int, data string, typ *string,
 	}
 
 	// add new cell
-	index := uint32(colIndex)
+	index := uint32(col)
 	r.cells[index] = cell
 }
 
