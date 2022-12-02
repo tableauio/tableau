@@ -208,16 +208,11 @@ func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, pre
 	if evd != nil {
 		return pref.ValueOfEnum(evd.Number()), true, nil
 	}
-	// try enum value alias name
-	for i := 0; i < ed.Values().Len(); i++ {
-		// get enum value descriptor
-		evd := ed.Values().Get(i)
-		opts := evd.Options().(*descriptorpb.EnumValueOptions)
-		evalueOpts := proto.GetExtension(opts, tableaupb.E_Evalue).(*tableaupb.EnumValueOptions)
-		if evalueOpts != nil && evalueOpts.Name == value {
-			// alias name found and return
-			return pref.ValueOfEnum(evd.Number()), true, nil
-		}
+
+	// try enum value alias
+	evalue, ok := enumCache.GetValueByAlias(ed, value)
+	if ok {
+		return evalue, true, nil
 	}
 	return DefaultEnumValue, true, xerrors.E2006(value, ed.FullName())
 }

@@ -27,7 +27,7 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 }
 
 func parseExcelBook(filename string, sheetNames []string, parser book.SheetParser, topN uint) (*book.Book, error) {
-	book, err := readExcelBook(filename, parser, topN)
+	book, err := readExcelBook(filename, sheetNames, parser, topN)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
 	}
@@ -37,28 +37,29 @@ func parseExcelBook(filename string, sheetNames []string, parser book.SheetParse
 			return nil, errors.WithMessage(err, "failed to parse metasheet")
 		}
 	}
-
-	if sheetNames != nil {
-		book.Squeeze(sheetNames)
-	}
 	return book, nil
 }
 
-func readExcelBook(filename string, parser book.SheetParser, topN uint) (*book.Book, error) {
+func readExcelBook(filename string, sheetNames []string, parser book.SheetParser, topN uint) (*book.Book, error) {
 	file, err := excelize.OpenFile(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file %s", filename)
 	}
 	defer func() {
-        // Close the spreadsheet.
-        if err := file.Close(); err != nil {
-            log.Error(err)
-        }
-    }()
+		// Close the spreadsheet.
+		if err := file.Close(); err != nil {
+			log.Error(err)
+		}
+	}()
+
+	// read all sheets if sheetNames not set.
+	if len(sheetNames) == 0 {
+		sheetNames = file.GetSheetList()
+	}
 
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, parser)
-	for _, sheetName := range file.GetSheetList() {
+	for _, sheetName := range sheetNames {
 		rows, err := readExcelSheetRows(file, sheetName, topN)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get rows of sheet: %s#%s", filename, sheetName)
@@ -72,7 +73,8 @@ func readExcelBook(filename string, parser book.SheetParser, topN uint) (*book.B
 
 func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][]string, err error) {
 	if topN == 0 {
-		// read all rows
+		// GetRows fetched all rows with value or formula cells, the continually blank
+		// cells in the tail of each row will be skipped.
 		rows, err := f.GetRows(sheetName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get all rows of sheet: %s#%s", f.Path, sheetName)
