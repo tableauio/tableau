@@ -45,7 +45,7 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 		gen: gen,
 		wb: &tableaupb.Workbook{
 			Options: &tableaupb.WorkbookOptions{
-				// NOTE(wenchyzhu): all OS platforms use path slash separator `/`
+				// NOTE(wenchy): all OS platforms use path slash separator `/`
 				// see: https://stackoverflow.com/questions/9371031/how-do-i-create-crossplatform-file-paths-in-go
 				Name: relSlashPath,
 			},

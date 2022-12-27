@@ -200,7 +200,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 			if err != nil {
 				return err
 			}
-			
+
 			if prev != nil {
 				prev.Free()
 			}
@@ -473,11 +473,21 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 		if valueFd.Kind() == protoreflect.MessageKind {
 			if msg.Has(field.fd) {
 				// When the map's layout is horizontal, skip if it was already present.
-				// This means the front continuous present cells (related to this list)
+				// This means the front continuous present cells (related to this map)
 				// has already been parsed.
 				break
 			}
-			size := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
+			detectedSize := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
+			if detectedSize <= 0 {
+				return false, xerrors.ErrorKV("no cell found with digit suffix", xerrors.KeyPBFieldType, "horizontal map")
+			}
+			fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
+			size := detectedSize
+			if fixedSize > 0 && fixedSize < detectedSize {
+				// squeeze to specified fixed size
+				size = fixedSize
+			}
+			checkRemainFlag := false
 			// log.Debug("prefix size: ", size)
 			for i := 1; i <= size; i++ {
 				keyColName := prefix + field.opts.Name + strconv.Itoa(i) + field.opts.Key
@@ -509,10 +519,19 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "horizontal map")
 					return false, xerrors.WithMessageKV(err, kvs...)
 				}
-				if !keyPresent && !valuePresent {
-					// key and value are both not present.
-					// TODO: check the remaining keys all not present, otherwise report error!
-					break
+				if checkRemainFlag {
+					// Both key and value are not present.
+					// Check that no empty item is existed in between, so we should guarantee
+					// that all the remaining items are not present, otherwise report error!
+					if keyPresent || valuePresent {
+						kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "horizontal struct map")
+						return false, xerrors.ErrorKV("map items are not present continuously", kvs...)
+					}
+					continue
+				}
+				if !keyPresent && !valuePresent && !prop.IsFixed(field.opts.Prop) {
+					checkRemainFlag = true
+					continue
 				}
 				reflectMap.Set(newMapKey, newMapValue)
 			}
@@ -704,7 +723,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			}
 		} else {
 			// TODO: support list of scalar type when layout is vertical?
-			// NOTE(wenchyzhu): we don't support list of scalar type when layout is vertical
+			// NOTE(wenchy): we don't support list of scalar type when layout is vertical
 		}
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		// horizontal list
@@ -777,7 +796,8 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 				}
 				if checkRemainFlag {
-					// check the remaining keys all not present, otherwise report error!
+					// Check that no empty element is existed in between, so we should guarantee
+					// that all the remaining elements are not present, otherwise report error!
 					if elemPresent {
 						kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "horizontal struct list")
 						return false, xerrors.ErrorKV("elements are not present continuously", kvs...)

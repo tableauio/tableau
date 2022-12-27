@@ -72,6 +72,8 @@ func ParseOptions(setters ...Option) *Options {
 	return opts
 }
 
+// Load reads file content from the specified directory and format,
+// and then fills the provided message. 
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
 	switch fmt {
 	case format.JSON:

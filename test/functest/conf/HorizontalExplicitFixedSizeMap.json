@@ -1,8 +1,12 @@
 {
-    "itemMap":  {
-        "1":  {
-            "id":  1,
-            "name":  "Apple"
+    "itemMap": {
+        "0": {
+            "id": 0,
+            "name": ""
+        },
+        "1": {
+            "id": 1,
+            "name": "Apple"
         }
     }
 }
