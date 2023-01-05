@@ -49,6 +49,11 @@ func (x *sheetExporter) Export(info *SheetInfo, importers ...importer.Importer) 
 	return nil
 }
 
+type oneMsg struct {
+	protomsg proto.Message
+	bookName string
+}
+
 func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Message, error) {
 	if len(importers) == 1 {
 		return parseMessageFromOneImporter(info, importers[0])
@@ -61,7 +66,7 @@ func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Messag
 	// - errgroup
 	// - proto.Merge
 	var mu sync.Mutex // guard msgs
-	var msgs []proto.Message
+	var msgs []oneMsg
 
 	var eg errgroup.Group
 	for _, imp := range importers {
@@ -73,7 +78,10 @@ func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Messag
 				return err
 			}
 			mu.Lock()
-			msgs = append(msgs, protomsg)
+			msgs = append(msgs, oneMsg{
+				protomsg: protomsg,
+				bookName: imp.BookName(),
+			})
 			mu.Unlock()
 			return nil
 		})
@@ -83,9 +91,24 @@ func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Messag
 	}
 
 	// map-reduce: reduce results to one
-	mainMsg := msgs[0] // treat the first one as main msg
-	for i := 1; i < len(msgs); i++ {
-		xproto.Merge(mainMsg, msgs[i])
+	mainMsg := dynamicpb.NewMessage(info.MD) // treat the first one as main msg
+	for i := 0; i < len(msgs); i++ {
+		msg := msgs[i]
+		err := xproto.Merge(mainMsg, msg.protomsg)
+		if err != nil {
+			if xerrors.NewDesc(err).ErrCode() == "E2009" {
+				for j := 0; j < i; j++ {
+					// find the already existed key before
+					prevMsg := msgs[j]
+					err := xproto.CheckDupMapKey(prevMsg.protomsg, msg.protomsg)
+					if err != nil {
+						bookNames := prevMsg.bookName + ", " + msg.bookName
+						return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookNames, xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
+					}
+				}
+			}
+			return nil, xerrors.WrapKV(err, xerrors.KeyBookName, msg.bookName, xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
+		}
 	}
 	return mainMsg, nil
 }

@@ -3,6 +3,7 @@ package xproto
 import (
 	"fmt"
 
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -25,9 +26,8 @@ func mergeMessage(dst, src protoreflect.Message) error {
 		case fd.IsList():
 			mergeList(dst.Mutable(fd).List(), v.List(), fd)
 		case fd.IsMap():
-			err = mergeMap(dst.Mutable(fd).Map(), v.Map(), fd.MapValue())
+			err = mergeMap(dst.Mutable(fd).Map(), v.Map(), fd)
 			if err != nil {
-				err = fmt.Errorf("field: %v, err: %v", fd.Name(), err)
 				return false
 			}
 		default:
@@ -50,10 +50,36 @@ func mergeMap(dst, src protoreflect.Map, fd protoreflect.FieldDescriptor) (err e
 	// Merge semantics replaces, rather than merges into existing entries.
 	src.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
 		if dst.Has(k) {
-			err = fmt.Errorf("src has duplicate key %v in dst", k)
+			err = xerrors.E2009(k, fd.Name())
 			return false
 		}
 		dst.Set(k, v)
+		return true
+	})
+	return err
+}
+
+func CheckDupMapKey(dst, src proto.Message) error {
+	dstMsg, srcMsg := dst.ProtoReflect(), src.ProtoReflect()
+	return checkDupKey(dstMsg, srcMsg)
+}
+
+func checkDupKey(dst, src protoreflect.Message) error {
+	var err error
+	src.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		switch {
+		case fd.IsMap():
+			dstMap := dst.Mutable(fd).Map()
+			srcMap := v.Map()
+			srcMap.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
+				if dstMap.Has(k) {
+					err = xerrors.E2009(k, fd.Name())
+					return false
+				}
+				return true
+			})
+
+		}
 		return true
 	})
 	return err

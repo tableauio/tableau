@@ -77,3 +77,11 @@ func E2008(value, err interface{}) error {
 		"Error": err,
 	})
 }
+
+// E2009 describes duplicate key.
+func E2009(key, fieldName interface{}) error {
+	return renderEcode("E2009", map[string]interface{}{
+		"Key":       key,
+		"FieldName": fieldName,
+	})
+}

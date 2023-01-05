@@ -22,7 +22,7 @@ func Test_genConf(t *testing.T) {
 	// NOTE: generate testdata ahead
 	genTestdata(10)
 
-	if err := genConf("ERROR"); err != nil {
+	if err := genConf("INFO"); err != nil {
 		t.Errorf("%+v", err)
 		t.Fatalf("%s", xerrors.NewDesc(err))
 	}
@@ -34,6 +34,7 @@ func genConf(logLevel string) error {
 		"./testdata",
 		"./_conf",
 		options.LocationName("Asia/Shanghai"),
+		options.Lang("zh"),
 		options.Conf(
 			&options.ConfOption{
 				Input: &options.ConfInputOption{

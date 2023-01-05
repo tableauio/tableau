@@ -102,6 +102,17 @@ func (d *Desc) setField(key, val string) {
 	d.fields[key] = val
 }
 
+func (d *Desc) ErrCode() string {
+	val := d.fields["ErrCode"]
+	if val != nil {
+		ecode, ok := val.(string)
+		if ok {
+			return ecode
+		}
+	}
+	return ""
+}
+
 // String render description in specified language.
 func (d *Desc) String() string {
 	if d.fields[keyReason] == nil {

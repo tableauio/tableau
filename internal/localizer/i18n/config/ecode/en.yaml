@@ -36,4 +36,8 @@ E2008:
   desc: invalid duration format
   text: '"{{.Value}}" is invalid duration format, {{.Error}}'
   help: 'follow duration format in the form "72h3m0.5s"'
+E2009:
+  desc: duplicate key
+  text: 'field {{.FieldName}} has duplicate key "{{.Key}}"'
+  help: "key must not be duplicate when merge multiple sheets"
 # [3000, 3999]: importer error
