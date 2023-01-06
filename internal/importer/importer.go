@@ -49,10 +49,13 @@ func New(filename string, setters ...Option) (Importer, error) {
 // GetMergerImporters gathers all merger importers.
 // 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 // 	2. exclude self
+//  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
 func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) ([]Importer, error) {
 	if len(merger) == 0 {
 		return nil, nil
 	}
+
+	fmt := format.Ext2Format(filepath.Ext(primaryWorkbookPath))
 
 	curDir := filepath.Dir(primaryWorkbookPath)
 	mergerWorkbookPaths := map[string]bool{}
@@ -63,11 +66,19 @@ func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) 
 			return nil, errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
 		}
 		for _, match := range matches {
-			if fs.IsSamePath(match, primaryWorkbookPath) {
+			path := match
+			if fmt == format.CSV {
+				// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+				path, err = ParseCSVBooknamePatternFrom(match)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if fs.IsSamePath(path, primaryWorkbookPath) {
 				// exclude self
 				continue
 			}
-			mergerWorkbookPaths[match] = true
+			mergerWorkbookPaths[path] = true
 		}
 	}
 	var importers []Importer

@@ -158,7 +158,7 @@ func rangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath st
 				continue
 			}
 			csvBooks[bookName] = true
-			if err := callback(importer.GenCSVBookFilenamePattern(dir, bookName)); err != nil {
+			if err := callback(importer.GenCSVBooknamePattern(dir, bookName)); err != nil {
 				return err
 			}
 		default:
