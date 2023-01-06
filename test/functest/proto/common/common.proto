@@ -8,9 +8,16 @@ import "tableau/protobuf/tableau.proto";
 
 enum FruitType {
   FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
-  FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
-  FRUIT_TYPE_ORANGE  = 3 [(tableau.evalue).name = "Orange"];
-  FRUIT_TYPE_BANANA  = 4 [(tableau.evalue).name = "Banana"];
+  FRUIT_TYPE_APPLE = 1 [(tableau.evalue).name = "Apple"];
+  FRUIT_TYPE_ORANGE = 3 [(tableau.evalue).name = "Orange"];
+  FRUIT_TYPE_BANANA = 4 [(tableau.evalue).name = "Banana"];
+}
+
+enum FruitFlavor {
+  FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+  FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
+  FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
+  FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
 }
 
 message Item {

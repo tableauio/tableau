@@ -145,6 +145,14 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		// NOTE: support enum as map key, convert key type as `int32`.
 		parsedKeyType = "int32"
 	}
+
+	// keyTypeDesc, err := p.parseType(keyType)
+	// if err != nil {
+	// 	return cursor, xerrors.WithMessageKV(err,
+	// 		xerrors.KeyPBFieldType, valueType+" (map key)",
+	// 		xerrors.KeyPBFieldOpts, rawPropText)
+	// }
+
 	valueTypeDesc, err := p.parseType(valueType)
 	if err != nil {
 		return cursor, xerrors.WithMessageKV(err,
@@ -155,7 +163,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, valueTypeDesc.Name)
 	fullMapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, valueTypeDesc.FullName)
 
-	isScalarValue := types.IsScalarType(valueTypeDesc.Name)
+	mapValueKind := valueTypeDesc.Kind
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 
 	// preprocess: analyze the correct layout of map.
@@ -178,19 +186,19 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 				nextTypeCell := header.getTypeCell(nextCursor)
 				if types.IsMap(nextTypeCell) {
 					// The next type cell is also a map type declaration.
-					if isScalarValue {
+					if mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind {
 						layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 					}
 				}
 			} else {
 				// only one map item, treat it as incell map
-				if isScalarValue {
+				if mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind {
 					layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 				}
 			}
 		}
 	} else {
-		if isScalarValue {
+		if mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind {
 			layout = tableaupb.Layout_LAYOUT_INCELL // incell map
 		}
 	}
@@ -317,16 +325,36 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell map
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
+		valuePredefined := valueTypeDesc.Predefined
+		parsedValueName := valueTypeDesc.Name
+		parsedValueFullName := valueTypeDesc.FullName
+
+		keyTypeDesc, err := p.parseType(keyType)
+		if err != nil {
+			return cursor, xerrors.WithMessageKV(err,
+				xerrors.KeyPBFieldType, valueType+" (map key)",
+				xerrors.KeyPBFieldOpts, rawPropText)
+		}
+
+		if keyTypeDesc.Kind == types.EnumKind {
+			valuePredefined = false
+			parsedValueName = trimmedNameCell
+			parsedValueFullName = trimmedNameCell
+			mapType = fmt.Sprintf("map<%s, %s>", parsedKeyType, parsedValueName)
+			fullMapType = mapType
+		}
+
 		// auto add suffix "_map".
 		field.Name = strcase.ToSnake(trimmedNameCell) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
-		// For map type, Predefined indicates the ValueType of map has been defined.
-		field.Predefined = valueTypeDesc.Predefined
+		// For map type, Predefined indicates the ValueType of map has already
+		// been defined before.
+		field.Predefined = valuePredefined
 		field.MapEntry = &tableaupb.Field_MapEntry{
 			KeyType:       parsedKeyType,
-			ValueType:     valueTypeDesc.Name,
-			ValueFullType: valueTypeDesc.FullName,
+			ValueType:     parsedValueName,
+			ValueFullType: parsedValueFullName,
 		}
 		prop, err := types.ParseProp(rawPropText)
 		if err != nil {
@@ -339,6 +367,28 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Name:   trimmedNameCell,
 			Layout: layout,
 			Prop:   prop, // for incell scalar map, need whole prop
+		}
+
+		if keyTypeDesc.Kind == types.EnumKind {
+			field.Options.Key = "Key"
+
+			scalarField, err := p.parseScalarField("Key", keyType+rawPropText, noteCell)
+			if err != nil {
+				return cursor, xerrors.WithMessageKV(err,
+					xerrors.KeyPBFieldType, keyType+" (map key)",
+					xerrors.KeyPBFieldOpts, rawPropText,
+					xerrors.KeyTrimmedNameCell, trimmedNameCell)
+			}
+			field.Fields = append(field.Fields, scalarField)
+
+			scalarField, err = p.parseScalarField("Value", valueType, noteCell)
+			if err != nil {
+				return cursor, xerrors.WithMessageKV(err,
+					xerrors.KeyPBFieldType, keyType+" (map key)",
+					xerrors.KeyPBFieldOpts, rawPropText,
+					xerrors.KeyTrimmedNameCell, trimmedNameCell)
+			}
+			field.Fields = append(field.Fields, scalarField)
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		return cursor, xerrors.Errorf("should not reach default layout: %v", layout)
@@ -810,21 +860,22 @@ func (p *bookParser) genNote(note string) string {
 	return ""
 }
 
-type typeDesc struct {
-	Name       string
-	FullName   string
-	Predefined bool
-}
+func (p *bookParser) parseType(rawType string) (*types.Descriptor, error) {
+	// enum syntax pattern
+	if matches := types.MatchEnum(rawType); len(matches) > 0 {
+		enumType := strings.TrimSpace(matches[1])
+		rawType = enumType
+	}
 
-func (p *bookParser) parseType(rawType string) (*typeDesc, error) {
 	if strings.HasPrefix(rawType, ".") {
 		// This messge type is defined in imported proto
 		name := strings.TrimPrefix(rawType, ".")
 		if typeInfo, ok := p.gen.typeInfos[name]; ok {
-			return &typeDesc{
+			return &types.Descriptor{
 				Name:       name,
 				FullName:   typeInfo.Fullname,
 				Predefined: true,
+				Kind:       typeInfo.Kind,
 			}, nil
 		} else {
 			return nil, xerrors.Errorf("predefined type not found: %s", name)
@@ -832,23 +883,31 @@ func (p *bookParser) parseType(rawType string) (*typeDesc, error) {
 	}
 	switch rawType {
 	case "datetime", "date":
-		return &typeDesc{
+		return &types.Descriptor{
 			Name:       "google.protobuf.Timestamp",
 			FullName:   "google.protobuf.Timestamp",
 			Predefined: true,
+			Kind:       types.ScalarKind,
 		}, nil
 	case "time", "duration":
-		return &typeDesc{
+		return &types.Descriptor{
 			Name:       "google.protobuf.Duration",
 			FullName:   "google.protobuf.Duration",
 			Predefined: true,
+			Kind:       types.ScalarKind,
 		}, nil
 	default:
-		return &typeDesc{
+		desc := &types.Descriptor{
 			Name:       rawType,
 			FullName:   rawType,
 			Predefined: false,
-		}, nil
+		}
+		if types.IsScalarType(desc.Name) {
+			desc.Kind = types.ScalarKind
+		} else {
+			desc.Kind = types.MessageKind
+		}
+		return desc, nil
 	}
 }
 

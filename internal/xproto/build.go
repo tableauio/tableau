@@ -7,6 +7,7 @@ import (
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	_ "github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/reflect/protodesc"
@@ -27,7 +28,7 @@ func ParseProtos(protoPaths []string, protoFiles ...string) ([]*desc.FileDescrip
 
 // NewFiles creates a new protoregistry.Files from the proto paths and proto Gob filenames.
 func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...string) (*protoregistry.Files, error) {
-	 parsedExcludedProtoFiles := map[string]bool{}
+	parsedExcludedProtoFiles := map[string]bool{}
 	for _, filename := range excludeProtoFiles {
 		matches, err := filepath.Glob(filename)
 		if err != nil {
@@ -91,6 +92,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 type TypeInfo struct {
 	Fullname       string
 	ParentFilename string
+	Kind           types.Kind
 }
 
 func GetAllTypeInfo(fileDescs []*desc.FileDescriptor) map[string]*TypeInfo {
@@ -100,12 +102,14 @@ func GetAllTypeInfo(fileDescs []*desc.FileDescriptor) map[string]*TypeInfo {
 			typeInfos[mt.GetName()] = &TypeInfo{
 				Fullname:       mt.GetFullyQualifiedName(),
 				ParentFilename: fileDesc.GetName(),
+				Kind:           types.MessageKind,
 			}
 		}
 		for _, mt := range fileDesc.GetEnumTypes() {
 			typeInfos[mt.GetName()] = &TypeInfo{
 				Fullname:       mt.GetFullyQualifiedName(),
 				ParentFilename: fileDesc.GetName(),
+				Kind:           types.EnumKind,
 			}
 		}
 	}

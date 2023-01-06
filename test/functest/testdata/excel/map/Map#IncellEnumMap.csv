@@ -1,0 +1,4 @@
+Fruit,Flavor,Item
+"map<enum<.FruitType>, int64>","map<int64, enum<.FruitFlavor>>","map<enum<.FruitType>, enum<.FruitFlavor>>"
+Fruits,Flavors,Items
+"Apple:1,Orange:2","1:Fragrant,2:Sweet","Apple:Fragrant,Orange:Sour"

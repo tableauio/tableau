@@ -29,11 +29,11 @@ const ungreedyTypeGroup = `(` + typeCharSet + `*?)`
 const TypeGroup = ungreedyTypeGroup
 
 func init() {
-	mapRegexp = regexp.MustCompile(`^map<` + typeGroup + `,` + typeGroup + `>` + rawPropGroup)               // e.g.: map<uint32,Type>
-	listRegexp = regexp.MustCompile(`^\[` + ungreedyTypeGroup + `\]` + typeGroup + rawPropGroup)             // e.g.: [Type]uint32
-	keyedListRegexp = regexp.MustCompile(`^\[` + ungreedyTypeGroup + `\]<` + typeGroup + `>` + rawPropGroup) // e.g.: [Type]<uint32>
-	structRegexp = regexp.MustCompile(`^\{` + ungreedyTypeGroup + `\}` + looseTypeGroup + rawPropGroup)      // e.g.: {Type}uint32
-	enumRegexp = regexp.MustCompile(`^enum<` + typeGroup + `>` + rawPropGroup)                               // e.g.: enum<Type>
+	mapRegexp = regexp.MustCompile(`^map<` + typeGroup + `,` + typeGroup + `>` + rawPropGroup)               // e.g.: map<uint32, Type>, map<uint32, .PredefinedType>
+	listRegexp = regexp.MustCompile(`^\[` + ungreedyTypeGroup + `\]` + typeGroup + rawPropGroup)             // e.g.: [Type]uint32, [.PredefinedType]uint32
+	keyedListRegexp = regexp.MustCompile(`^\[` + ungreedyTypeGroup + `\]<` + typeGroup + `>` + rawPropGroup) // e.g.: [Type]<uint32>, [.PredefinedType]<uint32>
+	structRegexp = regexp.MustCompile(`^\{` + ungreedyTypeGroup + `\}` + looseTypeGroup + rawPropGroup)      // e.g.: {Type}uint32, {.PredefinedType}uint32
+	enumRegexp = regexp.MustCompile(`^enum<` + typeGroup + `>` + rawPropGroup)                               // e.g.: enum<Type>, enum<.PredefinedType>
 	propRegexp = regexp.MustCompile(`\|?\{(.+)\}`)                                                           // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
 
 	// trim float to integer after(include) dot, e.g: 0.0, 1.0, 1.00 ...
@@ -41,42 +41,64 @@ func init() {
 	boringIntegerRegexp = regexp.MustCompile(`([-+]?[0-9]+)\.0+$`)
 }
 
+// MatchMap matches the map type patterns. For example:
+//  - map<KeyType, ValueType>
+//  - map<KeyType, .PredefinedValueType>
+//  - map<.PredefinedKeyType, ValueType>
+//  - map<.PredefinedKeyType, .PredefinedValueType>
 func MatchMap(text string) []string {
 	return mapRegexp.FindStringSubmatch(text)
 }
 
+// IsMap checks if text matches the map type patterns.
 func IsMap(text string) bool {
 	return MatchMap(text) != nil
 }
 
+// MatchList matches the list type patterns. For example:
+//  - [ElemType]Type
+//  - [.PredefinedElemType]Type
 func MatchList(text string) []string {
 	return listRegexp.FindStringSubmatch(text)
 }
 
+// IsList checks if text matches the list type patterns.
 func IsList(text string) bool {
 	return MatchList(text) != nil
 }
 
+// MatchKeyedList matches the keyed list type patterns. For example:
+//  - [ElemType]<Type>
+//  - [.PredefinedElemType]<Type>
 func MatchKeyedList(text string) []string {
 	return keyedListRegexp.FindStringSubmatch(text)
 }
 
+// IsKeyedList checks if text matches the keyed list type patterns.
 func IsKeyedList(text string) bool {
 	return MatchKeyedList(text) != nil
 }
 
+// MatchStruct matches the struct type patterns. For example:
+//  - {StructType}Type
+//  - {.PredefinedStructType}Type
 func MatchStruct(text string) []string {
 	return structRegexp.FindStringSubmatch(text)
 }
 
+// IsStruct checks if text matches the struct type patterns.
 func IsStruct(text string) bool {
 	return MatchStruct(text) != nil
 }
 
+// MatchEnum matches the enum type pattern. For example:
+//  - enum<Type>
+//  - enum<.PredefinedType>
 func MatchEnum(text string) []string {
 	return enumRegexp.FindStringSubmatch(text)
 }
 
+// IsEnum checks if text matches the enum type patterns.
 func IsEnum(text string) bool {
 	return MatchEnum(text) != nil
 }
@@ -134,7 +156,6 @@ var typeKindMap map[string]Kind
 func init() {
 	typeKindMap = map[string]Kind{
 		"bool":                      ScalarKind,
-		"enum":                      ScalarKind,
 		"int32":                     ScalarKind,
 		"sint32":                    ScalarKind,
 		"uint32":                    ScalarKind,
@@ -152,8 +173,9 @@ func init() {
 		"google.protobuf.Duration":  ScalarKind,
 		"google.protobuf.Timestamp": ScalarKind,
 
-		"repeated": ListKind,
-		"map":      MapKind,
+		// "enum":     EnumKind,
+		// "repeated": ListKind,
+		// "map":      MapKind,
 	}
 }
 
@@ -162,4 +184,12 @@ func IsScalarType(t string) bool {
 		return kind == ScalarKind
 	}
 	return false
+}
+
+// Descriptor describes type metadata.
+type Descriptor struct {
+	Name       string
+	FullName   string
+	Predefined bool
+	Kind       Kind
 }
