@@ -37,7 +37,7 @@ E2008:
   text: '"{{.Value}}" 是无效的时间段(duration)格式, {{.Error}}'
   help: '请遵循时间段(duration)格式，以 "72h3m0.5s" 形式来配置'
 E2009:
-  desc: duplicate key
+  desc: duplicate key exists in different sheets
   text: '字段 {{.FieldName}} 在配置表合表时，存在重复的键 "{{.Key}}"'
   help: '合表时，不同的表不允许配置重复的键'
 # [3000, 3999]: importer error

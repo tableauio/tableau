@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -62,9 +63,6 @@ func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Messag
 	}
 
 	// NOTE: use map-reduce pattern to accelerate parsing multiple importers.
-	// - check: first field must be map or list
-	// - errgroup
-	// - proto.Merge
 	var mu sync.Mutex // guard msgs
 	var msgs []oneMsg
 
@@ -80,7 +78,7 @@ func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Messag
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
 				protomsg: protomsg,
-				bookName: imp.BookName(),
+				bookName: imp.Filename(),
 			})
 			mu.Unlock()
 			return nil
@@ -96,11 +94,11 @@ func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Messag
 		msg := msgs[i]
 		err := xproto.Merge(mainMsg, msg.protomsg)
 		if err != nil {
-			if xerrors.NewDesc(err).ErrCode() == "E2009" {
+			if errors.Is(err, xproto.ErrDuplicateKey) {
+				// find the already existed key before
 				for j := 0; j < i; j++ {
-					// find the already existed key before
 					prevMsg := msgs[j]
-					err := xproto.CheckDupMapKey(prevMsg.protomsg, msg.protomsg)
+					err := xproto.CheckMapDuplicateKey(prevMsg.protomsg, msg.protomsg)
 					if err != nil {
 						bookNames := prevMsg.bookName + ", " + msg.bookName
 						return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookNames, xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
