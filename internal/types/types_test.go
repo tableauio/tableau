@@ -255,28 +255,28 @@ func TestMatchStruct(t *testing.T) {
 		{
 			name: "new defined struct",
 			args: args{
-				text:   "{int32 Id, int32 Value}Prop",
+				text: "{int32 Id, int32 Value}Prop",
 			},
 			want: []string{"{int32 Id, int32 Value}Prop", "int32 Id, int32 Value", "Prop", ""},
 		},
 		{
 			name: "predefined cross cell struct",
 			args: args{
-				text:   "{.Item}int32",
+				text: "{.Item}int32",
 			},
 			want: []string{"{.Item}int32", ".Item", "int32", ""},
 		},
 		{
 			name: "predefined incell struct",
 			args: args{
-				text:   "{.Item}",
+				text: "{.Item}",
 			},
 			want: []string{"{.Item}", ".Item", "", ""},
 		},
 		{
 			name: "new defined cross cell struct with prop",
 			args: args{
-				text:   `{Item}int32|{range:"~,20"}`,
+				text: `{Item}int32|{range:"~,20"}`,
 			},
 			want: []string{`{Item}int32|{range:"~,20"}`, "Item", "int32", `|{range:"~,20"}`},
 		},
@@ -285,6 +285,45 @@ func TestMatchStruct(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := MatchStruct(tt.args.text); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MatchStruct() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsScalarType(t *testing.T) {
+	type args struct {
+		t string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "int32",
+			args: args{t: "int32"},
+			want: true,
+		},
+		{
+			name: "google.protobuf.Duration",
+			args: args{t: "google.protobuf.Duration"},
+			want: true,
+		},
+		{
+			name: "google.protobuf.Duration",
+			args: args{t: "google.protobuf.Duration"},
+			want: true,
+		},
+		{
+			name: "MessageType",
+			args: args{t: "MessageType"},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsScalarType(tt.args.t); got != tt.want {
+				t.Errorf("IsScalarType() = %v, want %v", got, tt.want)
 			}
 		})
 	}

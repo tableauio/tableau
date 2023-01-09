@@ -336,6 +336,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 				xerrors.KeyPBFieldOpts, rawPropText)
 		}
 
+		// special process for key as enum type
 		if keyTypeDesc.Kind == types.EnumKind {
 			valuePredefined = false
 			parsedValueName = trimmedNameCell
@@ -369,10 +370,11 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Prop:   prop, // for incell scalar map, need whole prop
 		}
 
+		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
-			field.Options.Key = "Key"
+			field.Options.Key = types.DefaultMapKeyOptName
 
-			scalarField, err := p.parseScalarField("Key", keyType+rawPropText, noteCell)
+			scalarField, err := p.parseScalarField(types.DefaultMapKeyOptName, keyType+rawPropText, noteCell)
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, keyType+" (map key)",
@@ -381,10 +383,10 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			}
 			field.Fields = append(field.Fields, scalarField)
 
-			scalarField, err = p.parseScalarField("Value", valueType, noteCell)
+			scalarField, err = p.parseScalarField(types.DefaultMapValueOptName, valueType, noteCell)
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
-					xerrors.KeyPBFieldType, keyType+" (map key)",
+					xerrors.KeyPBFieldType, valueType+" (map value)",
 					xerrors.KeyPBFieldOpts, rawPropText,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
 			}

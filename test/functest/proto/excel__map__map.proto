@@ -54,8 +54,17 @@ message HorizontalImplicitFixedSizeMap {
 message IncellEnumMap {
   option (tableau.worksheet) = {name:"IncellEnumMap" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<int32, int64> fruit_map = 1 [(tableau.field) = {name:"Fruit" layout:LAYOUT_INCELL}];
-  map<int64, protoconf.FruitFlavor> fruit_flavor_map = 2 [(tableau.field) = {key:"Flavor" layout:LAYOUT_VERTICAL}];
+  map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+  message Fruit {
+    protoconf.FruitType key = 1 [(tableau.field) = {name:"Key"}];
+    int64 value = 2 [(tableau.field) = {name:"Value"}];
+  }
+  map<int64, protoconf.FruitFlavor> flavor_map = 2 [(tableau.field) = {name:"Flavor" layout:LAYOUT_INCELL}];
+  map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+  message Item {
+    protoconf.FruitType key = 1 [(tableau.field) = {name:"Key"}];
+    protoconf.FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+  }
 }
 
 message IncellMap {

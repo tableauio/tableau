@@ -12,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -329,12 +330,11 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 			// default processing
 			if fd.IsList() {
 				// truncate suffix `List` (CamelCase) corresponding to `_list` (snake_case)
-				name = strings.TrimSuffix(name, "List")
+				name = strings.TrimSuffix(name, types.DefaultListFieldOptNameSuffix)
 			} else if fd.IsMap() {
 				// truncate suffix `Map` (CamelCase) corresponding to `_map` (snake_case)
-				// name = strings.TrimSuffix(name, "Map")
-				name = ""
-				key = "Key"
+				name = strings.TrimSuffix(name, types.DefaultMapFieldOptNameSuffix)
+				key = types.DefaultMapKeyOptName
 			}
 		}
 		if sep == "" {
@@ -444,8 +444,8 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			reflectMap.Set(newMapKey, newMapValue)
 		} else {
 			// value is scalar type
-			key := "Key"     // default key name
-			value := "Value" // default value name
+			key := types.DefaultMapKeyOptName     // default key name
+			value := types.DefaultMapValueOptName // default value name
 			// key cell
 			keyColName := prefix + field.opts.Name + key
 			cell, err := rc.Cell(keyColName, field.opts.Optional)
@@ -567,45 +567,18 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 		}
 
 		if valueFd.Kind() == protoreflect.MessageKind {
-			kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell map")
-			return false, xerrors.ErrorKV("map value type is struct, and is not supported", kvs...)
-		}
-
-		if cell.Data != "" {
-			// If s does not contain sep and sep is not empty, Split returns a
-			// slice of length 1 whose only element is s.
-			splits := strings.Split(cell.Data, field.opts.Sep)
-			size := len(splits)
-			for i := 0; i < size; i++ {
-				kv := strings.SplitN(splits[i], field.opts.Subsep, 2)
-				if len(kv) == 1 {
-					// If value is not set, then treated it as default empty string.
-					kv = append(kv, "")
-				}
-				key, value := kv[0], kv[1]
-
-				fieldValue, keyPresent, err := sp.parseFieldValue(keyFd, key)
-				if err != nil {
-					kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell map")
-					return false, xerrors.WithMessageKV(err, kvs...)
-				}
-
-				newMapKey := fieldValue.MapKey()
-				fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value)
-				if err != nil {
-					kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell map")
-					return false, xerrors.WithMessageKV(err, kvs...)
-				}
-				newMapValue := reflectMap.NewValue()
-				newMapValue = fieldValue
-
-				if !keyPresent && !valuePresent {
-					// key and value are both not present.
-					// TODO: check the remaining keys all not present, otherwise report error!
-					break
-				}
-
-				reflectMap.Set(newMapKey, newMapValue)
+			if !types.CheckMessageWithOnlyKVFields(reflectMap.NewValue().Message()) {
+				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell map")
+				return false, xerrors.ErrorKV("map value type is not KV struct, and is not supported", kvs...)
+			}
+			err := sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cell.Data)
+			if err != nil {
+				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName))
+			}
+		} else {
+			err := sp.parseIncellMapWithSimpleKV(field, reflectMap, cell.Data)
+			if err != nil {
+				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName))
 			}
 		}
 	}
@@ -617,6 +590,115 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 		present = true
 	}
 	return present, nil
+}
+
+// parseIncellMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
+// For example:
+//	- map<int32, int32>
+//  - map<int32, EnumType>
+func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
+	if cellData == "" {
+		return nil
+	}
+	// If s does not contain sep and sep is not empty, Split returns a
+	// slice of length 1 whose only element is s.
+	keyFd := field.fd.MapKey()
+	valueFd := field.fd.MapValue()
+	splits := strings.Split(cellData, field.opts.Sep)
+	size := len(splits)
+	for i := 0; i < size; i++ {
+		kv := strings.SplitN(splits[i], field.opts.Subsep, 2)
+		if len(kv) == 1 {
+			// If value is not set, then treated it as default empty string.
+			kv = append(kv, "")
+		}
+		key, value := kv[0], kv[1]
+
+		fieldValue, keyPresent, err := sp.parseFieldValue(keyFd, key)
+		if err != nil {
+			return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell map")
+		}
+
+		newMapKey := fieldValue.MapKey()
+		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value)
+		if err != nil {
+			return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell map")
+		}
+		newMapValue := fieldValue
+
+		if !keyPresent && !valuePresent {
+			// key and value are both not present.
+			// TODO: check the remaining keys all not present, otherwise report error!
+			break
+		}
+		reflectMap.Set(newMapKey, newMapValue)
+	}
+	return nil
+}
+
+// parseIncellMapWithValueAsSimpleKVMessage parses simple incell map with key as scalar or enum type
+// and value as simple message with only key and value fields. For example:
+//
+//  enum FruitType {
+//    FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//    FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
+//    FRUIT_TYPE_ORANGE  = 2 [(tableau.evalue).name = "Orange"];
+//    FRUIT_TYPE_BANANA  = 3 [(tableau.evalue).name = "Banana"];
+//  }
+//  enum FruitFlavor {
+//    FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//    FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
+//    FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
+//    FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
+//  }
+//
+//  map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+//  message Fruit {
+//    FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//    int64 value = 2 [(tableau.field) = {name:"Value"}];
+// 	}
+//
+//  map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+//  message Item {
+//    FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//    FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+//  }
+func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
+	if cellData == "" {
+		return nil
+	}
+	// If s does not contain sep and sep is not empty, Split returns a
+	// slice of length 1 whose only element is s.
+	splits := strings.Split(cellData, field.opts.Sep)
+	size := len(splits)
+	for i := 0; i < size; i++ {
+		mapItemData := splits[i]
+		kv := strings.SplitN(mapItemData, field.opts.Subsep, 2)
+		if len(kv) == 1 {
+			// If value is not set, then treated it as default empty string.
+			kv = append(kv, "")
+		}
+		keyData := kv[0]
+
+		newMapKey, keyPresent, err := sp.parseMapKey(field, reflectMap, keyData)
+		if err != nil {
+			return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell map")
+		}
+
+		newMapValue := reflectMap.NewValue()
+		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.Subsep)
+		if err != nil {
+			return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct list")
+		}
+
+		if !keyPresent && !valuePresent {
+			// key and value are both not present.
+			// TODO: check the remaining keys all not present, otherwise report error!
+			break
+		}
+		reflectMap.Set(newMapKey, newMapValue)
+	}
+	return nil
 }
 
 func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, cellData string) (mapKey protoreflect.MapKey, present bool, err error) {
