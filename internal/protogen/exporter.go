@@ -49,7 +49,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	g1.P("")
 	g1.P("package ", x.ProtoPackage, ";")
 	g1.P("")
-	
+
 	// keep the elements ordered by import path
 	set := treeset.NewWithStringComparator()
 	set.Add(tableauProtoPath) // default must be imported path
@@ -130,7 +130,7 @@ type sheetExporter struct {
 	ws          *tableaupb.Worksheet
 	g           *GeneratedBuf
 	isLastSheet bool
-	typeInfos   map[string]*xproto.TypeInfo
+	typeInfos   xproto.TypeInfoMap
 
 	Imports        map[string]bool             // import name -> defined
 	nestedMessages map[string]*tableaupb.Field // type name -> field

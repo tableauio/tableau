@@ -46,7 +46,7 @@ See official document: [Design](https://tableauio.github.io/docs/design/overview
 
 #### Protobuf
 
-Goto [Protocol Buffers v3.17.3](https://github.com/protocolbuffers/protobuf/releases/tag/v3.17.3), choose and download the correct platform of **protoc**, then install by README.
+Goto [Protocol Buffers v21.12](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12), choose and download the correct platform of **protoc**, then install by README.
 
 #### protoc-gen-go
 

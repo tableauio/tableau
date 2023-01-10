@@ -1,0 +1,52 @@
+// Protoconf - Tableau's data interchange format
+// https://tableauio.github.io/
+// A proto file we will use for unit testing.
+
+syntax = "proto3";
+
+package tableau;
+
+option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+
+import "tableau/protobuf/tableau.proto";
+
+enum TestFruitType {
+  FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+  FRUIT_TYPE_APPLE = 1 [(tableau.evalue).name = "Apple"];
+  FRUIT_TYPE_ORANGE = 3 [(tableau.evalue).name = "Orange"];
+  FRUIT_TYPE_BANANA = 4 [(tableau.evalue).name = "Banana"];
+}
+
+enum TestFruitFlavor {
+  FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+  FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
+  FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
+  FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
+}
+
+message TestItem {
+  int32 id = 1 [(tableau.field).name = "ID"];
+  int32 num = 2 [(tableau.field).name = "Num"];
+}
+
+message TestIncellMap {
+  option (worksheet) = {
+    name: "IncellMap"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
+
+  map<int32, Fruit> fruit_map = 1 [(tableau.field) = { name: "Fruit" key: "Key" layout: LAYOUT_INCELL }];
+  message Fruit {
+    TestFruitType key = 1 [(tableau.field) = { name: "Key" }];
+    int64 value = 2 [(tableau.field) = { name: "Value" }];
+  }
+  map<int64, TestFruitFlavor> flavor_map = 2 [(tableau.field) = { name: "Flavor" layout: LAYOUT_INCELL }];
+  map<int32, Item> item_map = 3 [(tableau.field) = { name: "Item" key: "Key" layout: LAYOUT_INCELL }];
+  message Item {
+    TestFruitType key = 1 [(tableau.field) = { name: "Key" }];
+    TestFruitFlavor value = 2 [(tableau.field) = { name: "Value" }];
+  }
+}

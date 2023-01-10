@@ -1,0 +1,26 @@
+{
+    "fruitMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "1"
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": "2"
+        }
+    },
+    "flavorMap": {
+        "1": "FRUIT_FLAVOR_FRAGRANT",
+        "2": "FRUIT_FLAVOR_SWEET"
+    },
+    "itemMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "FRUIT_FLAVOR_FRAGRANT"
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": "FRUIT_FLAVOR_SOUR"
+        }
+    }
+}
