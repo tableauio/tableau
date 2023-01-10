@@ -92,7 +92,7 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	} else {
 		// scalar or enum type
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, typeCell)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, typeCell)
 		if err != nil {
 			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum", xerrors.KeyTypeCell, typeCell)
 		}
@@ -229,7 +229,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
 		}
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, keyType+rawPropText)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, keyType+rawPropText)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, keyType+" (map key)",
@@ -282,7 +282,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Layout: layout,
 			Prop:   ExtractMapFieldProp(prop),
 		}
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, keyType+rawPropText)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, keyType+rawPropText)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, keyType+" (map key)",
@@ -363,7 +363,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = types.DefaultMapKeyOptName
 
-			scalarField, err := parseScalarField(p.gen.typeInfos, types.DefaultMapKeyOptName, keyType+rawPropText)
+			scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, types.DefaultMapKeyOptName, keyType+rawPropText)
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, keyType+" (map key)",
@@ -372,7 +372,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			}
 			field.Fields = append(field.Fields, scalarField)
 
-			scalarField, err = parseScalarField(p.gen.typeInfos, types.DefaultMapValueOptName, valueType)
+			scalarField, err = parseScalarOrEnumField(p.gen.typeInfos, types.DefaultMapValueOptName, valueType)
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, valueType+" (map value)",
@@ -475,7 +475,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		// vertical list: all columns belong to this list after this cursor.
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, elemType)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, elemType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, elemType+" (list element)",
@@ -558,7 +558,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		listName := trimmedNameCell[:firstElemIndex]
 		prefix += listName
 
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, elemType)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, elemType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, elemType+" (list element)",
@@ -640,7 +640,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			key = trimmedNameCell
 		}
 		colTypeWithProp := colType + rawPropText
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, colTypeWithProp)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, colTypeWithProp)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, colType,
@@ -688,15 +688,15 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 
 	// struct syntax pattern
 	matches := types.MatchStruct(typeCell)
-	elemType := strings.TrimSpace(matches[1])
+	structType := strings.TrimSpace(matches[1])
 	colType := strings.TrimSpace(matches[2])
 	rawPropText := strings.TrimSpace(matches[3])
 	if colType == "" {
 		// incell predefined struct
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, elemType)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, structType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.KeyPBFieldType, elemType,
+				xerrors.KeyPBFieldType, structType,
 				xerrors.KeyPBFieldOpts, rawPropText,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
@@ -705,12 +705,12 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		return cursor, nil
 	}
 
-	fieldPairs, err := parseIncellStruct(elemType)
+	fieldPairs, err := parseIncellStruct(structType)
 	if err != nil {
 		return cursor, err
 	}
 	if fieldPairs != nil {
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, colType)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, colType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, colType,
@@ -723,7 +723,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
-			scalarField, err := parseScalarField(p.gen.typeInfos, fieldName, fieldType)
+			scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, fieldName, fieldType)
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, fieldType,
@@ -735,10 +735,10 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	} else {
 		// cross cell struct
 		// NOTE(wenchy): treated as nested named struct
-		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, elemType)
+		scalarField, err := parseScalarOrEnumField(p.gen.typeInfos, trimmedNameCell, structType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
-				xerrors.KeyPBFieldType, elemType,
+				xerrors.KeyPBFieldType, structType,
 				xerrors.KeyPBFieldOpts, rawPropText,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
@@ -798,7 +798,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	return cursor, nil
 }
 
-func parseScalarField(typeInfos xproto.TypeInfoMap, name, typ string) (*tableaupb.Field, error) {
+func parseScalarOrEnumField(typeInfos xproto.TypeInfoMap, name, typ string) (*tableaupb.Field, error) {
 	rawPropText := ""
 	// enum syntax pattern
 	if matches := types.MatchEnum(typ); len(matches) > 0 {
@@ -893,18 +893,21 @@ func parseTypeDescriptor(typeInfos xproto.TypeInfoMap, rawType string) (*types.D
 	}
 }
 
-func parseIncellStruct(elemType string) ([]string, error) {
-	fields := strings.Split(elemType, ",")
+// parseIncellStruct parses incell struct type definition. For example:
+//  - int32 ID
+//  - int32 ID, string Name
+func parseIncellStruct(structType string) ([]string, error) {
+	fields := strings.Split(structType, ",")
 	if len(fields) == 1 && len(strings.Split(fields[0], " ")) == 1 {
 		// cross cell struct
 		return nil, nil
 	}
 
 	fieldPairs := make([]string, 0)
-	for _, pair := range strings.Split(elemType, ",") {
+	for _, pair := range strings.Split(structType, ",") {
 		kv := strings.Split(strings.TrimSpace(pair), " ")
 		if len(kv) != 2 {
-			return nil, xerrors.Errorf("illegal type-variable pair: %v in incell struct: %s", pair, elemType)
+			return nil, xerrors.Errorf("illegal type-variable pair: %v in incell struct: %s", pair, structType)
 		}
 		fieldPairs = append(fieldPairs, kv...)
 	}
