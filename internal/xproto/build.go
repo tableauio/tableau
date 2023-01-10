@@ -95,8 +95,10 @@ type TypeInfo struct {
 	Kind           types.Kind
 }
 
-func GetAllTypeInfo(fileDescs []*desc.FileDescriptor) map[string]*TypeInfo {
-	typeInfos := make(map[string]*TypeInfo)
+type TypeInfoMap map[string]*TypeInfo
+
+func GetAllTypeInfo(fileDescs []*desc.FileDescriptor) TypeInfoMap {
+	typeInfos := make(TypeInfoMap)
 	for _, fileDesc := range fileDescs {
 		for _, mt := range fileDesc.GetMessageTypes() {
 			typeInfos[mt.GetName()] = &TypeInfo{

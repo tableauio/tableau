@@ -39,8 +39,8 @@ type Generator struct {
 	OutputOpt    *options.ProtoOutputOption
 
 	// internal
-	fileDescs []*desc.FileDescriptor      // all parsed imported proto file descriptors.
-	typeInfos map[string]*xproto.TypeInfo // proto full type name -> type info
+	fileDescs []*desc.FileDescriptor // all parsed imported proto file descriptors.
+	typeInfos xproto.TypeInfoMap     // proto full type name -> type info
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {

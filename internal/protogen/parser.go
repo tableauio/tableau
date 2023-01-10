@@ -9,6 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -28,9 +29,7 @@ const (
 
 type bookParser struct {
 	gen *Generator
-
-	wb       *tableaupb.Workbook
-	withNote bool
+	wb  *tableaupb.Workbook
 }
 
 func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
@@ -53,7 +52,6 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 			Name:       filename,
 			Imports:    make(map[string]int32),
 		},
-		withNote: false,
 	}
 
 	// custom imported proto files
@@ -66,7 +64,6 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
 	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
-	noteCell := header.getNoteCell(cursor)
 	// log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)
 	if nameCell == "" || typeCell == "" {
 		log.Debugf("no need to parse column %d, as name(%s) or type(%s) is empty", cursor, nameCell, typeCell)
@@ -95,7 +92,7 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	} else {
 		// scalar or enum type
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
-		scalarField, err := p.parseScalarField(trimmedNameCell, typeCell, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, typeCell)
 		if err != nil {
 			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum", xerrors.KeyTypeCell, typeCell)
 		}
@@ -132,7 +129,6 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
 	}
-	noteCell := header.getNoteCell(cursor)
 
 	// map syntax pattern
 	matches := types.MatchMap(typeCell)
@@ -146,14 +142,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		parsedKeyType = "int32"
 	}
 
-	// keyTypeDesc, err := p.parseType(keyType)
-	// if err != nil {
-	// 	return cursor, xerrors.WithMessageKV(err,
-	// 		xerrors.KeyPBFieldType, valueType+" (map key)",
-	// 		xerrors.KeyPBFieldOpts, rawPropText)
-	// }
-
-	valueTypeDesc, err := p.parseType(valueType)
+	valueTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, valueType)
 	if err != nil {
 		return cursor, xerrors.WithMessageKV(err,
 			xerrors.KeyPBFieldType, valueType+" (map value)",
@@ -240,7 +229,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
 		}
-		scalarField, err := p.parseScalarField(trimmedNameCell, keyType+rawPropText, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, keyType+rawPropText)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, keyType+" (map key)",
@@ -293,7 +282,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			Layout: layout,
 			Prop:   ExtractMapFieldProp(prop),
 		}
-		scalarField, err := p.parseScalarField(trimmedNameCell, keyType+rawPropText, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, keyType+rawPropText)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, keyType+" (map key)",
@@ -329,7 +318,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		parsedValueName := valueTypeDesc.Name
 		parsedValueFullName := valueTypeDesc.FullName
 
-		keyTypeDesc, err := p.parseType(keyType)
+		keyTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, keyType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, valueType+" (map key)",
@@ -374,7 +363,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = types.DefaultMapKeyOptName
 
-			scalarField, err := p.parseScalarField(types.DefaultMapKeyOptName, keyType+rawPropText, noteCell)
+			scalarField, err := parseScalarField(p.gen.typeInfos, types.DefaultMapKeyOptName, keyType+rawPropText)
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, keyType+" (map key)",
@@ -383,7 +372,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 			}
 			field.Fields = append(field.Fields, scalarField)
 
-			scalarField, err = p.parseScalarField(types.DefaultMapValueOptName, valueType, noteCell)
+			scalarField, err = parseScalarField(p.gen.typeInfos, types.DefaultMapValueOptName, valueType)
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, valueType+" (map value)",
@@ -407,7 +396,6 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
 	}
-	noteCell := header.getNoteCell(cursor)
 
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 
@@ -435,7 +423,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				// incell predefined struct
 				listElemSpanInnerCell = true
 				elemType = structType
-				typeDesc, err := p.parseType(structType)
+				typeDesc, err := parseTypeDescriptor(p.gen.typeInfos, structType)
 				if err != nil {
 					return cursor, xerrors.WithMessageKV(err,
 						xerrors.KeyPBFieldType, structType,
@@ -487,7 +475,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		// vertical list: all columns belong to this list after this cursor.
-		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, elemType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, elemType+" (list element)",
@@ -570,7 +558,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 		listName := trimmedNameCell[:firstElemIndex]
 		prefix += listName
 
-		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, elemType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, elemType+" (list element)",
@@ -652,7 +640,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			key = trimmedNameCell
 		}
 		colTypeWithProp := colType + rawPropText
-		scalarField, err := p.parseScalarField(trimmedNameCell, colTypeWithProp, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, colTypeWithProp)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, colType,
@@ -695,7 +683,6 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
 	}
-	noteCell := header.getNoteCell(cursor)
 
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 
@@ -706,7 +693,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	rawPropText := strings.TrimSpace(matches[3])
 	if colType == "" {
 		// incell predefined struct
-		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, elemType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, elemType,
@@ -718,12 +705,12 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		return cursor, nil
 	}
 
-	fieldPairs, err := ParseIncellStruct(elemType)
+	fieldPairs, err := parseIncellStruct(elemType)
 	if err != nil {
 		return cursor, err
 	}
 	if fieldPairs != nil {
-		scalarField, err := p.parseScalarField(trimmedNameCell, colType, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, colType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, colType,
@@ -736,7 +723,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
-			scalarField, err := p.parseScalarField(fieldName, fieldType, "")
+			scalarField, err := parseScalarField(p.gen.typeInfos, fieldName, fieldType)
 			if err != nil {
 				return cursor, xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, fieldType,
@@ -748,7 +735,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	} else {
 		// cross cell struct
 		// NOTE(wenchy): treated as nested named struct
-		scalarField, err := p.parseScalarField(trimmedNameCell, elemType, noteCell)
+		scalarField, err := parseScalarField(p.gen.typeInfos, trimmedNameCell, elemType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, elemType,
@@ -811,7 +798,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	return cursor, nil
 }
 
-func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field, error) {
+func parseScalarField(typeInfos xproto.TypeInfoMap, name, typ string) (*tableaupb.Field, error) {
 	rawPropText := ""
 	// enum syntax pattern
 	if matches := types.MatchEnum(typ); len(matches) > 0 {
@@ -826,7 +813,7 @@ func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field,
 			rawPropText = splits[1]
 		}
 	}
-	typeDesc, err := p.parseType(typ)
+	typeDesc, err := parseTypeDescriptor(typeInfos, typ)
 	if err != nil {
 		return nil, xerrors.WithMessageKV(err,
 			xerrors.KeyPBFieldOpts, rawPropText,
@@ -849,20 +836,13 @@ func (p *bookParser) parseScalarField(name, typ, note string) (*tableaupb.Field,
 		Predefined: typeDesc.Predefined,
 		Options: &tableaupb.FieldOptions{
 			Name: name,
-			Note: p.genNote(note),
+			Note: "", // no need to add note now, maybe will be deprecated in the future.
 			Prop: ExtractScalarFieldProp(prop),
 		},
 	}, nil
 }
 
-func (p *bookParser) genNote(note string) string {
-	if p.withNote {
-		return note
-	}
-	return ""
-}
-
-func (p *bookParser) parseType(rawType string) (*types.Descriptor, error) {
+func parseTypeDescriptor(typeInfos xproto.TypeInfoMap, rawType string) (*types.Descriptor, error) {
 	// enum syntax pattern
 	if matches := types.MatchEnum(rawType); len(matches) > 0 {
 		enumType := strings.TrimSpace(matches[1])
@@ -872,7 +852,7 @@ func (p *bookParser) parseType(rawType string) (*types.Descriptor, error) {
 	if strings.HasPrefix(rawType, ".") {
 		// This messge type is defined in imported proto
 		name := strings.TrimPrefix(rawType, ".")
-		if typeInfo, ok := p.gen.typeInfos[name]; ok {
+		if typeInfo, ok := typeInfos[name]; ok {
 			return &types.Descriptor{
 				Name:       name,
 				FullName:   typeInfo.Fullname,
@@ -913,7 +893,7 @@ func (p *bookParser) parseType(rawType string) (*types.Descriptor, error) {
 	}
 }
 
-func ParseIncellStruct(elemType string) ([]string, error) {
+func parseIncellStruct(elemType string) ([]string, error) {
 	fields := strings.Split(elemType, ",")
 	if len(fields) == 1 && len(strings.Split(fields[0], " ")) == 1 {
 		// cross cell struct

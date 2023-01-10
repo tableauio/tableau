@@ -594,7 +594,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 
 // parseIncellMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
 // For example:
-//	- map<int32, int32>
+//  - map<int32, int32>
 //  - map<int32, EnumType>
 func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
