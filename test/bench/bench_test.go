@@ -101,3 +101,48 @@ func genTestdata(maxID int) {
 		panic(err)
 	}
 }
+
+func Test_genProto(t *testing.T) {
+	err := genProto("DEBUG")
+	if err != nil {
+		t.Errorf("%+v", err)
+		t.Fatalf("%s", xerrors.NewDesc(err))
+	}
+}
+
+func genProto(logLevel string) error {
+	// prepare output common dir
+	return tableau.GenProto(
+		"protoconf",
+		"./testdata",
+		"./_proto",
+		options.Proto(
+			&options.ProtoOption{
+				Input: &options.ProtoInputOption{
+					ProtoPaths: []string{"./_proto"},
+					Formats: []format.Format{
+						format.Excel,
+					},
+					Header: &options.HeaderOption{
+						Namerow: 1,
+						Typerow: 2,
+						Noterow: 3,
+						Datarow: 4,
+					},
+				},
+				Output: &options.ProtoOutputOption{
+					FileOptions: map[string]string{
+						"go_package": "github.com/tableauio/tableau/test/bench/protoconf",
+					},
+				},
+			},
+		),
+		options.Log(
+			&log.Options{
+				Level: logLevel,
+				Mode:  "FULL",
+			},
+		),
+		// options.Lang("zh"),
+	)
+}

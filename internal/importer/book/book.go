@@ -121,26 +121,41 @@ func (b *Book) Clear() {
 	b.sheetNames = nil
 }
 
-func (b *Book) ParseMeta() error {
+// ParseMetasheet parses a sheet to Metabook by the specified parser.
+func ParseMetasheet(sheet *Sheet, parser SheetParser) (*tableaupb.Metabook, error) {
+	metabook := &tableaupb.Metabook{}
+	if sheet.MaxRow > 1 {
+		if err := parser.Parse(metabook, sheet); err != nil {
+			return nil, errors.WithMessagef(err, "failed to parse metasheet")
+		}
+	}
+	return metabook, nil
+}
+
+// ParseMetaAndPurge parses metasheet to Metabook and
+// purge needless sheets which is not in parsed Metabook.
+func (b *Book) ParseMetaAndPurge() (err error) {
 	sheet := b.GetSheet(MetasheetName)
 	if sheet == nil {
-		log.Debugf("sheet %s not found in book %s", MetasheetName, b.Filename())
+		log.Debugf("metasheet %s not found in book %s, maybe it is a to be merged sheet", MetasheetName, b.Filename())
 		b.Clear()
 		return nil
 	}
 
-	if sheet.MaxRow <= 1 {
+	b.meta, err = ParseMetasheet(sheet, b.metaParser)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", b.Filename(), MetasheetName)
+	}
+
+	if len(b.meta.MetasheetMap) == 0 {
 		// need all sheets except the metasheet "@TABLEAU"
+		b.meta.MetasheetMap = make(map[string]*tableaupb.Metasheet) // init
 		for _, sheet := range b.GetSheets() {
 			if sheet.Name != MetasheetName {
 				b.meta.MetasheetMap[sheet.Name] = &tableaupb.Metasheet{
 					Sheet: sheet.Name,
 				}
 			}
-		}
-	} else {
-		if err := b.metaParser.Parse(b.meta, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse sheet: %s#%s", b.Filename(), MetasheetName)
 		}
 	}
 
@@ -158,9 +173,6 @@ func (b *Book) ParseMeta() error {
 	// NOTE: only keep the sheets that are specified in metasheet
 	b.Squeeze(keepedSheetNames)
 	log.Debugf("squeezed: %s#%s: %+v", b.Filename(), MetasheetName, keepedSheetNames)
-	for sheetName := range b.sheets {
-		log.Debugf("sheet: %s", sheetName)
-	}
 	return nil
 }
 

@@ -26,7 +26,6 @@ import (
 
 const (
 	TableauProtoPackage = "tableau"
-	defaultTopN         = 20 // default top N rows for importer's TopN option
 )
 
 type Generator struct {
@@ -272,7 +271,7 @@ func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFil
 func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool) (err error) {
 	absPath := filepath.Join(dir, filename)
 	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
-	imp, err := importer.New(absPath, importer.Parser(parser), importer.TopN(defaultTopN), importer.Mode(importer.Protogen))
+	imp, err := importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
 	}

@@ -116,7 +116,7 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 func Test_Excel2CSV(t *testing.T) {
 	err := rangeFilesByFormat("./testdata", format.Excel, func(bookPath string) error {
 		// log.Printf("path: %s", bookPath)
-		imp, err := importer.NewExcelImporter(bookPath, nil, nil, 0)
+		imp, err := importer.NewExcelImporter(bookPath, nil, nil, 0, false)
 		if err != nil {
 			return err
 		}

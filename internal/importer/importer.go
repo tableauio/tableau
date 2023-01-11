@@ -36,7 +36,7 @@ func New(filename string, setters ...Option) (Importer, error) {
 	fmt := format.Ext2Format(filepath.Ext(filename))
 	switch fmt {
 	case format.Excel:
-		return NewExcelImporter(filename, opts.Sheets, opts.Parser, opts.TopN)
+		return NewExcelImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Merged)
 	case format.CSV:
 		return NewCSVImporter(filename, opts.Sheets, opts.Parser)
 	case format.XML:
@@ -84,7 +84,7 @@ func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) 
 	var importers []Importer
 	for fpath := range mergerWorkbookPaths {
 		log.Infof("%18s: %s", "merge workbook", fpath)
-		importer, err := New(fpath, Sheets([]string{sheetName}))
+		importer, err := New(fpath, Sheets([]string{sheetName}), Merged(true))
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
 		}

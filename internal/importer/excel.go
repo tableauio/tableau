@@ -14,11 +14,25 @@ type ExcelImporter struct {
 	*book.Book
 }
 
-// topN: 0 means read all rows
-func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, topN uint) (*ExcelImporter, error) {
-	book, err := parseExcelBook(filename, sheetNames, parser, topN)
+func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, merged bool) (*ExcelImporter, error) {
+	var topN uint
+	if mode == Protogen {
+		n, err := adjustTopN(filename, parser, merged)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
+		}
+		topN = n
+	}
+
+	book, err := readExcelBook(filename, sheetNames, parser, topN)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed to parse excel book")
+		return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
+	}
+
+	if parser != nil {
+		if err := book.ParseMetaAndPurge(); err != nil {
+			return nil, errors.WithMessage(err, "failed to parse metasheet")
+		}
 	}
 
 	return &ExcelImporter{
@@ -26,21 +40,51 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 	}, nil
 }
 
-func parseExcelBook(filename string, sheetNames []string, parser book.SheetParser, topN uint) (*book.Book, error) {
-	book, err := readExcelBook(filename, sheetNames, parser, topN)
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
-	}
-
-	if parser != nil {
-		if err := book.ParseMeta(); err != nil {
-			return nil, errors.WithMessage(err, "failed to parse metasheet")
+func adjustTopN(filename string, parser book.SheetParser, merged bool) (uint, error) {
+	if parser != nil && !merged {
+		// parse metasheet, and change topN to 0 if any sheet is transpose
+		metasheet, err := readExcelSheet(filename, book.MetasheetName, 0)
+		if err != nil {
+			return 0, err
+		}
+		meta, err := book.ParseMetasheet(metasheet, parser)
+		if err != nil {
+			return 0, errors.WithMessagef(err, "failed to parse metasheet: %s#%s", filename, book.MetasheetName)
+		}
+		if len(meta.MetasheetMap) != 0 {
+			for name, sheet := range meta.MetasheetMap {
+				if sheet.Transpose {
+					log.Debugf("sheet %s is transpose, so topN is reset to 0", name)
+					return 0, nil
+				}
+			}
 		}
 	}
-	return book, nil
+	return defaultTopN, nil
 }
 
 func readExcelBook(filename string, sheetNames []string, parser book.SheetParser, topN uint) (*book.Book, error) {
+	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
+	newBook := book.NewBook(bookName, filename, parser)
+	sheets, err := readExcelSheets(filename, sheetNames, topN)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to read excel sheets: %s#%v", filename, sheetNames)
+	}
+	for _, sheet := range sheets {
+		newBook.AddSheet(sheet)
+	}
+	return newBook, nil
+}
+
+func readExcelSheet(filename string, sheetName string, topN uint) (*book.Sheet, error) {
+	sheets, err := readExcelSheets(filename, []string{sheetName}, topN)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to read excel sheets: %s#%v", filename, sheetName)
+	}
+	return sheets[0], nil
+}
+
+func readExcelSheets(filename string, sheetNames []string, topN uint) ([]*book.Sheet, error) {
 	file, err := excelize.OpenFile(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file %s", filename)
@@ -57,21 +101,20 @@ func readExcelBook(filename string, sheetNames []string, parser book.SheetParser
 		sheetNames = file.GetSheetList()
 	}
 
-	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	newBook := book.NewBook(bookName, filename, parser)
+	var sheets []*book.Sheet
 	for _, sheetName := range sheetNames {
 		rows, err := readExcelSheetRows(file, sheetName, topN)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get rows of sheet: %s#%s", filename, sheetName)
 		}
-		sheet := book.NewSheet(sheetName, rows)
-		newBook.AddSheet(sheet)
+		sheets = append(sheets, book.NewSheet(sheetName, rows))
 	}
 
-	return newBook, nil
+	return sheets, nil
 }
 
 func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][]string, err error) {
+	// topN: 0 means read all rows
 	if topN == 0 {
 		// GetRows fetched all rows with value or formula cells, the continually blank
 		// cells in the tail of each row will be skipped.

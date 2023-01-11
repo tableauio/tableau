@@ -40,7 +40,7 @@ func parseCSVBook(filename string, sheetNames []string, parser book.SheetParser)
 	}
 
 	if parser != nil {
-		if err := book.ParseMeta(); err != nil {
+		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, errors.WithMessage(err, "failed to parse metasheet")
 		}
 	}

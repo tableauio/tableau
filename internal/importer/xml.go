@@ -124,7 +124,7 @@ func parseXML(filename string, sheetNames []string, parser book.SheetParser, mod
 
 	// parse meta sheet
 	if parser != nil {
-		if err := newBook.ParseMeta(); err != nil {
+		if err := newBook.ParseMetaAndPurge(); err != nil {
 			return nil, errors.WithMessage(err, "failed to parse metasheet")
 		}
 	}
