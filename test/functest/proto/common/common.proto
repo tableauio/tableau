@@ -24,3 +24,9 @@ message Item {
   int32 id = 1 [(tableau.field).name = "ID"];
   int32 num = 2 [(tableau.field).name = "Num"];
 }
+
+message Property {
+  int32 id = 1 [(tableau.field) = {name:"ID"}];
+  string name = 2 [(tableau.field) = {name:"Name"}];
+  string desc = 3 [(tableau.field) = {name:"Desc"}];
+}

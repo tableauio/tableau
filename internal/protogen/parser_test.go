@@ -9,7 +9,7 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
-func Test_parseScalarOrEnumField(t *testing.T) {
+func Test_parseField(t *testing.T) {
 	type args struct {
 		typeInfos xproto.TypeInfoMap
 		name      string
@@ -63,13 +63,13 @@ func Test_parseScalarOrEnumField(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseScalarOrEnumField(tt.args.typeInfos, tt.args.name, tt.args.typ)
+			got, err := parseField(tt.args.typeInfos, tt.args.name, tt.args.typ)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseScalarOrEnumField() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("parseField() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parseScalarOrEnumField() = %v, want %v", got, tt.want)
+				t.Errorf("parseField() = %v, want %v", got, tt.want)
 			}
 		})
 	}
