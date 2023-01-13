@@ -1,0 +1,14 @@
+{
+    "rewardItem": {
+        "id": 1,
+        "num": 100
+    },
+    "costItem": {
+        "id": 2,
+        "num": 200
+    },
+    "predefinedItem": {
+        "id": 10,
+        "num": 20
+    }
+}

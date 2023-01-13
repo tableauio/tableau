@@ -206,9 +206,10 @@ func readXMLFile(metasheet, content string, newBook *book.Book, mode ImporterMod
 }
 
 // genMetasheet generates metasheet according to `
-//   <@TABLEAU>
-//       <Item Sheet="XXXConf" />
-//   </@TABLEAU>`
+//
+//	<@TABLEAU>
+//	    <Item Sheet="XXXConf" />
+//	</@TABLEAU>`
 func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *book.Sheet, error) {
 	// sheetName -> {colName -> val}
 	metasheetMap := make(map[string]map[string]string)
@@ -398,15 +399,15 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 
 // escapeMetaDoc escape characters for all attribute values in the document. e.g.:
 //
-//  <ServerConf key="map<uint32,ServerConf>" Open="bool">
-// 	 ...
-//  </ServerConf>
+//	 <ServerConf key="map<uint32,ServerConf>" Open="bool">
+//		 ...
+//	 </ServerConf>
 //
 // will be converted to
 //
-//  <ServerConf key="map&lt;uint32,ServerConf&gt;" Open="bool">
-// 	 ...
-//  </ServerConf>
+//	 <ServerConf key="map&lt;uint32,ServerConf&gt;" Open="bool">
+//		 ...
+//	 </ServerConf>
 func escapeAttrs(doc string) string {
 	escapedDoc := attrRegexp.ReplaceAllStringFunc(doc, func(s string) string {
 		matches := matchAttr(s)
@@ -529,7 +530,6 @@ func getXMLSheet(xmlMeta *tableaupb.XMLBook, sheetName string) *tableaupb.XMLShe
 // The second pass preprocesses the tree structure. In this phase the parser will do some necessary jobs
 // before generating a 2-dimensional sheet, like correctType which make the types of attributes in the
 // nodes meet the requirements of protogen.
-//
 func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
 	// rearrange attributes
 	if err := rearrangeAttrs(node.AttrMap); err != nil {
@@ -552,10 +552,10 @@ func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
 }
 
 // rearrangeAttrs change the order of attributes, e.g.:
-// - attributes with cross-type types, such as cross-cell map (list, keyed-list, etc.),
-//   will be placed at the first.
-// - simple list like `Param1, Param2, Param3, ...` will be grouped together and
-//   the type of `Param1` will be changed to something like `[]int32`.
+//   - attributes with cross-type types, such as cross-cell map (list, keyed-list, etc.),
+//     will be placed at the first.
+//   - simple list like `Param1, Param2, Param3, ...` will be grouped together and
+//     the type of `Param1` will be changed to something like `[]int32`.
 func rearrangeAttrs(attrMap *tableaupb.XMLNode_AttrMap) error {
 	typeMap := make(map[string]string)
 	indexMap := make(map[int]int)
@@ -645,21 +645,17 @@ func isRepeated(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.XMLNode) bool {
 // isCrossCell check if type string `t` is a cross-cell type.
 func isCrossCell(t string) bool {
 	if types.IsMap(t) { // map case
-		matches := types.MatchMap(t)
-		valueType := strings.TrimSpace(matches[2])
-		return !(types.IsScalarType(valueType) || types.IsEnum(valueType))
+		desc := types.MatchMap(t)
+		return !(types.IsScalarType(desc.ValueType) || types.IsEnum(desc.ValueType))
 	} else if types.IsList(t) { // list case
-		matches := types.MatchList(t)
-		structType := strings.TrimSpace(matches[1])
-		return structType != ""
+		desc := types.MatchList(t)
+		return desc.ElemType != ""
 	} else if types.IsKeyedList(t) { // keyed-list case
-		matches := types.MatchKeyedList(t)
-		structType := strings.TrimSpace(matches[1])
-		return structType != ""
+		desc := types.MatchKeyedList(t)
+		return desc.ElemType != ""
 	} else if types.IsStruct(t) { // struct case
-		matches := types.MatchStruct(t)
-		colType := strings.TrimSpace(matches[2])
-		return types.IsScalarType(colType) || types.IsEnum(colType)
+		desc := types.MatchStruct(t)
+		return types.IsScalarType(desc.ColumnType) || types.IsEnum(desc.ColumnType)
 	}
 	return false
 }

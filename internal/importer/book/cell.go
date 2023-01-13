@@ -196,7 +196,7 @@ func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulate
 	cell := newRowCell(col, name, typ, data)
 	// TODO: Parser(first-pass), check if this sheet is nested.
 	if needPopulateKey && cell.Data == "" {
-		if (types.MatchMap(cell.GetType()) != nil || types.MatchKeyedList(cell.GetType()) != nil) && r.prev != nil {
+		if (types.IsMap(cell.GetType()) || types.IsKeyedList(cell.GetType())) && r.prev != nil {
 			// NOTE: populate the missing map key from the prev row's corresponding cell.
 			// TODO(wenchy): this is a flawed hack, need to be taken into more consideration.
 			// Check: reverse backward to find the previous same nested-level keyed cell and
@@ -217,7 +217,7 @@ func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulate
 					if !strings.HasPrefix(backCell.GetName(), prefix) {
 						break
 					}
-					if types.MatchMap(backCell.GetType()) != nil || types.MatchKeyedList(backCell.GetType()) != nil {
+					if types.IsMap(backCell.GetType()) || types.IsKeyedList(backCell.GetType()) {
 						if r.prev.cells[ui].Data == r.cells[ui].Data {
 							needPopulate = true
 							break

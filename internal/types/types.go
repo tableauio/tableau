@@ -11,43 +11,95 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 )
 
-var mapRegexp *regexp.Regexp
-var listRegexp *regexp.Regexp
-var keyedListRegexp *regexp.Regexp
-var structRegexp *regexp.Regexp
-var enumRegexp *regexp.Regexp
-var propRegexp *regexp.Regexp
-
-var boringIntegerRegexp *regexp.Regexp
-
 // refer: https://github.com/google/re2/wiki/Syntax
-const rawPropGroup = `(\|\{.+\})?` // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
-const typeCharSet = `[0-9A-Za-z,_>< \[\]\.\{\}]`
-const typeGroup = `(` + typeCharSet + `+)`
-const looseTypeGroup = typeGroup + `?` // `x?`: zero or one x, prefer one
-const ungreedyTypeGroup = `(` + typeCharSet + `*?)`
-const TypeGroup = ungreedyTypeGroup
+const nameCharSet = `0-9A-Za-z_`
+const typeCharSet = `0-9A-Za-z _,\.`
+const nestedTypeCharSet = typeCharSet + `><\[\]\{\}`
 
-func init() {
-	mapRegexp = regexp.MustCompile(`^map<` + typeGroup + `,` + typeGroup + `>` + rawPropGroup)               // e.g.: map<uint32, Type>, map<uint32, .PredefinedType>
-	listRegexp = regexp.MustCompile(`^\[` + ungreedyTypeGroup + `\]` + typeGroup + rawPropGroup)             // e.g.: [Type]uint32, [.PredefinedType]uint32
-	keyedListRegexp = regexp.MustCompile(`^\[` + ungreedyTypeGroup + `\]<` + typeGroup + `>` + rawPropGroup) // e.g.: [Type]<uint32>, [.PredefinedType]<uint32>
-	structRegexp = regexp.MustCompile(`^\{` + ungreedyTypeGroup + `\}` + looseTypeGroup + rawPropGroup)      // e.g.: {Type}uint32, {.PredefinedType}uint32
-	enumRegexp = regexp.MustCompile(`^enum<` + typeGroup + `>` + rawPropGroup)                               // e.g.: enum<Type>, enum<.PredefinedType>
-	propRegexp = regexp.MustCompile(`\|?\{(.+)\}`)                                                           // e.g.: |{range:"1,10" refer:"XXXConf.ID"}
+const nameCharClass = `[` + nameCharSet + `]`
+const typeCharClass = `[` + typeCharSet + `]`
+const nestedTypeCharClass = `[` + nestedTypeCharSet + `]`
 
-	// trim float to integer after(include) dot, e.g: 0.0, 1.0, 1.00 ...
-	// refer: https://stackoverflow.com/questions/638565/parsing-scientific-notation-sensibly
-	boringIntegerRegexp = regexp.MustCompile(`([-+]?[0-9]+)\.0+$`)
+const rawPropGroup = `( *\| *\{(?P<Prop>.+)\})?`
+
+// ungreedy type group
+const TypeGroup = `(` + nestedTypeCharClass + `*?)`
+
+// Map definition patterns:
+//   - map<KeyType, ValueType>
+//   - map<KeyType, .PredefinedValueType>
+//   - map<.PredefinedKeyType, ValueType>
+//   - map<.PredefinedKeyType, .PredefinedValueType>
+var mapRegexp = regexp.MustCompile(`^map<` + `(?P<KeyType>` + nestedTypeCharClass + `+)` + `,` + `(?P<ValueType>` + nestedTypeCharClass + `+)` + `>` + rawPropGroup)
+
+// List definition patterns:
+//   - [ElemType]ColumnType
+//   - [.PredefinedElemType]ColumnType
+var listRegexp = regexp.MustCompile(`^\[` + `(?P<ElemType>` + nestedTypeCharClass + `*?)` + `\]` + `(?P<ColumnType>` + nestedTypeCharClass + `+)` + rawPropGroup)
+
+// Keyed list definition patterns:
+//   - [ElemType]<ColumnType>
+//   - [.PredefinedElemType]<ColumnType>
+var keyedListRegexp = regexp.MustCompile(`^\[` + `(?P<ElemType>` + nestedTypeCharClass + `*?)` + `\]<` + `(?P<ColumnType>` + nestedTypeCharClass + `+)` + `>` + rawPropGroup)
+
+// Struct definition patterns:
+//   - {StructType}
+//   - {StructType}ColumnType
+//   - {StructType(CustomName)}ColumnType
+//   - {.PredefinedStructType}ColumnType
+//   - {.PredefinedStructType(CustomName)}ColumnType
+const structTypeGroup = `(?P<StructType>` + typeCharClass + `*?)` + `(\((?P<CustomName>` + nameCharClass + `*?)\))?`
+
+var structRegexp = regexp.MustCompile(`^\{` + structTypeGroup + `\}` + `(?P<ColumnType>` + nestedTypeCharClass + `+)?` + rawPropGroup)
+
+// Scalar definition patterns:
+//   - int32
+//   - string
+var scalarRegexp = regexp.MustCompile(`^` + `(?P<ScalarType>` + typeCharClass + `+)` + rawPropGroup)
+
+// Enum definition patterns:
+//   - enum<Type>
+//   - enum<.PredefinedType>
+var enumRegexp = regexp.MustCompile(`^enum<` + `(?P<EnumType>` + typeCharClass + `+)` + `>` + rawPropGroup)
+
+// Field property definition patterns:
+//   - |{range:"1,10" refer:"XXXConf.ID"}
+//   - | {range:"1,10" refer:"XXXConf.ID"}
+var propRegexp = regexp.MustCompile(rawPropGroup)
+
+// trim float to integer after(include) dot, e.g: 0.0, 1.0, 1.00 ...
+// refer: https://stackoverflow.com/questions/638565/parsing-scientific-notation-sensibly
+var boringIntegerRegexp = regexp.MustCompile(`([-+]?[0-9]+)\.0+$`)
+
+type MapDescriptor struct {
+	KeyType   string
+	ValueType string
+	Prop      PropDescriptor
 }
 
 // MatchMap matches the map type patterns. For example:
-//  - map<KeyType, ValueType>
-//  - map<KeyType, .PredefinedValueType>
-//  - map<.PredefinedKeyType, ValueType>
-//  - map<.PredefinedKeyType, .PredefinedValueType>
-func MatchMap(text string) []string {
-	return mapRegexp.FindStringSubmatch(text)
+//   - map<KeyType, ValueType>
+//   - map<KeyType, .PredefinedValueType>
+//   - map<.PredefinedKeyType, ValueType>
+//   - map<.PredefinedKeyType, .PredefinedValueType>
+func MatchMap(text string) *MapDescriptor {
+	match := mapRegexp.FindStringSubmatch(text)
+	if match == nil {
+		return nil
+	}
+	desc := &MapDescriptor{}
+	for i, name := range mapRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "KeyType":
+			desc.KeyType = value
+		case "ValueType":
+			desc.ValueType = value
+		case "Prop":
+			desc.Prop.Text = value
+		}
+	}
+	return desc
 }
 
 // IsMap checks if text matches the map type patterns.
@@ -55,11 +107,33 @@ func IsMap(text string) bool {
 	return MatchMap(text) != nil
 }
 
+type ListDescriptor struct {
+	ElemType   string
+	ColumnType string
+	Prop       PropDescriptor
+}
+
 // MatchList matches the list type patterns. For example:
-//  - [ElemType]Type
-//  - [.PredefinedElemType]Type
-func MatchList(text string) []string {
-	return listRegexp.FindStringSubmatch(text)
+//   - [ElemType]Type
+//   - [.PredefinedElemType]Type
+func MatchList(text string) *ListDescriptor {
+	match := listRegexp.FindStringSubmatch(text)
+	if match == nil {
+		return nil
+	}
+	desc := &ListDescriptor{}
+	for i, name := range listRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "ElemType":
+			desc.ElemType = value
+		case "ColumnType":
+			desc.ColumnType = value
+		case "Prop":
+			desc.Prop.Text = value
+		}
+	}
+	return desc
 }
 
 // IsList checks if text matches the list type patterns.
@@ -67,11 +141,33 @@ func IsList(text string) bool {
 	return MatchList(text) != nil
 }
 
+type KeyedListDescriptor struct {
+	ElemType   string
+	ColumnType string
+	Prop       PropDescriptor
+}
+
 // MatchKeyedList matches the keyed list type patterns. For example:
-//  - [ElemType]<Type>
-//  - [.PredefinedElemType]<Type>
-func MatchKeyedList(text string) []string {
-	return keyedListRegexp.FindStringSubmatch(text)
+//   - [ElemType]<Type>
+//   - [.PredefinedElemType]<Type>
+func MatchKeyedList(text string) *KeyedListDescriptor {
+	match := keyedListRegexp.FindStringSubmatch(text)
+	if match == nil {
+		return nil
+	}
+	desc := &KeyedListDescriptor{}
+	for i, name := range keyedListRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "ElemType":
+			desc.ElemType = value
+		case "ColumnType":
+			desc.ColumnType = value
+		case "Prop":
+			desc.Prop.Text = value
+		}
+	}
+	return desc
 }
 
 // IsKeyedList checks if text matches the keyed list type patterns.
@@ -79,11 +175,38 @@ func IsKeyedList(text string) bool {
 	return MatchKeyedList(text) != nil
 }
 
+type StructDescriptor struct {
+	StructType string
+	CustomName string
+	ColumnType string
+	Prop       PropDescriptor
+}
+
 // MatchStruct matches the struct type patterns. For example:
-//  - {StructType}Type
-//  - {.PredefinedStructType}Type
-func MatchStruct(text string) []string {
-	return structRegexp.FindStringSubmatch(text)
+//   - {StructType}Type
+//   - {StructType(CustomName)}Type
+//   - {.PredefinedStructType}Type
+//   - {.PredefinedStructType(CustomName)}Type
+func MatchStruct(text string) *StructDescriptor {
+	match := structRegexp.FindStringSubmatch(text)
+	if match == nil {
+		return nil
+	}
+	desc := &StructDescriptor{}
+	for i, name := range structRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "StructType":
+			desc.StructType = value
+		case "CustomName":
+			desc.CustomName = value
+		case "ColumnType":
+			desc.ColumnType = value
+		case "Prop":
+			desc.Prop.Text = value
+		}
+	}
+	return desc
 }
 
 // IsStruct checks if text matches the struct type patterns.
@@ -91,11 +214,56 @@ func IsStruct(text string) bool {
 	return MatchStruct(text) != nil
 }
 
+type ScalarDescriptor struct {
+	ScalarType string
+	Prop       PropDescriptor
+}
+
+// MatchScalar matches the scalar type pattern. For example:
+//   - int32
+//   - string
+func MatchScalar(text string) *ScalarDescriptor {
+	match := scalarRegexp.FindStringSubmatch(text)
+	if match == nil {
+		return nil
+	}
+	desc := &ScalarDescriptor{}
+	for i, name := range scalarRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "ScalarType":
+			desc.ScalarType = value
+		case "Prop":
+			desc.Prop.Text = value
+		}
+	}
+	return desc
+}
+
+type EnumDescriptor struct {
+	EnumType string
+	Prop     PropDescriptor
+}
+
 // MatchEnum matches the enum type pattern. For example:
-//  - enum<Type>
-//  - enum<.PredefinedType>
-func MatchEnum(text string) []string {
-	return enumRegexp.FindStringSubmatch(text)
+//   - enum<Type>
+//   - enum<.PredefinedType>
+func MatchEnum(text string) *EnumDescriptor {
+	match := enumRegexp.FindStringSubmatch(text)
+	if match == nil {
+		return nil
+	}
+	desc := &EnumDescriptor{}
+	for i, name := range enumRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "EnumType":
+			desc.EnumType = value
+		case "Prop":
+			desc.Prop.Text = value
+		}
+	}
+	return desc
 }
 
 // IsEnum checks if text matches the enum type patterns.
@@ -103,28 +271,43 @@ func IsEnum(text string) bool {
 	return MatchEnum(text) != nil
 }
 
-func MatchProp(text string) []string {
-	return propRegexp.FindStringSubmatch(text)
+type PropDescriptor struct {
+	Text string // serialized prototext of tableaupb.FieldProp
+}
+
+func (x *PropDescriptor) RawProp() string {
+	return "|{" + x.Text + "}"
+}
+
+func (x *PropDescriptor) FieldProp() (*tableaupb.FieldProp, error) {
+	if x.Text == "" {
+		return nil, nil
+	}
+	fieldProp := &tableaupb.FieldProp{}
+	if err := prototext.Unmarshal([]byte(x.Text), fieldProp); err != nil {
+		return nil, xerrors.ErrorKV(fmt.Sprintf("failed to parse field prop: %s", err), xerrors.KeyPBFieldOpts, x.Text)
+	}
+	return fieldProp, nil
+}
+
+func MatchProp(text string) *PropDescriptor {
+	match := propRegexp.FindStringSubmatch(text)
+	if match == nil {
+		return nil
+	}
+	prop := &PropDescriptor{}
+	for i, name := range propRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "Prop":
+			prop.Text = value
+		}
+	}
+	return prop
 }
 
 func MatchBoringInteger(text string) []string {
 	return boringIntegerRegexp.FindStringSubmatch(text)
-}
-
-func ParseProp(text string) (*tableaupb.FieldProp, error) {
-	matches := propRegexp.FindStringSubmatch(text)
-	if len(matches) > 0 {
-		propText := strings.TrimSpace(matches[1])
-		if propText == "" {
-			return nil, nil
-		}
-		prop := &tableaupb.FieldProp{}
-		if err := prototext.Unmarshal([]byte(propText), prop); err != nil {
-			return nil, xerrors.ErrorKV(fmt.Sprintf("failed to parse field prop: %s", err), xerrors.KeyPBFieldOpts, strings.TrimLeft(text, " |"))
-		}
-		return prop, nil
-	}
-	return nil, nil
 }
 
 // BelongToFirstElement returns true if the name has specified `prefix+"1"`

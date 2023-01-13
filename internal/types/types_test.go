@@ -5,6 +5,66 @@ import (
 	"testing"
 )
 
+func TestMatchMap(t *testing.T) {
+	type args struct {
+		text string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *MapDescriptor
+	}{
+		{
+			name: "normal-map",
+			args: args{
+				text: "map<int32, ValueType>",
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "ValueType",
+			},
+		},
+		{
+			name: "normal-map-without-space",
+			args: args{
+				text: "map<int32,ValueType>",
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "ValueType",
+			},
+		},
+		{
+			name: "enum-keyed-map",
+			args: args{
+				text: "map<enum<.EnumType>, ValueType>",
+			},
+			want: &MapDescriptor{
+				KeyType:   "enum<.EnumType>",
+				ValueType: "ValueType",
+			},
+		},
+		{
+			name: "map-with-prop",
+			args: args{
+				text: `map<int32, ValueType>|{range:"1,10"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "ValueType",
+				Prop:      PropDescriptor{Text: `range:"1,10"`},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := MatchMap(tt.args.text); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MatchMap() = %T, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestMatchList(t *testing.T) {
 	type args struct {
 		text string
@@ -12,36 +72,79 @@ func TestMatchList(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []string
+		want *ListDescriptor
 	}{
-		// TODO: Add test cases.
 		{
-			name: "scalar list",
+			name: "scalar-list",
 			args: args{
-				text: "[]uint32",
+				text: "[]int32",
 			},
-			want: []string{"[]uint32", "", "uint32", ""},
+			want: &ListDescriptor{
+				ElemType:   "",
+				ColumnType: "int32",
+			},
 		},
 		{
-			name: "scalar list with prop",
+			name: "scalar-list-with-prop",
 			args: args{
-				text: `[]uint32|{range:"1,10"}`,
+				text: `[]int32|{range:"1,10"}`,
 			},
-			want: []string{`[]uint32|{range:"1,10"}`, "", "uint32", `|{range:"1,10"}`},
+			want: &ListDescriptor{
+				ElemType:   "",
+				ColumnType: "int32",
+				Prop:       PropDescriptor{Text: `range:"1,10"`},
+			},
 		},
 		{
-			name: "struct list",
+			name: "enum-list-with-prop",
 			args: args{
-				text: "[Type]uint32",
+				text: `[]enum<.EnumType>|{range:"1,10"}`,
 			},
-			want: []string{"[Type]uint32", "Type", "uint32", ""},
+			want: &ListDescriptor{
+				ElemType:   "",
+				ColumnType: "enum<.EnumType>",
+				Prop:       PropDescriptor{Text: `range:"1,10"`},
+			},
 		},
 		{
-			name: "keyed struct list",
+			name: "struct-list",
 			args: args{
-				text: "[Type]<uint32>",
+				text: "[ElemType]int32",
 			},
-			want: []string{"[Type]<uint32>", "Type", "<uint32>", ""},
+			want: &ListDescriptor{
+				ElemType:   "ElemType",
+				ColumnType: "int32",
+			},
+		},
+		{
+			name: "predefined-struct-list",
+			args: args{
+				text: "[.ElemType]int32",
+			},
+			want: &ListDescriptor{
+				ElemType:   ".ElemType",
+				ColumnType: "int32",
+			},
+		},
+		{
+			name: "keyed-struct-list",
+			args: args{
+				text: "[ElemType]<int32>",
+			},
+			want: &ListDescriptor{
+				ElemType:   "ElemType",
+				ColumnType: "<int32>",
+			},
+		},
+		{
+			name: "predefined-keyed-struct-list",
+			args: args{
+				text: "[.ElemType]<int32>",
+			},
+			want: &ListDescriptor{
+				ElemType:   ".ElemType",
+				ColumnType: "<int32>",
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -60,20 +163,23 @@ func TestMatchKeyedList(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []string
+		want *KeyedListDescriptor
 	}{
-		// TODO: Add test cases.
 		{
-			name: "keyed struct list",
+			name: "keyed-struct-list-with-prop",
 			args: args{
-				text: "[Type]<uint32>",
+				text: `[ElemType]<int32>|{range:"1,10"}`,
 			},
-			want: []string{"[Type]<uint32>", "Type", "uint32", ""},
+			want: &KeyedListDescriptor{
+				ElemType:   "ElemType",
+				ColumnType: "int32",
+				Prop:       PropDescriptor{Text: `range:"1,10"`},
+			},
 		},
 		{
-			name: "normal struct list",
+			name: "normal-struct-list",
 			args: args{
-				text: "[Type]uint32",
+				text: "[Type]int32",
 			},
 			want: nil,
 		},
@@ -82,6 +188,158 @@ func TestMatchKeyedList(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := MatchKeyedList(tt.args.text); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MatchKeyedList() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatchStruct(t *testing.T) {
+	type args struct {
+		text string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *StructDescriptor
+	}{
+		{
+			name: "new-defined-struct",
+			args: args{
+				text: "{int32 Id, int32 Value}Property",
+			},
+			want: &StructDescriptor{
+				StructType: "int32 Id, int32 Value",
+				ColumnType: "Property",
+			},
+		},
+		{
+			name: "predefined-cross-cell-struct",
+			args: args{
+				text: "{.Item}int32",
+			},
+			want: &StructDescriptor{
+				StructType: ".Item",
+				ColumnType: "int32",
+			},
+		},
+		{
+			name: "predefined-incell-struct",
+			args: args{
+				text: "{.Item}",
+			},
+			want: &StructDescriptor{
+				StructType: ".Item",
+				ColumnType: "",
+			},
+		},
+		{
+			name: "new-defined-cross-cell-struct-with-prop",
+			args: args{
+				text: `{Item}int32|{range:"1,10"}`,
+			},
+			want: &StructDescriptor{
+				StructType: "Item",
+				ColumnType: "int32",
+				Prop:       PropDescriptor{Text: `range:"1,10"`},
+			},
+		},
+		{
+			name: "custom-named-struct-with-prop",
+			args: args{
+				text: `{Item(RewardItem)}int32|{range:"~,10"}`,
+			},
+			want: &StructDescriptor{
+				StructType: "Item",
+				CustomName: "RewardItem",
+				ColumnType: "int32",
+				Prop:       PropDescriptor{Text: `range:"~,10"`},
+			},
+		},
+		{
+			name: "custom-named-predefined-struct-with-prop",
+			args: args{
+				text: `{.Item(RewardItem)}int32|{range:"~,10"}`,
+			},
+			want: &StructDescriptor{
+				StructType: ".Item",
+				CustomName: "RewardItem",
+				ColumnType: "int32",
+				Prop:       PropDescriptor{Text: `range:"~,10"`},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := MatchStruct(tt.args.text); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MatchStruct() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatchScalar(t *testing.T) {
+	type args struct {
+		text string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *ScalarDescriptor
+	}{
+		{
+			name: `scalar-type-with-prop`,
+			args: args{
+				text: `int32|{default:"1"}`,
+			},
+			want: &ScalarDescriptor{
+				ScalarType: "int32",
+				Prop:       PropDescriptor{Text: `default:"1"`},
+			},
+		},
+		{
+			name: `scalar-type-with-prop-and-space`,
+			args: args{
+				text: ` int32 |  {refer:"ItemConf.ItemId"}`,
+			},
+			want: &ScalarDescriptor{
+				ScalarType: "int32",
+				Prop:       PropDescriptor{Text: `refer:"ItemConf.ItemId"`},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := MatchScalar(tt.args.text); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MatchScalar() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatchEnum(t *testing.T) {
+	type args struct {
+		text string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *EnumDescriptor
+	}{
+		{
+			name: `enum-type-with-prop`,
+			args: args{
+				text: `enum<.EnumType>|{default:"1"}`,
+			},
+			want: &EnumDescriptor{
+				EnumType: ".EnumType",
+				Prop:     PropDescriptor{Text: `default:"1"`},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := MatchEnum(tt.args.text); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MatchEnum() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -96,7 +354,6 @@ func TestMatchBoringInteger(t *testing.T) {
 		args args
 		want []string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "integer 0",
 			args: args{
@@ -156,47 +413,6 @@ func TestMatchBoringInteger(t *testing.T) {
 	}
 }
 
-func TestMatchMap(t *testing.T) {
-	type args struct {
-		text string
-	}
-	tests := []struct {
-		name string
-		args args
-		want []string
-	}{
-		// TODO: Add test cases.
-		{
-			name: "normal map",
-			args: args{
-				text: "map<int32, Server>",
-			},
-			want: []string{"map<int32, Server>", "int32", " Server", ""},
-		},
-		{
-			name: "enum keyed map",
-			args: args{
-				text: "map<enum<.ServerType>, Server>",
-			},
-			want: []string{"map<enum<.ServerType>, Server>", "enum<.ServerType>", " Server", ""},
-		},
-		{
-			name: "map with property",
-			args: args{
-				text: `map<int32, Server>|{range:"{1,110}"}`,
-			},
-			want: []string{`map<int32, Server>|{range:"{1,110}"}`, "int32", " Server", `|{range:"{1,110}"}`},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := MatchMap(tt.args.text); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MatchMap() = %T, want %v", got[3], tt.want)
-			}
-		})
-	}
-}
-
 func TestBelongToFirstElement(t *testing.T) {
 	type args struct {
 		name   string
@@ -207,7 +423,6 @@ func TestBelongToFirstElement(t *testing.T) {
 		args args
 		want bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "belong to first element",
 			args: args{
@@ -237,54 +452,6 @@ func TestBelongToFirstElement(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := BelongToFirstElement(tt.args.name, tt.args.prefix); got != tt.want {
 				t.Errorf("BelongToFirstElement() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestMatchStruct(t *testing.T) {
-	type args struct {
-		text string
-	}
-	tests := []struct {
-		name string
-		args args
-		want []string
-	}{
-		// TODO: Add test cases.
-		{
-			name: "new defined struct",
-			args: args{
-				text: "{int32 Id, int32 Value}Prop",
-			},
-			want: []string{"{int32 Id, int32 Value}Prop", "int32 Id, int32 Value", "Prop", ""},
-		},
-		{
-			name: "predefined cross cell struct",
-			args: args{
-				text: "{.Item}int32",
-			},
-			want: []string{"{.Item}int32", ".Item", "int32", ""},
-		},
-		{
-			name: "predefined incell struct",
-			args: args{
-				text: "{.Item}",
-			},
-			want: []string{"{.Item}", ".Item", "", ""},
-		},
-		{
-			name: "new defined cross cell struct with prop",
-			args: args{
-				text: `{Item}int32|{range:"~,20"}`,
-			},
-			want: []string{`{Item}int32|{range:"~,20"}`, "Item", "int32", `|{range:"~,20"}`},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := MatchStruct(tt.args.text); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MatchStruct() = %v, want %v", got, tt.want)
 			}
 		})
 	}

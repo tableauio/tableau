@@ -1,4 +1,4 @@
 PropertyID,PropertyName,PropertyDesc
-{Property}uint32,string,string
-Item's ID,Item's Name,Item's Description
+{Property}int32,string,string
+Property's ID,Property's Name,Property's Description
 1,Orange,A kind of sour fruit.

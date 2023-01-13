@@ -11,12 +11,24 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/struct/Struct#*.csv"};
 
+message CrossCellNamedStruct {
+  option (tableau.worksheet) = {name:"CrossCellNamedStruct" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  Item reward_item = 1 [(tableau.field) = {name:"RewardItem"}];
+  message Item {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 num = 2 [(tableau.field) = {name:"Num"}];
+  }
+  Item cost_item = 2 [(tableau.field) = {name:"CostItem"}];
+  protoconf.Item predefined_item = 3 [(tableau.field) = {name:"PredefinedItem"}];
+}
+
 message CrossCellStruct {
   option (tableau.worksheet) = {name:"CrossCellStruct" namerow:1 typerow:2 noterow:3 datarow:4};
 
   Property property = 1 [(tableau.field) = {name:"Property"}];
   message Property {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
     string desc = 3 [(tableau.field) = {name:"Desc"}];
   }
@@ -25,9 +37,9 @@ message CrossCellStruct {
 message InCellStruct {
   option (tableau.worksheet) = {name:"InCellStruct" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
     Property prop = 2 [(tableau.field) = {name:"Prop" span:SPAN_INNER_CELL}];
     message Property {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
