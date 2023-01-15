@@ -26,7 +26,43 @@ message Item {
 }
 
 message Property {
-  int32 id = 1 [(tableau.field) = {name:"ID"}];
-  string name = 2 [(tableau.field) = {name:"Name"}];
-  string desc = 3 [(tableau.field) = {name:"Desc"}];
+  int32 id = 1 [(tableau.field) = { name: "ID" }];
+  string name = 2 [(tableau.field) = { name: "Name" }];
+  string desc = 3 [(tableau.field) = { name: "Desc" }];
+}
+
+message Foo {
+  option (tableau.union) = {
+    type: "Type"
+    value: "Value"
+  };
+
+  Type type = 9999 [(tableau.field) = { name: "Type" }];
+  oneof value {
+    option (tableau.oneof).name = "Value";
+    Pvp pvp = 1;  // Binded to enum value 1: TYPE_PVP.
+    Pve pve = 2;  // Binded to enum value 2: TYPE_PVP.
+  }
+
+  enum Type {
+    TYPE_NIL = 0;
+    TYPE_PVP = 1 [(tableau.evalue) = { name: "PVP" }];
+    TYPE_PVE = 2 [(tableau.evalue) = { name: "PVE" }];
+  }
+  message Pvp {
+    int32 battle_id = 1;
+    uint32 kills = 2;
+    int64 damage = 3;
+  }
+  message Pve {
+    Highlight highlight = 1;         // incell struct
+    repeated int32 heros = 2;        // incell list
+    map<int32, int64> dungeons = 3;  // incell map
+
+    message Highlight {
+      int32 battle_id = 1;
+      int32 boss_id = 2;
+      int64 damage = 3;
+    }
+  }
 }

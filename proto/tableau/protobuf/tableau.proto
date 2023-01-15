@@ -23,6 +23,7 @@ extend google.protobuf.FileOptions {
 
 extend google.protobuf.MessageOptions {
   WorksheetOptions worksheet = 50000;
+  UnionOptions union = 50001;
 }
 
 extend google.protobuf.FieldOptions {
@@ -35,6 +36,10 @@ extend google.protobuf.EnumOptions {
 
 extend google.protobuf.EnumValueOptions {
   EnumValueOptions evalue = 50000;
+}
+
+extend google.protobuf.OneofOptions {
+  optional OneofOptions oneof = 50000;
 }
 
 message WorkbookOptions {
@@ -118,6 +123,22 @@ message WorksheetOptions {
   repeated string index = 51;
 }
 
+message UnionOptions {
+  string type = 1;   // Tagged field: auto binded to enum type field in message.
+  string value = 2;  // Union value: auto binded to oneof type field in message.
+}
+
+message EnumOptions {
+  string name = 1;  // Alias.
+}
+message EnumValueOptions {
+  string name = 1;  // Alias.
+}
+
+message OneofOptions {
+  string name = 1;  // Alias.
+}
+
 message FieldOptions {
   string name = 1;    // Scalar type's variable name or composite type's variable name (prefix).
   string note = 2;    // Field note, maybe in another language (Chinese) other than variable name (English).
@@ -134,40 +155,37 @@ message FieldOptions {
 message FieldProp {
   // Usage: {range:"1,10" refer:"Item.ID"}
 
-  // NOTE: two perspectives of the check:
-  //   - Local perspective, the check only depends on configuration of itself.
-  //   - Global perspective, the check depends on all configurations.
-
-  // Local perspective: format: "1,10", "1,~", "~,10".
-  //
   // Different interpretations of range:
   //   - number: value range
   //   - string: count of utf-8 code point
+  //
+  // Format: "1,10", "1,~", "~,10".
   string range = 1;
-  // Local perspective: whether the map key's value is unique.
+  // Whether the map key is unique in column.
   bool unique = 2;
-  // Global perspective: ensure this field value is in another sheet's
+  // Ensure this field's value is in another sheet's
   // column value space (aka message's field value space).
   //
   // Format: "SheetName(SheetAlias).ColumnName"
   //
-  // E.g:
+  // Example:
   //  - "Item.ID" : sheet name is unique.
   //  - "Item(ItemConf).ID" : different workbooks have the same sheet name,
   //    but sheet alias is unique inherently.
   string refer = 3;
-  // Local perspective: ensure this field's value is a sequence and begins with this value.
-  // Effect: key of map or keyed list.
+  // Ensure this field's value is a sequence and begins with this value.
+  // Mainly used for map key and list.
   optional int64 sequence = 4;
-  // Local perspective: default value of scalar field if not set.
+  // Specify custom default value of scalar field.
   string default = 5;
-  // Local perspective: auto-detected fixed size of horizontal list/map.
-  //
-  // The list size is auto-detected by size of the max present list elements in namerow.
-  // The map size is auto-detected by size of the max present map items in namerow.
+  // Auto detect fixed size of horizontal list or map.
+  //  - list size is detected by size of the max present list elements in name row.
+  //  - map size is detected by size of the max present map items in name row.
   bool fixed = 6;
-  // Local perspective: specified fixed size of horizontal list/map.
+  // Explicitly specify fixed size of horizontal list or map.
   uint32 size = 7;
+  // Content format for parsing.
+  Format format = 8;
 }
 
 // Layout of list and map.
@@ -193,9 +211,8 @@ enum Span {
   SPAN_INNER_CELL = 2;  // The field data spans only in one cell.
 }
 
-message EnumOptions {
-  string name = 1;  // alias name
-}
-message EnumValueOptions {
-  string name = 1;  // alias name
+enum Format {
+  FORMAT_DEFAULT = 0;  // Default format.
+  FORMAT_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec
+  FORMAT_JSON = 2;     // Refer: https://developers.google.com/protocol-buffers/docs/proto3#json
 }
