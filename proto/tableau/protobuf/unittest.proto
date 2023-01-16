@@ -50,3 +50,39 @@ message TestIncellMap {
     TestFruitFlavor value = 2 [(tableau.field) = { name: "Value" }];
   }
 }
+
+message TestTarget {
+  option (tableau.union) = {
+    type: "Type"
+    value: "Value"
+  };
+
+  Type type = 9999 [(tableau.field) = { name: "Type" }];
+  oneof value {
+    option (tableau.oneof).name = "Value";
+    Pvp pvp = 1;  // Binded to enum value 1: TYPE_PVP.
+    Pve pve = 2;  // Binded to enum value 2: TYPE_PVP.
+  }
+
+  enum Type {
+    TYPE_NIL = 0;
+    TYPE_PVP = 1 [(tableau.evalue) = { name: "PVP" }];
+    TYPE_PVE = 2 [(tableau.evalue) = { name: "PVE" }];
+  }
+  message Pvp {
+    int32 type = 1;
+    uint32 health = 2;
+    int64 damage = 3;
+  }
+  message Pve {
+    Mission mission = 1;             // incell struct
+    repeated int32 heros = 2;        // incell list
+    map<int32, int64> dungeons = 3;  // incell map
+
+    message Mission {
+      int32 id = 1;
+      uint32 level = 2;
+      int64 damage = 3;
+    }
+  }
+}

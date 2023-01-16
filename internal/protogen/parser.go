@@ -1,6 +1,7 @@
 package protogen
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,8 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 const (
@@ -720,7 +723,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		}
 	} else {
 		// cross cell struct
-		// NOTE(wenchy): treated as nested named struct
+		// NOTE(wenchy): each column name should be prefixed with the same struct variable name.
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.StructType)
 		if err != nil {
 			return cursor, xerrors.WithMessageKV(err,
@@ -736,27 +739,34 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		}
 		if field.Predefined {
 			// Find predefined type's first field's option name
-			// structName = field.Type
 			fullMsgName := p.gen.ProtoPackage + "." + field.Type
-			for _, fileDesc := range p.gen.fileDescs {
-				md := fileDesc.FindMessage(fullMsgName)
-				if md == nil {
-					continue
+			// TODO: speed up search by hash map.
+			descriptor, err := p.gen.protofiles.FindDescriptorByName(protoreflect.FullName(fullMsgName))
+			if err != nil {
+				if !errors.Is(err, protoregistry.NotFound) {
+					return cursor, xerrors.WithMessageKV(err,
+						xerrors.KeyPBFieldType, desc.StructType,
+						xerrors.KeyPBFieldOpts, desc.Prop.Text,
+						xerrors.KeyTrimmedNameCell, trimmedNameCell)
 				}
-				fds := md.GetFields()
-				if len(fds) == 0 {
-					break
+			} else {
+				md, ok := descriptor.(protoreflect.MessageDescriptor)
+				if !ok {
+					return cursor, xerrors.Errorf(fmt.Sprintf("predefined type %s is not message type", fullMsgName),
+						xerrors.KeyPBFieldType, desc.StructType,
+						xerrors.KeyPBFieldOpts, desc.Prop.Text,
+						xerrors.KeyTrimmedNameCell, trimmedNameCell)
 				}
-				fd := fds[0]
-				// first field
-				opts := fd.GetFieldOptions()
-				fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
-				if fieldOpts != nil {
-					if index := strings.Index(trimmedNameCell, fieldOpts.Name); index != -1 {
-						structName = trimmedNameCell[:index]
+				if md.Fields().Len() != 0 {
+					fd := md.Fields().Get(0)
+					// first field
+					fieldOpts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+					if fieldOpts != nil {
+						if index := strings.Index(trimmedNameCell, fieldOpts.Name); index != -1 {
+							structName = trimmedNameCell[:index]
+						}
 					}
 				}
-				break
 			}
 		}
 
@@ -786,7 +796,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	return cursor, nil
 }
 
-func parseField(typeInfos xproto.TypeInfoMap, name, typ string) (*tableaupb.Field, error) {
+func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*tableaupb.Field, error) {
 	var prop types.PropDescriptor
 	// enum syntax pattern
 	if desc := types.MatchEnum(typ); desc != nil {
@@ -826,7 +836,7 @@ func parseField(typeInfos xproto.TypeInfoMap, name, typ string) (*tableaupb.Fiel
 	}, nil
 }
 
-func parseTypeDescriptor(typeInfos xproto.TypeInfoMap, rawType string) (*types.Descriptor, error) {
+func parseTypeDescriptor(typeInfos *xproto.TypeInfos, rawType string) (*types.Descriptor, error) {
 	// enum syntax pattern
 	if desc := types.MatchEnum(rawType); desc != nil {
 		rawType = desc.EnumType
@@ -835,10 +845,10 @@ func parseTypeDescriptor(typeInfos xproto.TypeInfoMap, rawType string) (*types.D
 	if strings.HasPrefix(rawType, ".") {
 		// This messge type is defined in imported proto
 		name := strings.TrimPrefix(rawType, ".")
-		if typeInfo, ok := typeInfos[name]; ok {
+		if typeInfo := typeInfos.Get(name); typeInfo != nil {
 			return &types.Descriptor{
 				Name:       name,
-				FullName:   typeInfo.Fullname,
+				FullName:   typeInfo.FullName,
 				Predefined: true,
 				Kind:       typeInfo.Kind,
 			}, nil

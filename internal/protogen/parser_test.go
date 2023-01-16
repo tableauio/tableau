@@ -10,8 +10,15 @@ import (
 )
 
 func Test_parseField(t *testing.T) {
+	typeInfos1 := xproto.NewTypeInfos("protobuf")
+	typeInfos1.Put(&xproto.TypeInfo{
+		FullName:       "protoconf.ItemType",
+		ParentFilename: "common.proto",
+		Kind:           types.EnumKind,
+	})
+
 	type args struct {
-		typeInfos xproto.TypeInfoMap
+		typeInfos *xproto.TypeInfos
 		name      string
 		typ       string
 	}
@@ -24,7 +31,7 @@ func Test_parseField(t *testing.T) {
 		{
 			name: "int32 ID",
 			args: args{
-				typeInfos: xproto.TypeInfoMap{},
+				typeInfos: xproto.NewTypeInfos("protobuf"),
 				name:      "ID",
 				typ:       "int32",
 			},
@@ -40,13 +47,7 @@ func Test_parseField(t *testing.T) {
 		{
 			name: "predefined enum type: ItemType",
 			args: args{
-				typeInfos: xproto.TypeInfoMap{
-					"ItemType": &xproto.TypeInfo{
-						Fullname:       "protoconf.ItemType",
-						ParentFilename: "common.proto",
-						Kind:           types.EnumKind,
-					},
-				},
+				typeInfos: typeInfos1,
 				name: "Type",
 				typ:  "enum<.ItemType>",
 			},
@@ -76,8 +77,22 @@ func Test_parseField(t *testing.T) {
 }
 
 func Test_parseTypeDescriptor(t *testing.T) {
+	typeInfos1 := xproto.NewTypeInfos("protobuf")
+	typeInfos1.Put(&xproto.TypeInfo{
+		FullName:       "protoconf.ItemType",
+		ParentFilename: "common.proto",
+		Kind:           types.EnumKind,
+	})
+
+	typeInfos2 := xproto.NewTypeInfos("protobuf")
+	typeInfos1.Put(&xproto.TypeInfo{
+		FullName:       "protoconf.Item",
+		ParentFilename: "common.proto",
+		Kind:           types.MessageKind,
+	})
+
 	type args struct {
-		typeInfos xproto.TypeInfoMap
+		typeInfos *xproto.TypeInfos
 		rawType   string
 	}
 	tests := []struct {
@@ -89,7 +104,7 @@ func Test_parseTypeDescriptor(t *testing.T) {
 		{
 			name: "scalar: int32",
 			args: args{
-				typeInfos: xproto.TypeInfoMap{},
+				typeInfos: xproto.NewTypeInfos("protobuf"),
 				rawType:   "int32",
 			},
 			want: &types.Descriptor{
@@ -100,7 +115,7 @@ func Test_parseTypeDescriptor(t *testing.T) {
 		{
 			name: "message: Item",
 			args: args{
-				typeInfos: xproto.TypeInfoMap{},
+				typeInfos: xproto.NewTypeInfos("protobuf"),
 				rawType:   "Item",
 			},
 			want: &types.Descriptor{
@@ -112,13 +127,7 @@ func Test_parseTypeDescriptor(t *testing.T) {
 		{
 			name: "predefined enum: ItemType",
 			args: args{
-				typeInfos: xproto.TypeInfoMap{
-					"ItemType": &xproto.TypeInfo{
-						Fullname:       "protoconf.ItemType",
-						ParentFilename: "common.proto",
-						Kind:           types.EnumKind,
-					},
-				},
+				typeInfos: typeInfos1,
 				rawType: "enum<.ItemType>",
 			},
 			want: &types.Descriptor{
@@ -131,13 +140,7 @@ func Test_parseTypeDescriptor(t *testing.T) {
 		{
 			name: "predefined message: Item",
 			args: args{
-				typeInfos: xproto.TypeInfoMap{
-					"Item": &xproto.TypeInfo{
-						Fullname:       "protoconf.Item",
-						ParentFilename: "common.proto",
-						Kind:           types.MessageKind,
-					},
-				},
+				typeInfos: typeInfos2,
 				rawType: ".Item",
 			},
 			want: &types.Descriptor{

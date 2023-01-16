@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jhump/protoreflect/desc"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/excel"
@@ -22,6 +21,7 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 const (
@@ -38,8 +38,8 @@ type Generator struct {
 	OutputOpt    *options.ProtoOutputOption
 
 	// internal
-	fileDescs []*desc.FileDescriptor // all parsed imported proto file descriptors.
-	typeInfos xproto.TypeInfoMap     // proto full type name -> type info
+	protofiles *protoregistry.Files // all parsed imported proto file descriptors.
+	typeInfos  *xproto.TypeInfos    // predefined type infos
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -62,14 +62,14 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 
 	// parse custom imported proto files
-	fileDescs, err := xproto.ParseProtos(
+	protofiles, err := xproto.ParseProtos(
 		g.InputOpt.ProtoPaths,
 		g.InputOpt.ProtoFiles...)
 	if err != nil {
 		log.Panic(err)
 	}
-	g.fileDescs = fileDescs
-	g.typeInfos = xproto.GetAllTypeInfo(fileDescs)
+	g.protofiles = protofiles
+	g.typeInfos = xproto.GetAllTypeInfo(protofiles, g.ProtoPackage)
 
 	return g
 }

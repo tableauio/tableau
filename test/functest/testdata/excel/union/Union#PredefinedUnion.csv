@@ -1,0 +1,5 @@
+ID,TargetType,TargetValueField1,TargetValueField2,TargetValueField3
+"map<int32, Task>",{.Target}enum<.Target.Type>,union,union,union
+ID,Target's type,Target's value field1,Target's value field2,Target's value field3
+1,PVP,1,10,100
+2,PVE,1100999,"1,2,3","1:10,2:20,3:30"
