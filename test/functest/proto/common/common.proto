@@ -33,14 +33,13 @@ message Property {
 
 // Predefined union type.
 message Target {
-  option (tableau.union) = {
-    type: "Type"
-    value: "Value"
-  };
+  option (tableau.union) = true;
 
   Type type = 9999 [(tableau.field) = { name: "Type" }];
   oneof value {
-    option (tableau.oneof).name = "Value";
+    option (tableau.oneof) = {
+      field: "Field"
+    };
     Pvp pvp = 1;  // Binded to enum value 1: TYPE_PVP.
     Pve pve = 2;  // Binded to enum value 2: TYPE_PVP.
   }

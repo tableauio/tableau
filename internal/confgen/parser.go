@@ -387,6 +387,9 @@ func (sp *sheetParser) parseField(field *Field, msg protoreflect.Message, rc *bo
 	} else if field.fd.IsList() {
 		return sp.parseListField(field, msg, rc, depth, prefix)
 	} else if field.fd.Kind() == protoreflect.MessageKind {
+		if IsUnionField(field.fd) {
+			return sp.parseUnionField(field, msg, rc, depth, prefix)
+		}
 		return sp.parseStructField(field, msg, rc, depth, prefix)
 	} else {
 		return sp.parseScalarField(field, msg, rc, depth, prefix)
@@ -1037,11 +1040,12 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 	// Solution:
 	// 1. spawn two values: `emptyValue` and `structValue`
 	// 2. set `structValue` back to field if `structValue` is not equal to `emptyValue`
-
-	structValue := msg.NewField(field.fd)
+	var structValue protoreflect.Value
 	if msg.Has(field.fd) {
-		// Get it if this field is populated. It will override it if present.
+		// Get it if this field is populated. It will be overwritten if present.
 		structValue = msg.Mutable(field.fd)
+	} else {
+		structValue = msg.NewField(field.fd)
 	}
 
 	colName := prefix + field.opts.Name
@@ -1126,14 +1130,47 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 	return present, nil
 }
 
+func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
+	var structValue protoreflect.Value
+	if msg.Has(field.fd) {
+		// Get it if this field is populated. It will be overwritten if present.
+		structValue = msg.Mutable(field.fd)
+	} else {
+		structValue = msg.NewField(field.fd)
+	}
+
+	unionDesc := ExtractUnionDescriptor(field.fd.Message())
+	if unionDesc == nil {
+		return false, xerrors.Errorf("illgal definition of union: %s", field.fd.Message().FullName())
+	}
+	typeColName := prefix + field.opts.Name + unionDesc.TypeName()
+	cell, err := rc.Cell(typeColName, field.opts.Optional)
+	if err != nil {
+		kvs := append(rc.CellDebugKV(typeColName), xerrors.KeyPBFieldType, "union type")
+		return false, xerrors.WithMessageKV(err, kvs...)
+	}
+
+	typeVal, present, err := sp.parseFieldValue(unionDesc.Type, cell.Data)
+	if err != nil {
+		kvs := append(rc.CellDebugKV(typeColName), xerrors.KeyPBFieldType, "enum")
+		return false, xerrors.WithMessageKV(err, kvs...)
+	}
+
+	structValue.Message().Set(unionDesc.Type, typeVal)
+
+	if present {
+		msg.Set(field.fd, structValue)
+	}
+	return present, nil
+}
+
 func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
 	if msg.Has(field.fd) {
 		// Only parse if this field is not polulated. This means the first
 		// none-empty related row part (related to scalar) is parsed.
 		return true, nil
 	}
-
-	newValue := msg.NewField(field.fd)
+	var newValue protoreflect.Value
 	colName := prefix + field.opts.Name
 	cell, err := rc.Cell(colName, field.opts.Optional)
 	if err != nil {

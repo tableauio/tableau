@@ -52,14 +52,8 @@ message TestIncellMap {
 }
 
 message TestTarget {
-  option (tableau.union) = {
-    type: "Type"
-    value: "Value"
-  };
-
-  Type type = 9999 [(tableau.field) = { name: "Type" }];
+  Type type = 9999;
   oneof value {
-    option (tableau.oneof).name = "Value";
     Pvp pvp = 1;  // Binded to enum value 1: TYPE_PVP.
     Pve pve = 2;  // Binded to enum value 2: TYPE_PVP.
   }
