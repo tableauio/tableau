@@ -2,4 +2,4 @@ ID,TargetType,TargetField1,TargetField2,TargetField3, Progress
 "map<int32, Task>",{.Target}enum<.Target.Type>,union,union,union, int32
 ID,Target's type,Target's field1,Target's field2,Target's field3, Progress
 1,PVP,1,10,100, 3
-2,PVE,1100999,"1,2,3","1:10,2:20,3:30", 10
+2,PVE,"1,100,999","1,2,3","1:10,2:20,3:30", 10

@@ -21,7 +21,7 @@ func IsUnionField(fd protoreflect.FieldDescriptor) bool {
 
 // GetOneofFieldByNumber returns the FieldDescriptor for a field numbered n.
 // It returns nil if not found.
-func GetOneofFieldByNumber(od protoreflect.OneofDescriptor, n int) protoreflect.FieldDescriptor {
+func GetOneofFieldByNumber(od protoreflect.OneofDescriptor, n int32) protoreflect.FieldDescriptor {
 	return od.Fields().ByNumber(protowire.Number(n))
 }
 
@@ -64,4 +64,8 @@ func (u UnionDescriptor) ValueFieldName() string {
 	}
 	// default
 	return "Field"
+}
+
+func (u UnionDescriptor) GetValueByNumber(n int32) protoreflect.FieldDescriptor {
+	return GetOneofFieldByNumber(u.Value, n)
 }

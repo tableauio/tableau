@@ -1141,8 +1141,10 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 
 	unionDesc := ExtractUnionDescriptor(field.fd.Message())
 	if unionDesc == nil {
-		return false, xerrors.Errorf("illgal definition of union: %s", field.fd.Message().FullName())
+		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
 	}
+
+	// parse type
 	typeColName := prefix + field.opts.Name + unionDesc.TypeName()
 	cell, err := rc.Cell(typeColName, field.opts.Optional)
 	if err != nil {
@@ -1155,8 +1157,56 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		kvs := append(rc.CellDebugKV(typeColName), xerrors.KeyPBFieldType, "enum")
 		return false, xerrors.WithMessageKV(err, kvs...)
 	}
-
 	structValue.Message().Set(unionDesc.Type, typeVal)
+
+	// parse value
+	valueFD := unionDesc.GetValueByNumber(int32(typeVal.Enum()))
+	fieldValue := structValue.Message().NewField(valueFD)
+	if valueFD.Kind() == protoreflect.MessageKind {
+		// MUST be message type.
+		md := valueFD.Message()
+		for i := 0; i < md.Fields().Len(); i++ {
+			fd := md.Fields().Get(i)
+			// incell scalar
+			colName := prefix + field.opts.Name + unionDesc.ValueFieldName() + strconv.Itoa(i+1)
+			cell, err := rc.Cell(colName, field.opts.Optional)
+			if err != nil {
+				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "union type")
+				return false, xerrors.WithMessageKV(err, kvs...)
+			}
+			if fd.IsMap() {
+				// incell map
+				// TODO
+				continue
+			} else if fd.IsList() {
+				// incell list
+				// TODO
+				continue
+			} else if fd.Kind() == protoreflect.MessageKind {
+				// incell struct
+				value := fieldValue.Message().NewField(fd)
+				present, err := sp.parseIncellStruct(value, cell.Data, field.opts.Sep)
+				if err != nil {
+					return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct list")
+				}
+				if present {
+					fieldValue.Message().Set(fd, value)
+				}
+			} else {
+				val, present, err := sp.parseFieldValue(fd, cell.Data)
+				if err != nil {
+					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
+				}
+				if present {
+					fieldValue.Message().Set(fd, val)
+				}
+			}
+		}
+	} else {
+		// scalar: not supported yet.
+		return false, xerrors.Errorf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
+	}
+	structValue.Message().Set(valueFD, fieldValue)
 
 	if present {
 		msg.Set(field.fd, structValue)
