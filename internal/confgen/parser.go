@@ -280,11 +280,6 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	return nil
 }
 
-type Field struct {
-	fd   protoreflect.FieldDescriptor
-	opts *tableaupb.FieldOptions
-}
-
 // parseFieldOptions is aimed to parse the options of all the fields of a protobuf message.
 func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
 	md := msg.Descriptor()
@@ -302,80 +297,22 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 			log.Debugf("no need to process package: %v", pkg)
 			return false, nil
 		}
-
-		// default value
-		name := strcase.ToCamel(string(fd.FullName().Name()))
-		note := ""
-		span := tableaupb.Span_SPAN_DEFAULT
-		key := ""
-		layout := tableaupb.Layout_LAYOUT_DEFAULT
-		sep := ","
-		subsep := ":"
-		optional := false
-		var prop *tableaupb.FieldProp
-
-		opts := fd.Options().(*descriptorpb.FieldOptions)
-		fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
-		if fieldOpts != nil {
-			name = fieldOpts.Name
-			note = fieldOpts.Note
-			span = fieldOpts.Span
-			key = fieldOpts.Key
-			layout = fieldOpts.Layout
-			sep = strings.TrimSpace(fieldOpts.Sep)
-			subsep = strings.TrimSpace(fieldOpts.Subsep)
-			optional = fieldOpts.Optional
-			prop = fieldOpts.Prop
-		} else {
-			// default processing
-			if fd.IsList() {
-				// truncate suffix `List` (CamelCase) corresponding to `_list` (snake_case)
-				name = strings.TrimSuffix(name, types.DefaultListFieldOptNameSuffix)
-			} else if fd.IsMap() {
-				// truncate suffix `Map` (CamelCase) corresponding to `_map` (snake_case)
-				name = strings.TrimSuffix(name, types.DefaultMapFieldOptNameSuffix)
-				key = types.DefaultMapKeyOptName
+		err := func() error {
+			field := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
+			defer field.release()
+			fieldPresent, err := sp.parseField(field, msg, rc, depth, prefix)
+			if err != nil {
+				return xerrors.WithMessageKV(err, xerrors.KeyPBFieldName, fd.FullName().Name(), xerrors.KeyPBFieldOpts, field.opts)
 			}
-		}
-		if sep == "" {
-			sep = strings.TrimSpace(sp.opts.Sep)
-			if sep == "" {
-				sep = ","
+			if fieldPresent {
+				// The message is treated as present at least one field is present.
+				present = true
 			}
-		}
-		if subsep == "" {
-			subsep = strings.TrimSpace(sp.opts.Subsep)
-			if subsep == "" {
-				subsep = ":"
-			}
-		}
-
-		// get from pool
-		pooledFDOpts := fieldOptionsPool.Get().(*tableaupb.FieldOptions)
-		pooledFDOpts.Name = name
-		pooledFDOpts.Note = note
-		pooledFDOpts.Span = span
-		pooledFDOpts.Key = key
-		pooledFDOpts.Layout = layout
-		pooledFDOpts.Sep = sep
-		pooledFDOpts.Subsep = subsep
-		pooledFDOpts.Optional = optional
-		pooledFDOpts.Prop = prop
-
-		field := &Field{
-			fd:   fd,
-			opts: pooledFDOpts,
-		}
-		fieldPresent, err := sp.parseField(field, msg, rc, depth, prefix)
+			return nil
+		}()
 		if err != nil {
-			return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldName, fd.FullName().Name(), xerrors.KeyPBFieldOpts, field.opts)
+			return false, err
 		}
-		if fieldPresent {
-			// The message is treated as present only if one field is present.
-			present = true
-		}
-		// return back to pool
-		fieldOptionsPool.Put(pooledFDOpts)
 	}
 	return present, nil
 }
@@ -597,8 +534,8 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 
 // parseIncellMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
 // For example:
-//  - map<int32, int32>
-//  - map<int32, EnumType>
+//   - map<int32, int32>
+//   - map<int32, EnumType>
 func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
 		return nil
@@ -642,30 +579,30 @@ func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap proto
 // parseIncellMapWithValueAsSimpleKVMessage parses simple incell map with key as scalar or enum type
 // and value as simple message with only key and value fields. For example:
 //
-//  enum FruitType {
-//    FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
-//    FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
-//    FRUIT_TYPE_ORANGE  = 2 [(tableau.evalue).name = "Orange"];
-//    FRUIT_TYPE_BANANA  = 3 [(tableau.evalue).name = "Banana"];
-//  }
-//  enum FruitFlavor {
-//    FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
-//    FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
-//    FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
-//    FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
-//  }
+//	 enum FruitType {
+//	   FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//	   FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
+//	   FRUIT_TYPE_ORANGE  = 2 [(tableau.evalue).name = "Orange"];
+//	   FRUIT_TYPE_BANANA  = 3 [(tableau.evalue).name = "Banana"];
+//	 }
+//	 enum FruitFlavor {
+//	   FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//	   FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
+//	   FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
+//	   FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
+//	 }
 //
-//  map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
-//  message Fruit {
-//    FruitType key = 1 [(tableau.field) = {name:"Key"}];
-//    int64 value = 2 [(tableau.field) = {name:"Value"}];
-// 	}
+//	 map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+//	 message Fruit {
+//	   FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//	   int64 value = 2 [(tableau.field) = {name:"Value"}];
+//		}
 //
-//  map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
-//  message Item {
-//    FruitType key = 1 [(tableau.field) = {name:"Key"}];
-//    FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
-//  }
+//	 map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+//	 message Item {
+//	   FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//	   FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+//	 }
 func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
 		return nil
@@ -746,7 +683,7 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
-	reflectList := newValue.List()
+	list := newValue.List()
 
 	layout := field.opts.Layout
 	if field.opts.Layout == tableaupb.Layout_LAYOUT_DEFAULT {
@@ -761,7 +698,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			// struct list
 			if field.opts.Key != "" {
 				// KeyedList means the list is keyed by the specified Key option.
-				listItemValue := reflectList.NewElement()
+				listItemValue := list.NewElement()
 				keyedListItemExisted := false
 				keyColName := prefix + field.opts.Name + field.opts.Key
 				md := listItemValue.Message().Descriptor()
@@ -782,8 +719,8 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "vertical keyed list")
 					return false, xerrors.WithMessageKV(err, kvs...)
 				}
-				for i := 0; i < reflectList.Len(); i++ {
-					item := reflectList.Get(i)
+				for i := 0; i < list.Len(); i++ {
+					item := list.Get(i)
 					if xproto.EqualValue(fd, item.Message().Get(fd), key) {
 						listItemValue = item
 						keyedListItemExisted = true
@@ -799,11 +736,11 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					break
 				}
 				if !keyedListItemExisted {
-					reflectList.Append(listItemValue)
+					list.Append(listItemValue)
 				}
 			} else {
 				elemPresent := false
-				newListValue := reflectList.NewElement()
+				newListValue := list.NewElement()
 				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 					// incell-struct list
 					colName := prefix + field.opts.Name
@@ -824,7 +761,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 				}
 				if elemPresent {
-					reflectList.Append(newListValue)
+					list.Append(newListValue)
 				}
 			}
 		} else {
@@ -851,7 +788,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 		}
 		checkRemainFlag := false
 		for i := 1; i <= size; i++ {
-			newListValue := reflectList.NewElement()
+			newListValue := list.NewElement()
 			colName := prefix + field.opts.Name + strconv.Itoa(i)
 			elemPresent := false
 			if field.fd.Kind() == protoreflect.MessageKind {
@@ -914,7 +851,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					checkRemainFlag = true
 					continue
 				}
-				reflectList.Append(newListValue)
+				list.Append(newListValue)
 			} else {
 				// scalar list
 				cell, err := rc.Cell(colName, field.opts.Optional)
@@ -939,14 +876,14 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					checkRemainFlag = true
 					continue
 				}
-				reflectList.Append(newListValue)
+				list.Append(newListValue)
 			}
 		}
 
 		if prop.IsFixed(field.opts.Prop) {
-			for reflectList.Len() < fixedSize {
+			for list.Len() < fixedSize {
 				// append empty elements to the specified length.
-				reflectList.Append(reflectList.NewElement())
+				list.Append(list.NewElement())
 			}
 		}
 	case tableaupb.Layout_LAYOUT_INCELL:
@@ -957,65 +894,71 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell list")
 			return false, xerrors.WithMessageKV(err, kvs...)
 		}
-
-		// If s does not contain sep and sep is not empty, Split returns a
-		// slice of length 1 whose only element is s.
-		splits := strings.Split(cell.Data, field.opts.Sep)
-		detectedSize := len(splits)
-		fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
-		size := detectedSize
-		if fixedSize > 0 && fixedSize < detectedSize {
-			// squeeze to specified fixed size
-			size = fixedSize
-		}
-		for i := 0; i < size; i++ {
-			elem := splits[i]
-			fieldValue, elemPresent, err := sp.parseFieldValue(field.fd, elem)
-			if err != nil {
-				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell list")
-				return false, xerrors.WithMessageKV(err, kvs...)
-			}
-			if !elemPresent && !prop.IsFixed(field.opts.Prop) {
-				// TODO: check the remaining keys all not present, otherwise report error!
-				break
-			}
-			// check incell list element range
-			if err := prop.CheckInRange(field.opts.Prop, field.fd, fieldValue); err != nil {
-				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell list")
-				return false, xerrors.WrapKV(err, kvs...)
-			}
-			if field.opts.Key != "" {
-				// keyed list
-				keyedListItemExisted := false
-				for i := 0; i < reflectList.Len(); i++ {
-					item := reflectList.Get(i)
-					if xproto.EqualValue(field.fd, item, fieldValue) {
-						keyedListItemExisted = true
-						break
-					}
-				}
-				if !keyedListItemExisted {
-					reflectList.Append(fieldValue)
-				}
-			} else {
-				// normal list
-				reflectList.Append(fieldValue)
-			}
-		}
-		if prop.IsFixed(field.opts.Prop) {
-			for reflectList.Len() < fixedSize {
-				// append empty elements to the specified length.
-				reflectList.Append(reflectList.NewElement())
-			}
+		present, err = sp.parseIncellListField(field, list, cell.Data)
+		if err != nil {
+			kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell list")
+			return false, xerrors.WithMessageKV(err, kvs...)
 		}
 	}
-	if !msg.Has(field.fd) && reflectList.Len() != 0 {
+	if !msg.Has(field.fd) && list.Len() != 0 {
 		msg.Set(field.fd, newValue)
 	}
-	if msg.Has(field.fd) || reflectList.Len() != 0 {
+	if msg.Has(field.fd) || list.Len() != 0 {
 		present = true
 	}
 	return present, nil
+}
+
+func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List, cellData string) (present bool, err error) {
+	// If s does not contain sep and sep is not empty, Split returns a
+	// slice of length 1 whose only element is s.
+	splits := strings.Split(cellData, field.opts.Sep)
+	detectedSize := len(splits)
+	fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
+	size := detectedSize
+	if fixedSize > 0 && fixedSize < detectedSize {
+		// squeeze to specified fixed size
+		size = fixedSize
+	}
+	for i := 0; i < size; i++ {
+		elem := splits[i]
+		fieldValue, elemPresent, err := sp.parseFieldValue(field.fd, elem)
+		if err != nil {
+			return false, err
+		}
+		if !elemPresent && !prop.IsFixed(field.opts.Prop) {
+			// TODO: check the remaining keys all not present, otherwise report error!
+			break
+		}
+		// check incell list element range
+		if err := prop.CheckInRange(field.opts.Prop, field.fd, fieldValue); err != nil {
+			return false, err
+		}
+		if field.opts.Key != "" {
+			// keyed list
+			keyedListItemExisted := false
+			for i := 0; i < list.Len(); i++ {
+				item := list.Get(i)
+				if xproto.EqualValue(field.fd, item, fieldValue) {
+					keyedListItemExisted = true
+					break
+				}
+			}
+			if !keyedListItemExisted {
+				list.Append(fieldValue)
+			}
+		} else {
+			// normal list
+			list.Append(fieldValue)
+		}
+	}
+	if prop.IsFixed(field.opts.Prop) {
+		for list.Len() < fixedSize {
+			// append empty elements to the specified length.
+			list.Append(list.NewElement())
+		}
+	}
+	return list.Len() != 0, nil
 }
 
 func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
@@ -1165,41 +1108,28 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 	if valueFD.Kind() == protoreflect.MessageKind {
 		// MUST be message type.
 		md := valueFD.Message()
+		msg := fieldValue.Message()
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
-			// incell scalar
 			colName := prefix + field.opts.Name + unionDesc.ValueFieldName() + strconv.Itoa(i+1)
-			cell, err := rc.Cell(colName, field.opts.Optional)
+			err := func() error {
+				subField := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
+				defer subField.release()
+				// incell scalar
+				cell, err := rc.Cell(colName, subField.opts.Optional)
+				if err != nil {
+					kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "union value field")
+					return xerrors.WithMessageKV(err, kvs...)
+				}
+				err = sp.parseUnionValueField(subField, msg, cell.Data)
+				if err != nil {
+					kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "union value field")
+					return xerrors.WithMessageKV(err, kvs...)
+				}
+				return nil
+			}()
 			if err != nil {
-				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "union type")
-				return false, xerrors.WithMessageKV(err, kvs...)
-			}
-			if fd.IsMap() {
-				// incell map
-				// TODO
-				continue
-			} else if fd.IsList() {
-				// incell list
-				// TODO
-				continue
-			} else if fd.Kind() == protoreflect.MessageKind {
-				// incell struct
-				value := fieldValue.Message().NewField(fd)
-				present, err := sp.parseIncellStruct(value, cell.Data, field.opts.Sep)
-				if err != nil {
-					return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct list")
-				}
-				if present {
-					fieldValue.Message().Set(fd, value)
-				}
-			} else {
-				val, present, err := sp.parseFieldValue(fd, cell.Data)
-				if err != nil {
-					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
-				}
-				if present {
-					fieldValue.Message().Set(fd, val)
-				}
+				return false, err
 			}
 		}
 	} else {
@@ -1212,6 +1142,43 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		msg.Set(field.fd, structValue)
 	}
 	return present, nil
+}
+
+func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Message, cellData string) error {
+	if field.fd.IsMap() {
+		// incell map
+		// TODO
+	} else if field.fd.IsList() {
+		// incell list
+		value := msg.NewField(field.fd)
+		present, err := sp.parseIncellListField(field, value.List(), cellData)
+		if err != nil {
+			return err
+		}
+		if present {
+			msg.Set(field.fd, value)
+		}
+
+	} else if field.fd.Kind() == protoreflect.MessageKind {
+		// incell struct
+		value := msg.NewField(field.fd)
+		present, err := sp.parseIncellStruct(value, cellData, field.opts.Sep)
+		if err != nil {
+			return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct")
+		}
+		if present {
+			msg.Set(field.fd, value)
+		}
+	} else {
+		val, present, err := sp.parseFieldValue(field.fd, cellData)
+		if err != nil {
+			return err
+		}
+		if present {
+			msg.Set(field.fd, val)
+		}
+	}
+	return nil
 }
 
 func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
