@@ -11,8 +11,7 @@ const DefaultMapFieldOptNameSuffix = "Map"
 const DefaultMapKeyOptName = "Key"
 const DefaultMapValueOptName = "Value"
 
-func CheckMessageWithOnlyKVFields(msg protoreflect.Message) bool {
-	md := msg.Descriptor()
+func CheckMessageWithOnlyKVFields(md protoreflect.MessageDescriptor) bool {
 	if md.Fields().Len() == 2 {
 		keyFd := md.Fields().Get(0)
 		valFd := md.Fields().Get(1)

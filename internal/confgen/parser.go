@@ -505,21 +505,10 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell map")
 			return false, xerrors.WithMessageKV(err, kvs...)
 		}
-
-		if valueFd.Kind() == protoreflect.MessageKind {
-			if !types.CheckMessageWithOnlyKVFields(reflectMap.NewValue().Message()) {
-				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell map")
-				return false, xerrors.ErrorKV("map value type is not KV struct, and is not supported", kvs...)
-			}
-			err := sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cell.Data)
-			if err != nil {
-				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName))
-			}
-		} else {
-			err := sp.parseIncellMapWithSimpleKV(field, reflectMap, cell.Data)
-			if err != nil {
-				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName))
-			}
+		err = sp.parseIncellMap(field, reflectMap, cell.Data)
+		if err != nil {
+			kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell map")
+			return false, xerrors.WithMessageKV(err, kvs...)
 		}
 	}
 
@@ -530,6 +519,26 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 		present = true
 	}
 	return present, nil
+}
+
+func (sp *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
+	// keyFd := field.fd.MapKey()
+	valueFd := field.fd.MapValue()
+	if valueFd.Kind() == protoreflect.MessageKind {
+		if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
+			return xerrors.Errorf("map value type is not KV struct, and is not supported")
+		}
+		err := sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := sp.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // parseIncellMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
@@ -1147,14 +1156,12 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Message, cellData string) error {
 	if field.fd.IsMap() {
 		// incell map
-		// TODO: support parseIncellMapWithSimpleKVMessage to support key as enum type.
 		value := msg.NewField(field.fd)
-		reflectMap := value.Map()
-		err := sp.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
+		err := sp.parseIncellMap(field, value.Map(), cellData)
 		if err != nil {
 			return err
 		}
-		if !msg.Has(field.fd) && reflectMap.Len() != 0 {
+		if !msg.Has(field.fd) && value.Map().Len() != 0 {
 			msg.Set(field.fd, value)
 		}
 	} else if field.fd.IsList() {
