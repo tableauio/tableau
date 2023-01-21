@@ -218,7 +218,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
 
-			_, err := sp.parseFieldOptions(msg, curr, 0, "")
+			_, err := sp.parseFieldOptions(msg, curr, "")
 			if err != nil {
 				return err
 			}
@@ -266,7 +266,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 
 			curr.SetColumnLookupTable(sp.lookupTable)
 
-			_, err := sp.parseFieldOptions(msg, curr, 0, "")
+			_, err := sp.parseFieldOptions(msg, curr, "")
 			if err != nil {
 				return err
 			}
@@ -281,16 +281,9 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 }
 
 // parseFieldOptions is aimed to parse the options of all the fields of a protobuf message.
-func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	md := msg.Descriptor()
 	pkg := md.ParentFile().Package()
-	// opts := md.Options().(*descriptorpb.MessageOptions)
-	// worksheet := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
-	// worksheetName := ""
-	// if worksheet != nil {
-	// 	worksheetName = worksheet.Name
-	// }
-	// log.Debugf("%s// %s, '%s', %v, %v, %v", printer.Indent(depth), md.FullName(), worksheetName, md.IsMapEntry(), prefix, pkg)
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		if string(pkg) != sp.ProtoPackage && pkg != "google.protobuf" {
@@ -300,7 +293,7 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 		err := func() error {
 			field := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
 			defer field.release()
-			fieldPresent, err := sp.parseField(field, msg, rc, depth, prefix)
+			fieldPresent, err := sp.parseField(field, msg, rc, prefix)
 			if err != nil {
 				return xerrors.WithMessageKV(err, xerrors.KeyPBFieldName, fd.FullName().Name(), xerrors.KeyPBFieldOpts, field.opts)
 			}
@@ -317,23 +310,23 @@ func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowC
 	return present, nil
 }
 
-func (sp *sheetParser) parseField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	// log.Debug(field.fd.ContainingMessage().FullName())
 	if field.fd.IsMap() {
-		return sp.parseMapField(field, msg, rc, depth, prefix)
+		return sp.parseMapField(field, msg, rc, prefix)
 	} else if field.fd.IsList() {
-		return sp.parseListField(field, msg, rc, depth, prefix)
+		return sp.parseListField(field, msg, rc, prefix)
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		if IsUnionField(field.fd) {
-			return sp.parseUnionField(field, msg, rc, depth, prefix)
+			return sp.parseUnionField(field, msg, rc, prefix)
 		}
-		return sp.parseStructField(field, msg, rc, depth, prefix)
+		return sp.parseStructField(field, msg, rc, prefix)
 	} else {
-		return sp.parseScalarField(field, msg, rc, depth, prefix)
+		return sp.parseScalarField(field, msg, rc, prefix)
 	}
 }
 
-func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	reflectMap := newValue.Map()
@@ -372,7 +365,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			} else {
 				newMapValue = reflectMap.NewValue()
 			}
-			valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name)
+			valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), rc, prefix+field.opts.Name)
 			if err != nil {
 				kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "vertical map")
 				return false, xerrors.WithMessageKV(err, kvs...)
@@ -475,7 +468,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				} else {
 					newMapValue = reflectMap.NewValue()
 				}
-				valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), rc, depth+1, prefix+field.opts.Name+strconv.Itoa(i))
+				valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), rc, prefix+field.opts.Name+strconv.Itoa(i))
 				if err != nil {
 					kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "horizontal map")
 					return false, xerrors.WithMessageKV(err, kvs...)
@@ -689,7 +682,7 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 	return mapKey, present, nil
 }
 
-func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	list := newValue.List()
@@ -736,7 +729,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						break
 					}
 				}
-				elemPresent, err := sp.parseFieldOptions(listItemValue.Message(), rc, depth+1, prefix+field.opts.Name)
+				elemPresent, err := sp.parseFieldOptions(listItemValue.Message(), rc, prefix+field.opts.Name)
 				if err != nil {
 					kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "vertical keyed list")
 					return false, xerrors.WithMessageKV(err, kvs...)
@@ -764,7 +757,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 				} else {
 					// cross-cell struct list
-					elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, prefix+field.opts.Name)
+					elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, prefix+field.opts.Name)
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, "cross-cell struct list", "failed to parse struct")
 					}
@@ -840,7 +833,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 							return false, xerrors.WithMessageKV(err, kvs...)
 						}
 					} else {
-						elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, depth+1, colName)
+						elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, colName)
 						if err != nil {
 							kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "horizontal struct list")
 							return false, xerrors.WithMessageKV(err, kvs...)
@@ -970,7 +963,7 @@ func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List
 	return list.Len() != 0, nil
 }
 
-func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	// NOTE(wenchy): `proto.Equal` treats a nil message as not equal to an empty one.
 	// doc: [Equal](https://pkg.go.dev/google.golang.org/protobuf/proto?tab=doc#Equal)
 	// issue: [APIv2: protoreflect: consider Message nilness test](https://github.com/golang/protobuf/issues/966)
@@ -1042,7 +1035,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "cross-cell struct")
 				return false, xerrors.ErrorKV(fmt.Sprintf("unknown message %v in package %s", subMsgName, pkgName), kvs...)
 			}
-			present, err := sp.parseFieldOptions(structValue.Message(), rc, depth+1, prefix+field.opts.Name)
+			present, err := sp.parseFieldOptions(structValue.Message(), rc, prefix+field.opts.Name)
 			if err != nil {
 				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "cross-cell struct")
 				return false, xerrors.WithMessageKV(err, kvs...)
@@ -1082,7 +1075,7 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 	return present, nil
 }
 
-func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	var structValue protoreflect.Value
 	if msg.Has(field.fd) {
 		// Get it if this field is populated. It will be overwritten if present.
@@ -1197,7 +1190,7 @@ func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Messa
 	return nil
 }
 
-func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, depth int, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	if msg.Has(field.fd) {
 		// Only parse if this field is not polulated. This means the first
 		// none-empty related row part (related to scalar) is parsed.

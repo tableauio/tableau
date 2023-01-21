@@ -9,7 +9,7 @@ import (
 
 func TestCheckMessageWithOnlyKVFields(t *testing.T) {
 	type args struct {
-		msg protoreflect.Message
+		msg protoreflect.MessageDescriptor
 	}
 	tests := []struct {
 		name string
@@ -19,7 +19,7 @@ func TestCheckMessageWithOnlyKVFields(t *testing.T) {
 		{
 			name: "Fruit",
 			args: args{
-				msg: (&tableaupb.TestIncellMap_Fruit{}).ProtoReflect(),
+				msg: (&tableaupb.TestIncellMap_Fruit{}).ProtoReflect().Descriptor(),
 			},
 			want: true,
 		},

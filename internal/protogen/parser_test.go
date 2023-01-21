@@ -10,7 +10,7 @@ import (
 )
 
 func Test_parseField(t *testing.T) {
-	typeInfos1 := xproto.NewTypeInfos("protobuf")
+	typeInfos1 := xproto.NewTypeInfos("protoconf")
 	typeInfos1.Put(&xproto.TypeInfo{
 		FullName:       "protoconf.ItemType",
 		ParentFilename: "common.proto",
@@ -31,7 +31,7 @@ func Test_parseField(t *testing.T) {
 		{
 			name: "int32 ID",
 			args: args{
-				typeInfos: xproto.NewTypeInfos("protobuf"),
+				typeInfos: xproto.NewTypeInfos("protoconf"),
 				name:      "ID",
 				typ:       "int32",
 			},
@@ -77,15 +77,15 @@ func Test_parseField(t *testing.T) {
 }
 
 func Test_parseTypeDescriptor(t *testing.T) {
-	typeInfos1 := xproto.NewTypeInfos("protobuf")
+	typeInfos1 := xproto.NewTypeInfos("protoconf")
 	typeInfos1.Put(&xproto.TypeInfo{
 		FullName:       "protoconf.ItemType",
 		ParentFilename: "common.proto",
 		Kind:           types.EnumKind,
 	})
 
-	typeInfos2 := xproto.NewTypeInfos("protobuf")
-	typeInfos1.Put(&xproto.TypeInfo{
+	typeInfos2 := xproto.NewTypeInfos("protoconf")
+	typeInfos2.Put(&xproto.TypeInfo{
 		FullName:       "protoconf.Item",
 		ParentFilename: "common.proto",
 		Kind:           types.MessageKind,
@@ -104,7 +104,7 @@ func Test_parseTypeDescriptor(t *testing.T) {
 		{
 			name: "scalar: int32",
 			args: args{
-				typeInfos: xproto.NewTypeInfos("protobuf"),
+				typeInfos: xproto.NewTypeInfos("protoconf"),
 				rawType:   "int32",
 			},
 			want: &types.Descriptor{
@@ -115,7 +115,7 @@ func Test_parseTypeDescriptor(t *testing.T) {
 		{
 			name: "message: Item",
 			args: args{
-				typeInfos: xproto.NewTypeInfos("protobuf"),
+				typeInfos: xproto.NewTypeInfos("protoconf"),
 				rawType:   "Item",
 			},
 			want: &types.Descriptor{
