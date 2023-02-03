@@ -43,6 +43,7 @@ message Target {
     Pvp pvp = 1;      // Binded to enum value 1: TYPE_PVP.
     Pve pve = 2;      // Binded to enum value 2: TYPE_PVP.
     Story story = 3;  // Binded to enum value 3: TYPE_STORY.
+    Skill skill = 4;  // Binded to enum value 4: TYPE_SKILL.
   }
 
   enum Type {
@@ -50,6 +51,7 @@ message Target {
     TYPE_PVP = 1 [(tableau.evalue) = { name: "PVP" }];
     TYPE_PVE = 2 [(tableau.evalue) = { name: "PVE" }];
     TYPE_STORY = 3 [(tableau.evalue) = { name: "Story" }];
+    TYPE_SKILL = 4 [(tableau.evalue) = { name: "Skill" }];
   }
   message Pvp {
     int32 type = 1;                          // scalar
@@ -75,5 +77,10 @@ message Target {
       protoconf.FruitFlavor key = 1 [(tableau.field) = { name: "Key" }];
       int32 value = 2 [(tableau.field) = { name: "Value" }];
     }
+  }
+  message Skill {
+    int32 id = 1;      // scalar
+    int64 damage = 2;  // scalar
+    // no field tag 3
   }
 }

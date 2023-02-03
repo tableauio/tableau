@@ -1089,7 +1089,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
 	}
 
-	// parse type
+	// parse union type
 	typeColName := prefix + field.opts.Name + unionDesc.TypeName()
 	cell, err := rc.Cell(typeColName, field.opts.Optional)
 	if err != nil {
@@ -1104,7 +1104,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 	}
 	structValue.Message().Set(unionDesc.Type, typeVal)
 
-	// parse value
+	// parse union value
 	valueFD := unionDesc.GetValueByNumber(int32(typeVal.Enum()))
 	fieldValue := structValue.Message().NewField(valueFD)
 	if valueFD.Kind() == protoreflect.MessageKind {
