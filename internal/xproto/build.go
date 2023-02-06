@@ -11,11 +11,12 @@ import (
 	"github.com/tableauio/tableau/log"
 	_ "github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/reflect/protodesc"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 // ParseProtos parses the proto paths and proto files to desc.FileDescriptor slices.
-func ParseProtos(protoPaths []string, protoFiles ...string) ([]*desc.FileDescriptor, error) {
+func ParseProtos(protoPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
 	log.Debugf("proto paths: %v", protoPaths)
 	log.Debugf("proto files: %v", protoFiles)
 	parser := &protoparse.Parser{
@@ -23,7 +24,16 @@ func ParseProtos(protoPaths []string, protoFiles ...string) ([]*desc.FileDescrip
 		LookupImport: desc.LoadFileDescriptor,
 	}
 
-	return parser.ParseFiles(protoFiles...)
+	fileDescs, err := parser.ParseFiles(protoFiles...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to ParseFiles from proto files")
+	}
+	fds := desc.ToFileDescriptorSet(fileDescs...)
+	files, err := protodesc.NewFiles(fds)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to creates a new protoregistry.Files from the provided FileDescriptorSet message")
+	}
+	return files, nil
 }
 
 // NewFiles creates a new protoregistry.Files from the proto paths and proto Gob filenames.
@@ -76,44 +86,94 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 
 	log.Debugf("proto files: %v", parsedProtoFiles)
 
-	descFileDescriptors, err := ParseProtos(protoPaths, parsedProtoFiles...)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse protos")
-	}
-
-	fds := desc.ToFileDescriptorSet(descFileDescriptors...)
-	files, err := protodesc.NewFiles(fds)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to creates a new protoregistry.Files from the provided FileDescriptorSet message")
-	}
-	return files, nil
+	return ParseProtos(protoPaths, parsedProtoFiles...)
 }
 
 type TypeInfo struct {
-	Fullname       string
+	FullName       string
 	ParentFilename string
 	Kind           types.Kind
 }
 
-type TypeInfoMap map[string]*TypeInfo
+func NewTypeInfos(protoPackage string) *TypeInfos {
+	return &TypeInfos{
+		protoPackage: protoPackage,
+		infos:        map[string]*TypeInfo{},
+	}
+}
 
-func GetAllTypeInfo(fileDescs []*desc.FileDescriptor) TypeInfoMap {
-	typeInfos := make(TypeInfoMap)
-	for _, fileDesc := range fileDescs {
-		for _, mt := range fileDesc.GetMessageTypes() {
-			typeInfos[mt.GetName()] = &TypeInfo{
-				Fullname:       mt.GetFullyQualifiedName(),
-				ParentFilename: fileDesc.GetName(),
-				Kind:           types.MessageKind,
-			}
-		}
-		for _, mt := range fileDesc.GetEnumTypes() {
-			typeInfos[mt.GetName()] = &TypeInfo{
-				Fullname:       mt.GetFullyQualifiedName(),
-				ParentFilename: fileDesc.GetName(),
+type TypeInfos struct {
+	protoPackage string
+	infos        map[string]*TypeInfo // full name -> type info
+}
+
+func (x *TypeInfos) Put(info *TypeInfo) {
+	x.infos[info.FullName] = info
+}
+
+// Get retrieves type info by name in proto package.
+// It will auto prepend proto package to inputed name to 
+// generate the full name of type. 
+func (x *TypeInfos) Get(name string) *TypeInfo {
+	fullName := x.protoPackage + "." + name
+	return x.GetByFullName(fullName)
+}
+
+func (x *TypeInfos) GetByFullName(fullName string) *TypeInfo {
+	return x.infos[fullName]
+}
+
+func GetAllTypeInfo(files *protoregistry.Files, protoPackage string) *TypeInfos {
+	typeInfos := NewTypeInfos(protoPackage)
+	files.RangeFilesByPackage(protoreflect.FullName(protoPackage), func(fileDesc protoreflect.FileDescriptor) bool {
+		extractTypeInfos(fileDesc.Messages(), typeInfos)
+		for i := 0; i < fileDesc.Enums().Len(); i++ {
+			ed := fileDesc.Enums().Get(i)
+			info := &TypeInfo{
+				FullName:       string(ed.FullName()),
+				ParentFilename: ed.ParentFile().Path(),
 				Kind:           types.EnumKind,
 			}
+			typeInfos.Put(info)
 		}
-	}
+		return true
+	})
 	return typeInfos
+}
+
+// extractTypeInfosRecursively extracts all type infos (including nested types)
+// from message descriptors recursively.
+func extractTypeInfos(mds protoreflect.MessageDescriptors, typeInfos *TypeInfos) {
+	for i := 0; i < mds.Len(); i++ {
+		extractTypeInfosFromMessage(mds.Get(i), typeInfos)
+	}
+}
+
+func extractTypeInfosFromMessage(md protoreflect.MessageDescriptor, typeInfos *TypeInfos) {
+	if md.IsMapEntry() {
+		// ignore auto-generated message type to
+		// represent the entry type for a map field.
+		return
+	}
+	info := &TypeInfo{
+		FullName:       string(md.FullName()),
+		ParentFilename: md.ParentFile().Path(),
+		Kind:           types.MessageKind,
+	}
+	typeInfos.Put(info)
+
+	for i := 0; i < md.Enums().Len(); i++ {
+		ed := md.Enums().Get(i)
+		info := &TypeInfo{
+			FullName:       string(ed.FullName()),
+			ParentFilename: ed.ParentFile().Path(),
+			Kind:           types.EnumKind,
+		}
+		typeInfos.Put(info)
+	}
+	// nested types
+	for i := 0; i < md.Messages().Len(); i++ {
+		subMD := md.Messages().Get(i)
+		extractTypeInfosFromMessage(subMD, typeInfos)
+	}
 }

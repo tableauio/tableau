@@ -130,7 +130,7 @@ type sheetExporter struct {
 	ws          *tableaupb.Worksheet
 	g           *GeneratedBuf
 	isLastSheet bool
-	typeInfos   xproto.TypeInfoMap
+	typeInfos   *xproto.TypeInfos
 
 	Imports        map[string]bool             // import name -> defined
 	nestedMessages map[string]*tableaupb.Field // type name -> field
@@ -184,7 +184,7 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 
 	if field.Predefined {
 		// NOTE: import corresponding message's custom defined proto file
-		if typeInfo, ok := x.typeInfos[typeName]; ok {
+		if typeInfo := x.typeInfos.Get(typeName); typeInfo != nil {
 			x.Imports[typeInfo.ParentFilename] = true
 		}
 	} else {
