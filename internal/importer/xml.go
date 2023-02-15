@@ -26,6 +26,7 @@ type XMLImporter struct {
 }
 
 var attrRegexp *regexp.Regexp
+var tagRegexp *regexp.Regexp
 var scalarListRegexp *regexp.Regexp
 var metasheetRegexp *regexp.Regexp
 
@@ -33,12 +34,13 @@ const (
 	xmlProlog             = `<?xml version='1.0' encoding='UTF-8'?>`
 	atTableauDisplacement = `ATABLEAU`
 	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`                        // e.g.: |{default:"100"}
-	metasheetItemBlock    = `(\s+<Item(\s+\S+\s*=\s*"\S+")+\s*/>\s+)*` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
-	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`                 // e.g.: <XXXConf>...</XXXConf>
+	metasheetItemBlock    = `<Item(\s+\S+\s*=\s*("\S+"|'\S+'))+\s*/>` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
+	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`                 // e.g.: <XXXConf>...</XXXConf>	
 )
 
 func init() {
-	attrRegexp = regexp.MustCompile(`([0-9A-Za-z_]+)\s*=\s*"` + types.TypeGroup + ungreedyPropGroup + `"`) // e.g.: Num = "int32|{range:"1,~"}"
+	attrRegexp = regexp.MustCompile(`=\s*("|')` + types.TypeGroup + ungreedyPropGroup + `("|')`) // e.g.: = "int32|{range:"1,~"}"
+	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`) // e.g.: >int32|{range:"1,~"}</
 	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)                                          // e.g.: Para1, Para2, Para3, ...
 
 	// metasheet regexp, e.g.:
@@ -51,7 +53,7 @@ func init() {
 	// 		<Weight Num="map<uint32, Weight>"/>
 	// </Server>
 	// -->
-	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>`+metasheetItemBlock+`</%v>|\s*/>)(.*\n)+?)-->`, book.MetasheetName, book.MetasheetName))
+	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>(\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)(.*\n)+?)-->`, book.MetasheetName, book.MetasheetName))
 }
 
 // TODO: options
@@ -414,7 +416,14 @@ func escapeAttrs(doc string) string {
 		var typeBuf, propBuf bytes.Buffer
 		xml.EscapeText(&typeBuf, []byte(matches[2]))
 		xml.EscapeText(&propBuf, []byte(matches[3]))
-		return fmt.Sprintf("%s=\"%s%s\"", matches[1], typeBuf.String(), propBuf.String())
+		return fmt.Sprintf("=\"%s%s\"", typeBuf.String(), propBuf.String())
+	})
+	escapedDoc = tagRegexp.ReplaceAllStringFunc(escapedDoc, func(s string) string {
+		matches := matchTag(s)
+		var typeBuf, propBuf bytes.Buffer
+		xml.EscapeText(&typeBuf, []byte(matches[1]))
+		xml.EscapeText(&propBuf, []byte(matches[2]))
+		return fmt.Sprintf(">%s%s</", typeBuf.String(), propBuf.String())
 	})
 	return escapedDoc
 }
@@ -449,6 +458,10 @@ func inferType(value string) string {
 
 func matchAttr(s string) []string {
 	return attrRegexp.FindStringSubmatch(s)
+}
+
+func matchTag(s string) []string {
+	return tagRegexp.FindStringSubmatch(s)
 }
 
 func matchScalarList(s string) []string {
