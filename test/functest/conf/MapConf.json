@@ -1,17 +1,25 @@
 {
-    "open":  true,
-    "entryMap":  {
-        "1":  {
-            "id":  1,
-            "value":  1
+    "open": true,
+    "preEntryMap": {
+        "1": {
+            "name": "1"
         },
-        "2":  {
-            "id":  2,
-            "value":  2
+        "2": {
+            "name": "2"
+        }
+    },
+    "entryMap": {
+        "1": {
+            "id": 1,
+            "value": 1
         },
-        "3":  {
-            "id":  3,
-            "value":  3
+        "2": {
+            "id": 2,
+            "value": 2
+        },
+        "3": {
+            "id": 3,
+            "value": 3
         }
     }
 }
