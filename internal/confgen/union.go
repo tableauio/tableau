@@ -48,6 +48,8 @@ type UnionDescriptor struct {
 	Value protoreflect.OneofDescriptor
 }
 
+// TypeName returns the type field name.
+// It returns CameCase style of proto field name if not set explicitly in field extension.
 func (u UnionDescriptor) TypeName() string {
 	opts := proto.GetExtension(u.Type.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
 	if opts != nil {
@@ -57,6 +59,8 @@ func (u UnionDescriptor) TypeName() string {
 	return strcase.ToCamel(string(u.Type.Name()))
 }
 
+// ValueFieldName returns the value field name.
+// It returns "Field" if not set explicitly in oneof extension.
 func (u UnionDescriptor) ValueFieldName() string {
 	opts := proto.GetExtension(u.Value.Options(), tableaupb.E_Oneof).(*tableaupb.OneofOptions)
 	if opts != nil {
@@ -66,6 +70,8 @@ func (u UnionDescriptor) ValueFieldName() string {
 	return "Field"
 }
 
+// GetValueByNumber returns the FieldDescriptor for a field numbered n.
+// It returns nil if not found.
 func (u UnionDescriptor) GetValueByNumber(n int32) protoreflect.FieldDescriptor {
 	return GetOneofFieldByNumber(u.Value, n)
 }

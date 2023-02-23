@@ -40,4 +40,8 @@ E2009:
   desc: duplicate key exists in different sheets
   text: 'field {{.FieldName}} has duplicate key "{{.Key}}"'
   help: "key must not be duplicate when merge multiple sheets"
+E2010:
+  desc: union type has no corresponding value field
+  text: 'union type "{{.TypeValue}}" has no corresponding value field with number "{{.FieldNumber}}"'
+  help: 'add new union value field and bind it to type "{{.TypeValue}}"'
 # [3000, 3999]: importer error

@@ -1104,8 +1104,19 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 	}
 	structValue.Message().Set(unionDesc.Type, typeVal)
 
-	// parse union value
-	valueFD := unionDesc.GetValueByNumber(int32(typeVal.Enum()))
+	// parse value
+	fieldNumber := int32(typeVal.Enum())
+	if fieldNumber == 0 {
+		// default enum value 0, no need to parse.
+		return false, nil
+	}
+	valueFD := unionDesc.GetValueByNumber(fieldNumber)
+	if valueFD == nil{
+		typeValue := unionDesc.Type.Enum().Values().ByNumber(protoreflect.EnumNumber(fieldNumber)).Name()
+		err := xerrors.E2010(typeValue, fieldNumber)
+		kvs := append(rc.CellDebugKV(typeColName), xerrors.KeyPBFieldType, "enum")
+		return false, xerrors.WithMessageKV(err, kvs...) 
+	}
 	fieldValue := structValue.Message().NewField(valueFD)
 	if valueFD.Kind() == protoreflect.MessageKind {
 		// MUST be message type.

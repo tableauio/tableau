@@ -85,3 +85,11 @@ func E2009(key, fieldName interface{}) error {
 		"FieldName": fieldName,
 	})
 }
+
+// E2010 describes union type and value field mismatch.
+func E2010(typeValue, fieldNumber interface{}) error {
+	return renderEcode("E2010", map[string]interface{}{
+		"TypeValue":   typeValue,
+		"FieldNumber": fieldNumber,
+	})
+}

@@ -40,4 +40,8 @@ E2009:
   desc: duplicate key exists in different sheets
   text: '字段 {{.FieldName}} 在配置表合表时，存在重复的键 "{{.Key}}"'
   help: '合表时，不同的表不允许配置重复的键'
+E2010:
+  desc: union type has no corresponding value field
+  text: 'union 类型"{{.TypeValue}}"找不到 field number 为"{{.FieldNumber}}"的对应 value 字段'
+  help: '新增 union value field 并绑定到类型"{{.TypeValue}}"'
 # [3000, 3999]: importer error
