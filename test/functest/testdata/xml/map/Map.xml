@@ -5,11 +5,14 @@
 </@TABLEAU>
 
 <MapConf Open="bool">
+    <PreEntry Name="map<string, PreEntry>" />
     <Entry Id="map<uint32, Entry>" Value="int32" />
 </MapConf>
 -->
 
 <MapConf Open="true">
+    <PreEntry Name="1" />
+    <PreEntry Name="2" />
     <Entry Id="1" Value="1" />
     <Entry Id="2" Value="2" />
     <Entry Id="3" Value="3" />
