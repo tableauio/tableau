@@ -39,7 +39,7 @@ const (
 )
 
 func init() {
-	attrRegexp = regexp.MustCompile(`=\s*("|')` + types.TypeGroup + ungreedyPropGroup + `("|')`) // e.g.: = "int32|{range:"1,~"}"
+	attrRegexp = regexp.MustCompile(`\s*=\s*("|')` + types.TypeGroup + ungreedyPropGroup + `("|')`) // e.g.: = "int32|{range:"1,~"}"
 	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`) // e.g.: >int32|{range:"1,~"}</
 	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)                                          // e.g.: Para1, Para2, Para3, ...
 

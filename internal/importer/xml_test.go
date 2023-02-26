@@ -179,7 +179,7 @@ func Test_matchAttr(t *testing.T) {
 				s: `<AAA bb = "bool" cc = "int64" dd = "enum<.EnumType>" >`,
 			},
 			want: []string{
-				`bb = "bool"`, `bb`, `bool`, ``,
+				` = "bool"`, `"`, `bool`, ``, `"`,
 			},
 		},
 		{
@@ -188,8 +188,8 @@ func Test_matchAttr(t *testing.T) {
 				s: `<Client OpenTime="datetime|{default:"2022-01-23 15:40:00"}" CloseTime="datetime|{default:"2022-01-23 15:40:00"}"/>`,
 			},
 			want: []string{
-				`OpenTime="datetime|{default:"2022-01-23 15:40:00"}"`,
-				`OpenTime`, `datetime`, `|{default:"2022-01-23 15:40:00"}`,
+				`="datetime|{default:"2022-01-23 15:40:00"}"`,
+				`"`, `datetime`, `|{default:"2022-01-23 15:40:00"}`, `"`,
 			},
 		},
 	}
@@ -983,6 +983,7 @@ func Test_matchMetasheet(t *testing.T) {
 	<Item Sheet="Server" />
 `,
 				` Sheet="Server"`,
+				`"Server"`,
 				`</Server>
 `,
 			},
