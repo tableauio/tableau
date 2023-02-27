@@ -69,6 +69,36 @@ func Test_escapeAttrs(t *testing.T) {
 </Conf>
 `,
 		},
+		{
+			name: "SimpleTag",
+			args: args{
+				doc: `
+<Conf>
+	<ClientID>enum<.ClientIDType></ClientID>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<ClientID>enum&lt;.ClientIDType&gt;</ClientID>
+</Conf>
+`,
+		},
+		{
+			name: "ComplexTag",
+			args: args{
+				doc: `
+<Conf>
+	<ClientID>map<uint32, Client>|{unique:true range:"1,~"}</ClientID>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<ClientID>map&lt;uint32, Client&gt;|{unique:true range:&#34;1,~&#34;}</ClientID>
+</Conf>
+`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -179,7 +209,7 @@ func Test_matchAttr(t *testing.T) {
 				s: `<AAA bb = "bool" cc = "int64" dd = "enum<.EnumType>" >`,
 			},
 			want: []string{
-				`bb = "bool"`, `bb`, `bool`, ``,
+				` = "bool"`, `"`, `bool`, ``, `"`,
 			},
 		},
 		{
@@ -188,8 +218,8 @@ func Test_matchAttr(t *testing.T) {
 				s: `<Client OpenTime="datetime|{default:"2022-01-23 15:40:00"}" CloseTime="datetime|{default:"2022-01-23 15:40:00"}"/>`,
 			},
 			want: []string{
-				`OpenTime="datetime|{default:"2022-01-23 15:40:00"}"`,
-				`OpenTime`, `datetime`, `|{default:"2022-01-23 15:40:00"}`,
+				`="datetime|{default:"2022-01-23 15:40:00"}"`,
+				`"`, `datetime`, `|{default:"2022-01-23 15:40:00"}`, `"`,
 			},
 		},
 	}
@@ -584,13 +614,13 @@ func Test_genMetasheet(t *testing.T) {
 			},
 			want: map[string]map[string]string{
 				"ServerConf": {
-					"Nested": "true",
-					"Sheet":  "ServerConf",
-					"Sep":    "|",
-					"Namerow": "1",
-					"Typerow": "2",
-					"Noterow": "3",
-					"Datarow": "4",
+					"Nested":   "true",
+					"Sheet":    "ServerConf",
+					"Sep":      "|",
+					"Namerow":  "1",
+					"Typerow":  "2",
+					"Noterow":  "3",
+					"Datarow":  "4",
 					"Nameline": "1",
 					"Typeline": "1",
 				},
@@ -983,6 +1013,7 @@ func Test_matchMetasheet(t *testing.T) {
 	<Item Sheet="Server" />
 `,
 				` Sheet="Server"`,
+				`"Server"`,
 				`</Server>
 `,
 			},
@@ -1122,6 +1153,47 @@ func Test_matchSheetBlock(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := matchSheetBlock(tt.args.xml, tt.args.sheetName); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("matchSheetBlock() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_matchTag(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "SimpleTag",
+			args: args{
+				s: `<ClientID>enum<.ClientIDType></ClientID>`,
+			},
+			want: []string{
+				`>enum<.ClientIDType></`,
+				`enum<.ClientIDType>`,
+				``,
+			},
+		},
+		{
+			name: "ComplexTag",
+			args: args{
+				s: `<ClientID>map<uint32, Client>|{unique:true range:"1,~"}</ClientID>`,
+			},
+			want: []string{
+				`>map<uint32, Client>|{unique:true range:"1,~"}</`,
+				`map<uint32, Client>`,
+				`|{unique:true range:"1,~"}`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := matchTag(tt.args.s); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("matchTag() = %v, want %v", got, tt.want)
 			}
 		})
 	}

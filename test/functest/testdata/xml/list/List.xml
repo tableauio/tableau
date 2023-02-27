@@ -17,6 +17,7 @@
     <Parent>
         <Parent2>
             <Incell Value="[]int32" />
+            <EnumIncell>[]enum<.FruitType></EnumIncell>
         </Parent2>
     </Parent>
 </ListConf2>
@@ -37,6 +38,7 @@
     <Parent>
         <Parent2>
             <Incell Value="1,2,3,1" />
+            <EnumIncell>Apple, Orange, Banana</EnumIncell>
         </Parent2>
     </Parent>
 </ListConf2>
