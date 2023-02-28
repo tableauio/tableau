@@ -131,7 +131,7 @@ message EnumValueOptions {
 }
 
 message OneofOptions {
-  string name = 1;  // Alias. NOT USED currently.
+  string name = 1;   // Alias. NOT USED currently.
   string field = 2;  // Field name.
 }
 
@@ -180,8 +180,8 @@ message FieldProp {
   bool fixed = 6;
   // Explicitly specify fixed size of horizontal list or map.
   uint32 size = 7;
-  // Content format for parsing.
-  Format format = 8;
+  // Content form for parsing.
+  Form form = 8;
 }
 
 // Layout of list and map.
@@ -207,8 +207,8 @@ enum Span {
   SPAN_INNER_CELL = 2;  // The field data spans inside one cell.
 }
 
-enum Format {
-  FORMAT_DEFAULT = 0;  // Default format.
-  FORMAT_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec
-  FORMAT_JSON = 2;     // Refer: https://developers.google.com/protocol-buffers/docs/proto3#json
+enum Form {
+  FORM_DEFAULT = 0;  // Default form which confgen parser defines.
+  FORM_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec
+  FORM_JSON = 2;     // Refer: https://developers.google.com/protocol-buffers/docs/proto3#json
 }
