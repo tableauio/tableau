@@ -1,0 +1,6 @@
+ID,Name,Difficulty
+"map<uint32, Zone>",string,int32
+Zone’s ID,Zone’s name,Zone’s difficulty
+4,Infinity,400
+5,Desert,500
+6,Snowfield,600

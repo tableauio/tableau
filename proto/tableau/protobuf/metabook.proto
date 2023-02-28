@@ -32,7 +32,7 @@ message Metasheet {
   bool nested = 10 [(tableau.field) = { name: "Nested" optional: true }];
   string sep = 11 [(tableau.field) = { name: "Sep" optional: true }];
   string subsep = 12 [(tableau.field) = { name: "Subsep" optional: true }];
-  // merger of multiple sheets: [Element]...
+  // merge multiple sheets with same schema to one.
   // each element is:
   // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>,
   //   then the sheet name is the same as this sheet.
@@ -56,6 +56,12 @@ message Metasheet {
   bool template = 16 [(tableau.field) = { name: "Template" optional: true }];
   // Sheet mode.
   Mode mode = 17 [(tableau.field) = { name: "Mode" optional: true }];
+  // clone sheets respectively with same schema.
+  // each element is:
+  // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
+  //   then the sheet name is the same as this sheet.
+  // - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
+  repeated string clone = 18 [(tableau.field) = { name: "Clone" optional: true layout: LAYOUT_INCELL }];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers
