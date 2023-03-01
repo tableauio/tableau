@@ -56,12 +56,12 @@ message Metasheet {
   bool template = 16 [(tableau.field) = { name: "Template" optional: true }];
   // Sheet mode.
   Mode mode = 17 [(tableau.field) = { name: "Mode" optional: true }];
-  // clone sheets respectively with same schema.
+  // Scatter convert sheets separately with same schema.
   // each element is:
   // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
   //   then the sheet name is the same as this sheet.
   // - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
-  repeated string clone = 18 [(tableau.field) = { name: "Clone" optional: true layout: LAYOUT_INCELL }];
+  repeated string scatter = 18 [(tableau.field) = { name: "Scatter" optional: true layout: LAYOUT_INCELL }];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers
@@ -85,15 +85,4 @@ message Metasheet {
   // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
   string index = 51 [(tableau.field) = { name: "Index" optional: true }];
-}
-
-enum Mode {
-  MODE_DEFAULT = 0;  // Default mode.
-  // UE DataTable references:
-  //  - https://docs.unrealengine.com/5.1/en-US/data-driven-gameplay-elements-in-unreal-engine/
-  //  - https://docs.unrealengine.com/5.1/en-US/BlueprintAPI/EditorScripting/DataTable/
-  MODE_UE_CSV = 1;      // CSV format of UE DataTable.
-  MODE_UE_JSON = 2;     // JSON format of UE DataTable.
-  MODE_ENUM_TYPE = 3;   // Enum type definition in sheet.
-  MODE_UNION_TYPE = 4;  // Union type definition in sheet.
 }

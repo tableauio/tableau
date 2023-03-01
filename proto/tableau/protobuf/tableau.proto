@@ -104,6 +104,14 @@ message WorksheetOptions {
   // Indicate this XML sheet is a template or not. Template sheet structure will
   // only be parsed based on metasheet "@TABLEAU" in comments.
   bool template = 16;
+  // Sheet mode.
+  Mode mode = 17;
+  // Scatter convert sheets separately with same schema.
+  // each element is:
+  // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
+  //   then the sheet name is the same as this sheet.
+  // - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
+  repeated string scatter = 18;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
@@ -180,7 +188,7 @@ message FieldProp {
   bool fixed = 6;
   // Explicitly specify fixed size of horizontal list or map.
   uint32 size = 7;
-  // Content form for parsing.
+  // Cell's data form for parsing.
   Form form = 8;
 }
 
@@ -205,6 +213,18 @@ enum Span {
   SPAN_DEFAULT = 0;
   SPAN_CROSS_CELL = 1;  // The field data spans across multiple cells.
   SPAN_INNER_CELL = 2;  // The field data spans inside one cell.
+}
+
+// Sheet mode.
+enum Mode {
+  MODE_DEFAULT = 0;  // Default mode.
+  // UE DataTable references:
+  //  - https://docs.unrealengine.com/5.1/en-US/data-driven-gameplay-elements-in-unreal-engine/
+  //  - https://docs.unrealengine.com/5.1/en-US/BlueprintAPI/EditorScripting/DataTable/
+  MODE_UE_CSV = 1;      // CSV format of UE DataTable.
+  MODE_UE_JSON = 2;     // JSON format of UE DataTable.
+  MODE_ENUM_TYPE = 3;   // Enum type definition in sheet.
+  MODE_UNION_TYPE = 4;  // Union type definition in sheet.
 }
 
 enum Form {

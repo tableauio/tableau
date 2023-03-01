@@ -322,6 +322,8 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 				AdjacentKey:   sheet.Meta.AdjacentKey,
 				FieldPresence: sheet.Meta.FieldPresence,
 				Template:      sheet.Meta.Template,
+				Mode:          sheet.Meta.Mode,
+				Scatter:       sheet.Meta.Scatter,
 				// Loader options:
 				OrderedMap: sheet.Meta.OrderedMap,
 				Index:      parseIndexes(sheet.Meta.Index),

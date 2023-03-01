@@ -36,7 +36,7 @@ func New(filename string, setters ...Option) (Importer, error) {
 	fmt := format.Ext2Format(filepath.Ext(filename))
 	switch fmt {
 	case format.Excel:
-		return NewExcelImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Merged)
+		return NewExcelImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	case format.CSV:
 		return NewCSVImporter(filename, opts.Sheets, opts.Parser)
 	case format.XML:
@@ -46,21 +46,62 @@ func New(filename string, setters ...Option) (Importer, error) {
 	}
 }
 
-// GetMergerImporters gathers all merger importers.
+// GetMergerImporters return all related importers.
 // 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 // 	2. exclude self
 //  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) ([]Importer, error) {
-	if len(merger) == 0 {
-		return nil, nil
+func GetMergerImporters(primaryBookPath, sheetName string, bookNameGlobs []string) ([]Importer, error) {
+	bookPaths, err := resolveBookPaths(primaryBookPath, sheetName, bookNameGlobs)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
+	}
+	var importers []Importer
+	for fpath := range bookPaths {
+		log.Infof("%18s: %s", "merge workbook", fpath)
+		importer, err := New(fpath, Sheets([]string{sheetName}), Cloned())
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+		}
+		importers = append(importers, importer)
+	}
+	return importers, nil
+}
+
+// GetScatterImporters return all related importers.
+// 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
+// 	2. exclude self
+//  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+func GetScatterImporters(primaryBookPath, sheetName string, bookNameGlobs []string) ([]Importer, error) {
+	bookPaths, err := resolveBookPaths(primaryBookPath, sheetName, bookNameGlobs)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
+	}
+	var importers []Importer
+	for fpath := range bookPaths {
+		log.Infof("%18s: %s", "scatter workbook", fpath)
+		importer, err := New(fpath, Sheets([]string{sheetName}), Cloned())
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+		}
+		importers = append(importers, importer)
+	}
+	return importers, nil
+}
+
+// resolveBookPaths resolve and return all related workbook paths.
+// 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
+// 	2. exclude self
+//  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+func resolveBookPaths(primaryBookPath, sheetName string, bookNameGlobs []string) (map[string]bool, error) {
+	bookPaths := map[string]bool{}
+	if len(bookNameGlobs) == 0 {
+		return bookPaths, nil
 	}
 
-	fmt := format.Ext2Format(filepath.Ext(primaryWorkbookPath))
-
-	curDir := filepath.Dir(primaryWorkbookPath)
-	mergerWorkbookPaths := map[string]bool{}
-	for _, merger := range merger {
-		pattern := filepath.Join(curDir, merger)
+	fmt := format.Ext2Format(filepath.Ext(primaryBookPath))
+	curDir := filepath.Dir(primaryBookPath)
+	for _, nameGlob := range bookNameGlobs {
+		pattern := filepath.Join(curDir, nameGlob)
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
@@ -74,21 +115,12 @@ func GetMergerImporters(primaryWorkbookPath, sheetName string, merger []string) 
 					return nil, err
 				}
 			}
-			if fs.IsSamePath(path, primaryWorkbookPath) {
+			if fs.IsSamePath(path, primaryBookPath) {
 				// exclude self
 				continue
 			}
-			mergerWorkbookPaths[path] = true
+			bookPaths[path] = true
 		}
 	}
-	var importers []Importer
-	for fpath := range mergerWorkbookPaths {
-		log.Infof("%18s: %s", "merge workbook", fpath)
-		importer, err := New(fpath, Sheets([]string{sheetName}), Merged(true))
-		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
-		}
-		importers = append(importers, importer)
-	}
-	return importers, nil
+	return bookPaths, nil
 }
