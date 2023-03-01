@@ -220,18 +220,22 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		// log.Debugf("%s", md.FullName())
 		log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), sheetInfo.MD.Name(), workbook.Name, sheetName)
 
-		// get merger importers
-		importers, err := importer.GetMergerImporters(wbPath, sheetName, sheetInfo.Opts.Merger)
-		if err != nil {
-			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
+		if sheetInfo.HasScatter() {
+			if sheetInfo.HasMerger() {
+				return xerrors.ErrorKV("option Scatter and Merger cannot be both set at one sheet",
+					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
+			}
+			err := gen.processScatter(imp, &sheetInfo, wbPath, sheetName)
+			if err != nil {
+				return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
+			}
+		} else {
+			err := gen.processMerger(imp, &sheetInfo, wbPath, sheetName)
+			if err != nil {
+				return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
+			}
 		}
-		// append self
-		importers = append(importers, imp)
 
-		exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
-		if err := exporter.Export(&sheetInfo, importers...); err != nil {
-			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
-		}
 		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
 		gen.PerfStats.Store(sheetInfo.MD.Name(), seconds)
 	}
@@ -240,6 +244,34 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyBookName, workbook.Name,
 			xerrors.KeySheetName, worksheetName)
+	}
+	return nil
+}
+
+func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, wbPath, sheetName string) error {
+	importers, err := importer.GetScatterImporters(wbPath, sheetName, sheetInfo.Opts.Scatter)
+	if err != nil {
+		return err
+	}
+	// append self
+	importers = append(importers, self)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
+	if err := exporter.ScatterAndExport(sheetInfo, importers...); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, wbPath, sheetName string) error {
+	importers, err := importer.GetMergerImporters(wbPath, sheetName, sheetInfo.Opts.Merger)
+	if err != nil {
+		return err
+	}
+	// append self
+	importers = append(importers, self)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
+	if err := exporter.MergeAndExport(sheetInfo, importers...); err != nil {
+		return err
 	}
 	return nil
 }

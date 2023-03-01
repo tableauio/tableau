@@ -47,9 +47,9 @@ func New(filename string, setters ...Option) (Importer, error) {
 }
 
 // GetMergerImporters return all related importers.
-// 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
-// 	2. exclude self
-//  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+//    1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
+//    2. exclude self
+//    3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
 func GetMergerImporters(primaryBookPath, sheetName string, bookNameGlobs []string) ([]Importer, error) {
 	bookPaths, err := resolveBookPaths(primaryBookPath, sheetName, bookNameGlobs)
 	if err != nil {

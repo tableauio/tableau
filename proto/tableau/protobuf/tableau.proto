@@ -92,8 +92,8 @@ message WorksheetOptions {
   //
   // Default: ":".
   string subsep = 12;
-  // Merge multiple workbook sheets (comma-separated) into this one
-  // with the same structure. E.g.: Item1.xlsx,Item2.xlsx.
+  // Merger merge multiple workbook sheets (comma-separated) into one
+  // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
   repeated string merger = 13;
   // Merge adjacent rows with the same key. If the key cell is not set,
   // it will be treated the same as the nearest key above the same column.
@@ -106,11 +106,8 @@ message WorksheetOptions {
   bool template = 16;
   // Sheet mode.
   Mode mode = 17;
-  // Scatter convert sheets separately with same schema.
-  // each element is:
-  // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
-  //   then the sheet name is the same as this sheet.
-  // - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
+  // Scatter convert multiple workbook sheets (comma-separated) separately
+  // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
   repeated string scatter = 18;
 
   ////////// Loader related options below //////////

@@ -340,8 +340,8 @@ type WorksheetOptions struct {
 	//
 	// Default: ":".
 	Subsep string `protobuf:"bytes,12,opt,name=subsep,proto3" json:"subsep,omitempty"`
-	// Merge multiple workbook sheets (comma-separated) into this one
-	// with the same structure. E.g.: Item1.xlsx,Item2.xlsx.
+	// Merger merge multiple workbook sheets (comma-separated) into one
+	// with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
 	Merger []string `protobuf:"bytes,13,rep,name=merger,proto3" json:"merger,omitempty"`
 	// Merge adjacent rows with the same key. If the key cell is not set,
 	// it will be treated the same as the nearest key above the same column.
@@ -354,11 +354,8 @@ type WorksheetOptions struct {
 	Template bool `protobuf:"varint,16,opt,name=template,proto3" json:"template,omitempty"`
 	// Sheet mode.
 	Mode Mode `protobuf:"varint,17,opt,name=mode,proto3,enum=tableau.Mode" json:"mode,omitempty"`
-	// Scatter convert sheets separately with same schema.
-	// each element is:
-	// - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
-	//   then the sheet name is the same as this sheet.
-	// - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
+	// Scatter convert multiple workbook sheets (comma-separated) separately
+	// with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
 	Scatter []string `protobuf:"bytes,18,rep,name=scatter,proto3" json:"scatter,omitempty"`
 	////////// Loader related options below //////////
 	// Generate OrderedMap accessers or not.
