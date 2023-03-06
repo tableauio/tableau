@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/format"
 )
 
 // CopyFile copies a file from src to dst. If src and dst files exist, and are
@@ -122,4 +123,52 @@ func RewriteSubdir(filename string, subdirRewrites map[string]string) string {
 		}
 	}
 	return filename
+}
+
+func RangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath string) error) error {
+	dirEntries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	// book name -> existence(bool)
+	csvBooks := map[string]bool{}
+	for _, entry := range dirEntries {
+		if entry.IsDir() {
+			// scan and generate subdir recursively
+			subdir := filepath.Join(dir, entry.Name())
+			err = RangeFilesByFormat(subdir, fmt, callback)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		fileFmt := format.Ext2Format(filepath.Ext(entry.Name()))
+		if fileFmt != fmt {
+			continue
+		}
+		switch fmt {
+		case format.Excel:
+			bookPath := filepath.Join(dir, entry.Name())
+			if err := callback(bookPath); err != nil {
+				return err
+			}
+		case format.CSV:
+			bookName, _, err := ParseCSVFilenamePattern(entry.Name())
+			if err != nil {
+				return err
+			}
+			if _, ok := csvBooks[bookName]; ok {
+				// NOTE: multiple CSV files construct the same book.
+				continue
+			}
+			csvBooks[bookName] = true
+			if err := callback(GenCSVBooknamePattern(dir, bookName)); err != nil {
+				return err
+			}
+		default:
+			return errors.New("unknown fommat: " + string(fmt))
+		}
+	}
+	return nil
 }

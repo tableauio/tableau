@@ -110,7 +110,7 @@ func resolveBookPaths(primaryBookPath, sheetName string, bookNameGlobs []string)
 			path := match
 			if fmt == format.CSV {
 				// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-				path, err = ParseCSVBooknamePatternFrom(match)
+				path, err = fs.ParseCSVBooknamePatternFrom(match)
 				if err != nil {
 					return nil, err
 				}
@@ -119,7 +119,8 @@ func resolveBookPaths(primaryBookPath, sheetName string, bookNameGlobs []string)
 				// exclude self
 				continue
 			}
-			bookPaths[path] = true
+			slashPath := fs.GetCleanSlashPath(path)
+			bookPaths[slashPath] = true
 		}
 	}
 	return bookPaths, nil

@@ -1,0 +1,3 @@
+Sheet,Alias,Scatter,Merger
+Item,ItemConf,"Test_*.csv",,
+Hero,HeroConf,,"Test_*.csv"

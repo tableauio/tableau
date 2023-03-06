@@ -209,7 +209,7 @@ func (gen *Generator) generate(dir string) (err error) {
 		}
 
 		if fmt == format.CSV {
-			bookName, _, err := importer.ParseCSVFilenamePattern(entry.Name())
+			bookName, _, err := fs.ParseCSVFilenamePattern(entry.Name())
 			if err != nil {
 				return err
 			}
