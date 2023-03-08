@@ -53,3 +53,25 @@ func TestInfow(t *testing.T) {
 		})
 	}
 }
+
+func TestLevel(t *testing.T) {
+	tests := []struct {
+		name string
+		want string
+	}{
+		{
+			name: "test",
+			want: "DEBUG",	
+		},
+	}
+	Init(&Options{
+		Level: "DEBUG",
+	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Level(); got != tt.want {
+				t.Errorf("Level() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

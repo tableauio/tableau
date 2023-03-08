@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+<@TABLEAU>
+    <Item Sheet="TestConf" Sep=";" />
+</@TABLEAU>
+
+<TestConf>
+    <SepConf number="[]int32" />
+    <MaxNum>int32</MaxNum>
+</TestConf>
+-->
+
+<TestConf>
+    <SepConf number="1;2;3" />
+    
+    <!-- Test -->
+    <MaxNum>100</MaxNum>
+</TestConf>
