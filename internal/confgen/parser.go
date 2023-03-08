@@ -1111,11 +1111,11 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		return false, nil
 	}
 	valueFD := unionDesc.GetValueByNumber(fieldNumber)
-	if valueFD == nil{
+	if valueFD == nil {
 		typeValue := unionDesc.Type.Enum().Values().ByNumber(protoreflect.EnumNumber(fieldNumber)).Name()
 		err := xerrors.E2010(typeValue, fieldNumber)
 		kvs := append(rc.CellDebugKV(typeColName), xerrors.KeyPBFieldType, "enum")
-		return false, xerrors.WithMessageKV(err, kvs...) 
+		return false, xerrors.WithMessageKV(err, kvs...)
 	}
 	fieldValue := structValue.Message().NewField(valueFD)
 	if valueFD.Kind() == protoreflect.MessageKind {
@@ -1124,7 +1124,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		msg := fieldValue.Message()
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
-			colName := prefix + field.opts.Name + unionDesc.ValueFieldName() + strconv.Itoa(i+1)
+			colName := prefix + field.opts.Name + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
 			err := func() error {
 				subField := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
 				defer subField.release()

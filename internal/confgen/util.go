@@ -39,8 +39,8 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 	span := tableaupb.Span_SPAN_DEFAULT
 	key := ""
 	layout := tableaupb.Layout_LAYOUT_DEFAULT
-	sep := ","
-	subsep := ":"
+	sep := ""
+	subsep := ""
 	optional := false
 	var prop *tableaupb.FieldProp
 
