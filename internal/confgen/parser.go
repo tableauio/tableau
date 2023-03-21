@@ -1131,8 +1131,8 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 				// incell scalar
 				cell, err := rc.Cell(colName, subField.opts.Optional)
 				if err != nil {
-					kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "union value field")
-					return xerrors.WithMessageKV(err, kvs...)
+					// column not exist is ok, just use the default value
+					return nil
 				}
 				err = sp.parseUnionValueField(subField, msg, cell.Data)
 				if err != nil {
