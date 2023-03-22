@@ -17,7 +17,7 @@ type ExcelImporter struct {
 	*book.Book
 }
 
-func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, merged bool) (*ExcelImporter, error) {
+func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*ExcelImporter, error) {
 	file, err := excelize.OpenFile(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file %s", filename)
@@ -31,7 +31,7 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 
 	var topN uint
 	if mode == Protogen {
-		n, err := adjustTopN(file, parser, merged)
+		n, err := adjustTopN(file, parser, cloned)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
 		}
@@ -54,8 +54,8 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 	}, nil
 }
 
-func adjustTopN(file *excelize.File, parser book.SheetParser, merged bool) (uint, error) {
-	if parser != nil && !merged {
+func adjustTopN(file *excelize.File, parser book.SheetParser, cloned bool) (uint, error) {
+	if parser != nil && !cloned {
 		// parse metasheet, and change topN to 0 if any sheet is transpose
 		metasheet, err := readExcelSheet(file, book.MetasheetName, 0)
 		if err != nil {

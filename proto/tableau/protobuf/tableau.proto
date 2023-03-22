@@ -92,8 +92,8 @@ message WorksheetOptions {
   //
   // Default: ":".
   string subsep = 12;
-  // Merge multiple workbook sheets (comma-separated) into this one
-  // with the same structure. E.g.: Item1.xlsx,Item2.xlsx.
+  // Merger merge multiple workbook sheets (comma-separated) into one
+  // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
   repeated string merger = 13;
   // Merge adjacent rows with the same key. If the key cell is not set,
   // it will be treated the same as the nearest key above the same column.
@@ -104,6 +104,11 @@ message WorksheetOptions {
   // Indicate this XML sheet is a template or not. Template sheet structure will
   // only be parsed based on metasheet "@TABLEAU" in comments.
   bool template = 16;
+  // Sheet mode.
+  Mode mode = 17;
+  // Scatter convert multiple workbook sheets (comma-separated) separately
+  // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
+  repeated string scatter = 18;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
@@ -131,7 +136,7 @@ message EnumValueOptions {
 }
 
 message OneofOptions {
-  string name = 1;  // Alias. NOT USED currently.
+  string name = 1;   // Alias. NOT USED currently.
   string field = 2;  // Field name.
 }
 
@@ -180,8 +185,8 @@ message FieldProp {
   bool fixed = 6;
   // Explicitly specify fixed size of horizontal list or map.
   uint32 size = 7;
-  // Content format for parsing.
-  Format format = 8;
+  // Cell's data form for parsing.
+  Form form = 8;
 }
 
 // Layout of list and map.
@@ -207,8 +212,20 @@ enum Span {
   SPAN_INNER_CELL = 2;  // The field data spans inside one cell.
 }
 
-enum Format {
-  FORMAT_DEFAULT = 0;  // Default format.
-  FORMAT_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec
-  FORMAT_JSON = 2;     // Refer: https://developers.google.com/protocol-buffers/docs/proto3#json
+// Sheet mode.
+enum Mode {
+  MODE_DEFAULT = 0;  // Default mode.
+  // UE DataTable references:
+  //  - https://docs.unrealengine.com/5.1/en-US/data-driven-gameplay-elements-in-unreal-engine/
+  //  - https://docs.unrealengine.com/5.1/en-US/BlueprintAPI/EditorScripting/DataTable/
+  MODE_UE_CSV = 1;      // CSV format of UE DataTable.
+  MODE_UE_JSON = 2;     // JSON format of UE DataTable.
+  MODE_ENUM_TYPE = 3;   // Enum type definition in sheet.
+  MODE_UNION_TYPE = 4;  // Union type definition in sheet.
+}
+
+enum Form {
+  FORM_DEFAULT = 0;  // Default form which confgen parser defines.
+  FORM_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec
+  FORM_JSON = 2;     // Refer: https://developers.google.com/protocol-buffers/docs/proto3#json
 }

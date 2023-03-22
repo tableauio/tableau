@@ -1,0 +1,19 @@
+{
+    "zoneMap": {
+        "1": {
+            "id": 1,
+            "name": "Infinity",
+            "difficulty": 100
+        },
+        "2": {
+            "id": 2,
+            "name": "Desert",
+            "difficulty": 200
+        },
+        "3": {
+            "id": 3,
+            "name": "Snowfield",
+            "difficulty": 300
+        }
+    }
+}

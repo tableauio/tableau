@@ -19,7 +19,7 @@ type Options struct {
 	Sheets []string         // sheet names to import
 	Parser book.SheetParser // parser to parse the worksheet
 	Mode   ImporterMode     // importer mode
-	Merged bool             // this book is merged to the main book
+	Cloned bool             // this book cloned (same schema different data) from the main book
 }
 
 // Option is the functional option type.
@@ -43,9 +43,9 @@ func Mode(m ImporterMode) Option {
 	}
 }
 
-func Merged(merged bool) Option {
+func Cloned() Option {
 	return func(opts *Options) {
-		opts.Merged = merged
+		opts.Cloned = true
 	}
 }
 

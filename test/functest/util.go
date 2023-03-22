@@ -1,7 +1,6 @@
 package functest
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,7 +8,6 @@ import (
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/fs"
-	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
@@ -118,52 +116,4 @@ func genConf(logLevel string) error {
 		),
 		options.Lang("zh"),
 	)
-}
-
-func rangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath string) error) error {
-	dirEntries, err := os.ReadDir(dir)
-	if err != nil {
-		return err
-	}
-
-	// book name -> existence(bool)
-	csvBooks := map[string]bool{}
-	for _, entry := range dirEntries {
-		if entry.IsDir() {
-			// scan and generate subdir recursively
-			subdir := filepath.Join(dir, entry.Name())
-			err = rangeFilesByFormat(subdir, fmt, callback)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		fileFmt := format.Ext2Format(filepath.Ext(entry.Name()))
-		if fileFmt != fmt {
-			continue
-		}
-		switch fmt {
-		case format.Excel:
-			bookPath := filepath.Join(dir, entry.Name())
-			if err := callback(bookPath); err != nil {
-				return err
-			}
-		case format.CSV:
-			bookName, _, err := importer.ParseCSVFilenamePattern(entry.Name())
-			if err != nil {
-				return err
-			}
-			if _, ok := csvBooks[bookName]; ok {
-				// NOTE: multiple CSV files construct the same book.
-				continue
-			}
-			csvBooks[bookName] = true
-			if err := callback(importer.GenCSVBooknamePattern(dir, bookName)); err != nil {
-				return err
-			}
-		default:
-			return errors.New("unknown fommat: " + string(fmt))
-		}
-	}
-	return nil
 }

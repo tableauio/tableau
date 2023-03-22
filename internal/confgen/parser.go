@@ -38,8 +38,46 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheet
 	}
 }
 
-// parse and export the protomsg message.
-func (x *sheetExporter) Export(info *SheetInfo, importers ...importer.Importer) error {
+// ScatterAndExport parse multiple importers into separate protomsgs, then export each other.
+func (x *sheetExporter) ScatterAndExport(info *SheetInfo, importers ...importer.Importer) error {
+	// NOTE: use map-reduce pattern to accelerate parsing multiple importers.
+	var mu sync.Mutex // guard msgs
+	var msgs []oneMsg
+
+	var eg errgroup.Group
+	for _, imp := range importers {
+		imp := imp
+		// map-reduce: map jobs for concurrent processing
+		eg.Go(func() error {
+			protomsg, err := parseMessageFromOneImporter(info, imp)
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			msgs = append(msgs, oneMsg{
+				protomsg: protomsg,
+				bookName: imp.BookName(),
+			})
+			mu.Unlock()
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	for _, msg := range msgs {
+		// name pattern is : <BookName>_<SheetName>
+		name := fmt.Sprintf("%s_%s", msg.bookName, info.MD.Name())
+		exporter := mexporter.New(name, msg.protomsg, x.OutputDir, x.OutputOpt, info.Opts)
+		if err := exporter.Export(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// MergeAndExport parse multiple importers and merge into one protomsg, then export it.
+func (x *sheetExporter) MergeAndExport(info *SheetInfo, importers ...importer.Importer) error {
 	protomsg, err := ParseMessage(info, importers...)
 	if err != nil {
 		return err
@@ -144,6 +182,14 @@ func NewSheetInfo(protoPackage, locationName string, md protoreflect.MessageDesc
 		MD:           md,
 		Opts:         opts,
 	}
+}
+
+func (si *SheetInfo) HasScatter() bool {
+	return si.Opts != nil && len(si.Opts.Scatter) != 0
+}
+
+func (si *SheetInfo) HasMerger() bool {
+	return si.Opts != nil && len(si.Opts.Merger) != 0
 }
 
 func newSheetParserInternal(info *SheetInfo) *sheetParser {

@@ -209,7 +209,7 @@ func (gen *Generator) generate(dir string) (err error) {
 		}
 
 		if fmt == format.CSV {
-			bookName, _, err := importer.ParseCSVFilenamePattern(entry.Name())
+			bookName, _, err := fs.ParseCSVFilenamePattern(entry.Name())
 			if err != nil {
 				return err
 			}
@@ -322,6 +322,8 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 				AdjacentKey:   sheet.Meta.AdjacentKey,
 				FieldPresence: sheet.Meta.FieldPresence,
 				Template:      sheet.Meta.Template,
+				Mode:          sheet.Meta.Mode,
+				Scatter:       sheet.Meta.Scatter,
 				// Loader options:
 				OrderedMap: sheet.Meta.OrderedMap,
 				Index:      parseIndexes(sheet.Meta.Index),

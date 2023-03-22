@@ -4,11 +4,10 @@ import (
 	"encoding/csv"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
 )
 
@@ -29,7 +28,7 @@ func NewCSVImporter(filename string, sheetNames []string, parser book.SheetParse
 }
 
 func parseCSVBook(filename string, sheetNames []string, parser book.SheetParser) (*book.Book, error) {
-	_, _, err := ParseCSVFilenamePattern(filename)
+	_, _, err := fs.ParseCSVFilenamePattern(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +52,11 @@ func parseCSVBook(filename string, sheetNames []string, parser book.SheetParser)
 }
 
 func readCSVBook(filename string, parser book.SheetParser) (*book.Book, error) {
-	bookName, _, err := ParseCSVFilenamePattern(filename)
+	bookName, _, err := fs.ParseCSVFilenamePattern(filename)
 	if err != nil {
 		return nil, errors.Errorf("cannot parse the book name from filename: %s", filename)
 	}
-	globFilename := GenCSVBooknamePattern(filepath.Dir(filename), bookName)
+	globFilename := fs.GenCSVBooknamePattern(filepath.Dir(filename), bookName)
 	matches, err := filepath.Glob(globFilename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to glob %s", globFilename)
@@ -75,7 +74,7 @@ func readCSVBook(filename string, parser book.SheetParser) (*book.Book, error) {
 	newBook := book.NewBook(bookName, globFilename, parser)
 	for _, val := range set.Values() {
 		filename := val.(string)
-		_, sheetName, err := ParseCSVFilenamePattern(filename)
+		_, sheetName, err := fs.ParseCSVFilenamePattern(filename)
 		if err != nil {
 			return nil, errors.Errorf("cannot parse the sheet name from filename: %s", filename)
 		}
@@ -88,30 +87,6 @@ func readCSVBook(filename string, parser book.SheetParser) (*book.Book, error) {
 	}
 
 	return newBook, nil
-}
-
-func GenCSVBooknamePattern(dir, bookName string) string {
-	bookNamePattern := bookName + "#*" + format.CSVExt
-	return filepath.Join(dir, bookNamePattern)
-}
-
-func ParseCSVFilenamePattern(filename string) (bookName, sheetName string, err error) {
-	// Recognize pattern: "<BookName>#<SheetName>.csv"
-	basename := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	splits := strings.SplitN(basename, "#", 2)
-	if len(splits) == 2 {
-		return splits[0], splits[1], nil
-	}
-	return "", "", errors.Errorf("cannot parse the book name and sheet name from filename: %s", filename)
-}
-
-func ParseCSVBooknamePatternFrom(filename string) (string, error) {
-	dir := filepath.Dir(filename)
-	bookName, _, err := ParseCSVFilenamePattern(filename)
-	if err != nil {
-		return "", err
-	}
-	return GenCSVBooknamePattern(dir, bookName), nil
 }
 
 func readCSV(filename string) ([][]string, error) {
