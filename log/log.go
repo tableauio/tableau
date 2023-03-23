@@ -47,6 +47,10 @@ func Mode() string {
 	return gOpts.Mode
 }
 
+func Level() string {
+	return gOpts.Level
+}
+
 func SetDriver(driver driver.Driver) {
 	defaultLogger.driver = driver
 }

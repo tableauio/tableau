@@ -17,6 +17,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/log/core"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
@@ -69,7 +70,9 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	// newBook.ExportCSV()
+	if log.Level() == core.DebugLevel.CapitalString() {
+		newBook.ExportCSV()
+	}
 
 	return &XMLImporter{
 		Book: newBook,

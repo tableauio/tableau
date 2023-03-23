@@ -2,12 +2,15 @@ package importer
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/antchfx/xmlquery"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
@@ -1194,6 +1197,53 @@ func Test_matchTag(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := matchTag(tt.args.s); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("matchTag() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewXMLImporter(t *testing.T) {
+	type args struct {
+		filename string
+		sheets   []string
+		parser   book.SheetParser
+		mode     ImporterMode
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "test",
+			args: args{
+				filename: "testdata/Test.xml",
+				sheets: []string{
+					"TestConf",
+				},
+				parser: nil,
+				mode:   Protogen,
+			},
+			wantErr: false,
+		},
+	}
+	log.Init(&log.Options{
+		Level: "DEBUG",
+	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewXMLImporter(tt.args.filename, tt.args.sheets, tt.args.parser, tt.args.mode)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewXMLImporter() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			for _, sheet := range tt.args.sheets {
+				if got.Book.GetSheet(sheet) == nil {
+					t.Errorf("NewXMLImporter() GetSheet = nil, want %v", sheet)
+					return
+				}
+				csvName := fmt.Sprintf("%s#%s.csv", strings.TrimSuffix(tt.args.filename, filepath.Ext(tt.args.filename)), sheet)
+				os.Remove(csvName)
 			}
 		})
 	}
