@@ -25,3 +25,4 @@ test/parallel/proto/
 test/parallel/protoconf/
 .vscode/
 *.prof
+test/functest/testdata/xml/*/*.csv

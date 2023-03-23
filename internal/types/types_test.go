@@ -233,6 +233,17 @@ func TestMatchStruct(t *testing.T) {
 			},
 		},
 		{
+			name: "predefined-incell-struct-with-prop",
+			args: args{
+				text: `{.Item}|{range:"1,10"}`,
+			},
+			want: &StructDescriptor{
+				StructType: ".Item",
+				ColumnType: "",
+				Prop:       PropDescriptor{Text: `range:"1,10"`},
+			},
+		},
+		{
 			name: "new-defined-cross-cell-struct-with-prop",
 			args: args{
 				text: `{Item}int32|{range:"1,10"}`,
