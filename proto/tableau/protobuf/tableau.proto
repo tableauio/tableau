@@ -183,9 +183,9 @@ message FieldProp {
   //  - list size is detected by size of the max present list elements in name row.
   //  - map size is detected by size of the max present map items in name row.
   bool fixed = 6;
-  // Explicitly specify fixed size of horizontal list or map.
+  // Specify fixed size of horizontal list or map.
   uint32 size = 7;
-  // Cell's data form for parsing.
+  // Specify cell data form for parsing.
   Form form = 8;
 }
 
@@ -224,6 +224,7 @@ enum Mode {
   MODE_UNION_TYPE = 4;  // Union type definition in sheet.
 }
 
+// Cell data form.
 enum Form {
   FORM_DEFAULT = 0;  // Default form which confgen parser defines.
   FORM_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec

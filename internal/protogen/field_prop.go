@@ -7,6 +7,7 @@ import (
 
 var emptyFieldProp = &tableaupb.FieldProp{}
 
+// ExtractMapFieldProp extracts the specified props which the map field recognizes.
 func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil
@@ -23,6 +24,7 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	return p
 }
 
+// ExtractListFieldProp extracts the specified props which the list field recognizes.
 func ExtractListFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil
@@ -39,6 +41,21 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	return p
 }
 
+// ExtractStructFieldProp extracts the specified props which the struct field recognizes.
+func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
+	if prop == nil {
+		return nil
+	}
+	p := &tableaupb.FieldProp{
+		Form: prop.Form,
+	}
+	if proto.Equal(emptyFieldProp, p) {
+		return nil
+	}
+	return p
+}
+
+// ExtractScalarFieldProp extracts the specified props which the scalar field recognizes.
 func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil

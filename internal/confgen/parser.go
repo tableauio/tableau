@@ -19,6 +19,8 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -674,7 +676,7 @@ func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, re
 		}
 
 		newMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.Subsep)
+		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.opts.Subsep)
 		if err != nil {
 			return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct list")
 		}
@@ -797,7 +799,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell struct list")
 						return false, xerrors.WithMessageKV(err, kvs...)
 					}
-					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.opts.Sep); err != nil {
 						kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell struct list")
 						return false, xerrors.WithMessageKV(err, kvs...)
 					}
@@ -857,7 +859,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 							return false, xerrors.WithMessageKV(err, kvs...)
 						}
 					} else {
-						if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.Sep); err != nil {
+						if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.opts.Sep); err != nil {
 							kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "horizontal incell-struct list")
 							return false, xerrors.WithMessageKV(err, kvs...)
 						}
@@ -1048,7 +1050,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 			return false, xerrors.WithMessageKV(err, kvs...)
 		}
 
-		if present, err = sp.parseIncellStruct(structValue, cell.Data, field.opts.Sep); err != nil {
+		if present, err = sp.parseIncellStruct(structValue, cell.Data, field.opts.GetProp().GetForm(), field.opts.Sep); err != nil {
 			kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell struct")
 			return false, xerrors.WithMessageKV(err, kvs...)
 		}
@@ -1095,30 +1097,43 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 	}
 }
 
-func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellData, sep string) (present bool, err error) {
+func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellData string, form tableaupb.Form, sep string) (present bool, err error) {
 	if cellData == "" {
 		return false, nil
 	}
-	// If s does not contain sep and sep is not empty, Split returns a
-	// slice of length 1 whose only element is s.
-	splits := strings.Split(cellData, sep)
-	subMd := structValue.Message().Descriptor()
-	for i := 0; i < subMd.Fields().Len() && i < len(splits); i++ {
-		fd := subMd.Fields().Get(i)
-		// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
-		incell := splits[i]
-		value, fieldPresent, err := sp.parseFieldValue(fd, incell)
-		if err != nil {
+	switch form {
+	case tableaupb.Form_FORM_TEXT:
+		if err := prototext.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
 			return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct")
 		}
-		structValue.Message().Set(fd, value)
-		if fieldPresent {
-			// The struct is treated as present only if one field is present.
-			present = true
-			structValue.Message().Set(fd, value)
+		return true, nil
+	case tableaupb.Form_FORM_JSON:
+		if err := protojson.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
+			return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct")
 		}
+		return true, nil
+	default:
+		// If s does not contain sep and sep is not empty, Split returns a
+		// slice of length 1 whose only element is s.
+		splits := strings.Split(cellData, sep)
+		md := structValue.Message().Descriptor()
+		for i := 0; i < md.Fields().Len() && i < len(splits); i++ {
+			fd := md.Fields().Get(i)
+			// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
+			incell := splits[i]
+			value, fieldPresent, err := sp.parseFieldValue(fd, incell)
+			if err != nil {
+				return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct")
+			}
+			structValue.Message().Set(fd, value)
+			if fieldPresent {
+				// The struct is treated as present only if one field is present.
+				present = true
+				structValue.Message().Set(fd, value)
+			}
+		}
+		return present, nil
 	}
-	return present, nil
 }
 
 func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
@@ -1228,7 +1243,7 @@ func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Messa
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		// incell struct
 		value := msg.NewField(field.fd)
-		present, err := sp.parseIncellStruct(value, cellData, field.opts.Sep)
+		present, err := sp.parseIncellStruct(value, cellData, field.opts.GetProp().GetForm(), field.opts.Sep)
 		if err != nil {
 			return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell struct")
 		}

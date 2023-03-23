@@ -194,6 +194,7 @@ func (Mode) EnumDescriptor() ([]byte, []int) {
 	return file_tableau_protobuf_tableau_proto_rawDescGZIP(), []int{2}
 }
 
+// Cell data form.
 type Form int32
 
 const (
@@ -839,9 +840,9 @@ type FieldProp struct {
 	//  - list size is detected by size of the max present list elements in name row.
 	//  - map size is detected by size of the max present map items in name row.
 	Fixed bool `protobuf:"varint,6,opt,name=fixed,proto3" json:"fixed,omitempty"`
-	// Explicitly specify fixed size of horizontal list or map.
+	// Specify fixed size of horizontal list or map.
 	Size uint32 `protobuf:"varint,7,opt,name=size,proto3" json:"size,omitempty"`
-	// Cell's data form for parsing.
+	// Specify cell data form for parsing.
 	Form Form `protobuf:"varint,8,opt,name=form,proto3,enum=tableau.Form" json:"form,omitempty"`
 }
 

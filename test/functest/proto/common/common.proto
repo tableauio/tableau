@@ -84,3 +84,15 @@ message Target {
     // no field tag 3
   }
 }
+
+message Vector3 {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+message Transform {
+  Vector3 position = 1;
+  Vector3 rotation = 2;
+  Vector3 scale = 3;
+}

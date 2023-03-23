@@ -680,6 +680,14 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 	trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 	// struct syntax pattern
 	desc := types.MatchStruct(typeCell)
+	prop, err := desc.Prop.FieldProp()
+	if err != nil {
+		return cursor, xerrors.WithMessageKV(err,
+			xerrors.KeyPBFieldType, desc.StructType,
+			xerrors.KeyPBFieldOpts, desc.Prop.Text,
+			xerrors.KeyTrimmedNameCell, trimmedNameCell)
+	}
+
 	if desc.ColumnType == "" {
 		// incell predefined struct
 		structField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.StructType)
@@ -691,6 +699,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		}
 		proto.Merge(field, structField)
 		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
+		field.Options.Prop = ExtractStructFieldProp(prop)
 		return cursor, nil
 	}
 
@@ -708,6 +717,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		}
 		proto.Merge(field, scalarField)
 		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
+		field.Options.Prop = ExtractStructFieldProp(prop)
 
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
@@ -773,6 +783,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		field.Name = strcase.ToSnake(structName)
 		field.Options = &tableaupb.FieldOptions{
 			Name: structName,
+			Prop: ExtractStructFieldProp(prop),
 		}
 		prefix += structName
 		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
