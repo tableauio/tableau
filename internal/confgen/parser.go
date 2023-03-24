@@ -1145,6 +1145,24 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		structValue = msg.NewField(field.fd)
 	}
 
+	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+		colName := prefix + field.opts.Name
+		// incell union
+		cell, err := rc.Cell(colName, field.opts.Optional)
+		if err != nil {
+			kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell union")
+			return false, xerrors.WithMessageKV(err, kvs...)
+		}
+		if present, err = sp.parseIncellUnion(structValue, cell.Data, field.opts.GetProp().GetForm()); err != nil {
+			kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "incell union")
+			return false, xerrors.WithMessageKV(err, kvs...)
+		}
+		if present {
+			msg.Set(field.fd, structValue)
+		}
+		return present, nil
+	}
+
 	unionDesc := ExtractUnionDescriptor(field.fd.Message())
 	if unionDesc == nil {
 		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
@@ -1260,6 +1278,26 @@ func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Messa
 		}
 	}
 	return nil
+}
+
+func (sp *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData string, form tableaupb.Form) (present bool, err error) {
+	if cellData == "" {
+		return false, nil
+	}
+	switch form {
+	case tableaupb.Form_FORM_TEXT:
+		if err := prototext.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
+			return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell union")
+		}
+		return true, nil
+	case tableaupb.Form_FORM_JSON:
+		if err := protojson.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
+			return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "incell union")
+		}
+		return true, nil
+	default:
+		return false, xerrors.ErrorKV("illegal cell data form: "+form.String(), xerrors.KeyPBFieldType, "incell union")
+	}
 }
 
 func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
