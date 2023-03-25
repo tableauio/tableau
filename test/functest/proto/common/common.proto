@@ -40,10 +40,10 @@ message Target {
     option (tableau.oneof) = {
       field: "Field"
     };
-    Pvp pvp = 1;      // Binded to enum value 1: TYPE_PVP.
-    Pve pve = 2;      // Binded to enum value 2: TYPE_PVP.
-    Story story = 3;  // Binded to enum value 3: TYPE_STORY.
-    Skill skill = 4;  // Binded to enum value 4: TYPE_SKILL.
+    Pvp pvp = 1;      // Bound to enum value 1: TYPE_PVP.
+    Pve pve = 2;      // Bound to enum value 2: TYPE_PVP.
+    Story story = 3;  // Bound to enum value 3: TYPE_STORY.
+    Skill skill = 4;  // Bound to enum value 4: TYPE_SKILL.
   }
 
   enum Type {
