@@ -54,8 +54,8 @@ message TestIncellMap {
 message TestTarget {
   Type type = 9999;
   oneof value {
-    Pvp pvp = 1;  // Binded to enum value 1: TYPE_PVP.
-    Pve pve = 2;  // Binded to enum value 2: TYPE_PVP.
+    Pvp pvp = 1;  // Bound to enum value 1: TYPE_PVP.
+    Pve pve = 2;  // Bound to enum value 2: TYPE_PVP.
   }
 
   enum Type {
