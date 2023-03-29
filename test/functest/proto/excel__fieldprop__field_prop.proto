@@ -44,5 +44,6 @@ message ScalarFieldProp {
       string color = 1 [(tableau.field) = {name:"Color"}];
       string shape = 2 [(tableau.field) = {name:"Shape"}];
     }
+    int32 buff_id_1 = 4 [(tableau.field) = {name:"BuffID1"}, json_name="buff_id_1"];
   }
 }

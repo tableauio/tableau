@@ -7,6 +7,48 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func TestIsEmptyFieldProp(t *testing.T) {
+	type args struct {
+		prop *tableaupb.FieldProp
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "nilMapFieldProp",
+			args: args{
+				prop: nil,
+			},
+			want: false,
+		},
+		{
+			name: "emptyMapFieldProp",
+			args: args{
+				prop: &tableaupb.FieldProp{},
+			},
+			want: true,
+		},
+		{
+			name: "noneEmptyMapFieldProp",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					JsonName: "json_name",
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsEmptyFieldProp(tt.args.prop); got != tt.want {
+				t.Errorf("IsEmptyFieldProp() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestExtractMapFieldProp(t *testing.T) {
 	type args struct {
 		prop *tableaupb.FieldProp

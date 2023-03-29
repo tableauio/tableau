@@ -1,4 +1,4 @@
-ID,Prop1ID,Prop1Flavor,Prop2ID,Prop2Flavor,AppearanceColor,AppearanceShape
-"map<uint32, Item>|{refer:""ItemConf.ID"" range: ""1,100"" sequence: 1 unique:true}","[Prop]int32|{range:""1,10"" fixed:true}",string,int32,string,{Appearance}string,string
-Item1's ID,Prop1's ID,Prop1's flavor,Prop2's ID,Prop2's flavor,Appearance color,Appearance shape
-1,1,sour,2,sweet,red,round
+ID,Prop1ID,Prop1Flavor,Prop2ID,Prop2Flavor,AppearanceColor,AppearanceShape,BuffID1
+"map<uint32, Item>|{refer:""ItemConf.ID"" range: ""1,100"" sequence: 1 unique:true}","[Prop]int32|{range:""1,10"" fixed:true}",string,int32,string,{Appearance}string,string,"int32|{json_name:""buff_id_1""}"
+Item1's ID,Prop1's ID,Prop1's flavor,Prop2's ID,Prop2's flavor,Appearance color,Appearance shape,Buff ID1
+1,1,sour,2,sweet,red,round,100
