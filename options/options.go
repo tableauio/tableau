@@ -238,10 +238,10 @@ type ConfOutputOption struct {
 
 	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
 	// field names.
-	UseProtoNames bool
+	UseProtoNames bool `yaml:"useProtoNames"`
 
 	// UseEnumNumbers emits enum values as numbers.
-	UseEnumNumbers bool
+	UseEnumNumbers bool `yaml:"useEnumNumbers"`
 }
 
 // Option is the functional option type.

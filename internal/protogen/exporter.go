@@ -161,26 +161,7 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 		label = "optional "
 	}
 
-	jsonName := ""
-	// remember and then clear protobuf built-in options
-	if field.Options.Prop != nil {
-		jsonName = field.Options.Prop.JsonName
-		field.Options.Prop.JsonName = ""
-
-		// set nil if field prop is empty
-		if IsEmptyFieldProp(field.Options.Prop) {
-			field.Options.Prop = nil
-		}
-	}
-
-	// compose this field options
-	fieldOpt := " [(tableau.field) = {" + marshalToText(field.Options) + "}"
-	if jsonName != "" {
-		fieldOpt += `, json_name="` + jsonName + `"`
-	}
-	fieldOpt += "]"
-
-	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, fieldOpt, ";")
+	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " ", genFieldOptionsString(field.Options), ";")
 
 	// if field.FullType == "google.protobuf.Timestamp" {
 	// 	x.Imports[timestampProtoPath] = true
@@ -232,6 +213,28 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 		}
 	}
 	return nil
+}
+
+func genFieldOptionsString(opts *tableaupb.FieldOptions) string {
+	jsonName := ""
+	// remember and then clear protobuf built-in options
+	if opts.Prop != nil {
+		jsonName = opts.Prop.JsonName
+		opts.Prop.JsonName = ""
+
+		// set nil if field prop is empty
+		if IsEmptyFieldProp(opts.Prop) {
+			opts.Prop = nil
+		}
+	}
+
+	// compose this field options
+	fieldOpts := "[(tableau.field) = {" + marshalToText(opts) + "}"
+	if jsonName != "" {
+		fieldOpts += `, json_name="` + jsonName + `"`
+	}
+	fieldOpts += "]"
+	return fieldOpts
 }
 
 func marshalToText(m protoreflect.ProtoMessage) string {
