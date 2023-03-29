@@ -38,10 +38,10 @@ func Ext2Format(ext string) Format {
 		return XML
 	case JSONExt:
 		return JSON
-	case TextExt:
-		return Text
 	case BinExt:
 		return Bin
+	case TextExt:
+		return Text
 	default:
 		return UnknownFormat
 	}
@@ -57,10 +57,10 @@ func Format2Ext(fmt Format) string {
 		return XMLExt
 	case JSON:
 		return JSONExt
-	case Text:
-		return TextExt
 	case Bin:
 		return BinExt
+	case Text:
+		return TextExt
 	default:
 		return UnknownExt
 	}

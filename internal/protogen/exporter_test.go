@@ -49,6 +49,18 @@ func Test_genFieldOptionsString(t *testing.T) {
 			},
 			want: `[(tableau.field) = {name:"ItemID" prop:{unique:true}}, json_name="item_id_1"]`,
 		},
+		{
+			name: "name-and-prop-json_name",
+			args: args{
+				opts: &tableaupb.FieldOptions{
+					Name: "ItemID",
+					Prop: &tableaupb.FieldProp{
+						JsonName: "item_id_1",
+					},
+				},
+			},
+			want: `[(tableau.field) = {name:"ItemID"}, json_name="item_id_1"]`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
