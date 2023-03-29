@@ -4,7 +4,7 @@ import "fmt"
 
 const (
 	App     = "protogen"
-	Version = "0.4.3"
+	Version = "0.5.0"
 )
 
 func AppVersion() string {

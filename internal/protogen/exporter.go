@@ -160,7 +160,8 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 	if x.ws.Options != nil && x.ws.Options.FieldPresence && types.IsScalarType(field.FullType) {
 		label = "optional "
 	}
-	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " [(tableau.field) = {", marshalToText(field.Options), "}];")
+
+	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " ", genFieldOptionsString(field.Options), ";")
 
 	// if field.FullType == "google.protobuf.Timestamp" {
 	// 	x.Imports[timestampProtoPath] = true
@@ -212,6 +213,28 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 		}
 	}
 	return nil
+}
+
+func genFieldOptionsString(opts *tableaupb.FieldOptions) string {
+	jsonName := ""
+	// remember and then clear protobuf built-in options
+	if opts.Prop != nil {
+		jsonName = opts.Prop.JsonName
+		opts.Prop.JsonName = ""
+
+		// set nil if field prop is empty
+		if IsEmptyFieldProp(opts.Prop) {
+			opts.Prop = nil
+		}
+	}
+
+	// compose this field options
+	fieldOpts := "[(tableau.field) = {" + marshalToText(opts) + "}"
+	if jsonName != "" {
+		fieldOpts += `, json_name="` + jsonName + `"`
+	}
+	fieldOpts += "]"
+	return fieldOpts
 }
 
 func marshalToText(m protoreflect.ProtoMessage) string {

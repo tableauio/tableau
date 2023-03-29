@@ -15,7 +15,8 @@
             "appearance":  {
                 "color":  "red",
                 "shape":  "round"
-            }
+            },
+            "buff_id_1":  100
         }
     }
 }

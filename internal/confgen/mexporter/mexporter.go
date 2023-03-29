@@ -90,12 +90,13 @@ func (x *messageExporter) export(fmt format.Format) error {
 }
 
 func (x *messageExporter) marshalToJSON() (out []byte, err error) {
-	emitUnpopulated := x.outputOpt.EmitUnpopulated
 	if x.outputOpt.Pretty {
 		opts := protojson.MarshalOptions{
 			Multiline:       true,
 			Indent:          "    ",
-			EmitUnpopulated: emitUnpopulated,
+			EmitUnpopulated: x.outputOpt.EmitUnpopulated,
+			UseProtoNames:   x.outputOpt.UseProtoNames,
+			UseEnumNumbers:  x.outputOpt.UseEnumNumbers,
 		}
 		return opts.Marshal(x.msg)
 	}
