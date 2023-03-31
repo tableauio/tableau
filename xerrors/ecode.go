@@ -93,3 +93,8 @@ func E2010(typeValue, fieldNumber interface{}) error {
 		"FieldNumber": fieldNumber,
 	})
 }
+
+// E2011 describes field presence required but cell not filled.
+func E2011() error {
+	return renderEcode("E2011", nil)
+}

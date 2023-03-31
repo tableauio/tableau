@@ -192,6 +192,9 @@ message FieldProp {
   // will be used. Otherwise, it's deduced from the field's name by converting
   // it to camelCase.
   string json_name = 9;
+  // Must fill cell data explictly if present is true, otherwise
+  // an error will be reported.
+  bool present = 10;
 }
 
 // Layout of list and map.

@@ -1329,11 +1329,16 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 		return v, present, err
 	}
 
-	// check range
-	if err := prop.CheckInRange(fprop, fd, v); err != nil {
-		return v, present, err
-	}
 	if fprop != nil {
+		// check presence
+		if err := prop.CheckPresence(fprop, present); err != nil {
+			return v, present, err
+		}
+		// check range
+		if err := prop.CheckInRange(fprop, fd, v, present); err != nil {
+			return v, present, err
+		}
+		// check refer
 		// NOTE: if use NewSheetParser, sp.gen is nil, which means Generator is not provided.
 		if fprop.Refer != "" && sp.gen != nil {
 			input := &prop.Input{
@@ -1341,8 +1346,9 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 				InputDir:       sp.gen.InputDir,
 				SubdirRewrites: sp.gen.InputOpt.SubdirRewrites,
 				PRFiles:        sp.gen.prFiles,
+				Present:        present,
 			}
-			ok, err := prop.InReferredSpace(fprop.Refer, rawValue, input)
+			ok, err := prop.InReferredSpace(fprop, rawValue, input)
 			if err != nil {
 				return v, present, err
 			}

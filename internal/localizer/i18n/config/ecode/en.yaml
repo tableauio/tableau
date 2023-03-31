@@ -44,4 +44,8 @@ E2010:
   desc: union type has no corresponding value field
   text: 'union type "{{.TypeValue}}" has no corresponding value field with number "{{.FieldNumber}}"'
   help: 'add new union value field and bind it to type "{{.TypeValue}}"'
+E2011:
+  desc: field presence required but cell not filled
+  text: cell data is not filled explicitly
+  help: fill cell data explicitly
 # [3000, 3999]: importer error

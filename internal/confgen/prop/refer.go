@@ -3,6 +3,7 @@ package prop
 import (
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/emirpasic/gods/sets/hashset"
@@ -119,6 +120,7 @@ type Input struct {
 	InputDir       string
 	SubdirRewrites map[string]string
 	PRFiles        *protoregistry.Files
+	Present        bool // field presence
 }
 
 func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
@@ -199,11 +201,19 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	return valueSpace, nil
 }
 
-func InReferredSpace(refer string, cellData string, input *Input) (bool, error) {
-	loadFunc := func() (*ValueSpace, error) {
-		return loadValueSpace(refer, input)
+func InReferredSpace(prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
+	if prop == nil || strings.TrimSpace(prop.Refer) == "" {
+		return true, nil
 	}
-	ok, err := referredCache.ExistsValue(refer, cellData, loadFunc)
+	// not present, and presence not required
+	if !input.Present && !prop.Present {
+		return true, nil
+	}
+
+	loadFunc := func() (*ValueSpace, error) {
+		return loadValueSpace(prop.Refer, input)
+	}
+	ok, err := referredCache.ExistsValue(prop.Refer, cellData, loadFunc)
 	if err != nil {
 		return false, err
 	}

@@ -19,8 +19,12 @@ func CheckKeyUnique(prop *tableaupb.FieldProp, key string, existed bool) error {
 	return nil
 }
 
-func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value) error {
+func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value, present bool) error {
 	if prop == nil || strings.TrimSpace(prop.Range) == "" {
+		return nil
+	}
+	// not present, and presence not required
+	if !present && !prop.Present {
 		return nil
 	}
 	splits := strings.SplitN(prop.Range, ",", 2)
@@ -164,4 +168,13 @@ func GetSize(prop *tableaupb.FieldProp, detectedSize int) int {
 		}
 	}
 	return 0
+}
+
+func CheckPresence(prop *tableaupb.FieldProp, present bool) error {
+	if prop != nil && prop.Present {
+		if !present {
+			return xerrors.E2011()
+		}
+	}
+	return nil
 }
