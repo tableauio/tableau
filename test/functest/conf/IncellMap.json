@@ -1,7 +1,9 @@
 {
     "itemsMap":  {
+        "0":  "Peach",
         "1":  "Apple",
         "2":  "Orange",
-        "3":  "Banana"
+        "3":  "Banana",
+        "4":  ""
     }
 }

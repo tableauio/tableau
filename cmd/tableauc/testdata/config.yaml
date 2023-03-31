@@ -3,8 +3,6 @@ locationName: Asia/Shanghai
 log:
   level: INFO
   mode: SIMPLE
-  filename: testdata/_log.txt
-  sink: MULTI
 proto:
   input:
     header:
@@ -20,7 +18,7 @@ proto:
     filenameWithSubdirPrefix: false
     filenameSuffix: _conf
     fileOptions:
-      go_package: github.com/tableauio/tableau/testpb
+      go_package: github.com/tableauio/tableau/protoconf
 conf:
   input:
     protoPaths: ["testdata/_proto/", "."]

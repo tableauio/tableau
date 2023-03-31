@@ -16,7 +16,12 @@
                 "color":  "red",
                 "shape":  "round"
             },
-            "buff_id_1":  100
+            "buff_id_1":  100,
+            "awardIdList":  [
+                1,
+                2,
+                3
+            ]
         }
     }
 }
