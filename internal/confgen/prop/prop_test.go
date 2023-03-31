@@ -132,3 +132,48 @@ func TestIsFixed(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckPresence(t *testing.T) {
+	type args struct {
+		prop    *tableaupb.FieldProp
+		present bool
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "without-prop",
+			args: args{
+				present: false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "without-prop-present-set",
+			args: args{
+				prop:    &tableaupb.FieldProp{},
+				present: true,
+			},
+			wantErr: false,
+		},
+		{
+			name: "with-prop-present-set-as-true",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Present: true,
+				},
+				present: false,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CheckPresence(tt.args.prop, tt.args.present); (err != nil) != tt.wantErr {
+				t.Errorf("CheckPresence() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

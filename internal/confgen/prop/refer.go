@@ -20,11 +20,11 @@ import (
 
 var referRegexp *regexp.Regexp
 
-const identifierGroup = `(\w+)`
-const aliasGroup = `(\(\w+\))?` // e.g.: (ItemConf)
-
 func init() {
-	referRegexp = regexp.MustCompile(identifierGroup + aliasGroup + `.` + identifierGroup) // e.g.: Item(ItemConf)
+	// e.g.:
+	// - Item(ItemConf).ID
+	// - Item-(Award)(ItemConf).ID
+	referRegexp = regexp.MustCompile(`(?P<Sheet>.+?)` + `(\((?P<Alias>\w+)\))?` + `\.` + `(?P<Column>\w+)`)
 
 	referredCache = NewReferredCache()
 }
@@ -90,29 +90,37 @@ func (r *ReferredCache) Put(refer string, valueSpace *ValueSpace) {
 	r.references[refer] = valueSpace
 }
 
-type ReferInfo struct {
+type ReferDesc struct {
 	Sheet  string // sheet name in workbook.
 	Alias  string // sheet alias: if set, used as protobuf message name.
 	Column string // sheet column name in name row.
 }
 
-func (r *ReferInfo) GetMessageName() string {
+func (r *ReferDesc) GetMessageName() string {
 	if r.Alias != "" {
 		return r.Alias
 	}
 	return r.Sheet
 }
 
-func parseRefer(text string) (*ReferInfo, error) {
-	groups := referRegexp.FindStringSubmatch(text)
-	if len(groups) == 0 {
+func parseRefer(text string) (*ReferDesc, error) {
+	match := referRegexp.FindStringSubmatch(text)
+	if match == nil {
 		return nil, xerrors.Errorf("invalid refer pattern: %s", text)
 	}
-	return &ReferInfo{
-		Sheet:  groups[1],
-		Alias:  groups[2],
-		Column: groups[3],
-	}, nil
+	desc := &ReferDesc{}
+	for i, name := range referRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "Sheet":
+			desc.Sheet = value
+		case "Alias":
+			desc.Alias = value
+		case "Column":
+			desc.Column = value
+		}
+	}
+	return desc, nil
 }
 
 type Input struct {

@@ -849,7 +849,7 @@ type FieldProp struct {
 	// will be used. Otherwise, it's deduced from the field's name by converting
 	// it to camelCase.
 	JsonName string `protobuf:"bytes,9,opt,name=json_name,json=jsonName,proto3" json:"json_name,omitempty"`
-	// Must fill cell data explictly if present is true, otherwise
+	// Must fill cell data explicitly if present is true, otherwise
 	// an error will be reported.
 	Present bool `protobuf:"varint,10,opt,name=present,proto3" json:"present,omitempty"`
 }
