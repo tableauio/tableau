@@ -34,57 +34,29 @@ func NewLogger(mode, level, filename, sink string) (*zap.Logger, error) {
 
 // newConsoleLogger set the console log level and mode for debugging.
 func newConsoleLogger(mode, level string) (*zap.Logger, error) {
-	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
+	core, err := createConsoleZapCore(mode, level)
 	if err != nil {
 		return nil, err
 	}
-	ws := createConsoleWriter()
-	core := zapcore.NewCore(
-		modeEncoder(),
-		ws,
-		zapLevel,
-	)
 	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)), nil
 }
 
 // newFileLogger set the file log level and filename for debugging.
 func newFileLogger(mode, level, filename string) (*zap.Logger, error) {
-	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
+	core, err := createFileZapCore(mode, level, filename)
 	if err != nil {
 		return nil, err
 	}
-	ws, err := createFileWriter(filename)
-	if err != nil {
-		return nil, fmt.Errorf("create file logger failed: %s", err)
-	}
-	core := zapcore.NewCore(
-		modeEncoder(),
-		ws,
-		zapLevel,
-	)
 	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)), nil
 }
 
 // newMultiLogger set the log mode, level, filename for debugging.
 // The logger will print both to console and files.
 func newMultiLogger(mode, level, filename string) (*zap.Logger, error) {
-	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
+	core, err := createMultiZapCore(mode, level, filename)
 	if err != nil {
 		return nil, err
 	}
-	consoleSyncer := createConsoleWriter()
-	fileSyncer, err := createFileWriter(filename)
-	if err != nil {
-		return nil, fmt.Errorf("create file logger failed: %s", err)
-	}
-	core := zapcore.NewCore(
-		modeEncoder(),
-		zapcore.NewMultiWriteSyncer(
-			consoleSyncer,
-			fileSyncer,
-		),
-		zapLevel,
-	)
 	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(SkipUntilTrueCaller)), nil
 }
 
@@ -100,11 +72,81 @@ func getEncoderAndLevel(mode, level string) (LogModeEncoder, zapcore.Level, erro
 	return modeEncoder, zapLevel, nil
 }
 
-func createConsoleWriter() zapcore.WriteSyncer {
-	return zapcore.AddSync(os.Stdout)
+func createConsoleZapCore(mode, level string) (zapcore.Core, error) {
+	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
+	if err != nil {
+		return nil, err
+	}
+	// stdout level enabler
+	stdoutLevel := zap.LevelEnablerFunc(func(level zapcore.Level) bool {
+		return level >= zapLevel && level <= zapcore.InfoLevel
+	})
+
+	// stderr level enabler
+	stderrLevel := zap.LevelEnablerFunc(func(level zapcore.Level) bool {
+		return level >= zapLevel && level >= zapcore.ErrorLevel
+	})
+
+	// write syncers
+	stdoutSyncer := zapcore.Lock(os.Stdout)
+	stderrSyncer := zapcore.Lock(os.Stderr)
+
+	// tee core
+	core := zapcore.NewTee(
+		zapcore.NewCore(
+			modeEncoder(),
+			stdoutSyncer,
+			stdoutLevel,
+		),
+		zapcore.NewCore(
+			modeEncoder(),
+			stderrSyncer,
+			stderrLevel,
+		),
+	)
+	return core, nil
+}
+
+func createFileZapCore(mode, level, filename string) (zapcore.Core, error) {
+	modeEncoder, zapLevel, err := getEncoderAndLevel(mode, level)
+	if err != nil {
+		return nil, err
+	}
+	ws, err := createFileWriter(filename)
+	if err != nil {
+		return nil, fmt.Errorf("create file logger failed: %s", err)
+	}
+	core := zapcore.NewCore(
+		modeEncoder(),
+		ws,
+		zapLevel,
+	)
+	return core, nil
+}
+
+func createMultiZapCore(mode, level, filename string) (zapcore.Core, error) {
+	consoleZapCore, err := createConsoleZapCore(mode, level)
+	if err != nil {
+		return nil, err
+	}
+
+	fileZapCore, err := createFileZapCore(mode, level, filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// tee core
+	core := zapcore.NewTee(
+		consoleZapCore,
+		fileZapCore,
+	)
+	return core, nil
 }
 
 func createFileWriter(filename string) (zapcore.WriteSyncer, error) {
+	if strings.TrimSpace(filename) == "" {
+		return nil, fmt.Errorf("log filename can not be empty")
+	}
 	logger, err := createLumberjackLogger(filename)
 	if err != nil {
 		return nil, fmt.Errorf("create lumberjack logger failed: %s", err)
