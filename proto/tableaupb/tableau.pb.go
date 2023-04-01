@@ -824,15 +824,16 @@ type FieldProp struct {
 	// Ensure this field's value is in another sheet's
 	// column value space (aka message's field value space).
 	//
-	// Format: "SheetName(SheetAlias).ColumnName"
+	// Format: "SheetName.ColumnName" or "SheetName(SheetAlias).ColumnName"
 	//
 	// Example:
-	//  - "Item.ID" : sheet name is unique.
-	//  - "Item(ItemConf).ID" : different workbooks have the same sheet name,
-	//    but sheet alias is unique inherently.
+	//  - "SheetName.ColumnName": e.g. "Item.ID", without sheet alias, and
+	//    the sheet name is the generated protobuf message name.
+	//  - "SheetName(SheetAlias).ColumnName": e.g. "Item(ItemConf).ID", with
+	//    sheet alias, and sheet alias is the generated protobuf message name.
 	Refer string `protobuf:"bytes,3,opt,name=refer,proto3" json:"refer,omitempty"`
 	// Ensure this field's value is a sequence and begins with this value.
-	// Mainly used for map key and list.
+	// Mainly used for map key and list element.
 	Sequence *int64 `protobuf:"varint,4,opt,name=sequence,proto3,oneof" json:"sequence,omitempty"`
 	// Specify custom default value of scalar field.
 	Default string `protobuf:"bytes,5,opt,name=default,proto3" json:"default,omitempty"`
