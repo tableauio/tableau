@@ -227,10 +227,11 @@ enum Mode {
   // UE DataTable references:
   //  - https://docs.unrealengine.com/5.1/en-US/data-driven-gameplay-elements-in-unreal-engine/
   //  - https://docs.unrealengine.com/5.1/en-US/BlueprintAPI/EditorScripting/DataTable/
-  MODE_UE_CSV = 1;      // CSV format of UE DataTable.
-  MODE_UE_JSON = 2;     // JSON format of UE DataTable.
-  MODE_ENUM_TYPE = 3;   // Enum type definition in sheet.
-  MODE_UNION_TYPE = 4;  // Union type definition in sheet.
+  MODE_UE_CSV = 1;       // CSV format of UE DataTable.
+  MODE_UE_JSON = 2;      // JSON format of UE DataTable.
+  MODE_ENUM_TYPE = 3;    // Enum type definition in sheet.
+  MODE_STRUCT_TYPE = 4;  // Struct type definition in sheet.
+  MODE_UNION_TYPE = 5;   // Union type definition in sheet.
 }
 
 // Cell data form.

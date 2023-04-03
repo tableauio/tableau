@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/pkg/errors"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/printer"
@@ -39,6 +40,10 @@ func newBookExporter(protoPackage string, protoFileOptions map[string]string, ou
 	}
 }
 
+func (x *bookExporter) GetProtoFileRelPath() string {
+	return x.wb.Name + x.ProtoFilenameSuffix + ".proto"
+}
+
 func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	// log.Debug(proto.MarshalTextString(wb))
 	g1 := NewGeneratedBuf()
@@ -56,6 +61,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	g3 := NewGeneratedBuf()
 	for i, ws := range x.wb.Worksheets {
 		x := &sheetExporter{
+			be:             x,
 			ws:             ws,
 			g:              g3,
 			isLastSheet:    i == len(x.wb.Worksheets)-1,
@@ -83,7 +89,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	g2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
 	g2.P("")
 
-	relPath := x.wb.Name + x.ProtoFilenameSuffix + ".proto"
+	relPath := x.GetProtoFileRelPath()
 	path := filepath.Join(x.OutputDir, relPath)
 	log.Infof("%18s: %s", "generated proto", relPath)
 
@@ -127,6 +133,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 }
 
 type sheetExporter struct {
+	be          *bookExporter
 	ws          *tableaupb.Worksheet
 	g           *GeneratedBuf
 	isLastSheet bool
@@ -137,6 +144,32 @@ type sheetExporter struct {
 }
 
 func (x *sheetExporter) export() error {
+	mode := x.ws.GetOptions().GetMode()
+	switch x.ws.Options.Mode {
+	case tableaupb.Mode_MODE_DEFAULT:
+		return x.exportStruct()
+	case tableaupb.Mode_MODE_ENUM_TYPE:
+		return x.exportEnum()
+	default:
+		return errors.Errorf("unknown mode: %d", mode)
+	}
+}
+
+func (x *sheetExporter) exportEnum() error {
+	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
+	x.g.P("enum ", x.ws.Name, " {")
+	// generate the enum value fields
+	for _, field := range x.ws.Fields {
+		x.g.P("  ", field.Name, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
+	}
+	x.g.P("}")
+	if !x.isLastSheet {
+		x.g.P("")
+	}
+	return nil
+}
+
+func (x *sheetExporter) exportStruct() error {
 	x.g.P("message ", x.ws.Name, " {")
 	x.g.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
 	x.g.P("")
@@ -185,7 +218,8 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 
 	if field.Predefined {
 		// NOTE: import corresponding message's custom defined proto file
-		if typeInfo := x.typeInfos.Get(typeName); typeInfo != nil {
+		if typeInfo := x.typeInfos.Get(typeName); typeInfo != nil &&
+			typeInfo.ParentFilename != x.be.GetProtoFileRelPath() {
 			x.Imports[typeInfo.ParentFilename] = true
 		}
 	} else {

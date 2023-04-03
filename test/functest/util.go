@@ -90,7 +90,7 @@ func genConf(logLevel string) error {
 		options.Conf(
 			&options.ConfOption{
 				Input: &options.ConfInputOption{
-					ProtoPaths: []string{"./_proto", "."},
+					ProtoPaths: []string{"./_proto"},
 					ProtoFiles: []string{"./_proto/*.proto"},
 					Formats: []format.Format{
 						// format.Excel,

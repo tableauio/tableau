@@ -31,6 +31,8 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 
 	var topN uint
 	if mode == Protogen {
+		// TODO: read all sheet rows if sheet mode is not default.
+		// map: sheet name -> topN
 		n, err := adjustTopN(file, parser, cloned)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to read book: %s", filename)

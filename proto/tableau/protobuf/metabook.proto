@@ -18,6 +18,7 @@ message Metabook {
 
   map<string, Metasheet> metasheet_map = 1 [(tableau.field).key = "Sheet"];
 }
+
 message Metasheet {
   string sheet = 1 [(tableau.field) = { name: "Sheet" optional: false }];
   string alias = 2 [(tableau.field) = { name: "Alias" optional: true }];
@@ -56,7 +57,7 @@ message Metasheet {
   bool template = 16 [(tableau.field) = { name: "Template" optional: true }];
   // Sheet mode.
   Mode mode = 17 [(tableau.field) = { name: "Mode" optional: true }];
-  // Scatter convert sheets separately with same schema.
+  // Scatter converts sheets separately with same schema.
   // each element is:
   // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
   //   then the sheet name is the same as this sheet.
@@ -85,4 +86,52 @@ message Metasheet {
   // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
   string index = 51 [(tableau.field) = { name: "Index" optional: true }];
+}
+
+// EnumDescriptor represents enum type definition in sheet.
+message EnumDescriptor {
+  option (tableau.worksheet) = {
+    namerow: 1
+    datarow: 2
+  };
+
+  repeated Value values = 1 [(tableau.field) = { layout: LAYOUT_VERTICAL }];
+  message Value {
+    int32 number = 1 [(tableau.field) = { name: "Number" }];
+    string name = 2 [(tableau.field) = { name: "Name" }];
+    string alias = 3 [(tableau.field) = { name: "Alias" }];
+  }
+}
+
+// StructDescriptor represents struct type definition in sheet.
+message StructDescriptor {
+  option (tableau.worksheet) = {
+    namerow: 1
+    datarow: 2
+  };
+
+  repeated Field fields = 1 [(tableau.field) = { layout: LAYOUT_VERTICAL }];
+  message Field {
+    int32 number = 1 [(tableau.field) = { name: "Number" }];
+    string name = 2 [(tableau.field) = { name: "Name" }];
+    string type = 3 [(tableau.field) = { name: "Type" }];
+  }
+}
+
+// UnionDescriptor represents union type definition in sheet.
+message UnionDescriptor {
+  option (tableau.worksheet) = {
+    namerow: 1
+    datarow: 2
+  };
+
+  repeated Value values = 1 [(tableau.field) = { layout: LAYOUT_VERTICAL }];
+  message Value {
+    int32 number = 1 [(tableau.field) = { name: "Number" }];
+    // this is message type name, and the corresponding enum value name
+    // is generated as: "TYPE_" + uppercase(name).
+    string name = 2 [(tableau.field) = { name: "Name" }];
+    string alias = 3 [(tableau.field) = { name: "Alias" }];
+    repeated string fields = 4 [(tableau.field) = { name: "Field" }];
+  }
 }

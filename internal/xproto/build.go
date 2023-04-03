@@ -2,6 +2,7 @@ package xproto
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
@@ -58,6 +59,10 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 		for _, match := range matches {
 			cleanSlashPath := fs.GetCleanSlashPath(match)
 			if !parsedExcludedProtoFiles[cleanSlashPath] {
+				for _, protoPath := range protoPaths {
+					cleanProtoPath := fs.GetCleanSlashPath(protoPath) + "/"
+					cleanSlashPath = strings.TrimPrefix(cleanSlashPath, cleanProtoPath)
+				}
 				parsedProtoFiles = append(parsedProtoFiles, cleanSlashPath)
 			}
 		}
@@ -112,8 +117,8 @@ func (x *TypeInfos) Put(info *TypeInfo) {
 }
 
 // Get retrieves type info by name in proto package.
-// It will auto prepend proto package to inputed name to 
-// generate the full name of type. 
+// It will auto prepend proto package to inputed name to
+// generate the full name of type.
 func (x *TypeInfos) Get(name string) *TypeInfo {
 	fullName := x.protoPackage + "." + name
 	return x.GetByFullName(fullName)

@@ -10,33 +10,38 @@ option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 import "tableau/protobuf/tableau.proto";
 
 message Workbook {
-  WorkbookOptions options = 1;
-  repeated Worksheet worksheets = 2;
-  string name = 3;
-  map<string, int32> imports = 4;  // imported proto files
+  string name = 1;
+  string alias = 2;
+  WorkbookOptions options = 3;
+  repeated Worksheet worksheets = 4;
+  map<string, int32> imports = 5;  // imported proto files
 }
 
 message Worksheet {
-  WorksheetOptions options = 1;
-  repeated Field fields = 2;
-  string name = 3;
+  string name = 1;
+  WorksheetOptions options = 2;
+  repeated Field fields = 3;
 }
 
 message Field {
-  string type = 1;
-  string full_type = 2;
-  ListEntry list_entry = 3;
-  MapEntry map_entry = 4;
+  int32 number = 1;
+  string name = 2;
+  string alias = 3;
+  // Field tag number
+  // Note: only for enum/struct/union type definition in sheet
+  string type = 4;
+  string full_type = 5;
+  ListEntry list_entry = 6;
+  MapEntry map_entry = 7;
   // Indicate this field's related type is predefined.
   // - enum: enum type
   // - struct: message type
   // - list: list's element type
   // - map: map's value type
-  bool predefined = 5;
-  string name = 6;
-  FieldOptions options = 7;
+  bool predefined = 8;
+  FieldOptions options = 9;
 
-  // This field is struct, list or map if fields's length is not 0.
+  // This field can be struct, list or map if sub fields's length is not 0.
   repeated Field fields = 10;
 
   message ListEntry {

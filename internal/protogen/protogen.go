@@ -7,7 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/excel"
@@ -15,6 +17,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -40,6 +43,10 @@ type Generator struct {
 	// internal
 	protofiles *protoregistry.Files // all parsed imported proto file descriptors.
 	typeInfos  *xproto.TypeInfos    // predefined type infos
+
+	cacheMu           sync.RWMutex                 // guard fields below
+	cachedImporters   map[string]importer.Importer // absolute file path -> importer
+	cachedBookParsers map[string]*bookParser       // absolute file path -> bookParser
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -55,6 +62,9 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		LocationName: opts.LocationName,
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
+
+		cachedImporters:   make(map[string]importer.Importer),
+		cachedBookParsers: make(map[string]*bookParser),
 	}
 
 	if opts.Proto.Input.MetasheetName != "" {
@@ -74,45 +84,6 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return g
 }
 
-func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
-	existed, err := fs.Exists(outdir)
-	if err != nil {
-		return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
-	}
-	if existed && delExisted {
-		// remove all *.proto file but not Imports
-		imports := make(map[string]int)
-		for _, path := range importFiles {
-			imports[path] = 1
-		}
-		files, err := os.ReadDir(outdir)
-		if err != nil {
-			return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
-		}
-		for _, file := range files {
-			if !strings.HasSuffix(file.Name(), ".proto") {
-				continue
-			}
-			if _, ok := imports[file.Name()]; ok {
-				continue
-			}
-			fpath := filepath.Join(outdir, file.Name())
-			err := os.Remove(fpath)
-			if err != nil {
-				return xerrors.WrapKV(err)
-			}
-		}
-	} else {
-		// create output dir
-		err = os.MkdirAll(outdir, 0700)
-		if err != nil {
-			return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
-		}
-	}
-
-	return nil
-}
-
 func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 	if len(relWorkbookPaths) == 0 {
 		return gen.GenAll()
@@ -125,6 +96,8 @@ func (gen *Generator) GenAll() error {
 	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ProtoFiles, true); err != nil {
 		return err
 	}
+
+	// first pass
 	if len(gen.InputOpt.Subdirs) != 0 {
 		for _, subdir := range gen.InputOpt.Subdirs {
 			dir := filepath.Join(gen.InputDir, subdir)
@@ -134,7 +107,13 @@ func (gen *Generator) GenAll() error {
 		}
 		return nil
 	}
-	return gen.generate(gen.InputDir)
+	err := gen.generate(gen.InputDir)
+	if err != nil {
+		return err
+	}
+
+	// second pass
+	return gen.processSecondPass()
 }
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
@@ -142,14 +121,40 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ProtoFiles, false); err != nil {
 		return err
 	}
-	var eg errgroup.Group
+
+	// first pass
+	var eg1 errgroup.Group
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-		eg.Go(func() error {
-			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false)
+		eg1.Go(func() error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass)
 		})
 	}
-	return eg.Wait()
+	if err := eg1.Wait(); err != nil {
+		return err
+	}
+
+	// second pass
+	return gen.processSecondPass()
+}
+
+func (gen *Generator) processSecondPass() error {
+	// second pass
+	gen.cacheMu.RLock()
+	absPaths := []string{}
+	for absPath, _ := range gen.cachedImporters {
+		absPaths = append(absPaths, absPath)
+	}
+	gen.cacheMu.RUnlock()
+
+	var eg2 errgroup.Group
+	for _, absPath := range absPaths {
+		absPath := absPath
+		eg2.Go(func() error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, secondPass)
+		})
+	}
+	return eg2.Wait()
 }
 
 func (gen *Generator) generate(dir string) (err error) {
@@ -222,64 +227,61 @@ func (gen *Generator) generate(dir string) (err error) {
 
 		filename := entry.Name()
 		eg.Go(func() error {
-			return gen.convertWithErrorModule(dir, filename, true)
+			return gen.convertWithErrorModule(dir, filename, true, firstPass)
 		})
 	}
 	return nil
 }
 
-func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
-	relativeDir, err := filepath.Rel(rootdir, dir)
-	if err != nil {
-		return "", xerrors.Errorf("failed to get relative path from %s to %s: %s", rootdir, dir, err)
-	}
-	// relative slash separated path
-	relativePath := filepath.Join(relativeDir, filename)
-	relSlashPath := filepath.ToSlash(filepath.Clean(relativePath))
-	return relSlashPath, nil
+func (gen *Generator) addImporter(absPath string, imp importer.Importer) {
+	gen.cacheMu.Lock()
+	defer gen.cacheMu.Unlock()
+	gen.cachedImporters[absPath] = imp
 }
 
-// mergeHeaderOptions merge from options.HeaderOption to tableaupb.Metasheet.
-func mergeHeaderOptions(sheetMeta *tableaupb.Metasheet, headerOpt *options.HeaderOption) {
-	if sheetMeta.Namerow == 0 {
-		sheetMeta.Namerow = headerOpt.Namerow
-	}
-	if sheetMeta.Typerow == 0 {
-		sheetMeta.Typerow = headerOpt.Typerow
-	}
-	if sheetMeta.Noterow == 0 {
-		sheetMeta.Noterow = headerOpt.Noterow
-	}
-	if sheetMeta.Datarow == 0 {
-		sheetMeta.Datarow = headerOpt.Datarow
-	}
-	if sheetMeta.Nameline == 0 {
-		sheetMeta.Nameline = headerOpt.Nameline
-	}
-	if sheetMeta.Typeline == 0 {
-		sheetMeta.Typeline = headerOpt.Typeline
-	}
+func (gen *Generator) getImporter(absPath string) importer.Importer {
+	gen.cacheMu.RLock()
+	defer gen.cacheMu.RUnlock()
+	return gen.cachedImporters[absPath]
 }
 
-func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFileConflicts bool) error {
-	if err := gen.convert(dir, filename, checkProtoFileConflicts); err != nil {
+func (gen *Generator) addBookParser(absPath string, parser *bookParser) {
+	gen.cacheMu.Lock()
+	defer gen.cacheMu.Unlock()
+	gen.cachedBookParsers[absPath] = parser
+}
+
+func (gen *Generator) getBookParser(absPath string) *bookParser {
+	gen.cacheMu.RLock()
+	defer gen.cacheMu.RUnlock()
+	return gen.cachedBookParsers[absPath]
+}
+
+func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFileConflicts bool, pass parsePass) error {
+	if err := gen.convert(dir, filename, checkProtoFileConflicts, pass); err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 	}
 	return nil
 }
 
-func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool) (err error) {
+func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
 	absPath := filepath.Join(dir, filename)
-	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
-	imp, err := importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
-	if err != nil {
-		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
+	var imp importer.Importer
+	if pass == firstPass {
+		parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
+		imp, err = importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
+		if err != nil {
+			return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
+		}
+		if len(imp.GetSheets()) == 0 {
+			return nil
+		}
+		// cache this new importer
+		gen.addImporter(absPath, imp)
+	} else {
+		imp = gen.getImporter(absPath)
 	}
 
-	sheets := imp.GetSheets()
-	if len(sheets) == 0 {
-		return nil
-	}
 	basename := filepath.Base(imp.Filename())
 	relativePath, err := getRelCleanSlashPath(gen.InputDir, dir, basename)
 	if err != nil {
@@ -291,10 +293,22 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	if rewrittenWorkbookName != relativePath {
 		debugWorkbookName += " (rewrite: " + rewrittenWorkbookName + ")"
 	}
-	log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugWorkbookName, len(sheets))
-	// create a book parser
-	bp := newBookParser(imp.BookName(), rewrittenWorkbookName, gen)
-	for _, sheet := range sheets {
+
+	if pass == firstPass {
+		log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugWorkbookName, len(imp.GetSheets()))
+	}
+
+	var bp *bookParser
+	if pass == firstPass {
+		// create a book parser
+		bp = newBookParser(imp.BookName(), rewrittenWorkbookName, gen)
+		// cache this new bookParser
+		gen.addBookParser(absPath, bp)
+	} else {
+		bp = gen.getBookParser(absPath)
+	}
+
+	for _, sheet := range imp.GetSheets() {
 		// parse sheet header
 		debugSheetName := sheet.Name
 		sheetMsgName := sheet.Name
@@ -302,7 +316,6 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 			sheetMsgName = sheet.Meta.Alias
 			debugSheetName += " (alias: " + sheet.Meta.Alias + ")"
 		}
-		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 		mergeHeaderOptions(sheet.Meta, gen.InputOpt.Header)
 		ws := &tableaupb.Worksheet{
 			Options: &tableaupb.WorksheetOptions{
@@ -364,32 +377,43 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 			shHeader.typerow = sheet.Rows[sheet.Meta.Typerow-1]
 			shHeader.noterow = sheet.Rows[sheet.Meta.Noterow-1]
 		}
-
-		var parsed bool
-		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
-			field := &tableaupb.Field{}
-			cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
+		if pass == firstPass && sheet.Meta.Mode != tableaupb.Mode_MODE_DEFAULT {
+			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+			protoPath := bp.wb.Name + gen.OutputOpt.FilenameSuffix + ".proto"
+			err := gen.parseSpecialSheetMode(sheet.Meta.Mode, ws, sheet, protoPath)
 			if err != nil {
-				nameCellPos := excel.Postion(int(sheet.Meta.Namerow-1), cursor)
-				typeCellPos := excel.Postion(int(sheet.Meta.Typerow-1), cursor)
-				if sheet.Meta.Transpose {
-					nameCellPos = excel.Postion(cursor, int(sheet.Meta.Namerow-1))
-					typeCellPos = excel.Postion(cursor, int(sheet.Meta.Typerow-1))
+				return err
+			}
+			// append parsed sheet to workbook
+			bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
+		} else if pass == secondPass && sheet.Meta.Mode == tableaupb.Mode_MODE_DEFAULT {
+			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+			var parsed bool
+			for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+				field := &tableaupb.Field{}
+				cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
+				if err != nil {
+					nameCellPos := excel.Postion(int(sheet.Meta.Namerow-1), cursor)
+					typeCellPos := excel.Postion(int(sheet.Meta.Typerow-1), cursor)
+					if sheet.Meta.Transpose {
+						nameCellPos = excel.Postion(cursor, int(sheet.Meta.Namerow-1))
+						typeCellPos = excel.Postion(cursor, int(sheet.Meta.Typerow-1))
+					}
+					return xerrors.WithMessageKV(err,
+						xerrors.KeyBookName, debugWorkbookName,
+						xerrors.KeySheetName, debugSheetName,
+						xerrors.KeyNameCellPos, nameCellPos,
+						xerrors.KeyTypeCellPos, typeCellPos,
+						xerrors.KeyNameCell, shHeader.getNameCell(cursor),
+						xerrors.KeyTypeCell, shHeader.getTypeCell(cursor))
 				}
-				return xerrors.WithMessageKV(err,
-					xerrors.KeyBookName, debugWorkbookName,
-					xerrors.KeySheetName, debugSheetName,
-					xerrors.KeyNameCellPos, nameCellPos,
-					xerrors.KeyTypeCellPos, typeCellPos,
-					xerrors.KeyNameCell, shHeader.getNameCell(cursor),
-					xerrors.KeyTypeCell, shHeader.getTypeCell(cursor))
+				if parsed {
+					ws.Fields = append(ws.Fields, field)
+				}
 			}
-			if parsed {
-				ws.Fields = append(ws.Fields, field)
-			}
+			// append parsed sheet to workbook
+			bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 		}
-		// append parsed sheet to workbook
-		bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 	}
 	// export book
 	be := newBookExporter(
@@ -405,6 +429,44 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	}
 
 	return nil
+}
+
+func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.Worksheet, sheet *book.Sheet, protoPath string) error {
+	// create parser
+	sheetOpts := &tableaupb.WorksheetOptions{
+		Name:    sheet.Name,
+		Namerow: 1,
+		Datarow: 2,
+	}
+	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, sheetOpts)
+
+	// parse each special sheet mode
+	switch mode {
+	case tableaupb.Mode_MODE_ENUM_TYPE:
+		// add type info
+		info := &xproto.TypeInfo{
+			FullName:       gen.ProtoPackage + "." + ws.Name,
+			ParentFilename: protoPath,
+			Kind:           types.EnumKind,
+		}
+		gen.typeInfos.Put(info)
+
+		desc := &tableaupb.EnumDescriptor{}
+		if err := parser.Parse(desc, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse enum type sheet: %d", sheet.Name)
+		}
+		for _, value := range desc.Values {
+			field := &tableaupb.Field{
+				Number: value.Number,
+				Name:   value.Name,
+				Alias:  value.Alias,
+			}
+			ws.Fields = append(ws.Fields, field)
+		}
+		return nil
+	default:
+		return errors.Errorf("unknown mode: %v", mode)
+	}
 }
 
 type sheetHeader struct {
