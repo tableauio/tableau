@@ -453,7 +453,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 
 		desc := &tableaupb.EnumDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse enum type sheet: %d", sheet.Name)
+			return errors.WithMessagef(err, "failed to parse enum type sheet: %s", sheet.Name)
 		}
 		for _, value := range desc.Values {
 			field := &tableaupb.Field{
