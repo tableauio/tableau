@@ -3,6 +3,7 @@ package prop
 import (
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/emirpasic/gods/sets/hashset"
@@ -19,11 +20,11 @@ import (
 
 var referRegexp *regexp.Regexp
 
-const identifierGroup = `(\w+)`
-const aliasGroup = `(\(\w+\))?` // e.g.: (ItemConf)
-
 func init() {
-	referRegexp = regexp.MustCompile(identifierGroup + aliasGroup + `.` + identifierGroup) // e.g.: Item(ItemConf)
+	// e.g.:
+	// - Item(ItemConf).ID
+	// - Item-(Award)(ItemConf).ID
+	referRegexp = regexp.MustCompile(`(?P<Sheet>.+?)` + `(\((?P<Alias>\w+)\))?` + `\.` + `(?P<Column>\w+)`)
 
 	referredCache = NewReferredCache()
 }
@@ -89,29 +90,37 @@ func (r *ReferredCache) Put(refer string, valueSpace *ValueSpace) {
 	r.references[refer] = valueSpace
 }
 
-type ReferInfo struct {
+type ReferDesc struct {
 	Sheet  string // sheet name in workbook.
 	Alias  string // sheet alias: if set, used as protobuf message name.
 	Column string // sheet column name in name row.
 }
 
-func (r *ReferInfo) GetMessageName() string {
+func (r *ReferDesc) GetMessageName() string {
 	if r.Alias != "" {
 		return r.Alias
 	}
 	return r.Sheet
 }
 
-func parseRefer(text string) (*ReferInfo, error) {
-	groups := referRegexp.FindStringSubmatch(text)
-	if len(groups) == 0 {
+func parseRefer(text string) (*ReferDesc, error) {
+	match := referRegexp.FindStringSubmatch(text)
+	if match == nil {
 		return nil, xerrors.Errorf("invalid refer pattern: %s", text)
 	}
-	return &ReferInfo{
-		Sheet:  groups[1],
-		Alias:  groups[2],
-		Column: groups[3],
-	}, nil
+	desc := &ReferDesc{}
+	for i, name := range referRegexp.SubexpNames() {
+		value := strings.TrimSpace(match[i])
+		switch name {
+		case "Sheet":
+			desc.Sheet = value
+		case "Alias":
+			desc.Alias = value
+		case "Column":
+			desc.Column = value
+		}
+	}
+	return desc, nil
 }
 
 type Input struct {
@@ -119,6 +128,7 @@ type Input struct {
 	InputDir       string
 	SubdirRewrites map[string]string
 	PRFiles        *protoregistry.Files
+	Present        bool // field presence
 }
 
 func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
@@ -199,11 +209,19 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	return valueSpace, nil
 }
 
-func InReferredSpace(refer string, cellData string, input *Input) (bool, error) {
-	loadFunc := func() (*ValueSpace, error) {
-		return loadValueSpace(refer, input)
+func InReferredSpace(prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
+	if prop == nil || strings.TrimSpace(prop.Refer) == "" {
+		return true, nil
 	}
-	ok, err := referredCache.ExistsValue(refer, cellData, loadFunc)
+	// not present, and presence not required
+	if !input.Present && !prop.Present {
+		return true, nil
+	}
+
+	loadFunc := func() (*ValueSpace, error) {
+		return loadValueSpace(prop.Refer, input)
+	}
+	ok, err := referredCache.ExistsValue(prop.Refer, cellData, loadFunc)
 	if err != nil {
 		return false, err
 	}

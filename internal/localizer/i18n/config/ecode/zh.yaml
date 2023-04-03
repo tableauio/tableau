@@ -44,4 +44,8 @@ E2010:
   desc: union type has no corresponding value field
   text: 'union 类型"{{.TypeValue}}"找不到 field number 为"{{.FieldNumber}}"的对应 value 字段'
   help: '新增 union value field 并绑定到类型"{{.TypeValue}}"'
+E2011:
+  desc: field presence required but cell not filled
+  text: 单元格数据未被显式填充
+  help: 请显式填充单元格数据
 # [3000, 3999]: importer error

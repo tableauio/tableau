@@ -1,0 +1,30 @@
+lang: en
+locationName: Asia/Shanghai
+log:
+  level: INFO
+  mode: SIMPLE
+proto:
+  input:
+    header:
+      namerow: 1
+      typerow: 2
+      noterow: 3
+      datarow: 4
+    formats: ["csv"]
+    subdirs:
+      - testdata/csv
+  output:
+    subdir: testdata/_proto
+    filenameWithSubdirPrefix: false
+    filenameSuffix: _conf
+    fileOptions:
+      go_package: github.com/tableauio/tableau/protoconf
+conf:
+  input:
+    protoPaths: ["testdata/_proto/", "."]
+    protoFiles: ["testdata/_proto/*.proto"]
+  output:
+    subdir: testdata/_conf
+    formats: ["json"]
+    pretty: true
+    emitUnpopulated: true

@@ -1,22 +1,28 @@
 {
-    "itemMap":  {
-        "1":  {
-            "id":  1,
-            "propList":  [
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "propList": [
                 {
-                    "id":  1,
-                    "flavor":  "sour"
+                    "id": 1,
+                    "flavor": "sour"
                 },
                 {
-                    "id":  2,
-                    "flavor":  "sweet"
+                    "id": 2,
+                    "flavor": "sweet"
                 }
             ],
-            "appearance":  {
-                "color":  "red",
-                "shape":  "round"
+            "appearance": {
+                "color": "red",
+                "shape": "round"
             },
-            "buff_id_1":  100
+            "buff_id_1": 100,
+            "awardIdList": [
+                1,
+                2,
+                3
+            ],
+            "optionalBonusId": 0
         }
     }
 }

@@ -22,6 +22,7 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
+		Present:  prop.Present,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
@@ -40,6 +41,7 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
+		Present:  prop.Present,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
@@ -55,6 +57,7 @@ func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
 		Form:     prop.Form,
+		Present:  prop.Present,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
@@ -72,6 +75,7 @@ func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Range:    prop.Range,
 		Refer:    prop.Refer,
 		Default:  prop.Default,
+		Present:  prop.Present,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
