@@ -1,8 +1,6 @@
 package protogen
 
 import (
-	"bytes"
-	"fmt"
 	iofs "io/fs"
 	"os"
 	"path/filepath"
@@ -379,8 +377,8 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 		}
 		if pass == firstPass && sheet.Meta.Mode != tableaupb.Mode_MODE_DEFAULT {
 			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
-			protoPath := bp.wb.Name + gen.OutputOpt.FilenameSuffix + ".proto"
-			err := gen.parseSpecialSheetMode(sheet.Meta.Mode, ws, sheet, protoPath)
+			parentFilename := bp.GetProtoFilePath()
+			err := gen.parseSpecialSheetMode(sheet.Meta.Mode, ws, sheet, parentFilename)
 			if err != nil {
 				return err
 			}
@@ -431,7 +429,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	return nil
 }
 
-func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.Worksheet, sheet *book.Sheet, protoPath string) error {
+func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.Worksheet, sheet *book.Sheet, parentFilename string) error {
 	// create parser
 	sheetOpts := &tableaupb.WorksheetOptions{
 		Name:    sheet.Name,
@@ -446,7 +444,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		// add type info
 		info := &xproto.TypeInfo{
 			FullName:       gen.ProtoPackage + "." + ws.Name,
-			ParentFilename: protoPath,
+			ParentFilename: parentFilename,
 			Kind:           types.EnumKind,
 		}
 		gen.typeInfos.Put(info)
@@ -463,73 +461,8 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			}
 			ws.Fields = append(ws.Fields, field)
 		}
-		return nil
 	default:
 		return errors.Errorf("unknown mode: %v", mode)
 	}
-}
-
-type sheetHeader struct {
-	meta    *tableaupb.Metasheet
-	namerow []string
-	typerow []string
-	noterow []string
-}
-
-func getCell(row []string, cursor int, line int32) string {
-	// empty cell may be not in list
-	if cursor >= len(row) {
-		return ""
-	}
-	return book.ExtractFromCell(row[cursor], line)
-}
-
-func (sh *sheetHeader) getNameCell(cursor int) string {
-	return getCell(sh.namerow, cursor, sh.meta.Nameline)
-}
-
-// getValidNameCell try best to get a none-empty cell, starting from
-// the specified cursor. Current and subsequent empty cells are skipped
-// to find the first none-empty name cell.
-func (sh *sheetHeader) getValidNameCell(cursor *int) string {
-	for *cursor < len(sh.namerow) {
-		cell := getCell(sh.namerow, *cursor, sh.meta.Nameline)
-		if cell == "" {
-			*cursor++
-			continue
-		}
-		return cell
-	}
-	return ""
-}
-
-func (sh *sheetHeader) getTypeCell(cursor int) string {
-	return getCell(sh.typerow, cursor, sh.meta.Typeline)
-}
-func (sh *sheetHeader) getNoteCell(cursor int) string {
-	return getCell(sh.noterow, cursor, 1) // default note line is 1
-}
-
-type GeneratedBuf struct {
-	buf bytes.Buffer
-}
-
-// NewGeneratedFile creates a new generated file with the given filename.
-func NewGeneratedBuf() *GeneratedBuf {
-	return &GeneratedBuf{}
-}
-
-// P prints a line to the generated output. It converts each parameter to a
-// string following the same rules as fmt.Print. It never inserts spaces
-// between parameters.
-func (g *GeneratedBuf) P(v ...interface{}) {
-	for _, x := range v {
-		fmt.Fprint(&g.buf, x)
-	}
-	fmt.Fprintln(&g.buf)
-}
-
-// Content returns the contents of the generated file.
-func (g *GeneratedBuf) Content() []byte {
-	return g.buf.Bytes()
+	return nil
 }

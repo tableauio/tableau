@@ -20,28 +20,28 @@ import (
 )
 
 type bookExporter struct {
-	ProtoPackage        string
-	ProtoFileOptions    map[string]string
-	OutputDir           string
-	ProtoFilenameSuffix string
-	wb                  *tableaupb.Workbook
+	ProtoPackage     string
+	ProtoFileOptions map[string]string
+	OutputDir        string
+	FilenameSuffix   string
+	wb               *tableaupb.Workbook
 
 	gen *Generator
 }
 
-func newBookExporter(protoPackage string, protoFileOptions map[string]string, outputDir, protoFilenameSuffix string, wb *tableaupb.Workbook, gen *Generator) *bookExporter {
+func newBookExporter(protoPackage string, protoFileOptions map[string]string, outputDir, filenameSuffix string, wb *tableaupb.Workbook, gen *Generator) *bookExporter {
 	return &bookExporter{
-		ProtoPackage:        protoPackage,
-		ProtoFileOptions:    protoFileOptions,
-		OutputDir:           outputDir,
-		ProtoFilenameSuffix: protoFilenameSuffix,
-		wb:                  wb,
-		gen:                 gen,
+		ProtoPackage:     protoPackage,
+		ProtoFileOptions: protoFileOptions,
+		OutputDir:        outputDir,
+		FilenameSuffix:   filenameSuffix,
+		wb:               wb,
+		gen:              gen,
 	}
 }
 
-func (x *bookExporter) GetProtoFileRelPath() string {
-	return x.wb.Name + x.ProtoFilenameSuffix + ".proto"
+func (x *bookExporter) GetProtoFilePath() string {
+	return genProtoFilePath(x.wb.Name, x.FilenameSuffix)
 }
 
 func (x *bookExporter) export(checkProtoFileConflicts bool) error {
@@ -89,7 +89,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	g2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
 	g2.P("")
 
-	relPath := x.GetProtoFileRelPath()
+	relPath := x.GetProtoFilePath()
 	path := filepath.Join(x.OutputDir, relPath)
 	log.Infof("%18s: %s", "generated proto", relPath)
 
@@ -217,9 +217,10 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 	}
 
 	if field.Predefined {
-		// NOTE: import corresponding message's custom defined proto file
+		// import the predefined type's parent filename.
+		// NOTE: excludes self.
 		if typeInfo := x.typeInfos.Get(typeName); typeInfo != nil &&
-			typeInfo.ParentFilename != x.be.GetProtoFileRelPath() {
+			typeInfo.ParentFilename != x.be.GetProtoFilePath() {
 			x.Imports[typeInfo.ParentFilename] = true
 		}
 	} else {

@@ -4,7 +4,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 )
 
-var defaultTopN uint = 20 // read top N rows, 0 means read all rows
+var defaultTopN uint = 10 // read top N rows, 0 means read all rows
 
 type ImporterMode int
 

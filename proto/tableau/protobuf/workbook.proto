@@ -10,7 +10,7 @@ option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 import "tableau/protobuf/tableau.proto";
 
 message Workbook {
-  string name = 1;
+  string name = 1; // e.g.: "relative/path/bookname"
   string alias = 2;
   WorkbookOptions options = 3;
   repeated Worksheet worksheets = 4;

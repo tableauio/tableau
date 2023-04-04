@@ -1,6 +1,8 @@
 package protogen
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -88,4 +90,32 @@ func mergeHeaderOptions(sheetMeta *tableaupb.Metasheet, headerOpt *options.Heade
 	if sheetMeta.Typeline == 0 {
 		sheetMeta.Typeline = headerOpt.Typeline
 	}
+}
+
+func genProtoFilePath(bookName, suffix string) string {
+	return bookName + suffix + ".proto"
+}
+
+type GeneratedBuf struct {
+	buf bytes.Buffer
+}
+
+// NewGeneratedFile creates a new generated file with the given filename.
+func NewGeneratedBuf() *GeneratedBuf {
+	return &GeneratedBuf{}
+}
+
+// P prints a line to the generated output. It converts each parameter to a
+// string following the same rules as fmt.Print. It never inserts spaces
+// between parameters.
+func (g *GeneratedBuf) P(v ...interface{}) {
+	for _, x := range v {
+		fmt.Fprint(&g.buf, x)
+	}
+	fmt.Fprintln(&g.buf)
+}
+
+// Content returns the contents of the generated file.
+func (g *GeneratedBuf) Content() []byte {
+	return g.buf.Bytes()
 }

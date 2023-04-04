@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -29,18 +30,26 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 		}
 	}()
 
-	var topN uint
+	var shReaderOpts []*sheetReaderOptions
+	// read all sheets if sheetNames not set.
+	if len(sheetNames) == 0 {
+		for _, sheetName := range file.GetSheetList() {
+			shReaderOpts = append(shReaderOpts, &sheetReaderOptions{Name: sheetName})
+		}
+	} else {
+		for _, sheetName := range sheetNames {
+			shReaderOpts = append(shReaderOpts, &sheetReaderOptions{Name: sheetName})
+		}
+	}
+
 	if mode == Protogen {
-		// TODO: read all sheet rows if sheet mode is not default.
-		// map: sheet name -> topN
-		n, err := adjustTopN(file, parser, cloned)
+		err := adjustTopN(file, parser, cloned, shReaderOpts)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
 		}
-		topN = n
 	}
 
-	book, err := readExcelBook(filename, file, sheetNames, parser, topN)
+	book, err := readExcelBook(filename, file, shReaderOpts, parser)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
 	}
@@ -56,39 +65,42 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 	}, nil
 }
 
-func adjustTopN(file *excelize.File, parser book.SheetParser, cloned bool) (uint, error) {
+func adjustTopN(file *excelize.File, parser book.SheetParser, cloned bool, shReaderOpts []*sheetReaderOptions) error {
 	if parser != nil && !cloned {
-		// parse metasheet, and change topN to 0 if any sheet is transpose
+		// parse metasheet, and change topN to 0 if any sheet is transpose or not default mode.
 		metasheet, err := readExcelSheet(file, book.MetasheetName, 0)
 		if err != nil {
 			if errors.Is(err, ErrSheetNotFound) {
-				log.Debugf("sheet not found, use default TopN: %d", defaultTopN)
-				return defaultTopN, nil
+				log.Debugf("metasheet not found, use default TopN: %d", defaultTopN)
+				for _, shReaderOpts := range shReaderOpts {
+					shReaderOpts.TopN = defaultTopN
+				}
+				return nil
 			}
-			return 0, err
+			return err
 		}
 		meta, err := book.ParseMetasheet(metasheet, parser)
 		if err != nil {
-			return 0, errors.WithMessagef(err, "failed to parse metasheet: %s", book.MetasheetName)
+			return errors.WithMessagef(err, "failed to parse metasheet: %s", book.MetasheetName)
 		}
-		if len(meta.MetasheetMap) != 0 {
-			for name, sheet := range meta.MetasheetMap {
-				if sheet.Transpose {
-					log.Debugf("sheet %s is transpose, so topN is reset to 0", name)
-					return 0, nil
-				}
+
+		for _, shReaderOpts := range shReaderOpts {
+			metasheet := meta.MetasheetMap[shReaderOpts.Name]
+			if metasheet == nil || (metasheet.Mode == tableaupb.Mode_MODE_DEFAULT && !metasheet.Transpose) {
+				log.Debugf("sheet %s is in default mode and not transpose, so topN is reset to defaultTopN: %d", defaultTopN)
+				shReaderOpts.TopN = defaultTopN
 			}
 		}
 	}
-	return defaultTopN, nil
+	return nil
 }
 
-func readExcelBook(filename string, file *excelize.File, sheetNames []string, parser book.SheetParser, topN uint) (*book.Book, error) {
+func readExcelBook(filename string, file *excelize.File, shReaderOpts []*sheetReaderOptions, parser book.SheetParser) (*book.Book, error) {
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, parser)
-	sheets, err := readExcelSheets(file, sheetNames, topN)
+	sheets, err := readExcelSheets(file, shReaderOpts)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to read excel sheets: %s#%v", filename, sheetNames)
+		return nil, errors.WithMessagef(err, "failed to read excel sheets: %s, %v", filename, shReaderOpts)
 	}
 	for _, sheet := range sheets {
 		newBook.AddSheet(sheet)
@@ -97,26 +109,22 @@ func readExcelBook(filename string, file *excelize.File, sheetNames []string, pa
 }
 
 func readExcelSheet(file *excelize.File, sheetName string, topN uint) (*book.Sheet, error) {
-	sheets, err := readExcelSheets(file, []string{sheetName}, topN)
+	shReaderOpts := &sheetReaderOptions{Name: sheetName, TopN: topN}
+	sheets, err := readExcelSheets(file, []*sheetReaderOptions{shReaderOpts})
 	if err != nil {
 		return nil, err
 	}
 	return sheets[0], nil
 }
 
-func readExcelSheets(file *excelize.File, sheetNames []string, topN uint) ([]*book.Sheet, error) {
-	// read all sheets if sheetNames not set.
-	if len(sheetNames) == 0 {
-		sheetNames = file.GetSheetList()
-	}
-
+func readExcelSheets(file *excelize.File, shReaderOpts []*sheetReaderOptions) ([]*book.Sheet, error) {
 	var sheets []*book.Sheet
-	for _, sheetName := range sheetNames {
-		rows, err := readExcelSheetRows(file, sheetName, topN)
+	for _, sheetReader := range shReaderOpts {
+		rows, err := readExcelSheetRows(file, sheetReader.Name, sheetReader.TopN)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get rows of sheet: %s", sheetName)
+			return nil, errors.Wrapf(err, "failed to get rows of sheet: %s", sheetReader.Name)
 		}
-		sheets = append(sheets, book.NewSheet(sheetName, rows))
+		sheets = append(sheets, book.NewSheet(sheetReader.Name, rows))
 	}
 
 	return sheets, nil

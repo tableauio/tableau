@@ -38,7 +38,7 @@ func New(filename string, setters ...Option) (Importer, error) {
 	case format.Excel:
 		return NewExcelImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	case format.CSV:
-		return NewCSVImporter(filename, opts.Sheets, opts.Parser)
+		return NewCSVImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	case format.XML:
 		return NewXMLImporter(filename, opts.Sheets, opts.Parser, opts.Mode)
 	default:

@@ -13,7 +13,7 @@ import (
 func init() {
 	err := fs.RangeFilesByFormat("./testdata", format.CSV, func(bookPath string) error {
 		// log.Printf("path: %s", bookPath)
-		imp, err := NewCSVImporter(bookPath, nil, nil)
+		imp, err := NewCSVImporter(bookPath, nil, nil, 0, false)
 		if err != nil {
 			return err
 		}

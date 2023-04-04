@@ -5,7 +5,7 @@ import (
 )
 
 func TestCSVImporter_ExportExcel(t *testing.T) {
-	importer, _ := NewCSVImporter("testdata/Test#Test.csv", nil, nil)
+	importer, _ := NewCSVImporter("testdata/Test#Test.csv", nil, nil, 0, false)
 	tests := []struct {
 		name    string
 		x       *CSVImporter
