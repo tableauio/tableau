@@ -20,22 +20,6 @@ type CSVImporter struct {
 }
 
 func NewCSVImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*CSVImporter, error) {
-	book, err := parseCSVBook(filename, sheetNames, parser, mode, cloned)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to parse csv book")
-	}
-
-	return &CSVImporter{
-		Book: book,
-	}, nil
-}
-
-func parseCSVBook(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*book.Book, error) {
-	_, _, err := fs.ParseCSVFilenamePattern(filename)
-	if err != nil {
-		return nil, err
-	}
-
 	brOpts, err := parseCSVBookReaderOptions(filename, sheetNames)
 	if err != nil {
 		return nil, err
@@ -53,25 +37,27 @@ func parseCSVBook(filename string, sheetNames []string, parser book.SheetParser,
 		return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
 	}
 
-	if parser != nil {
+	if mode == Protogen {
 		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, errors.WithMessage(err, "failed to parse metasheet")
 		}
 	}
-	return book, nil
+	return &CSVImporter{
+		Book: book,
+	}, nil
 }
 
 func adjustCSVTopN(brOpts *bookReaderOptions, parser book.SheetParser, cloned bool) error {
 	if parser != nil && !cloned {
+		// parse metasheet, and change topN to 0 if any sheet is transpose or not default mode.
 		metasheetReaderOpts := brOpts.GetMetasheet()
 		if metasheetReaderOpts == nil {
 			log.Debugf("metasheet not found, use default TopN: %d", defaultTopN)
-			for _, shReaderOpts := range brOpts.Sheets {
-				shReaderOpts.TopN = defaultTopN
+			for _, srOpts := range brOpts.Sheets {
+				srOpts.TopN = defaultTopN
 			}
 			return nil
 		}
-		// parse metasheet, and change topN to 0 if any sheet is transpose or not default mode.
 		metasheet, err := readCSVSheet(brOpts.GetMetasheet().Filename, book.MetasheetName, 0)
 		if err != nil {
 			return err
@@ -81,11 +67,11 @@ func adjustCSVTopN(brOpts *bookReaderOptions, parser book.SheetParser, cloned bo
 			return errors.WithMessagef(err, "failed to parse metasheet: %s", book.MetasheetName)
 		}
 
-		for _, shReaderOpts := range brOpts.Sheets {
-			metasheet := meta.MetasheetMap[shReaderOpts.Name]
+		for _, srOpts := range brOpts.Sheets {
+			metasheet := meta.MetasheetMap[srOpts.Name]
 			if metasheet == nil || (metasheet.Mode == tableaupb.Mode_MODE_DEFAULT && !metasheet.Transpose) {
 				log.Debugf("sheet %s is in default mode and not transpose, so topN is reset to defaultTopN: %d", defaultTopN)
-				shReaderOpts.TopN = defaultTopN
+				srOpts.TopN = defaultTopN
 			}
 		}
 	}
@@ -179,26 +165,13 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReade
 		if err != nil {
 			return nil, errors.Errorf("cannot parse the book name from filename: %s", filename)
 		}
-		var needed bool
-		if len(sheetNames) == 0 {
-			// read all sheets if sheetNames not set.
-			needed = true
-		} else {
-			for _, name := range sheetNames {
-				if name == sheetName {
-					needed = true
-					break
-				}
+		if NeedSheet(sheetName, sheetNames) {
+			shReaderOpt := &sheetReaderOptions{
+				Filename: filename,
+				Name:     sheetName,
 			}
+			brOpts.Sheets = append(brOpts.Sheets, shReaderOpt)
 		}
-		if !needed {
-			continue
-		}
-		shReaderOpt := &sheetReaderOptions{
-			Filename: filename,
-			Name:     sheetName,
-		}
-		brOpts.Sheets = append(brOpts.Sheets, shReaderOpt)
 	}
 	return brOpts, nil
 }

@@ -3,14 +3,14 @@ package importer
 import "github.com/tableauio/tableau/internal/importer/book"
 
 type bookReaderOptions struct {
-	Filename string // book filename
-	Name     string // book name
+	Name     string // book name without suffix
+	Filename string // book filename with path
 	Sheets   []*sheetReaderOptions
 }
 
 type sheetReaderOptions struct {
-	Filename string // filename which this sheet belonged to
 	Name     string // sheet name
+	Filename string // filename which this sheet belonged to
 	TopN     uint
 }
 
@@ -21,4 +21,17 @@ func (b *bookReaderOptions) GetMetasheet() *sheetReaderOptions {
 		}
 	}
 	return nil
+}
+
+func NeedSheet(sheetName string, wantSheetNames []string) bool {
+	if len(wantSheetNames) == 0 {
+		// read all sheets if wantSheetNames not set.
+		return true
+	}
+	for _, name := range wantSheetNames {
+		if name == sheetName {
+			return true
+		}
+	}
+	return false
 }
