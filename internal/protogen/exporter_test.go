@@ -218,3 +218,29 @@ func Test_marshalToText(t *testing.T) {
 		})
 	}
 }
+
+func Test_bookExporter_GetProtoFilePath(t *testing.T) {
+	tests := []struct {
+		name string
+		x    *bookExporter
+		want string
+	}{
+		{
+			name: "name-and-prop",
+			x: &bookExporter{
+				wb: &tableaupb.Workbook{
+					Name: "name",
+				},
+				FilenameSuffix: "_conf",
+			},
+			want: `name_conf.proto`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.x.GetProtoFilePath(); got != tt.want {
+				t.Errorf("bookExporter.GetProtoFilePath() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

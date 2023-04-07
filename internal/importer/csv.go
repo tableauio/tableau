@@ -152,7 +152,7 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReade
 	// NOTE: keep the order of sheets
 	set := treeset.NewWithStringComparator()
 	for _, filename := range matches {
-		set.Add(filename)
+		set.Add(fs.GetCleanSlashPath(filename))
 	}
 
 	brOpts := &bookReaderOptions{
