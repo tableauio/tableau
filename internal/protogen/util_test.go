@@ -63,7 +63,7 @@ func Test_getRelCleanSlashPath(t *testing.T) {
 			name: "relative-clean-slash-path",
 			args: args{
 				rootdir:  "testdata",
-				dir:      `./testdata/output\proto/`,
+				dir:      `./testdata/output/proto/`,
 				filename: "common.proto",
 			},
 			want:    "output/proto/common.proto",
