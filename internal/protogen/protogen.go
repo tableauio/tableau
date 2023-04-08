@@ -370,9 +370,9 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 				shHeader.noterow = append(shHeader.noterow, noteCell)
 			}
 		} else {
-			shHeader.namerow = sheet.Rows[sheet.Meta.Namerow-1]
-			shHeader.typerow = sheet.Rows[sheet.Meta.Typerow-1]
-			shHeader.noterow = sheet.Rows[sheet.Meta.Noterow-1]
+			shHeader.namerow = sheet.GetRow(int(sheet.Meta.Namerow - 1))
+			shHeader.typerow = sheet.GetRow(int(sheet.Meta.Typerow - 1))
+			shHeader.noterow = sheet.GetRow(int(sheet.Meta.Noterow - 1))
 		}
 		if pass == firstPass && sheet.Meta.Mode != tableaupb.Mode_MODE_DEFAULT {
 			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)

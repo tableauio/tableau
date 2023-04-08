@@ -83,6 +83,15 @@ func ExtendSheet(sheet *Sheet, rows [][]string) {
 	}
 }
 
+// GetRow returns the row data by row index (started with 0). If not found,
+// then returns nil.
+func (s *Sheet) GetRow(row int) []string {
+	if row >= len(s.Rows) {
+		return nil
+	}
+	return s.Rows[row]
+}
+
 // Cell returns the cell at (row, col).
 func (s *Sheet) Cell(row, col int) (string, error) {
 	if row < 0 || row >= s.MaxRow {
