@@ -68,6 +68,11 @@ func adjustCSVTopN(brOpts *bookReaderOptions, parser book.SheetParser, cloned bo
 		}
 
 		for _, srOpts := range brOpts.Sheets {
+			if srOpts.Name == book.MetasheetName {
+				// for metasheet, read all rows
+				srOpts.TopN = 0
+				continue
+			}
 			metasheet := meta.MetasheetMap[srOpts.Name]
 			if metasheet == nil || (metasheet.Mode == tableaupb.Mode_MODE_DEFAULT && !metasheet.Transpose) {
 				log.Debugf("sheet %s is in default mode and not transpose, so topN is reset to defaultTopN: %d", defaultTopN)

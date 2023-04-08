@@ -113,6 +113,7 @@ type TypeInfos struct {
 }
 
 func (x *TypeInfos) Put(info *TypeInfo) {
+	log.Debugf("remember new generated predefined type: %v", info)
 	x.infos[info.FullName] = info
 }
 
