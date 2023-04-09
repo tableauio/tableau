@@ -1,7 +1,7 @@
 protogen: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
   工作簿: {{.BookName}}
-  表单名: {{.SheetName}}
+  工作表: {{.SheetName}}
   命名单元格位置: {{.NameCellPos}}
   命名单元格的值: {{.NameCell}}
   类型单元格位置: {{.TypeCellPos}}
@@ -11,7 +11,7 @@ protogen: |
 confgen: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
   工作簿: {{.BookName}}
-  表单名: {{.SheetName}}
+  工作表: {{.SheetName}}
   单元格位置: {{.DataCellPos}}
   单元格的值: {{.DataCell}}
   错误原因: {{.Reason}}

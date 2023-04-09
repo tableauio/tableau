@@ -1,17 +1,17 @@
 # (0000, 0999]: common error
 E0001:
   desc: sheet not found in book
-  text: 表单 "{{.SheetName}}" 在工作簿 "{{.BookName}}" 中未找到
+  text: 工作表 "{{.SheetName}}" 在工作簿 "{{.BookName}}" 中未找到
 # [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2001:
   desc: field prop "refer" not configured correctly
-  text: 解析refer值空间校验"{{.Refer}}"时，找不到对应表单"{{.MessageName}}"
-  help: '尝试加上sheet别名，格式："SheetName(SheetAlias).ColumnName"'
+  text: 解析refer值空间校验 "{{.Refer}}" 时，找不到对应工作表 "{{.MessageName}}"
+  help: '尝试加上sheet别名, 格式: "SheetName(SheetAlias).ColumnName"'
 E2002:
   desc: field value not in referred space
-  text: 值"{{.Value}}"不在"{{.Refer}}"所指定的值空间中
-  help: 请确保在"{{.Refer}}"所指定的值空间中提前配置好值"{{.Value}}"
+  text: 值 "{{.Value}}" 不在 "{{.Refer}}" 所指定的值空间中
+  help: 请确保在 "{{.Refer}}" 所指定的值空间中提前配置好值 "{{.Value}}"
 E2003:
   desc: illegal sequence number
   text: '值 "{{.Value}}" 不符合序列 "sequence:{{.Sequence}}" 要求'
@@ -23,7 +23,7 @@ E2004:
 E2005:
   desc: map key not unique
   text: map的key "{{.Key}}" 已存在
-  help: 'map的key已被配置为唯一 "unique:true"，不允许重复配置相同的key值'
+  help: 'map的key已被配置为唯一 "unique:true", 不允许重复配置相同的key值'
 E2006:
   desc: enum value not defined in enum type
   text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
