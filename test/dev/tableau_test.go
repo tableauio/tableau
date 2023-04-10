@@ -174,7 +174,7 @@ func Test_CSV2Excel(t *testing.T) {
 		"./testdata/excel/metasheet/Metasheet#*.csv",
 	}
 	for _, path := range paths {
-		imp, err := importer.NewCSVImporter(path, nil, nil)
+		imp, err := importer.NewCSVImporter(path, nil, nil, 0, false)
 		if err != nil {
 			t.Errorf("%+v", err)
 		}

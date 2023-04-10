@@ -14,8 +14,8 @@ E2002:
   help: guarantee value "{{.Value}}" was configured in referred space "{{.Refer}}" ahead
 E2003:
   desc: illegal sequence number
-  text: 'value "{{.Value}}" is not the initial or next sequence number "sequence:{{.Sequence}}"'
-  help: '"sequence:{{.Sequence}}" requires value starts from "{{.Sequence}}" and increase progressively'
+  text: 'value "{{.Value}}" does not meet sequence requirement: "sequence:{{.Sequence}}"'
+  help: '"sequence:{{.Sequence}}" requires value starts from "{{.Sequence}}" and increases monotonically'
 E2004:
   desc: value is out of range
   text: 'value "{{.Value}}" is out of range [{{.Range}}]'

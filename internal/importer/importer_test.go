@@ -13,7 +13,7 @@ import (
 func init() {
 	err := fs.RangeFilesByFormat("./testdata", format.CSV, func(bookPath string) error {
 		// log.Printf("path: %s", bookPath)
-		imp, err := NewCSVImporter(bookPath, nil, nil)
+		imp, err := NewCSVImporter(bookPath, nil, nil, 0, false)
 		if err != nil {
 			return err
 		}
@@ -97,7 +97,7 @@ func TestGetMergerImporters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMergerImporters(tt.args.primaryBookPath, tt.args.sheetName, tt.args.bookNameGlobs)
+			got, err := GetMergerImporters(".", tt.args.primaryBookPath, tt.args.sheetName, tt.args.bookNameGlobs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetMergerImporters() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -135,7 +135,7 @@ func TestGetScatterImporters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetScatterImporters(tt.args.primaryBookPath, tt.args.sheetName, tt.args.bookNameGlobs)
+			got, err := GetScatterImporters(".", tt.args.primaryBookPath, tt.args.sheetName, tt.args.bookNameGlobs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetScatterImporters() error = %v, wantErr %v", err, tt.wantErr)
 				return

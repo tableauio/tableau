@@ -73,20 +73,6 @@ func NewConfGeneratorWithOptions(protoPackage, indir, outdir string, options *op
 	return confgen.NewGeneratorWithOptions(protoPackage, indir, outdir, options)
 }
 
-// VersionInfo holds versions of tableau'd main modules.
-type VersionInfo struct {
-	ProtoGenVer string // version of protogen module
-	ConfGenVer  string // version of confgen module
-}
-
-// GetVersionInfo returns VersionInfo of tableau.
-func GetVersionInfo() *VersionInfo {
-	return &VersionInfo{
-		ProtoGenVer: protogen.AppVersion(),
-		ConfGenVer:  confgen.AppVersion(),
-	}
-}
-
 // SetLang sets the default language.
 // E.g: en, zh.
 func SetLang(lang string) error {

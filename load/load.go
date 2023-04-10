@@ -161,7 +161,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	}
 
 	// get merger importers
-	importers, err := importer.GetMergerImporters(wbPath, wsOpts.Name, wsOpts.Merger)
+	importers, err := importer.GetMergerImporters(dir, wbPath, wsOpts.Name, wsOpts.Merger)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
 	}

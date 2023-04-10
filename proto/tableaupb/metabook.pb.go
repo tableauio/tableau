@@ -112,7 +112,7 @@ type Metasheet struct {
 	Template bool `protobuf:"varint,16,opt,name=template,proto3" json:"template,omitempty"`
 	// Sheet mode.
 	Mode Mode `protobuf:"varint,17,opt,name=mode,proto3,enum=tableau.Mode" json:"mode,omitempty"`
-	// Scatter convert sheets separately with same schema.
+	// Scatter converts sheets separately with same schema.
 	// each element is:
 	// - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
 	//   then the sheet name is the same as this sheet.
@@ -314,6 +314,349 @@ func (x *Metasheet) GetIndex() string {
 	return ""
 }
 
+// EnumDescriptor represents enum type definition in sheet.
+type EnumDescriptor struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Values []*EnumDescriptor_Value `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
+}
+
+func (x *EnumDescriptor) Reset() {
+	*x = EnumDescriptor{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_metabook_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *EnumDescriptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnumDescriptor) ProtoMessage() {}
+
+func (x *EnumDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_metabook_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnumDescriptor.ProtoReflect.Descriptor instead.
+func (*EnumDescriptor) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_metabook_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *EnumDescriptor) GetValues() []*EnumDescriptor_Value {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+// StructDescriptor represents struct type definition in sheet.
+type StructDescriptor struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Fields []*StructDescriptor_Field `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty"`
+}
+
+func (x *StructDescriptor) Reset() {
+	*x = StructDescriptor{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_metabook_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *StructDescriptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StructDescriptor) ProtoMessage() {}
+
+func (x *StructDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_metabook_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StructDescriptor.ProtoReflect.Descriptor instead.
+func (*StructDescriptor) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_metabook_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *StructDescriptor) GetFields() []*StructDescriptor_Field {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
+// UnionDescriptor represents union type definition in sheet.
+type UnionDescriptor struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Values []*UnionDescriptor_Value `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
+}
+
+func (x *UnionDescriptor) Reset() {
+	*x = UnionDescriptor{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_metabook_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UnionDescriptor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnionDescriptor) ProtoMessage() {}
+
+func (x *UnionDescriptor) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_metabook_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnionDescriptor.ProtoReflect.Descriptor instead.
+func (*UnionDescriptor) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_metabook_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UnionDescriptor) GetValues() []*UnionDescriptor_Value {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+type EnumDescriptor_Value struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Number int32  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	Name   string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Alias  string `protobuf:"bytes,3,opt,name=alias,proto3" json:"alias,omitempty"`
+}
+
+func (x *EnumDescriptor_Value) Reset() {
+	*x = EnumDescriptor_Value{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_metabook_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *EnumDescriptor_Value) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnumDescriptor_Value) ProtoMessage() {}
+
+func (x *EnumDescriptor_Value) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_metabook_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnumDescriptor_Value.ProtoReflect.Descriptor instead.
+func (*EnumDescriptor_Value) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_metabook_proto_rawDescGZIP(), []int{2, 0}
+}
+
+func (x *EnumDescriptor_Value) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *EnumDescriptor_Value) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EnumDescriptor_Value) GetAlias() string {
+	if x != nil {
+		return x.Alias
+	}
+	return ""
+}
+
+type StructDescriptor_Field struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Number int32  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	Name   string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Type   string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+}
+
+func (x *StructDescriptor_Field) Reset() {
+	*x = StructDescriptor_Field{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_metabook_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *StructDescriptor_Field) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StructDescriptor_Field) ProtoMessage() {}
+
+func (x *StructDescriptor_Field) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_metabook_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StructDescriptor_Field.ProtoReflect.Descriptor instead.
+func (*StructDescriptor_Field) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_metabook_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *StructDescriptor_Field) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *StructDescriptor_Field) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *StructDescriptor_Field) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+type UnionDescriptor_Value struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Number int32 `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	// this is message type name, and the corresponding enum value name
+	// is generated as: "TYPE_" + uppercase(name).
+	Name   string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Alias  string   `protobuf:"bytes,3,opt,name=alias,proto3" json:"alias,omitempty"`
+	Fields []string `protobuf:"bytes,4,rep,name=fields,proto3" json:"fields,omitempty"`
+}
+
+func (x *UnionDescriptor_Value) Reset() {
+	*x = UnionDescriptor_Value{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_metabook_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *UnionDescriptor_Value) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnionDescriptor_Value) ProtoMessage() {}
+
+func (x *UnionDescriptor_Value) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_metabook_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnionDescriptor_Value.ProtoReflect.Descriptor instead.
+func (*UnionDescriptor_Value) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_metabook_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *UnionDescriptor_Value) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *UnionDescriptor_Value) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UnionDescriptor_Value) GetAlias() string {
+	if x != nil {
+		return x.Alias
+	}
+	return ""
+}
+
+func (x *UnionDescriptor_Value) GetFields() []string {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
 var File_tableau_protobuf_metabook_proto protoreflect.FileDescriptor
 
 var file_tableau_protobuf_metabook_proto_rawDesc = []byte{
@@ -390,11 +733,52 @@ var file_tableau_protobuf_metabook_proto_rawDesc = []byte{
 	0x64, 0x65, 0x72, 0x65, 0x64, 0x4d, 0x61, 0x70, 0x40, 0x01, 0x52, 0x0a, 0x6f, 0x72, 0x64, 0x65,
 	0x72, 0x65, 0x64, 0x4d, 0x61, 0x70, 0x12, 0x23, 0x0a, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x18,
 	0x33, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0d, 0x82, 0xb5, 0x18, 0x09, 0x0a, 0x05, 0x49, 0x6e, 0x64,
-	0x65, 0x78, 0x40, 0x01, 0x52, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x42, 0x2e, 0x5a, 0x2c, 0x67,
-	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61,
-	0x75, 0x69, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2f, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x33,
+	0x65, 0x78, 0x40, 0x01, 0x52, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x22, 0xcb, 0x01, 0x0a, 0x0e,
+	0x45, 0x6e, 0x75, 0x6d, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x12, 0x3d,
+	0x0a, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1d,
+	0x2e, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2e, 0x45, 0x6e, 0x75, 0x6d, 0x44, 0x65, 0x73,
+	0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x2e, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x06, 0x82,
+	0xb5, 0x18, 0x02, 0x20, 0x01, 0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x1a, 0x70, 0x0a,
+	0x05, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x24, 0x0a, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x42, 0x0c, 0x82, 0xb5, 0x18, 0x08, 0x0a, 0x06, 0x4e, 0x75,
+	0x6d, 0x62, 0x65, 0x72, 0x52, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x1e, 0x0a, 0x04,
+	0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0a, 0x82, 0xb5, 0x18, 0x06,
+	0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x21, 0x0a, 0x05,
+	0x61, 0x6c, 0x69, 0x61, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0b, 0x82, 0xb5, 0x18,
+	0x07, 0x0a, 0x05, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x52, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x3a,
+	0x08, 0x82, 0xb5, 0x18, 0x04, 0x10, 0x01, 0x28, 0x02, 0x22, 0xcc, 0x01, 0x0a, 0x10, 0x53, 0x74,
+	0x72, 0x75, 0x63, 0x74, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x12, 0x3f,
+	0x0a, 0x06, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1f,
+	0x2e, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2e, 0x53, 0x74, 0x72, 0x75, 0x63, 0x74, 0x44,
+	0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x2e, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x42,
+	0x06, 0x82, 0xb5, 0x18, 0x02, 0x20, 0x01, 0x52, 0x06, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x73, 0x1a,
+	0x6d, 0x0a, 0x05, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x12, 0x24, 0x0a, 0x06, 0x6e, 0x75, 0x6d, 0x62,
+	0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x42, 0x0c, 0x82, 0xb5, 0x18, 0x08, 0x0a, 0x06,
+	0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x1e,
+	0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0a, 0x82, 0xb5,
+	0x18, 0x06, 0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1e,
+	0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0a, 0x82, 0xb5,
+	0x18, 0x06, 0x0a, 0x04, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x3a, 0x08,
+	0x82, 0xb5, 0x18, 0x04, 0x10, 0x01, 0x28, 0x02, 0x22, 0xf3, 0x01, 0x0a, 0x0f, 0x55, 0x6e, 0x69,
+	0x6f, 0x6e, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x12, 0x3e, 0x0a, 0x06,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1e, 0x2e, 0x74,
+	0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2e, 0x55, 0x6e, 0x69, 0x6f, 0x6e, 0x44, 0x65, 0x73, 0x63,
+	0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x2e, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x06, 0x82, 0xb5,
+	0x18, 0x02, 0x20, 0x01, 0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x1a, 0x95, 0x01, 0x0a,
+	0x05, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x24, 0x0a, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x42, 0x0c, 0x82, 0xb5, 0x18, 0x08, 0x0a, 0x06, 0x4e, 0x75,
+	0x6d, 0x62, 0x65, 0x72, 0x52, 0x06, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x1e, 0x0a, 0x04,
+	0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0a, 0x82, 0xb5, 0x18, 0x06,
+	0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x21, 0x0a, 0x05,
+	0x61, 0x6c, 0x69, 0x61, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0b, 0x82, 0xb5, 0x18,
+	0x07, 0x0a, 0x05, 0x41, 0x6c, 0x69, 0x61, 0x73, 0x52, 0x05, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x12,
+	0x23, 0x0a, 0x06, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x42,
+	0x0b, 0x82, 0xb5, 0x18, 0x07, 0x0a, 0x05, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x52, 0x06, 0x66, 0x69,
+	0x65, 0x6c, 0x64, 0x73, 0x3a, 0x08, 0x82, 0xb5, 0x18, 0x04, 0x10, 0x01, 0x28, 0x02, 0x42, 0x2e,
+	0x5a, 0x2c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x61, 0x62,
+	0x6c, 0x65, 0x61, 0x75, 0x69, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2f, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x70, 0x62, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -409,22 +793,31 @@ func file_tableau_protobuf_metabook_proto_rawDescGZIP() []byte {
 	return file_tableau_protobuf_metabook_proto_rawDescData
 }
 
-var file_tableau_protobuf_metabook_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_tableau_protobuf_metabook_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_tableau_protobuf_metabook_proto_goTypes = []interface{}{
-	(*Metabook)(nil),  // 0: tableau.Metabook
-	(*Metasheet)(nil), // 1: tableau.Metasheet
-	nil,               // 2: tableau.Metabook.MetasheetMapEntry
-	(Mode)(0),         // 3: tableau.Mode
+	(*Metabook)(nil),               // 0: tableau.Metabook
+	(*Metasheet)(nil),              // 1: tableau.Metasheet
+	(*EnumDescriptor)(nil),         // 2: tableau.EnumDescriptor
+	(*StructDescriptor)(nil),       // 3: tableau.StructDescriptor
+	(*UnionDescriptor)(nil),        // 4: tableau.UnionDescriptor
+	nil,                            // 5: tableau.Metabook.MetasheetMapEntry
+	(*EnumDescriptor_Value)(nil),   // 6: tableau.EnumDescriptor.Value
+	(*StructDescriptor_Field)(nil), // 7: tableau.StructDescriptor.Field
+	(*UnionDescriptor_Value)(nil),  // 8: tableau.UnionDescriptor.Value
+	(Mode)(0),                      // 9: tableau.Mode
 }
 var file_tableau_protobuf_metabook_proto_depIdxs = []int32{
-	2, // 0: tableau.Metabook.metasheet_map:type_name -> tableau.Metabook.MetasheetMapEntry
-	3, // 1: tableau.Metasheet.mode:type_name -> tableau.Mode
-	1, // 2: tableau.Metabook.MetasheetMapEntry.value:type_name -> tableau.Metasheet
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	5, // 0: tableau.Metabook.metasheet_map:type_name -> tableau.Metabook.MetasheetMapEntry
+	9, // 1: tableau.Metasheet.mode:type_name -> tableau.Mode
+	6, // 2: tableau.EnumDescriptor.values:type_name -> tableau.EnumDescriptor.Value
+	7, // 3: tableau.StructDescriptor.fields:type_name -> tableau.StructDescriptor.Field
+	8, // 4: tableau.UnionDescriptor.values:type_name -> tableau.UnionDescriptor.Value
+	1, // 5: tableau.Metabook.MetasheetMapEntry.value:type_name -> tableau.Metasheet
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_tableau_protobuf_metabook_proto_init() }
@@ -458,6 +851,78 @@ func file_tableau_protobuf_metabook_proto_init() {
 				return nil
 			}
 		}
+		file_tableau_protobuf_metabook_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*EnumDescriptor); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_metabook_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StructDescriptor); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_metabook_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UnionDescriptor); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_metabook_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*EnumDescriptor_Value); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_metabook_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StructDescriptor_Field); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_metabook_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*UnionDescriptor_Value); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -465,7 +930,7 @@ func file_tableau_protobuf_metabook_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tableau_protobuf_metabook_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

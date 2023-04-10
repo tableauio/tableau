@@ -1075,11 +1075,6 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 			}
 			return present, nil
 		} else {
-			pkgName := structValue.Message().Descriptor().ParentFile().Package()
-			if string(pkgName) != sp.ProtoPackage {
-				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "cross-cell struct")
-				return false, xerrors.ErrorKV(fmt.Sprintf("unknown message %v in package %s", subMsgName, pkgName), kvs...)
-			}
 			present, err := sp.parseFieldOptions(structValue.Message(), rc, prefix+field.opts.Name)
 			if err != nil {
 				kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "cross-cell struct")
