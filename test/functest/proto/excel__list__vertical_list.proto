@@ -30,7 +30,7 @@ message VerticalIncellStructList {
 message VerticalPredefinedStructList {
   option (tableau.worksheet) = {name:"VerticalPredefinedStructList" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  repeated protoconf.Item _item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
 }
 
 message VerticalStructList {

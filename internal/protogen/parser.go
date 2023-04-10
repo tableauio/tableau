@@ -428,6 +428,14 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 			}
 			isScalarElement = false
 		}
+	} else {
+		typeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.ElemType)
+		if err != nil {
+			return cursor, xerrors.WithMessageKV(err,
+				xerrors.KeyPBFieldType, desc.ElemType,
+				xerrors.KeyPBFieldOpts, desc.Prop.Text)
+		}
+		pureElemTypeName = typeDesc.Name
 	}
 
 	// preprocess: analyze the correct layout of list.
