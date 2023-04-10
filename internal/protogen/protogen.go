@@ -262,7 +262,6 @@ func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFil
 
 func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
 	absPath := filepath.Join(dir, filename)
-	log.Infof("pass: %v", pass)
 	var imp importer.Importer
 	if pass == firstPass {
 		parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())

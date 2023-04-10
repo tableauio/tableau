@@ -50,14 +50,19 @@ func New(filename string, setters ...Option) (Importer, error) {
 //    1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 //    2. exclude self
 //    3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func GetMergerImporters(primaryBookPath, sheetName string, bookNameGlobs []string) ([]Importer, error) {
+func GetMergerImporters(inputDir, primaryBookPath, sheetName string, bookNameGlobs []string) ([]Importer, error) {
 	bookPaths, err := resolveBookPaths(primaryBookPath, sheetName, bookNameGlobs)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
 	}
 	var importers []Importer
 	for fpath := range bookPaths {
-		log.Infof("%18s: %s", "merge workbook", fpath)
+		relPath, err := fs.GetRelCleanSlashPath(inputDir, fpath)
+		if err != nil {
+			log.Warnf("GetRelCleanSlashPath failed: %+v", err)
+			relPath = fpath
+		}
+		log.Infof("%18s: %s", "merge workbook", relPath)
 		importer, err := New(fpath, Sheets([]string{sheetName}), Cloned())
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
@@ -71,14 +76,19 @@ func GetMergerImporters(primaryBookPath, sheetName string, bookNameGlobs []strin
 // 	1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 // 	2. exclude self
 //  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func GetScatterImporters(primaryBookPath, sheetName string, bookNameGlobs []string) ([]Importer, error) {
+func GetScatterImporters(inputDir, primaryBookPath, sheetName string, bookNameGlobs []string) ([]Importer, error) {
 	bookPaths, err := resolveBookPaths(primaryBookPath, sheetName, bookNameGlobs)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
 	}
 	var importers []Importer
 	for fpath := range bookPaths {
-		log.Infof("%18s: %s", "scatter workbook", fpath)
+		relPath, err := fs.GetRelCleanSlashPath(inputDir, fpath)
+		if err != nil {
+			log.Warnf("GetRelCleanSlashPath failed: %+v", err)
+			relPath = fpath
+		}
+		log.Infof("%18s: %s", "scatter workbook", relPath)
 		importer, err := New(fpath, Sheets([]string{sheetName}), Cloned())
 		if err != nil {
 			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)

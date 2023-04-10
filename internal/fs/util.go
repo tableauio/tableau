@@ -90,10 +90,11 @@ func GetCleanSlashPath(path string) string {
 func IsSamePath(leftPath, rightPath string) bool {
 	return GetCleanSlashPath(leftPath) == GetCleanSlashPath(rightPath)
 }
-func GetRelCleanSlashPath(rootdir, path string) (string, error) {
-	relPath, err := filepath.Rel(rootdir, path)
+
+func GetRelCleanSlashPath(basepath string, targetpath string) (string, error) {
+	relPath, err := filepath.Rel(basepath, targetpath)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get relative path from %s to %s", rootdir, path)
+		return "", errors.Wrapf(err, "failed to get relative path from %s to %s", basepath, targetpath)
 	}
 	return GetCleanSlashPath(relPath), nil
 }

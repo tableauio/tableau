@@ -99,18 +99,20 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 		if !strings.HasSuffix(file.Name(), ".json") {
 			continue
 		}
-		newPath := filepath.Join(newConfDir, file.Name())
 		oldPath := filepath.Join(oldConfDir, file.Name())
-		newData, err := os.ReadFile(newPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		absOldPath, err := filepath.Abs(oldPath)
+		newPath := filepath.Join(newConfDir, file.Name())
+		absNewPath, err := filepath.Abs(newPath)
 		oldData, err := os.ReadFile(oldPath)
 		if err != nil {
 			t.Fatal(err)
 		}
+		newData, err := os.ReadFile(newPath)
+		if err != nil {
+			t.Fatal(err)
+		}
 		fmt.Printf("compare json file: %s\n", file.Name())
-		require.JSONEqf(t, string(oldData), string(newData), "%s -> %s content not same.", oldPath, newPath)
+		require.JSONEqf(t, string(oldData), string(newData), "%s -> %s content not same.", absOldPath, absNewPath)
 	}
 }
 

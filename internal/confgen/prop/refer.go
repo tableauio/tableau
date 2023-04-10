@@ -160,7 +160,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	}
 
 	// get merger importers
-	importers, err := importer.GetMergerImporters(wbPath, sheetName, sheetOpts.Merger)
+	importers, err := importer.GetMergerImporters(input.InputDir, wbPath, sheetName, sheetOpts.Merger)
 	if err != nil {
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}

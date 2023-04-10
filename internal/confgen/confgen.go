@@ -249,7 +249,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 }
 
 func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, wbPath, sheetName string) error {
-	importers, err := importer.GetScatterImporters(wbPath, sheetName, sheetInfo.Opts.Scatter)
+	importers, err := importer.GetScatterImporters(gen.InputDir, wbPath, sheetName, sheetInfo.Opts.Scatter)
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 }
 
 func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, wbPath, sheetName string) error {
-	importers, err := importer.GetMergerImporters(wbPath, sheetName, sheetInfo.Opts.Merger)
+	importers, err := importer.GetMergerImporters(gen.InputDir, wbPath, sheetName, sheetInfo.Opts.Merger)
 	if err != nil {
 		return err
 	}
