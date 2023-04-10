@@ -174,10 +174,10 @@ func genVersion() string {
 	verInfo := tableau.GetVersionInfo()
 	ver := version + "\n"
 	ver += "Details:\n"
-	ver += fmt.Sprintf(" %12s: %s\n", "Git commit", verInfo.Revision)
-	ver += fmt.Sprintf(" %12s: %s\n", "Commit time", verInfo.Time)
-	ver += fmt.Sprintf(" %12s: %s\n", "Protogen", verInfo.ProtogenVersion)
-	ver += fmt.Sprintf(" %12s: %s\n", "Confgen", verInfo.ConfgenVersion)
-	ver += fmt.Sprintf(" %12s: %s\n", "Experimental", verInfo.Experimental)
+	ver += fmt.Sprintf(" %-16s %s\n", "Git commit:", verInfo.Revision)
+	ver += fmt.Sprintf(" %-16s %s\n", "Commit time:", verInfo.Time)
+	ver += fmt.Sprintf(" %-16s %s\n", "Protogen:", verInfo.ProtogenVersion)
+	ver += fmt.Sprintf(" %-16s %s\n", "Confgen:", verInfo.ConfgenVersion)
+	ver += fmt.Sprintf(" %-16s %s\n", "Experimental:", verInfo.Experimental)
 	return ver
 }
