@@ -15,7 +15,7 @@ E2002:
 E2003:
   desc: illegal sequence number
   text: '值 "{{.Value}}" 不符合序列 "sequence:{{.Sequence}}" 要求'
-  help: '序列 "sequence:{{.Sequence}}" 要求值从 "{{.Sequence}}" 开始递增'
+  help: '序列 "sequence:{{.Sequence}}" 要求值从 "{{.Sequence}}" 开始单调递增'
 E2004:
   desc: value is out of range
   text: '值 "{{.Value}}" 超出限制的区间 [{{.Range}}]'

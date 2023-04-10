@@ -21,7 +21,7 @@ message FieldPropForm {
 message ItemConf {
   option (tableau.worksheet) = {name:"ItemConf" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
