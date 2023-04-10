@@ -163,10 +163,11 @@ func ShowConfigSample() error {
 func genVersion() string {
 	verInfo := tableau.GetVersionInfo()
 	ver := version + "\n"
-	ver += fmt.Sprintf("%11s: %s\n", "Git commit", verInfo.Revision)
-	ver += fmt.Sprintf("%11s: %s\n", "Commit time", verInfo.Time)
-	ver += fmt.Sprintf("%11s: %s\n", "Protogen", verInfo.ProtogenVersion)
-	ver += fmt.Sprintf("%11s: %s\n", "Confgen", verInfo.ConfgenVersion)
-	ver += fmt.Sprintf("%11s: %s\n", "Experimental", verInfo.Experimental)
+	ver += "Details:\n"
+	ver += fmt.Sprintf(" %12s: %s\n", "Git commit", verInfo.Revision)
+	ver += fmt.Sprintf(" %12s: %s\n", "Commit time", verInfo.Time)
+	ver += fmt.Sprintf(" %12s: %s\n", "Protogen", verInfo.ProtogenVersion)
+	ver += fmt.Sprintf(" %12s: %s\n", "Confgen", verInfo.ConfgenVersion)
+	ver += fmt.Sprintf(" %12s: %s\n", "Experimental", verInfo.Experimental)
 	return ver
 }
