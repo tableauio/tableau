@@ -1,4 +1,4 @@
-Sheet,Mode
-ItemType,MODE_ENUM_TYPE
-EnumTypeReuseInBook,
-UnionTaskTarget,MODE_UNION_TYPE
+Sheet,Alias,Mode
+ItemType,,MODE_ENUM_TYPE
+EnumTypeReuseInBook,,
+UnionTaskTarget,TaskTarget,MODE_UNION_TYPE

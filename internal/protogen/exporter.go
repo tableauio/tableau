@@ -187,7 +187,8 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P(`    option (tableau.oneof) = {field: "Field"};`)
 	x.g.P()
 	for _, field := range x.ws.Fields {
-		x.g.P("    ", field.Name, " ", strcase.ToSnake(field.Name), " = ", field.Number, `;`)
+		ename := "TYPE_" + strcase.ToScreamingSnake(field.Name)
+		x.g.P("    ", field.Name, " ", strcase.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 	}
 	x.g.P(`  }`)
 

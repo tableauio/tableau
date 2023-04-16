@@ -19,15 +19,15 @@ enum ItemType {
 }
 
 // Generated from sheet: UnionTaskTarget.
-message UnionTaskTarget {
+message TaskTarget {
   option (tableau.union) = true;
 
   Type type = 9999 [(tableau.field) = { name: "Type" }];
   oneof value {
     option (tableau.oneof) = {field: "Field"};
 
-    PvpBattle pvp_battle = 1;
-    PveBattle pve_battle = 2;
+    PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
   }
   enum Type {
     TYPE_INVALIDE = 0;
