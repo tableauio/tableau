@@ -1,3 +1,4 @@
 Sheet,Mode
 ItemType,MODE_ENUM_TYPE
 EnumTypeReuseInBook,
+UnionTaskTarget,MODE_UNION_TYPE

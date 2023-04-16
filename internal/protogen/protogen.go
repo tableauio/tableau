@@ -459,6 +459,55 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			}
 			ws.Fields = append(ws.Fields, field)
 		}
+	case tableaupb.Mode_MODE_UNION_TYPE:
+		// add type info
+		info := &xproto.TypeInfo{
+			FullName:       gen.ProtoPackage + "." + ws.Name,
+			ParentFilename: parentFilename,
+			Kind:           types.MessageKind,
+		}
+		gen.typeInfos.Put(info)
+
+		desc := &tableaupb.UnionDescriptor{}
+		if err := parser.Parse(desc, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse union type sheet: %s", sheet.Name)
+		}
+		
+		for _, value := range desc.Values {
+			field := &tableaupb.Field{
+				Number: value.Number,
+				Name:   value.Name,
+				Alias:  value.Alias,
+			}
+			// create a book parser
+			bp := newBookParser("union", "", gen)
+
+			shHeader := &sheetHeader{
+				meta: &tableaupb.Metasheet{
+					Namerow:  1,
+					Typerow:  1,
+					Nameline: 1,
+					Typeline: 2,
+				},
+				namerow: value.Fields,
+				typerow: value.Fields,
+				noterow: value.Fields,
+			}
+			var parsed bool
+			var err error
+			for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+				subField := &tableaupb.Field{}
+				cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
+				if err != nil {
+					return err
+				}
+				if parsed {
+					field.Fields = append(field.Fields, subField)
+				}
+			}
+
+			ws.Fields = append(ws.Fields, field)
+		}
 	default:
 		return errors.Errorf("unknown mode: %v", mode)
 	}

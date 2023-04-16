@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/fs"
@@ -150,6 +151,8 @@ func (x *sheetExporter) export() error {
 		return x.exportStruct()
 	case tableaupb.Mode_MODE_ENUM_TYPE:
 		return x.exportEnum()
+	case tableaupb.Mode_MODE_UNION_TYPE:
+		return x.exportUnion()
 	default:
 		return errors.Errorf("unknown mode: %d", mode)
 	}
@@ -162,6 +165,56 @@ func (x *sheetExporter) exportEnum() error {
 	for _, field := range x.ws.Fields {
 		x.g.P("  ", field.Name, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
 	}
+	x.g.P("}")
+	if !x.isLastSheet {
+		x.g.P("")
+	}
+	return nil
+}
+
+//	  Pvp pvp = 1;      // Bound to enum value 1: TYPE_PVP.
+//	  Pve pve = 2;      // Bound to enum value 2: TYPE_PVE.
+//	  Story story = 3;  // Bound to enum value 3: TYPE_STORY.
+//	  Skill skill = 4;  // Bound to enum value 4: TYPE_SKILL.
+//	}
+func (x *sheetExporter) exportUnion() error {
+	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
+	x.g.P("message ", x.ws.Name, " {")
+	x.g.P(`  option (tableau.union) = true;`)
+	x.g.P()
+	x.g.P(`  Type type = 9999 [(tableau.field) = { name: "Type" }];`)
+	x.g.P(`  oneof value {`)
+	x.g.P(`    option (tableau.oneof) = {field: "Field"};`)
+	x.g.P()
+	for _, field := range x.ws.Fields {
+		x.g.P("    ", field.Name, " ", strcase.ToSnake(field.Name), " = ", field.Number, `;`)
+	}
+	x.g.P(`  }`)
+
+	// generate enum type
+	x.g.P("  enum Type {")
+	x.g.P("    TYPE_INVALIDE = 0;")
+	for _, field := range x.ws.Fields {
+		ename := "TYPE_" + strcase.ToScreamingSnake(field.Name)
+		x.g.P("    ", ename, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
+	}
+	x.g.P("  }")
+	x.g.P()
+
+	// generate message type
+	for _, field := range x.ws.Fields {
+		x.g.P("  message ", field.Name, " {")
+		// generate the fields
+		depth := 2
+		for i, field := range field.Fields {
+			tagid := i + 1
+			if err := x.exportField(depth, tagid, field, field.Name); err != nil {
+				return err
+			}
+		}
+		x.g.P("  }")
+	}
+
 	x.g.P("}")
 	if !x.isLastSheet {
 		x.g.P("")
