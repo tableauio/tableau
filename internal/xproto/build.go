@@ -168,8 +168,16 @@ func extractTypeInfosFromMessage(md protoreflect.MessageDescriptor, typeInfos *T
 	}
 	// find first field option name
 	firstFieldOptionName := ""
-	if md.Fields().Len() != 0 {
-		fd := md.Fields().Get(0) // first field
+	if IsUnion(md) {
+		desc := ExtractUnionDescriptor(md)
+		if desc != nil {
+			// union's first field is enum type field.
+			fieldOpts := proto.GetExtension(desc.Type.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+			firstFieldOptionName = fieldOpts.GetName()
+		}
+	} else if md.Fields().Len() != 0 {
+		// struct's first field
+		fd := md.Fields().Get(0)
 		fieldOpts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
 		firstFieldOptionName = fieldOpts.GetName()
 	}
