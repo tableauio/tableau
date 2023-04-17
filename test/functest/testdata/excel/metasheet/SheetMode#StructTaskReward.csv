@@ -1,0 +1,7 @@
+Name,Type
+ID,uint32
+Num,int32
+FruitType,enum<.FruitType>
+Feature,[]int32
+Prop,"map<int32, string>"
+Detail,"{enum<.FruitType> Type, string Name, string Desc}Detail"

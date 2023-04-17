@@ -148,9 +148,11 @@ func (x *sheetExporter) export() error {
 	mode := x.ws.GetOptions().GetMode()
 	switch x.ws.Options.Mode {
 	case tableaupb.Mode_MODE_DEFAULT:
-		return x.exportStruct()
+		return x.exportMessager()
 	case tableaupb.Mode_MODE_ENUM_TYPE:
 		return x.exportEnum()
+	case tableaupb.Mode_MODE_STRUCT_TYPE:
+		return x.exportStruct()
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		return x.exportUnion()
 	default:
@@ -176,11 +178,24 @@ func (x *sheetExporter) exportEnum() error {
 	return nil
 }
 
-//	  Pvp pvp = 1;      // Bound to enum value 1: TYPE_PVP.
-//	  Pve pve = 2;      // Bound to enum value 2: TYPE_PVE.
-//	  Story story = 3;  // Bound to enum value 3: TYPE_STORY.
-//	  Skill skill = 4;  // Bound to enum value 4: TYPE_SKILL.
-//	}
+func (x *sheetExporter) exportStruct() error {
+	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
+	x.g.P("message ", x.ws.Name, " {")
+	// generate the fields
+	depth := 1
+	for i, field := range x.ws.Fields {
+		tagid := i + 1
+		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+			return err
+		}
+	}
+	x.g.P("}")
+	if !x.isLastSheet {
+		x.g.P("")
+	}
+	return nil
+}
+
 func (x *sheetExporter) exportUnion() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("message ", x.ws.Name, " {")
@@ -227,7 +242,7 @@ func (x *sheetExporter) exportUnion() error {
 	return nil
 }
 
-func (x *sheetExporter) exportStruct() error {
+func (x *sheetExporter) exportMessager() error {
 	x.g.P("message ", x.ws.Name, " {")
 	x.g.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
 	x.g.P("")

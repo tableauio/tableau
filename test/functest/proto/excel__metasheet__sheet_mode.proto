@@ -19,6 +19,21 @@ enum ItemType {
   ITEM_TYPE_BOX = 3 [(tableau.evalue).name = "Box"];
 }
 
+// Generated from sheet: StructTaskReward.
+message TaskReward {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  int32 num = 2 [(tableau.field) = {name:"Num"}];
+  protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
+  repeated int32 feature_list = 4 [(tableau.field) = {name:"Feature" layout:LAYOUT_INCELL}];
+  map<int32, string> prop_map = 5 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}];
+  Detail detail = 6 [(tableau.field) = {name:"Detail" span:SPAN_INNER_CELL}];
+  message Detail {
+    protoconf.FruitType type = 1 [(tableau.field) = {name:"Type"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+    string desc = 3 [(tableau.field) = {name:"Desc"}];
+  }
+}
+
 // Generated from sheet: UnionTaskTarget.
 message TaskTarget {
   option (tableau.union) = true;
