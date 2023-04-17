@@ -11,6 +11,18 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv"};
 
+message EnumTypeReuseInBook {
+  option (tableau.worksheet) = {name:"EnumTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}];
+    string name = 3 [(tableau.field) = {name:"Name"}];
+    int32 price = 4 [(tableau.field) = {name:"Price"}];
+  }
+}
+
 // Generated from sheet: ItemType.
 enum ItemType {
   ITEM_TYPE_INVALID = 0;
@@ -28,10 +40,16 @@ message TaskReward {
   map<int32, string> prop_map = 5 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}];
   Detail detail = 6 [(tableau.field) = {name:"Detail" span:SPAN_INNER_CELL}];
   message Detail {
-    protoconf.FruitType type = 1 [(tableau.field) = {name:"Type"}];
+    protoconf.ItemType type = 1 [(tableau.field) = {name:"Type"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
     string desc = 3 [(tableau.field) = {name:"Desc"}];
   }
+}
+
+message StructTypeReuseInBook {
+  option (tableau.worksheet) = {name:"StructTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, protoconf.TaskReward> task_reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
 }
 
 // Generated from sheet: UnionTaskTarget.
@@ -65,7 +83,7 @@ message TaskTarget {
     message Mission {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];
       int32 level = 2 [(tableau.field) = {name:"Level"}];
-      protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
+      protoconf.ItemType item_type = 3 [(tableau.field) = {name:"ItemType"}];
     }
     repeated uint32 hero_list = 2 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}];
     map<int32, int64> dungeon_map = 3 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}];
@@ -85,14 +103,13 @@ message TaskTarget {
   }
 }
 
-message EnumTypeReuseInBook {
-  option (tableau.worksheet) = {name:"EnumTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4};
+message UnionTypeReuseInBook {
+  option (tableau.worksheet) = {name:"UnionTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message Item {
+  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Task {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
-    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}];
-    string name = 3 [(tableau.field) = {name:"Name"}];
-    int32 price = 4 [(tableau.field) = {name:"Price"}];
+    protoconf.TaskTarget task_target = 2 [(tableau.field) = {name:"TaskTarget"}];
+    int32 progress = 3 [(tableau.field) = {name:"Progress"}];
   }
 }
