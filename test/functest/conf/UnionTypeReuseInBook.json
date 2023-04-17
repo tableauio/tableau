@@ -77,6 +77,14 @@
                 }
             },
             "progress": 8
+        },
+        "5": {
+            "id": 5,
+            "taskTarget": {
+                "type": "TYPE_EMPTY_TARGET",
+                "emptyTarget": {}
+            },
+            "progress": 0
         }
     }
 }

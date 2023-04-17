@@ -1,8 +1,11 @@
 Name,Alias,Field1,Field2,Field3
 PvpBattle,SoloPVPBattle,"ID
-uint32","Damage
-int64","Type
-[]enum<.FruitType>"
+uint32
+Note: battle id","Damage
+int64
+Note: battle damage","Type
+[]enum<.FruitType>
+Note: In battle fruite type"
 PveBattle,SoloPVEBattle,"Mission
 {uint32 ID, int32 Level, enum<.ItemType> ItemType}Mission","Hero
 []uint32","Dungeon
@@ -14,3 +17,4 @@ map<enum<.FruitFlavor>, enum<.FruitType>>"
 MainSkill,HeroMainSkill,"ID
 uint32","Damage
 int64",
+EmptyTarget,EmptyTarget,,,

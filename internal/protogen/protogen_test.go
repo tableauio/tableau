@@ -52,14 +52,13 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 						{"3", "ITEM_TYPE_BOX", "Box"},
 					},
 				},
-				parentFilename: "ItemConf.proto",
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, tt.args.parentFilename); (err != nil) != tt.wantErr {
+			if err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet); (err != nil) != tt.wantErr {
 				t.Errorf("Generator.parseSpecialSheetMode() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

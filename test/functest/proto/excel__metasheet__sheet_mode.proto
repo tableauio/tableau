@@ -64,6 +64,7 @@ message TaskTarget {
     PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
     MainStory main_story = 3; // Bound to enum value: TYPE_MAIN_STORY.
     MainSkill main_skill = 4; // Bound to enum value: TYPE_MAIN_SKILL.
+    EmptyTarget empty_target = 5; // Bound to enum value: TYPE_EMPTY_TARGET.
   }
   enum Type {
     TYPE_INVALID = 0;
@@ -71,6 +72,7 @@ message TaskTarget {
     TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "SoloPVEBattle"];
     TYPE_MAIN_STORY = 3 [(tableau.evalue).name = "HeroMainStory"];
     TYPE_MAIN_SKILL = 4 [(tableau.evalue).name = "HeroMainSkill"];
+    TYPE_EMPTY_TARGET = 5 [(tableau.evalue).name = "EmptyTarget"];
   }
 
   message PvpBattle {
@@ -100,6 +102,8 @@ message TaskTarget {
   message MainSkill {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int64 damage = 2 [(tableau.field) = {name:"Damage"}];
+  }
+  message EmptyTarget {
   }
 }
 

@@ -5,3 +5,4 @@ ID,Target's type,Target's field1,Target's field2,Target's field3," Progress"
 2,SoloPVEBattle,"1,100,Equip","1,2,3","1:10,2:20,3:30",10
 3,HeroMainStory,"1001,10","1:Apple,2:Orange","Fragrant:Apple,Sour:Orange",10
 4,HeroMainSkill,1,200,,8
+5,EmptyTarget,,,,
