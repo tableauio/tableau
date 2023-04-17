@@ -50,7 +50,7 @@ message TaskTarget {
     message Mission {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];
       int32 level = 2 [(tableau.field) = {name:"Level"}];
-      int64 damage = 3 [(tableau.field) = {name:"Damage"}];
+      protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
     }
     repeated uint32 hero_list = 2 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}];
     map<int32, int64> dungeon_map = 3 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}];

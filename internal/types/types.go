@@ -13,8 +13,8 @@ import (
 
 // refer: https://github.com/google/re2/wiki/Syntax
 const nameCharSet = `0-9A-Za-z_`
-const typeCharSet = `0-9A-Za-z _,\.`
-const nestedTypeCharSet = typeCharSet + `><\[\]\{\}`
+const typeCharSet = `0-9A-Za-z _,\.<>`
+const nestedTypeCharSet = typeCharSet + `<>\[\]\{\}`
 
 const nameCharClass = `[` + nameCharSet + `]`
 const typeCharClass = `[` + typeCharSet + `]`

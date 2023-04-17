@@ -4,7 +4,7 @@ uint32","Damage
 int64","Type
 []enum<.FruitType>"
 PveBattle,SoloPVEBattle,"Mission
-{uint32 ID, int32 Level, int64 Damage}Mission","Hero
+{uint32 ID, int32 Level, enum<.FruitType> FruitType}Mission","Hero
 []uint32","Dungeon
 map<int32, int64>"
 MainStory,HeroMainStory,"Cost
