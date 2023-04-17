@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/fs"
@@ -147,9 +148,13 @@ func (x *sheetExporter) export() error {
 	mode := x.ws.GetOptions().GetMode()
 	switch x.ws.Options.Mode {
 	case tableaupb.Mode_MODE_DEFAULT:
-		return x.exportStruct()
+		return x.exportMessager()
 	case tableaupb.Mode_MODE_ENUM_TYPE:
 		return x.exportEnum()
+	case tableaupb.Mode_MODE_STRUCT_TYPE:
+		return x.exportStruct()
+	case tableaupb.Mode_MODE_UNION_TYPE:
+		return x.exportUnion()
 	default:
 		return errors.Errorf("unknown mode: %d", mode)
 	}
@@ -159,7 +164,11 @@ func (x *sheetExporter) exportEnum() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("enum ", x.ws.Name, " {")
 	// generate the enum value fields
-	for _, field := range x.ws.Fields {
+	for i, field := range x.ws.Fields {
+		if i == 0 && field.Number != 0 {
+			ename := strcase.ToScreamingSnake(x.ws.Name) + "_INVALID"
+			x.g.P("  ", ename, " = 0;")
+		}
 		x.g.P("  ", field.Name, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
 	}
 	x.g.P("}")
@@ -170,6 +179,70 @@ func (x *sheetExporter) exportEnum() error {
 }
 
 func (x *sheetExporter) exportStruct() error {
+	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
+	x.g.P("message ", x.ws.Name, " {")
+	// generate the fields
+	depth := 1
+	for i, field := range x.ws.Fields {
+		tagid := i + 1
+		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+			return err
+		}
+	}
+	x.g.P("}")
+	if !x.isLastSheet {
+		x.g.P("")
+	}
+	return nil
+}
+
+func (x *sheetExporter) exportUnion() error {
+	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
+	x.g.P("message ", x.ws.Name, " {")
+	x.g.P(`  option (tableau.union) = true;`)
+	x.g.P()
+	x.g.P(`  Type type = 9999 [(tableau.field) = { name: "Type" }];`)
+	x.g.P(`  oneof value {`)
+	x.g.P(`    option (tableau.oneof) = {field: "Field"};`)
+	x.g.P()
+	for _, field := range x.ws.Fields {
+		ename := "TYPE_" + strcase.ToScreamingSnake(field.Name)
+		x.g.P("    ", field.Name, " ", strcase.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+	}
+	x.g.P(`  }`)
+
+	// generate enum type
+	x.g.P("  enum Type {")
+	x.g.P("    TYPE_INVALID = 0;")
+	for _, field := range x.ws.Fields {
+		ename := "TYPE_" + strcase.ToScreamingSnake(field.Name)
+		x.g.P("    ", ename, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
+	}
+	x.g.P("  }")
+	x.g.P()
+
+	// generate message type
+	for _, field := range x.ws.Fields {
+		x.g.P("  message ", field.Name, " {")
+		// generate the fields
+		depth := 2
+		for i, field := range field.Fields {
+			tagid := i + 1
+			if err := x.exportField(depth, tagid, field, field.Name); err != nil {
+				return err
+			}
+		}
+		x.g.P("  }")
+	}
+
+	x.g.P("}")
+	if !x.isLastSheet {
+		x.g.P("")
+	}
+	return nil
+}
+
+func (x *sheetExporter) exportMessager() error {
 	x.g.P("message ", x.ws.Name, " {")
 	x.g.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
 	x.g.P("")

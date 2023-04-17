@@ -41,7 +41,7 @@ message Target {
       field: "Field"
     };
     Pvp pvp = 1;      // Bound to enum value 1: TYPE_PVP.
-    Pve pve = 2;      // Bound to enum value 2: TYPE_PVP.
+    Pve pve = 2;      // Bound to enum value 2: TYPE_PVE.
     Story story = 3;  // Bound to enum value 3: TYPE_STORY.
     Skill skill = 4;  // Bound to enum value 4: TYPE_SKILL.
   }

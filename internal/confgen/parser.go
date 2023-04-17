@@ -365,7 +365,7 @@ func (sp *sheetParser) parseField(field *Field, msg protoreflect.Message, rc *bo
 	} else if field.fd.IsList() {
 		return sp.parseListField(field, msg, rc, prefix)
 	} else if field.fd.Kind() == protoreflect.MessageKind {
-		if IsUnionField(field.fd) {
+		if xproto.IsUnionField(field.fd) {
 			return sp.parseUnionField(field, msg, rc, prefix)
 		}
 		return sp.parseStructField(field, msg, rc, prefix)
@@ -1155,7 +1155,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		return present, nil
 	}
 
-	unionDesc := ExtractUnionDescriptor(field.fd.Message())
+	unionDesc := xproto.ExtractUnionDescriptor(field.fd.Message())
 	if unionDesc == nil {
 		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
 	}

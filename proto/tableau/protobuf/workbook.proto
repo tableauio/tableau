@@ -24,11 +24,11 @@ message Worksheet {
 }
 
 message Field {
+  // Field tag number
+  // Note: only for enum/struct/union type definition in sheet
   int32 number = 1;
   string name = 2;
   string alias = 3;
-  // Field tag number
-  // Note: only for enum/struct/union type definition in sheet
   string type = 4;
   string full_type = 5;
   ListEntry list_entry = 6;

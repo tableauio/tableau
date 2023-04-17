@@ -1,4 +1,4 @@
-package confgen
+package xproto
 
 import (
 	"github.com/iancoleman/strcase"

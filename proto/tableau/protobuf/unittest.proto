@@ -52,10 +52,15 @@ message TestIncellMap {
 }
 
 message TestTarget {
-  Type type = 9999;
+  option (tableau.union) = true;
+
+  Type type = 9999 [(tableau.field) = { name: "Type" }];
   oneof value {
-    Pvp pvp = 1;  // Bound to enum value 1: TYPE_PVP.
-    Pve pve = 2;  // Bound to enum value 2: TYPE_PVP.
+    option (tableau.oneof) = {
+      field: "Field"
+    };
+    Pvp pvp = 1;  // Bound to enum value: TYPE_PVP.
+    Pve pve = 2;  // Bound to enum value: TYPE_PVP.
   }
 
   enum Type {
@@ -69,9 +74,9 @@ message TestTarget {
     int64 damage = 3;
   }
   message Pve {
-    Mission mission = 1;             // incell struct
-    repeated int32 heros = 2;        // incell list
-    map<int32, int64> dungeons = 3;  // incell map
+    Mission mission = 1 [(tableau.field) = { name: "Mission" }];  // incell struct
+    repeated int32 heros = 2;                                     // incell list
+    map<int32, int64> dungeons = 3;                               // incell map
 
     message Mission {
       int32 id = 1;

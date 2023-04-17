@@ -73,9 +73,10 @@ func Test_extractTypeInfosFromMessage(t *testing.T) {
 				protoPackage: "tableau",
 				infos: map[string]*TypeInfo{
 					"tableau.TestItem": {
-						FullName:       "tableau.TestItem",
-						ParentFilename: "tableau/protobuf/unittest.proto",
-						Kind:           types.MessageKind,
+						FullName:             "tableau.TestItem",
+						ParentFilename:       "tableau/protobuf/unittest.proto",
+						Kind:                 types.MessageKind,
+						FirstFieldOptionName: "ID",
 					},
 				},
 			},
@@ -89,9 +90,10 @@ func Test_extractTypeInfosFromMessage(t *testing.T) {
 				protoPackage: "tableau",
 				infos: map[string]*TypeInfo{
 					"tableau.TestTarget": {
-						FullName:       "tableau.TestTarget",
-						ParentFilename: "tableau/protobuf/unittest.proto",
-						Kind:           types.MessageKind,
+						FullName:             "tableau.TestTarget",
+						ParentFilename:       "tableau/protobuf/unittest.proto",
+						Kind:                 types.MessageKind,
+						FirstFieldOptionName: "Type",
 					},
 
 					"tableau.TestTarget.Type": {
@@ -105,9 +107,10 @@ func Test_extractTypeInfosFromMessage(t *testing.T) {
 						Kind:           types.MessageKind,
 					},
 					"tableau.TestTarget.Pve": {
-						FullName:       "tableau.TestTarget.Pve",
-						ParentFilename: "tableau/protobuf/unittest.proto",
-						Kind:           types.MessageKind,
+						FullName:             "tableau.TestTarget.Pve",
+						ParentFilename:       "tableau/protobuf/unittest.proto",
+						Kind:                 types.MessageKind,
+						FirstFieldOptionName: "Mission",
 					},
 					"tableau.TestTarget.Pve.Mission": {
 						FullName:       "tableau.TestTarget.Pve.Mission",

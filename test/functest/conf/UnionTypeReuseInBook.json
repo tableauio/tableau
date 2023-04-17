@@ -1,0 +1,90 @@
+{
+    "taskMap": {
+        "1": {
+            "id": 1,
+            "taskTarget": {
+                "type": "TYPE_PVP_BATTLE",
+                "pvpBattle": {
+                    "id": 1,
+                    "damage": "10",
+                    "typeList": [
+                        "FRUIT_TYPE_APPLE",
+                        "FRUIT_TYPE_ORANGE",
+                        "FRUIT_TYPE_BANANA"
+                    ]
+                }
+            },
+            "progress": 3
+        },
+        "2": {
+            "id": 2,
+            "taskTarget": {
+                "type": "TYPE_PVE_BATTLE",
+                "pveBattle": {
+                    "mission": {
+                        "id": 1,
+                        "level": 100,
+                        "itemType": "ITEM_TYPE_EQUIP"
+                    },
+                    "heroList": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "dungeonMap": {
+                        "1": "10",
+                        "2": "20",
+                        "3": "30"
+                    }
+                }
+            },
+            "progress": 10
+        },
+        "3": {
+            "id": 3,
+            "taskTarget": {
+                "type": "TYPE_MAIN_STORY",
+                "mainStory": {
+                    "cost": {
+                        "id": 1001,
+                        "num": 10
+                    },
+                    "fruitMap": {
+                        "1": "FRUIT_TYPE_APPLE",
+                        "2": "FRUIT_TYPE_ORANGE"
+                    },
+                    "flavorMap": {
+                        "1": {
+                            "key": "FRUIT_FLAVOR_FRAGRANT",
+                            "value": "FRUIT_TYPE_APPLE"
+                        },
+                        "2": {
+                            "key": "FRUIT_FLAVOR_SOUR",
+                            "value": "FRUIT_TYPE_ORANGE"
+                        }
+                    }
+                }
+            },
+            "progress": 10
+        },
+        "4": {
+            "id": 4,
+            "taskTarget": {
+                "type": "TYPE_MAIN_SKILL",
+                "mainSkill": {
+                    "id": 1,
+                    "damage": "200"
+                }
+            },
+            "progress": 8
+        },
+        "5": {
+            "id": 5,
+            "taskTarget": {
+                "type": "TYPE_EMPTY_TARGET",
+                "emptyTarget": {}
+            },
+            "progress": 0
+        }
+    }
+}

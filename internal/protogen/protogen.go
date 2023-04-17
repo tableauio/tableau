@@ -374,37 +374,46 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 			shHeader.noterow = sheet.GetRow(int(sheet.Meta.Noterow - 1))
 		}
 		if pass == firstPass && sheet.Meta.Mode != tableaupb.Mode_MODE_DEFAULT {
-			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+			log.Debugf("extract type info from %s", debugSheetName)
+
 			parentFilename := bp.GetProtoFilePath()
-			err := gen.parseSpecialSheetMode(sheet.Meta.Mode, ws, sheet, parentFilename)
+			err := gen.extractTypeInfoFromSpecialSheetMode(sheet.Meta.Mode, sheet, ws.Name, parentFilename)
 			if err != nil {
-				return err
+				return xerrors.WithMessageKV(err,
+					xerrors.KeyBookName, debugWorkbookName,
+					xerrors.KeySheetName, debugSheetName)
 			}
-			// append parsed sheet to workbook
-			bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
-		} else if pass == secondPass && sheet.Meta.Mode == tableaupb.Mode_MODE_DEFAULT {
+		} else if pass == secondPass {
 			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
-			var parsed bool
-			for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
-				field := &tableaupb.Field{}
-				cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
-				if err != nil {
-					nameCellPos := excel.Postion(int(sheet.Meta.Namerow-1), cursor)
-					typeCellPos := excel.Postion(int(sheet.Meta.Typerow-1), cursor)
-					if sheet.Meta.Transpose {
-						nameCellPos = excel.Postion(cursor, int(sheet.Meta.Namerow-1))
-						typeCellPos = excel.Postion(cursor, int(sheet.Meta.Typerow-1))
+
+			if sheet.Meta.Mode == tableaupb.Mode_MODE_DEFAULT {
+				var parsed bool
+				for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+					field := &tableaupb.Field{}
+					cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
+					if err != nil {
+						nameCellPos := excel.Postion(int(sheet.Meta.Namerow-1), cursor)
+						typeCellPos := excel.Postion(int(sheet.Meta.Typerow-1), cursor)
+						if sheet.Meta.Transpose {
+							nameCellPos = excel.Postion(cursor, int(sheet.Meta.Namerow-1))
+							typeCellPos = excel.Postion(cursor, int(sheet.Meta.Typerow-1))
+						}
+						return xerrors.WithMessageKV(err,
+							xerrors.KeyBookName, debugWorkbookName,
+							xerrors.KeySheetName, debugSheetName,
+							xerrors.KeyNameCellPos, nameCellPos,
+							xerrors.KeyTypeCellPos, typeCellPos,
+							xerrors.KeyNameCell, shHeader.getNameCell(cursor),
+							xerrors.KeyTypeCell, shHeader.getTypeCell(cursor))
 					}
-					return xerrors.WithMessageKV(err,
-						xerrors.KeyBookName, debugWorkbookName,
-						xerrors.KeySheetName, debugSheetName,
-						xerrors.KeyNameCellPos, nameCellPos,
-						xerrors.KeyTypeCellPos, typeCellPos,
-						xerrors.KeyNameCell, shHeader.getNameCell(cursor),
-						xerrors.KeyTypeCell, shHeader.getTypeCell(cursor))
+					if parsed {
+						ws.Fields = append(ws.Fields, field)
+					}
 				}
-				if parsed {
-					ws.Fields = append(ws.Fields, field)
+			} else {
+				err := gen.parseSpecialSheetMode(sheet.Meta.Mode, ws, sheet)
+				if err != nil {
+					return err
 				}
 			}
 			// append parsed sheet to workbook
@@ -427,7 +436,86 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	return nil
 }
 
-func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.Worksheet, sheet *book.Sheet, parentFilename string) error {
+func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, sheet *book.Sheet, typeName, parentFilename string) error {
+	// create parser
+	sheetOpts := &tableaupb.WorksheetOptions{
+		Name:    sheet.Name,
+		Namerow: 1,
+		Datarow: 2,
+	}
+	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, sheetOpts)
+	// parse each special sheet mode
+	switch mode {
+	case tableaupb.Mode_MODE_ENUM_TYPE:
+		// add type info
+		info := &xproto.TypeInfo{
+			FullName:       gen.ProtoPackage + "." + typeName,
+			ParentFilename: parentFilename,
+			Kind:           types.EnumKind,
+		}
+		gen.typeInfos.Put(info)
+	case tableaupb.Mode_MODE_STRUCT_TYPE:
+		desc := &tableaupb.StructDescriptor{}
+		if err := parser.Parse(desc, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse struct type sheet: %s", sheet.Name)
+		}
+		firstFieldOptionName := ""
+		if len(desc.Fields) != 0 {
+			firstFieldOptionName = desc.Fields[0].Name
+		}
+		// add type info
+		info := &xproto.TypeInfo{
+			FullName:             gen.ProtoPackage + "." + typeName,
+			ParentFilename:       parentFilename,
+			Kind:                 types.MessageKind,
+			FirstFieldOptionName: firstFieldOptionName,
+		}
+		gen.typeInfos.Put(info)
+
+	case tableaupb.Mode_MODE_UNION_TYPE:
+		// add union self type info
+		info := &xproto.TypeInfo{
+			FullName:             gen.ProtoPackage + "." + typeName,
+			ParentFilename:       parentFilename,
+			Kind:                 types.MessageKind,
+			FirstFieldOptionName: "Type", // NOTE: union's first field name is special!
+		}
+		gen.typeInfos.Put(info)
+
+		// add union enum type info
+		enumInfo := &xproto.TypeInfo{
+			FullName:       gen.ProtoPackage + "." + typeName + "." + "Type",
+			ParentFilename: parentFilename,
+			Kind:           types.EnumKind,
+		}
+		gen.typeInfos.Put(enumInfo)
+
+		desc := &tableaupb.UnionDescriptor{}
+		if err := parser.Parse(desc, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse union type sheet: %s", sheet.Name)
+		}
+		// add types nested in union type
+		for _, value := range desc.Values {
+			firstFieldOptionName := ""
+			if len(value.Fields) != 0 {
+				// name located at first line of cell
+				firstFieldOptionName = book.ExtractFromCell(value.Fields[0], 1)
+			}
+			info := &xproto.TypeInfo{
+				FullName:             gen.ProtoPackage + "." + typeName + "." + value.Name,
+				ParentFilename:       parentFilename,
+				Kind:                 types.MessageKind,
+				FirstFieldOptionName: firstFieldOptionName,
+			}
+			gen.typeInfos.Put(info)
+		}
+	default:
+		return errors.Errorf("unknown mode: %v", mode)
+	}
+	return nil
+}
+
+func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.Worksheet, sheet *book.Sheet) error {
 	// create parser
 	sheetOpts := &tableaupb.WorksheetOptions{
 		Name:    sheet.Name,
@@ -439,24 +527,95 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
-		// add type info
-		info := &xproto.TypeInfo{
-			FullName:       gen.ProtoPackage + "." + ws.Name,
-			ParentFilename: parentFilename,
-			Kind:           types.EnumKind,
-		}
-		gen.typeInfos.Put(info)
-
 		desc := &tableaupb.EnumDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
 			return errors.WithMessagef(err, "failed to parse enum type sheet: %s", sheet.Name)
 		}
-		for _, value := range desc.Values {
+		for i, value := range desc.Values {
+			number := int32(i + 1)
+			if value.Number != nil {
+				number = *value.Number
+			}
 			field := &tableaupb.Field{
-				Number: value.Number,
+				Number: number,
 				Name:   value.Name,
 				Alias:  value.Alias,
 			}
+			ws.Fields = append(ws.Fields, field)
+		}
+	case tableaupb.Mode_MODE_STRUCT_TYPE:
+		desc := &tableaupb.StructDescriptor{}
+		if err := parser.Parse(desc, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse struct type sheet: %s", sheet.Name)
+		}
+		bp := newBookParser("struct", "", gen)
+		shHeader := &sheetHeader{
+			meta: &tableaupb.Metasheet{
+				Namerow: 1,
+				Typerow: 2,
+			},
+		}
+		for _, field := range desc.Fields {
+			shHeader.namerow = append(shHeader.namerow, field.Name)
+			shHeader.typerow = append(shHeader.typerow, field.Type)
+			shHeader.noterow = append(shHeader.noterow, "")
+		}
+		var parsed bool
+		var err error
+		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+			subField := &tableaupb.Field{}
+			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
+			if err != nil {
+				return err
+			}
+			if parsed {
+				ws.Fields = append(ws.Fields, subField)
+			}
+		}
+
+	case tableaupb.Mode_MODE_UNION_TYPE:
+		desc := &tableaupb.UnionDescriptor{}
+		if err := parser.Parse(desc, sheet); err != nil {
+			return errors.WithMessagef(err, "failed to parse union type sheet: %s", sheet.Name)
+		}
+
+		for i, value := range desc.Values {
+			number := int32(i + 1)
+			if value.Number != nil {
+				number = *value.Number
+			}
+			field := &tableaupb.Field{
+				Number: number,
+				Name:   value.Name,
+				Alias:  value.Alias,
+			}
+			// create a book parser
+			bp := newBookParser("union", "", gen)
+
+			shHeader := &sheetHeader{
+				meta: &tableaupb.Metasheet{
+					Namerow:  1,
+					Typerow:  1,
+					Nameline: 1,
+					Typeline: 2,
+				},
+				namerow: value.Fields,
+				typerow: value.Fields,
+				noterow: value.Fields,
+			}
+			var parsed bool
+			var err error
+			for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+				subField := &tableaupb.Field{}
+				cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
+				if err != nil {
+					return err
+				}
+				if parsed {
+					field.Fields = append(field.Fields, subField)
+				}
+			}
+
 			ws.Fields = append(ws.Fields, field)
 		}
 	default:

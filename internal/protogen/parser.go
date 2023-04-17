@@ -1,7 +1,6 @@
 package protogen
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -15,8 +14,6 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 const (
@@ -754,33 +751,21 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		if field.Predefined {
 			// Find predefined type's first field's option name
 			fullMsgName := p.gen.ProtoPackage + "." + field.Type
-			// TODO: speed up search by hash map.
-			descriptor, err := p.gen.protofiles.FindDescriptorByName(protoreflect.FullName(fullMsgName))
-			if err != nil {
-				if !errors.Is(err, protoregistry.NotFound) {
-					return cursor, xerrors.WithMessageKV(err,
-						xerrors.KeyPBFieldType, desc.StructType,
-						xerrors.KeyPBFieldOpts, desc.Prop.Text,
-						xerrors.KeyTrimmedNameCell, trimmedNameCell)
-				}
-			} else {
-				md, ok := descriptor.(protoreflect.MessageDescriptor)
-				if !ok {
-					return cursor, xerrors.Errorf(fmt.Sprintf("predefined type %s is not message type", fullMsgName),
-						xerrors.KeyPBFieldType, desc.StructType,
-						xerrors.KeyPBFieldOpts, desc.Prop.Text,
-						xerrors.KeyTrimmedNameCell, trimmedNameCell)
-				}
-				if md.Fields().Len() != 0 {
-					fd := md.Fields().Get(0)
-					// first field
-					fieldOpts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
-					if fieldOpts != nil {
-						if index := strings.Index(trimmedNameCell, fieldOpts.Name); index != -1 {
-							structName = trimmedNameCell[:index]
-						}
-					}
-				}
+			typeInfo := p.gen.typeInfos.GetByFullName(fullMsgName)
+			if typeInfo == nil {
+				return cursor, xerrors.ErrorKV(fmt.Sprintf("predefined type not found: %v", fullMsgName),
+					xerrors.KeyPBFieldType, desc.StructType,
+					xerrors.KeyPBFieldOpts, desc.Prop.Text,
+					xerrors.KeyTrimmedNameCell, trimmedNameCell)
+			}
+			if typeInfo.FirstFieldOptionName == "" {
+				return cursor, xerrors.ErrorKV(fmt.Sprintf("predefined type's first field option name not set: %v", fullMsgName),
+					xerrors.KeyPBFieldType, desc.StructType,
+					xerrors.KeyPBFieldOpts, desc.Prop.Text,
+					xerrors.KeyTrimmedNameCell, trimmedNameCell)
+			}
+			if index := strings.Index(trimmedNameCell, typeInfo.FirstFieldOptionName); index != -1 {
+				structName = trimmedNameCell[:index]
 			}
 		}
 

@@ -10,7 +10,9 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	_ "github.com/tableauio/tableau/proto/tableaupb"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -98,6 +100,8 @@ type TypeInfo struct {
 	FullName       string
 	ParentFilename string
 	Kind           types.Kind
+
+	FirstFieldOptionName string // only for MessageKind
 }
 
 func NewTypeInfos(protoPackage string) *TypeInfos {
@@ -125,6 +129,7 @@ func (x *TypeInfos) Get(name string) *TypeInfo {
 	return x.GetByFullName(fullName)
 }
 
+// GetByFullName retrieves type info by type's full name.
 func (x *TypeInfos) GetByFullName(fullName string) *TypeInfo {
 	return x.infos[fullName]
 }
@@ -161,10 +166,26 @@ func extractTypeInfosFromMessage(md protoreflect.MessageDescriptor, typeInfos *T
 		// represent the entry type for a map field.
 		return
 	}
+	// find first field option name
+	firstFieldOptionName := ""
+	if IsUnion(md) {
+		desc := ExtractUnionDescriptor(md)
+		if desc != nil {
+			// union's first field is enum type field.
+			fieldOpts := proto.GetExtension(desc.Type.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+			firstFieldOptionName = fieldOpts.GetName()
+		}
+	} else if md.Fields().Len() != 0 {
+		// struct's first field
+		fd := md.Fields().Get(0)
+		fieldOpts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+		firstFieldOptionName = fieldOpts.GetName()
+	}
 	info := &TypeInfo{
-		FullName:       string(md.FullName()),
-		ParentFilename: md.ParentFile().Path(),
-		Kind:           types.MessageKind,
+		FullName:             string(md.FullName()),
+		ParentFilename:       md.ParentFile().Path(),
+		Kind:                 types.MessageKind,
+		FirstFieldOptionName: firstFieldOptionName,
 	}
 	typeInfos.Put(info)
 

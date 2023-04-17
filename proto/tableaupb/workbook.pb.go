@@ -28,7 +28,7 @@ type Workbook struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name       string           `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name       string           `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // e.g.: "relative/path/bookname"
 	Alias      string           `protobuf:"bytes,2,opt,name=alias,proto3" json:"alias,omitempty"`
 	Options    *WorkbookOptions `protobuf:"bytes,3,opt,name=options,proto3" json:"options,omitempty"`
 	Worksheets []*Worksheet     `protobuf:"bytes,4,rep,name=worksheets,proto3" json:"worksheets,omitempty"`
@@ -170,11 +170,11 @@ type Field struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Number int32  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
-	Name   string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Alias  string `protobuf:"bytes,3,opt,name=alias,proto3" json:"alias,omitempty"`
 	// Field tag number
 	// Note: only for enum/struct/union type definition in sheet
+	Number    int32            `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	Name      string           `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Alias     string           `protobuf:"bytes,3,opt,name=alias,proto3" json:"alias,omitempty"`
 	Type      string           `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"`
 	FullType  string           `protobuf:"bytes,5,opt,name=full_type,json=fullType,proto3" json:"full_type,omitempty"`
 	ListEntry *Field_ListEntry `protobuf:"bytes,6,opt,name=list_entry,json=listEntry,proto3" json:"list_entry,omitempty"`

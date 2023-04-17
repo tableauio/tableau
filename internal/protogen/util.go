@@ -119,3 +119,8 @@ func (g *GeneratedBuf) P(v ...interface{}) {
 func (g *GeneratedBuf) Content() []byte {
 	return g.buf.Bytes()
 }
+
+// String returns the string content of the generated file.
+func (g *GeneratedBuf) String() string {
+	return string(g.buf.Bytes())
+}
