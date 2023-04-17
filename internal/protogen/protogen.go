@@ -564,7 +564,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		var err error
 		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
 			subField := &tableaupb.Field{}
-			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
+			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
 			if err != nil {
 				return err
 			}
@@ -607,7 +607,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			var err error
 			for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
 				subField := &tableaupb.Field{}
-				cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
+				cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
 				if err != nil {
 					return err
 				}
