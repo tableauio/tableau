@@ -1,9 +1,16 @@
-Number,Name,Alias,Field1,Field2,Field3
-1,PvpBattle,PVPBattle,"BattleId
-int32","Kills
+Name,Alias,Field1,Field2,Field3
+PvpBattle,SoloPVPBattle,"ID
 uint32","Damage
-int64"
-2,PveBattle,PVEBattle,"Highlight
-{int32 BattleId, int32 BossId, int64 Damage}Highlight","Heros
-[]int32","Dungeons
+int64","Type
+[]enum<.FruitType>"
+PveBattle,SoloPVEBattle,"Mission
+{uint32 ID, int32 Level, int64 Damage}Mission","Hero
+[]uint32","Dungeon
 map<int32, int64>"
+MainStory,HeroMainStory,"Cost
+{.Item}","Fruit
+map<int32, enum<.FruitType>>","Flavor
+map<enum<.FruitFlavor>, enum<.FruitType>>"
+MainSkill,HeroMainSkill,"ID
+uint32","Damage
+int64",

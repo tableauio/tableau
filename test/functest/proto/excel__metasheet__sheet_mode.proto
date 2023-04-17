@@ -5,6 +5,7 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -12,7 +13,7 @@ option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv"};
 
 // Generated from sheet: ItemType.
 enum ItemType {
-  ITEM_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+  ITEM_TYPE_INVALID = 0;
   ITEM_TYPE_FRUIT = 1 [(tableau.evalue).name = "Fruit"];
   ITEM_TYPE_EQUIP = 2 [(tableau.evalue).name = "Equip"];
   ITEM_TYPE_BOX = 3 [(tableau.evalue).name = "Box"];
@@ -28,27 +29,44 @@ message TaskTarget {
 
     PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
     PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
+    MainStory main_story = 3; // Bound to enum value: TYPE_MAIN_STORY.
+    MainSkill main_skill = 4; // Bound to enum value: TYPE_MAIN_SKILL.
   }
   enum Type {
-    TYPE_INVALIDE = 0;
-    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "PVPBattle"];
-    TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "PVEBattle"];
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"];
+    TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "SoloPVEBattle"];
+    TYPE_MAIN_STORY = 3 [(tableau.evalue).name = "HeroMainStory"];
+    TYPE_MAIN_SKILL = 4 [(tableau.evalue).name = "HeroMainSkill"];
   }
 
   message PvpBattle {
-    int32 battle_id = 1 [(tableau.field) = {name:"BattleId"}];
-    uint32 kills = 2 [(tableau.field) = {name:"Kills"}];
-    int64 damage = 3 [(tableau.field) = {name:"Damage"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int64 damage = 2 [(tableau.field) = {name:"Damage"}];
+    repeated protoconf.FruitType type_list = 3 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}];
   }
   message PveBattle {
-    Highlight highlight = 1 [(tableau.field) = {name:"Highlight" span:SPAN_INNER_CELL}];
-    message Highlight {
-      int32 battle_id = 1 [(tableau.field) = {name:"BattleId"}];
-      int32 boss_id = 2 [(tableau.field) = {name:"BossId"}];
+    Mission mission = 1 [(tableau.field) = {name:"Mission" span:SPAN_INNER_CELL}];
+    message Mission {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 level = 2 [(tableau.field) = {name:"Level"}];
       int64 damage = 3 [(tableau.field) = {name:"Damage"}];
     }
-    repeated int32 heros_list = 2 [(tableau.field) = {name:"Heros" layout:LAYOUT_INCELL}];
-    map<int32, int64> dungeons_map = 3 [(tableau.field) = {name:"Dungeons" layout:LAYOUT_INCELL}];
+    repeated uint32 hero_list = 2 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}];
+    map<int32, int64> dungeon_map = 3 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}];
+  }
+  message MainStory {
+    protoconf.Item cost = 1 [(tableau.field) = {name:"Cost" span:SPAN_INNER_CELL}];
+    map<int32, protoconf.FruitType> fruit_map = 2 [(tableau.field) = {name:"Fruit" layout:LAYOUT_INCELL}];
+    map<int32, Flavor> flavor_map = 3 [(tableau.field) = {name:"Flavor" key:"Key" layout:LAYOUT_INCELL}];
+    message Flavor {
+      protoconf.FruitFlavor key = 1 [(tableau.field) = {name:"Key"}];
+      protoconf.FruitType value = 2 [(tableau.field) = {name:"Value"}];
+    }
+  }
+  message MainSkill {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int64 damage = 2 [(tableau.field) = {name:"Damage"}];
   }
 }
 

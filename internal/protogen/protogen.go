@@ -451,9 +451,13 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		if err := parser.Parse(desc, sheet); err != nil {
 			return errors.WithMessagef(err, "failed to parse enum type sheet: %s", sheet.Name)
 		}
-		for _, value := range desc.Values {
+		for i, value := range desc.Values {
+			number := int32(i + 1)
+			if value.Number != nil {
+				number = *value.Number
+			}
 			field := &tableaupb.Field{
-				Number: value.Number,
+				Number: number,
 				Name:   value.Name,
 				Alias:  value.Alias,
 			}
@@ -472,10 +476,14 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		if err := parser.Parse(desc, sheet); err != nil {
 			return errors.WithMessagef(err, "failed to parse union type sheet: %s", sheet.Name)
 		}
-		
-		for _, value := range desc.Values {
+
+		for i, value := range desc.Values {
+			number := int32(i + 1)
+			if value.Number != nil {
+				number = *value.Number
+			}
 			field := &tableaupb.Field{
-				Number: value.Number,
+				Number: number,
 				Name:   value.Name,
 				Alias:  value.Alias,
 			}

@@ -162,7 +162,11 @@ func (x *sheetExporter) exportEnum() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("enum ", x.ws.Name, " {")
 	// generate the enum value fields
-	for _, field := range x.ws.Fields {
+	for i, field := range x.ws.Fields {
+		if i == 0 && field.Number != 0 {
+			ename := strcase.ToScreamingSnake(x.ws.Name) + "_INVALID"
+			x.g.P("  ", ename, " = 0;")
+		}
 		x.g.P("  ", field.Name, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
 	}
 	x.g.P("}")
@@ -194,7 +198,7 @@ func (x *sheetExporter) exportUnion() error {
 
 	// generate enum type
 	x.g.P("  enum Type {")
-	x.g.P("    TYPE_INVALIDE = 0;")
+	x.g.P("    TYPE_INVALID = 0;")
 	for _, field := range x.ws.Fields {
 		ename := "TYPE_" + strcase.ToScreamingSnake(field.Name)
 		x.g.P("    ", ename, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)

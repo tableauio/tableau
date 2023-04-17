@@ -97,7 +97,7 @@ message EnumDescriptor {
 
   repeated Value values = 1 [(tableau.field) = { layout: LAYOUT_VERTICAL }];
   message Value {
-    int32 number = 1 [(tableau.field) = { name: "Number" }];
+    optional int32 number = 1 [(tableau.field) = { name: "Number" optional: true }];
     string name = 2 [(tableau.field) = { name: "Name" }];
     string alias = 3 [(tableau.field) = { name: "Alias" }];
   }
@@ -112,7 +112,7 @@ message StructDescriptor {
 
   repeated Field fields = 1 [(tableau.field) = { layout: LAYOUT_VERTICAL }];
   message Field {
-    int32 number = 1 [(tableau.field) = { name: "Number" }];
+    optional int32 number = 1 [(tableau.field) = { name: "Number" optional: true }];
     string name = 2 [(tableau.field) = { name: "Name" }];
     string type = 3 [(tableau.field) = { name: "Type" }];
   }
@@ -127,7 +127,7 @@ message UnionDescriptor {
 
   repeated Value values = 1 [(tableau.field) = { layout: LAYOUT_VERTICAL }];
   message Value {
-    int32 number = 1 [(tableau.field) = { name: "Number" }];
+    optional int32 number = 1 [(tableau.field) = { name: "Number" optional: true }];
     // this is message type name, and the corresponding enum value name
     // is generated as: "TYPE_" + uppercase(name).
     string name = 2 [(tableau.field) = { name: "Name" }];
