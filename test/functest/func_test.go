@@ -23,7 +23,6 @@ package functest
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -111,7 +110,7 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		fmt.Printf("compare json file: %s\n", file.Name())
+		t.Logf("compare json file: %s\n", file.Name())
 		require.JSONEqf(t, string(oldData), string(newData), "%s -> %s content not same.", absOldPath, absNewPath)
 	}
 }
