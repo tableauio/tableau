@@ -13,7 +13,7 @@ import (
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/xerrors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const version = "0.5.7"

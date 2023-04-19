@@ -3,31 +3,32 @@ module github.com/tableauio/tableau
 go 1.18
 
 require (
-	github.com/antchfx/xmlquery v1.3.8
+	github.com/antchfx/xmlquery v1.3.15
 	github.com/davecgh/go-spew v1.1.1
-	github.com/emirpasic/gods v1.12.0
+	github.com/emirpasic/gods v1.18.1
 	github.com/iancoleman/strcase v0.2.0
-	github.com/jhump/protoreflect v1.14.0
+	github.com/jhump/protoreflect v1.15.1
 	github.com/pkg/errors v0.9.1
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20230412060525-fa9f017c0ded
-	github.com/rogpeppe/go-internal v1.8.1
-	github.com/spf13/cobra v1.3.0
-	github.com/stretchr/testify v1.7.1
+	github.com/rogpeppe/go-internal v1.10.0
+	github.com/spf13/cobra v1.7.0
+	github.com/stretchr/testify v1.8.2
 	github.com/xuri/excelize/v2 v2.6.1
-	go.uber.org/multierr v1.6.0
-	go.uber.org/zap v1.17.0
+	go.uber.org/multierr v1.11.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/text v0.8.0
-	google.golang.org/protobuf v1.28.1
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gopkg.in/yaml.v2 v2.4.0
+	golang.org/x/text v0.9.0
+	google.golang.org/protobuf v1.30.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/antchfx/xpath v1.2.0 // indirect
+	github.com/antchfx/xpath v1.2.3 // indirect
+	github.com/bufbuild/protocompile v0.4.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -38,7 +39,5 @@ require (
 	github.com/xuri/nfp v0.0.0-20220409054826-5e722a1d9e22 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20220817201139-bc19a97f63c8 // indirect
-	golang.org/x/net v0.0.0-20220812174116-3211cb980234 // indirect
-	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
-	gopkg.in/yaml.v3 v3.0.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
 )

@@ -1,8 +1,10 @@
 lang: en
 locationName: Asia/Shanghai
 log:
-  level: INFO
-  mode: SIMPLE
+  level: DEBUG
+  mode: FULL
+  filename: ./testdata/_log/log.txt
+  sink: MULTI
 proto:
   input:
     header:
