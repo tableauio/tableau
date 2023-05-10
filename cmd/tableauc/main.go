@@ -9,6 +9,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/xerrors"
@@ -27,6 +28,7 @@ var (
 	indir            string
 	outdir           string
 	confOutputSubdir string
+	confOutputFormats []string
 	mode             string
 	configPath       string
 	showConfigSample bool
@@ -45,6 +47,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "input directory, default is current directory")
 	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "output directory, default is current directory")
 	rootCmd.Flags().StringVarP(&confOutputSubdir, "conf-output-subdir", "", "", "conf output sub-directory, set it to override output.conf.subdir")
+	rootCmd.Flags().StringSliceVarP(&confOutputFormats, "conf-output-formats", "", nil, "available format: json, bin, and text")
 	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `available mode: default, proto, and conf. 
   - default: generate both proto and conf files.
   - proto: generate proto files only.
@@ -81,6 +84,13 @@ func runE(cmd *cobra.Command, args []string) error {
 	}
 	if err := log.Init(config.Log); err != nil {
 		return fmt.Errorf("init log failed: %s", err)
+	}
+	if len(confOutputFormats) != 0 {		
+		var formats []format.Format
+		for _, fmt := range confOutputFormats {
+			formats = append(formats, format.Format(fmt))
+		}
+		config.Conf.Output.Formats = formats
 	}
 	log.Debugf("load config success: %+v", spew.Sdump(config))
 
