@@ -9,6 +9,7 @@ require (
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jhump/protoreflect v1.14.0
 	github.com/pkg/errors v0.9.1
+	github.com/protocolbuffers/txtpbfmt v0.0.0-20230412060525-fa9f017c0ded
 	github.com/rogpeppe/go-internal v1.8.1
 	github.com/spf13/cobra v1.3.0
 	github.com/stretchr/testify v1.7.1
@@ -27,6 +28,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
