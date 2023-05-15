@@ -29,6 +29,18 @@ message TestItem {
   int32 num = 2 [(tableau.field).name = "Num"];
 }
 
+message TestItemConf {
+  option (tableau.worksheet) = {
+    name: "ItemConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
+
+  map<uint32, TestItem> item_map = 1 [(tableau.field) = { key: "ID" layout: LAYOUT_VERTICAL }];
+}
+
 message TestIncellMap {
   option (worksheet) = {
     name: "IncellMap"

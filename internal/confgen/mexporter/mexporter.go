@@ -3,19 +3,14 @@
 package mexporter
 
 import (
-	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/protocolbuffers/txtpbfmt/parser"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -62,19 +57,25 @@ func (x *messageExporter) export(fmt format.Format) error {
 	switch fmt {
 	case format.JSON:
 		filename += format.JSONExt
-		out, err = x.marshalToJSON()
+		options := &MarshalOptions{
+			Pretty:          x.outputOpt.Pretty,
+			EmitUnpopulated: x.outputOpt.EmitUnpopulated,
+			UseProtoNames:   x.outputOpt.UseProtoNames,
+			UseEnumNumbers:  x.outputOpt.UseEnumNumbers,
+		}
+		out, err = marshalToJSON(x.msg, options)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to JSON", x.name)
 		}
 	case format.Text:
 		filename += format.TextExt
-		out, err = x.marshalToText()
+		out, err = marshalToText(x.msg, x.outputOpt.Pretty)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Text", x.name)
 		}
 	case format.Bin:
 		filename += format.BinExt
-		out, err = x.marshalToBin()
+		out, err = marshalToBin(x.msg)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Bin", x.name)
 		}
@@ -90,63 +91,4 @@ func (x *messageExporter) export(fmt format.Format) error {
 	// out.WriteTo(os.Stdout)
 	log.Infof("%18s: %s", "generated conf", filename)
 	return nil
-}
-
-func (x *messageExporter) marshalToJSON() (out []byte, err error) {
-	opts := protojson.MarshalOptions{
-		EmitUnpopulated: x.outputOpt.EmitUnpopulated,
-		UseProtoNames:   x.outputOpt.UseProtoNames,
-		UseEnumNumbers:  x.outputOpt.UseEnumNumbers,
-	}
-	messageJSON, err := opts.Marshal(x.msg)
-	if err != nil {
-		return nil, err
-	}
-	// protojson does not offer a "deterministic" field ordering, but fields
-	// are still ordered consistently by their index. However, protojson can
-	// output inconsistent whitespace for some reason, therefore it is
-	// suggested to use a formatter to ensure consistent formatting.
-	// https://github.com/golang/protobuf/issues/1373
-	stableJSON := new(bytes.Buffer)
-	if err = json.Compact(stableJSON, messageJSON); err != nil {
-		return nil, err
-	}
-	if x.outputOpt.Pretty {
-		prettyJSON := new(bytes.Buffer)
-		if err := json.Indent(prettyJSON, stableJSON.Bytes(), "", "    "); err != nil {
-			return nil, err
-		}
-		return prettyJSON.Bytes(), nil
-	}
-	return stableJSON.Bytes(), nil
-}
-
-func (x *messageExporter) marshalToText() (out []byte, err error) {
-	messageText, err := func() ([]byte, error) {
-		if x.outputOpt.Pretty {
-			opts := prototext.MarshalOptions{
-				Multiline: true,
-				Indent:    "    ",
-			}
-			return opts.Marshal(x.msg)
-		}
-		return prototext.Marshal(x.msg)
-	}()
-	if err != nil {
-		return nil, err
-	}
-	// To obtain some degree of stability, the protobuf-go team recommend passing
-	// the output of prototext through the [txtpbfmt](https://github.com/protocolbuffers/txtpbfmt)
-	// program. The formatter can be directly invoked in Go using parser.Format.
-	return parser.Format(messageText)
-}
-
-func (x *messageExporter) marshalToBin() (out []byte, err error) {
-	// protobuf does not offer a canonical output today, so this format is not
-	// guaranteed to match deterministic output from other protobuf libraries.
-	// In addition, unknown fields may cause inconsistent output for otherwise
-	// equal messages.
-	// https://github.com/golang/protobuf/issues/1121
-	options := proto.MarshalOptions{Deterministic: true}
-	return options.Marshal(x.msg)
 }
