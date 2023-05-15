@@ -46,6 +46,8 @@ type MarshalOptions struct {
 	UseEnumNumbers bool
 }
 
+// marshalToJSON marshals the given proto.Message in the JSON format.
+// You can depend on the output being stable.
 func marshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err error) {
 	opts := protojson.MarshalOptions{
 		EmitUnpopulated: options.EmitUnpopulated,
@@ -75,6 +77,8 @@ func marshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 	return stableJSON.Bytes(), nil
 }
 
+// marshalToText marshals the given proto.Message in the text (textproto) format.
+// You can depend on the output being stable.
 func marshalToText(msg proto.Message, pretty bool) (out []byte, err error) {
 	messageText, err := func() ([]byte, error) {
 		if pretty {
@@ -95,6 +99,8 @@ func marshalToText(msg proto.Message, pretty bool) (out []byte, err error) {
 	return parser.Format(messageText)
 }
 
+// marshalToBin marshals the given proto.Message in the wire (binary) format.
+// You can depend on the output being stable.
 func marshalToBin(msg proto.Message) (out []byte, err error) {
 	// protobuf does not offer a canonical output today, so this format is not
 	// guaranteed to match deterministic output from other protobuf libraries.
