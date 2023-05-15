@@ -1,22 +1,22 @@
 {
-    "itemMap":  {
-        "1":  {
-            "id":  1,
-            "name":  "Apple"
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "name": "Apple"
         },
-        "2":  {
-            "id":  2,
-            "name":  "Orange"
+        "2": {
+            "id": 2,
+            "name": "Orange"
         }
     },
-    "rewardMap":  {
-        "3":  {
-            "id":  3,
-            "name":  "Banana"
+    "rewardMap": {
+        "3": {
+            "id": 3,
+            "name": "Banana"
         },
-        "4":  {
-            "id":  4,
-            "name":  "Watermelon"
+        "4": {
+            "id": 4,
+            "name": "Watermelon"
         }
     }
 }

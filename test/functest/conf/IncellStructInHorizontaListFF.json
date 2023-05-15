@@ -1,18 +1,18 @@
 {
-    "rewardList":  [
+    "rewardList": [
         {
-            "item":  {
-                "id":  1,
-                "num":  10
+            "item": {
+                "id": 1,
+                "num": 10
             },
-            "name":  "Lotto"
+            "name": "Lotto"
         },
         {
-            "item":  {
-                "id":  2,
-                "num":  20
+            "item": {
+                "id": 2,
+                "num": 20
             },
-            "name":  "Super Lotto"
+            "name": "Super Lotto"
         }
     ]
 }

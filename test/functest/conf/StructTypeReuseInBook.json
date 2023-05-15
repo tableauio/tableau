@@ -1,42 +1,42 @@
 {
-    "taskRewardMap":  {
-        "1":  {
-            "id":  1,
-            "num":  100,
-            "fruitType":  "FRUIT_TYPE_APPLE",
-            "featureList":  [
+    "taskRewardMap": {
+        "1": {
+            "id": 1,
+            "num": 100,
+            "fruitType": "FRUIT_TYPE_APPLE",
+            "featureList": [
                 1,
                 2
             ],
-            "propMap":  {
-                "1":  "Power",
-                "2":  "Skill"
+            "propMap": {
+                "1": "Power",
+                "2": "Skill"
             },
-            "detail":  {
-                "type":  "ITEM_TYPE_EQUIP",
-                "name":  "Sword",
-                "desc":  "Sword's Desc"
+            "detail": {
+                "type": "ITEM_TYPE_EQUIP",
+                "name": "Sword",
+                "desc": "Sword's Desc"
             }
         },
-        "2":  {
-            "id":  2,
-            "num":  200,
-            "fruitType":  "FRUIT_TYPE_BANANA",
-            "featureList":  [
+        "2": {
+            "id": 2,
+            "num": 200,
+            "fruitType": "FRUIT_TYPE_BANANA",
+            "featureList": [
                 1
             ],
-            "propMap":  {
-                "1":  "Power"
+            "propMap": {
+                "1": "Power"
             },
-            "detail":  null
+            "detail": null
         },
-        "3":  {
-            "id":  3,
-            "num":  300,
-            "fruitType":  "FRUIT_TYPE_UNKNOWN",
-            "featureList":  [],
-            "propMap":  {},
-            "detail":  null
+        "3": {
+            "id": 3,
+            "num": 300,
+            "fruitType": "FRUIT_TYPE_UNKNOWN",
+            "featureList": [],
+            "propMap": {},
+            "detail": null
         }
     }
 }

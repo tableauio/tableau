@@ -1,9 +1,9 @@
 {
-    "reward":  {
-        "id":  1,
-        "item":  {
-            "id":  1,
-            "num":  10
+    "reward": {
+        "id": 1,
+        "item": {
+            "id": 1,
+            "num": 10
         }
     }
 }

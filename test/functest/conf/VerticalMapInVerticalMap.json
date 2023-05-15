@@ -1,26 +1,26 @@
 {
-    "itemMap":  {
-        "1":  {
-            "id":  1,
-            "name":  "Apple",
-            "propMap":  {
-                "1":  {
-                    "propId":  1,
-                    "propValue":  "10"
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "name": "Apple",
+            "propMap": {
+                "1": {
+                    "propId": 1,
+                    "propValue": "10"
                 }
             }
         },
-        "2":  {
-            "id":  2,
-            "name":  "Orange",
-            "propMap":  {
-                "1":  {
-                    "propId":  1,
-                    "propValue":  "20"
+        "2": {
+            "id": 2,
+            "name": "Orange",
+            "propMap": {
+                "1": {
+                    "propId": 1,
+                    "propValue": "20"
                 },
-                "2":  {
-                    "propId":  2,
-                    "propValue":  "30"
+                "2": {
+                    "propId": 2,
+                    "propValue": "30"
                 }
             }
         }
