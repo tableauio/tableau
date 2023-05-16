@@ -2,7 +2,6 @@ package confgen
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -71,14 +70,7 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) (err error) {
 }
 
 func (gen *Generator) GenAll() error {
-	// create output dir
-	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	err := os.MkdirAll(outputConfDir, 0700)
-	if err != nil {
-		return xerrors.WrapKV(err, "OutputDir", outputConfDir)
-	}
-
-	err = gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+	err := gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
 	}
@@ -117,11 +109,6 @@ func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName strin
 	relWorkbookPath = relCleanSlashPath
 
 	// create output dir
-	outputConfDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	err = os.MkdirAll(outputConfDir, 0700)
-	if err != nil {
-		return errors.WithMessagef(err, "failed to create output dir: %s", outputConfDir)
-	}
 	err = gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")

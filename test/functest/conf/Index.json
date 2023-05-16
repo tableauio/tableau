@@ -1,22 +1,22 @@
 {
-    "itemMap":  {
-        "1":  {
-            "id":  1,
-            "type":  "ITEM_TYPE_FRUIT",
-            "name":  "Apple",
-            "price":  40
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "type": "ITEM_TYPE_FRUIT",
+            "name": "Apple",
+            "price": 40
         },
-        "2":  {
-            "id":  2,
-            "type":  "ITEM_TYPE_FRUIT",
-            "name":  "Orange",
-            "price":  20
+        "2": {
+            "id": 2,
+            "type": "ITEM_TYPE_FRUIT",
+            "name": "Orange",
+            "price": 20
         },
-        "3":  {
-            "id":  3,
-            "type":  "ITEM_TYPE_EQUIP",
-            "name":  "Sword",
-            "price":  10
+        "3": {
+            "id": 3,
+            "type": "ITEM_TYPE_EQUIP",
+            "name": "Sword",
+            "price": 10
         }
     }
 }

@@ -1,7 +1,7 @@
 {
-    "property":  {
-        "id":  1,
-        "name":  "Orange",
-        "desc":  "A kind of sour fruit."
+    "property": {
+        "id": 1,
+        "name": "Orange",
+        "desc": "A kind of sour fruit."
     }
 }

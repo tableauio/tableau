@@ -70,7 +70,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo, importers ...importer.
 	for _, msg := range msgs {
 		// name pattern is : <BookName>_<SheetName>
 		name := fmt.Sprintf("%s_%s", msg.bookName, info.MD.Name())
-		exporter := mexporter.New(name, msg.protomsg, x.OutputDir, x.OutputOpt, info.Opts)
+		exporter := mexporter.New(name, msg.protomsg, x.OutputDir, x.OutputOpt)
 		if err := exporter.Export(); err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo, importers ...importer.Im
 	if err != nil {
 		return err
 	}
-	exporter := mexporter.New(string(info.MD.Name()), protomsg, x.OutputDir, x.OutputOpt, info.Opts)
+	exporter := mexporter.New(string(info.MD.Name()), protomsg, x.OutputDir, x.OutputOpt)
 	if err := exporter.Export(); err != nil {
 		return err
 	}

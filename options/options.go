@@ -209,7 +209,7 @@ type ConfOutputOption struct {
 	// Default: nil.
 	Formats []format.Format
 
-	// Output pretty format of JSON, with multiline and indent.
+	// Output pretty format of JSON and Text, with multiline and indent.
 	//
 	// Default: false.
 	Pretty bool

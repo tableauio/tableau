@@ -1,10 +1,10 @@
 {
-    "dayBeginTime":  "4200s",
-    "saleTimeList":  [
+    "dayBeginTime": "4200s",
+    "saleTimeList": [
         "7200s",
         "43200s"
     ],
-    "triggerList":  [
+    "triggerList": [
         "7200s",
         "43200s",
         "4200s"

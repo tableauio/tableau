@@ -1,19 +1,19 @@
 {
-    "itemList":  [
+    "itemList": [
         {
-            "id":  1,
-            "name":  "Apple",
-            "desc":  "A kind of delicious fruit."
+            "id": 1,
+            "name": "Apple",
+            "desc": "A kind of delicious fruit."
         },
         {
-            "id":  2,
-            "name":  "Orange",
-            "desc":  "A kind of sour fruit."
+            "id": 2,
+            "name": "Orange",
+            "desc": "A kind of sour fruit."
         },
         {
-            "id":  3,
-            "name":  "Banana",
-            "desc":  "A kind of calorie-rich fruit."
+            "id": 3,
+            "name": "Banana",
+            "desc": "A kind of calorie-rich fruit."
         }
     ]
 }

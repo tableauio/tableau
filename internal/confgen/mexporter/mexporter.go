@@ -4,15 +4,14 @@ package mexporter
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/proto/tableaupb"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/encoding/prototext"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -21,16 +20,15 @@ type messageExporter struct {
 	msg       proto.Message
 	outputDir string
 	outputOpt *options.ConfOutputOption
-	wsOpts    *tableaupb.WorksheetOptions
+	// wsOpts    *tableaupb.WorksheetOptions
 }
 
-func New(name string, msg proto.Message, outputDir string, outputOpt *options.ConfOutputOption, wsOpts *tableaupb.WorksheetOptions) *messageExporter {
+func New(name string, msg proto.Message, outputDir string, outputOpt *options.ConfOutputOption) *messageExporter {
 	return &messageExporter{
 		name:      name,
 		msg:       msg,
 		outputOpt: outputOpt,
 		outputDir: filepath.Join(outputDir, outputOpt.Subdir),
-		wsOpts:    wsOpts,
 	}
 }
 
@@ -59,19 +57,25 @@ func (x *messageExporter) export(fmt format.Format) error {
 	switch fmt {
 	case format.JSON:
 		filename += format.JSONExt
-		out, err = x.marshalToJSON()
+		options := &MarshalOptions{
+			Pretty:          x.outputOpt.Pretty,
+			EmitUnpopulated: x.outputOpt.EmitUnpopulated,
+			UseProtoNames:   x.outputOpt.UseProtoNames,
+			UseEnumNumbers:  x.outputOpt.UseEnumNumbers,
+		}
+		out, err = marshalToJSON(x.msg, options)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to JSON", x.name)
 		}
 	case format.Text:
 		filename += format.TextExt
-		out, err = x.marshalToText()
+		out, err = marshalToText(x.msg, x.outputOpt.Pretty)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Text", x.name)
 		}
 	case format.Bin:
 		filename += format.BinExt
-		out, err = x.marshalToBin()
+		out, err = marshalToBin(x.msg)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Bin", x.name)
 		}
@@ -79,6 +83,12 @@ func (x *messageExporter) export(fmt format.Format) error {
 		return errors.Errorf("unknown output format: %v", fmt)
 	}
 
+	// prepare output dir
+	if err := os.MkdirAll(x.outputDir, 0700); err != nil {
+		return xerrors.WrapKV(err, "OutputDir", x.outputDir)
+	}
+
+	// write file
 	fpath := filepath.Join(x.outputDir, filename)
 	err = ioutil.WriteFile(fpath, out, 0644)
 	if err != nil {
@@ -87,33 +97,4 @@ func (x *messageExporter) export(fmt format.Format) error {
 	// out.WriteTo(os.Stdout)
 	log.Infof("%18s: %s", "generated conf", filename)
 	return nil
-}
-
-func (x *messageExporter) marshalToJSON() (out []byte, err error) {
-	if x.outputOpt.Pretty {
-		opts := protojson.MarshalOptions{
-			Multiline:       true,
-			Indent:          "    ",
-			EmitUnpopulated: x.outputOpt.EmitUnpopulated,
-			UseProtoNames:   x.outputOpt.UseProtoNames,
-			UseEnumNumbers:  x.outputOpt.UseEnumNumbers,
-		}
-		return opts.Marshal(x.msg)
-	}
-	return protojson.Marshal(x.msg)
-}
-
-func (x *messageExporter) marshalToText() (out []byte, err error) {
-	if x.outputOpt.Pretty {
-		opts := prototext.MarshalOptions{
-			Multiline: true,
-			Indent:    "    ",
-		}
-		return opts.Marshal(x.msg)
-	}
-	return prototext.Marshal(x.msg)
-}
-
-func (x *messageExporter) marshalToBin() (out []byte, err error) {
-	return proto.Marshal(x.msg)
 }

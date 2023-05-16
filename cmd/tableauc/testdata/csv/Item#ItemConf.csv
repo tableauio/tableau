@@ -2,5 +2,5 @@ ID,Num
 "map<uint32, Item>",int32
 Item's ID,Item's num
 1,10
-2,200
-3,300
+2,20
+3,30
