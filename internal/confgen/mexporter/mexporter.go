@@ -4,13 +4,14 @@ package mexporter
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -19,16 +20,15 @@ type messageExporter struct {
 	msg       proto.Message
 	outputDir string
 	outputOpt *options.ConfOutputOption
-	wsOpts    *tableaupb.WorksheetOptions
+	// wsOpts    *tableaupb.WorksheetOptions
 }
 
-func New(name string, msg proto.Message, outputDir string, outputOpt *options.ConfOutputOption, wsOpts *tableaupb.WorksheetOptions) *messageExporter {
+func New(name string, msg proto.Message, outputDir string, outputOpt *options.ConfOutputOption) *messageExporter {
 	return &messageExporter{
 		name:      name,
 		msg:       msg,
 		outputOpt: outputOpt,
 		outputDir: filepath.Join(outputDir, outputOpt.Subdir),
-		wsOpts:    wsOpts,
 	}
 }
 
@@ -83,6 +83,12 @@ func (x *messageExporter) export(fmt format.Format) error {
 		return errors.Errorf("unknown output format: %v", fmt)
 	}
 
+	// prepare output dir
+	if err := os.MkdirAll(x.outputDir, 0700); err != nil {
+		return xerrors.WrapKV(err, "OutputDir", x.outputDir)
+	}
+
+	// write file
 	fpath := filepath.Join(x.outputDir, filename)
 	err = ioutil.WriteFile(fpath, out, 0644)
 	if err != nil {
