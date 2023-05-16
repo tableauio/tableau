@@ -24,11 +24,13 @@ func init() {
 	}
 }
 
-func Test_resolveBookPaths(t *testing.T) {
+func Test_ResolveBookPathPattern(t *testing.T) {
 	type args struct {
-		primaryBookPath string
+		inputDir        string
+		primaryBookName string
 		sheetName       string
 		bookNameGlobs   []string
+		subdirRewrites  map[string]string
 	}
 	tests := []struct {
 		name    string
@@ -39,9 +41,11 @@ func Test_resolveBookPaths(t *testing.T) {
 		{
 			name: "xlsx",
 			args: args{
-				primaryBookPath: "testdata/Test.xlsx",
+				inputDir:        ".",
+				primaryBookName: "testdata/Test.xlsx",
 				sheetName:       "Item",
 				bookNameGlobs:   []string{"Test_*.xlsx"},
+				subdirRewrites:  nil,
 			},
 			want: map[string]bool{
 				"testdata/Test_Second.xlsx": true,
@@ -50,9 +54,11 @@ func Test_resolveBookPaths(t *testing.T) {
 		{
 			name: "csv",
 			args: args{
-				primaryBookPath: "testdata/Test#*.csv",
+				inputDir:        ".",
+				primaryBookName: "testdata/Test#*.csv",
 				sheetName:       "Item",
 				bookNameGlobs:   []string{"Test_*.csv"},
+				subdirRewrites:  nil,
 			},
 			want: map[string]bool{
 				"testdata/Test_Second#*.csv": true,
@@ -61,13 +67,13 @@ func Test_resolveBookPaths(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := resolveBookPaths(tt.args.primaryBookPath, tt.args.sheetName, tt.args.bookNameGlobs)
+			got, err := ResolveBookPathPattern(tt.args.inputDir, tt.args.primaryBookName, tt.args.bookNameGlobs, tt.args.subdirRewrites)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("resolveBookPaths() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ResolveBookPathPattern() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("resolveBookPaths() = %v, want %v", got, tt.want)
+				t.Errorf("ResolveBookPathPattern() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -75,9 +81,10 @@ func Test_resolveBookPaths(t *testing.T) {
 
 func TestGetMergerImporters(t *testing.T) {
 	type args struct {
-		primaryBookPath string
+		primaryBookName string
 		sheetName       string
 		bookNameGlobs   []string
+		subdirRewrites  map[string]string
 	}
 	tests := []struct {
 		name    string
@@ -88,16 +95,17 @@ func TestGetMergerImporters(t *testing.T) {
 		{
 			name: "xlsx",
 			args: args{
-				primaryBookPath: "testdata/Test.xlsx",
+				primaryBookName: "testdata/Test.xlsx",
 				sheetName:       "Item",
 				bookNameGlobs:   []string{"Test_*.xlsx"},
+				subdirRewrites:  nil,
 			},
 			want: []string{"testdata/Test_Second.xlsx"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMergerImporters(".", tt.args.primaryBookPath, tt.args.sheetName, tt.args.bookNameGlobs)
+			got, err := GetMergerImporters(".", tt.args.primaryBookName, tt.args.sheetName, tt.args.bookNameGlobs, tt.args.subdirRewrites)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetMergerImporters() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -113,9 +121,10 @@ func TestGetMergerImporters(t *testing.T) {
 
 func TestGetScatterImporters(t *testing.T) {
 	type args struct {
-		primaryBookPath string
+		primaryBookName string
 		sheetName       string
 		bookNameGlobs   []string
+		subdirRewrites  map[string]string
 	}
 	tests := []struct {
 		name    string
@@ -126,16 +135,17 @@ func TestGetScatterImporters(t *testing.T) {
 		{
 			name: "csv",
 			args: args{
-				primaryBookPath: "testdata/Test#*.csv",
+				primaryBookName: "testdata/Test#*.csv",
 				sheetName:       "Item",
 				bookNameGlobs:   []string{"Test_*.csv"},
+				subdirRewrites:  map[string]string{},
 			},
 			want: []string{"testdata/Test_Second#*.csv"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetScatterImporters(".", tt.args.primaryBookPath, tt.args.sheetName, tt.args.bookNameGlobs)
+			got, err := GetScatterImporters(".", tt.args.primaryBookName, tt.args.sheetName, tt.args.bookNameGlobs, tt.args.subdirRewrites)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetScatterImporters() error = %v, wantErr %v", err, tt.wantErr)
 				return
