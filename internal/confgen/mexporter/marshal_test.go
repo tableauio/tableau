@@ -32,7 +32,21 @@ func Test_marshalToJSON(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "itemConf",
+			name: "item-conf-compact-output",
+			args: args{
+				msg: itemConf,
+				options: &MarshalOptions{
+					Pretty:          false,
+					EmitUnpopulated: false,
+					UseProtoNames:   false,
+					UseEnumNumbers:  false,
+				},
+			},
+			wantOut: []byte(`{"itemMap":{"1":{"id":1,"num":10},"2":{"id":2,"num":20},"3":{"id":3,"num":30}}}`),
+			wantErr: false,
+		},
+		{
+			name: "item-conf-pretty-output",
 			args: args{
 				msg: itemConf,
 				options: &MarshalOptions{
@@ -85,7 +99,16 @@ func Test_marshalToText(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "itemConf",
+			name: "item-conf-compact-output",
+			args: args{
+				msg:    itemConf,
+				pretty: false,
+			},
+			wantOut: []byte(`item_map:{key:1 value:{id:1 num:10}} item_map:{key:2 value:{id:2 num:20}} item_map:{key:3 value:{id:3 num:30}}`),
+			wantErr: false,
+		},
+		{
+			name: "item-conf-pretty-output",
 			args: args{
 				msg:    itemConf,
 				pretty: true,
@@ -110,8 +133,7 @@ item_map: {
     id: 3
     num: 30
   }
-}
-`),
+}`),
 			wantErr: false,
 		},
 	}

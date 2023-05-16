@@ -3,6 +3,7 @@ package mexporter
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 
 	"github.com/protocolbuffers/txtpbfmt/parser"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -80,23 +81,34 @@ func marshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 // marshalToText marshals the given proto.Message in the text (textproto) format.
 // You can depend on the output being stable.
 func marshalToText(msg proto.Message, pretty bool) (out []byte, err error) {
-	messageText, err := func() ([]byte, error) {
-		if pretty {
-			opts := prototext.MarshalOptions{
-				Multiline: true,
-				Indent:    "    ",
-			}
-			return opts.Marshal(msg)
+	if pretty {
+		opts := prototext.MarshalOptions{
+			Multiline: true,
+			Indent:    "    ",
 		}
-		return prototext.Marshal(msg)
-	}()
+		messageText, err := opts.Marshal(msg)
+		if err != nil {
+			return nil, err
+		}
+		// To obtain some degree of stability, the protobuf-go team recommend passing
+		// the output of prototext through the [txtpbfmt](https://github.com/protocolbuffers/txtpbfmt)
+		// program. The formatter can be directly invoked in Go using parser.Format.
+		text, err := parser.Format(messageText)
+		if err != nil {
+			return nil, err
+		}
+		// remove last newline
+		return bytes.TrimRight(text, "\n"), nil
+	}
+
+	messageText, err := prototext.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
-	// To obtain some degree of stability, the protobuf-go team recommend passing
-	// the output of prototext through the [txtpbfmt](https://github.com/protocolbuffers/txtpbfmt)
-	// program. The formatter can be directly invoked in Go using parser.Format.
-	return parser.Format(messageText)
+	// To obtain some degree of stability, remove redundant spaces/whitespace.
+	// refer: https://stackoverflow.com/questions/37290693/how-to-remove-redundant-spaces-whitespace-from-a-string-in-golang
+	text := strings.Join(strings.Fields(string(messageText)), " ")
+	return []byte(text), nil
 }
 
 // marshalToBin marshals the given proto.Message in the wire (binary) format.
