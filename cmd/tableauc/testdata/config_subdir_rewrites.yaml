@@ -3,7 +3,7 @@ locationName: Asia/Shanghai
 log:
   level: DEBUG
   mode: FULL
-  filename: ./testdata/_log/log.txt
+  filename: ./_log/log.txt
   sink: MULTI
 proto:
   input:
@@ -23,10 +23,12 @@ proto:
       go_package: github.com/tableauio/tableau/protoconf
 conf:
   input:
-    protoPaths: ["testdata/_proto/", "."]
-    protoFiles: ["testdata/_proto/*.proto"]
+    protoPaths: ["_proto/", "."]
+    protoFiles: ["_proto/*.proto"]
+    subdirRewrites:
+      "testdata/": ""
   output:
-    subdir: testdata/_conf
+    subdir: _conf
     formats: ["json"]
     # formats: ["json", "txt", "bin"]
     pretty: true

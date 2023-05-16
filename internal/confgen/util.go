@@ -1,14 +1,21 @@
 package confgen
 
 import (
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/iancoleman/strcase"
+	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 var fieldOptionsPool *sync.Pool
@@ -96,4 +103,81 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 		fd:   fd,
 		opts: pooledOpts,
 	}
+}
+
+// parseBookSpecifier parses the book specifier to book name and sheet name.
+//
+// bookSpecifier pattern: <Workbook>#<Worksheet>
+//
+// Examples:
+//   - only workbook: excel/Item.xlsx
+//   - with worksheet: excel/Item.xlsx#Item (To be implemented), NOTE: csv not supported
+//     because it has special book name pattern.
+func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string, err error) {
+	fmt := format.Ext2Format(filepath.Ext(bookSpecifier))
+	if fmt == format.CSV {
+		// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+		bookName, err := fs.ParseCSVBooknamePatternFrom(bookSpecifier)
+		if err != nil {
+			return "", "", err
+		}
+		return bookName, "", nil
+	}
+	tokens := strings.SplitN(bookSpecifier, "#", 2)
+	if len(tokens) == 2 {
+		return tokens[0], tokens[1], nil
+	}
+	return tokens[0], "", nil
+}
+
+type bookIndexInfo struct {
+	primaryBookName string
+	fd              protoreflect.FileDescriptor
+}
+
+// buildWorkbookIndex builds the secondary workbook name (including self) -> primary workbook info indexes.
+func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, subdirRewrites map[string]string, prFiles *protoregistry.Files) (bookIndexes map[string]*bookIndexInfo, err error) {
+	bookIndexes = map[string]*bookIndexInfo{} // init
+	prFiles.RangeFilesByPackage(
+		protoPackage,
+		func(fd protoreflect.FileDescriptor) bool {
+			_, workbook := ParseFileOptions(fd)
+			if workbook == nil {
+				return true
+			}
+			// add self: rewrite subdir
+			rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, subdirRewrites)
+			bookIndexes[rewrittenWorkbookName] = &bookIndexInfo{primaryBookName: workbook.Name, fd: fd}
+			// merger or scatter (only one can be set at once)
+			msgs := fd.Messages()
+			for i := 0; i < msgs.Len(); i++ {
+				md := msgs.Get(i)
+				opts := md.Options().(*descriptorpb.MessageOptions)
+				if opts == nil {
+					continue
+				}
+				sheetOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
+				bookNameGlobs := sheetOpts.GetMerger()
+				if len(bookNameGlobs) == 0 {
+					bookNameGlobs = sheetOpts.GetScatter()
+				}
+				relBookPaths, err1 := importer.ResolveBookPathPattern(inputDir, workbook.Name, bookNameGlobs, subdirRewrites)
+				if err1 != nil {
+					err = err1
+					return false
+				}
+				for relBookPath := range relBookPaths {
+					bookIndexes[relBookPath] = &bookIndexInfo{primaryBookName: workbook.Name, fd: fd}
+				}
+			}
+			return true
+		})
+
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range bookIndexes {
+		log.Debugf("primary book index: %s -> %s", k, v.primaryBookName)
+	}
+	return bookIndexes, nil
 }
