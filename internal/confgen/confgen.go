@@ -112,7 +112,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		if err != nil {
 			return errors.Wrapf(err, "parse book specifier failed: %s", specifier)
 		}
-		relCleanSlashPath := fs.GetCleanSlashPath(bookName)
+		relCleanSlashPath := fs.CleanSlashPath(bookName)
 		if err != nil {
 			return errors.Wrapf(err, "get clean slash path failed: %s", bookName)
 		}

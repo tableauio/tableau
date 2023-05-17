@@ -112,7 +112,7 @@ func TestGetMergerImporters(t *testing.T) {
 			}
 			filenames := []string{}
 			for _, imp := range got {
-				filenames = append(filenames, fs.GetCleanSlashPath(imp.Filename()))
+				filenames = append(filenames, fs.CleanSlashPath(imp.Filename()))
 			}
 			assert.ElementsMatch(t, tt.want, filenames, "got book filenames not match")
 		})
@@ -152,7 +152,7 @@ func TestGetScatterImporters(t *testing.T) {
 			}
 			filenames := []string{}
 			for _, imp := range got {
-				filenames = append(filenames, fs.GetCleanSlashPath(imp.Filename()))
+				filenames = append(filenames, fs.CleanSlashPath(imp.Filename()))
 			}
 			assert.ElementsMatch(t, tt.want, filenames, "got book filenames not match")
 		})

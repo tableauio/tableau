@@ -126,7 +126,7 @@ func ResolveBookPathPattern(inputDir, primaryBookName string, bookNameGlobs []st
 				// exclude self
 				continue
 			}
-			secondaryBookName, err := fs.GetRelCleanSlashPath(inputDir, path)
+			secondaryBookName, err := fs.Rel(inputDir, path)
 			if err != nil {
 				return nil, err
 			}

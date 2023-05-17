@@ -37,7 +37,7 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 	filename := strcase.ToSnake(bookName)
 	if gen.OutputOpt.FilenameWithSubdirPrefix {
 		bookPath := filepath.Join(filepath.Dir(relSlashPath), bookName)
-		snakePath := strcase.ToSnake(fs.GetCleanSlashPath(bookPath))
+		snakePath := strcase.ToSnake(fs.CleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
 	bp := &bookParser{

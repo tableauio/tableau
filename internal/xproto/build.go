@@ -48,7 +48,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
-			cleanSlashPath := fs.GetCleanSlashPath(match)
+			cleanSlashPath := fs.CleanSlashPath(match)
 			parsedExcludedProtoFiles[cleanSlashPath] = true
 		}
 	}
@@ -59,10 +59,10 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
-			cleanSlashPath := fs.GetCleanSlashPath(match)
+			cleanSlashPath := fs.CleanSlashPath(match)
 			if !parsedExcludedProtoFiles[cleanSlashPath] {
 				for _, protoPath := range protoPaths {
-					cleanProtoPath := fs.GetCleanSlashPath(protoPath) + "/"
+					cleanProtoPath := fs.CleanSlashPath(protoPath) + "/"
 					cleanSlashPath = strings.TrimPrefix(cleanSlashPath, cleanProtoPath)
 				}
 				parsedProtoFiles = append(parsedProtoFiles, cleanSlashPath)
@@ -74,13 +74,13 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 		// 	if err != nil {
 		// 		return nil, errors.Wrapf(err, "failed to get absolute path for %s", match)
 		// 	}
-		// 	cleanSlashPath := fs.GetCleanSlashPath(match)
+		// 	cleanSlashPath := fs.CleanSlashPath(match)
 		// 	for _, importPath := range protoPaths {
 		// 		importPath, err := filepath.Abs(importPath)
 		// 		if err != nil {
 		// 			return nil, errors.Wrapf(err, "failed to get absolute path for %s", importPath)
 		// 		}
-		// 		importCleanSlashPath := fs.GetCleanSlashPath(importPath)
+		// 		importCleanSlashPath := fs.CleanSlashPath(importPath)
 		// 		if !strings.HasPrefix(cleanSlashPath, importCleanSlashPath) {
 		// 			log.Debugf("add proto file: %s", originMatch)
 		// 			parsedProtoFiles = append(parsedProtoFiles, originMatch)

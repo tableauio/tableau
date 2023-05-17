@@ -83,26 +83,10 @@ func Exists(path string) (bool, error) {
 	return false, err
 }
 
-func GetCleanSlashPath(path string) string {
-	return filepath.ToSlash(filepath.Clean(path))
-}
-
-func IsSamePath(leftPath, rightPath string) bool {
-	return GetCleanSlashPath(leftPath) == GetCleanSlashPath(rightPath)
-}
-
-func GetRelCleanSlashPath(basepath string, targetpath string) (string, error) {
-	relPath, err := filepath.Rel(basepath, targetpath)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get relative path from %s to %s", basepath, targetpath)
-	}
-	return GetCleanSlashPath(relPath), nil
-}
-
 func FilterSubdir(filename string, subdirs []string) bool {
 	if len(subdirs) != 0 {
 		for _, subdir := range subdirs {
-			subdir = GetCleanSlashPath(subdir)
+			subdir = CleanSlashPath(subdir)
 			if strings.HasPrefix(filename, subdir) {
 				return true
 			}
@@ -115,11 +99,11 @@ func FilterSubdir(filename string, subdirs []string) bool {
 func RewriteSubdir(filename string, subdirRewrites map[string]string) string {
 	if len(subdirRewrites) != 0 {
 		for old, new := range subdirRewrites {
-			oldSubdir := GetCleanSlashPath(old)
-			newSubdir := GetCleanSlashPath(new)
+			oldSubdir := CleanSlashPath(old)
+			newSubdir := CleanSlashPath(new)
 			if strings.HasPrefix(filename, oldSubdir) {
 				newfilename := strings.Replace(filename, oldSubdir, newSubdir, 1)
-				return GetCleanSlashPath(newfilename)
+				return CleanSlashPath(newfilename)
 			}
 		}
 	}

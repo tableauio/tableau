@@ -113,6 +113,7 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented), NOTE: csv not supported
 //     because it has special book name pattern.
+//   - with special delimiter "#" in dir: excel#dir/Item.xlsx#Item
 func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string, err error) {
 	fmt := format.Ext2Format(filepath.Ext(bookSpecifier))
 	if fmt == format.CSV {
@@ -123,11 +124,13 @@ func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string
 		}
 		return bookName, "", nil
 	}
-	tokens := strings.SplitN(bookSpecifier, "#", 2)
+	dir := filepath.Dir(bookSpecifier)
+	baseBookSpecifier := filepath.Base(bookSpecifier)
+	tokens := strings.SplitN(baseBookSpecifier, "#", 2)
 	if len(tokens) == 2 {
-		return tokens[0], tokens[1], nil
+		return fs.Join(dir, tokens[0]), tokens[1], nil
 	}
-	return tokens[0], "", nil
+	return fs.Join(dir, tokens[0]), "", nil
 }
 
 type bookIndexInfo struct {
