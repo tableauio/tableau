@@ -79,7 +79,7 @@ func createConsoleZapCore(mode, level string) (zapcore.Core, error) {
 	}
 	// stdout level enabler
 	stdoutLevel := zap.LevelEnablerFunc(func(level zapcore.Level) bool {
-		return level >= zapLevel && level <= zapcore.InfoLevel
+		return level >= zapLevel 
 	})
 
 	// stderr level enabler

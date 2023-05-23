@@ -119,6 +119,10 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
 		primaryBookIndexInfo, ok := bookIndexes[relCleanSlashPath]
 		if !ok {
+			if gen.InputOpt.IgnoreUnknownWorkbook {
+				log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)
+				continue
+			}
 			return errors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
 		eg.Go(func() error {

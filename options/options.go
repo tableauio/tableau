@@ -194,6 +194,12 @@ type ConfInputOption struct {
 	//
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
+
+	// Whether converter will not report an error and abort if a workbook 
+	// is not recognized in proto files.
+	//
+	// Default: false.
+	IgnoreUnknownWorkbook bool
 }
 
 // Output options for generating conf files.
