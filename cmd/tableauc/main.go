@@ -28,9 +28,9 @@ var (
 	indir        string
 	outdir       string
 
-	confOutputSubdir          string
-	confOutputFormats         []string
-	confIgnoreUnknownWorkbook bool
+	confInputIgnoreUnknownWorkbook bool
+	confOutputSubdir               string
+	confOutputFormats              []string
 
 	mode             string
 	configPath       string
@@ -51,9 +51,9 @@ func main() {
 	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "Output directory, default is current directory.")
 	rootCmd.Flags().StringVarP(&confOutputSubdir, "conf-output-subdir", "", "", "Conf output sub-directory, set it to override conf.output.subdir.")
 	rootCmd.Flags().StringSliceVarP(&confOutputFormats, "conf-output-formats", "", nil, "Available format: json, bin, and text, set it to override conf.output.formats.")
-	rootCmd.Flags().BoolVarP(&confIgnoreUnknownWorkbook, "conf-ignore-unknown-workbook", "", false, `Whether converter will not report an error and abort if a workbook
+	rootCmd.Flags().BoolVarP(&confInputIgnoreUnknownWorkbook, "conf-input-ignore-unknown-workbook", "", false, `Whether converter will not report an error and abort if a workbook
 is not recognized in proto files. 
-Set it to override conf.output.ignoreUnknownWorkbook.`)
+Set it to override conf.input.ignoreUnknownWorkbook.`)
 
 	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `Available mode: default, proto, and conf. 
   - default: generate both proto and conf files.
@@ -99,7 +99,7 @@ func runE(cmd *cobra.Command, args []string) error {
 		}
 		config.Conf.Output.Formats = formats
 	}
-	if confIgnoreUnknownWorkbook {
+	if confInputIgnoreUnknownWorkbook {
 		config.Conf.Input.IgnoreUnknownWorkbook = true
 	}
 	log.Debugf("load config success: %+v", spew.Sdump(config))

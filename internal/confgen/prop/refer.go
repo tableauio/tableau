@@ -153,14 +153,14 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(bookName, input.SubdirRewrites)
-	wbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
-	primaryImporter, err := importer.New(wbPath, importer.Sheets([]string{sheetName}))
+	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
+	primaryImporter, err := importer.New(absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
 
 	// get merger importers
-	importers, err := importer.GetMergerImporters(input.InputDir, wbPath, sheetName, sheetOpts.Merger, input.SubdirRewrites)
+	importers, err := importer.GetMergerImporters(input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
