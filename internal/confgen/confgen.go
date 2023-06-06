@@ -227,7 +227,7 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 		return err
 	}
 	// append self
-	importers = append(importers, self)
+	importers = append(importers, importer.ImporterInfo{Importer: self})
 	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 	if err := exporter.ScatterAndExport(sheetInfo, importers...); err != nil {
 		return err
@@ -241,7 +241,7 @@ func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo
 		return err
 	}
 	// append self
-	importers = append(importers, self)
+	importers = append(importers, importer.ImporterInfo{Importer: self})
 	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 	if err := exporter.MergeAndExport(sheetInfo, importers...); err != nil {
 		return err

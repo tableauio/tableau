@@ -160,17 +160,19 @@ func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, sub
 					continue
 				}
 				sheetOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
-				bookNameGlobs := sheetOpts.GetMerger()
-				if len(bookNameGlobs) == 0 {
-					bookNameGlobs = sheetOpts.GetScatter()
+				sheetSpecifiers := sheetOpts.GetMerger()
+				if len(sheetSpecifiers) == 0 {
+					sheetSpecifiers = sheetOpts.GetScatter()
 				}
-				relBookPaths, err1 := importer.ResolveBookPathPattern(inputDir, workbook.Name, bookNameGlobs, subdirRewrites)
-				if err1 != nil {
-					err = err1
-					return false
-				}
-				for relBookPath := range relBookPaths {
-					bookIndexes[relBookPath] = &bookIndexInfo{primaryBookName: workbook.Name, fd: fd}
+				for _, specifier := range sheetSpecifiers {
+					relBookPaths, _, err1 := importer.ResolveSheetSpecifier(inputDir, workbook.Name, specifier, subdirRewrites)
+					if err1 != nil {
+						err = err1
+						return false
+					}
+					for relBookPath := range relBookPaths {
+						bookIndexes[relBookPath] = &bookIndexInfo{primaryBookName: workbook.Name, fd: fd}
+					}
 				}
 			}
 			return true

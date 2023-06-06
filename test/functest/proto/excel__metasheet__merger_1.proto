@@ -11,7 +11,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/metasheet/Merger1#*.csv"};
 
 message MetasheetOptionMerger {
-  option (tableau.worksheet) = {name:"MetasheetOptionMerger" namerow:1 typerow:2 noterow:3 datarow:4 merger:"Merger*.csv"};
+  option (tableau.worksheet) = {name:"MetasheetOptionMerger" namerow:1 typerow:2 noterow:3 datarow:4 merger:"Merger*.csv" merger:"Merger1#*.csv#MetasheetOptionMerger1"};
 
   map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Zone {

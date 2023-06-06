@@ -40,25 +40,25 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheet
 	}
 }
 
-// ScatterAndExport parse multiple importers into separate protomsgs, then export each other.
-func (x *sheetExporter) ScatterAndExport(info *SheetInfo, importers ...importer.Importer) error {
-	// NOTE: use map-reduce pattern to accelerate parsing multiple importers.
+// ScatterAndExport parse multiple importer infos into separate protomsgs, then export each other.
+func (x *sheetExporter) ScatterAndExport(info *SheetInfo, impInfos ...importer.ImporterInfo) error {
+	// NOTE: use map-reduce pattern to accelerate parsing multiple importer Infos.
 	var mu sync.Mutex // guard msgs
 	var msgs []oneMsg
 
 	var eg errgroup.Group
-	for _, imp := range importers {
-		imp := imp
+	for _, impInfo := range impInfos {
+		impInfo := impInfo
 		// map-reduce: map jobs for concurrent processing
 		eg.Go(func() error {
-			protomsg, err := parseMessageFromOneImporter(info, imp)
+			protomsg, err := parseMessageFromOneImporter(info, impInfo)
 			if err != nil {
 				return err
 			}
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
 				protomsg: protomsg,
-				bookName: imp.BookName(),
+				bookName: impInfo.BookName(),
 			})
 			mu.Unlock()
 			return nil
@@ -78,9 +78,9 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo, importers ...importer.
 	return nil
 }
 
-// MergeAndExport parse multiple importers and merge into one protomsg, then export it.
-func (x *sheetExporter) MergeAndExport(info *SheetInfo, importers ...importer.Importer) error {
-	protomsg, err := ParseMessage(info, importers...)
+// MergeAndExport parse multiple importer infos and merge into one protomsg, then export it.
+func (x *sheetExporter) MergeAndExport(info *SheetInfo, impInfos ...importer.ImporterInfo) error {
+	protomsg, err := ParseMessage(info, impInfos...)
 	if err != nil {
 		return err
 	}
@@ -96,30 +96,30 @@ type oneMsg struct {
 	bookName string
 }
 
-func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Message, error) {
-	if len(importers) == 1 {
-		return parseMessageFromOneImporter(info, importers[0])
-	} else if len(importers) == 0 {
+func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Message, error) {
+	if len(impInfos) == 1 {
+		return parseMessageFromOneImporter(info, impInfos[0])
+	} else if len(impInfos) == 0 {
 		return nil, xerrors.ErrorKV("no protomsg parsed", xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 
-	// NOTE: use map-reduce pattern to accelerate parsing multiple importers.
+	// NOTE: use map-reduce pattern to accelerate parsing multiple importer infos.
 	var mu sync.Mutex // guard msgs
 	var msgs []oneMsg
 
 	var eg errgroup.Group
-	for _, imp := range importers {
-		imp := imp
+	for _, impInfo := range impInfos {
+		impInfo := impInfo
 		// map-reduce: map jobs for concurrent processing
 		eg.Go(func() error {
-			protomsg, err := parseMessageFromOneImporter(info, imp)
+			protomsg, err := parseMessageFromOneImporter(info, impInfo)
 			if err != nil {
 				return err
 			}
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
 				protomsg: protomsg,
-				bookName: imp.Filename(),
+				bookName: impInfo.Filename(),
 			})
 			mu.Unlock()
 			return nil
@@ -152,11 +152,15 @@ func ParseMessage(info *SheetInfo, importers ...importer.Importer) (proto.Messag
 	return mainMsg, nil
 }
 
-func parseMessageFromOneImporter(info *SheetInfo, imp importer.Importer) (proto.Message, error) {
-	sheetName := info.Opts.Name
-	sheet := imp.GetSheet(sheetName)
+func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo) (proto.Message, error) {
+	sheetName := info.Opts.GetName()
+	if impInfo.SpecifiedSheetName != "" {
+		// sheet name is specified
+		sheetName = impInfo.SpecifiedSheetName
+	}
+	sheet := impInfo.GetSheet(sheetName)
 	if sheet == nil {
-		err := xerrors.E0001(sheetName, imp.Filename())
+		err := xerrors.E0001(sheetName, impInfo.Filename())
 		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	parser := newSheetParserInternal(info)
@@ -171,8 +175,10 @@ type SheetInfo struct {
 	ProtoPackage string
 	LocationName string
 
-	MD   protoreflect.MessageDescriptor
-	Opts *tableaupb.WorksheetOptions
+	// Maybe Merger and Scatter process different sheets (same structure) in the same workbook
+	SheetName string
+	MD        protoreflect.MessageDescriptor
+	Opts      *tableaupb.WorksheetOptions
 
 	gen *Generator // NOTE: only set in internal package, currently only for refer check.
 }

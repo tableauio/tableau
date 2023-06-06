@@ -2,6 +2,7 @@ package importer
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
@@ -46,59 +47,73 @@ func New(filename string, setters ...Option) (Importer, error) {
 	}
 }
 
-// GetScatterImporters return all related importers.
-//  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
-//  2. exclude self
-//  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func GetScatterImporters(inputDir, primaryBookName, sheetName string, bookNameGlobs []string, subdirRewrites map[string]string) ([]Importer, error) {
-	relBookPaths, err := ResolveBookPathPattern(inputDir, primaryBookName, bookNameGlobs, subdirRewrites)
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
-	}
-	var importers []Importer
-	for relBookPath := range relBookPaths {
-		log.Infof("%18s: %s", "scatter workbook", relBookPath)
-		fpath := filepath.Join(inputDir, relBookPath)
-		importer, err := New(fpath, Sheets([]string{sheetName}), Cloned())
-		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
-		}
-		importers = append(importers, importer)
-	}
-	return importers, nil
+type ImporterInfo struct {
+	Importer
+	SpecifiedSheetName string // Empty means no sheet specified.
 }
 
-// GetMergerImporters return all related importers.
+// GetScatterImporters return all related importer infos.
 //  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 //  2. exclude self
 //  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func GetMergerImporters(inputDir, primaryBookName, sheetName string, bookNameGlobs []string, subdirRewrites map[string]string) ([]Importer, error) {
-	relBookPaths, err := ResolveBookPathPattern(inputDir, primaryBookName, bookNameGlobs, subdirRewrites)
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
-	}
-	var importers []Importer
-	for relBookPath := range relBookPaths {
-		log.Infof("%18s: %s", "merge workbook", relBookPath)
-		fpath := filepath.Join(inputDir, relBookPath)
-		importer, err := New(fpath, Sheets([]string{sheetName}), Cloned())
+func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
+	var importerInfos []ImporterInfo
+	for _, specifier := range scatterSpecifiers {
+		relBookPaths, specifiedSheetName, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+			return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
 		}
-		importers = append(importers, importer)
+		if specifiedSheetName == "" {
+			specifiedSheetName = sheetName
+		}
+		for relBookPath := range relBookPaths {
+			log.Infof("%18s: %s", "scatter workbook", relBookPath)
+			fpath := filepath.Join(inputDir, relBookPath)
+			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned())
+			if err != nil {
+				return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+			}
+			importerInfos = append(importerInfos, ImporterInfo{Importer: importer, SpecifiedSheetName: specifiedSheetName})
+		}
 	}
-	return importers, nil
+	return importerInfos, nil
 }
 
-// ResolveBookPathPattern resolve and return all related workbook paths.
+// GetMergerImporters return all related importer infos.
 //  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 //  2. exclude self
 //  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func ResolveBookPathPattern(inputDir, primaryBookName string, bookNameGlobs []string, subdirRewrites map[string]string) (map[string]bool, error) {
+func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
+	var importerInfos []ImporterInfo
+	for _, specifier := range sheetSpecifiers {
+		relBookPaths, specifiedSheetName, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
+		}
+		if specifiedSheetName == "" {
+			specifiedSheetName = sheetName
+		}
+		for relBookPath := range relBookPaths {
+			log.Infof("%18s: %s", "merge workbook", relBookPath)
+			fpath := filepath.Join(inputDir, relBookPath)
+			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned())
+			if err != nil {
+				return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+			}
+			importerInfos = append(importerInfos, ImporterInfo{Importer: importer, SpecifiedSheetName: specifiedSheetName})
+		}
+	}
+
+	return importerInfos, nil
+}
+
+// ResolveSheetSpecifier resolve and return all related workbook paths.
+//  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
+//  2. exclude self
+//  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier string, subdirRewrites map[string]string) (map[string]bool, string, error) {
 	relBookPaths := map[string]bool{}
-	if len(bookNameGlobs) == 0 {
-		return relBookPaths, nil
-	}
+	bookNameGlob, specifiedSheetName := ParseSheetSpecifier(sheetSpecifier)
 
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(primaryBookName, subdirRewrites)
@@ -107,31 +122,41 @@ func ResolveBookPathPattern(inputDir, primaryBookName string, bookNameGlobs []st
 	log.Debugf("rewrittenAbsWorkbookName: %s", primaryBookPath)
 	fmt := format.Ext2Format(filepath.Ext(primaryBookPath))
 	curDir := filepath.Dir(primaryBookPath)
-	for _, nameGlob := range bookNameGlobs {
-		pattern := filepath.Join(curDir, nameGlob)
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
-		}
-		for _, match := range matches {
-			path := match
-			if fmt == format.CSV {
-				// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-				path, err = fs.ParseCSVBooknamePatternFrom(match)
-				if err != nil {
-					return nil, err
-				}
-			}
-			if fs.IsSamePath(path, primaryBookPath) {
-				// exclude self
-				continue
-			}
-			secondaryBookName, err := fs.Rel(inputDir, path)
-			if err != nil {
-				return nil, err
-			}
-			relBookPaths[secondaryBookName] = true
-		}
+	pattern := filepath.Join(curDir, bookNameGlob)
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, "", errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
 	}
-	return relBookPaths, nil
+	for _, match := range matches {
+		path := match
+		if fmt == format.CSV {
+			// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+			path, err = fs.ParseCSVBooknamePatternFrom(match)
+			if err != nil {
+				return nil, "", err
+			}
+		}
+		if specifiedSheetName == "" && fs.IsSamePath(path, primaryBookPath) {
+			// sheet name not specified, so exclude self
+			continue
+		}
+		secondaryBookName, err := fs.Rel(inputDir, path)
+		if err != nil {
+			return nil, "", err
+		}
+		relBookPaths[secondaryBookName] = true
+	}
+	return relBookPaths, specifiedSheetName, nil
+}
+
+// TODO: detailed comments
+func ParseSheetSpecifier(specifier string) (bookNameGlob string, specifiedSheetName string) {
+	lastIndex := strings.LastIndex(specifier, "#")
+	if lastIndex != -1 {
+		bookNameGlob = specifier[:lastIndex]
+		specifiedSheetName = specifier[lastIndex+1:]
+	} else {
+		bookNameGlob = specifier
+	}
+	return
 }

@@ -152,7 +152,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	msgName, wsOpts := confgen.ParseMessageOptions(md)
 	sheets := []string{wsOpts.Name}
 
-	imp, err := importer.New(
+	self, err := importer.New(
 		wbPath,
 		importer.Sheets(sheets),
 	)
@@ -160,17 +160,15 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 		return errors.WithMessagef(err, "failed to import workbook: %v", wbPath)
 	}
 
-	// get merger importers
-	importers, err := importer.GetMergerImporters(dir, wbPath, wsOpts.Name, wsOpts.Merger, opts.SubdirRewrites)
+	// get merger importer infos
+	impInfos, err := importer.GetMergerImporters(dir, wbPath, wsOpts.Name, wsOpts.Merger, opts.SubdirRewrites)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
+		return errors.WithMessagef(err, "failed to get merger importer infos for %s", wbPath)
 	}
 	// append self
-	importers = append(importers, imp)
-
+	impInfos = append(impInfos, importer.ImporterInfo{Importer: self})
 	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, md, wsOpts)
-
-	protomsg, err := confgen.ParseMessage(sheetInfo, importers...)
+	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to parse message %s", msgName)
 	}

@@ -159,22 +159,27 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
 
-	// get merger importers
-	importers, err := importer.GetMergerImporters(input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
+	// get merger importer infos
+	impInfos, err := importer.GetMergerImporters(input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
 
 	// append self
-	importers = append(importers, primaryImporter)
+	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})
 
 	// new empty referred value space set
 	valueSpace := NewValueSpace()
-	for _, imp := range importers {
-		sheet := imp.GetSheet(sheetName)
+	for _, impInfo := range impInfos {
+		specifiedSheetName := sheetName
+		if impInfo.SpecifiedSheetName != "" {
+			// sheet name is specified
+			specifiedSheetName = impInfo.SpecifiedSheetName
+		}
+		sheet := impInfo.GetSheet(specifiedSheetName)
 		if sheet == nil {
-			err := xerrors.E0001(sheetName, imp.Filename())
-			return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyBookName, imp.Filename())
+			err := xerrors.E0001(sheetName, impInfo.Filename())
+			return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyBookName, impInfo.Filename())
 		}
 
 		if sheetOpts.Transpose {
