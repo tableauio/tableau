@@ -186,3 +186,12 @@ func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, sub
 	}
 	return bookIndexes, nil
 }
+
+func getRealSheetName(info *SheetInfo, impInfo importer.ImporterInfo) string {
+	sheetName := info.Opts.GetName()
+	if impInfo.SpecifiedSheetName != "" {
+		// sheet name is specified
+		sheetName = impInfo.SpecifiedSheetName
+	}
+	return sheetName
+}

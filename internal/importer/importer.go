@@ -67,7 +67,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 			specifiedSheetName = sheetName
 		}
 		for relBookPath := range relBookPaths {
-			log.Infof("%18s: %s", "scatter workbook", relBookPath)
+			log.Infof("%18s: %s#%s", "scatter sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
 			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned())
 			if err != nil {
@@ -94,7 +94,7 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 			specifiedSheetName = sheetName
 		}
 		for relBookPath := range relBookPaths {
-			log.Infof("%18s: %s", "merge workbook", relBookPath)
+			log.Infof("%18s: %s#%s", "merge sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
 			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned())
 			if err != nil {
@@ -149,7 +149,9 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 	return relBookPaths, specifiedSheetName, nil
 }
 
-// TODO: detailed comments
+// ParseSheetSpecifier parses the sheet specifier pattern like: "<BookNameGlob>[#SheetName]".
+//  1. The delimiter between BookNameGlob and SheetName is "#".
+//  2. The "SheetName" is optional, default is same as sheet name in the primary workbook.
 func ParseSheetSpecifier(specifier string) (bookNameGlob string, specifiedSheetName string) {
 	lastIndex := strings.LastIndex(specifier, "#")
 	if lastIndex != -1 {

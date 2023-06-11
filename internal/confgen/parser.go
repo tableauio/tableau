@@ -43,9 +43,6 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheet
 // ScatterAndExport parse multiple importer infos into separate protomsgs, then export each other.
 func (x *sheetExporter) ScatterAndExport(info *SheetInfo, impInfos ...importer.ImporterInfo) error {
 	// NOTE: use map-reduce pattern to accelerate parsing multiple importer Infos.
-	var mu sync.Mutex // guard msgs
-	var msgs []oneMsg
-
 	var eg errgroup.Group
 	for _, impInfo := range impInfos {
 		impInfo := impInfo
@@ -55,25 +52,18 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo, impInfos ...importer.I
 			if err != nil {
 				return err
 			}
-			mu.Lock()
-			msgs = append(msgs, oneMsg{
-				protomsg: protomsg,
-				bookName: impInfo.BookName(),
-			})
-			mu.Unlock()
+			// exported conf name pattern is : <BookName>_<SheetName>
+			sheetName := getRealSheetName(info, impInfo)
+			name := fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
+			exporter := mexporter.New(name, protomsg, x.OutputDir, x.OutputOpt)
+			if err := exporter.Export(); err != nil {
+				return err
+			}
 			return nil
 		})
 	}
 	if err := eg.Wait(); err != nil {
 		return err
-	}
-	for _, msg := range msgs {
-		// name pattern is : <BookName>_<SheetName>
-		name := fmt.Sprintf("%s_%s", msg.bookName, info.MD.Name())
-		exporter := mexporter.New(name, msg.protomsg, x.OutputDir, x.OutputOpt)
-		if err := exporter.Export(); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -153,11 +143,7 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 }
 
 func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo) (proto.Message, error) {
-	sheetName := info.Opts.GetName()
-	if impInfo.SpecifiedSheetName != "" {
-		// sheet name is specified
-		sheetName = impInfo.SpecifiedSheetName
-	}
+	sheetName := getRealSheetName(info, impInfo)
 	sheet := impInfo.GetSheet(sheetName)
 	if sheet == nil {
 		err := xerrors.E0001(sheetName, impInfo.Filename())
