@@ -3,9 +3,9 @@ protogen: |
   工作簿: {{.BookName}}
   工作表: {{.SheetName}}
   命名单元格位置: {{.NameCellPos}}
-  命名单元格的值: {{.NameCell}}
+  命名单元格数据: {{.NameCell}}
   类型单元格位置: {{.TypeCellPos}}
-  类型单元格的值: {{.TypeCell}}|{{.PBFieldOpts}}
+  类型单元格数据: {{.TypeCell}}|{{.PBFieldOpts}}
   错误原因: {{.Reason}}
   {{ if .Help }}修复建议: {{.Help}}{{ end }}
 confgen: |
@@ -13,6 +13,6 @@ confgen: |
   工作簿: {{.BookName}}
   工作表: {{.SheetName}}
   单元格位置: {{.DataCellPos}}
-  单元格的值: {{.DataCell}}
+  单元格数据: {{.DataCell}}
   错误原因: {{.Reason}}
   {{ if .Help }}修复建议: {{.Help}}{{ end }}

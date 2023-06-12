@@ -83,7 +83,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// - decimal fraction: 1.0
 		// - scientific notation: 1.0000001e7
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOfInt32(int32(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfInt32(int32(val)), true, xerrors.E2012("int32", value, err)
 
 	case pref.Uint32Kind, pref.Fixed32Kind:
 		if value == "" {
@@ -92,7 +92,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseUint(value, 10, 32)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOfUint32(uint32(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfUint32(uint32(val)), true, xerrors.E2012("uint32", value, err)
 	case pref.Int64Kind, pref.Sint64Kind, pref.Sfixed64Kind:
 		if value == "" {
 			return DefaultInt64Value, false, nil
@@ -100,7 +100,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseInt(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOfInt64(int64(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfInt64(int64(val)), true, xerrors.E2012("int64", value, err)
 	case pref.Uint64Kind, pref.Fixed64Kind:
 		if value == "" {
 			return DefaultUint64Value, false, nil
@@ -108,28 +108,28 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseUint(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOfUint64(uint64(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfUint64(uint64(val)), true, xerrors.E2012("uint64", value, err)
 	case pref.BoolKind:
 		if value == "" {
 			return DefaultBoolValue, false, nil
 		}
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseBool(purifyInteger(value))
-		return pref.ValueOfBool(val), true, xerrors.WithStack(err)
+		return pref.ValueOfBool(val), true, xerrors.E2013(value, err)
 
 	case pref.FloatKind:
 		if value == "" {
 			return DefaultFloat32Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 32)
-		return pref.ValueOfFloat32(float32(val)), true, xerrors.WithStack(err)
+		return pref.ValueOfFloat32(float32(val)), true, xerrors.E2012("float", value, err)
 
 	case pref.DoubleKind:
 		if value == "" {
 			return DefaultFloat64Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOfFloat64(val), true, xerrors.WithStack(err)
+		return pref.ValueOfFloat64(val), true, xerrors.E2012("float64", value, err)
 
 	case pref.StringKind:
 		return pref.ValueOfString(value), value != "", nil

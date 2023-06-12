@@ -48,4 +48,12 @@ E2011:
   desc: field presence required but cell not filled
   text: cell data is not filled explicitly
   help: fill cell data explicitly
+E2012:
+  desc: invalid syntax value of numerical type
+  text: '"{{.Value}}" cannot be parsed to numerical type "{{.FieldType}}", {{.Error}}'
+  help: fill cell data with valid syntax of numerical type "{{.FieldType}}"
+E2013:
+  desc: invalid syntax value of boolean type
+  text: '"{{.Value}}" cannot be parsed to boolean type, {{.Error}}'
+  help: "boolean value can be: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
 # [3000, 3999]: importer error

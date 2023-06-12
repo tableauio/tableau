@@ -39,7 +39,7 @@ E2008:
 E2009:
   desc: duplicate key exists in different sheets
   text: '字段 {{.FieldName}} 在配置表合表时，存在重复的键 "{{.Key}}"'
-  help: '合表时，不同的表不允许配置重复的键'
+  help: "合表时，不同的表不允许配置重复的键"
 E2010:
   desc: union type has no corresponding value field
   text: 'union 类型"{{.TypeValue}}"找不到 field number 为"{{.FieldNumber}}"的对应 value 字段'
@@ -48,4 +48,12 @@ E2011:
   desc: field presence required but cell not filled
   text: 单元格数据未被显式填充
   help: 请显式填充单元格数据
+E2012:
+  desc: 数值类型格式非法
+  text: 无法将 "{{.Value}}" 解析为数值类型 "{{.FieldType}}", {{.Error}}
+  help: '请依据类型 "{{.FieldType}}" 填充合法的数值; int32/int64: 32/64位整数, uint32/uint64: 32/64位正整数, float32/float64: 32/64位浮点数'
+E2013:
+  desc: 布尔类型格式非法
+  text: 无法将 "{{.Value}}" 解析为布尔类型, {{.Error}}
+  help: "布尔值可以为: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
 # [3000, 3999]: importer error

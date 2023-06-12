@@ -98,3 +98,26 @@ func E2010(typeValue, fieldNumber interface{}) error {
 func E2011() error {
 	return renderEcode("E2011", nil)
 }
+
+// E2012 describes invalid syntax of numerical type.
+func E2012(fieldType, value interface{}, err error) error {
+	if err == nil {
+		return nil
+	}
+	return renderEcode("E2012", map[string]interface{}{
+		"FieldType": fieldType,
+		"Value":     value,
+		"Error":     err,
+	})
+}
+
+// E2013 describes invalid syntax of boolean type.
+func E2013(value interface{}, err error) error {
+	if err == nil {
+		return nil
+	}
+	return renderEcode("E2013", map[string]interface{}{
+		"Value": value,
+		"Error": err,
+	})
+}
