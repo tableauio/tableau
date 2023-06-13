@@ -199,7 +199,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 				}
 			}
 			if foundColumn < 0 {
-				return nil, xerrors.Errorf("referred column %s not found in %s#%s", referInfo.Column, bookName, sheetName)
+				return nil, xerrors.E2015(referInfo.Column, bookName, sheetName)
 			}
 			for row := int(sheetOpts.Datarow) - 1; row < sheet.MaxRow; row++ {
 				data, err := sheet.Cell(row, foundColumn)

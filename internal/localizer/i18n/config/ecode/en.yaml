@@ -49,11 +49,19 @@ E2011:
   text: cell data is not filled explicitly
   help: fill cell data explicitly
 E2012:
-  desc: invalid syntax value of numerical type
+  desc: invalid syntax of numerical value
   text: '"{{.Value}}" cannot be parsed to numerical type "{{.FieldType}}", {{.Error}}'
   help: fill cell data with valid syntax of numerical type "{{.FieldType}}"
 E2013:
-  desc: invalid syntax value of boolean type
+  desc: invalid syntax of boolean value
   text: '"{{.Value}}" cannot be parsed to boolean type, {{.Error}}'
   help: "boolean value can be: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
+E2014:
+  desc: sheet column not found
+  text: sheet column "{{.Column}}" not found
+  help: add column "{{.Column}}"
+E2015:
+  desc: referred sheet column not found
+  text: referred sheet column "{{.Column}}" not found in workbook "{{.BookName}}", worksheet "{{.SheetName}}"
+  help: change "refer" prop or add referred sheet column "{{.Column}}"
 # [3000, 3999]: importer error

@@ -49,11 +49,19 @@ E2011:
   text: 单元格数据未被显式填充
   help: 请显式填充单元格数据
 E2012:
-  desc: 数值类型格式非法
+  desc: invalid syntax of numerical value
   text: 无法将 "{{.Value}}" 解析为数值类型 "{{.FieldType}}", {{.Error}}
   help: '请依据类型 "{{.FieldType}}" 填充合法的数值; int32/int64: 32/64位整数, uint32/uint64: 32/64位正整数, float32/float64: 32/64位浮点数'
 E2013:
-  desc: 布尔类型格式非法
+  desc: invalid syntax of boolean value
   text: 无法将 "{{.Value}}" 解析为布尔类型, {{.Error}}
   help: "布尔值可以为: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
+E2014:
+  desc: sheet column not found
+  text: 未找到工作表的列 "{{.Column}}"
+  help: 新增工作表的列 "{{.Column}}"
+E2015:
+  desc: referred sheet column not found
+  text: 在工作簿 "{{.BookName}}" 的工作表 "{{.SheetName}}" 中未找到外键对应的列 "{{.Column}}"
+  help: 修改字段属性 "refer", 或新增外键的列 "{{.Column}}"
 # [3000, 3999]: importer error

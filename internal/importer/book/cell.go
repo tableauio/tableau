@@ -135,7 +135,7 @@ func (r *RowCells) Cell(name string, optional bool) (*RowCell, error) {
 		}
 	}
 	if cell == nil {
-		return nil, xerrors.ErrorKV(fmt.Sprintf("column %s not found", name))
+		return nil, xerrors.E2014(name)
 	}
 	return cell, nil
 }
