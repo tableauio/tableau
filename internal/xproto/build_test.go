@@ -71,7 +71,7 @@ func Test_extractTypeInfosFromMessage(t *testing.T) {
 			},
 			want: &TypeInfos{
 				protoPackage: "tableau",
-				infos: map[string]*TypeInfo{
+				infos: map[protoreflect.FullName]*TypeInfo{
 					"tableau.TestItem": {
 						FullName:             "tableau.TestItem",
 						ParentFilename:       "tableau/protobuf/unittest.proto",
@@ -88,7 +88,7 @@ func Test_extractTypeInfosFromMessage(t *testing.T) {
 			},
 			want: &TypeInfos{
 				protoPackage: "tableau",
-				infos: map[string]*TypeInfo{
+				infos: map[protoreflect.FullName]*TypeInfo{
 					"tableau.TestTarget": {
 						FullName:             "tableau.TestTarget",
 						ParentFilename:       "tableau/protobuf/unittest.proto",
