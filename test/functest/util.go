@@ -50,6 +50,7 @@ func genProto(logLevel string) error {
 					ProtoPaths: []string{outdir},
 					ProtoFiles: []string{
 						"common/common.proto",
+						"common/union.proto",
 					},
 					Formats: []format.Format{
 						// format.Excel,

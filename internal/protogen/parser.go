@@ -14,6 +14,7 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 const (
@@ -758,7 +759,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeade
 		}
 		if field.Predefined {
 			// Find predefined type's first field's option name
-			fullMsgName := p.gen.ProtoPackage + "." + field.Type
+			fullMsgName := protoreflect.FullName(field.FullType)
 			typeInfo := p.gen.typeInfos.GetByFullName(fullMsgName)
 			if typeInfo == nil {
 				return cursor, xerrors.ErrorKV(fmt.Sprintf("predefined type not found: %v", fullMsgName),
@@ -850,18 +851,17 @@ func parseTypeDescriptor(typeInfos *xproto.TypeInfos, rawType string) (*types.De
 		rawType = desc.EnumType
 	}
 
-	if strings.HasPrefix(rawType, ".") {
-		// This messge type is defined in imported proto
-		name := strings.TrimPrefix(rawType, ".")
-		if typeInfo := typeInfos.Get(name); typeInfo != nil {
+	if strings.Contains(rawType, ".") {
+		// This messge type is predefined
+		if typeInfo := typeInfos.Get(rawType); typeInfo != nil {
 			return &types.Descriptor{
-				Name:       name,
-				FullName:   typeInfo.FullName,
+				Name:       string(typeInfo.FullName.Name()),
+				FullName:   string(typeInfo.FullName),
 				Predefined: true,
 				Kind:       typeInfo.Kind,
 			}, nil
 		} else {
-			return nil, xerrors.Errorf("predefined type not found: %s", name)
+			return nil, xerrors.Errorf("predefined type not found: %s", rawType)
 		}
 	}
 	switch rawType {

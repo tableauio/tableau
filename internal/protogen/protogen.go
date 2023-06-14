@@ -22,6 +22,7 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
@@ -449,7 +450,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 	case tableaupb.Mode_MODE_ENUM_TYPE:
 		// add type info
 		info := &xproto.TypeInfo{
-			FullName:       gen.ProtoPackage + "." + typeName,
+			FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName),
 			ParentFilename: parentFilename,
 			Kind:           types.EnumKind,
 		}
@@ -465,7 +466,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		}
 		// add type info
 		info := &xproto.TypeInfo{
-			FullName:             gen.ProtoPackage + "." + typeName,
+			FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName),
 			ParentFilename:       parentFilename,
 			Kind:                 types.MessageKind,
 			FirstFieldOptionName: firstFieldOptionName,
@@ -475,7 +476,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		// add union self type info
 		info := &xproto.TypeInfo{
-			FullName:             gen.ProtoPackage + "." + typeName,
+			FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName),
 			ParentFilename:       parentFilename,
 			Kind:                 types.MessageKind,
 			FirstFieldOptionName: "Type", // NOTE: union's first field name is special!
@@ -484,7 +485,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 
 		// add union enum type info
 		enumInfo := &xproto.TypeInfo{
-			FullName:       gen.ProtoPackage + "." + typeName + "." + "Type",
+			FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName + "." + "Type"),
 			ParentFilename: parentFilename,
 			Kind:           types.EnumKind,
 		}
@@ -502,7 +503,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 				firstFieldOptionName = book.ExtractFromCell(value.Fields[0], 1)
 			}
 			info := &xproto.TypeInfo{
-				FullName:             gen.ProtoPackage + "." + typeName + "." + value.Name,
+				FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName + "." + value.Name),
 				ParentFilename:       parentFilename,
 				Kind:                 types.MessageKind,
 				FirstFieldOptionName: firstFieldOptionName,
