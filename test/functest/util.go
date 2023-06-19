@@ -49,6 +49,7 @@ func genProto(logLevel string) error {
 				Input: &options.ProtoInputOption{
 					ProtoPaths: []string{outdir},
 					ProtoFiles: []string{
+						"common/base.proto",
 						"common/common.proto",
 						"common/union.proto",
 					},

@@ -1,5 +1,5 @@
 ID,Prop
-"map<uint32, Item>",{.Property}
+"map<uint32, Item>",{base.Property}
 Item's ID,Item's property
 1,"1,Apple,A kind of delicious fruit."
 2,"2,Orange"
