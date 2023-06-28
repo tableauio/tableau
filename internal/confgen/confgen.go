@@ -104,7 +104,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 
 	bookIndexes, err := buildWorkbookIndex(protoreflect.FullName(gen.ProtoPackage), gen.InputDir, gen.InputOpt.SubdirRewrites, gen.prFiles)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to build workbook index")
+		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
 	var eg errgroup.Group
 	for _, specifier := range bookSpecifiers {
@@ -152,6 +152,11 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		return nil
 	}
 
+	// rewrite subdir
+	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
+	absWbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
+	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
+
 	var sheets []string
 	// sheet name -> message name
 	sheetMap := map[string]SheetInfo{}
@@ -162,20 +167,17 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		sheetOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
 		if sheetOpts != nil {
 			sheetMap[sheetOpts.Name] = SheetInfo{
-				ProtoPackage: gen.ProtoPackage,
-				LocationName: gen.LocationName,
-				MD:           md,
-				Opts:         sheetOpts,
-				gen:          gen,
+				ProtoPackage:    gen.ProtoPackage,
+				LocationName:    gen.LocationName,
+				PrimaryBookName: rewrittenWorkbookName,
+				MD:              md,
+				Opts:            sheetOpts,
+				gen:             gen,
 			}
 			sheets = append(sheets, sheetOpts.Name)
 		}
 	}
 
-	// rewrite subdir
-	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
-	absWbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
-	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
 	imp, err := importer.New(absWbPath, importer.Sheets(sheets), importer.Mode(importer.Confgen))
 	if err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)

@@ -10,6 +10,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 type Importer interface {
@@ -61,7 +62,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 	for _, specifier := range scatterSpecifiers {
 		relBookPaths, specifiedSheetName, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
+			return nil, xerrors.WithMessageKV(err, xerrors.KeyPrimarySheetName, sheetName)
 		}
 		if specifiedSheetName == "" {
 			specifiedSheetName = sheetName
@@ -88,7 +89,7 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 	for _, specifier := range sheetSpecifiers {
 		relBookPaths, specifiedSheetName, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to resolve workbook paths")
+			return nil, xerrors.WithMessageKV(err, xerrors.KeyPrimarySheetName, sheetName)
 		}
 		if specifiedSheetName == "" {
 			specifiedSheetName = sheetName
@@ -126,6 +127,10 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, "", errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
+	}
+	if len(matches) == 0 {
+		err := xerrors.E3000(pattern)
+		return nil, "", xerrors.WithMessageKV(err, xerrors.KeyPrimaryBookName, primaryBookName)
 	}
 	for _, match := range matches {
 		path := match

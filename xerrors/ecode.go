@@ -8,10 +8,10 @@ package xerrors
 //  [4000, ~]: reserved
 
 // E0001: sheet not found in book.
-func E0001(sheetName, BookName string) error {
+func E0001(sheetName, bookName string) error {
 	return renderEcode("E0001", map[string]interface{}{
 		"SheetName": sheetName,
-		"BookName":  BookName,
+		"BookName":  bookName,
 	})
 }
 
@@ -135,5 +135,20 @@ func E2015(column, bookName, sheetName string) error {
 		"Column":    column,
 		"BookName":  bookName,
 		"SheetName": sheetName,
+	})
+}
+
+// E3000: no workbook file found about sheet specifier.
+func E3000(sheetSpecifier string) error {
+	return renderEcode("E3000", map[string]interface{}{
+		"SheetSpecifier": sheetSpecifier,
+	})
+}
+
+// E3001: no worksheet found in workbook.
+func E3001(sheetName, bookName string) error {
+	return renderEcode("E3001", map[string]interface{}{
+		"SheetName": sheetName,
+		"BookName":  bookName,
 	})
 }

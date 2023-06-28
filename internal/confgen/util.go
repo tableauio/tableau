@@ -12,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -167,7 +168,7 @@ func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, sub
 				for _, specifier := range sheetSpecifiers {
 					relBookPaths, _, err1 := importer.ResolveSheetSpecifier(inputDir, workbook.Name, specifier, subdirRewrites)
 					if err1 != nil {
-						err = err1
+						err = xerrors.WithMessageKV(err1, xerrors.KeyPrimarySheetName, sheetOpts.GetName())
 						return false
 					}
 					for relBookPath := range relBookPaths {
@@ -194,4 +195,13 @@ func getRealSheetName(info *SheetInfo, impInfo importer.ImporterInfo) string {
 		sheetName = impInfo.SpecifiedSheetName
 	}
 	return sheetName
+}
+
+func getRelBookName(basepath, filename string) string {
+	if relBookName, err := fs.Rel(basepath, filename); err != nil {
+		log.Warnf("get relative path failed: %+v", err)
+		return filename
+	} else {
+		return relBookName
+	}
 }

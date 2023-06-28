@@ -109,14 +109,14 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
 				protomsg: protomsg,
-				bookName: impInfo.Filename(),
+				bookName: getRelBookName(info.gen.InputDir, impInfo.Filename()),
 			})
 			mu.Unlock()
 			return nil
 		})
 	}
 	if err := eg.Wait(); err != nil {
-		return nil, err
+		return nil, xerrors.WrapKV(err, xerrors.KeyPrimaryBookName, info.PrimaryBookName, xerrors.KeyPrimarySheetName, info.Opts.Name)
 	}
 
 	// map-reduce: reduce results to one
@@ -146,21 +146,22 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 	sheetName := getRealSheetName(info, impInfo)
 	sheet := impInfo.GetSheet(sheetName)
 	if sheet == nil {
-		err := xerrors.E0001(sheetName, impInfo.Filename())
-		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
+		bookName := getRelBookName(info.gen.InputDir, impInfo.Filename())
+		err := xerrors.E0001(sheetName, bookName)
+		return nil, xerrors.WithMessageKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	parser := newSheetParserInternal(info)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
-		return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
+		return nil, xerrors.WithMessageKV(err, xerrors.KeyBookName, getRelBookName(info.gen.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	return protomsg, nil
 }
 
 type SheetInfo struct {
-	ProtoPackage string
-	LocationName string
-
+	ProtoPackage    string
+	LocationName    string
+	PrimaryBookName string
 	// Maybe Merger and Scatter process different sheets (same structure) in the same workbook
 	SheetName string
 	MD        protoreflect.MessageDescriptor
@@ -169,12 +170,13 @@ type SheetInfo struct {
 	gen *Generator // NOTE: only set in internal package, currently only for refer check.
 }
 
-func NewSheetInfo(protoPackage, locationName string, md protoreflect.MessageDescriptor, opts *tableaupb.WorksheetOptions) *SheetInfo {
+func NewSheetInfo(protoPackage, locationName, primaryBookName string, md protoreflect.MessageDescriptor, opts *tableaupb.WorksheetOptions) *SheetInfo {
 	return &SheetInfo{
-		ProtoPackage: protoPackage,
-		LocationName: locationName,
-		MD:           md,
-		Opts:         opts,
+		ProtoPackage:    protoPackage,
+		LocationName:    locationName,
+		PrimaryBookName: primaryBookName,
+		MD:              md,
+		Opts:            opts,
 	}
 }
 

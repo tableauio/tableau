@@ -167,7 +167,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	}
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: self})
-	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, md, wsOpts)
+	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, rewrittenWorkbookName, md, wsOpts)
 	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to parse message %s", msgName)

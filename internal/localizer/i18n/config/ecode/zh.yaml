@@ -65,3 +65,11 @@ E2015:
   text: 在工作簿 "{{.BookName}}" 的工作表 "{{.SheetName}}" 中未找到外键对应的列 "{{.Column}}"
   help: 修改字段属性 "refer", 或新增外键的列 "{{.Column}}"
 # [3000, 3999]: importer error
+E3000:
+  desc: no workbook file found about sheet specifier
+  text: 解析工作表指示器 "{{.SheetSpecifier}}" 时, 工作簿文件不存在
+  help: 确保工作表指示器格式输入合法 "<BookNameGlob>[#SheetName]"
+E3001:
+  desc: no worksheet found in workbook
+  text: 工作簿 "{{.BookName}}" 中不存在工作表 "{{.SheetName}}"
+  help: 将合适的工作表 "{{.SheetName}}" 添加到工作簿 "{{.BookName}}"

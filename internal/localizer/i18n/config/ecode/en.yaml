@@ -65,3 +65,11 @@ E2015:
   text: referred sheet column "{{.Column}}" not found in workbook "{{.BookName}}", worksheet "{{.SheetName}}"
   help: change "refer" prop or add referred sheet column "{{.Column}}"
 # [3000, 3999]: importer error
+E3000:
+  desc: no workbook file found about sheet specifier
+  text: no workbook file found about sheet specifier "{{.SheetSpecifier}}"
+  help: guarantee sheet specifier in format "<BookNameGlob>[#SheetName]"
+E3001:
+  desc: no worksheet found in workbook
+  text: worksheet "{{.SheetName}}" not found in workbook "{{.BookName}}"
+  help: add proper worksheet "{{.SheetName}}" to workbook "{{.BookName}}"
