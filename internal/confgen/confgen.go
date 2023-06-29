@@ -170,6 +170,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 				ProtoPackage:    gen.ProtoPackage,
 				LocationName:    gen.LocationName,
 				PrimaryBookName: rewrittenWorkbookName,
+				InputDir:        gen.InputDir,
 				MD:              md,
 				Opts:            sheetOpts,
 				gen:             gen,

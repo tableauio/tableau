@@ -161,13 +161,13 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	}
 
 	// get merger importer infos
-	impInfos, err := importer.GetMergerImporters(dir, wbPath, wsOpts.Name, wsOpts.Merger, opts.SubdirRewrites)
+	impInfos, err := importer.GetMergerImporters(dir, workbook.Name, wsOpts.Name, wsOpts.Merger, opts.SubdirRewrites)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to get merger importer infos for %s", wbPath)
 	}
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: self})
-	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, rewrittenWorkbookName, md, wsOpts)
+	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, workbook.Name, dir, md, wsOpts)
 	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to parse message %s", msgName)
