@@ -122,14 +122,13 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 	primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 	log.Debugf("rewrittenAbsWorkbookName: %s", primaryBookPath)
 	fmt := format.Ext2Format(filepath.Ext(primaryBookPath))
-	curDir := filepath.Dir(primaryBookPath)
-	pattern := filepath.Join(curDir, bookNameGlob)
+	pattern := fs.Join(filepath.Dir(primaryBookPath), bookNameGlob)
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, "", errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
 	}
 	if len(matches) == 0 {
-		err := xerrors.E3000(pattern)
+		err := xerrors.E3000(sheetSpecifier, pattern)
 		return nil, "", xerrors.WithMessageKV(err, xerrors.KeyPrimaryBookName, primaryBookName)
 	}
 	for _, match := range matches {
@@ -158,6 +157,8 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 //  1. The delimiter between BookNameGlob and SheetName is "#".
 //  2. The "SheetName" is optional, default is same as sheet name in the primary workbook.
 func ParseSheetSpecifier(specifier string) (bookNameGlob string, specifiedSheetName string) {
+	// NOTE: "Activity#Item.csv" will be parsed as bookNameGlob: "Activity" and specifiedSheetName: "Item.csv".
+	// TODO: This is a problem, need to be solved.
 	lastIndex := strings.LastIndex(specifier, "#")
 	if lastIndex != -1 {
 		bookNameGlob = specifier[:lastIndex]

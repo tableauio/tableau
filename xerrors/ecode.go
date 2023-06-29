@@ -139,9 +139,10 @@ func E2015(column, bookName, sheetName string) error {
 }
 
 // E3000: no workbook file found about sheet specifier.
-func E3000(sheetSpecifier string) error {
+func E3000(sheetSpecifier, pattern string) error {
 	return renderEcode("E3000", map[string]interface{}{
 		"SheetSpecifier": sheetSpecifier,
+		"Pattern":        pattern,
 	})
 }
 

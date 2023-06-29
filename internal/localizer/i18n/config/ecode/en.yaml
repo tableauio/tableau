@@ -67,7 +67,7 @@ E2015:
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
-  text: no workbook file found about sheet specifier "{{.SheetSpecifier}}"
+  text: no workbook file found in pattern "{{.Pattern}}" with sheet specifier "{{.SheetSpecifier}}"
   help: guarantee sheet specifier in format "<BookNameGlob>[#SheetName]"
 E3001:
   desc: no worksheet found in workbook
