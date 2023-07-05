@@ -1,6 +1,7 @@
 package xproto
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/jhump/protoreflect/desc"
@@ -11,7 +12,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-func Test_ParseProtos(t *testing.T) {
+func TestParseProtos(t *testing.T) {
 	type args struct {
 		ImportPaths []string
 		filenames   []string
@@ -27,7 +28,7 @@ func Test_ParseProtos(t *testing.T) {
 			name: "test1",
 			args: args{
 				ImportPaths: []string{
-					"proto", // tableau
+					"../../proto", // tableau
 				},
 				filenames: []string{
 					"tableau/protobuf/unittest.proto",
@@ -37,9 +38,48 @@ func Test_ParseProtos(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := ParseProtos(tt.args.ImportPaths, tt.args.filenames...)
+			files, err := ParseProtos(tt.args.ImportPaths, tt.args.filenames...)
 			if err != nil {
 				t.Errorf("parseProtos() error = %v", err)
+			}
+			t.Logf("parsed proto files: %+v", files)
+		})
+	}
+}
+
+func TestNewFiles(t *testing.T) {
+	type args struct {
+		protoPaths        []string
+		protoFiles        []string
+		excludeProtoFiles []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "test1",
+			args: args{
+				protoPaths: []string{
+					"../../proto", // tableau
+				},
+				protoFiles: []string{
+					"../../proto/tableau/protobuf/*.proto",
+				},
+				excludeProtoFiles: []string{
+					"../../proto/tableau/protobuf/tableau.proto",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewFiles(tt.args.protoPaths, tt.args.protoFiles, tt.args.excludeProtoFiles...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewFiles() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 		})
 	}
@@ -126,6 +166,90 @@ func Test_extractTypeInfosFromMessage(t *testing.T) {
 			got := NewTypeInfos("tableau")
 			extractTypeInfosFromMessage(tt.args.md, got)
 			assert.Equal(t, tt.want, got, "extractTypeInfosFromMessage")
+		})
+	}
+}
+
+func TestGetAllTypeInfo(t *testing.T) {
+	type args struct {
+		files        *protoregistry.Files
+		protoPackage string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *TypeInfos
+	}{
+		{
+			name: "test1",
+			args: args{
+				files:        protoregistry.GlobalFiles,
+				protoPackage: "tableau",
+			},
+			want: &TypeInfos{
+				protoPackage: "tableau",
+				infos: map[protoreflect.FullName]*TypeInfo{
+					"tableau.TestItem": {
+						FullName:             "tableau.TestItem",
+						ParentFilename:       "tableau/protobuf/unittest.proto",
+						Kind:                 types.MessageKind,
+						FirstFieldOptionName: "ID",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetAllTypeInfo(tt.args.files, tt.args.protoPackage); !reflect.DeepEqual(got.infos["tableau.TestItem"], tt.want.infos["tableau.TestItem"]) {
+				t.Errorf("GetAllTypeInfo() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTypeInfos_Get(t *testing.T) {
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name string
+		x    *TypeInfos
+		args args
+		want *TypeInfo
+	}{
+		{
+			name: "test1",
+			x:    GetAllTypeInfo(protoregistry.GlobalFiles, "tableau"),
+			args: args{
+				name: ".TestItem",
+			},
+			want: &TypeInfo{
+				FullName:             "tableau.TestItem",
+				ParentFilename:       "tableau/protobuf/unittest.proto",
+				Kind:                 types.MessageKind,
+				FirstFieldOptionName: "ID",
+			},
+		},
+		{
+			name: "test2",
+			x:    GetAllTypeInfo(protoregistry.GlobalFiles, "tableau"),
+			args: args{
+				name: "tableau.TestItem",
+			},
+			want: &TypeInfo{
+				FullName:             "tableau.TestItem",
+				ParentFilename:       "tableau/protobuf/unittest.proto",
+				Kind:                 types.MessageKind,
+				FirstFieldOptionName: "ID",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.x.Get(tt.args.name); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("TypeInfos.Get() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

@@ -13,35 +13,34 @@ import (
 
 // CopyFile copies a file from src to dst. If src and dst files exist, and are
 // the same, then return success. Otherise, attempt to create a hard link
-// between the two files. If that fail, copy the file contents from src to dst.
-func CopyFile(src, dst string) (err error) {
-	sfi, err := os.Stat(src)
+// between the two files. If that fails, copy the file contents from src to dst.
+func CopyFile(src, dst string) error {
+	srcFile, err := os.Stat(src)
 	if err != nil {
-		return
+		return err
 	}
-	if !sfi.Mode().IsRegular() {
+	if !srcFile.Mode().IsRegular() {
 		// cannot copy non-regular files (e.g., directories,
 		// symlinks, devices, etc.)
-		return fmt.Errorf("CopyFile: non-regular source file %s (%q)", sfi.Name(), sfi.Mode().String())
+		return fmt.Errorf("CopyFile: non-regular source file %s (%q)", srcFile.Name(), srcFile.Mode().String())
 	}
-	dfi, err := os.Stat(dst)
+	dstFile, err := os.Stat(dst)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return
+			return err
 		}
 	} else {
-		if !(dfi.Mode().IsRegular()) {
-			return fmt.Errorf("CopyFile: non-regular destination file %s (%q)", dfi.Name(), dfi.Mode().String())
+		if !(dstFile.Mode().IsRegular()) {
+			return fmt.Errorf("CopyFile: non-regular destination file %s (%q)", dstFile.Name(), dstFile.Mode().String())
 		}
-		if os.SameFile(sfi, dfi) {
-			return
+		if os.SameFile(srcFile, dstFile) {
+			return nil
 		}
 	}
 	if err = os.Link(src, dst); err == nil {
-		return
+		return nil
 	}
-	err = copyFileContents(src, dst)
-	return
+	return copyFileContents(src, dst)
 }
 
 // copyFileContents copies the contents of the file named src to the file named
@@ -51,12 +50,12 @@ func CopyFile(src, dst string) (err error) {
 func copyFileContents(src, dst string) (err error) {
 	in, err := os.Open(src)
 	if err != nil {
-		return
+		return err
 	}
 	defer in.Close()
 	out, err := os.Create(dst)
 	if err != nil {
-		return
+		return err
 	}
 	defer func() {
 		cerr := out.Close()
@@ -65,10 +64,9 @@ func copyFileContents(src, dst string) (err error) {
 		}
 	}()
 	if _, err = io.Copy(out, in); err != nil {
-		return
+		return err
 	}
-	err = out.Sync()
-	return
+	return out.Sync()
 }
 
 // Exists returns whether the given file or directory exists
@@ -83,11 +81,13 @@ func Exists(path string) (bool, error) {
 	return false, err
 }
 
-func FilterSubdir(filename string, subdirs []string) bool {
+// HasSubdirPrefix returns whether the given path has the given prefix.
+func HasSubdirPrefix(path string, subdirs []string) bool {
 	if len(subdirs) != 0 {
+		path = CleanSlashPath(path)
 		for _, subdir := range subdirs {
 			subdir = CleanSlashPath(subdir)
-			if strings.HasPrefix(filename, subdir) {
+			if strings.HasPrefix(path, subdir) {
 				return true
 			}
 		}
@@ -96,20 +96,24 @@ func FilterSubdir(filename string, subdirs []string) bool {
 	return true
 }
 
-func RewriteSubdir(filename string, subdirRewrites map[string]string) string {
+// RewriteSubdir replaces path's subdir part with the given subdirs.
+func RewriteSubdir(path string, subdirRewrites map[string]string) string {
 	if len(subdirRewrites) != 0 {
+		path = CleanSlashPath(path)
 		for old, new := range subdirRewrites {
 			oldSubdir := CleanSlashPath(old)
 			newSubdir := CleanSlashPath(new)
-			if strings.HasPrefix(filename, oldSubdir) {
-				newfilename := strings.Replace(filename, oldSubdir, newSubdir, 1)
-				return CleanSlashPath(newfilename)
+			if strings.HasPrefix(path, oldSubdir) {
+				newpath := strings.Replace(path, oldSubdir, newSubdir, 1)
+				return CleanSlashPath(newpath)
 			}
 		}
 	}
-	return filename
+	return path
 }
 
+// RangeFilesByFormat traveses the given directory with the given format, and
+// invoke the given callback for each file.
 func RangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath string) error) error {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {

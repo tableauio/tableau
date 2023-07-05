@@ -148,7 +148,7 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 	}
 
 	// filter subdir
-	if !fs.FilterSubdir(workbook.Name, gen.InputOpt.Subdirs) {
+	if !fs.HasSubdirPrefix(workbook.Name, gen.InputOpt.Subdirs) {
 		return nil
 	}
 
