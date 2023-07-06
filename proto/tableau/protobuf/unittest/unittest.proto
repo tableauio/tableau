@@ -14,36 +14,25 @@ option (tableau.workbook) = {
 import "tableau/protobuf/tableau.proto";
 import "tableau/protobuf/unittest/common.proto";
 
-message ItemConf {
-  option (tableau.worksheet) = {
-    name: "ItemConf"
-    namerow: 1
-    typerow: 2
-    noterow: 3
-    datarow: 4
-  };
+// clang-format off
+message IncellMap {
+  option (tableau.worksheet) = {name:"IncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = { key: "ID" layout: LAYOUT_VERTICAL }];
+  map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+  message Fruit {
+    unittest.FruitType key = 1 [(tableau.field) = {name:"Key"}];
+    int64 value = 2 [(tableau.field) = {name:"Value"}];
+  }
+  map<int64, unittest.FruitFlavor> flavor_map = 2 [(tableau.field) = {name:"Flavor" layout:LAYOUT_INCELL}];
+  map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+  message Item {
+    unittest.FruitType key = 1 [(tableau.field) = {name:"Key"}];
+    unittest.FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+  }
 }
 
-message IncellMap {
-  option (tableau.worksheet) = {
-    name: "IncellMap"
-    namerow: 1
-    typerow: 2
-    noterow: 3
-    datarow: 4
-  };
+message ItemConf {
+  option (tableau.worksheet) = {name:"ItemConf" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<int32, Fruit> fruit_map = 1 [(tableau.field) = { name: "Fruit" key: "Key" layout: LAYOUT_INCELL }];
-  message Fruit {
-    FruitType key = 1 [(tableau.field) = { name: "Key" }];
-    int64 value = 2 [(tableau.field) = { name: "Value" }];
-  }
-  map<int64, FruitFlavor> flavor_map = 2 [(tableau.field) = { name: "Flavor" layout: LAYOUT_INCELL }];
-  map<int32, Item> item_map = 3 [(tableau.field) = { name: "Item" key: "Key" layout: LAYOUT_INCELL }];
-  message Item {
-    FruitType key = 1 [(tableau.field) = { name: "Key" }];
-    FruitFlavor value = 2 [(tableau.field) = { name: "Value" }];
-  }
+  map<uint32, unittest.Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
 }

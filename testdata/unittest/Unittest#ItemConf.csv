@@ -1,5 +1,5 @@
 ID,Num
-"map<uint32, Item>|{sequence:1}",int32
+"map<uint32, .Item>|{sequence:1}",int32
 Item's ID,Item's num
 1,100
 2,200

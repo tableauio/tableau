@@ -25,7 +25,7 @@ enum FruitFlavor {
 }
 
 message Item {
-  int32 id = 1 [(tableau.field).name = "ID"];
+  uint32 id = 1 [(tableau.field).name = "ID"];
   int32 num = 2 [(tableau.field).name = "Num"];
 }
 
