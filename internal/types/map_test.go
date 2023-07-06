@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -19,7 +19,7 @@ func TestCheckMessageWithOnlyKVFields(t *testing.T) {
 		{
 			name: "Fruit",
 			args: args{
-				msg: (&tableaupb.TestIncellMap_Fruit{}).ProtoReflect().Descriptor(),
+				msg: (&unittestpb.IncellMap_Fruit{}).ProtoReflect().Descriptor(),
 			},
 			want: true,
 		},
@@ -34,7 +34,7 @@ func TestCheckMessageWithOnlyKVFields(t *testing.T) {
 }
 
 func Test_expectFieldOptName(t *testing.T) {
-	msg := &tableaupb.TestIncellMap_Fruit{}
+	msg := &unittestpb.IncellMap_Fruit{}
 	type args struct {
 		fd   protoreflect.FieldDescriptor
 		name string

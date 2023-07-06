@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/proto/tableaupb"
+	_ "github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
@@ -70,11 +71,11 @@ func TestInReferredSpace(t *testing.T) {
 			name: "in referred value space",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Refer: "ItemConf(TestItemConf).ID",
+					Refer: "ItemConf.ID",
 				},
 				cellData: "1",
 				input: &Input{
-					ProtoPackage:   "tableau",
+					ProtoPackage:   "unittest",
 					InputDir:       "../../../testdata",
 					SubdirRewrites: nil,
 					PRFiles:        protoregistry.GlobalFiles,
@@ -88,11 +89,11 @@ func TestInReferredSpace(t *testing.T) {
 			name: "not in referred value space",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Refer: "ItemConf(TestItemConf).ID",
+					Refer: "ItemConf(ItemConf).ID",
 				},
 				cellData: "999",
 				input: &Input{
-					ProtoPackage:   "tableau",
+					ProtoPackage:   "unittest",
 					InputDir:       "../../../testdata",
 					SubdirRewrites: nil,
 					PRFiles:        protoregistry.GlobalFiles,
@@ -106,11 +107,11 @@ func TestInReferredSpace(t *testing.T) {
 			name: "in referred value space with subdir rewrites",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Refer: "ItemConf(TestItemConf).ID",
+					Refer: "ItemConf(ItemConf).ID",
 				},
 				cellData: "1",
 				input: &Input{
-					ProtoPackage: "tableau",
+					ProtoPackage: "unittest",
 					InputDir:     "../../../testdata/unittest",
 					SubdirRewrites: map[string]string{
 						"unittest/": "",
@@ -126,11 +127,11 @@ func TestInReferredSpace(t *testing.T) {
 			name: "not in referred value space with subdir rewrites",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Refer: "ItemConf(TestItemConf).ID",
+					Refer: "ItemConf(ItemConf).ID",
 				},
 				cellData: "999",
 				input: &Input{
-					ProtoPackage: "tableau",
+					ProtoPackage: "unittest",
 					InputDir:     "../../../",
 					SubdirRewrites: map[string]string{
 						"unittest/": "testdata/unittest/",

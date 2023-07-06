@@ -4,15 +4,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/proto"
 )
 
-var itemConf *tableaupb.TestItemConf
+var itemConf *unittestpb.ItemConf
 
 func init() {
-	itemConf = &tableaupb.TestItemConf{
-		ItemMap: map[uint32]*tableaupb.TestItem{
+	itemConf = &unittestpb.ItemConf{
+		ItemMap: map[uint32]*unittestpb.Item{
 			1: {Id: 1, Num: 10},
 			2: {Id: 2, Num: 20},
 			3: {Id: 3, Num: 30},
