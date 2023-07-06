@@ -3,6 +3,9 @@ package prop
 import (
 	"reflect"
 	"testing"
+
+	"github.com/tableauio/tableau/proto/tableaupb"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 func Test_parseRefer(t *testing.T) {
@@ -46,6 +49,109 @@ func Test_parseRefer(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseRefer() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInReferredSpace(t *testing.T) {
+	type args struct {
+		prop     *tableaupb.FieldProp
+		cellData string
+		input    *Input
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "in referred value space",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Refer: "ItemConf(TestItemConf).ID",
+				},
+				cellData: "1",
+				input: &Input{
+					ProtoPackage:   "tableau",
+					InputDir:       "../../../testdata",
+					SubdirRewrites: nil,
+					PRFiles:        protoregistry.GlobalFiles,
+					Present:        true,
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "not in referred value space",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Refer: "ItemConf(TestItemConf).ID",
+				},
+				cellData: "999",
+				input: &Input{
+					ProtoPackage:   "tableau",
+					InputDir:       "../../../testdata",
+					SubdirRewrites: nil,
+					PRFiles:        protoregistry.GlobalFiles,
+					Present:        true,
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "in referred value space with subdir rewrites",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Refer: "ItemConf(TestItemConf).ID",
+				},
+				cellData: "1",
+				input: &Input{
+					ProtoPackage: "tableau",
+					InputDir:     "../../../testdata/unittest",
+					SubdirRewrites: map[string]string{
+						"unittest/": "",
+					},
+					PRFiles: protoregistry.GlobalFiles,
+					Present: true,
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "not in referred value space with subdir rewrites",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Refer: "ItemConf(TestItemConf).ID",
+				},
+				cellData: "999",
+				input: &Input{
+					ProtoPackage: "tableau",
+					InputDir:     "../../../",
+					SubdirRewrites: map[string]string{
+						"unittest/": "testdata/unittest/",
+					},
+					PRFiles: protoregistry.GlobalFiles,
+					Present: true,
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := InReferredSpace(tt.args.prop, tt.args.cellData, tt.args.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InReferredSpace() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("InReferredSpace() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -7,6 +7,9 @@ syntax = "proto3";
 package tableau;
 
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+option (tableau.workbook) = {
+  name: "unittest/Unittest#*.csv"
+};
 
 import "tableau/protobuf/tableau.proto";
 
@@ -41,27 +44,27 @@ message TestItemConf {
   map<uint32, TestItem> item_map = 1 [(tableau.field) = { key: "ID" layout: LAYOUT_VERTICAL }];
 }
 
-message TestIncellMap {
-  option (worksheet) = {
-    name: "IncellMap"
-    namerow: 1
-    typerow: 2
-    noterow: 3
-    datarow: 4
-  };
+// message TestIncellMap {
+//   option (worksheet) = {
+//     name: "IncellMap"
+//     namerow: 1
+//     typerow: 2
+//     noterow: 3
+//     datarow: 4
+//   };
 
-  map<int32, Fruit> fruit_map = 1 [(tableau.field) = { name: "Fruit" key: "Key" layout: LAYOUT_INCELL }];
-  message Fruit {
-    TestFruitType key = 1 [(tableau.field) = { name: "Key" }];
-    int64 value = 2 [(tableau.field) = { name: "Value" }];
-  }
-  map<int64, TestFruitFlavor> flavor_map = 2 [(tableau.field) = { name: "Flavor" layout: LAYOUT_INCELL }];
-  map<int32, Item> item_map = 3 [(tableau.field) = { name: "Item" key: "Key" layout: LAYOUT_INCELL }];
-  message Item {
-    TestFruitType key = 1 [(tableau.field) = { name: "Key" }];
-    TestFruitFlavor value = 2 [(tableau.field) = { name: "Value" }];
-  }
-}
+//   map<int32, Fruit> fruit_map = 1 [(tableau.field) = { name: "Fruit" key: "Key" layout: LAYOUT_INCELL }];
+//   message Fruit {
+//     TestFruitType key = 1 [(tableau.field) = { name: "Key" }];
+//     int64 value = 2 [(tableau.field) = { name: "Value" }];
+//   }
+//   map<int64, TestFruitFlavor> flavor_map = 2 [(tableau.field) = { name: "Flavor" layout: LAYOUT_INCELL }];
+//   map<int32, Item> item_map = 3 [(tableau.field) = { name: "Item" key: "Key" layout: LAYOUT_INCELL }];
+//   message Item {
+//     TestFruitType key = 1 [(tableau.field) = { name: "Key" }];
+//     TestFruitFlavor value = 2 [(tableau.field) = { name: "Value" }];
+//   }
+// }
 
 message TestTarget {
   option (tableau.union) = true;
