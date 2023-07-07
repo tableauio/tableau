@@ -60,13 +60,16 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return g
 }
 
-func (gen *Generator) Generate(relWorkbookPaths ...string) (err error) {
+// bookSpecifier can be:
+//   - only workbook: excel/Item.xlsx
+//   - specific worksheet: excel/Item.xlsx#Item (To be implemented)
+func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 	defer PrintPerfStats(gen)
 
-	if len(relWorkbookPaths) == 0 {
+	if len(bookSpecifiers) == 0 {
 		return gen.GenAll()
 	}
-	return gen.GenWorkbook(relWorkbookPaths...)
+	return gen.GenWorkbook(bookSpecifiers...)
 }
 
 func (gen *Generator) GenAll() error {
@@ -89,61 +92,44 @@ func (gen *Generator) GenAll() error {
 	return eg.Wait()
 }
 
-func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
-	var eg errgroup.Group
-	for _, relWorkbookPath := range relWorkbookPaths {
-		tempRelWorkbookPath := relWorkbookPath
-		eg.Go(func() error {
-			return gen.GenOneWorkbook(tempRelWorkbookPath, "")
-		})
-	}
-	return eg.Wait()
-}
-
-func (gen *Generator) GenOneWorkbook(relWorkbookPath string, worksheetName string) (err error) {
-	relCleanSlashPath := fs.GetCleanSlashPath(relWorkbookPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get relative path from %s to %s", gen.InputDir, relWorkbookPath)
-	}
-	log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", relWorkbookPath, relCleanSlashPath)
-	relWorkbookPath = relCleanSlashPath
-
-	// create output dir
-	err = gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+// bookSpecifier can be:
+//   - only workbook: excel/Item.xlsx
+//   - with worksheet: excel/Item.xlsx#Item (To be implemented)
+func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
+	err := gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to create files")
 	}
 	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, gen.prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 
-	workbookFound := false
-	gen.prFiles.RangeFilesByPackage(
-		protoreflect.FullName(gen.ProtoPackage),
-		func(fd protoreflect.FileDescriptor) bool {
-			_, workbook := ParseFileOptions(fd)
-			if workbook == nil {
-				return true
-			}
-			// rewrite subdir
-			rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
-			if relWorkbookPath != "" && relWorkbookPath != rewrittenWorkbookName {
-				return true
-			}
-			workbookFound = true
-			// Due to closure, this err will be returned by func Generate().
-			err = gen.convert(fd, worksheetName)
-			return false
-		})
-
+	bookIndexes, err := buildWorkbookIndex(protoreflect.FullName(gen.ProtoPackage), gen.InputDir, gen.InputOpt.SubdirRewrites, gen.prFiles)
 	if err != nil {
-		return err
+		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
-	if !workbookFound {
-		if relWorkbookPath == "" {
-			return errors.Errorf("There's no any workbook found, maybe you forget to use `blank identifier` to inject the protoconf package.")
+	var eg errgroup.Group
+	for _, specifier := range bookSpecifiers {
+		bookName, sheetName, err := parseBookSpecifier(specifier)
+		if err != nil {
+			return errors.Wrapf(err, "parse book specifier failed: %s", specifier)
 		}
-		return errors.Errorf("workbook not found: %s, protoPaths: %v", relWorkbookPath, gen.InputOpt.ProtoPaths)
+		relCleanSlashPath := fs.CleanSlashPath(bookName)
+		if err != nil {
+			return errors.Wrapf(err, "get clean slash path failed: %s", bookName)
+		}
+		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
+		primaryBookIndexInfo, ok := bookIndexes[relCleanSlashPath]
+		if !ok {
+			if gen.InputOpt.IgnoreUnknownWorkbook {
+				log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)
+				continue
+			}
+			return errors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
+		}
+		eg.Go(func() error {
+			return gen.convert(primaryBookIndexInfo.fd, sheetName)
+		})
 	}
-	return nil
+	return eg.Wait()
 }
 
 // convert a workbook related to parameter fd, and only convert the
@@ -162,9 +148,14 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 	}
 
 	// filter subdir
-	if !fs.FilterSubdir(workbook.Name, gen.InputOpt.Subdirs) {
+	if !fs.HasSubdirPrefix(workbook.Name, gen.InputOpt.Subdirs) {
 		return nil
 	}
+
+	// rewrite subdir
+	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
+	absWbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
+	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
 
 	var sheets []string
 	// sheet name -> message name
@@ -176,21 +167,19 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 		sheetOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
 		if sheetOpts != nil {
 			sheetMap[sheetOpts.Name] = SheetInfo{
-				ProtoPackage: gen.ProtoPackage,
-				LocationName: gen.LocationName,
-				MD:           md,
-				Opts:         sheetOpts,
-				gen:          gen,
+				ProtoPackage:    gen.ProtoPackage,
+				LocationName:    gen.LocationName,
+				PrimaryBookName: rewrittenWorkbookName,
+				InputDir:        gen.InputDir,
+				MD:              md,
+				Opts:            sheetOpts,
+				gen:             gen,
 			}
 			sheets = append(sheets, sheetOpts.Name)
 		}
 	}
 
-	// rewrite subdir
-	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
-	wbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
-	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
-	imp, err := importer.New(wbPath, importer.Sheets(sheets), importer.Mode(importer.Confgen))
+	imp, err := importer.New(absWbPath, importer.Sheets(sheets), importer.Mode(importer.Confgen))
 	if err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
@@ -212,12 +201,12 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 				return xerrors.ErrorKV("option Scatter and Merger cannot be both set at one sheet",
 					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
-			err := gen.processScatter(imp, &sheetInfo, wbPath, sheetName)
+			err := gen.processScatter(imp, &sheetInfo, rewrittenWorkbookName, sheetName)
 			if err != nil {
 				return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
 		} else {
-			err := gen.processMerger(imp, &sheetInfo, wbPath, sheetName)
+			err := gen.processMerger(imp, &sheetInfo, rewrittenWorkbookName, sheetName)
 			if err != nil {
 				return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
@@ -235,13 +224,13 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 	return nil
 }
 
-func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, wbPath, sheetName string) error {
-	importers, err := importer.GetScatterImporters(gen.InputDir, wbPath, sheetName, sheetInfo.Opts.Scatter)
+func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, workbookName, sheetName string) error {
+	importers, err := importer.GetScatterImporters(gen.InputDir, workbookName, sheetName, sheetInfo.Opts.Scatter, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
 	// append self
-	importers = append(importers, self)
+	importers = append(importers, importer.ImporterInfo{Importer: self})
 	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 	if err := exporter.ScatterAndExport(sheetInfo, importers...); err != nil {
 		return err
@@ -249,13 +238,13 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 	return nil
 }
 
-func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, wbPath, sheetName string) error {
-	importers, err := importer.GetMergerImporters(gen.InputDir, wbPath, sheetName, sheetInfo.Opts.Merger)
+func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, workbookName, sheetName string) error {
+	importers, err := importer.GetMergerImporters(gen.InputDir, workbookName, sheetName, sheetInfo.Opts.Merger, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
 	// append self
-	importers = append(importers, self)
+	importers = append(importers, importer.ImporterInfo{Importer: self})
 	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 	if err := exporter.MergeAndExport(sheetInfo, importers...); err != nil {
 		return err

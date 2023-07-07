@@ -1,7 +1,7 @@
 protogen: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
-  Workbook: {{.BookName}}
-  Worksheet: {{.SheetName}}
+  Workbook: {{.BookName}} {{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
+  Worksheet: {{.SheetName}} {{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }}(Primary: {{.PrimarySheetName}}){{ end }}
   NameCellPos: {{.NameCellPos}}
   NameCell: {{.NameCell}}
   TypeCellPos: {{.TypeCellPos}}
@@ -10,8 +10,8 @@ protogen: |
   {{ if .Help }}Help: {{.Help}}{{ end }}
 confgen: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
-  Workbook: {{.BookName}}
-  Worksheet: {{.SheetName}}
+  Workbook: {{.BookName}} {{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }}(Primary: {{.PrimaryBookName}}){{ end }}
+  Worksheet: {{.SheetName}} {{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }}(Primary: {{.PrimarySheetName}}){{ end }}
   DataCellPos: {{.DataCellPos}}
   DataCell: {{.DataCell}}
   Reason: {{.Reason}}

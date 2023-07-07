@@ -4,66 +4,32 @@
 
 syntax = "proto3";
 
-package tableau;
+package unittest;
 
-option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+option go_package = "github.com/tableauio/tableau/proto/tableaupb/unittestpb";
 
 import "tableau/protobuf/tableau.proto";
 
-enum TestFruitType {
+enum FruitType {
   FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
   FRUIT_TYPE_APPLE = 1 [(tableau.evalue).name = "Apple"];
   FRUIT_TYPE_ORANGE = 3 [(tableau.evalue).name = "Orange"];
   FRUIT_TYPE_BANANA = 4 [(tableau.evalue).name = "Banana"];
 }
 
-enum TestFruitFlavor {
+enum FruitFlavor {
   FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
   FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
   FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
   FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
 }
 
-message TestItem {
-  int32 id = 1 [(tableau.field).name = "ID"];
+message Item {
+  uint32 id = 1 [(tableau.field).name = "ID"];
   int32 num = 2 [(tableau.field).name = "Num"];
 }
 
-message TestItemConf {
-  option (tableau.worksheet) = {
-    name: "ItemConf"
-    namerow: 1
-    typerow: 2
-    noterow: 3
-    datarow: 4
-  };
-
-  map<uint32, TestItem> item_map = 1 [(tableau.field) = { key: "ID" layout: LAYOUT_VERTICAL }];
-}
-
-message TestIncellMap {
-  option (worksheet) = {
-    name: "IncellMap"
-    namerow: 1
-    typerow: 2
-    noterow: 3
-    datarow: 4
-  };
-
-  map<int32, Fruit> fruit_map = 1 [(tableau.field) = { name: "Fruit" key: "Key" layout: LAYOUT_INCELL }];
-  message Fruit {
-    TestFruitType key = 1 [(tableau.field) = { name: "Key" }];
-    int64 value = 2 [(tableau.field) = { name: "Value" }];
-  }
-  map<int64, TestFruitFlavor> flavor_map = 2 [(tableau.field) = { name: "Flavor" layout: LAYOUT_INCELL }];
-  map<int32, Item> item_map = 3 [(tableau.field) = { name: "Item" key: "Key" layout: LAYOUT_INCELL }];
-  message Item {
-    TestFruitType key = 1 [(tableau.field) = { name: "Key" }];
-    TestFruitFlavor value = 2 [(tableau.field) = { name: "Value" }];
-  }
-}
-
-message TestTarget {
+message Target {
   option (tableau.union) = true;
 
   Type type = 9999 [(tableau.field) = { name: "Type" }];

@@ -276,23 +276,26 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 	// }
 
 	typeName := field.Type
+	fullTypeName := field.FullType
 	if field.ListEntry != nil {
 		typeName = field.ListEntry.ElemType
+		fullTypeName = field.ListEntry.ElemFullType
 	}
 	if field.MapEntry != nil {
 		typeName = field.MapEntry.ValueType
+		fullTypeName = field.MapEntry.ValueFullType
 	}
 
-	if typeName == "google.protobuf.Timestamp" {
+	if fullTypeName == "google.protobuf.Timestamp" {
 		x.Imports[timestampProtoPath] = true
-	} else if typeName == "google.protobuf.Duration" {
+	} else if fullTypeName == "google.protobuf.Duration" {
 		x.Imports[durationProtoPath] = true
 	}
 
 	if field.Predefined {
 		// import the predefined type's parent filename.
 		// NOTE: excludes self.
-		if typeInfo := x.typeInfos.Get(typeName); typeInfo != nil &&
+		if typeInfo := x.typeInfos.GetByFullName(protoreflect.FullName(fullTypeName)); typeInfo != nil &&
 			typeInfo.ParentFilename != x.be.GetProtoFilePath() {
 			x.Imports[typeInfo.ParentFilename] = true
 		}

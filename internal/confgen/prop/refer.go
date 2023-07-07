@@ -153,28 +153,33 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(bookName, input.SubdirRewrites)
-	wbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
-	primaryImporter, err := importer.New(wbPath, importer.Sheets([]string{sheetName}))
+	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
+	primaryImporter, err := importer.New(absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
 
-	// get merger importers
-	importers, err := importer.GetMergerImporters(input.InputDir, wbPath, sheetName, sheetOpts.Merger)
+	// get merger importer infos
+	impInfos, err := importer.GetMergerImporters(input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
 
 	// append self
-	importers = append(importers, primaryImporter)
+	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})
 
 	// new empty referred value space set
 	valueSpace := NewValueSpace()
-	for _, imp := range importers {
-		sheet := imp.GetSheet(sheetName)
+	for _, impInfo := range impInfos {
+		specifiedSheetName := sheetName
+		if impInfo.SpecifiedSheetName != "" {
+			// sheet name is specified
+			specifiedSheetName = impInfo.SpecifiedSheetName
+		}
+		sheet := impInfo.GetSheet(specifiedSheetName)
 		if sheet == nil {
-			err := xerrors.E0001(sheetName, imp.Filename())
-			return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyBookName, imp.Filename())
+			err := xerrors.E0001(sheetName, impInfo.Filename())
+			return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyBookName, impInfo.Filename())
 		}
 
 		if sheetOpts.Transpose {
@@ -194,7 +199,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 				}
 			}
 			if foundColumn < 0 {
-				return nil, xerrors.Errorf("referred column %s not found in %s#%s", referInfo.Column, bookName, sheetName)
+				return nil, xerrors.E2015(referInfo.Column, bookName, sheetName)
 			}
 			for row := int(sheetOpts.Datarow) - 1; row < sheet.MaxRow; row++ {
 				data, err := sheet.Cell(row, foundColumn)

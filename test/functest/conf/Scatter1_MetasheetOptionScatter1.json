@@ -1,0 +1,9 @@
+{
+    "zoneMap": {
+        "10": {
+            "id": 10,
+            "name": "Marsh",
+            "difficulty": 1000
+        }
+    }
+}

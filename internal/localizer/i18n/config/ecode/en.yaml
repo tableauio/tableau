@@ -48,4 +48,28 @@ E2011:
   desc: field presence required but cell not filled
   text: cell data is not filled explicitly
   help: fill cell data explicitly
+E2012:
+  desc: invalid syntax of numerical value
+  text: '"{{.Value}}" cannot be parsed to numerical type "{{.FieldType}}", {{.Error}}'
+  help: fill cell data with valid syntax of numerical type "{{.FieldType}}"
+E2013:
+  desc: invalid syntax of boolean value
+  text: '"{{.Value}}" cannot be parsed to boolean type, {{.Error}}'
+  help: "boolean value can be: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
+E2014:
+  desc: sheet column not found
+  text: sheet column "{{.Column}}" not found
+  help: add column "{{.Column}}"
+E2015:
+  desc: referred sheet column not found
+  text: referred sheet column "{{.Column}}" not found in workbook "{{.BookName}}", worksheet "{{.SheetName}}"
+  help: change "refer" prop or add referred sheet column "{{.Column}}"
 # [3000, 3999]: importer error
+E3000:
+  desc: no workbook file found about sheet specifier
+  text: no workbook file found in pattern "{{.Pattern}}" with sheet specifier "{{.SheetSpecifier}}"
+  help: guarantee sheet specifier in format "<BookNameGlob>[#SheetName]"
+E3001:
+  desc: no worksheet found in workbook
+  text: worksheet "{{.SheetName}}" not found in workbook "{{.BookName}}"
+  help: add proper worksheet "{{.SheetName}}" to workbook "{{.BookName}}"

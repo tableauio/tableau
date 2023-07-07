@@ -87,7 +87,7 @@ message FirstVListField {
 }
 
 message Hero {
-  option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 merger:"HeroA.csv" merger:"Her*.csv" index:"Kind" index:"Group@Hero"};
+  option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 merger:"Her*.csv" index:"Kind" index:"Group@Hero"};
 
   map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Hero {

@@ -46,7 +46,7 @@ jobs:
       - name: Get dependencies
         run: go vet ./...
       - name: Test
-        run: go test -timeout 30m -race ./... -coverprofile=coverage.txt -covermode=atomic
+        run: go test -v -timeout 30m -race ./... -coverprofile=coverage.txt -covermode=atomic
 
       - name: Codecov
         uses: codecov/codecov-action@v3

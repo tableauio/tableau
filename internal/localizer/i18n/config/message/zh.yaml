@@ -1,18 +1,18 @@
 protogen: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
-  工作簿: {{.BookName}}
-  工作表: {{.SheetName}}
+  工作簿: {{.BookName}} {{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }}(主工作簿: {{.PrimaryBookName}}){{ end }}
+  工作表: {{.SheetName}} {{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }}(主工作表: {{.PrimarySheetName}}){{ end }}
   命名单元格位置: {{.NameCellPos}}
-  命名单元格的值: {{.NameCell}}
+  命名单元格数据: {{.NameCell}}
   类型单元格位置: {{.TypeCellPos}}
-  类型单元格的值: {{.TypeCell}}|{{.PBFieldOpts}}
+  类型单元格数据: {{.TypeCell}}|{{.PBFieldOpts}}
   错误原因: {{.Reason}}
   {{ if .Help }}修复建议: {{.Help}}{{ end }}
 confgen: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
-  工作簿: {{.BookName}}
-  工作表: {{.SheetName}}
+  工作簿: {{.BookName}} {{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }}(主工作簿: {{.PrimaryBookName}}){{ end }}
+  工作表: {{.SheetName}} {{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }}(主工作表: {{.PrimarySheetName}}){{ end }}
   单元格位置: {{.DataCellPos}}
-  单元格的值: {{.DataCell}}
+  单元格数据: {{.DataCell}}
   错误原因: {{.Reason}}
   {{ if .Help }}修复建议: {{.Help}}{{ end }}

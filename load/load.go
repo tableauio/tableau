@@ -73,7 +73,7 @@ func ParseOptions(setters ...Option) *Options {
 }
 
 // Load reads file content from the specified directory and format,
-// and then fills the provided message. 
+// and then fills the provided message.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
 	switch fmt {
 	case format.JSON:
@@ -152,7 +152,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	msgName, wsOpts := confgen.ParseMessageOptions(md)
 	sheets := []string{wsOpts.Name}
 
-	imp, err := importer.New(
+	self, err := importer.New(
 		wbPath,
 		importer.Sheets(sheets),
 	)
@@ -160,17 +160,15 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 		return errors.WithMessagef(err, "failed to import workbook: %v", wbPath)
 	}
 
-	// get merger importers
-	importers, err := importer.GetMergerImporters(dir, wbPath, wsOpts.Name, wsOpts.Merger)
+	// get merger importer infos
+	impInfos, err := importer.GetMergerImporters(dir, workbook.Name, wsOpts.Name, wsOpts.Merger, opts.SubdirRewrites)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to get merger importers for %s", wbPath)
+		return errors.WithMessagef(err, "failed to get merger importer infos for %s", wbPath)
 	}
 	// append self
-	importers = append(importers, imp)
-
-	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, md, wsOpts)
-
-	protomsg, err := confgen.ParseMessage(sheetInfo, importers...)
+	impInfos = append(impInfos, importer.ImporterInfo{Importer: self})
+	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, workbook.Name, dir, md, wsOpts)
+	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to parse message %s", msgName)
 	}

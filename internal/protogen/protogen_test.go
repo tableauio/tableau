@@ -1,8 +1,12 @@
 package protogen
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
+	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -185,6 +189,73 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.gen.extractTypeInfoFromSpecialSheetMode(tt.args.mode, tt.args.sheet, tt.args.typeName, tt.args.parentFilename); (err != nil) != tt.wantErr {
 				t.Errorf("Generator.extractTypeInfoFromSpecialSheetMode() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func prepareOutput() error {
+	// prepare output common dir
+	outdir := "./testdata/_proto"
+	err := os.MkdirAll(outdir, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create output dir: %v", err)
+	}
+	// copy common proto files
+	src := "../../proto/tableau/protobuf/unittest/common.proto"
+	dst := outdir + "/common.proto"
+	if err := fs.CopyFile(src, dst); err != nil {
+		return fmt.Errorf("copy file failed: %+v", err)
+	}
+	return nil
+}
+
+func TestGenerator_GenAll(t *testing.T) {
+	if err := prepareOutput(); err != nil {
+		t.Fatalf("failed to create output common dir: %v", err)
+	}
+	outdir := "./testdata/_proto"
+	tests := []struct {
+		name    string
+		gen     *Generator
+		wantErr bool
+	}{
+		{
+			name: "test1",
+			gen: NewGenerator("unittest", "../../testdata/unittest", outdir,
+				options.Proto(
+					&options.ProtoOption{
+						Input: &options.ProtoInputOption{
+							ProtoPaths: []string{outdir},
+							ProtoFiles: []string{
+								"common.proto",
+							},
+							Formats: []format.Format{
+								format.CSV,
+							},
+							Header: &options.HeaderOption{
+								Namerow: 1,
+								Typerow: 2,
+								Noterow: 3,
+								Datarow: 4,
+							},
+						},
+						Output: &options.ProtoOutputOption{
+							FilenameWithSubdirPrefix: true,
+							FileOptions: map[string]string{
+								"go_package": "github.com/tableauio/tableau/proto/tableaupb/unittestpb",
+							},
+						},
+					},
+				),
+			),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.gen.GenAll(); (err != nil) != tt.wantErr {
+				t.Errorf("Generator.GenAll() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

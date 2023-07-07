@@ -1,7 +1,6 @@
 package dev
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -85,8 +84,8 @@ func Test_GenConf(t *testing.T) {
 		options.Conf(
 			&options.ConfOption{
 				Input: &options.ConfInputOption{
-					ProtoPaths: []string{"."},
-					ProtoFiles: []string{"*.proto"},
+					ProtoPaths: []string{"./proto"},
+					ProtoFiles: []string{"./proto/*.proto"},
 				},
 				Output: &options.ConfOutputOption{
 					Pretty:  true,
@@ -137,7 +136,7 @@ func test_CompareJSON(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		fmt.Printf("compare json file: %s\n", file.Name())
+		t.Logf("compare json file: %s\n", file.Name())
 		require.JSONEq(t, string(oldData), string(newData))
 	}
 }

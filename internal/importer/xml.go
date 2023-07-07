@@ -17,7 +17,6 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/log/core"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
@@ -34,15 +33,15 @@ var metasheetRegexp *regexp.Regexp
 const (
 	xmlProlog             = `<?xml version='1.0' encoding='UTF-8'?>`
 	atTableauDisplacement = `ATABLEAU`
-	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`                        // e.g.: |{default:"100"}
+	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`                       // e.g.: |{default:"100"}
 	metasheetItemBlock    = `<Item(\s+\S+\s*=\s*("\S+"|'\S+'))+\s*/>` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
-	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`                 // e.g.: <XXXConf>...</XXXConf>	
+	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`                // e.g.: <XXXConf>...</XXXConf>
 )
 
 func init() {
 	attrRegexp = regexp.MustCompile(`\s*=\s*("|')` + types.TypeGroup + ungreedyPropGroup + `("|')`) // e.g.: = "int32|{range:"1,~"}"
-	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`) // e.g.: >int32|{range:"1,~"}</
-	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)                                          // e.g.: Para1, Para2, Para3, ...
+	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`)                // e.g.: >int32|{range:"1,~"}</
+	scalarListRegexp = regexp.MustCompile(`([A-Za-z_]+)([0-9]+)`)                                   // e.g.: Para1, Para2, Para3, ...
 
 	// metasheet regexp, e.g.:
 	// <!--
@@ -70,9 +69,10 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	if log.Level() == core.DebugLevel.CapitalString() {
-		newBook.ExportCSV()
-	}
+	// NOTE: DO NOT EXPORT csv files, otherwise trigger bugs in unittest.
+	// if log.Level() == core.DebugLevel.CapitalString() {
+	// 	newBook.ExportCSV()
+	// }
 
 	return &XMLImporter{
 		Book: newBook,

@@ -48,7 +48,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
-			cleanSlashPath := fs.GetCleanSlashPath(match)
+			cleanSlashPath := fs.CleanSlashPath(match)
 			parsedExcludedProtoFiles[cleanSlashPath] = true
 		}
 	}
@@ -59,10 +59,10 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
-			cleanSlashPath := fs.GetCleanSlashPath(match)
+			cleanSlashPath := fs.CleanSlashPath(match)
 			if !parsedExcludedProtoFiles[cleanSlashPath] {
 				for _, protoPath := range protoPaths {
-					cleanProtoPath := fs.GetCleanSlashPath(protoPath) + "/"
+					cleanProtoPath := fs.CleanSlashPath(protoPath) + "/"
 					cleanSlashPath = strings.TrimPrefix(cleanSlashPath, cleanProtoPath)
 				}
 				parsedProtoFiles = append(parsedProtoFiles, cleanSlashPath)
@@ -74,13 +74,13 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 		// 	if err != nil {
 		// 		return nil, errors.Wrapf(err, "failed to get absolute path for %s", match)
 		// 	}
-		// 	cleanSlashPath := fs.GetCleanSlashPath(match)
+		// 	cleanSlashPath := fs.CleanSlashPath(match)
 		// 	for _, importPath := range protoPaths {
 		// 		importPath, err := filepath.Abs(importPath)
 		// 		if err != nil {
 		// 			return nil, errors.Wrapf(err, "failed to get absolute path for %s", importPath)
 		// 		}
-		// 		importCleanSlashPath := fs.GetCleanSlashPath(importPath)
+		// 		importCleanSlashPath := fs.CleanSlashPath(importPath)
 		// 		if !strings.HasPrefix(cleanSlashPath, importCleanSlashPath) {
 		// 			log.Debugf("add proto file: %s", originMatch)
 		// 			parsedProtoFiles = append(parsedProtoFiles, originMatch)
@@ -97,7 +97,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 }
 
 type TypeInfo struct {
-	FullName       string
+	FullName       protoreflect.FullName
 	ParentFilename string
 	Kind           types.Kind
 
@@ -107,13 +107,13 @@ type TypeInfo struct {
 func NewTypeInfos(protoPackage string) *TypeInfos {
 	return &TypeInfos{
 		protoPackage: protoPackage,
-		infos:        map[string]*TypeInfo{},
+		infos:        map[protoreflect.FullName]*TypeInfo{},
 	}
 }
 
 type TypeInfos struct {
 	protoPackage string
-	infos        map[string]*TypeInfo // full name -> type info
+	infos        map[protoreflect.FullName]*TypeInfo // full name -> type info
 }
 
 func (x *TypeInfos) Put(info *TypeInfo) {
@@ -122,26 +122,34 @@ func (x *TypeInfos) Put(info *TypeInfo) {
 }
 
 // Get retrieves type info by name in proto package.
-// It will auto prepend proto package to inputed name to
-// generate the full name of type.
+//
+// NOTE: if name is prefixed with ".", then default proto package name will be
+// prepended to generate full name. For example: ".ItemType" will be conveted to
+// "<ProtoPackage>.ItemType"
 func (x *TypeInfos) Get(name string) *TypeInfo {
-	fullName := x.protoPackage + "." + name
-	return x.GetByFullName(fullName)
+	var fullName string
+	if strings.HasPrefix(name, ".") {
+		// prepend default proto package
+		fullName = x.protoPackage + name
+	} else {
+		fullName = name
+	}
+	return x.GetByFullName(protoreflect.FullName(fullName))
 }
 
 // GetByFullName retrieves type info by type's full name.
-func (x *TypeInfos) GetByFullName(fullName string) *TypeInfo {
+func (x *TypeInfos) GetByFullName(fullName protoreflect.FullName) *TypeInfo {
 	return x.infos[fullName]
 }
 
 func GetAllTypeInfo(files *protoregistry.Files, protoPackage string) *TypeInfos {
 	typeInfos := NewTypeInfos(protoPackage)
-	files.RangeFilesByPackage(protoreflect.FullName(protoPackage), func(fileDesc protoreflect.FileDescriptor) bool {
+	files.RangeFiles(func(fileDesc protoreflect.FileDescriptor) bool {
 		extractTypeInfos(fileDesc.Messages(), typeInfos)
 		for i := 0; i < fileDesc.Enums().Len(); i++ {
 			ed := fileDesc.Enums().Get(i)
 			info := &TypeInfo{
-				FullName:       string(ed.FullName()),
+				FullName:       ed.FullName(),
 				ParentFilename: ed.ParentFile().Path(),
 				Kind:           types.EnumKind,
 			}
@@ -182,7 +190,7 @@ func extractTypeInfosFromMessage(md protoreflect.MessageDescriptor, typeInfos *T
 		firstFieldOptionName = fieldOpts.GetName()
 	}
 	info := &TypeInfo{
-		FullName:             string(md.FullName()),
+		FullName:             md.FullName(),
 		ParentFilename:       md.ParentFile().Path(),
 		Kind:                 types.MessageKind,
 		FirstFieldOptionName: firstFieldOptionName,
@@ -192,7 +200,7 @@ func extractTypeInfosFromMessage(md protoreflect.MessageDescriptor, typeInfos *T
 	for i := 0; i < md.Enums().Len(); i++ {
 		ed := md.Enums().Get(i)
 		info := &TypeInfo{
-			FullName:       string(ed.FullName()),
+			FullName:       ed.FullName(),
 			ParentFilename: ed.ParentFile().Path(),
 			Kind:           types.EnumKind,
 		}

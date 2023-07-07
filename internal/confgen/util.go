@@ -1,14 +1,22 @@
 package confgen
 
 import (
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/iancoleman/strcase"
+	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 var fieldOptionsPool *sync.Pool
@@ -95,5 +103,105 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 	return &Field{
 		fd:   fd,
 		opts: pooledOpts,
+	}
+}
+
+// parseBookSpecifier parses the book specifier to book name and sheet name.
+//
+// bookSpecifier pattern: <Workbook>#<Worksheet>
+//
+// Examples:
+//   - only workbook: excel/Item.xlsx
+//   - with worksheet: excel/Item.xlsx#Item (To be implemented), NOTE: csv not supported
+//     because it has special book name pattern.
+//   - with special delimiter "#" in dir: excel#dir/Item.xlsx#Item
+func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string, err error) {
+	fmt := format.Ext2Format(filepath.Ext(bookSpecifier))
+	if fmt == format.CSV {
+		// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+		bookName, err := fs.ParseCSVBooknamePatternFrom(bookSpecifier)
+		if err != nil {
+			return "", "", err
+		}
+		return bookName, "", nil
+	}
+	dir := filepath.Dir(bookSpecifier)
+	baseBookSpecifier := filepath.Base(bookSpecifier)
+	tokens := strings.SplitN(baseBookSpecifier, "#", 2)
+	if len(tokens) == 2 {
+		return fs.Join(dir, tokens[0]), tokens[1], nil
+	}
+	return fs.Join(dir, tokens[0]), "", nil
+}
+
+type bookIndexInfo struct {
+	primaryBookName string
+	fd              protoreflect.FileDescriptor
+}
+
+// buildWorkbookIndex builds the secondary workbook name (including self) -> primary workbook info indexes.
+func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, subdirRewrites map[string]string, prFiles *protoregistry.Files) (bookIndexes map[string]*bookIndexInfo, err error) {
+	bookIndexes = map[string]*bookIndexInfo{} // init
+	prFiles.RangeFilesByPackage(
+		protoPackage,
+		func(fd protoreflect.FileDescriptor) bool {
+			_, workbook := ParseFileOptions(fd)
+			if workbook == nil {
+				return true
+			}
+			// add self: rewrite subdir
+			rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, subdirRewrites)
+			bookIndexes[rewrittenWorkbookName] = &bookIndexInfo{primaryBookName: workbook.Name, fd: fd}
+			// merger or scatter (only one can be set at once)
+			msgs := fd.Messages()
+			for i := 0; i < msgs.Len(); i++ {
+				md := msgs.Get(i)
+				opts := md.Options().(*descriptorpb.MessageOptions)
+				if opts == nil {
+					continue
+				}
+				sheetOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
+				sheetSpecifiers := sheetOpts.GetMerger()
+				if len(sheetSpecifiers) == 0 {
+					sheetSpecifiers = sheetOpts.GetScatter()
+				}
+				for _, specifier := range sheetSpecifiers {
+					relBookPaths, _, err1 := importer.ResolveSheetSpecifier(inputDir, workbook.Name, specifier, subdirRewrites)
+					if err1 != nil {
+						err = xerrors.WithMessageKV(err1, xerrors.KeyPrimarySheetName, sheetOpts.GetName())
+						return false
+					}
+					for relBookPath := range relBookPaths {
+						bookIndexes[relBookPath] = &bookIndexInfo{primaryBookName: workbook.Name, fd: fd}
+					}
+				}
+			}
+			return true
+		})
+
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range bookIndexes {
+		log.Debugf("primary book index: %s -> %s", k, v.primaryBookName)
+	}
+	return bookIndexes, nil
+}
+
+func getRealSheetName(info *SheetInfo, impInfo importer.ImporterInfo) string {
+	sheetName := info.Opts.GetName()
+	if impInfo.SpecifiedSheetName != "" {
+		// sheet name is specified
+		sheetName = impInfo.SpecifiedSheetName
+	}
+	return sheetName
+}
+
+func getRelBookName(basepath, filename string) string {
+	if relBookName, err := fs.Rel(basepath, filename); err != nil {
+		log.Warnf("get relative path failed: %+v", err)
+		return filename
+	} else {
+		return relBookName
 	}
 }

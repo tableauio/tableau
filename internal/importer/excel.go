@@ -9,6 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -119,6 +120,9 @@ func readExcelSheets(file *excelize.File, srOpts []*sheetReaderOptions) ([]*book
 	for _, sheetReader := range srOpts {
 		rows, err := readExcelSheetRows(file, sheetReader.Name, sheetReader.TopN)
 		if err != nil {
+			if errors.Is(err, ErrSheetNotFound) {
+				return nil, xerrors.E3001(sheetReader.Name, file.Path)
+			}
 			return nil, errors.Wrapf(err, "failed to get rows of sheet: %s", sheetReader.Name)
 		}
 		sheets = append(sheets, book.NewSheet(sheetReader.Name, rows))

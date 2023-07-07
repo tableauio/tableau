@@ -1,0 +1,35 @@
+lang: en
+locationName: Asia/Shanghai
+log:
+  level: DEBUG
+  mode: FULL
+  filename: ./_log/log.txt
+  sink: MULTI
+proto:
+  input:
+    header:
+      namerow: 1
+      typerow: 2
+      noterow: 3
+      datarow: 4
+    formats: ["csv"]
+    subdirs:
+      - testdata/csv
+  output:
+    subdir: testdata/_proto
+    filenameWithSubdirPrefix: false
+    filenameSuffix: _conf
+    fileOptions:
+      go_package: github.com/tableauio/tableau/protoconf
+conf:
+  input:
+    protoPaths: ["_proto/", "."]
+    protoFiles: ["_proto/*.proto"]
+    subdirRewrites:
+      "testdata/": ""
+  output:
+    subdir: _conf
+    formats: ["json"]
+    # formats: ["json", "txt", "bin"]
+    pretty: true
+    emitUnpopulated: true

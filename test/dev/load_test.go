@@ -27,18 +27,18 @@ func Test_LoadCSVFailed(t *testing.T) {
 	// fmt.Printf("%+v\n", err)
 }
 
-func Test_LoadExcel(t *testing.T) {
+func Test_LoadCSV(t *testing.T) {
 	msg := &protoconf.Hero{}
-	err := load.Load(msg, "./testdata/", format.Excel)
+	err := load.Load(msg, "./testdata/", format.CSV)
 	if err != nil {
 		t.Errorf("%+v", err)
 	}
 	fmt.Println(msg)
 }
 
-func Test_LoadExcelFailed(t *testing.T) {
+func Test_LoadActivityFailed(t *testing.T) {
 	msg := &protoconf.Activity{}
-	err := load.Load(msg, "./testdata/", format.Excel, load.SubdirRewrites(map[string]string{"excel": ""}))
+	err := load.Load(msg, "./testdata/", format.CSV, load.SubdirRewrites(map[string]string{"excel": ""}))
 	if err == nil {
 		t.Errorf("shoud have failed")
 	}

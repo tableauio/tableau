@@ -1,0 +1,11 @@
+syntax = "proto3";
+package base;
+option go_package = "github.com/tableauio/tableau/test/functest/protoconf/base";
+
+import "tableau/protobuf/tableau.proto";
+
+message Property {
+  int32 id = 1 [(tableau.field) = { name: "ID" }];
+  string name = 2 [(tableau.field) = { name: "Name" }];
+  string desc = 3 [(tableau.field) = { name: "Desc" }];
+}

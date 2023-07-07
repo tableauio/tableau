@@ -1,8 +1,10 @@
 lang: en
 locationName: Asia/Shanghai
 log:
-  level: INFO
-  mode: SIMPLE
+  level: DEBUG
+  mode: FULL
+  filename: ./testdata/_log/log.txt
+  sink: MULTI
 proto:
   input:
     header:
@@ -25,6 +27,7 @@ conf:
     protoFiles: ["testdata/_proto/*.proto"]
   output:
     subdir: testdata/_conf
-    formats: ["json", "txt", "bin"]
+    formats: ["json"]
+    # formats: ["json", "txt", "bin"]
     pretty: true
     emitUnpopulated: true

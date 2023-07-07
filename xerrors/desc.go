@@ -3,6 +3,8 @@ package xerrors
 import (
 	"fmt"
 	"strings"
+
+	"github.com/tableauio/tableau/log"
 )
 
 const (
@@ -17,18 +19,20 @@ const (
 	// module: default, proto, conf.
 	KeyModule = "Module"
 
-	KeyIndir           = "Indir"           // input dir
-	KeySubdir          = "Subdir"          // input subdir
-	KeyOutdir          = "Outdir"          // output dir
-	KeyBookName        = "BookName"        // workbook name
-	KeySheetName       = "SheetName"       // worksheet name
-	KeyNameCellPos     = "NameCellPos"     // name cell position
-	KeyNameCell        = "NameCell"        // name cell value
-	KeyTrimmedNameCell = "TrimmedNameCell" // trimmed name cell value
-	KeyTypeCellPos     = "TypeCellPos"     // type cell position
-	KeyTypeCell        = "TypeCell"        // type cell value
-	KeyDataCellPos     = "DataCellPos"     // data cell position
-	KeyDataCell        = "DataCell"        // data data value
+	KeyIndir            = "Indir"            // input dir
+	KeySubdir           = "Subdir"           // input subdir
+	KeyOutdir           = "Outdir"           // output dir
+	KeyBookName         = "BookName"         // workbook name
+	KeyPrimaryBookName  = "PrimaryBookName"  // primary workbook name
+	KeySheetName        = "SheetName"        // worksheet name
+	KeyPrimarySheetName = "PrimarySheetName" // primary worksheet name
+	KeyNameCellPos      = "NameCellPos"      // name cell position
+	KeyNameCell         = "NameCell"         // name cell value
+	KeyTrimmedNameCell  = "TrimmedNameCell"  // trimmed name cell value
+	KeyTypeCellPos      = "TypeCellPos"      // type cell position
+	KeyTypeCell         = "TypeCell"         // type cell value
+	KeyDataCellPos      = "DataCellPos"      // data cell position
+	KeyDataCell         = "DataCell"         // data data value
 
 	KeyPBMessage   = "PBMessage"   // protobuf message name
 	KeyPBFieldName = "PBFieldName" // protobuf message field name
@@ -55,7 +59,9 @@ var keys = []string{
 	KeySubdir,
 	KeyOutdir,
 	KeyBookName,
+	KeyPrimaryBookName,
 	KeySheetName,
+	KeyPrimarySheetName,
 	KeyNameCellPos,
 	KeyNameCell,
 	KeyTrimmedNameCell,
@@ -119,7 +125,11 @@ func (d *Desc) String() string {
 		return fmt.Sprintf("Error: %s", d.err.Error())
 	}
 	debugging := fmt.Sprintf("Debugging: \n%s\n", d.DebugString())
-	module := d.fields[KeyModule].(string)
+	module, ok := d.fields[KeyModule].(string)
+	if !ok {
+		log.Errorf("KeyModule %s not set", KeyModule)
+		return fmt.Sprintf("Error: %s", d.err)
+	}
 	switch module {
 	case ModuleProto:
 		return debugging + renderSummary(module, d.fields)

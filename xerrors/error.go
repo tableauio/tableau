@@ -53,7 +53,7 @@ func CombineKV(keysAndValues ...interface{}) string {
 			break
 		}
 		key, val := keysAndValues[i], keysAndValues[i+1]
-		msg += fmt.Sprintf("|%s: %s", key, val)
+		msg += fmt.Sprintf("|%v: %v", key, val)
 	}
 	return msg
 }

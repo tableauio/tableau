@@ -1,5 +1,4 @@
 // mexporter is the message exporter package, which can export one
-
 // single message to different formts: JSON, Text, and Bin.
 
 package mexporter
@@ -8,14 +7,14 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 )
 
 var testMessageExporter *messageExporter
 
 func init() {
-	itemConf = &tableaupb.TestItemConf{
-		ItemMap: map[uint32]*tableaupb.TestItem{
+	itemConf = &unittestpb.ItemConf{
+		ItemMap: map[uint32]*unittestpb.Item{
 			1: {Id: 1, Num: 10},
 			2: {Id: 2, Num: 20},
 			3: {Id: 3, Num: 30},
