@@ -6,6 +6,8 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -107,6 +109,8 @@ message TaskTarget {
       protoconf.FruitFlavor key = 1 [(tableau.field) = {name:"Key"}];
       protoconf.FruitType value = 2 [(tableau.field) = {name:"Value"}];
     }
+    google.protobuf.Timestamp start_time = 2 [(tableau.field) = {name:"StartTime"}];
+    google.protobuf.Duration duration = 3 [(tableau.field) = {name:"Duration"}];
   }
   message MainSkill {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];

@@ -1247,6 +1247,19 @@ func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Messa
 		}
 
 	} else if field.fd.Kind() == protoreflect.MessageKind {
+		subMsgName := string(field.fd.Message().FullName())
+		_, found := xproto.WellKnownMessages[subMsgName]
+		if found {
+			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
+			value, present, err := sp.parseFieldValue(field.fd, cellData, field.opts.Prop)
+			if err != nil {
+				return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "wellknown struct")
+			}
+			if present {
+				msg.Set(field.fd, value)
+			}
+			return nil
+		}
 		// incell struct
 		value := msg.NewField(field.fd)
 		present, err := sp.parseIncellStruct(value, cellData, field.opts.GetProp().GetForm(), field.opts.Sep)
