@@ -70,6 +70,25 @@
         "4": {
             "id": 4,
             "taskTarget": {
+                "type": "TYPE_MAIN_HOBBY",
+                "mainHobby": {
+                    "flavorMap": {
+                        "1": {
+                            "key": "FRUIT_FLAVOR_FRAGRANT",
+                            "value": "FRUIT_TYPE_APPLE"
+                        },
+                        "2": {
+                            "key": "FRUIT_FLAVOR_SOUR",
+                            "value": "FRUIT_TYPE_ORANGE"
+                        }
+                    }
+                }
+            },
+            "progress": 12
+        },
+        "5": {
+            "id": 5,
+            "taskTarget": {
                 "type": "TYPE_MAIN_SKILL",
                 "mainSkill": {
                     "id": 1,
@@ -78,8 +97,8 @@
             },
             "progress": 8
         },
-        "5": {
-            "id": 5,
+        "6": {
+            "id": 6,
             "taskTarget": {
                 "type": "TYPE_EMPTY_TARGET",
                 "emptyTarget": {}

@@ -14,6 +14,8 @@ MainStory,HeroMainStory,"Cost
 {.Item}","Fruit
 map<int32, enum<.FruitType>>","Flavor
 map<enum<.FruitFlavor>, enum<.FruitType>>"
+MainHobby,HeroMainHobby,"Flavor
+map<enum<.FruitFlavor>, enum<.FruitType>>",,
 MainSkill,HeroMainSkill,"ID
 uint32","Damage
 int64",
