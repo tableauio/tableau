@@ -127,6 +127,47 @@ func TestExtractListFieldProp(t *testing.T) {
 	}
 }
 
+func TestExtractScalarListFieldProp(t *testing.T) {
+	type args struct {
+		prop *tableaupb.FieldProp
+	}
+	tests := []struct {
+		name string
+		args args
+		want *tableaupb.FieldProp
+	}{
+		{
+			name: "emptyScalarListFieldProp",
+			args: args{
+				prop: &tableaupb.FieldProp{},
+			},
+			want: nil,
+		},
+		{
+			name: "noneEmptyScalarListFieldProp",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Size:  2,
+					Refer: "ItemConf.ID",
+					Range: "2,~",
+				},
+			},
+			want: &tableaupb.FieldProp{
+				Size:  2,
+				Refer: "ItemConf.ID",
+				Range: "2,~",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ExtractScalarListFieldProp(tt.args.prop); !proto.Equal(got, tt.want) {
+				t.Errorf("ExtractScalarListFieldProp() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestExtractStructFieldProp(t *testing.T) {
 	type args struct {
 		prop *tableaupb.FieldProp

@@ -49,6 +49,28 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	return p
 }
 
+// ExtractScalarListFieldProp extracts the specified props which the scalar list field recognizes.
+func ExtractScalarListFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
+	if prop == nil {
+		return nil
+	}
+	p := &tableaupb.FieldProp{
+		JsonName: prop.JsonName,
+		Unique:   prop.Unique, // only for keyed list ?
+		Sequence: prop.Sequence,
+		Fixed:    prop.Fixed,
+		Size:     prop.Size,
+		Present:  prop.Present,
+
+		Range: prop.Range,
+		Refer: prop.Refer,
+	}
+	if IsEmptyFieldProp(p) {
+		return nil
+	}
+	return p
+}
+
 // ExtractStructFieldProp extracts the specified props which the struct field recognizes.
 func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	if prop == nil {

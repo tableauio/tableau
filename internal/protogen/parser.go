@@ -589,7 +589,12 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
-		field.Options.Prop = ExtractListFieldProp(prop)
+
+		if types.IsScalarType(scalarField.Type) {
+			field.Options.Prop = ExtractScalarListFieldProp(prop)
+		} else {
+			field.Options.Prop = ExtractListFieldProp(prop)
+		}
 
 		// Parse first field
 		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
