@@ -64,6 +64,10 @@ E2015:
   desc: referred sheet column not found
   text: 在工作簿 "{{.BookName}}" 的工作表 "{{.SheetName}}" 中未找到外键对应的列 "{{.Column}}"
   help: 修改字段属性 "refer", 或新增外键的列 "{{.Column}}"
+E2016:
+  desc: list elements are not present continuously
+  text: 数组第{{.FirstNonePresentIndex}}个元素为空, 但后续第{{.NextPresentIndex}}个元素却非空
+  help: 请确保数组出现首个空元素时, 后续所有元素都为空
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
