@@ -11,6 +11,16 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/fieldprop/FieldProp#*.csv"};
 
+message EquipConf {
+  option (tableau.worksheet) = {name:"EquipConf" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true}}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 damage = 2 [(tableau.field) = {name:"Damage"}];
+  }
+}
+
 message FieldPropForm {
   option (tableau.worksheet) = {name:"FieldPropForm" namerow:1 typerow:2 noterow:3 datarow:4};
 
