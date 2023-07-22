@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
 
@@ -31,15 +32,20 @@ func TestGenerator_GenAll(t *testing.T) {
 	}{
 		{
 			name: "test1",
-			gen: NewGenerator("unittest", "../../testdata/", outdir,
+			gen: NewGenerator("protoconf", "../../test/functest/testdata/", outdir,
 				options.LocationName("Asia/Shanghai"),
 				options.Conf(
 					&options.ConfOption{
 						Input: &options.ConfInputOption{
-							ProtoPaths: []string{"../../proto/"},
-							ProtoFiles: []string{"../../proto/tableau/protobuf/unittest/unittest.proto"},
+							ProtoPaths: []string{"../../test/functest/proto"},
+							ProtoFiles: []string{"../../test/functest/proto/*.proto"},
 							Formats: []format.Format{
+								// format.Excel,
 								format.CSV,
+								format.XML,
+							},
+							ExcludedProtoFiles: []string{
+								"../../test/functest/proto/xml__metasheet__metasheet.proto",
 							},
 						},
 						Output: &options.ConfOutputOption{
@@ -49,6 +55,13 @@ func TestGenerator_GenAll(t *testing.T) {
 						},
 					},
 				),
+				options.Log(
+					&log.Options{
+						Level: "DEBUG",
+						Mode:  "FULL",
+					},
+				),
+				options.Lang("zh"),
 			),
 			wantErr: false,
 		},
