@@ -833,7 +833,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			// squeeze to specified fixed size
 			size = fixedSize
 		}
-		checkRemainFlag := false
+		var firstNonePresentIndex int
 		for i := 1; i <= size; i++ {
 			newListValue := list.NewElement()
 			colName := prefix + field.opts.Name + strconv.Itoa(i)
@@ -885,17 +885,17 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						}
 					}
 				}
-				if checkRemainFlag {
+				if firstNonePresentIndex != 0 {
 					// Check that no empty element is existed in between, so we should guarantee
 					// that all the remaining elements are not present, otherwise report error!
 					if elemPresent {
 						kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "horizontal struct list")
-						return false, xerrors.ErrorKV("elements are not present continuously", kvs...)
+						return false, xerrors.WithMessageKV(xerrors.E2016(firstNonePresentIndex, i), kvs...)
 					}
 					continue
 				}
 				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
-					checkRemainFlag = true
+					firstNonePresentIndex = i
 					continue
 				}
 				list.Append(newListValue)
@@ -911,16 +911,16 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "horizontal scalar list")
 					return false, xerrors.WithMessageKV(err, kvs...)
 				}
-				if checkRemainFlag {
-					// check the remaining keys all not present, otherwise report error!
+				if firstNonePresentIndex != 0 {
+					// check the remaining scalar elements are not present, otherwise report error!
 					if elemPresent {
 						kvs := append(rc.CellDebugKV(colName), xerrors.KeyPBFieldType, "horizontal scalar list")
-						return false, xerrors.ErrorKV("elements are not present continuously", kvs...)
+						return false, xerrors.WithMessageKV(xerrors.E2016(firstNonePresentIndex, i), kvs...)
 					}
 					continue
 				}
 				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
-					checkRemainFlag = true
+					firstNonePresentIndex = i
 					continue
 				}
 				list.Append(newListValue)
@@ -1247,6 +1247,19 @@ func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Messa
 		}
 
 	} else if field.fd.Kind() == protoreflect.MessageKind {
+		subMsgName := string(field.fd.Message().FullName())
+		_, found := xproto.WellKnownMessages[subMsgName]
+		if found {
+			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
+			value, present, err := sp.parseFieldValue(field.fd, cellData, field.opts.Prop)
+			if err != nil {
+				return xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "wellknown struct")
+			}
+			if present {
+				msg.Set(field.fd, value)
+			}
+			return nil
+		}
 		// incell struct
 		value := msg.NewField(field.fd)
 		present, err := sp.parseIncellStruct(value, cellData, field.opts.GetProp().GetForm(), field.opts.Sep)

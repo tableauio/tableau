@@ -31,17 +31,21 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 }
 
 // ExtractListFieldProp extracts the specified props which the list field recognizes.
-func ExtractListFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
+func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil
 	}
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
-		Unique:   prop.Unique, // only for keyed list ?
+		Unique:   prop.Unique, // only for keyed list?
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
 		Present:  prop.Present,
+	}
+	if isScalarList {
+		p.Range = prop.Range
+		p.Refer = prop.Refer
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

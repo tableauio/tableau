@@ -92,7 +92,8 @@ func TestExtractMapFieldProp(t *testing.T) {
 
 func TestExtractListFieldProp(t *testing.T) {
 	type args struct {
-		prop *tableaupb.FieldProp
+		prop         *tableaupb.FieldProp
+		isScalarList bool
 	}
 	tests := []struct {
 		name string
@@ -117,10 +118,26 @@ func TestExtractListFieldProp(t *testing.T) {
 				Size: 2,
 			},
 		},
+		{
+			name: "noneEmptyScalarListFieldProp",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Size:  2,
+					Refer: "ItemConf.ID",
+					Range: "2,~",
+				},
+				isScalarList: true,
+			},
+			want: &tableaupb.FieldProp{
+				Size:  2,
+				Refer: "ItemConf.ID",
+				Range: "2,~",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ExtractListFieldProp(tt.args.prop); !proto.Equal(got, tt.want) {
+			if got := ExtractListFieldProp(tt.args.prop, tt.args.isScalarList); !proto.Equal(got, tt.want) {
 				t.Errorf("ExtractListFieldProp() = %v, want %v", got, tt.want)
 			}
 		})

@@ -6,6 +6,8 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -63,16 +65,18 @@ message TaskTarget {
     PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
     PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
     MainStory main_story = 3; // Bound to enum value: TYPE_MAIN_STORY.
-    MainSkill main_skill = 4; // Bound to enum value: TYPE_MAIN_SKILL.
-    EmptyTarget empty_target = 5; // Bound to enum value: TYPE_EMPTY_TARGET.
+    MainHobby main_hobby = 4; // Bound to enum value: TYPE_MAIN_HOBBY.
+    MainSkill main_skill = 5; // Bound to enum value: TYPE_MAIN_SKILL.
+    EmptyTarget empty_target = 6; // Bound to enum value: TYPE_EMPTY_TARGET.
   }
   enum Type {
     TYPE_INVALID = 0;
     TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"];
     TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "SoloPVEBattle"];
     TYPE_MAIN_STORY = 3 [(tableau.evalue).name = "HeroMainStory"];
-    TYPE_MAIN_SKILL = 4 [(tableau.evalue).name = "HeroMainSkill"];
-    TYPE_EMPTY_TARGET = 5 [(tableau.evalue).name = "EmptyTarget"];
+    TYPE_MAIN_HOBBY = 4 [(tableau.evalue).name = "HeroMainHobby"];
+    TYPE_MAIN_SKILL = 5 [(tableau.evalue).name = "HeroMainSkill"];
+    TYPE_EMPTY_TARGET = 6 [(tableau.evalue).name = "EmptyTarget"];
   }
 
   message PvpBattle {
@@ -98,6 +102,15 @@ message TaskTarget {
       protoconf.FruitFlavor key = 1 [(tableau.field) = {name:"Key"}];
       protoconf.FruitType value = 2 [(tableau.field) = {name:"Value"}];
     }
+  }
+  message MainHobby {
+    map<int32, Flavor> flavor_map = 1 [(tableau.field) = {name:"Flavor" key:"Key" layout:LAYOUT_INCELL}];
+    message Flavor {
+      protoconf.FruitFlavor key = 1 [(tableau.field) = {name:"Key"}];
+      protoconf.FruitType value = 2 [(tableau.field) = {name:"Value"}];
+    }
+    google.protobuf.Timestamp start_time = 2 [(tableau.field) = {name:"StartTime"}];
+    google.protobuf.Duration duration = 3 [(tableau.field) = {name:"Duration"}];
   }
   message MainSkill {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];

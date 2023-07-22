@@ -64,6 +64,10 @@ E2015:
   desc: referred sheet column not found
   text: referred sheet column "{{.Column}}" not found in workbook "{{.BookName}}", worksheet "{{.SheetName}}"
   help: change "refer" prop or add referred sheet column "{{.Column}}"
+E2016:
+  desc: list elements are not present continuously
+  text: The {{.FirstNonePresentIndex}}-th element is not present, but the subsequent {{.NextPresentIndex}}-th element is present
+  help: ensure all subsequent elements after the first none-present element are not present
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

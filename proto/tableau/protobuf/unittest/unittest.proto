@@ -1,6 +1,4 @@
-// Protoconf - Tableau's data interchange format
-// https://tableauio.github.io/
-// A proto file we will use for unit testing.
+// clang-format off
 
 syntax = "proto3";
 

@@ -141,7 +141,7 @@ type sheetExporter struct {
 	typeInfos   *xproto.TypeInfos
 
 	Imports        map[string]bool             // import name -> defined
-	nestedMessages map[string]*tableaupb.Field // type name -> field
+	nestedMessages map[string]*tableaupb.Field // top message scoped type name -> field
 }
 
 func (x *sheetExporter) export() error {
@@ -222,13 +222,13 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P()
 
 	// generate message type
-	for _, field := range x.ws.Fields {
-		x.g.P("  message ", field.Name, " {")
+	for _, msgField := range x.ws.Fields {
+		x.g.P("  message ", msgField.Name, " {")
 		// generate the fields
 		depth := 2
-		for i, field := range field.Fields {
+		for i, field := range msgField.Fields {
 			tagid := i + 1
-			if err := x.exportField(depth, tagid, field, field.Name); err != nil {
+			if err := x.exportField(depth, tagid, field, msgField.Name); err != nil {
 				return err
 			}
 		}

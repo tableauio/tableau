@@ -3,6 +3,7 @@ package protogen
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/tableauio/tableau/format"
@@ -201,11 +202,25 @@ func prepareOutput() error {
 	if err != nil {
 		return fmt.Errorf("failed to create output dir: %v", err)
 	}
-	// copy common proto files
-	src := "../../proto/tableau/protobuf/unittest/common.proto"
-	dst := outdir + "/common.proto"
-	if err := fs.CopyFile(src, dst); err != nil {
-		return fmt.Errorf("copy file failed: %+v", err)
+	outCommDir := filepath.Join(outdir, "common")
+	err = os.MkdirAll(outCommDir, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create output common dir: %v", err)
+	}
+
+	srcCommDir := "../../test/functest/proto/common"
+	dirEntries, err := os.ReadDir(srcCommDir)
+	if err != nil {
+		return fmt.Errorf("read dir failed: %+v", err)
+	}
+	for _, entry := range dirEntries {
+		if !entry.IsDir() {
+			src := filepath.Join(srcCommDir, entry.Name())
+			dst := filepath.Join(outCommDir, entry.Name())
+			if err := fs.CopyFile(src, dst); err != nil {
+				return fmt.Errorf("copy file failed: %+v", err)
+			}
+		}
 	}
 	return nil
 }
@@ -222,16 +237,20 @@ func TestGenerator_GenAll(t *testing.T) {
 	}{
 		{
 			name: "test1",
-			gen: NewGenerator("unittest", "../../testdata/unittest", outdir,
+			gen: NewGenerator("protoconf", "../../test/functest/testdata/", outdir,
 				options.Proto(
 					&options.ProtoOption{
 						Input: &options.ProtoInputOption{
 							ProtoPaths: []string{outdir},
 							ProtoFiles: []string{
-								"common.proto",
+								"common/base.proto",
+								"common/common.proto",
+								"common/union.proto",
 							},
 							Formats: []format.Format{
+								// format.Excel,
 								format.CSV,
+								format.XML,
 							},
 							Header: &options.HeaderOption{
 								Namerow: 1,
@@ -243,7 +262,7 @@ func TestGenerator_GenAll(t *testing.T) {
 						Output: &options.ProtoOutputOption{
 							FilenameWithSubdirPrefix: true,
 							FileOptions: map[string]string{
-								"go_package": "github.com/tableauio/tableau/proto/tableaupb/unittestpb",
+								"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
 							},
 						},
 					},

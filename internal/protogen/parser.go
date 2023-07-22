@@ -505,7 +505,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
-		field.Options.Prop = ExtractListFieldProp(prop)
+		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))
 
 		if opts.Nested {
 			prefix += field.ListEntry.ElemType // add prefix with value type
@@ -589,7 +589,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
-		field.Options.Prop = ExtractListFieldProp(prop)
+		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))
 
 		// Parse first field
 		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
