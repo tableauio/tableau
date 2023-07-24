@@ -56,7 +56,7 @@ message HorizontalPredefinedStructList {
 message HorizontalScalarList {
   option (tableau.worksheet) = {name:"HorizontalScalarList" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL prop:{range:"1,~" refer:"ItemConf.ID"}}];
+  repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL prop:{range:"1,~" refer:"ItemConf.ID,EquipConf.ID"}}];
 }
 
 message HorizontalStructList {

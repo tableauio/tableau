@@ -59,7 +59,7 @@ func (r *ReferredCache) Exists(refer string) bool {
 	return ok
 }
 
-type loadValueSpaceFunc = func() (*ValueSpace, error)
+type loadValueSpaceFunc = func(refer string) (*ValueSpace, error)
 
 func (r *ReferredCache) ExistsValue(refer string, value string, loadFunc loadValueSpaceFunc) (bool, error) {
 	r.RLock()
@@ -76,7 +76,7 @@ func (r *ReferredCache) ExistsValue(refer string, value string, loadFunc loadVal
 	if ok {
 		return valueSpace.Contains(value), nil
 	}
-	valueSpace, err := loadFunc()
+	valueSpace, err := loadFunc(refer)
 	if err != nil {
 		return false, err
 	}
@@ -214,6 +214,9 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	return valueSpace, nil
 }
 
+// InReferredSpace checks whether the cell data is at least in one of the other sheets'
+// column value space (aka message's field value space). prop.Refer is comma separated,
+// e.g.: "SheetName(SheetAlias).ColumnName[,SheetName(SheetAlias).ColumnName]..."
 func InReferredSpace(prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
 	if prop == nil || strings.TrimSpace(prop.Refer) == "" {
 		return true, nil
@@ -223,12 +226,19 @@ func InReferredSpace(prop *tableaupb.FieldProp, cellData string, input *Input) (
 		return true, nil
 	}
 
-	loadFunc := func() (*ValueSpace, error) {
-		return loadValueSpace(prop.Refer, input)
+	loadFunc := func(refer string) (*ValueSpace, error) {
+		return loadValueSpace(refer, input)
 	}
-	ok, err := referredCache.ExistsValue(prop.Refer, cellData, loadFunc)
-	if err != nil {
-		return false, err
+
+	// NOTE: prop.Refer is comma separated, e.g.: "SheetName(SheetAlias).ColumnName[,SheetName(SheetAlias).ColumnName]..."
+	for _, refer := range strings.Split(prop.Refer, ",") {
+		ok, err := referredCache.ExistsValue(refer, cellData, loadFunc)
+		if err != nil {
+			return false, err
+		}
+		if ok {
+			return true, nil
+		}
 	}
-	return ok, nil
+	return false, nil
 }
