@@ -62,7 +62,7 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 func adjustExcelTopN(file *excelize.File, brOpts *bookReaderOptions, parser book.SheetParser, cloned bool) error {
 	if parser != nil && !cloned {
 		// parse metasheet, and change topN to 0 if any sheet is transpose or not default mode.
-		metasheet, err := readExcelSheet(file, book.MetasheetName, 0)
+		metasheet, err := readExcelMetasheet(file)
 		if err != nil {
 			if errors.Is(err, ErrSheetNotFound) {
 				log.Debugf("metasheet not found, use default TopN: %d", defaultTopN)
@@ -106,13 +106,14 @@ func readExcelBook(file *excelize.File, brOpts *bookReaderOptions, parser book.S
 	return newBook, nil
 }
 
-func readExcelSheet(file *excelize.File, sheetName string, topN uint) (*book.Sheet, error) {
-	srOpts := &sheetReaderOptions{Name: sheetName, TopN: topN}
-	sheets, err := readExcelSheets(file, []*sheetReaderOptions{srOpts})
+// readExcelMetasheet reads all rows of metasheet.
+func readExcelMetasheet(file *excelize.File) (*book.Sheet, error) {
+	sheetName := book.MetasheetName
+	rows, err := readExcelSheetRows(file, sheetName, 0)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get rows of sheet: %s", sheetName)
 	}
-	return sheets[0], nil
+	return book.NewSheet(sheetName, rows), nil
 }
 
 func readExcelSheets(file *excelize.File, srOpts []*sheetReaderOptions) ([]*book.Sheet, error) {
@@ -131,6 +132,8 @@ func readExcelSheets(file *excelize.File, srOpts []*sheetReaderOptions) ([]*book
 	return sheets, nil
 }
 
+// readExcelSheetRows reads topN rows of specified sheet from excel file.
+// NOTE: If topN is 0, then reads all rows.
 func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][]string, err error) {
 	if f.GetSheetIndex(sheetName) == -1 {
 		return nil, ErrSheetNotFound
