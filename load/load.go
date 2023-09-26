@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 type Options struct {
@@ -167,7 +168,19 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	}
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: self})
-	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, workbook.Name, dir, md, wsOpts)
+
+	sheetInfo := &confgen.SheetInfo{
+		ProtoPackage:    string(md.ParentFile().Package()),
+		LocationName:    opts.LocationName,
+		PrimaryBookName: workbook.Name,
+		MD:              md,
+		Opts:            wsOpts,
+		ExtInfo: &confgen.SheetParserExtInfo{
+			InputDir:       dir,
+			SubdirRewrites: opts.SubdirRewrites,
+			PRFiles:        protoregistry.GlobalFiles,
+		},
+	}
 	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to parse message %s", msgName)

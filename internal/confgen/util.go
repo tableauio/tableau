@@ -10,6 +10,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -204,4 +205,20 @@ func getRelBookName(basepath, filename string) string {
 	} else {
 		return relBookName
 	}
+}
+
+// loadProtoRegistryFiles auto loads all protoregistry.Files in protoregistry.GlobalFiles or parsed from proto files.
+func loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles []string, excludeProtoFiles ...string) (*protoregistry.Files, error) {
+	count := 0
+	protoregistry.GlobalFiles.RangeFilesByPackage(
+		protoreflect.FullName(protoPackage),
+		func(fd protoreflect.FileDescriptor) bool {
+			count++
+			return false
+		})
+	if count != 0 {
+		log.Debugf("use already injected protoregistry.GlobalFiles")
+		return protoregistry.GlobalFiles, nil
+	}
+	return xproto.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
 }
