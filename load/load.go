@@ -183,10 +183,9 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	}
 	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to parse message %s", msgName)
+		return err
 	}
-	// cost: deep copy
+	// NOTE: deep copy
 	proto.Merge(msg, protomsg)
-
 	return nil
 }

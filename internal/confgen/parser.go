@@ -91,7 +91,10 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 	if len(impInfos) == 1 {
 		return parseMessageFromOneImporter(info, impInfos[0])
 	} else if len(impInfos) == 0 {
-		return nil, xerrors.ErrorKV("no protomsg parsed", xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
+		return nil, xerrors.ErrorKV("no importer to be parsed",
+			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeySheetName, info.Opts.Name,
+			xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 
 	// NOTE: use map-reduce pattern to accelerate parsing multiple importer infos.
@@ -117,7 +120,10 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 		})
 	}
 	if err := eg.Wait(); err != nil {
-		return nil, xerrors.WrapKV(err, xerrors.KeyPrimaryBookName, info.PrimaryBookName, xerrors.KeyPrimarySheetName, info.Opts.Name)
+		return nil, xerrors.WrapKV(err,
+			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
+			xerrors.KeyPrimarySheetName, info.Opts.Name)
 	}
 
 	// map-reduce: reduce results to one
@@ -133,11 +139,19 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 					err := xproto.CheckMapDuplicateKey(prevMsg.protomsg, msg.protomsg)
 					if err != nil {
 						bookNames := prevMsg.bookName + ", " + msg.bookName
-						return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookNames, xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
+						return nil, xerrors.WrapKV(err,
+							xerrors.KeyModule, xerrors.ModuleConf,
+							xerrors.KeyBookName, bookNames,
+							xerrors.KeySheetName, info.Opts.Name,
+							xerrors.KeyPBMessage, string(info.MD.Name()))
 					}
 				}
 			}
-			return nil, xerrors.WrapKV(err, xerrors.KeyBookName, msg.bookName, xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
+			return nil, xerrors.WrapKV(err,
+				xerrors.KeyModule, xerrors.ModuleConf,
+				xerrors.KeyBookName, msg.bookName,
+				xerrors.KeySheetName, info.Opts.Name,
+				xerrors.KeyPBMessage, string(info.MD.Name()))
 		}
 	}
 	return mainMsg, nil
