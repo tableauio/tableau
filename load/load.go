@@ -150,7 +150,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	wbPath := filepath.Join(dir, rewrittenWorkbookName)
 	log.Debugf("load origin file: %v", wbPath)
 	// get sheet name
-	msgName, wsOpts := confgen.ParseMessageOptions(md)
+	_, wsOpts := confgen.ParseMessageOptions(md)
 	sheets := []string{wsOpts.Name}
 
 	self, err := importer.New(
