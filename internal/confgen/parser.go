@@ -87,14 +87,22 @@ type oneMsg struct {
 	bookName string
 }
 
+// ParseMessage parses multiple importer infos into one protomsg. If an error
+// occurs, then wrap it with KeyModule as ModuleConf ("confgen"), then API user
+// can call `xerrors.NewDesc(err)“ to print the pretty error message.
 func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Message, error) {
-	if len(impInfos) == 1 {
-		return parseMessageFromOneImporter(info, impInfos[0])
-	} else if len(impInfos) == 0 {
+	if len(impInfos) == 0 {
 		return nil, xerrors.ErrorKV("no importer to be parsed",
 			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 			xerrors.KeySheetName, info.Opts.Name,
 			xerrors.KeyPBMessage, string(info.MD.Name()))
+	} else if len(impInfos) == 1 {
+		protomsg, err := parseMessageFromOneImporter(info, impInfos[0])
+		if err != nil {
+			return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		}
+		return protomsg, nil
 	}
 
 	// NOTE: use map-reduce pattern to accelerate parsing multiple importer infos.
