@@ -173,7 +173,6 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 		err := xerrors.E0001(sheetName, bookName)
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
-	//parser := newSheetParserInternal(info)
 	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, info.Opts, info.ExtInfo)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
