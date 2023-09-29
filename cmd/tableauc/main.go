@@ -152,7 +152,7 @@ func logError(mode string, err error) {
 	if log.Mode() == log.ModeFull {
 		log.Errorf("generate %s file failed: %+v", mode, err)
 	}
-	log.Errorf("%s", xerrors.NewDesc(err))
+	log.Errorf("Error: %s", xerrors.NewDesc(err))
 }
 
 func loadConfig(path string) (*options.Options, error) {
