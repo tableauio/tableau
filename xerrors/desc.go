@@ -3,8 +3,6 @@ package xerrors
 import (
 	"fmt"
 	"strings"
-
-	"github.com/tableauio/tableau/log"
 )
 
 const (
@@ -121,22 +119,18 @@ func (d *Desc) ErrCode() string {
 
 // String render description in specified language.
 func (d *Desc) String() string {
-	if d.fields[keyReason] == nil {
-		return fmt.Sprintf("Error: %s", d.err.Error())
+	if d.fields[keyReason] == nil || d.fields[KeyModule] == nil {
+		return d.err.Error()
 	}
 	debugging := fmt.Sprintf("Debugging: \n%s\n", d.DebugString())
-	module, ok := d.fields[KeyModule].(string)
-	if !ok {
-		log.Errorf("KeyModule %s not set", KeyModule)
-		return fmt.Sprintf("Error: %s", d.err)
-	}
+	module := d.fields[KeyModule].(string)
 	switch module {
 	case ModuleProto:
 		return debugging + renderSummary(module, d.fields)
 	case ModuleConf:
 		return debugging + renderSummary(module, d.fields)
 	default:
-		return fmt.Sprintf("Error: %s", d.err)
+		return d.err.Error()
 	}
 }
 

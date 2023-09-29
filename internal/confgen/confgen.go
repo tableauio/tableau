@@ -10,7 +10,6 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -31,10 +30,7 @@ type Generator struct {
 	InputOpt     *options.ConfInputOption  // Input settings.
 	OutputOpt    *options.ConfOutputOption // output settings.
 
-	// protoregistry
-	prFiles *protoregistry.Files
-
-	// Performace stats
+	// Performance stats
 	PerfStats sync.Map
 }
 
@@ -73,19 +69,17 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 }
 
 func (gen *Generator) GenAll() error {
-	err := gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
 	}
-
-	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, gen.prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-
+	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 	var eg errgroup.Group
-	gen.prFiles.RangeFilesByPackage(
+	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
 			eg.Go(func() error {
-				return gen.convert(fd, "")
+				return gen.convert(prFiles, fd, "")
 			})
 			return true
 		})
@@ -96,13 +90,12 @@ func (gen *Generator) GenAll() error {
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
-	err := gen.loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to create files")
+		return err
 	}
-	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, gen.prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-
-	bookIndexes, err := buildWorkbookIndex(protoreflect.FullName(gen.ProtoPackage), gen.InputDir, gen.InputOpt.SubdirRewrites, gen.prFiles)
+	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+	bookIndexes, err := buildWorkbookIndex(protoreflect.FullName(gen.ProtoPackage), gen.InputDir, gen.InputOpt.SubdirRewrites, prFiles)
 	if err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
@@ -126,7 +119,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			return errors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
 		eg.Go(func() error {
-			return gen.convert(primaryBookIndexInfo.fd, sheetName)
+			return gen.convert(prFiles, primaryBookIndexInfo.fd, sheetName)
 		})
 	}
 	return eg.Wait()
@@ -134,7 +127,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 
 // convert a workbook related to parameter fd, and only convert the
 // specified worksheet if the input parameter worksheetName is not empty.
-func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName string) (err error) {
+func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.FileDescriptor, worksheetName string) (err error) {
 	bookBeginTime := time.Now()
 	_, workbook := ParseFileOptions(fd)
 	if workbook == nil {
@@ -159,21 +152,24 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 
 	var sheets []string
 	// sheet name -> message name
-	sheetMap := map[string]SheetInfo{}
+	sheetMap := map[string]*SheetInfo{}
 	msgs := fd.Messages()
 	for i := 0; i < msgs.Len(); i++ {
 		md := msgs.Get(i)
 		opts := md.Options().(*descriptorpb.MessageOptions)
 		sheetOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
 		if sheetOpts != nil {
-			sheetMap[sheetOpts.Name] = SheetInfo{
+			sheetMap[sheetOpts.Name] = &SheetInfo{
 				ProtoPackage:    gen.ProtoPackage,
 				LocationName:    gen.LocationName,
 				PrimaryBookName: rewrittenWorkbookName,
-				InputDir:        gen.InputDir,
 				MD:              md,
 				Opts:            sheetOpts,
-				gen:             gen,
+				ExtInfo: &SheetParserExtInfo{
+					InputDir:       gen.InputDir,
+					SubdirRewrites: gen.InputOpt.SubdirRewrites,
+					PRFiles:        prFiles,
+				},
 			}
 			sheets = append(sheets, sheetOpts.Name)
 		}
@@ -201,12 +197,12 @@ func (gen *Generator) convert(fd protoreflect.FileDescriptor, worksheetName stri
 				return xerrors.ErrorKV("option Scatter and Merger cannot be both set at one sheet",
 					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
-			err := gen.processScatter(imp, &sheetInfo, rewrittenWorkbookName, sheetName)
+			err := gen.processScatter(imp, sheetInfo, rewrittenWorkbookName, sheetName)
 			if err != nil {
 				return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
 		} else {
-			err := gen.processMerger(imp, &sheetInfo, rewrittenWorkbookName, sheetName)
+			err := gen.processMerger(imp, sheetInfo, rewrittenWorkbookName, sheetName)
 			if err != nil {
 				return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
@@ -249,28 +245,5 @@ func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo
 	if err := exporter.MergeAndExport(sheetInfo, importers...); err != nil {
 		return err
 	}
-	return nil
-}
-
-// get protoregistry.Files with specified package name
-func (gen *Generator) loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles []string, excludeProtoFiles ...string) error {
-	count := 0
-	prFiles := protoregistry.GlobalFiles
-	prFiles.RangeFilesByPackage(
-		protoreflect.FullName(protoPackage),
-		func(fd protoreflect.FileDescriptor) bool {
-			count++
-			return false
-		})
-	if count != 0 {
-		log.Debugf("use already injected protoregistry.GlobalFiles")
-		gen.prFiles = prFiles
-		return nil
-	}
-	prFiles, err := xproto.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
-	if err != nil {
-		return err
-	}
-	gen.prFiles = prFiles
 	return nil
 }

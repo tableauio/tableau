@@ -23,6 +23,7 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
 )
@@ -86,11 +87,22 @@ type oneMsg struct {
 	bookName string
 }
 
+// ParseMessage parses multiple importer infos into one protomsg. If an error
+// occurs, then wrap it with KeyModule as ModuleConf ("confgen"), then API user
+// can call `xerrors.NewDesc(err)“ to print the pretty error message.
 func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Message, error) {
-	if len(impInfos) == 1 {
-		return parseMessageFromOneImporter(info, impInfos[0])
-	} else if len(impInfos) == 0 {
-		return nil, xerrors.ErrorKV("no protomsg parsed", xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
+	if len(impInfos) == 0 {
+		return nil, xerrors.ErrorKV("no importer to be parsed",
+			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
+			xerrors.KeySheetName, info.Opts.Name,
+			xerrors.KeyPBMessage, string(info.MD.Name()))
+	} else if len(impInfos) == 1 {
+		protomsg, err := parseMessageFromOneImporter(info, impInfos[0])
+		if err != nil {
+			return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		}
+		return protomsg, nil
 	}
 
 	// NOTE: use map-reduce pattern to accelerate parsing multiple importer infos.
@@ -109,14 +121,17 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
 				protomsg: protomsg,
-				bookName: getRelBookName(info.InputDir, impInfo.Filename()),
+				bookName: getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()),
 			})
 			mu.Unlock()
 			return nil
 		})
 	}
 	if err := eg.Wait(); err != nil {
-		return nil, xerrors.WrapKV(err, xerrors.KeyPrimaryBookName, info.PrimaryBookName, xerrors.KeyPrimarySheetName, info.Opts.Name)
+		return nil, xerrors.WrapKV(err,
+			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
+			xerrors.KeyPrimarySheetName, info.Opts.Name)
 	}
 
 	// map-reduce: reduce results to one
@@ -132,11 +147,19 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 					err := xproto.CheckMapDuplicateKey(prevMsg.protomsg, msg.protomsg)
 					if err != nil {
 						bookNames := prevMsg.bookName + ", " + msg.bookName
-						return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookNames, xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
+						return nil, xerrors.WrapKV(err,
+							xerrors.KeyModule, xerrors.ModuleConf,
+							xerrors.KeyBookName, bookNames,
+							xerrors.KeySheetName, info.Opts.Name,
+							xerrors.KeyPBMessage, string(info.MD.Name()))
 					}
 				}
 			}
-			return nil, xerrors.WrapKV(err, xerrors.KeyBookName, msg.bookName, xerrors.KeySheetName, info.Opts.Name, xerrors.KeyPBMessage, string(info.MD.Name()))
+			return nil, xerrors.WrapKV(err,
+				xerrors.KeyModule, xerrors.ModuleConf,
+				xerrors.KeyBookName, msg.bookName,
+				xerrors.KeySheetName, info.Opts.Name,
+				xerrors.KeyPBMessage, string(info.MD.Name()))
 		}
 	}
 	return mainMsg, nil
@@ -146,14 +169,14 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 	sheetName := getRealSheetName(info, impInfo)
 	sheet := impInfo.GetSheet(sheetName)
 	if sheet == nil {
-		bookName := getRelBookName(info.InputDir, impInfo.Filename())
+		bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
 		err := xerrors.E0001(sheetName, bookName)
 		return nil, xerrors.WithMessageKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
-	parser := newSheetParserInternal(info)
+	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, info.Opts, info.ExtInfo)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
-		return nil, xerrors.WithMessageKV(err, xerrors.KeyBookName, getRelBookName(info.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
+		return nil, xerrors.WithMessageKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	return protomsg, nil
 }
@@ -162,24 +185,10 @@ type SheetInfo struct {
 	ProtoPackage    string
 	LocationName    string
 	PrimaryBookName string
-	InputDir        string // field "gen" may be nil, so need explicit InputDir field.
-	// Maybe Merger and Scatter process different sheets (same structure) in the same workbook
-	SheetName string
-	MD        protoreflect.MessageDescriptor
-	Opts      *tableaupb.WorksheetOptions
+	MD              protoreflect.MessageDescriptor
+	Opts            *tableaupb.WorksheetOptions
 
-	gen *Generator // NOTE: only set in internal package, currently only for refer check.
-}
-
-func NewSheetInfo(protoPackage, locationName, primaryBookName, inputDir string, md protoreflect.MessageDescriptor, opts *tableaupb.WorksheetOptions) *SheetInfo {
-	return &SheetInfo{
-		ProtoPackage:    protoPackage,
-		LocationName:    locationName,
-		PrimaryBookName: primaryBookName,
-		InputDir:        inputDir,
-		MD:              md,
-		Opts:            opts,
-	}
+	ExtInfo *SheetParserExtInfo
 }
 
 func (si *SheetInfo) HasScatter() bool {
@@ -190,34 +199,39 @@ func (si *SheetInfo) HasMerger() bool {
 	return si.Opts != nil && len(si.Opts.Merger) != 0
 }
 
-func newSheetParserInternal(info *SheetInfo) *sheetParser {
-	parser := NewSheetParser(info.ProtoPackage, info.LocationName, info.Opts)
-	parser.gen = info.gen // set generator
-	return parser
-}
-
-// NewSheetParser create a new sheet parser without Generator.
-func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
-	return &sheetParser{
-		ProtoPackage: protoPackage,
-		LocationName: locationName,
-		gen:          nil,
-		opts:         opts,
-		lookupTable:  map[string]uint32{},
-	}
-}
-
 type sheetParser struct {
 	ProtoPackage string
 	LocationName string
-
-	gen  *Generator // nil if this is a simple parser
-	opts *tableaupb.WorksheetOptions
+	opts         *tableaupb.WorksheetOptions
+	extInfo      *SheetParserExtInfo
 
 	// cached name and type
 	names       []string               // names[col] -> name
 	types       []string               // types[col] -> name
 	lookupTable book.ColumnLookupTable // name -> column index (started with 0)
+}
+
+// SheetParserExtInfo is the extended info for refer check and so on.
+type SheetParserExtInfo struct {
+	InputDir       string
+	SubdirRewrites map[string]string
+	PRFiles        *protoregistry.Files
+}
+
+// NewSheetParser creates a new sheet parser extended info.
+func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
+	return NewExtendedSheetParser(protoPackage, locationName, opts, nil)
+}
+
+// NewExtendedSheetParser creates a new sheet parser with extended info.
+func NewExtendedSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
+	return &sheetParser{
+		ProtoPackage: protoPackage,
+		LocationName: locationName,
+		opts:         opts,
+		extInfo:      extInfo,
+		lookupTable:  map[string]uint32{},
+	}
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
@@ -1343,13 +1357,13 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 			return v, present, err
 		}
 		// check refer
-		// NOTE: if use NewSheetParser, sp.gen is nil, which means Generator is not provided.
-		if fprop.Refer != "" && sp.gen != nil {
+		// NOTE: if use NewSheetParser, sp.extInfo is nil, which means SheetParserExtInfo is not provided.
+		if fprop.Refer != "" && sp.extInfo != nil {
 			input := &prop.Input{
-				ProtoPackage:   sp.gen.ProtoPackage,
-				InputDir:       sp.gen.InputDir,
-				SubdirRewrites: sp.gen.InputOpt.SubdirRewrites,
-				PRFiles:        sp.gen.prFiles,
+				ProtoPackage:   sp.ProtoPackage,
+				InputDir:       sp.extInfo.InputDir,
+				SubdirRewrites: sp.extInfo.SubdirRewrites,
+				PRFiles:        sp.extInfo.PRFiles,
 				Present:        present,
 			}
 			ok, err := prop.InReferredSpace(fprop, rawValue, input)

@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 type Options struct {
@@ -149,7 +150,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	wbPath := filepath.Join(dir, rewrittenWorkbookName)
 	log.Debugf("load origin file: %v", wbPath)
 	// get sheet name
-	msgName, wsOpts := confgen.ParseMessageOptions(md)
+	_, wsOpts := confgen.ParseMessageOptions(md)
 	sheets := []string{wsOpts.Name}
 
 	self, err := importer.New(
@@ -167,13 +168,24 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	}
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: self})
-	sheetInfo := confgen.NewSheetInfo(string(md.ParentFile().Package()), opts.LocationName, workbook.Name, dir, md, wsOpts)
+
+	sheetInfo := &confgen.SheetInfo{
+		ProtoPackage:    string(md.ParentFile().Package()),
+		LocationName:    opts.LocationName,
+		PrimaryBookName: workbook.Name,
+		MD:              md,
+		Opts:            wsOpts,
+		ExtInfo: &confgen.SheetParserExtInfo{
+			InputDir:       dir,
+			SubdirRewrites: opts.SubdirRewrites,
+			PRFiles:        protoregistry.GlobalFiles,
+		},
+	}
 	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to parse message %s", msgName)
+		return err
 	}
-	// cost: deep copy
+	// NOTE: deep copy
 	proto.Merge(msg, protomsg)
-
 	return nil
 }
