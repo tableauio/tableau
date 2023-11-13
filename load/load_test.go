@@ -5,6 +5,7 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -31,13 +32,28 @@ func TestLoad(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "with-paths",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				dir: "../testdata/",
+				fmt: format.CSV,
+				options: []Option{
+					Paths(map[string]string{
+						"ItemConf": "../testdata/unittest/conf/ItemConf.json",
+					}),
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := Load(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options...); (err != nil) != tt.wantErr {
 				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			t.Logf("msg: %v", tt.args.msg)
+			v, _ := protojson.Marshal(tt.args.msg)
+			t.Logf("msg: %v", string(v))
 		})
 	}
 }

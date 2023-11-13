@@ -17,28 +17,31 @@ import (
 )
 
 type Options struct {
-	// Rewrite subdir path (relative to workbook name option in .proto file).
-	// Default: nil.
-	SubdirRewrites map[string]string
-	// Location represents the collection of time offsets in use in a geographical area.
+	// Location represents the collection of time offsets in use in
+	// a geographical area.
+	//
 	// If the name is "" or "UTC", LoadLocation returns UTC.
 	// If the name is "Local", LoadLocation returns Local.
 	// Default: "Local".
 	LocationName string
-	// Whether to ignore unknown JSON fields during parsing.
+	// IgnoreUnknownFields signifies whether to ignore unknown JSON fields
+	// during parsing.
 	// Default: false.
 	IgnoreUnknownFields bool
+	// SubdirRewrites rewrites subdir paths (relative to workbook name option
+	// in .proto file).
+	// Default: nil.
+	SubdirRewrites map[string]string
+	// Paths maps each messager name to a corresponding config file path.
+	// If a messager name is existed, then the messager will be parsed from
+	// the config file directly.
+	// NOTE: only JSON, bin, and text formats are supported.
+	// Default: nil.
+	Paths map[string]string
 }
 
 // Option is the functional option type.
 type Option func(*Options)
-
-// SubdirRewrites option.
-func SubdirRewrites(subdirRewrites map[string]string) Option {
-	return func(opts *Options) {
-		opts.SubdirRewrites = subdirRewrites
-	}
-}
 
 // LocationName sets TZ location name for parsing datetime format.
 func LocationName(name string) Option {
@@ -47,19 +50,34 @@ func LocationName(name string) Option {
 	}
 }
 
-// IgnoreUnknownFields sets whether to ignore unknown JSON fields during parsing.
-func IgnoreUnknownFields(ignore bool) Option {
+// IgnoreUnknownFields ignores unknown JSON fields during parsing.
+func IgnoreUnknownFields() Option {
 	return func(opts *Options) {
-		opts.IgnoreUnknownFields = ignore
+		opts.IgnoreUnknownFields = true
+	}
+}
+
+// SubdirRewrites rewrites subdir paths (relative to workbook name option
+// in .proto file).
+func SubdirRewrites(subdirRewrites map[string]string) Option {
+	return func(opts *Options) {
+		opts.SubdirRewrites = subdirRewrites
+	}
+}
+
+// Paths maps each messager name to a corresponding config file path.
+// If a messager name is existed, then the messager will be parsed from
+// the config file directly.
+func Paths(paths map[string]string) Option {
+	return func(opts *Options) {
+		opts.Paths = paths
 	}
 }
 
 // newDefault returns a default Options.
 func newDefault() *Options {
 	return &Options{
-		SubdirRewrites:      nil,
-		LocationName:        "Local",
-		IgnoreUnknownFields: false,
+		LocationName: "Local",
 	}
 }
 
@@ -76,6 +94,16 @@ func ParseOptions(setters ...Option) *Options {
 // Load reads file content from the specified directory and format,
 // and then fills the provided message.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
+	// preprocess
+	opts := ParseOptions(options...)
+	if opts.Paths != nil {
+		msgName := string(msg.ProtoReflect().Descriptor().Name())
+		if path, ok := opts.Paths[msgName]; ok {
+			// path specified explicitly, then use it directly
+			dir = filepath.Dir(path)
+			fmt = format.Ext2Format(filepath.Ext(path))
+		}
+	}
 	switch fmt {
 	case format.JSON:
 		return loadJSON(msg, dir, options...)
