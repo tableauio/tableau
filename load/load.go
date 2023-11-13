@@ -116,6 +116,8 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 			path = filepath.Join(dir, name+format.TextExt)
 		case format.Bin:
 			path = filepath.Join(dir, name+format.BinExt)
+		default:
+			return errors.Errorf("unknown format: %v", fmt)
 		}
 	}
 	content, err := os.ReadFile(path)
