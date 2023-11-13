@@ -94,74 +94,47 @@ func ParseOptions(setters ...Option) *Options {
 // Load reads file content from the specified directory and format,
 // and then fills the provided message.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
-	// preprocess
+	if format.IsInputFormat(fmt) {
+		return loadOrigin(msg, dir, options...)
+	}
+
+	var path string
+	name := string(msg.ProtoReflect().Descriptor().Name())
 	opts := ParseOptions(options...)
 	if opts.Paths != nil {
-		msgName := string(msg.ProtoReflect().Descriptor().Name())
-		if path, ok := opts.Paths[msgName]; ok {
+		if p, ok := opts.Paths[name]; ok {
 			// path specified explicitly, then use it directly
-			dir = filepath.Dir(path)
+			path = p
 			fmt = format.Ext2Format(filepath.Ext(path))
 		}
 	}
+	if path == "" {
+		switch fmt {
+		case format.JSON:
+			path = filepath.Join(dir, name+format.JSONExt)
+		case format.Text:
+			path = filepath.Join(dir, name+format.TextExt)
+		case format.Bin:
+			path = filepath.Join(dir, name+format.BinExt)
+		}
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read file: %v", path)
+	}
 	switch fmt {
 	case format.JSON:
-		return loadJSON(msg, dir, options...)
+		unmarshOpts := protojson.UnmarshalOptions{
+			DiscardUnknown: opts.IgnoreUnknownFields,
+		}
+		return unmarshOpts.Unmarshal(content, msg)
 	case format.Text:
-		return loadText(msg, dir, options...)
+		return prototext.Unmarshal(content, msg)
 	case format.Bin:
-		return loadBin(msg, dir, options...)
-	case format.Excel, format.CSV, format.XML:
-		return loadOrigin(msg, dir, options...)
+		return proto.Unmarshal(content, msg)
 	default:
 		return errors.Errorf("unknown format: %v", fmt)
 	}
-}
-
-func loadJSON(msg proto.Message, dir string, options ...Option) error {
-	msgName := string(msg.ProtoReflect().Descriptor().Name())
-	path := filepath.Join(dir, msgName+format.JSONExt)
-
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read file: %v", path)
-	}
-	opts := ParseOptions(options...)
-	unmarshOpts := protojson.UnmarshalOptions{
-		DiscardUnknown: opts.IgnoreUnknownFields,
-	}
-	if err := unmarshOpts.Unmarshal(content, msg); err != nil {
-		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-	}
-	return nil
-}
-
-func loadText(msg proto.Message, dir string, options ...Option) error {
-	msgName := string(msg.ProtoReflect().Descriptor().Name())
-	path := filepath.Join(dir, msgName+format.TextExt)
-
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read file: %v", path)
-	}
-	if err := prototext.Unmarshal(content, msg); err != nil {
-		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-	}
-	return nil
-}
-
-func loadBin(msg proto.Message, dir string, options ...Option) error {
-	msgName := string(msg.ProtoReflect().Descriptor().Name())
-	path := filepath.Join(dir, msgName+format.BinExt)
-
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read file: %v", path)
-	}
-	if err := proto.Unmarshal(content, msg); err != nil {
-		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-	}
-	return nil
 }
 
 // loadOrigin loads the origin file(excel/csv/xml) from the given directory.
