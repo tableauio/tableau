@@ -17,28 +17,31 @@ import (
 )
 
 type Options struct {
-	// Rewrite subdir path (relative to workbook name option in .proto file).
-	// Default: nil.
-	SubdirRewrites map[string]string
-	// Location represents the collection of time offsets in use in a geographical area.
+	// Location represents the collection of time offsets in use in
+	// a geographical area.
+	//
 	// If the name is "" or "UTC", LoadLocation returns UTC.
 	// If the name is "Local", LoadLocation returns Local.
 	// Default: "Local".
 	LocationName string
-	// Whether to ignore unknown JSON fields during parsing.
+	// IgnoreUnknownFields signifies whether to ignore unknown JSON fields
+	// during parsing.
 	// Default: false.
 	IgnoreUnknownFields bool
+	// SubdirRewrites rewrites subdir paths (relative to workbook name option
+	// in .proto file).
+	// Default: nil.
+	SubdirRewrites map[string]string
+	// Paths maps each messager name to a corresponding config file path.
+	// If a messager name is existed, then the messager will be parsed from
+	// the config file directly.
+	// NOTE: only JSON, bin, and text formats are supported.
+	// Default: nil.
+	Paths map[string]string
 }
 
 // Option is the functional option type.
 type Option func(*Options)
-
-// SubdirRewrites option.
-func SubdirRewrites(subdirRewrites map[string]string) Option {
-	return func(opts *Options) {
-		opts.SubdirRewrites = subdirRewrites
-	}
-}
 
 // LocationName sets TZ location name for parsing datetime format.
 func LocationName(name string) Option {
@@ -47,19 +50,34 @@ func LocationName(name string) Option {
 	}
 }
 
-// IgnoreUnknownFields sets whether to ignore unknown JSON fields during parsing.
-func IgnoreUnknownFields(ignore bool) Option {
+// IgnoreUnknownFields ignores unknown JSON fields during parsing.
+func IgnoreUnknownFields() Option {
 	return func(opts *Options) {
-		opts.IgnoreUnknownFields = ignore
+		opts.IgnoreUnknownFields = true
+	}
+}
+
+// SubdirRewrites rewrites subdir paths (relative to workbook name option
+// in .proto file).
+func SubdirRewrites(subdirRewrites map[string]string) Option {
+	return func(opts *Options) {
+		opts.SubdirRewrites = subdirRewrites
+	}
+}
+
+// Paths maps each messager name to a corresponding config file path.
+// If a messager name is existed, then the messager will be parsed from
+// the config file directly.
+func Paths(paths map[string]string) Option {
+	return func(opts *Options) {
+		opts.Paths = paths
 	}
 }
 
 // newDefault returns a default Options.
 func newDefault() *Options {
 	return &Options{
-		SubdirRewrites:      nil,
-		LocationName:        "Local",
-		IgnoreUnknownFields: false,
+		LocationName: "Local",
 	}
 }
 
@@ -76,64 +94,49 @@ func ParseOptions(setters ...Option) *Options {
 // Load reads file content from the specified directory and format,
 // and then fills the provided message.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
+	if format.IsInputFormat(fmt) {
+		return loadOrigin(msg, dir, options...)
+	}
+
+	var path string
+	name := string(msg.ProtoReflect().Descriptor().Name())
+	opts := ParseOptions(options...)
+	if opts.Paths != nil {
+		if p, ok := opts.Paths[name]; ok {
+			// path specified explicitly, then use it directly
+			path = p
+			fmt = format.Ext2Format(filepath.Ext(path))
+		}
+	}
+	if path == "" {
+		switch fmt {
+		case format.JSON:
+			path = filepath.Join(dir, name+format.JSONExt)
+		case format.Text:
+			path = filepath.Join(dir, name+format.TextExt)
+		case format.Bin:
+			path = filepath.Join(dir, name+format.BinExt)
+		default:
+			return errors.Errorf("unknown format: %v", fmt)
+		}
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read file: %v", path)
+	}
 	switch fmt {
 	case format.JSON:
-		return loadJSON(msg, dir, options...)
+		unmarshOpts := protojson.UnmarshalOptions{
+			DiscardUnknown: opts.IgnoreUnknownFields,
+		}
+		return unmarshOpts.Unmarshal(content, msg)
 	case format.Text:
-		return loadText(msg, dir, options...)
+		return prototext.Unmarshal(content, msg)
 	case format.Bin:
-		return loadBin(msg, dir, options...)
-	case format.Excel, format.CSV, format.XML:
-		return loadOrigin(msg, dir, options...)
+		return proto.Unmarshal(content, msg)
 	default:
 		return errors.Errorf("unknown format: %v", fmt)
 	}
-}
-
-func loadJSON(msg proto.Message, dir string, options ...Option) error {
-	msgName := string(msg.ProtoReflect().Descriptor().Name())
-	path := filepath.Join(dir, msgName+format.JSONExt)
-
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read file: %v", path)
-	}
-	opts := ParseOptions(options...)
-	unmarshOpts := protojson.UnmarshalOptions{
-		DiscardUnknown: opts.IgnoreUnknownFields,
-	}
-	if err := unmarshOpts.Unmarshal(content, msg); err != nil {
-		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-	}
-	return nil
-}
-
-func loadText(msg proto.Message, dir string, options ...Option) error {
-	msgName := string(msg.ProtoReflect().Descriptor().Name())
-	path := filepath.Join(dir, msgName+format.TextExt)
-
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read file: %v", path)
-	}
-	if err := prototext.Unmarshal(content, msg); err != nil {
-		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-	}
-	return nil
-}
-
-func loadBin(msg proto.Message, dir string, options ...Option) error {
-	msgName := string(msg.ProtoReflect().Descriptor().Name())
-	path := filepath.Join(dir, msgName+format.BinExt)
-
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return errors.Wrapf(err, "failed to read file: %v", path)
-	}
-	if err := proto.Unmarshal(content, msg); err != nil {
-		return errors.Wrapf(err, "failed to unmarhsal message: %v", msgName)
-	}
-	return nil
 }
 
 // loadOrigin loads the origin file(excel/csv/xml) from the given directory.
