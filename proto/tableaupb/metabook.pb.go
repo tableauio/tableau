@@ -90,9 +90,9 @@ type Metasheet struct {
 	Subsep string `protobuf:"bytes,12,opt,name=subsep,proto3" json:"subsep,omitempty"`
 	// merge multiple sheets with same schema to one.
 	// each element is:
-	// - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>,
-	//   then the sheet name is the same as this sheet.
-	// - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
+	//   - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>,
+	//     then the sheet name is the same as this sheet.
+	//   - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
 	Merger []string `protobuf:"bytes,13,rep,name=merger,proto3" json:"merger,omitempty"`
 	// Tableau will merge adjacent rows with the same key. If the key cell is not set,
 	// it will be treated as the same as the most nearest key above the same column.
@@ -114,11 +114,11 @@ type Metasheet struct {
 	Mode Mode `protobuf:"varint,17,opt,name=mode,proto3,enum=tableau.Mode" json:"mode,omitempty"`
 	// Scatter converts sheets separately with same schema.
 	// each element is:
-	// - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
-	//   then the sheet name is the same as this sheet.
-	// - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
+	//   - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
+	//     then the sheet name is the same as this sheet.
+	//   - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
 	Scatter []string `protobuf:"bytes,18,rep,name=scatter,proto3" json:"scatter,omitempty"`
-	////////// Loader related options below //////////
+	// //////// Loader related options below //////////
 	// Generate ordered map accessers
 	OrderedMap bool `protobuf:"varint,50,opt,name=ordered_map,json=orderedMap,proto3" json:"ordered_map,omitempty"`
 	// Generate index accessers, and multiple index columns are comma-separated.
@@ -128,11 +128,11 @@ type Metasheet struct {
 	// Composite indexes (or multicolumn indexes) are in the form: ([column1, column2, column3,...])[@IndexName]
 	//
 	// Examples:
-	//  - ID
-	//  - ID@Item
-	//  - (ID,Type)
-	//  - (ID,Type)@Item
-	//  - ID, (ID,Type)@Item
+	//   - ID
+	//   - ID@Item
+	//   - (ID,Type)
+	//   - (ID,Type)@Item
+	//   - ID, (ID,Type)@Item
 	//
 	// Generated APIs are:
 	//

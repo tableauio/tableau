@@ -8,7 +8,7 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-option (tableau.workbook) = {name:"xml/match/SimpleMatch.xml"};
+option (tableau.workbook) = {name:"xml/tableau_xml/match/SimpleMatch.xml"};
 
 message SimpleMatchConf {
   option (tableau.worksheet) = {name:"SimpleMatchConf" namerow:1 typerow:2 noterow:3 datarow:5 nameline:2 typeline:2};

@@ -11,7 +11,7 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-option (tableau.workbook) = {name:"xml/match/Match.xml"};
+option (tableau.workbook) = {name:"xml/tableau_xml/match/Match.xml"};
 
 message MatchCfg {
   option (tableau.worksheet) = {name:"MatchCfg" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};

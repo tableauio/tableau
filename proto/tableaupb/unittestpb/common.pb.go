@@ -239,6 +239,7 @@ type Target struct {
 
 	Type Target_Type `protobuf:"varint,9999,opt,name=type,proto3,enum=unittest.Target_Type" json:"type,omitempty"`
 	// Types that are assignable to Value:
+	//
 	//	*Target_Pvp_
 	//	*Target_Pve_
 	Value isTarget_Value `protobuf_oneof:"value"`
