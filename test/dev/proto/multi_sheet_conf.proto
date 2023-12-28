@@ -8,7 +8,7 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-option (tableau.workbook) = {name:"xml/MultiSheet.xml"};
+option (tableau.workbook) = {name:"xml/tableau_xml/MultiSheet.xml"};
 
 message Server {
   option (tableau.worksheet) = {name:"Server" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};

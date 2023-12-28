@@ -64,6 +64,19 @@ func Test_ResolveSheetSpecifier(t *testing.T) {
 				"testdata/Test_Second#*.csv": true,
 			},
 		},
+		{
+			name: "xml",
+			args: args{
+				inputDir:        ".",
+				primaryBookName: "testdata/Test.xml",
+				sheetName:       "Item",
+				sheetSpecifier:  "Test_*.xml",
+				subdirRewrites:  nil,
+			},
+			want: map[string]bool{
+				"testdata/Test_Second.xml": true,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -101,6 +114,16 @@ func TestGetMergerImporters(t *testing.T) {
 				subdirRewrites:  nil,
 			},
 			want: []string{"testdata/Test_Second.xlsx"},
+		},
+		{
+			name: "xml",
+			args: args{
+				primaryBookName: "testdata/Test.xml",
+				sheetName:       "Item",
+				sheetSpecifiers: []string{"Test_*.xml"},
+				subdirRewrites:  nil,
+			},
+			want: []string{"testdata/Test_Second.xml"},
 		},
 	}
 	for _, tt := range tests {

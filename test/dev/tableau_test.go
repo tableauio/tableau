@@ -35,7 +35,7 @@ func Test_GenProto(t *testing.T) {
 						format.XML,
 					},
 					// Formats: []format.Format{format.CSV},
-					// Subdirs: []string{`xml/`},
+					Subdirs: []string{`xml/tableau_xml`, `excel`},
 					// SubdirRewrites: map[string]string{
 					// 	`excel/`: ``,
 					// },

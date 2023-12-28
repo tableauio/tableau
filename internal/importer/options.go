@@ -16,10 +16,11 @@ const (
 )
 
 type Options struct {
-	Sheets []string         // sheet names to import
-	Parser book.SheetParser // parser to parse the worksheet
-	Mode   ImporterMode     // importer mode
-	Cloned bool             // this book cloned (same schema different data) from the main book
+	Sheets          []string         // sheet names to import
+	Parser          book.SheetParser // parser to parse the worksheet
+	Mode            ImporterMode     // importer mode
+	Cloned          bool             // this book cloned (same schema different data) from the main book
+	PrimaryBookName string           // if cloned, this is primary book name
 }
 
 // Option is the functional option type.
@@ -43,9 +44,10 @@ func Mode(m ImporterMode) Option {
 	}
 }
 
-func Cloned() Option {
+func Cloned(primaryBookName string) Option {
 	return func(opts *Options) {
 		opts.Cloned = true
+		opts.PrimaryBookName = primaryBookName
 	}
 }
 

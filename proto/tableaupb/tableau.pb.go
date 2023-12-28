@@ -29,10 +29,10 @@ type Layout int32
 
 const (
 	// Default:
-	//  - vertical for struct map
-	//  - incell for scalar map
-	//  - horizontal for struct list
-	//  - incell for scalar list
+	//   - vertical for struct map
+	//   - incell for scalar map
+	//   - horizontal for struct list
+	//   - incell for scalar list
 	Layout_LAYOUT_DEFAULT    Layout = 0
 	Layout_LAYOUT_VERTICAL   Layout = 1 // Vertical
 	Layout_LAYOUT_HORIZONTAL Layout = 2 // Horizontal
@@ -87,8 +87,8 @@ type Span int32
 
 const (
 	// Default:
-	//  - inner cell for scalar type: bool, string, bytes, number, and enum.
-	//  - cross cell for struct type: map-value, list-element, and struct-field.
+	//   - inner cell for scalar type: bool, string, bytes, number, and enum.
+	//   - cross cell for struct type: map-value, list-element, and struct-field.
 	Span_SPAN_DEFAULT    Span = 0
 	Span_SPAN_CROSS_CELL Span = 1 // The field data spans across multiple cells.
 	Span_SPAN_INNER_CELL Span = 2 // The field data spans inside one cell.
@@ -141,8 +141,8 @@ type Mode int32
 const (
 	Mode_MODE_DEFAULT Mode = 0 // Default mode.
 	// UE DataTable references:
-	//  - https://docs.unrealengine.com/5.1/en-US/data-driven-gameplay-elements-in-unreal-engine/
-	//  - https://docs.unrealengine.com/5.1/en-US/BlueprintAPI/EditorScripting/DataTable/
+	//   - https://docs.unrealengine.com/5.1/en-US/data-driven-gameplay-elements-in-unreal-engine/
+	//   - https://docs.unrealengine.com/5.1/en-US/BlueprintAPI/EditorScripting/DataTable/
 	Mode_MODE_UE_CSV      Mode = 1 // CSV format of UE DataTable.
 	Mode_MODE_UE_JSON     Mode = 2 // JSON format of UE DataTable.
 	Mode_MODE_ENUM_TYPE   Mode = 3 // Enum type definition in sheet.
@@ -335,8 +335,8 @@ type WorksheetOptions struct {
 	// Nested naming of the namerow.
 	Nested bool `protobuf:"varint,10,opt,name=nested,proto3" json:"nested,omitempty"`
 	// Separator for:
-	//    1. separating in-cell list elements.
-	//    2. separating in-cell map items.
+	//  1. separating in-cell list elements.
+	//  2. separating in-cell map items.
 	//
 	// Default: ",".
 	Sep string `protobuf:"bytes,11,opt,name=sep,proto3" json:"sep,omitempty"`
@@ -361,7 +361,7 @@ type WorksheetOptions struct {
 	// Scatter convert multiple workbook sheets (comma-separated) separately
 	// with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
 	Scatter []string `protobuf:"bytes,18,rep,name=scatter,proto3" json:"scatter,omitempty"`
-	////////// Loader related options below //////////
+	// //////// Loader related options below //////////
 	// Generate OrderedMap accessers or not.
 	OrderedMap bool `protobuf:"varint,50,opt,name=ordered_map,json=orderedMap,proto3" json:"ordered_map,omitempty"`
 	// Generate index accessers, and multiple index columns are comma-separated.
@@ -371,11 +371,11 @@ type WorksheetOptions struct {
 	// Composite indexes (or multicolumn indexes) are in the form: ([column1, column2, column3,...])[@IndexName]
 	//
 	// Examples:
-	//  - ID
-	//  - ID@Item
-	//  - (ID,Type)
-	//  - (ID,Type)@Item
-	//  - ID, (ID,Type)@Item
+	//   - ID
+	//   - ID@Item
+	//   - (ID,Type)
+	//   - (ID,Type)@Item
+	//   - ID, (ID,Type)@Item
 	Index []string `protobuf:"bytes,51,rep,name=index,proto3" json:"index,omitempty"`
 }
 
@@ -830,10 +830,10 @@ type FieldProp struct {
 	// Format: "SheetName.ColumnName" or "SheetName(SheetAlias).ColumnName"
 	//
 	// Example:
-	//  - "SheetName.ColumnName": e.g. "Item.ID", without sheet alias, and
-	//    the sheet name is the generated protobuf message name.
-	//  - "SheetName(SheetAlias).ColumnName": e.g. "Item(ItemConf).ID", with
-	//    sheet alias, and sheet alias is the generated protobuf message name.
+	//   - "SheetName.ColumnName": e.g. "Item.ID", without sheet alias, and
+	//     the sheet name is the generated protobuf message name.
+	//   - "SheetName(SheetAlias).ColumnName": e.g. "Item(ItemConf).ID", with
+	//     sheet alias, and sheet alias is the generated protobuf message name.
 	Refer string `protobuf:"bytes,3,opt,name=refer,proto3" json:"refer,omitempty"`
 	// Ensure this field's value is a sequence and begins with this value.
 	// Mainly used for map key and list element.
@@ -841,8 +841,8 @@ type FieldProp struct {
 	// Specify custom default value of scalar field.
 	Default string `protobuf:"bytes,5,opt,name=default,proto3" json:"default,omitempty"`
 	// Auto detect fixed size of horizontal list or map.
-	//  - list size is detected by size of the max present list elements in name row.
-	//  - map size is detected by size of the max present map items in name row.
+	//   - list size is detected by size of the max present list elements in name row.
+	//   - map size is detected by size of the max present map items in name row.
 	Fixed bool `protobuf:"varint,6,opt,name=fixed,proto3" json:"fixed,omitempty"`
 	// Specify fixed size of horizontal list or map.
 	Size uint32 `protobuf:"varint,7,opt,name=size,proto3" json:"size,omitempty"`
