@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
 <@TABLEAU>
-    <Item Sheet="TestConf" Sep=";" />
+    <Item Sheet="Item" Merger="Test_*.xml"/>
 </@TABLEAU>
 
-<TestConf>
-    <SepConf number="[]int32" />
-    <MaxNum>int32</MaxNum>
-</TestConf>
+<Item>
+    <Item Id="map<uint32,Item>">
+    </Item>
+</Item>
 -->
-
-<TestConf>
-    <SepConf number="1;2;3" />
-    
-    <!-- Test -->
-    <MaxNum>100</MaxNum>
-</TestConf>
