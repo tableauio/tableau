@@ -1221,7 +1221,7 @@ func TestNewXMLImporter(t *testing.T) {
 			args: args{
 				filename: "testdata/Test.xml",
 				sheets: []string{
-					"TestConf",
+					"Item",
 				},
 				parser:          nil,
 				mode:            Protogen,
