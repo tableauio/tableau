@@ -42,7 +42,7 @@ func New(filename string, setters ...Option) (Importer, error) {
 	case format.CSV:
 		return NewCSVImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	case format.XML:
-		return NewXMLImporter(filename, opts.Sheets, opts.Parser, opts.Mode)
+		return NewXMLImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned, opts.PrimaryBookName)
 	default:
 		return nil, errors.Errorf("unsupported format: %v", fmt)
 	}
@@ -70,7 +70,8 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 		for relBookPath := range relBookPaths {
 			log.Infof("%18s: %s#%s", "scatter sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
-			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned())
+			primaryBookPath := filepath.Join(inputDir, primaryBookName)
+			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
 				return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
 			}
@@ -97,7 +98,8 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 		for relBookPath := range relBookPaths {
 			log.Infof("%18s: %s#%s", "merge sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
-			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned())
+			primaryBookPath := filepath.Join(inputDir, primaryBookName)
+			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
 				return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
 			}

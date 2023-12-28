@@ -1,0 +1,104 @@
+{
+    "fubenMap": {
+        "1001": {
+            "id": 1001,
+            "stageMap": {
+                "1": {
+                    "id": 1,
+                    "zoneMap": {
+                        "1": {
+                            "id": 1,
+                            "roundMap": {
+                                "1": {
+                                    "id": 1
+                                },
+                                "2": {
+                                    "id": 2
+                                }
+                            }
+                        },
+                        "2": {
+                            "id": 2,
+                            "roundMap": {
+                                "1": {
+                                    "id": 1
+                                }
+                            }
+                        }
+                    },
+                    "adjacentStageList": {
+                        "adjacentStageMap": {
+                            "2": {
+                                "id": 2
+                            }
+                        }
+                    }
+                },
+                "2": {
+                    "id": 2,
+                    "zoneMap": {
+                        "1": {
+                            "id": 1,
+                            "roundMap": {
+                                "1": {
+                                    "id": 1
+                                }
+                            }
+                        }
+                    },
+                    "adjacentStageList": {
+                        "adjacentStageMap": {
+                            "1": {
+                                "id": 1
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "1002": {
+            "id": 1002,
+            "stageMap": {
+                "1": {
+                    "id": 1,
+                    "zoneMap": {
+                        "1": {
+                            "id": 1,
+                            "roundMap": {
+                                "1": {
+                                    "id": 1
+                                },
+                                "2": {
+                                    "id": 2
+                                }
+                            }
+                        },
+                        "2": {
+                            "id": 2,
+                            "roundMap": {
+                                "1": {
+                                    "id": 1
+                                }
+                            }
+                        },
+                        "3": {
+                            "id": 3,
+                            "roundMap": {
+                                "1": {
+                                    "id": 1
+                                },
+                                "2": {
+                                    "id": 2
+                                },
+                                "3": {
+                                    "id": 3
+                                }
+                            }
+                        }
+                    },
+                    "adjacentStageList": null
+                }
+            }
+        }
+    }
+}

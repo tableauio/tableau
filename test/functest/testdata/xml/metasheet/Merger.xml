@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+<@TABLEAU>
+    <Item Sheet="MergerConf" Merger="Merger*.xml"/>
+</@TABLEAU>
+
+<MergerConf>
+    <Fuben Id="map<int32,Fuben>">
+        <Stage Id="map<int32,Stage>">
+            <Zone Id="map<int32,Zone>">
+                <Round Id="map<int32,Round>"/>
+            </Zone>
+            <AdjacentStageList>
+                <AdjacentStage Id="map<int32,AdjacentStage>" />
+            </AdjacentStageList>
+        </Stage>
+    </Fuben>
+</MergerConf>
+-->

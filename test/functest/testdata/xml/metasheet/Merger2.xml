@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<MergerConf>
+    <Fuben Id="1002">
+        <Stage Id="1">
+            <Zone Id="1">
+                <Round Id="1"/>
+                <Round Id="2"/>
+            </Zone>
+            <Zone Id="2">
+                <Round Id="1"/>
+            </Zone>
+            <Zone Id="3">
+                <Round Id="1"/>
+                <Round Id="2"/>
+                <Round Id="3"/>
+            </Zone>
+        </Stage>
+    </Fuben>
+</MergerConf>

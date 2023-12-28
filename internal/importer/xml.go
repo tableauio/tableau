@@ -57,8 +57,8 @@ func init() {
 }
 
 // TODO: options
-func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, mode ImporterMode) (*XMLImporter, error) {
-	newBook, err := parseXML(filename, sheets, parser, mode)
+func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, mode ImporterMode, cloned bool, primaryBookName string) (*XMLImporter, error) {
+	newBook, err := parseXML(filename, sheets, parser, mode, cloned, primaryBookName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse xml:%s", filename)
 	}
@@ -92,17 +92,21 @@ func splitRawXML(rawXML string) (metasheet, content string) {
 
 // parseXML parse sheets in the XML file named `filename` and return a book with multiple sheets
 // in TABLEAU grammar which can be exported to protobuf by excel parser.
-func parseXML(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode) (*book.Book, error) {
-	log.Debugf("xml: %s", filename)
+func parseXML(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool, primaryBookName string) (*book.Book, error) {
+	log.Debugf("xml:%s|cloned:%v|primaryBookName:%s", filename, cloned, primaryBookName)
 	buf, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	// pre check if exists `@TABLEAU`
+
 	metasheet, content := splitRawXML(string(buf))
-	if metasheet == "" {
-		log.Debugf("xml:%s no need parse: %s not found", filename, book.MetasheetName)
-		return nil, nil
+	// use primary book's metasheet if cloned
+	if cloned {
+		primaryBookBuf, err := os.ReadFile(primaryBookName)
+		if err != nil {
+			return nil, err
+		}
+		metasheet, _ = splitRawXML(string(primaryBookBuf))
 	}
 
 	// The first pass
