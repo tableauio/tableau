@@ -70,7 +70,8 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 		for relBookPath := range relBookPaths {
 			log.Infof("%18s: %s#%s", "scatter sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
-			primaryBookPath := filepath.Join(inputDir, primaryBookName)
+			rewrittenWorkbookName := fs.RewriteSubdir(primaryBookName, subdirRewrites)
+			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
 				return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
@@ -98,7 +99,8 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 		for relBookPath := range relBookPaths {
 			log.Infof("%18s: %s#%s", "merge sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
-			primaryBookPath := filepath.Join(inputDir, primaryBookName)
+			rewrittenWorkbookName := fs.RewriteSubdir(primaryBookName, subdirRewrites)
+			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
 				return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
