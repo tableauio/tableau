@@ -106,9 +106,6 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			return errors.Wrapf(err, "parse book specifier failed: %s", specifier)
 		}
 		relCleanSlashPath := fs.CleanSlashPath(bookName)
-		if err != nil {
-			return errors.Wrapf(err, "get clean slash path failed: %s", bookName)
-		}
 		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
 		primaryBookIndexInfo, ok := bookIndexes[relCleanSlashPath]
 		if !ok {
@@ -118,9 +115,13 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			}
 			return errors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
-		eg.Go(func() error {
-			return gen.convert(prFiles, primaryBookIndexInfo.fd, sheetName)
-		})
+		// NOTE: one book maybe relates to multiple primary books
+		for _, fd := range primaryBookIndexInfo.books {
+			fd := fd
+			eg.Go(func() error {
+				return gen.convert(prFiles, fd, sheetName)
+			})
+		}
 	}
 	return eg.Wait()
 }
