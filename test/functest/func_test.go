@@ -100,8 +100,14 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 		}
 		oldPath := filepath.Join(oldConfDir, file.Name())
 		absOldPath, err := filepath.Abs(oldPath)
+		if err != nil {
+			t.Fatal(err)
+		}
 		newPath := filepath.Join(newConfDir, file.Name())
 		absNewPath, err := filepath.Abs(newPath)
+		if err != nil {
+			t.Fatal(err)
+		}
 		oldData, err := os.ReadFile(oldPath)
 		if err != nil {
 			t.Fatal(err)

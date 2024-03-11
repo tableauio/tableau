@@ -15,8 +15,12 @@ import (
 )
 
 // MetasheetName is the name of metasheet which defines the metadata
-// of each worksheet. Default metasheet name is "@TABLEAU".
+// of each worksheet. Default is "@TABLEAU".
 var MetasheetName = "@TABLEAU"
+
+// BookNameInMetasheet is the name which represents workbook in metasheet.
+// Default is "#".
+const BookNameInMetasheet = "#"
 
 // SetMetasheetName change the metasheet name to the specified name.
 //

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -57,6 +59,15 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 	}
 
 	return nil
+}
+
+func getWorkbookAlias(imp importer.Importer) string {
+	sheetMap := imp.Metabook().GetMetasheetMap()
+	if sheetMap == nil {
+		return ""
+	}
+	meta := sheetMap[book.BookNameInMetasheet]
+	return meta.GetAlias()
 }
 
 func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
