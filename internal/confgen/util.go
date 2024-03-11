@@ -136,8 +136,7 @@ func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string
 }
 
 type bookIndexInfo struct {
-	primaryBookName string
-	fd              protoreflect.FileDescriptor
+	books map[string]protoreflect.FileDescriptor // primary book name -> fd
 }
 
 // buildWorkbookIndex builds the secondary workbook name (including self) -> primary workbook info indexes.
@@ -152,7 +151,12 @@ func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, sub
 			}
 			// add self: rewrite subdir
 			rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, subdirRewrites)
-			bookIndexes[rewrittenWorkbookName] = &bookIndexInfo{primaryBookName: workbook.Name, fd: fd}
+			if bookIndexes[rewrittenWorkbookName] == nil {
+				bookIndexes[rewrittenWorkbookName] = &bookIndexInfo{
+					books: make(map[string]protoreflect.FileDescriptor),
+				}
+			}
+			bookIndexes[rewrittenWorkbookName].books[workbook.Name] = fd
 			// merger or scatter (only one can be set at once)
 			msgs := fd.Messages()
 			for i := 0; i < msgs.Len(); i++ {
@@ -173,7 +177,12 @@ func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, sub
 						return false
 					}
 					for relBookPath := range relBookPaths {
-						bookIndexes[relBookPath] = &bookIndexInfo{primaryBookName: workbook.Name, fd: fd}
+						if bookIndexes[relBookPath] == nil {
+							bookIndexes[relBookPath] = &bookIndexInfo{
+								books: make(map[string]protoreflect.FileDescriptor),
+							}
+						}
+						bookIndexes[relBookPath].books[workbook.Name] = fd
 					}
 				}
 			}
@@ -184,7 +193,9 @@ func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, sub
 		return nil, err
 	}
 	for k, v := range bookIndexes {
-		log.Debugf("primary book index: %s -> %s", k, v.primaryBookName)
+		for primaryBookName := range v.books {
+			log.Debugf("primary book index: %s -> %s", k, primaryBookName)
+		}
 	}
 	return bookIndexes, nil
 }
