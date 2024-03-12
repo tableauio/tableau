@@ -25,8 +25,8 @@ type Book struct {
 
 // NewBook creates a new book.
 // Example:
-// 	- bookName: Test
-// 	- filename: testdata/Test.xlsx
+//   - bookName: Test
+//   - filename: testdata/Test.xlsx
 func NewBook(bookName, filename string, parser SheetParser) *Book {
 	return &Book{
 		name:     bookName,
@@ -148,10 +148,10 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 	}
 
 	if len(b.meta.MetasheetMap) == 0 {
-		// need all sheets except the metasheet "@TABLEAU"
+		// need all sheets except the MetasheetName and BookNameInMetasheet
 		b.meta.MetasheetMap = make(map[string]*tableaupb.Metasheet) // init
 		for _, sheet := range b.GetSheets() {
-			if sheet.Name != MetasheetName {
+			if sheet.Name != MetasheetName && sheet.Name != BookNameInMetasheet {
 				b.meta.MetasheetMap[sheet.Name] = &tableaupb.Metasheet{
 					Sheet: sheet.Name,
 				}
@@ -163,6 +163,9 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 
 	var keepedSheetNames []string
 	for sheetName, sheetMeta := range b.meta.MetasheetMap {
+		if sheetName == BookNameInMetasheet {
+			continue
+		}
 		sheet := b.GetSheet(sheetName)
 		if sheet == nil {
 			return xerrors.E0001(sheetName, b.Filename())

@@ -298,7 +298,13 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	var bp *bookParser
 	if pass == firstPass {
 		// create a book parser
-		bp = newBookParser(imp.BookName(), rewrittenWorkbookName, gen)
+		bookName := imp.BookName()
+		alias := getWorkbookAlias(imp)
+		if alias != "" {
+			bookName = alias
+			debugWorkbookName += " (alias: " + alias + ")"
+		}
+		bp = newBookParser(bookName, rewrittenWorkbookName, gen)
 		// cache this new bookParser
 		gen.addBookParser(absPath, bp)
 	} else {
