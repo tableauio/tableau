@@ -31,6 +31,15 @@ message HorizontalEnumList {
   repeated protoconf.FruitType param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}];
 }
 
+message HorizontalIncellInStructList {
+  option (tableau.worksheet) = {name:"HorizontalIncellInStructList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated Task task_list = 1 [(tableau.field) = {name:"Task" layout:LAYOUT_HORIZONTAL}];
+  message Task {
+    repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}];
+  }
+}
+
 message HorizontalIncellPdefStructList {
   option (tableau.worksheet) = {name:"HorizontalIncellPdefStructList" namerow:1 typerow:2 noterow:3 datarow:4};
 

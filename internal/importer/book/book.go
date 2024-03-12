@@ -148,7 +148,7 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 	}
 
 	if len(b.meta.MetasheetMap) == 0 {
-		// need all sheets except the metasheet "@TABLEAU"
+		// need all sheets except the MetasheetName and BookNameInMetasheet
 		b.meta.MetasheetMap = make(map[string]*tableaupb.Metasheet) // init
 		for _, sheet := range b.GetSheets() {
 			if sheet.Name != MetasheetName && sheet.Name != BookNameInMetasheet {

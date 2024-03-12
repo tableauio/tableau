@@ -61,6 +61,7 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 	return nil
 }
 
+// getWorkbookAlias gets the workbook alias from importer.
 func getWorkbookAlias(imp importer.Importer) string {
 	sheetMap := imp.Metabook().GetMetasheetMap()
 	if sheetMap == nil {
