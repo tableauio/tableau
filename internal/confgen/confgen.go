@@ -10,6 +10,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -40,9 +41,8 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 }
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
-	// TODO: define tableau in package constants.
-	if protoPackage == "tableau" {
-		log.Panicf(`proto package can not be "tableau" which is reserved`)
+	if protoPackage == xproto.TableauProtoPackage {
+		log.Panicf("proto package name can not be: %s, which is reserved internally", xproto.TableauProtoPackage)
 	}
 	g := &Generator{
 		ProtoPackage: protoPackage,
