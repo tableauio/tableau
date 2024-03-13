@@ -1,0 +1,6 @@
+ID,PropID,PropName,PropDesc
+"map<uint32, Item>",{base.Property}int32,string,string
+Item's ID,Property ID,Property name,Property desc
+1,1,Apple,A kind of delicious fruit.
+2,2,Orange,
+3,3,,
