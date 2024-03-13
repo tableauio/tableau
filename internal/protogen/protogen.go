@@ -26,10 +26,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-const (
-	TableauProtoPackage = "tableau"
-)
-
 type Generator struct {
 	ProtoPackage string // protobuf package name.
 	InputDir     string // input dir of workbooks.
@@ -265,7 +261,7 @@ func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool
 	absPath := filepath.Join(dir, filename)
 	var imp importer.Importer
 	if pass == firstPass {
-		parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
+		parser := confgen.NewSheetParser(xproto.TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
 		imp, err = importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
 		if err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
@@ -450,7 +446,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		Namerow: 1,
 		Datarow: 2,
 	}
-	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, sheetOpts)
+	parser := confgen.NewSheetParser(xproto.TableauProtoPackage, gen.LocationName, sheetOpts)
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
@@ -529,7 +525,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		Namerow: 1,
 		Datarow: 2,
 	}
-	parser := confgen.NewSheetParser(TableauProtoPackage, gen.LocationName, sheetOpts)
+	parser := confgen.NewSheetParser(xproto.TableauProtoPackage, gen.LocationName, sheetOpts)
 
 	// parse each special sheet mode
 	switch mode {

@@ -40,10 +40,6 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 }
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
-	// TODO: define tableau in package constants.
-	if protoPackage == "tableau" {
-		log.Panicf(`proto package can not be "tableau" which is reserved`)
-	}
 	g := &Generator{
 		ProtoPackage: protoPackage,
 		InputDir:     indir,

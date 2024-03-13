@@ -14,7 +14,6 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
-	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -341,13 +340,8 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 // parseFieldOptions is aimed to parse the options of all the fields of a protobuf message.
 func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	md := msg.Descriptor()
-	pkg := md.ParentFile().Package()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
-		if string(pkg) != sp.ProtoPackage && pkg != "google.protobuf" {
-			log.Debugf("no need to process package: %v", pkg)
-			return false, nil
-		}
 		err := func() error {
 			field := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
 			defer field.release()

@@ -9,6 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/xlsxgen"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
@@ -92,6 +93,6 @@ func Proto2Excel(protoPackage, indir, outdir string) {
 
 // NewImporter creates a new importer of the specified workbook.
 func NewImporter(workbookPath string) (importer.Importer, error) {
-	parser := confgen.NewSheetParser(protogen.TableauProtoPackage, "", book.MetasheetOptions())
+	parser := confgen.NewSheetParser(xproto.TableauProtoPackage, "", book.MetasheetOptions())
 	return importer.New(workbookPath, importer.Parser(parser))
 }
