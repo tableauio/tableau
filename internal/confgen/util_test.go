@@ -74,7 +74,7 @@ func Test_parseBookSpecifier(t *testing.T) {
 	}
 }
 
-func Test_exportMessage(t *testing.T) {
+func Test_storeMessage(t *testing.T) {
 	itemConf := &unittestpb.ItemConf{
 		ItemMap: map[uint32]*unittestpb.Item{
 			1: {Id: 1, Num: 10},
@@ -126,8 +126,8 @@ func Test_exportMessage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := exportMessage(tt.args.msg, tt.args.name, tt.args.outputDir, tt.args.opt); (err != nil) != tt.wantErr {
-				t.Errorf("exportMessage() error = %v, wantErr %v", err, tt.wantErr)
+			if err := storeMessage(tt.args.msg, tt.args.name, tt.args.outputDir, tt.args.opt); (err != nil) != tt.wantErr {
+				t.Errorf("storeMessage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

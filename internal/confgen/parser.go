@@ -54,7 +54,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo, impInfos ...importer.I
 			// exported conf name pattern is : <BookName>_<SheetName>
 			sheetName := getRealSheetName(info, impInfo)
 			name := fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
-			return exportMessage(protomsg, name, x.OutputDir, x.OutputOpt)
+			return storeMessage(protomsg, name, x.OutputDir, x.OutputOpt)
 		})
 	}
 	if err := eg.Wait(); err != nil {
@@ -69,7 +69,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo, impInfos ...importer.Imp
 	if err != nil {
 		return err
 	}
-	return exportMessage(protomsg, string(info.MD.Name()), x.OutputDir, x.OutputOpt)
+	return storeMessage(protomsg, string(info.MD.Name()), x.OutputDir, x.OutputOpt)
 }
 
 type oneMsg struct {

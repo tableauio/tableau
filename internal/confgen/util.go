@@ -12,9 +12,9 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/mexporter"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/store"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -236,20 +236,20 @@ func loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles
 	return xproto.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
 }
 
-// Export exports a message to one or multiple file formats.
-func exportMessage(msg proto.Message, name string, outputDir string, opt *options.ConfOutputOption) error {
+// storeMessage stores a message to one or multiple file formats.
+func storeMessage(msg proto.Message, name string, outputDir string, opt *options.ConfOutputOption) error {
 	outputDir = filepath.Join(outputDir, opt.Subdir)
 	formats := format.OutputFormats
 	if len(opt.Formats) != 0 {
 		formats = opt.Formats
 	}
 	for _, fmt := range formats {
-		err := mexporter.Export(msg, outputDir, fmt,
-			mexporter.Name(name),
-			mexporter.Pretty(opt.Pretty),
-			mexporter.EmitUnpopulated(opt.EmitUnpopulated),
-			mexporter.UseProtoNames(opt.UseProtoNames),
-			mexporter.UseEnumNumbers(opt.UseEnumNumbers),
+		err := store.Store(msg, outputDir, fmt,
+			store.Name(name),
+			store.Pretty(opt.Pretty),
+			store.EmitUnpopulated(opt.EmitUnpopulated),
+			store.UseProtoNames(opt.UseProtoNames),
+			store.UseEnumNumbers(opt.UseEnumNumbers),
 		)
 		if err != nil {
 			return err
