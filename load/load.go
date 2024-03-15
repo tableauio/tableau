@@ -18,8 +18,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// Load reads file content from the specified directory and format,
-// and then fills the provided message.
+// Load fills message from file in the specified directory and format.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, options...)

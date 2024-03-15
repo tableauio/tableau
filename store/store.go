@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Store stores a protobuf message to one or multiple file formats.
+// Store stores protobuf message to file in the specified directory and format.
 func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
 	opts := ParseOptions(options...)
 	var name string
