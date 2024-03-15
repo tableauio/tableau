@@ -9,91 +9,158 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
-// Exporter is designed for exporting a protobuf message to one or multiple
-// files.
-type Exporter struct {
-	name      string
-	msg       proto.Message
-	outputDir string
-	outputOpt *options.ConfOutputOption
+type Options struct {
+	// Specify output file name (without file extension).
+	//
+	// Default: "".
+	Name string
+	// Output pretty format of JSON and Text, with multiline and indent.
+	//
+	// Default: false.
+	Pretty bool
+
+	// EmitUnpopulated specifies whether to emit unpopulated fields. It does not
+	// emit unpopulated oneof fields or unpopulated extension fields.
+	// The JSON value emitted for unpopulated fields are as follows:
+	//  ╔═══════╤════════════════════════════╗
+	//  ║ JSON  │ Protobuf field             ║
+	//  ╠═══════╪════════════════════════════╣
+	//  ║ false │ proto3 boolean fields      ║
+	//  ║ 0     │ proto3 numeric fields      ║
+	//  ║ ""    │ proto3 string/bytes fields ║
+	//  ║ null  │ proto2 scalar fields       ║
+	//  ║ null  │ message fields             ║
+	//  ║ []    │ list fields                ║
+	//  ║ {}    │ map fields                 ║
+	//  ╚═══════╧════════════════════════════╝
+	//
+	// NOTE: worksheet with FieldPresence set as true ignore this option.
+	//
+	// Refer: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
+	//
+	// Default: false.
+	EmitUnpopulated bool
+
+	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
+	// field names.
+	UseProtoNames bool
+
+	// UseEnumNumbers emits enum values as numbers.
+	UseEnumNumbers bool
 }
 
-// New creates a new protobuf message Exporter.
-func New(name string, msg proto.Message, outputDir string, outputOpt *options.ConfOutputOption) *Exporter {
-	return &Exporter{
-		name:      name,
-		msg:       msg,
-		outputOpt: outputOpt,
-		outputDir: filepath.Join(outputDir, outputOpt.Subdir),
+// Option is the functional option type.
+type Option func(*Options)
+
+// Name specifies the output file name (without file extension).
+func Name(v string) Option {
+	return func(opts *Options) {
+		opts.Name = v
 	}
 }
 
-// Export exports the message to the specified one or multiple forma(s).
-func (x *Exporter) Export() error {
-	formats := format.OutputFormats
-	if len(x.outputOpt.Formats) != 0 {
-		formats = x.outputOpt.Formats
+// Pretty specifies whether to prettify JSON and Text output with
+// multiline and indent.
+func Pretty(v bool) Option {
+	return func(opts *Options) {
+		opts.Pretty = v
 	}
-
-	for _, fmt := range formats {
-		err := x.export(fmt)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
-// export marshals the message to the specified format and writes it to the
-// specified file.
-func (x *Exporter) export(fmt format.Format) error {
-	filename := x.name
+// EmitUnpopulated specifies whether to emit unpopulated fields.
+func EmitUnpopulated(v bool) Option {
+	return func(opts *Options) {
+		opts.EmitUnpopulated = v
+	}
+}
+
+// UseProtoNames specifies whether to use proto field name instead of
+// lowerCamelCase name in
+// JSON field names.
+func UseProtoNames(v bool) Option {
+	return func(opts *Options) {
+		opts.UseProtoNames = v
+	}
+}
+
+// UseEnumNumbers specifies whether to emit enum values as numbers for
+// JSON field values.
+func UseEnumNumbers(v bool) Option {
+	return func(opts *Options) {
+		opts.UseEnumNumbers = v
+	}
+}
+
+// newDefault returns a default Options.
+func newDefault() *Options {
+	return &Options{}
+}
+
+// ParseOptions parses functional options and merge them to default Options.
+func ParseOptions(setters ...Option) *Options {
+	// Default Options
+	opts := newDefault()
+	for _, setter := range setters {
+		setter(opts)
+	}
+	return opts
+}
+
+// Export exports a protobuf message to one or multiple file formats.
+func Export(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
+	opts := ParseOptions(options...)
+	var name string
+	if opts.Name != "" {
+		name = opts.Name // name specified explicitly
+	} else {
+		name = string(msg.ProtoReflect().Descriptor().Name())
+	}
+	filename := name
 	var out []byte
 	var err error
 	switch fmt {
 	case format.JSON:
 		filename += format.JSONExt
 		options := &MarshalOptions{
-			Pretty:          x.outputOpt.Pretty,
-			EmitUnpopulated: x.outputOpt.EmitUnpopulated,
-			UseProtoNames:   x.outputOpt.UseProtoNames,
-			UseEnumNumbers:  x.outputOpt.UseEnumNumbers,
+			Pretty:          opts.Pretty,
+			EmitUnpopulated: opts.EmitUnpopulated,
+			UseProtoNames:   opts.UseProtoNames,
+			UseEnumNumbers:  opts.UseEnumNumbers,
 		}
-		out, err = MarshalToJSON(x.msg, options)
+		out, err = MarshalToJSON(msg, options)
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to JSON", x.name)
+			return errors.Wrapf(err, "failed to export %s to JSON", name)
 		}
 	case format.Text:
 		filename += format.TextExt
-		out, err = MarshalToText(x.msg, x.outputOpt.Pretty)
+		out, err = MarshalToText(msg, opts.Pretty)
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to Text", x.name)
+			return errors.Wrapf(err, "failed to export %s to Text", name)
 		}
 	case format.Bin:
 		filename += format.BinExt
-		out, err = MarshalToBin(x.msg)
+		out, err = MarshalToBin(msg)
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to Bin", x.name)
+			return errors.Wrapf(err, "failed to export %s to Bin", name)
 		}
 	default:
 		return errors.Errorf("unknown output format: %v", fmt)
 	}
 
 	// prepare output dir
-	if err := os.MkdirAll(x.outputDir, 0700); err != nil {
-		return xerrors.WrapKV(err, "OutputDir", x.outputDir)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return xerrors.Errorf(`create output dir "%s" failed: %s`, dir, err)
 	}
 
 	// write file
-	fpath := filepath.Join(x.outputDir, filename)
+	fpath := filepath.Join(dir, filename)
 	err = os.WriteFile(fpath, out, 0644)
 	if err != nil {
-		return errors.Wrapf(err, "failed to write file: %s", fpath)
+		return xerrors.Errorf(`write file "%s" failed: %s`, fpath, err)
 	}
 	// out.WriteTo(os.Stdout)
 	log.Infof("%18s: %s", "generated conf", filename)

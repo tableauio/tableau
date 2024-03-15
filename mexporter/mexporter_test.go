@@ -3,13 +3,12 @@ package mexporter
 import (
 	"testing"
 
-	"github.com/tableauio/tableau/options"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
+	"google.golang.org/protobuf/proto"
 )
 
-var testMessageExporter *Exporter
-
-func init() {
+func TestExport(t *testing.T) {
 	itemConf = &unittestpb.ItemConf{
 		ItemMap: map[uint32]*unittestpb.Item{
 			1: {Id: 1, Num: 10},
@@ -17,29 +16,59 @@ func init() {
 			3: {Id: 3, Num: 30},
 		},
 	}
-	outputOpt := &options.ConfOutputOption{
-		Subdir: "conf",
-		Pretty: true,
+	type args struct {
+		msg     proto.Message
+		dir     string
+		fmt     format.Format
+		options []Option
 	}
-	testMessageExporter = New("ItemConf", itemConf, "_out/", outputOpt)
-}
-
-func Test_messageExporter_Export(t *testing.T) {
 	tests := []struct {
 		name    string
-		x       *Exporter
+		args    args
 		wantErr bool
 	}{
 		{
-			name:    "export-item-conf",
-			x:       testMessageExporter,
+			name: "export-item-conf-json",
+			args: args{
+				msg: itemConf,
+				dir: "_out/",
+				fmt: "json",
+				options: []Option{
+					Pretty(true),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-item-conf-json-alias",
+			args: args{
+				msg: itemConf,
+				dir: "_out/subdir/",
+				fmt: "json",
+				options: []Option{
+					Name("ItemConfAlias"),
+					UseProtoNames(true),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-item-conf-txt",
+			args: args{
+				msg: itemConf,
+				dir: "_out/",
+				fmt: "txt",
+				options: []Option{
+					Pretty(true),
+				},
+			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.x.Export(); (err != nil) != tt.wantErr {
-				t.Errorf("messageExporter.Export() error = %v, wantErr %v", err, tt.wantErr)
+			if err := Export(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options...); (err != nil) != tt.wantErr {
+				t.Errorf("Export() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

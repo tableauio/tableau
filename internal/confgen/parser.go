@@ -13,7 +13,6 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
-	"github.com/tableauio/tableau/mexporter"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -55,11 +54,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo, impInfos ...importer.I
 			// exported conf name pattern is : <BookName>_<SheetName>
 			sheetName := getRealSheetName(info, impInfo)
 			name := fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
-			exporter := mexporter.New(name, protomsg, x.OutputDir, x.OutputOpt)
-			if err := exporter.Export(); err != nil {
-				return err
-			}
-			return nil
+			return exportMessage(protomsg, name, x.OutputDir, x.OutputOpt)
 		})
 	}
 	if err := eg.Wait(); err != nil {
@@ -74,11 +69,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo, impInfos ...importer.Imp
 	if err != nil {
 		return err
 	}
-	exporter := mexporter.New(string(info.MD.Name()), protomsg, x.OutputDir, x.OutputOpt)
-	if err := exporter.Export(); err != nil {
-		return err
-	}
-	return nil
+	return exportMessage(protomsg, string(info.MD.Name()), x.OutputDir, x.OutputOpt)
 }
 
 type oneMsg struct {
