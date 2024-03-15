@@ -8,12 +8,12 @@ import (
 	"sync"
 
 	"github.com/iancoleman/strcase"
-	"github.com/tableauio/tableau/internal/confgen/mexporter"
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/mexporter"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"

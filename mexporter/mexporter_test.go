@@ -1,6 +1,3 @@
-// mexporter is the message exporter package, which can export one
-// single message to different formts: JSON, Text, and Bin.
-
 package mexporter
 
 import (
@@ -10,7 +7,7 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 )
 
-var testMessageExporter *messageExporter
+var testMessageExporter *Exporter
 
 func init() {
 	itemConf = &unittestpb.ItemConf{
@@ -30,7 +27,7 @@ func init() {
 func Test_messageExporter_Export(t *testing.T) {
 	tests := []struct {
 		name    string
-		x       *messageExporter
+		x       *Exporter
 		wantErr bool
 	}{
 		{

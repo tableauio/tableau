@@ -1,9 +1,8 @@
-// mexporter is the message exporter package, which can export one
-// single message to different formts: JSON, Text, and Bin.
+// Package mexporter can export a protobuf message to different formts: JSON,
+// Text, and Bin.
 package mexporter
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -15,16 +14,18 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type messageExporter struct {
+// Exporter is designed for exporting a protobuf message to one or multiple
+// files.
+type Exporter struct {
 	name      string
 	msg       proto.Message
 	outputDir string
 	outputOpt *options.ConfOutputOption
-	// wsOpts    *tableaupb.WorksheetOptions
 }
 
-func New(name string, msg proto.Message, outputDir string, outputOpt *options.ConfOutputOption) *messageExporter {
-	return &messageExporter{
+// New creates a new protobuf message Exporter.
+func New(name string, msg proto.Message, outputDir string, outputOpt *options.ConfOutputOption) *Exporter {
+	return &Exporter{
 		name:      name,
 		msg:       msg,
 		outputOpt: outputOpt,
@@ -33,7 +34,7 @@ func New(name string, msg proto.Message, outputDir string, outputOpt *options.Co
 }
 
 // Export exports the message to the specified one or multiple forma(s).
-func (x *messageExporter) Export() error {
+func (x *Exporter) Export() error {
 	formats := format.OutputFormats
 	if len(x.outputOpt.Formats) != 0 {
 		formats = x.outputOpt.Formats
@@ -50,7 +51,7 @@ func (x *messageExporter) Export() error {
 
 // export marshals the message to the specified format and writes it to the
 // specified file.
-func (x *messageExporter) export(fmt format.Format) error {
+func (x *Exporter) export(fmt format.Format) error {
 	filename := x.name
 	var out []byte
 	var err error
@@ -63,19 +64,19 @@ func (x *messageExporter) export(fmt format.Format) error {
 			UseProtoNames:   x.outputOpt.UseProtoNames,
 			UseEnumNumbers:  x.outputOpt.UseEnumNumbers,
 		}
-		out, err = marshalToJSON(x.msg, options)
+		out, err = MarshalToJSON(x.msg, options)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to JSON", x.name)
 		}
 	case format.Text:
 		filename += format.TextExt
-		out, err = marshalToText(x.msg, x.outputOpt.Pretty)
+		out, err = MarshalToText(x.msg, x.outputOpt.Pretty)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Text", x.name)
 		}
 	case format.Bin:
 		filename += format.BinExt
-		out, err = marshalToBin(x.msg)
+		out, err = MarshalToBin(x.msg)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export %s to Bin", x.name)
 		}
@@ -90,7 +91,7 @@ func (x *messageExporter) export(fmt format.Format) error {
 
 	// write file
 	fpath := filepath.Join(x.outputDir, filename)
-	err = ioutil.WriteFile(fpath, out, 0644)
+	err = os.WriteFile(fpath, out, 0644)
 	if err != nil {
 		return errors.Wrapf(err, "failed to write file: %s", fpath)
 	}
