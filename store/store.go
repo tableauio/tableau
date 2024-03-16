@@ -14,6 +14,7 @@ import (
 )
 
 // Store stores protobuf message to file in the specified directory and format.
+// Available formats: JSON, Bin, and Text.
 func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
 	opts := ParseOptions(options...)
 	var name string
