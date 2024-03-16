@@ -1,4 +1,4 @@
-package mexporter
+package store
 
 import (
 	"bytes"
@@ -47,9 +47,9 @@ type MarshalOptions struct {
 	UseEnumNumbers bool
 }
 
-// marshalToJSON marshals the given proto.Message in the JSON format.
+// MarshalToJSON marshals the given proto.Message in the JSON format.
 // You can depend on the output being stable.
-func marshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err error) {
+func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err error) {
 	opts := protojson.MarshalOptions{
 		EmitUnpopulated: options.EmitUnpopulated,
 		UseProtoNames:   options.UseProtoNames,
@@ -78,9 +78,9 @@ func marshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 	return stableJSON.Bytes(), nil
 }
 
-// marshalToText marshals the given proto.Message in the text (textproto) format.
+// MarshalToText marshals the given proto.Message in the text (textproto) format.
 // You can depend on the output being stable.
-func marshalToText(msg proto.Message, pretty bool) (out []byte, err error) {
+func MarshalToText(msg proto.Message, pretty bool) (out []byte, err error) {
 	if pretty {
 		opts := prototext.MarshalOptions{
 			Multiline: true,
@@ -111,9 +111,9 @@ func marshalToText(msg proto.Message, pretty bool) (out []byte, err error) {
 	return []byte(text), nil
 }
 
-// marshalToBin marshals the given proto.Message in the wire (binary) format.
+// MarshalToBin marshals the given proto.Message in the wire (binary) format.
 // You can depend on the output being stable.
-func marshalToBin(msg proto.Message) (out []byte, err error) {
+func MarshalToBin(msg proto.Message) (out []byte, err error) {
 	// protobuf does not offer a canonical output today, so this format is not
 	// guaranteed to match deterministic output from other protobuf libraries.
 	// In addition, unknown fields may cause inconsistent output for otherwise

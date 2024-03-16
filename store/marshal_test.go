@@ -1,4 +1,4 @@
-package mexporter
+package store
 
 import (
 	"testing"
@@ -20,7 +20,7 @@ func init() {
 	}
 }
 
-func Test_marshalToJSON(t *testing.T) {
+func Test_MarshalToJSON(t *testing.T) {
 	type args struct {
 		msg     proto.Message
 		options *MarshalOptions
@@ -77,9 +77,9 @@ func Test_marshalToJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotOut, err := marshalToJSON(tt.args.msg, tt.args.options)
+			gotOut, err := MarshalToJSON(tt.args.msg, tt.args.options)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("marshalToJSON() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("MarshalToJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			assert.EqualValues(t, tt.wantOut, gotOut)
@@ -87,7 +87,7 @@ func Test_marshalToJSON(t *testing.T) {
 	}
 }
 
-func Test_marshalToText(t *testing.T) {
+func Test_MarshalToText(t *testing.T) {
 	type args struct {
 		msg    proto.Message
 		pretty bool
@@ -139,9 +139,9 @@ item_map: {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotOut, err := marshalToText(tt.args.msg, tt.args.pretty)
+			gotOut, err := MarshalToText(tt.args.msg, tt.args.pretty)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("marshalToText() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("MarshalToText() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			assert.EqualValues(t, tt.wantOut, gotOut)
@@ -149,7 +149,7 @@ item_map: {
 	}
 }
 
-func Test_marshalToBin(t *testing.T) {
+func Test_MarshalToBin(t *testing.T) {
 	type args struct {
 		msg proto.Message
 	}
@@ -174,9 +174,9 @@ func Test_marshalToBin(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotOut, err := marshalToBin(tt.args.msg)
+			gotOut, err := MarshalToBin(tt.args.msg)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("marshalToBin() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("MarshalToBin() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			assert.EqualValues(t, tt.wantOut, gotOut)
