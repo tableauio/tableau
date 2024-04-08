@@ -80,6 +80,10 @@ E2016:
   desc: list elements are not present continuously
   text: 数组第{{.FirstNonePresentIndex}}个元素为空, 但后续第{{.NextPresentIndex}}个元素却非空
   help: 请确保数组出现首个空元素时, 后续所有元素都为空
+E2017:
+  desc: map contains multiple empty keys
+  text: map "{{.Name}}" 存在超过一个的key为空
+  help: 请确保map中最多仅有一个key为空, 如果确实需要map中多个key为零值请手动填充零值
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

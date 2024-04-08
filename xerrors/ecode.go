@@ -174,6 +174,11 @@ func E2016(firstNonePresentIndex, nextPresentIndex int) error {
 	})
 }
 
+// E2017: map value present while key not present.
+func E2017() error {
+	return renderEcode("E2017", nil)
+}
+
 // E3000: no workbook file found about sheet specifier.
 func E3000(sheetSpecifier, pattern string) error {
 	return renderEcode("E3000", map[string]any{

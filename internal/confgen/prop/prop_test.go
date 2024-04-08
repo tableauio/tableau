@@ -6,44 +6,36 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
-func TestCheckKeyUnique(t *testing.T) {
+func TestRequireUnique(t *testing.T) {
 	type args struct {
-		prop    *tableaupb.FieldProp
-		key     string
-		existed bool
+		prop *tableaupb.FieldProp
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name string
+		args args
+		want bool
 	}{
 		{
-			name: "unique",
+			name: "require unique",
 			args: args{
 				prop: &tableaupb.FieldProp{
 					Unique: true,
 				},
-				key:     "100",
-				existed: false,
 			},
-			wantErr: false,
+			want: true,
 		},
 		{
-			name: "not unique",
+			name: "not require unique",
 			args: args{
-				prop: &tableaupb.FieldProp{
-					Unique: true,
-				},
-				key:     "100",
-				existed: true,
+				prop: nil,
 			},
-			wantErr: true,
+			want: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CheckKeyUnique(tt.args.prop, tt.args.key, tt.args.existed); (err != nil) != tt.wantErr {
-				t.Errorf("CheckKeyUnique() error = %v, wantErr %v", err, tt.wantErr)
+			if got := RequireUnique(tt.args.prop); got != tt.want {
+				t.Errorf("RequireUnique() = %v, want %v", got, tt.want)
 			}
 		})
 	}
