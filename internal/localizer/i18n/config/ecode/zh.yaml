@@ -68,6 +68,10 @@ E2016:
   desc: list elements are not present continuously
   text: 数组第{{.FirstNonePresentIndex}}个元素为空, 但后续第{{.NextPresentIndex}}个元素却非空
   help: 请确保数组出现首个空元素时, 后续所有元素都为空
+E2018:
+  desc: integer overflow
+  text: '整数 "{{.Value}}" 溢出，不在类型 {{.Type}} 的值域范围：[{{.Min}},{{.Max}}]'
+  help: 请检查配置的整数，确保不要溢出
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
