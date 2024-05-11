@@ -119,7 +119,7 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 //     because it has special book name pattern.
 //   - with special delimiter "#" in dir: excel#dir/Item.xlsx#Item
 func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string, err error) {
-	fmt := format.Ext2Format(filepath.Ext(bookSpecifier))
+	fmt := format.GetFormat(bookSpecifier)
 	if fmt == format.CSV {
 		// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
 		bookName, err := fs.ParseCSVBooknamePatternFrom(bookSpecifier)

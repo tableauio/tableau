@@ -49,6 +49,11 @@ func (b *Book) BookName() string {
 	return b.name
 }
 
+// Format returns this book's format.
+func (b *Book) Format() format.Format {
+	return format.GetFormat(b.filename)
+}
+
 // Metabook returns the metadata of this book.
 func (b *Book) Metabook() *tableaupb.Metabook {
 	return b.meta

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/iancoleman/strcase"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -206,6 +207,7 @@ type SheetParserExtInfo struct {
 	InputDir       string
 	SubdirRewrites map[string]string
 	PRFiles        *protoregistry.Files
+	BookFormat     format.Format // workbook format
 }
 
 // NewSheetParser creates a new sheet parser extended info.
@@ -222,6 +224,14 @@ func NewExtendedSheetParser(protoPackage, locationName string, opts *tableaupb.W
 		extInfo:      extInfo,
 		lookupTable:  map[string]uint32{},
 	}
+}
+
+// GetBookFormat returns workbook format related to this sheet.
+func (sp *sheetParser) GetBookFormat() format.Format {
+	if sp.extInfo == nil {
+		return format.UnknownFormat
+	}
+	return sp.extInfo.BookFormat
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {

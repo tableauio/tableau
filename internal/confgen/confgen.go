@@ -131,7 +131,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		return nil
 	}
 
-	workbookFormat := format.Ext2Format(filepath.Ext(workbook.Name))
+	workbookFormat := format.GetFormat(workbook.Name)
 	// check if this workbook format need to be converted
 	if !format.FilterInput(workbookFormat, gen.InputOpt.Formats) {
 		return nil
@@ -166,6 +166,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 					InputDir:       gen.InputDir,
 					SubdirRewrites: gen.InputOpt.SubdirRewrites,
 					PRFiles:        prFiles,
+					BookFormat:     workbookFormat,
 				},
 			}
 			sheets = append(sheets, sheetOpts.Name)

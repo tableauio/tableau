@@ -200,7 +200,7 @@ func (gen *Generator) generate(dir string) (err error) {
 			continue
 		}
 		// log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
-		fmt := format.Ext2Format(filepath.Ext(entry.Name()))
+		fmt := format.GetFormat(entry.Name())
 		// check if this workbook format need to be converted
 		if !format.FilterInput(fmt, gen.InputOpt.Formats) {
 			continue

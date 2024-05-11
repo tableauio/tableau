@@ -24,6 +24,8 @@ type Importer interface {
 	// 	- CSV: recognizes pattern: "<BookName>#<SheetName>.csv", and returns "<BookName>".
 	// 	- XML: the base filename without file extension.
 	BookName() string
+	// Format returns workboot format.
+	Format() format.Format
 	// Metabook returns the metadata of the book.
 	Metabook() *tableaupb.Metabook
 	// GetSheets returns all sheets in order of the book.
@@ -35,7 +37,7 @@ type Importer interface {
 // New creates a new importer.
 func New(filename string, setters ...Option) (Importer, error) {
 	opts := parseOptions(setters...)
-	fmt := format.Ext2Format(filepath.Ext(filename))
+	fmt := format.GetFormat(filename)
 	switch fmt {
 	case format.Excel:
 		return NewExcelImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
@@ -125,7 +127,7 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 
 	primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 	log.Debugf("rewrittenAbsWorkbookName: %s", primaryBookPath)
-	fmt := format.Ext2Format(filepath.Ext(primaryBookPath))
+	fmt := format.GetFormat(primaryBookPath)
 	pattern := fs.Join(filepath.Dir(primaryBookPath), bookNameGlob)
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
