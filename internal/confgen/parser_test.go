@@ -3,8 +3,10 @@ package confgen
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 var testParser *sheetParser
@@ -22,6 +24,7 @@ func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
+		errcode string
 	}{
 		{
 			name:   "no duplicate key",
@@ -94,12 +97,20 @@ func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2005",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.parser.Parse(&unittestpb.MallConf{}, tt.args.sheet); (err != nil) != tt.wantErr {
+			err := tt.parser.Parse(&unittestpb.MallConf{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			}
 		})
 	}
@@ -114,6 +125,7 @@ func TestParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
+		errcode string
 	}{
 		{
 			name:   "no empty key",
@@ -168,12 +180,20 @@ func TestParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2017",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.parser.Parse(&unittestpb.MallConf{}, tt.args.sheet); (err != nil) != tt.wantErr {
+			err := tt.parser.Parse(&unittestpb.MallConf{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			}
 		})
 	}
@@ -188,6 +208,7 @@ func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
+		errcode string
 	}{
 		{
 			name:   "no empty row",
@@ -264,8 +285,15 @@ func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.parser.Parse(&unittestpb.MallConf{}, tt.args.sheet); (err != nil) != tt.wantErr {
+			err := tt.parser.Parse(&unittestpb.MallConf{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			}
 		})
 	}
@@ -280,6 +308,7 @@ func TestParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
+		errcode string
 	}{
 		{
 			name:   "no duplicate key",
@@ -314,12 +343,20 @@ func TestParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2005",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.parser.Parse(&unittestpb.RewardConf{}, tt.args.sheet); (err != nil) != tt.wantErr {
+			err := tt.parser.Parse(&unittestpb.RewardConf{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			}
 		})
 	}
@@ -334,6 +371,7 @@ func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
+		errcode string
 	}{
 		{
 			name:   "no empty key",
@@ -385,12 +423,20 @@ func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2017",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.parser.Parse(&unittestpb.RewardConf{}, tt.args.sheet); (err != nil) != tt.wantErr {
+			err := tt.parser.Parse(&unittestpb.RewardConf{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			}
 		})
 	}
