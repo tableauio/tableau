@@ -12,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -50,19 +51,25 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	if err != nil {
 		return errors.Wrapf(err, "failed to read file: %v", path)
 	}
+
+	var unmarshalErr error
 	switch fmt {
 	case format.JSON:
 		unmarshOpts := protojson.UnmarshalOptions{
 			DiscardUnknown: opts.IgnoreUnknownFields,
 		}
-		return unmarshOpts.Unmarshal(content, msg)
+		unmarshalErr = unmarshOpts.Unmarshal(content, msg)
 	case format.Text:
-		return prototext.Unmarshal(content, msg)
+		unmarshalErr = prototext.Unmarshal(content, msg)
 	case format.Bin:
-		return proto.Unmarshal(content, msg)
+		unmarshalErr = proto.Unmarshal(content, msg)
 	default:
 		return errors.Errorf("unknown format: %v", fmt)
 	}
+	if unmarshalErr != nil {
+		return xerrors.E0002(path, name, unmarshalErr.Error())
+	}
+	return nil
 }
 
 // loadOrigin loads the origin file(excel/csv/xml) from the given directory.

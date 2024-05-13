@@ -5,6 +5,7 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -20,7 +21,6 @@ func TestLoad(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "load-origin",
 			args: args{
@@ -34,9 +34,9 @@ func TestLoad(t *testing.T) {
 		{
 			name: "load-origin-with-sudir-rewrites",
 			args: args{
-				msg:     &unittestpb.ItemConf{},
-				dir:     "../",
-				fmt:     format.CSV,
+				msg: &unittestpb.ItemConf{},
+				dir: "../",
+				fmt: format.CSV,
 				options: []Option{
 					SubdirRewrites(map[string]string{
 						"unittest/": "testdata/unittest/",
@@ -139,7 +139,7 @@ func TestLoad(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := Load(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options...); (err != nil) != tt.wantErr {
-				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Load() error = %v, wantErr %v", xerrors.NewDesc(err), tt.wantErr)
 			}
 			// opts := prototext.MarshalOptions{
 			// 	Multiline: true,

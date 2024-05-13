@@ -1,3 +1,7 @@
+default: |
+  error[{{.ErrCode}}]: {{.ErrDesc}}
+  Reason: {{.Reason}}
+  {{ if .Help }}Help: {{.Help}}{{ end }}
 protogen: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
   Workbook: {{.BookName}} {{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
