@@ -483,13 +483,13 @@ func TestIsScalarType(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "google.protobuf.Duration",
-			args: args{t: "google.protobuf.Duration"},
+			name: WellKnownMessageTimestamp,
+			args: args{t: WellKnownMessageTimestamp},
 			want: true,
 		},
 		{
-			name: "google.protobuf.Duration",
-			args: args{t: "google.protobuf.Duration"},
+			name: WellKnownMessageDuration,
+			args: args{t: WellKnownMessageDuration},
 			want: true,
 		},
 		{

@@ -1,6 +1,7 @@
 package xproto
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -57,6 +58,20 @@ func getFieldDefaultValue(fd pref.FieldDescriptor) string {
 	return ""
 }
 
+// ParseFieldValue parses field value by FieldDescriptor. It can parse following
+// basic types:
+//
+// # Scalar types
+//   - Numbers: int32, uint32, int64, uint64, float, double
+//   - Booleans: bool
+//   - Strings: string
+//   - Bytes: bytes
+//
+// # Enum type
+//
+// # Well-known types
+//   - "google.protobuf.Timestamp": datetime, date, time
+//   - "google.protobuf.Duration": duration
 func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string) (v pref.Value, present bool, err error) {
 	purifyInteger := func(s string) string {
 		// trim integer boring suffix matched by regexp `.0*$`
@@ -83,6 +98,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// - decimal fraction: 1.0
 		// - scientific notation: 1.0000001e7
 		val, err := strconv.ParseFloat(value, 64)
+		if val < math.MinInt32 || val > math.MaxInt32 {
+			return DefaultInt32Value, false, xerrors.E2000("int32", value, math.MinInt32, math.MaxInt32)
+		}
 		return pref.ValueOfInt32(int32(val)), true, xerrors.E2012("int32", value, err)
 
 	case pref.Uint32Kind, pref.Fixed32Kind:
@@ -92,6 +110,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseUint(value, 10, 32)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
+		if val < 0 || val > math.MaxUint32 {
+			return DefaultUint32Value, false, xerrors.E2000("uint32", value, 0, math.MaxUint32)
+		}
 		return pref.ValueOfUint32(uint32(val)), true, xerrors.E2012("uint32", value, err)
 	case pref.Int64Kind, pref.Sint64Kind, pref.Sfixed64Kind:
 		if value == "" {
@@ -100,6 +121,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseInt(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
+		if val < math.MinInt64 || val > math.MaxInt64 {
+			return DefaultInt64Value, false, xerrors.E2000("int64", value, math.MinInt64, math.MaxInt64)
+		}
 		return pref.ValueOfInt64(int64(val)), true, xerrors.E2012("int64", value, err)
 	case pref.Uint64Kind, pref.Fixed64Kind:
 		if value == "" {
@@ -108,6 +132,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// val, err := strconv.ParseUint(value, 10, 64)
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseFloat(value, 64)
+		if val < 0 || val > math.MaxUint64 {
+			return DefaultUint64Value, false, xerrors.E2000("uint64", value, 0, uint64(math.MaxUint64))
+		}
 		return pref.ValueOfUint64(uint64(val)), true, xerrors.E2012("uint64", value, err)
 	case pref.BoolKind:
 		if value == "" {
@@ -115,6 +142,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		}
 		// Keep compatibility with excel number format.
 		val, err := strconv.ParseBool(purifyInteger(value))
+		if err != nil {
+			return DefaultBoolValue, false, xerrors.E2013(value, err)
+		}
 		return pref.ValueOfBool(val), true, xerrors.E2013(value, err)
 
 	case pref.FloatKind:
@@ -140,7 +170,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 	case pref.MessageKind:
 		msgName := fd.Message().FullName()
 		switch msgName {
-		case "google.protobuf.Timestamp":
+		case types.WellKnownMessageTimestamp:
 			if value == "" {
 				return DefaultTimestampValue, false, nil
 			}
@@ -157,7 +187,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			}
 			return pref.ValueOf(ts.ProtoReflect()), true, nil
 
-		case "google.protobuf.Duration":
+		case types.WellKnownMessageDuration:
 			if value == "" {
 				return DefaultDurationValue, false, nil
 			}

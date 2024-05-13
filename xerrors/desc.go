@@ -82,13 +82,13 @@ var keys = []string{
 
 type Desc struct {
 	err    error
-	fields map[string]interface{}
+	fields map[string]any
 }
 
 func NewDesc(err error) *Desc {
 	desc := &Desc{
 		err:    err,
-		fields: map[string]interface{}{},
+		fields: map[string]any{},
 	}
 
 	splits := strings.Split(err.Error(), "|")
@@ -143,4 +143,8 @@ func (d *Desc) DebugString() string {
 		}
 	}
 	return str
+}
+
+func (d *Desc) GetValue(key string) any {
+	return d.fields[key]
 }

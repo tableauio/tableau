@@ -31,7 +31,7 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 		if p, ok := opts.Paths[name]; ok {
 			// path specified explicitly, then use it directly
 			path = p
-			fmt = format.Ext2Format(filepath.Ext(path))
+			fmt = format.GetFormat(path)
 		}
 	}
 	if path == "" {
@@ -108,6 +108,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 			InputDir:       dir,
 			SubdirRewrites: opts.SubdirRewrites,
 			PRFiles:        protoregistry.GlobalFiles,
+			BookFormat:     self.Format(),
 		},
 	}
 	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)

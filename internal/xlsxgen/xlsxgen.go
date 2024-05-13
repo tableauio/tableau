@@ -13,7 +13,7 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -627,8 +627,7 @@ func (gen *Generator) TestParseFieldOptions(md protoreflect.MessageDescriptor, r
 					*row = append(*row, Cell{Data: prefix + name})
 				} else {
 					subMsgName := string(fd.Message().FullName())
-					_, found := xproto.WellKnownMessages[subMsgName]
-					if found {
+					if types.IsWellKnownMessage(subMsgName) {
 						fmt.Println("cell(special message): ", prefix+name)
 						*row = append(*row, Cell{Data: prefix + name})
 					} else {

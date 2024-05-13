@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/iancoleman/strcase"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -206,6 +207,7 @@ type SheetParserExtInfo struct {
 	InputDir       string
 	SubdirRewrites map[string]string
 	PRFiles        *protoregistry.Files
+	BookFormat     format.Format // workbook format
 }
 
 // NewSheetParser creates a new sheet parser extended info.
@@ -222,6 +224,14 @@ func NewExtendedSheetParser(protoPackage, locationName string, opts *tableaupb.W
 		extInfo:      extInfo,
 		lookupTable:  map[string]uint32{},
 	}
+}
+
+// GetBookFormat returns workbook format related to this sheet.
+func (sp *sheetParser) GetBookFormat() format.Format {
+	if sp.extInfo == nil {
+		return format.UnknownFormat
+	}
+	return sp.extInfo.BookFormat
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
@@ -846,8 +856,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						return false, xerrors.WithMessageKV(err, kvs...)
 					}
 					subMsgName := string(field.fd.Message().FullName())
-					_, found := xproto.WellKnownMessages[subMsgName]
-					if found {
+					if types.IsWellKnownMessage(subMsgName) {
 						// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
 						newListValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 						if err != nil {
@@ -863,8 +872,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				} else {
 					// horizontal struct list
 					subMsgName := string(field.fd.Message().FullName())
-					_, found := xproto.WellKnownMessages[subMsgName]
-					if found {
+					if types.IsWellKnownMessage(subMsgName) {
 						// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
 						cell, err := rc.Cell(colName, field.opts.Optional)
 						if err != nil {
@@ -1052,8 +1060,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 		return present, nil
 	} else {
 		subMsgName := string(field.fd.Message().FullName())
-		_, found := xproto.WellKnownMessages[subMsgName]
-		if found {
+		if types.IsWellKnownMessage(subMsgName) {
 			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
 			cell, err := rc.Cell(colName, field.opts.Optional)
 			if err != nil {
@@ -1247,8 +1254,7 @@ func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Messa
 
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		subMsgName := string(field.fd.Message().FullName())
-		_, found := xproto.WellKnownMessages[subMsgName]
-		if found {
+		if types.IsWellKnownMessage(subMsgName) {
 			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
 			value, present, err := sp.parseFieldValue(field.fd, cellData, field.opts.Prop)
 			if err != nil {

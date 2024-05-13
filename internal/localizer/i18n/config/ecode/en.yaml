@@ -1,9 +1,17 @@
-# (0000, 0999]: common error
+# [0001, 0999]: common error
 E0001:
   desc: sheet not found in book
   text: sheet "{{.SheetName}}" not found in book "{{.BookName}}"
 # [1000, 1999]: protogen error
+E1000:
+  desc: column name conflicts in name row
+  text: found same name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}"
+  help: rename column name and keep sure it is unique in name row
 # [2000, 2999]: confgen error
+E2000:
+  desc: integer overflow
+  text: '"{{.Value}}" is outside of range [{{.Min}},{{.Max}}] of type {{.Type}}'
+  help: check field value and make sure it in representable range
 E2001:
   desc: field prop "refer" not configured correctly
   text: in configured refer "{{.Refer}}", message "{{.MessageName}}" not found

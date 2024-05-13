@@ -1,5 +1,7 @@
 package format
 
+import "path/filepath"
+
 type Format string
 
 // File format
@@ -27,6 +29,11 @@ const (
 	BinExt  string = ".bin"
 	TextExt string = ".txt"
 )
+
+// GetFormat returns the file's format by filename extension.
+func GetFormat(filename string) Format {
+	return Ext2Format(filepath.Ext(filename))
+}
 
 func Ext2Format(ext string) Format {
 	switch ext {

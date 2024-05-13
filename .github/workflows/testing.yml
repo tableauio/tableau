@@ -3,16 +3,11 @@ name: Testing
 # Trigger on pushes, PRs (excluding documentation changes), and nightly.
 on:
   push:
-  pull_request:
   schedule:
     - cron: 0 0 * * * # daily at 00:00
 
 permissions:
   contents: read
-
-# Always force the use of Go modules
-env:
-  GO111MODULE: on
 
 jobs:
   test:
@@ -41,16 +36,18 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Setup test environment
+
+      - name: Setup
         run: ./test/setup.sh
-      - name: Get dependencies
+
+      - name: Vet
         run: go vet ./...
+
       - name: Test
         run: go test -v -timeout 30m -race ./... -coverprofile=coverage.txt -covermode=atomic
 
-      - name: Codecov
-        uses: codecov/codecov-action@v3
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
         with:
-          file: coverage.txt
-          flags: unittests
-          name: codecov-umbrella
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: tableauio/tableau

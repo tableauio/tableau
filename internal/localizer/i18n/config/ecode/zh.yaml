@@ -1,9 +1,17 @@
-# (0000, 0999]: common error
+# [0001, 0999]: common error
 E0001:
   desc: sheet not found in book
   text: 工作表 "{{.SheetName}}" 在工作簿 "{{.BookName}}" 中未找到
 # [1000, 1999]: protogen error
+E1000:
+  desc: column name conflicts in name row
+  text: '"{{.Position1}}" 和 "{{.Position2}}" 存在相同的列名 "{{.Name}}"'
+  help: 修改冲突的列名，以确保唯一性
 # [2000, 2999]: confgen error
+E2000:
+  desc: integer overflow
+  text: '整数 "{{.Value}}" 溢出，不在类型 {{.Type}} 的值域范围：[{{.Min}},{{.Max}}]'
+  help: 请检查配置的整数，确保不要溢出
 E2001:
   desc: field prop "refer" not configured correctly
   text: 解析refer值空间校验 "{{.Refer}}" 时，找不到对应工作表 "{{.MessageName}}"

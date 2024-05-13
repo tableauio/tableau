@@ -132,7 +132,7 @@ func RangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath st
 			}
 			continue
 		}
-		fileFmt := format.Ext2Format(filepath.Ext(entry.Name()))
+		fileFmt := format.GetFormat(entry.Name())
 		if fileFmt != fmt {
 			continue
 		}
