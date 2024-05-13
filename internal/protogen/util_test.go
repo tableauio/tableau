@@ -3,8 +3,10 @@ package protogen
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -151,6 +153,74 @@ func Test_genProtoFilePath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := genProtoFilePath(tt.args.bookName, tt.args.suffix); got != tt.want {
 				t.Errorf("genProtoFilePath() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_wrapDebugErr(t *testing.T) {
+	testTransposeSheetHeader := &sheetHeader{
+		meta: &tableaupb.Metasheet{
+			Namerow:   1,
+			Typerow:   2,
+			Noterow:   3,
+			Transpose: true,
+		},
+		namerow:    []string{"ID", "Value", "", "Kind"},
+		typerow:    []string{"map<int32, Item>", "int32", "", "int32"},
+		noterow:    []string{"Item's ID", "Item's value", "", "Item's kind"},
+		validNames: map[string]int{},
+	}
+
+	type args struct {
+		err       error
+		bookName  string
+		sheetName string
+		sh        *sheetHeader
+		cursor    int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		errcode string
+		wantErr bool
+	}{
+		{
+			name: "E0001",
+			args: args{
+				err:       xerrors.E0001("TestSheet", "TestBook"),
+				bookName:  "TestBook",
+				sheetName: "TestSheet",
+				sh:        testSheetHeader,
+				cursor:    0,
+			},
+			errcode: "E0001",
+			wantErr: true,
+		},
+		{
+			name: "E0001 transpose",
+			args: args{
+				err:       xerrors.E0001("TestSheet", "TestBook"),
+				bookName:  "TestBook",
+				sheetName: "TestSheet",
+				sh:        testTransposeSheetHeader,
+				cursor:    0,
+			},
+			errcode: "E0001",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := wrapDebugErr(tt.args.err, tt.args.bookName, tt.args.sheetName, tt.args.sh, tt.args.cursor)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("wrapDebugErr() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				desc := xerrors.NewDesc(err)
+				require.Equal(t, desc.ErrCode(), tt.errcode)
+				require.Equal(t, desc.GetValue(xerrors.KeyBookName), tt.args.bookName)
+				require.Equal(t, desc.GetValue(xerrors.KeySheetName), tt.args.sheetName)
 			}
 		})
 	}

@@ -207,6 +207,21 @@ func Test_sheetHeader_checkNameConflicts(t *testing.T) {
 		},
 	}
 
+	testTransposeSheetHeader := &sheetHeader{
+		meta: &tableaupb.Metasheet{
+			Namerow:   1,
+			Typerow:   2,
+			Noterow:   3,
+			Transpose: true,
+		},
+		namerow: []string{"ID", "ID", "", "Kind"},
+		typerow: []string{"map<int32, Item>", "int32", "", "int32"},
+		noterow: []string{"Item's ID", "Item's value", "", "Item's kind"},
+		validNames: map[string]int{
+			"ID": 0,
+		},
+	}
+
 	type args struct {
 		name   string
 		cursor int
@@ -229,6 +244,15 @@ func Test_sheetHeader_checkNameConflicts(t *testing.T) {
 		{
 			name: "conflicts",
 			sh:   testSheetHeader,
+			args: args{
+				name:   "ID",
+				cursor: 1,
+			},
+			wantErr: true,
+		},
+		{
+			name: "transpose conflicts",
+			sh:   testTransposeSheetHeader,
 			args: args{
 				name:   "ID",
 				cursor: 1,

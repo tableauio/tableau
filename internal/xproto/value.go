@@ -170,7 +170,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 	case pref.MessageKind:
 		msgName := fd.Message().FullName()
 		switch msgName {
-		case "google.protobuf.Timestamp":
+		case types.WellKnownMessageTimestamp:
 			if value == "" {
 				return DefaultTimestampValue, false, nil
 			}
@@ -187,7 +187,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			}
 			return pref.ValueOf(ts.ProtoReflect()), true, nil
 
-		case "google.protobuf.Duration":
+		case types.WellKnownMessageDuration:
 			if value == "" {
 				return DefaultDurationValue, false, nil
 			}
