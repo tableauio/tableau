@@ -75,6 +75,10 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 		return cursor, false, nil
 	}
 
+	if err := header.checkNameConflicts(nameCell, cursor); err != nil {
+		return cursor, false, err
+	}
+
 	opts := parseroptions.ParseOptions(options...)
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
@@ -82,24 +86,24 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	if types.IsMap(typeCell) {
 		cursor, err = p.parseMapField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "map", xerrors.KeyTypeCell, typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "map")
 		}
 	} else if types.IsList(typeCell) {
 		cursor, err = p.parseListField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "list", xerrors.KeyTypeCell, typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "list")
 		}
 	} else if types.IsStruct(typeCell) {
 		cursor, err = p.parseStructField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "struct", xerrors.KeyTypeCell, typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "struct")
 		}
 	} else {
 		// scalar or enum type
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, typeCell)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum", xerrors.KeyTypeCell, typeCell)
+			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum")
 		}
 		proto.Merge(field, scalarField)
 	}

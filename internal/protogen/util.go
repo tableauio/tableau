@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -134,5 +135,21 @@ func (g *GeneratedBuf) Content() []byte {
 
 // String returns the string content of the generated file.
 func (g *GeneratedBuf) String() string {
-	return string(g.buf.Bytes())
+	return g.buf.String()
+}
+
+func wrapDebugErr(err error, bookName, sheetName string, sh *sheetHeader, cursor int) error {
+	nameCellPos := excel.Postion(int(sh.meta.Namerow-1), cursor)
+	typeCellPos := excel.Postion(int(sh.meta.Typerow-1), cursor)
+	if sh.meta.Transpose {
+		nameCellPos = excel.Postion(cursor, int(sh.meta.Namerow-1))
+		typeCellPos = excel.Postion(cursor, int(sh.meta.Typerow-1))
+	}
+	return xerrors.WithMessageKV(err,
+		xerrors.KeyBookName, bookName,
+		xerrors.KeySheetName, sheetName,
+		xerrors.KeyNameCellPos, nameCellPos,
+		xerrors.KeyTypeCellPos, typeCellPos,
+		xerrors.KeyNameCell, sh.getNameCell(cursor),
+		xerrors.KeyTypeCell, sh.getTypeCell(cursor))
 }

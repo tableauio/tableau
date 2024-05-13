@@ -15,9 +15,10 @@ func init() {
 			Typerow: 2,
 			Noterow: 3,
 		},
-		namerow: []string{"ID", "Value", "", "Kind"},
-		typerow: []string{"map<int32, Item>", "int32", "", "int32"},
-		noterow: []string{"Item's ID", "Item's value", "", "Item's kind"},
+		namerow:    []string{"ID", "Value", "", "Kind"},
+		typerow:    []string{"map<int32, Item>", "int32", "", "int32"},
+		noterow:    []string{"Item's ID", "Item's value", "", "Item's kind"},
+		validNames: map[string]int{},
 	}
 }
 
@@ -186,6 +187,59 @@ func Test_getCell(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := getCell(tt.args.row, tt.args.cursor, tt.args.line); got != tt.want {
 				t.Errorf("getCell() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_sheetHeader_checkNameConflicts(t *testing.T) {
+	testSheetHeader := &sheetHeader{
+		meta: &tableaupb.Metasheet{
+			Namerow: 1,
+			Typerow: 2,
+			Noterow: 3,
+		},
+		namerow: []string{"ID", "ID", "", "Kind"},
+		typerow: []string{"map<int32, Item>", "int32", "", "int32"},
+		noterow: []string{"Item's ID", "Item's value", "", "Item's kind"},
+		validNames: map[string]int{
+			"ID": 0,
+		},
+	}
+
+	type args struct {
+		name   string
+		cursor int
+	}
+	tests := []struct {
+		name    string
+		sh      *sheetHeader
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "no-conflicts",
+			sh:   testSheetHeader,
+			args: args{
+				name:   "Kind",
+				cursor: 2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "conflicts",
+			sh:   testSheetHeader,
+			args: args{
+				name:   "ID",
+				cursor: 1,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.sh.checkNameConflicts(tt.args.name, tt.args.cursor); (err != nil) != tt.wantErr {
+				t.Errorf("sheetHeader.checkNameConflicts() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

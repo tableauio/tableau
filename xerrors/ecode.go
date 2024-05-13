@@ -1,7 +1,7 @@
 package xerrors
 
 // Error code space sections:
-//	(0000, 0999]: common error
+//	[0001, 0999]: common error
 //  [1000, 1999]: protogen error
 //  [2000, 2999]: confgen error
 //	[3000, 3999]: importer error
@@ -12,6 +12,25 @@ func E0001(sheetName, bookName string) error {
 	return renderEcode("E0001", map[string]any{
 		"SheetName": sheetName,
 		"BookName":  bookName,
+	})
+}
+
+// E1000: column name conflicts in name row.
+func E1000(name, positon1, positon2 string) error {
+	return renderEcode("E1000", map[string]any{
+		"Name":      name,
+		"Position1": positon1,
+		"Position2": positon2,
+	})
+}
+
+// E2000: integer overflow.
+func E2000(typ, value string, min, max any) error {
+	return renderEcode("E2000", map[string]any{
+		"Type":  typ,
+		"Value": value,
+		"Min":   min,
+		"Max":   max,
 	})
 }
 
@@ -143,16 +162,6 @@ func E2016(firstNonePresentIndex, nextPresentIndex int) error {
 	return renderEcode("E2016", map[string]any{
 		"FirstNonePresentIndex": firstNonePresentIndex,
 		"NextPresentIndex":      nextPresentIndex,
-	})
-}
-
-// E2018: integer overflow.
-func E2018(typ, value string, min, max any) error {
-	return renderEcode("E2018", map[string]any{
-		"Type":  typ,
-		"Value": value,
-		"Min":   min,
-		"Max":   max,
 	})
 }
 
