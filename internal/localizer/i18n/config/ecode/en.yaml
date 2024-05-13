@@ -81,9 +81,9 @@ E2016:
   text: The {{.FirstNonePresentIndex}}-th element is not present, but the subsequent {{.NextPresentIndex}}-th element is present
   help: ensure all subsequent elements after the first none-present element are not present
 E2017:
-  desc: map contains multiple empty or keys
+  desc: map contains multiple empty keys
   text: map "{{.Name}}" contains multiple empty keys
-  help: ensure there is only one empty or key in map, if you need multiple zero-value keys you should explicitly assign a zero value
+  help: ensure there is at most one empty key in map, or explicitly assign them if you need multiple zero-value keys
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

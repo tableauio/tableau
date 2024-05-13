@@ -417,7 +417,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				}
 				if valuePresent {
 					kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "vertical map")
-					return false, xerrors.WithMessageKV(xerrors.E2017(), kvs...)
+					return false, xerrors.WithMessageKV(xerrors.E2017(keyColName), kvs...)
 				}
 				break
 			}
@@ -477,7 +477,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if !keyPresent && reflectMap.Has(newMapKey) {
 				if valuePresent {
 					kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "vertical scalar map")
-					return false, xerrors.WithMessageKV(xerrors.E2017(), kvs...)
+					return false, xerrors.WithMessageKV(xerrors.E2017(keyColName), kvs...)
 				}
 				break
 			}
@@ -536,7 +536,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					}
 					if valuePresent {
 						kvs := append(rc.CellDebugKV(keyColName), xerrors.KeyPBFieldType, "horizontal map")
-						return false, xerrors.WithMessageKV(xerrors.E2017(), kvs...)
+						return false, xerrors.WithMessageKV(xerrors.E2017(keyColName), kvs...)
 					}
 					break
 				}
