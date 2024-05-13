@@ -2,6 +2,10 @@
 E0001:
   desc: sheet not found in book
   text: 工作表 "{{.SheetName}}" 在工作簿 "{{.BookName}}" 中未找到
+E0002:
+  desc: cannot unmarshal file content to given proto.Message
+  text: '无法将"{{.Filename}}"的文件内容反序列化到Protobuf消息"{{.MessageName}}": {{.Error}}'
+  help: 检查文件内容格式是否正确
 # [1000, 1999]: protogen error
 E1000:
   desc: column name conflicts in name row

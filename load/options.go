@@ -6,20 +6,25 @@ type Options struct {
 	//
 	// If the name is "" or "UTC", LoadLocation returns UTC.
 	// If the name is "Local", LoadLocation returns Local.
+	//
 	// Default: "Local".
 	LocationName string
 	// IgnoreUnknownFields signifies whether to ignore unknown JSON fields
 	// during parsing.
+	//
 	// Default: false.
 	IgnoreUnknownFields bool
 	// SubdirRewrites rewrites subdir paths (relative to workbook name option
 	// in .proto file).
+	//
 	// Default: nil.
 	SubdirRewrites map[string]string
 	// Paths maps each messager name to a corresponding config file path.
 	// If a messager name is existed, then the messager will be parsed from
 	// the config file directly.
+	//
 	// NOTE: only JSON, bin, and text formats are supported.
+	//
 	// Default: nil.
 	Paths map[string]string
 }

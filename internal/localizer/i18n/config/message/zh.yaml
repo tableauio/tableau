@@ -1,3 +1,7 @@
+default: |
+  error[{{.ErrCode}}]: {{.ErrDesc}}
+  错误原因: {{.Reason}}
+  {{ if .Help }}修复建议: {{.Help}}{{ end }}
 protogen: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}{{ end }}
   工作簿: {{.BookName}} {{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }}(主工作簿: {{.PrimaryBookName}}){{ end }}

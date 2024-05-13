@@ -15,6 +15,15 @@ func E0001(sheetName, bookName string) error {
 	})
 }
 
+// E0002: cannot unmarshal file content to given proto.Message.
+func E0002(filename, messageName, errstr string) error {
+	return renderEcode("E0002", map[string]any{
+		"Filename":    filename,
+		"MessageName": messageName,
+		"Error":       errstr,
+	})
+}
+
 // E1000: column name conflicts in name row.
 func E1000(name, positon1, positon2 string) error {
 	return renderEcode("E1000", map[string]any{

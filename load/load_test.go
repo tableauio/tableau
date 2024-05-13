@@ -3,8 +3,10 @@ package load
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -19,8 +21,8 @@ func TestLoad(t *testing.T) {
 		name    string
 		args    args
 		wantErr bool
+		errcode string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "load-origin",
 			args: args{
@@ -34,9 +36,9 @@ func TestLoad(t *testing.T) {
 		{
 			name: "load-origin-with-sudir-rewrites",
 			args: args{
-				msg:     &unittestpb.ItemConf{},
-				dir:     "../",
-				fmt:     format.CSV,
+				msg: &unittestpb.ItemConf{},
+				dir: "../",
+				fmt: format.CSV,
 				options: []Option{
 					SubdirRewrites(map[string]string{
 						"unittest/": "testdata/unittest/",
@@ -57,6 +59,20 @@ func TestLoad(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "specified-json-format-invalid-syntax",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				dir: "../testdata/unittest/invalidconf/",
+				fmt: format.JSON,
+				options: []Option{
+					LocationName("Local"),
+					IgnoreUnknownFields(),
+				},
+			},
+			wantErr: true,
+			errcode: "E0002",
 		},
 		{
 			name: "specified-text-format",
@@ -138,8 +154,15 @@ func TestLoad(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Load(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options...); (err != nil) != tt.wantErr {
+			err := Load(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options...)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			}
 			// opts := prototext.MarshalOptions{
 			// 	Multiline: true,
