@@ -34,3 +34,31 @@ message ItemConf {
 
   map<uint32, unittest.Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
 }
+
+message MallConf {
+  option (tableau.worksheet) = {name:"MallConf" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Shop> shop_map = 1 [(tableau.field) = {key:"ShopID" layout:LAYOUT_VERTICAL}];
+  message Shop {
+    uint32 shop_id = 1 [(tableau.field) = {name:"ShopID"}];
+    map<uint32, Goods> goods_map = 2 [(tableau.field) = {key:"GoodsID" layout:LAYOUT_VERTICAL}];
+    message Goods {
+      uint32 goods_id = 1 [(tableau.field) = {name:"GoodsID"}];
+      int32 price = 2 [(tableau.field) = {name:"Price"}];
+    }
+  }
+}
+
+message RewardConf {
+  option (tableau.worksheet) = {name:"RewardConf" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"RewardID" layout:LAYOUT_VERTICAL}];
+  message Reward {
+    uint32 reward_id = 1 [(tableau.field) = {name:"RewardID"}];
+    map<uint32, Item> item_map = 2 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
+    message Item {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 num = 2 [(tableau.field) = {name:"Num"}];
+    }
+  }
+}
