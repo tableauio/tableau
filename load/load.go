@@ -24,27 +24,14 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, options...)
 	}
-
-	var path string
 	name := string(msg.ProtoReflect().Descriptor().Name())
+	path := filepath.Join(dir, name+format.Format2Ext(fmt))
 	opts := ParseOptions(options...)
 	if opts.Paths != nil {
 		if p, ok := opts.Paths[name]; ok {
 			// path specified explicitly, then use it directly
 			path = p
 			fmt = format.GetFormat(path)
-		}
-	}
-	if path == "" {
-		switch fmt {
-		case format.JSON:
-			path = filepath.Join(dir, name+format.JSONExt)
-		case format.Text:
-			path = filepath.Join(dir, name+format.TextExt)
-		case format.Bin:
-			path = filepath.Join(dir, name+format.BinExt)
-		default:
-			return errors.Errorf("unknown format: %v", fmt)
 		}
 	}
 	content, err := os.ReadFile(path)
@@ -55,10 +42,10 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	var unmarshalErr error
 	switch fmt {
 	case format.JSON:
-		unmarshOpts := protojson.UnmarshalOptions{
+		unmarshalOpts := protojson.UnmarshalOptions{
 			DiscardUnknown: opts.IgnoreUnknownFields,
 		}
-		unmarshalErr = unmarshOpts.Unmarshal(content, msg)
+		unmarshalErr = unmarshalOpts.Unmarshal(content, msg)
 	case format.Text:
 		unmarshalErr = prototext.Unmarshal(content, msg)
 	case format.Bin:
