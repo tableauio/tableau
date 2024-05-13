@@ -768,6 +768,10 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 }
 
 func (sp *sheetParser) autoDeduceUnique(field *Field, reflectMap protoreflect.Map) bool {
+	if sp.GetBookFormat() == format.XML {
+		// Auto deduct unique is not enabled on xml sheets
+		return false
+	}
 	layout := field.opts.Layout
 	if field.opts.Layout == tableaupb.Layout_LAYOUT_DEFAULT {
 		// Map default layout is vertical
