@@ -175,10 +175,9 @@ func E2016(firstNonePresentIndex, nextPresentIndex int) error {
 }
 
 // E2017: map contains multiple empty keys.
-func E2017(mapType, mapName string) error {
+func E2017(mapType string) error {
 	return renderEcode("E2017", map[string]any{
-		"Type": mapType,
-		"Name": mapName,
+		"MapType": mapType,
 	})
 }
 

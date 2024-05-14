@@ -416,8 +416,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 				}
 				if valuePresent {
-					err := xerrors.E2017(string(field.fd.FullName()), xproto.GetFieldTypeName(field.fd))
-					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
+					return false, xerrors.WithMessageKV(xerrors.E2017(xproto.GetFieldTypeName(field.fd)), rc.CellDebugKV(keyColName)...)
 				}
 				break
 			}
@@ -470,8 +469,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			// value must be empty if key not present
 			if !keyPresent && reflectMap.Has(newMapKey) {
 				if valuePresent {
-					err := xerrors.E2017(string(field.fd.FullName()), xproto.GetFieldTypeName(field.fd))
-					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
+					return false, xerrors.WithMessageKV(xerrors.E2017(xproto.GetFieldTypeName(field.fd)), rc.CellDebugKV(keyColName)...)
 				}
 				break
 			}
@@ -525,8 +523,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 					}
 					if valuePresent {
-						err := xerrors.E2017(string(field.fd.FullName()), xproto.GetFieldTypeName(field.fd))
-						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
+						return false, xerrors.WithMessageKV(xerrors.E2017(xproto.GetFieldTypeName(field.fd)), rc.CellDebugKV(keyColName)...)
 					}
 					break
 				}

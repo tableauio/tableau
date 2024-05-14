@@ -1,95 +1,95 @@
 # [0001, 0999]: common error
 E0001:
-  desc: sheet not found in book
-  text: sheet "{{.SheetName}}" not found in book "{{.BookName}}"
+  desc: Sheet not found in book.
+  text: Sheet "{{.SheetName}}" not found in book "{{.BookName}}".
 E0002:
-  desc: cannot unmarshal file content to given proto.Message
-  text: 'failed to unmarshal file "{{.Filename}}" to message "{{.MessageName}}": {{.Error}}'
-  help: check the file content format is correct
+  desc: Cannot unmarshal file content to given proto.Message.
+  text: 'Failed to unmarshal file "{{.Filename}}" to message "{{.MessageName}}": {{.Error}}.'
+  help: Check the file content format is correct.
 # [1000, 1999]: protogen error
 E1000:
-  desc: column name conflicts in name row
-  text: found same name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}"
-  help: rename column name and keep sure it is unique in name row
+  desc: Column name conflicts in name row.
+  text: Found same name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}".
+  help: Rename column name and keep sure it is unique in name row.
 # [2000, 2999]: confgen error
 E2000:
-  desc: integer overflow
-  text: '"{{.Value}}" is outside of range [{{.Min}},{{.Max}}] of type {{.Type}}'
-  help: check field value and make sure it in representable range
+  desc: Integer overflow.
+  text: 'Value "{{.Value}}" is outside of range [{{.Min}},{{.Max}}] of type {{.Type}}.'
+  help: Check field value and make sure it in representable range.
 E2001:
-  desc: field prop "refer" not configured correctly
-  text: in configured refer "{{.Refer}}", message "{{.MessageName}}" not found
-  help: 'try using format with sheet alias: "SheetName(SheetAlias).ColumnName"'
+  desc: Field prop "refer" not configured correctly.
+  text: In configured refer "{{.Refer}}", message "{{.MessageName}}" is not found.
+  help: 'Try using format with sheet alias: "SheetName(SheetAlias).ColumnName".'
 E2002:
-  desc: field value not in referred space
-  text: value "{{.Value}}" not in referred space "{{.Refer}}"
-  help: guarantee value "{{.Value}}" was configured in referred space "{{.Refer}}" ahead
+  desc: Field value not in referred space.
+  text: Value "{{.Value}}" not in referred space "{{.Refer}}".
+  help: Guarantee value "{{.Value}}" was configured in referred space "{{.Refer}}" ahead.
 E2003:
-  desc: illegal sequence number
-  text: 'value "{{.Value}}" does not meet sequence requirement: "sequence:{{.Sequence}}"'
-  help: '"sequence:{{.Sequence}}" requires value starts from "{{.Sequence}}" and increases monotonically'
+  desc: Illegal sequence number.
+  text: 'Value "{{.Value}}" does not meet sequence requirement: "sequence:{{.Sequence}}".'
+  help: 'Prop "sequence:{{.Sequence}}" requires value starts from "{{.Sequence}}" and increases monotonically.'
 E2004:
-  desc: value is out of range
-  text: 'value "{{.Value}}" is out of range [{{.Range}}]'
-  help: change value and make sure it's in range
+  desc: Value is out of range.
+  text: 'Value "{{.Value}}" is out of range [{{.Range}}].'
+  help: Change value and make sure it's in range.
 E2005:
-  desc: map key not unique
-  text: map key "{{.Key}}" already exists
-  help: 'map key is configured as "unique:true"'
+  desc: Map key not unique.
+  text: Map key "{{.Key}}" already exists.
+  help: Fix duplicate keys and ensure map key is unique.
 E2006:
-  desc: enum value not defined in enum type
-  text: enum value "{{.Value}}" not defined in enum "{{.EnumName}}"
-  help: add enum value "{{.Value}}" to enum "{{.EnumName}}" definition
+  desc: Enum value not defined in enum type.
+  text: Enum value "{{.Value}}" not defined in enum "{{.EnumName}}".
+  help: Add enum value "{{.Value}}" to enum "{{.EnumName}}" definition.
 E2007:
-  desc: invalid datetime format
-  text: '"{{.Value}}" is invalid datetime format, {{.Error}}'
-  help: 'follow datetime format: "yyyy-MM-dd HH:mm:ss", e.g.: "2020-01-01 01:00:00"'
+  desc: Invalid datetime format.
+  text: '"{{.Value}}" is invalid datetime format, {{.Error}}.'
+  help: 'Follow datetime format: "yyyy-MM-dd HH:mm:ss", e.g.: "2020-01-01 01:00:00".'
 E2008:
-  desc: invalid duration format
-  text: '"{{.Value}}" is invalid duration format, {{.Error}}'
-  help: 'follow duration format in the form "72h3m0.5s"'
+  desc: Invalid duration format.
+  text: '"{{.Value}}" is invalid duration format, {{.Error}}.'
+  help: 'Follow duration format in the form "72h3m0.5s".'
 E2009:
-  desc: duplicate key exists in different sheets
-  text: 'field {{.FieldName}} has duplicate key "{{.Key}}"'
-  help: "key must not be duplicate when merge multiple sheets"
+  desc: Duplicate key exists in different sheets.
+  text: 'Field {{.FieldName}} has duplicate key "{{.Key}}".'
+  help: Key must not be duplicate when merge multiple sheets.
 E2010:
-  desc: union type has no corresponding value field
-  text: 'union type "{{.TypeValue}}" has no corresponding value field with number "{{.FieldNumber}}"'
-  help: 'add new union value field and bind it to type "{{.TypeValue}}"'
+  desc: Union type has no corresponding value field.
+  text: 'Union type "{{.TypeValue}}" has no corresponding value field with number "{{.FieldNumber}}".'
+  help: 'Add new union value field and bind it to type "{{.TypeValue}}".'
 E2011:
-  desc: field presence required but cell not filled
-  text: cell data is not filled explicitly
-  help: fill cell data explicitly
+  desc: Field presence required but cell not filled.
+  text: Cell data is not filled explicitly.
+  help: Fill cell data explicitly.
 E2012:
-  desc: invalid syntax of numerical value
-  text: '"{{.Value}}" cannot be parsed to numerical type "{{.FieldType}}", {{.Error}}'
-  help: fill cell data with valid syntax of numerical type "{{.FieldType}}"
+  desc: Invalid syntax of numerical value.
+  text: '"{{.Value}}" cannot be parsed to numerical type "{{.FieldType}}", {{.Error}}.'
+  help: Fill cell data with valid syntax of numerical type "{{.FieldType}}".
 E2013:
-  desc: invalid syntax of boolean value
-  text: '"{{.Value}}" cannot be parsed to boolean type, {{.Error}}'
-  help: "boolean value can be: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
+  desc: Invalid syntax of boolean value.
+  text: '"{{.Value}}" cannot be parsed to boolean type, {{.Error}}.'
+  help: "Boolean value can be: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False."
 E2014:
-  desc: sheet column not found
-  text: sheet column "{{.Column}}" not found
-  help: add column "{{.Column}}"
+  desc: Sheet column not found.
+  text: Sheet column "{{.Column}}" not found.
+  help: Add column "{{.Column}}".
 E2015:
-  desc: referred sheet column not found
-  text: referred sheet column "{{.Column}}" not found in workbook "{{.BookName}}", worksheet "{{.SheetName}}"
-  help: change "refer" prop or add referred sheet column "{{.Column}}"
+  desc: Referred sheet column not found.
+  text: Referred sheet column "{{.Column}}" not found in workbook "{{.BookName}}", worksheet "{{.SheetName}}".
+  help: Change "refer" prop or add referred sheet column "{{.Column}}".
 E2016:
-  desc: list elements are not present continuously
-  text: The {{.FirstNonePresentIndex}}-th element is not present, but the subsequent {{.NextPresentIndex}}-th element is present
-  help: ensure all subsequent elements after the first none-present element are not present
+  desc: List elements are not present continuously.
+  text: The {{.FirstNonePresentIndex}}-th element is not present, but the subsequent {{.NextPresentIndex}}-th element is present.
+  help: Ensure all subsequent elements after the first none-present element are not present.
 E2017:
-  desc: map contains multiple empty keys
-  text: map "{{.Name}}" (type {{.Type}}) contains multiple empty keys
-  help: ensure there is at most one empty key in map, or explicitly assign them if you need multiple zero-value keys
+  desc: Map contains multiple empty keys.
+  text: '"{{.MapType}}" contains multiple empty keys.'
+  help: Ensure there is at most one empty key in map, or assign them explicitly if you need multiple zero-value keys.
 # [3000, 3999]: importer error
 E3000:
-  desc: no workbook file found about sheet specifier
-  text: no workbook file found in pattern "{{.Pattern}}" with sheet specifier "{{.SheetSpecifier}}"
-  help: guarantee sheet specifier in format "<BookNameGlob>[#SheetName]"
+  desc: No workbook file found about sheet specifier.
+  text: No workbook file found in pattern "{{.Pattern}}" with sheet specifier "{{.SheetSpecifier}}".
+  help: Guarantee sheet specifier in format "<BookNameGlob>[#SheetName]".
 E3001:
-  desc: no worksheet found in workbook
-  text: worksheet "{{.SheetName}}" not found in workbook "{{.BookName}}"
-  help: add proper worksheet "{{.SheetName}}" to workbook "{{.BookName}}"
+  desc: No worksheet found in workbook.
+  text: Worksheet "{{.SheetName}}" not found in workbook "{{.BookName}}".
+  help: Add proper worksheet "{{.SheetName}}" to workbook "{{.BookName}}".
