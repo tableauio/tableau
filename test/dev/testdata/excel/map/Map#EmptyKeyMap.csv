@@ -2,6 +2,6 @@ ID,Desc
 "map<uint32, Reward>",string
 Reward ID,Reward Description
 ,Desc 0
-,
-3,Desc 3
+1,Desc 1
+2,Desc 2
 3,Desc 3

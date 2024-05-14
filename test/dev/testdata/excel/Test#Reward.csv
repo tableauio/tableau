@@ -2,6 +2,6 @@ ID,Desc,RewardItem1Id,RewardItem1Num,RewardItem2Id,RewardItem2Num,ExchangeId,Inp
 "map<uint32, Reward>|{unique:true sequence:1}",string,"map<int32,.Item>",int32,int32,int32,[Exchange]uint32,[ExchangeItem]int32,int32,int32,int32,int32,int32,[ExchangeItem]int32,int32,int32,int32
 奖励ID,描述,奖励1Id,奖励1Num,奖励2Id,奖励2Num,兑换ID,道具1Id,道具1Num,道具2Id,道具2Num,道具3Id,道具3Num,奖励1Id,奖励1Num,奖励2Id,奖励2Num
 1,奖励1,1,2002,2,2002,1,2002,3,2002,2,2002,3,2002,3,,
-2,奖励2,2,2002,2,2002,2,2002,3,2002,2,2002,3,2002,3,,
+2,奖励2,2,2002,1,2002,2,2002,3,2002,2,2002,3,2002,3,,
 3,奖励3,3,2002,,,2,2002,3,2002,2,2002,3,2002,3,,
 4,奖励4,1,2001,,,1,2007,10,2001,1,,,2007,10,,
