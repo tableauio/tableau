@@ -29,6 +29,14 @@ message IncellMap {
   }
 }
 
+message IncellList {
+  option (tableau.worksheet) = {name:"IncellList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated int32 value_list = 1 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL}];
+  repeated unittest.FruitFlavor flavor_list = 2 [(tableau.field) = {name:"Flavor" layout:LAYOUT_INCELL}];
+  repeated unittest.Item item_list = 3 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+}
+
 message ItemConf {
   option (tableau.worksheet) = {name:"ItemConf" namerow:1 typerow:2 noterow:3 datarow:4};
 
@@ -55,10 +63,6 @@ message RewardConf {
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"RewardID" layout:LAYOUT_VERTICAL}];
   message Reward {
     uint32 reward_id = 1 [(tableau.field) = {name:"RewardID"}];
-    map<uint32, Item> item_map = 2 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
-    message Item {
-      uint32 id = 1 [(tableau.field) = {name:"ID"}];
-      int32 num = 2 [(tableau.field) = {name:"Num"}];
-    }
+    map<uint32, unittest.Item> item_map = 2 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
   }
 }
