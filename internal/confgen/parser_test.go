@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"github.com/tableauio/tableau/xerrors"
@@ -12,7 +13,12 @@ import (
 var testParser *sheetParser
 
 func init() {
-	testParser = NewSheetParser("protoconf", "Asia/Shanghai", book.MetasheetOptions())
+	testParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", book.MetasheetOptions(),
+		&SheetParserExtInfo{
+			InputDir:       "",
+			SubdirRewrites: map[string]string{},
+			BookFormat:     format.CSV,
+		})
 }
 
 func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
