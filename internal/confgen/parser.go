@@ -431,7 +431,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 			}
 			// check key uniqueness
-			if reflectMap.Has(newMapKey) && (prop.RequireUnique(field.opts.Prop) || sp.autoDeduceUnique(field, reflectMap)) {
+			if reflectMap.Has(newMapKey) && (prop.RequireUnique(field.opts.Prop) || sp.deduceMapKeyUnique(field, reflectMap)) {
 				return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
 			}
 			if !keyPresent && !valuePresent {
@@ -550,8 +550,8 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					checkRemainFlag = true
 					continue
 				}
-				// check key uniqueness: auto deduce whether to check unique if unique field in prop is not set to "true" explicitly.
-				if reflectMap.Has(newMapKey) && (prop.RequireUnique(field.opts.Prop) || sp.autoDeduceUnique(field, reflectMap)) {
+				// check key uniqueness
+				if reflectMap.Has(newMapKey) && (prop.RequireUnique(field.opts.Prop) || sp.deduceMapKeyUnique(field, reflectMap)) {
 					return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
 				}
 				reflectMap.Set(newMapKey, newMapValue)
@@ -748,9 +748,18 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 	return mapKey, present, nil
 }
 
-func (sp *sheetParser) autoDeduceUnique(field *Field, reflectMap protoreflect.Map) bool {
-	if sp.GetBookFormat() == format.XML {
-		// Auto deduct unique is not enabled on xml sheets
+// deduceMapKeyUnique deduces whether the map key unique or not.
+//
+// By default, map key can be duplicate, in order to aggregate sub-field
+// (map or list) with cardinality. The map key should be deduced to be
+// unique if nesting hierarchy is like:
+//
+//   - map nesting map or list with different layout (vertical or horizontal).
+//   - map nesting no map or list.
+//   - map layout is incell.
+func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.Map) bool {
+	if sp.GetBookFormat() != format.Excel && sp.GetBookFormat() != format.CSV {
+		// Only Excel and CSV will be deduced.
 		return false
 	}
 	layout := field.opts.Layout
@@ -778,7 +787,7 @@ func (sp *sheetParser) autoDeduceUnique(field *Field, reflectMap protoreflect.Ma
 				continue
 			}
 			if childLayout == layout {
-				// map key must not be unique because its value  has child with same layout
+				// map key must not be unique because its value has child with same layout
 				// but if it's assigned to be unique, it must be unique
 				return false
 			}
