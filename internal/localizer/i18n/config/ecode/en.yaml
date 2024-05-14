@@ -82,7 +82,7 @@ E2016:
   help: ensure all subsequent elements after the first none-present element are not present
 E2017:
   desc: map contains multiple empty keys
-  text: map "{{.Name}}" contains multiple empty keys
+  text: map "{{.Name}}" (type {{.Type}}) contains multiple empty keys
   help: ensure there is at most one empty key in map, or explicitly assign them if you need multiple zero-value keys
 # [3000, 3999]: importer error
 E3000:

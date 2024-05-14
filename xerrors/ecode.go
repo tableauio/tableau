@@ -1,5 +1,7 @@
 package xerrors
 
+import "google.golang.org/protobuf/reflect/protoreflect"
+
 // Error code space sections:
 //	[0001, 0999]: common error
 //  [1000, 1999]: protogen error
@@ -175,9 +177,10 @@ func E2016(firstNonePresentIndex, nextPresentIndex int) error {
 }
 
 // E2017: map value present while key not present.
-func E2017(mapName string) error {
+func E2017(mapfd protoreflect.FieldDescriptor) error {
 	return renderEcode("E2017", map[string]any{
-		"Name": mapName,
+		"Name": mapfd.FullName(),
+		"Type": "", // FIXME(wenchy): TypeName
 	})
 }
 

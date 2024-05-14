@@ -82,7 +82,7 @@ E2016:
   help: 请确保数组出现首个空元素时, 后续所有元素都为空
 E2017:
   desc: map contains multiple empty keys
-  text: map "{{.Name}}" 多个空值key
+  text: map "{{.Name}}" (类型为{{.Type}}) 存在多个空值key
   help: 请确保map中最多仅有一个空值key，如果确实需要多个key为零值，请显式填充。
 # [3000, 3999]: importer error
 E3000:
