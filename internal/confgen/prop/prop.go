@@ -11,9 +11,13 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// HasUnique checks whether the unique field is set explicitly.
+func HasUnique(prop *tableaupb.FieldProp) bool {
+	return prop != nil && prop.Unique != nil
+}
+
 func RequireUnique(prop *tableaupb.FieldProp) bool {
-	unique := prop != nil && prop.Unique
-	return unique
+	return prop != nil && prop.Unique != nil && prop.GetUnique()
 }
 
 func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value, present bool) error {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -32,7 +33,7 @@ func Test_genFieldOptionsString(t *testing.T) {
 				opts: &tableaupb.FieldOptions{
 					Name: "ItemID",
 					Prop: &tableaupb.FieldProp{
-						Unique: true,
+						Unique: proto.Bool(true),
 					},
 				},
 			},
@@ -44,7 +45,7 @@ func Test_genFieldOptionsString(t *testing.T) {
 				opts: &tableaupb.FieldOptions{
 					Name: "ItemID",
 					Prop: &tableaupb.FieldProp{
-						Unique:   true,
+						Unique:   proto.Bool(true),
 						JsonName: "item_id_1",
 					},
 				},
@@ -202,7 +203,7 @@ func Test_marshalToText(t *testing.T) {
 					Key:    "ID",
 					Layout: tableaupb.Layout_LAYOUT_VERTICAL,
 					Prop: &tableaupb.FieldProp{
-						Unique:  true,
+						Unique:  proto.Bool(true),
 						Refer:   "ItemConf.ID",
 						Present: true,
 					},

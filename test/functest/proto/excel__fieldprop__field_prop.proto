@@ -59,3 +59,13 @@ message ScalarFieldProp {
     uint32 optional_bonus_id = 6 [(tableau.field) = {name:"OptionalBonusID" prop:{refer:"ItemConf.ID"}}];
   }
 }
+
+message UniqueFalse {
+  option (tableau.worksheet) = {name:"UniqueFalse" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:false}}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    repeated int32 num_list = 2 [(tableau.field) = {name:"Num" layout:LAYOUT_INCELL}];
+  }
+}

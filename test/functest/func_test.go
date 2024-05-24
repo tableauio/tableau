@@ -41,42 +41,44 @@ func Test_CompareGeneratedProto(t *testing.T) {
 		t.Errorf("%+v", err)
 		t.Fatalf("%s", xerrors.NewDesc(err))
 	}
-
 	oldConfDir := "proto"
 	newConfDir := "_proto"
 	files, err := os.ReadDir(oldConfDir)
-	if err != nil {
-		t.Fatalf("failed to read dir: %s", oldConfDir)
-	}
+	require.NoError(t, err)
 	for _, file := range files {
 		if !strings.HasSuffix(file.Name(), ".proto") {
 			continue
 		}
 		oldPath := filepath.Join(oldConfDir, file.Name())
 		absOldPath, err := filepath.Abs(oldPath)
-		require.ErrorIs(t, err, nil)
+		require.NoError(t, err)
 		oldfile, err := os.Open(oldPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		newPath := filepath.Join(newConfDir, file.Name())
 		absNewPath, err := filepath.Abs(newPath)
-		require.ErrorIs(t, err, nil)
+		require.NoError(t, err)
 		newfile, err := os.Open(newPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
-		sscan := bufio.NewScanner(oldfile)
-		dscan := bufio.NewScanner(newfile)
+		oscan := bufio.NewScanner(oldfile)
+		nscan := bufio.NewScanner(newfile)
 
-		for line := 1; sscan.Scan(); line++ {
-			dscan.Scan()
+		line := 0
+		for {
+			sok := oscan.Scan()
+			dok := nscan.Scan()
+			line++
+			require.Equalf(t, sok, dok, "unequal line count: %s:%d -> %s:%d", absOldPath, line, absNewPath, line)
+			if !sok || !dok {
+				break
+			}
 			if line == 1 {
-				// as the first line is one line comment (including dynamic version number), ignore it.
+				// as the first line is one line comment
+				// (including dynamic version number), ignore it.
 				continue
 			}
-			require.Equalf(t, string(sscan.Bytes()), string(dscan.Bytes()), "unequal: %s:%d -> %s:%d", absOldPath, line, absNewPath, line)
+			require.Equalf(t, string(oscan.Bytes()), string(nscan.Bytes()), "unequal line content: %s:%d -> %s:%d", absOldPath, line, absNewPath, line)
 		}
 	}
 }
@@ -91,31 +93,22 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 	oldConfDir := "conf"
 	newConfDir := "_conf"
 	files, err := os.ReadDir(oldConfDir)
-	if err != nil {
-		t.Fatalf("failed to read dir: %s", oldConfDir)
-	}
+	require.NoError(t, err)
 	for _, file := range files {
 		if !strings.HasSuffix(file.Name(), ".json") {
 			continue
 		}
 		oldPath := filepath.Join(oldConfDir, file.Name())
 		absOldPath, err := filepath.Abs(oldPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 		newPath := filepath.Join(newConfDir, file.Name())
 		absNewPath, err := filepath.Abs(newPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 		oldData, err := os.ReadFile(oldPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 		newData, err := os.ReadFile(newPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		t.Logf("compare json file: %s\n", file.Name())
 		require.JSONEqf(t, string(oldData), string(newData), "%s -> %s content not same.", absOldPath, absNewPath)
 	}
@@ -130,9 +123,7 @@ func Test_Excel2CSV(t *testing.T) {
 		}
 		return imp.ExportCSV()
 	})
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
+	require.NoError(t, err)
 }
 
 func Test_CSV2Excel(t *testing.T) {
@@ -144,7 +135,5 @@ func Test_CSV2Excel(t *testing.T) {
 		}
 		return imp.ExportExcel()
 	})
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
+	require.NoError(t, err)
 }

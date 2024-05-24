@@ -69,13 +69,13 @@ func TestExtractMapFieldProp(t *testing.T) {
 			name: "noneEmptyMapFieldProp",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Unique:   true,
+					Unique:   proto.Bool(true),
 					Sequence: proto.Int64(1),
 					Size:     2,
 				},
 			},
 			want: &tableaupb.FieldProp{
-				Unique:   true,
+				Unique:   proto.Bool(true),
 				Sequence: proto.Int64(1),
 				Size:     2,
 			},
@@ -157,7 +157,7 @@ func TestExtractStructFieldProp(t *testing.T) {
 			name: "emptyStructFieldProp",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Unique: true,
+					Unique: proto.Bool(true),
 				},
 			},
 			want: nil,
@@ -166,7 +166,7 @@ func TestExtractStructFieldProp(t *testing.T) {
 			name: "noneEmptyStructFieldProp",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Unique: true,
+					Unique: proto.Bool(true),
 					Form:   tableaupb.Form_FORM_JSON,
 				},
 			},
@@ -197,7 +197,7 @@ func TestExtractScalarFieldProp(t *testing.T) {
 			name: "emptyScalarFieldProp",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Unique: true,
+					Unique: proto.Bool(true),
 				},
 			},
 			want: nil,
@@ -206,7 +206,7 @@ func TestExtractScalarFieldProp(t *testing.T) {
 			name: "noneEmptyStructFieldProp",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Unique: true,
+					Unique: proto.Bool(true),
 					Range:  "1~10",
 				},
 			},
