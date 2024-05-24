@@ -163,7 +163,8 @@ message FieldProp {
   // Format: "1,10", "1,~", "~,10".
   string range = 1;
   // Whether the map key is unique in column.
-  bool unique = 2;
+  // If not set, then auto deduce whether the map key is unique or not.
+  optional bool unique = 2;
   // Ensure this field's value is in another sheet's
   // column value space (aka message's field value space).
   //

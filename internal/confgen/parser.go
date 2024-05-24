@@ -431,8 +431,11 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 			}
 			// check key uniqueness
-			if reflectMap.Has(newMapKey) && (prop.RequireUnique(field.opts.Prop) || sp.deduceMapKeyUnique(field, reflectMap)) {
-				return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
+			if reflectMap.Has(newMapKey) {
+				if prop.RequireUnique(field.opts.Prop) ||
+					(!prop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
+					return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
+				}
 			}
 			if !keyPresent && !valuePresent {
 				// key and value are both not present.
@@ -551,8 +554,11 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					continue
 				}
 				// check key uniqueness
-				if reflectMap.Has(newMapKey) && (prop.RequireUnique(field.opts.Prop) || sp.deduceMapKeyUnique(field, reflectMap)) {
-					return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
+				if reflectMap.Has(newMapKey) {
+					if prop.RequireUnique(field.opts.Prop) ||
+						(!prop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
+						return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
+					}
 				}
 				reflectMap.Set(newMapKey, newMapValue)
 			}

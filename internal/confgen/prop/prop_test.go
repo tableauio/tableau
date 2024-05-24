@@ -4,7 +4,52 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"google.golang.org/protobuf/proto"
 )
+
+func TestHasUnique(t *testing.T) {
+	type args struct {
+		prop *tableaupb.FieldProp
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "has-unique1",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Unique: proto.Bool(false),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "has-unique2",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Unique: proto.Bool(true),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "has-unique2",
+			args: args{
+				prop: &tableaupb.FieldProp{},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := HasUnique(tt.args.prop); got != tt.want {
+				t.Errorf("HasUnique() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestRequireUnique(t *testing.T) {
 	type args struct {
@@ -19,7 +64,7 @@ func TestRequireUnique(t *testing.T) {
 			name: "require unique",
 			args: args{
 				prop: &tableaupb.FieldProp{
-					Unique: true,
+					Unique: proto.Bool(true),
 				},
 			},
 			want: true,
