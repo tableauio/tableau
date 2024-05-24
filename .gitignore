@@ -26,3 +26,4 @@ test/parallel/protoconf/
 .vscode/
 *.prof
 test/functest/testdata/xml/*/*.csv
+coverage.txt
