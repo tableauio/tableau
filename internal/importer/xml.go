@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/xml"
 	"fmt"
@@ -53,7 +54,7 @@ func init() {
 	// 		<Weight Num="map<uint32, Weight>"/>
 	// </Server>
 	// -->
-	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>(\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)(.*\n)+?)-->`, book.MetasheetName, book.MetasheetName))
+	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>(\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)(.*\n)+?)-->\s*\n`, book.MetasheetName, book.MetasheetName))
 }
 
 // TODO: options
@@ -85,7 +86,16 @@ func splitRawXML(rawXML string) (metasheet, content string) {
 	if len(matches) < 2 {
 		return "", rawXML
 	}
-	content = strings.ReplaceAll(rawXML, matches[0], "")
+	scanner := bufio.NewScanner(strings.NewReader(matches[0]))	
+	emptyLines := ""
+	for scanner.Scan() {
+		emptyLines += "\n"
+	}
+	if err := scanner.Err(); err != nil {
+		log.Panicf("scanner err:%v", err)
+		return "", rawXML
+	}
+	content = strings.ReplaceAll(rawXML, matches[0], emptyLines)
 	metasheet = xmlProlog + "\n" + escapeAttrs(strings.ReplaceAll(matches[1], book.MetasheetName, atTableauDisplacement))
 	return metasheet, content
 }
@@ -198,7 +208,7 @@ func readXMLFile(metasheet, content string, newBook *book.Book, mode ImporterMod
 	// parse data content
 	dataRoot, err := xmlquery.Parse(strings.NewReader(content))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse @TABLEAU string: %s", content)
+		return nil, errors.Wrapf(err, "failed to parse XML: %s", content)
 	}
 	for n := dataRoot.FirstChild; n != nil; n = n.NextSibling {
 		if n.Type != xmlquery.ElementNode {
