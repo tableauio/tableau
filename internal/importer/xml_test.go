@@ -1000,7 +1000,9 @@ func Test_matchMetasheet(t *testing.T) {
 <Server>
 	<Weight Num="map<uint32, Weight>"/>
 </Server>
--->`,
+-->
+
+`,
 				`<@TABLEAU>
 	<Item Sheet="Server" />
 </@TABLEAU>
