@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -50,7 +51,7 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 		}
 		sheet, err := parseYAMLSheet(&doc)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithMessagef(err, "%s", filename)
 		}
 		newBook.AddSheet(sheet)
 	}
@@ -61,7 +62,7 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 func parseYAMLSheet(doc *yaml.Node) (*book.Sheet, error) {
 	//doc := &book.Document{}
 	bnode := &book.Node{}
-	err := parseYAMLNode(doc, bnode)
+	err := parseYAMLNode(doc, bnode, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -72,18 +73,16 @@ func parseYAMLSheet(doc *yaml.Node) (*book.Sheet, error) {
 	return sheet, nil
 }
 
-func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
+func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string, isMeta *bool) error {
 	switch node.Kind {
 	case yaml.DocumentNode:
 		bnode.Kind = book.DocumentNode
-		bnode.Name = "xxxdoc" // TODO
 		bnode.Content = node.Value
 		for _, child := range node.Content {
 			subNode := &book.Node{
-				Name:    "", // TODO
 				Content: child.Value,
 			}
-			if err := parseYAMLNode(child, subNode); err != nil {
+			if err := parseYAMLNode(child, subNode, &bnode.Name, &bnode.IsMeta); err != nil {
 				return err
 			}
 			bnode.Children = append(bnode.Children, subNode)
@@ -98,11 +97,18 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 				Name:    key.Value,
 				Content: value.Value,
 			}
+			if subNode.Name == book.SheetKey || subNode.Name == book.MetasheetKey {
+				if *sheetName != "" {
+					return fmt.Errorf("duplicate sheet name specified: %s -> %s", *sheetName, subNode.Content)
+				}
+				*sheetName = subNode.Content
+				*isMeta = subNode.Name == book.MetasheetKey
+			}
 			bnode.Children = append(bnode.Children, subNode)
 			if value.Kind == yaml.ScalarNode {
 				continue
 			}
-			if err := parseYAMLNode(value, subNode); err != nil {
+			if err := parseYAMLNode(value, subNode, sheetName, isMeta); err != nil {
 				return err
 			}
 		}
@@ -111,19 +117,22 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 		bnode.Kind = book.ListNode
 		for _, elem := range node.Content {
 			subNode := &book.Node{
-				Name:    "", // TODO
+				Name:    "",
 				Content: elem.Value,
 			}
+			bnode.Children = append(bnode.Children, subNode)
 			if elem.Kind == yaml.ScalarNode {
 				continue
 			}
-			if err := parseYAMLNode(elem, subNode); err != nil {
+			if err := parseYAMLNode(elem, subNode, sheetName, isMeta); err != nil {
 				return err
 			}
-			bnode.Children = append(bnode.Children, subNode)
 		}
 		return nil
+	case yaml.ScalarNode:
+		log.Warnf("logic should not reach scalar node(%d:%d), value: %v, maybe encounter an empty document", node.Line, node.Column, node.Value)
+		return nil
 	default:
-		return fmt.Errorf("unknown yaml node kind: %v", node.Kind)
+		return errors.Errorf("unknown yaml node(%d:%d) kind: %v, value: %v", node.Line, node.Column, node.Kind, node.Value)
 	}
 }

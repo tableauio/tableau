@@ -7,56 +7,69 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
 	"gopkg.in/yaml.v3"
 )
-
-func Test_readYAMLBook(t *testing.T) {
-	type args struct {
-		filename string
-		parser   book.SheetParser
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *book.Book
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "testdata/test.yaml",
-			args: args{
-				filename: "test",
-				parser:   nil,
-			},
-			want:    &book.Book{},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := readYAMLBook(tt.args.filename, tt.args.parser)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("readYAMLBook() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			// if !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("readYAMLBook() = %v, want %v", got, tt.want)
-			// }
-		})
-	}
-}
 
 func Test_inspectYAMLNode(t *testing.T) {
 	// your byte array
 	data := []byte(`
 ---
 "@metasheet": "@TABLEAU"
-AnimalConf:
+LiteConf:
+LoaderConf:
+  OrderedMap: true
+---
+"@metasheet": LiteConf
+RoleLite:
+  "@type": Lite
+  Expire: duration
+  Count: int32
+GuildLite:
+  "@type": Lite
+Ids: "[]int32"
+Heros:
+  "@type": "[]Hero"
+  "@struct":
+    ID: uint32
+    Name: string
+---
+"@metasheet": LoaderConf
+Servers:
+  "@type": "map<string, Server>"
+  "@struct":
+    Name: string
+    Confs:
+      "@type": "map<string, Conf>"
+      "@struct":
+        Async: bool
+        Limit: int32
+---
+"@sheet": LiteConf
+RoleLite:
+  Expire: 2h
+  Count: 50
+GuildLite:
+  Expire: 2h
+  Count: 50
+Ids: [1, 2, 3]
+Heros:
+  - ID: 1
+    Name: fish
+  - ID: 2
+    Name: dog
+---
+"@sheet": LoaderConf
 Servers:
   gamesvr:
     Name: gamesvr
+    Confs:
+      ItemConf:
+        Async: true
+      DropConf:
+        Async: true
+  mailsvr:
+    Name: mailsvr
     Confs:
       ItemConf:
         Async: true
@@ -100,41 +113,8 @@ Servers:
 		}
 		sheet, err := parseYAMLSheet(&node)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("%+v", err)
 		}
-		fmt.Println("Sheet:\n", sheet.String())
-		// Inspect the node
-		inspectNode(&node, 0)
-	}
-}
-
-func inspectNode(node *yaml.Node, level int) {
-	indent := ""
-	for i := 0; i < level; i++ {
-		indent += "  "
-	}
-	switch node.Kind {
-	case yaml.DocumentNode:
-		fmt.Printf("%s--- Document\n", indent)
-		for _, child := range node.Content {
-			inspectNode(child, level+1)
-		}
-	case yaml.MappingNode:
-		fmt.Printf("%sMapping\n", indent)
-		for i := 0; i < len(node.Content); i += 2 {
-			key := node.Content[i]
-			value := node.Content[i+1]
-			fmt.Printf("%s- Key: %v, Value: %v\n", indent, key.Value, value.Value)
-			inspectNode(value, level+1)
-		}
-	case yaml.SequenceNode:
-		fmt.Println(indent, "Sequence")
-		for _, child := range node.Content {
-			inspectNode(child, level+1)
-		}
-	case yaml.ScalarNode:
-		// fmt.Printf("%sScalar: %v\n", indent, node.Value)
-	default:
-		fmt.Printf("%sUnknown node kind: %v\n", indent, node.Kind)
+		fmt.Println(sheet.String())
 	}
 }
