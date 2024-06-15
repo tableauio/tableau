@@ -3,11 +3,13 @@ package book
 import (
 	"bytes"
 	"encoding/csv"
+	"fmt"
 	"io"
 	"log"
 	"math"
 
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"github.com/xuri/excelize/v2"
@@ -37,14 +39,65 @@ type SheetParser interface {
 }
 
 type Sheet struct {
-	Name   string
+	Name string
+
+	// flat table
+	// TODO: encapsulate into a standalone `type Table struct`
 	MaxRow int
 	MaxCol int
+	Rows   [][]string // 2D array of strings.
 
-	Rows [][]string // 2D array of strings.
+	// tree document
+	Document *Node
 
 	Meta *tableaupb.Metasheet
 }
+
+type Kind int
+
+const (
+	ScalarNode Kind = iota
+	ListNode
+	MapNode
+	DocumentNode
+)
+
+func (k Kind) String() string {
+	switch k {
+	case ScalarNode:
+		return "scalar"
+	case ListNode:
+		return "list"
+	case MapNode:
+		return "map"
+	case DocumentNode:
+		return "document"
+	default:
+		return "unknown"
+	}
+}
+
+// Node represents an element in the tree document hierarchy.
+//
+// References:
+//   - https://pkg.go.dev/gopkg.in/yaml.v3?utm_source=godoc#Node
+//   - https://pkg.go.dev/github.com/moovweb/gokogiri/xml#Node
+type Node struct {
+	Kind       Kind
+	Name       string
+	Content    string
+	Attributes map[string]string // name -> value
+	Children   []*Node
+
+	// Line and Column hold the node position in the file.
+	Line   int
+	Column int
+}
+
+// // Document represents a tree hierarchy.
+// type Document struct {
+// 	Nodes []*Node
+// }
 
 // NewSheet creats a new Sheet.
 func NewSheet(name string, rows [][]string) *Sheet {
@@ -63,6 +116,14 @@ func NewSheet(name string, rows [][]string) *Sheet {
 		MaxRow: maxRow,
 		MaxCol: maxCol,
 		Rows:   rows,
+	}
+}
+
+// NewSheetWithDocument creats a new Sheet with a document.
+func NewSheetWithDocument(name string, doc *Node) *Sheet {
+	return &Sheet{
+		Name:     name,
+		Document: doc,
 	}
 }
 
@@ -113,13 +174,25 @@ func (s *Sheet) Cell(row, col int) (string, error) {
 
 // String returns the string representation (CSV) of the sheet.
 func (s *Sheet) String() string {
-	var buffer bytes.Buffer
-	w := csv.NewWriter(&buffer)
-	err := w.WriteAll(s.Rows) // calls Flush internally
-	if err != nil {
-		log.Panicf("write csv failed: %v", err)
+	if s.Document == nil {
+		var buffer bytes.Buffer
+		w := csv.NewWriter(&buffer)
+		err := w.WriteAll(s.Rows) // calls Flush internally
+		if err != nil {
+			log.Panicf("write csv failed: %v", err)
+		}
+		return buffer.String()
 	}
+	var buffer bytes.Buffer
+	printNode(s.Document, &buffer, 0)
 	return buffer.String()
+}
+
+func printNode(node *Node, buffer *bytes.Buffer, depth int) {
+	buffer.WriteString(fmt.Sprintf("%sKind: %s, Name: %s, Content: %s\n", printer.Indent(depth), node.Kind, node.Name, node.Content))
+	for _, node := range node.Children {
+		printNode(node, buffer, depth+1)
+	}
 }
 
 func (s *Sheet) ExportCSV(writer io.Writer) error {
