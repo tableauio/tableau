@@ -60,15 +60,14 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 }
 
 func parseYAMLSheet(doc *yaml.Node) (*book.Sheet, error) {
-	//doc := &book.Document{}
-	bnode := &book.Node{}
-	err := parseYAMLNode(doc, bnode, nil, nil)
+	bdoc := &book.Node{}
+	err := parseYAMLNode(doc, bdoc, &bdoc.Name, &bdoc.IsMeta)
 	if err != nil {
 		return nil, err
 	}
 	sheet := book.NewSheetWithDocument(
-		bnode.Name,
-		bnode,
+		bdoc.Name,
+		bdoc,
 	)
 	return sheet, nil
 }

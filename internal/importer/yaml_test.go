@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"gopkg.in/yaml.v3"
 )
 
@@ -76,25 +76,6 @@ Servers:
       DropConf:
         Async: true
 `)
-	// ---
-	// "@metasheet": AnimalConf
-	// Animals:
-	//   "@type": "[]Animal"
-	//   "@struct":
-	//     ID: uint32
-	//     Name: string
-	// Username: John # line comment1
-	// Age: 23
-	// ---
-	// "@sheet": AnimalConf
-	// Animals:
-	//   - ID: 1
-	//     Name: fish
-	//   - ID: 2
-	//     Name: dog
-	// Username: John # line comment1
-	// Age: 23
-	// `)
 
 	// Create a new decoder
 	dec := yaml.NewDecoder(bytes.NewReader(data))
@@ -108,7 +89,7 @@ Servers:
 			if errors.Is(err, io.EOF) {
 				break
 			} else {
-				log.Fatalf("error: %v", err)
+				t.Fatalf("error: %v", err)
 			}
 		}
 		sheet, err := parseYAMLSheet(&node)
@@ -116,5 +97,39 @@ Servers:
 			t.Fatalf("%+v", err)
 		}
 		fmt.Println(sheet.String())
+	}
+}
+
+func Test_readYAMLBook(t *testing.T) {
+	type args struct {
+		filename string
+		parser   book.SheetParser
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *book.Book
+		wantErr bool
+	}{
+		{
+			name: "Test.yaml",
+			args: args{
+				filename: "testdata/Test.yaml",
+				parser:   nil,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := readYAMLBook(tt.args.filename, tt.args.parser)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("readYAMLBook() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			fmt.Println(got.String())
+			// if !reflect.DeepEqual(got, tt.want) {
+			// 	t.Errorf("readYAMLBook() = %v, want %v", got, tt.want)
+			// }
+		})
 	}
 }

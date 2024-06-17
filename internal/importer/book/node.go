@@ -43,7 +43,7 @@ type Node struct {
 	Attributes map[string]string // name -> value
 	Children   []*Node
 
-	IsMeta bool // for DocumentNode, this node this metasheet or not
+	IsMeta bool // for DocumentNode, this node is metasheet or not
 
 	// Line and Column hold the node position in the file.
 	Line   int
@@ -71,10 +71,17 @@ func dumpNode(node *Node, parentKind Kind, buffer *bytes.Buffer, depth int) {
 	case ListNode:
 		line = fmt.Sprintf("%s%s: # %s", printer.Indent(depth), node.Name, node.Kind)
 	case MapNode:
+		var desc string
 		if node.Name == "" {
-			line = fmt.Sprintf("%s# %s", printer.Indent(depth), node.Kind)
+			desc = fmt.Sprintf("# %s", node.Kind)
 		} else {
-			line = fmt.Sprintf("%s%s: # %s", printer.Indent(depth), node.Name, node.Kind)
+			desc = fmt.Sprintf("%s: # %s", node.Name, node.Kind)
+		}
+		switch parentKind {
+		case ListNode:
+			line = fmt.Sprintf("%s- %s", printer.Indent(depth), desc)
+		default:
+			line = fmt.Sprintf("%s%s", printer.Indent(depth), desc)
 		}
 	case DocumentNode:
 		line = fmt.Sprintf("%s# %s %s %v", printer.Indent(depth), node.Kind, node.Name, node.IsMeta)

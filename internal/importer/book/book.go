@@ -227,3 +227,11 @@ func (b *Book) ExportCSV() error {
 	}
 	return nil
 }
+
+func (b *Book) String() string {
+	var str string
+	for _, sheet := range b.GetSheets() {
+		str += sheet.String() + "\n"
+	}
+	return str
+}
