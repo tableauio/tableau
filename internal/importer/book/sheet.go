@@ -19,7 +19,6 @@ import (
 var MetasheetName = "@TABLEAU"
 
 const SheetKey = "@sheet"
-const MetasheetKey = "@metasheet"
 
 // BookNameInMetasheet is the special sign which represents workbook itself in metasheet.
 // Default is "#".

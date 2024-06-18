@@ -107,6 +107,16 @@ func TestMatchList(t *testing.T) {
 			},
 		},
 		{
+			name: "struct-list-without-column-type",
+			args: args{
+				text: "[ElemType]",
+			},
+			want: &ListDescriptor{
+				ElemType:   "ElemType",
+				ColumnType: "",
+			},
+		},
+		{
 			name: "struct-list",
 			args: args{
 				text: "[ElemType]int32",

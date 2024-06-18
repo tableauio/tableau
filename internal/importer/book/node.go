@@ -3,6 +3,7 @@ package book
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/tableauio/tableau/internal/printer"
 )
@@ -43,11 +44,46 @@ type Node struct {
 	Attributes map[string]string // name -> value
 	Children   []*Node
 
-	IsMeta bool // for DocumentNode, this node is metasheet or not
-
 	// Line and Column hold the node position in the file.
 	Line   int
 	Column int
+}
+
+// IsMeta checks whether this node is meta (which defines schema) or not.
+func (n *Node) IsMeta() bool {
+	return strings.HasPrefix(n.Name, "@")
+}
+
+// GetDataSheetName returns original data sheet name by removing
+// leading symbol "@" from meta sheet name.
+//
+// e.g.: "@SheetName" -> "SheetName"
+func (n *Node) GetDataSheetName() string {
+	return strings.TrimPrefix(n.Name, "@")
+}
+
+// GetMetaType returns this node's type defined in schema sheet.
+func (n *Node) GetMetaType() string {
+	// If no children, then just treat content as type name
+	if len(n.Children) == 0 {
+		return n.Content
+	}
+	for _, child := range n.Children {
+		if child.Name == "@type" {
+			return child.Content
+		}
+	}
+	return ""
+}
+
+// GetMetaStructNode returns this node's struct defined in schema sheet.
+func (n *Node) GetMetaStructNode() *Node {
+	for _, child := range n.Children {
+		if child.Name == "@struct" {
+			return child
+		}
+	}
+	return nil
 }
 
 // String returns hierarchy representation of the Node, mainly
@@ -84,7 +120,7 @@ func dumpNode(node *Node, parentKind Kind, buffer *bytes.Buffer, depth int) {
 			line = fmt.Sprintf("%s%s", printer.Indent(depth), desc)
 		}
 	case DocumentNode:
-		line = fmt.Sprintf("%s# %s %s %v", printer.Indent(depth), node.Kind, node.Name, node.IsMeta)
+		line = fmt.Sprintf("%s# %s %s %v", printer.Indent(depth), node.Kind, node.Name, node.IsMeta())
 	}
 	buffer.WriteString(line + "\n")
 	for _, child := range node.Children {

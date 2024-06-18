@@ -33,9 +33,10 @@ const TypeGroup = `(` + nestedTypeCharClass + `*?)`
 var mapRegexp = regexp.MustCompile(`^map<` + `(?P<KeyType>` + nestedTypeCharClass + `+)` + `,` + `(?P<ValueType>` + nestedTypeCharClass + `+)` + `>` + rawPropGroup)
 
 // List definition patterns:
+//   - [ElemType]
 //   - [ElemType]ColumnType
 //   - [.PredefinedElemType]ColumnType
-var listRegexp = regexp.MustCompile(`^\[` + `(?P<ElemType>` + nestedTypeCharClass + `*?)` + `\]` + `(?P<ColumnType>` + nestedTypeCharClass + `+)` + rawPropGroup)
+var listRegexp = regexp.MustCompile(`^\[` + `(?P<ElemType>` + nestedTypeCharClass + `*?)` + `\]` + `(?P<ColumnType>` + nestedTypeCharClass + `+)?` + rawPropGroup)
 
 // Keyed list definition patterns:
 //   - [ElemType]<ColumnType>
@@ -114,6 +115,7 @@ type ListDescriptor struct {
 }
 
 // MatchList matches the list type patterns. For example:
+//   - [ElemType]
 //   - [ElemType]Type
 //   - [.PredefinedElemType]Type
 func MatchList(text string) *ListDescriptor {

@@ -23,6 +23,12 @@ func NewYAMLImporter(filename string, sheetNames []string, parser book.SheetPars
 		return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
 	}
 
+	if mode == Protogen {
+		if err := book.ParseMetaAndPurge(); err != nil {
+			return nil, errors.WithMessage(err, "failed to parse metasheet")
+		}
+	}
+
 	return &YAMLImporter{
 		Book: book,
 	}, nil
@@ -61,7 +67,7 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 
 func parseYAMLSheet(doc *yaml.Node) (*book.Sheet, error) {
 	bdoc := &book.Node{}
-	err := parseYAMLNode(doc, bdoc, &bdoc.Name, &bdoc.IsMeta)
+	err := parseYAMLNode(doc, bdoc, &bdoc.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +78,7 @@ func parseYAMLSheet(doc *yaml.Node) (*book.Sheet, error) {
 	return sheet, nil
 }
 
-func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string, isMeta *bool) error {
+func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string) error {
 	switch node.Kind {
 	case yaml.DocumentNode:
 		bnode.Kind = book.DocumentNode
@@ -81,7 +87,7 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string, isMeta 
 			subNode := &book.Node{
 				Content: child.Value,
 			}
-			if err := parseYAMLNode(child, subNode, &bnode.Name, &bnode.IsMeta); err != nil {
+			if err := parseYAMLNode(child, subNode, &bnode.Name); err != nil {
 				return err
 			}
 			bnode.Children = append(bnode.Children, subNode)
@@ -96,18 +102,17 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string, isMeta 
 				Name:    key.Value,
 				Content: value.Value,
 			}
-			if subNode.Name == book.SheetKey || subNode.Name == book.MetasheetKey {
+			if subNode.Name == book.SheetKey {
 				if *sheetName != "" {
 					return fmt.Errorf("duplicate sheet name specified: %s -> %s", *sheetName, subNode.Content)
 				}
 				*sheetName = subNode.Content
-				*isMeta = subNode.Name == book.MetasheetKey
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if value.Kind == yaml.ScalarNode {
 				continue
 			}
-			if err := parseYAMLNode(value, subNode, sheetName, isMeta); err != nil {
+			if err := parseYAMLNode(value, subNode, sheetName); err != nil {
 				return err
 			}
 		}
@@ -123,7 +128,7 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string, isMeta 
 			if elem.Kind == yaml.ScalarNode {
 				continue
 			}
-			if err := parseYAMLNode(elem, subNode, sheetName, isMeta); err != nil {
+			if err := parseYAMLNode(elem, subNode, sheetName); err != nil {
 				return err
 			}
 		}
