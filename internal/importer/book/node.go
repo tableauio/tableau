@@ -32,6 +32,15 @@ func (k Kind) String() string {
 	}
 }
 
+const (
+	KeywordSheet  = "@sheet"
+	KeywordType   = "@type"
+	KeywordStruct = "@struct"
+	KeywordKey    = "@key"
+)
+
+// const DefaultNodeKeyVarName = "key"
+
 // Node represents an element in the tree document hierarchy.
 //
 // References:
@@ -69,11 +78,25 @@ func (n *Node) GetMetaType() string {
 		return n.Content
 	}
 	for _, child := range n.Children {
-		if child.Name == "@type" {
+		if child.Name == KeywordType {
 			return child.Content
 		}
 	}
 	return ""
+}
+
+// GetMetaKey returns this node's key defined in schema sheet.
+func (n *Node) GetMetaKey() string {
+	// If no children, then just treat content as type name
+	structNode := n.GetMetaStructNode()
+	if structNode != nil {
+		for _, child := range structNode.Children {
+			if child.Name == KeywordKey {
+				return child.Content
+			}
+		}
+	}
+	return strings.TrimPrefix(KeywordKey, "@")
 }
 
 // GetMetaStructNode returns this node's struct defined in schema sheet.
