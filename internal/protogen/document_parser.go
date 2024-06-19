@@ -118,6 +118,8 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 	mapValueKind := valueTypeDesc.Kind
 	parsedValueName := valueTypeDesc.Name
 	parsedValueFullName := valueTypeDesc.FullName
+	valuePredefined := valueTypeDesc.Predefined
+
 	prop, err := desc.Prop.FieldProp()
 	if err != nil {
 		return xerrors.WithMessageKV(err,
@@ -136,10 +138,15 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		}
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
-			mapType = fmt.Sprintf("map<%s, %s>", parsedKeyType, valueTypeDesc.Name)
-			fullMapType = mapType
+			valuePredefined = false
 			parsedValueName = node.Name + "Value"
-			parsedValueFullName = node.Name + "Value"
+			// custom value type name
+			if structNode := node.GetMetaStructNode(); structNode != nil && structNode.Content != "" {
+				parsedValueName = structNode.Content
+			}
+			parsedValueFullName = parsedValueName
+			mapType = fmt.Sprintf("map<%s, %s>", parsedKeyType, parsedValueName)
+			fullMapType = mapType
 		}
 
 		// auto add suffix "_map".
@@ -148,7 +155,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
-		field.Predefined = valueTypeDesc.Predefined
+		field.Predefined = valuePredefined
 		field.MapEntry = &tableaupb.Field_MapEntry{
 			KeyType:       parsedKeyType,
 			ValueType:     parsedValueName,
@@ -164,15 +171,14 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
-			field.Options.Key = book.KeywordKey
+			field.Options.Key = types.DefaultMapKeyOptName
 			// 1. append key to the first value struct field
-			scalarField, err := parseField(p.gen.typeInfos, book.KeywordKey, desc.KeyType+desc.Prop.RawProp())
+			scalarField, err := parseField(p.gen.typeInfos, types.DefaultMapKeyOptName, desc.KeyType+desc.Prop.RawProp())
 			if err != nil {
 				return xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 					xerrors.KeyPBFieldOpts, desc.Prop.Text)
 			}
-			scalarField.Name = strcase.ToSnake(node.GetMetaKey())
 			field.Fields = append(field.Fields, scalarField)
 			// 2. append value to the second value struct field
 			scalarField, err = parseField(p.gen.typeInfos, types.DefaultMapValueOptName, desc.ValueType)
@@ -186,14 +192,13 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		return nil
 	}
 	// struct map
-
 	// auto add suffix "_map".
 	// field.Name = strcase.ToSnake(valueTypeDesc.Name) + mapVarSuffix
 	field.Name = strcase.ToSnake(valueTypeDesc.Name)
 	field.Type = mapType
 	field.FullType = fullMapType
 	// For map type, Predefined indicates the ValueType of map has been defined.
-	field.Predefined = valueTypeDesc.Predefined
+	field.Predefined = valuePredefined
 	field.MapEntry = &tableaupb.Field_MapEntry{
 		KeyType:       parsedKeyType,
 		ValueType:     parsedValueName,

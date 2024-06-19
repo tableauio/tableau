@@ -4,34 +4,42 @@ LiteConf:
 ---
 "@sheet": "@LiteConf"
 Scalar: int32
-Enum: enum<.FruitType>
-RoleLite:
-  "@type": "{Lite}"
+Enum: "enum<.FruitType>"
+
+Struct:
+  "@type": "{Order}"
   "@struct":
+    ID: uint32
+    StartTime: datetime
     Expire: duration
-    Count: int32
-GuildLite: "{Lite}"
-Ids: "[int32]"
+InplacePredefinedStruct: "{Order}"
+PredefinedStruct: "{.Item}"
+
+ScalarList: "[int32]"
 EnumList: "[enum<.FruitType>]"
 StructList:
   "@type": "[Hero]"
   "@struct":
     ID: uint32
     Name: string
+PredefinedStructList: "[.Item]"
+
 ScalarMap: "map<uint32, string>"
 EnumKeyScalarMap: "map<enum<.FruitType>, string>"
 EnumValueScalarMap: "map<string, enum<.FruitType>>"
-EnumKVScalarMap: "map<enum<.FruitType>, enum<.FruitFlavor>>"
+EnumKVScalarMap:
+  "@type": "map<enum<.FruitType>, enum<.FruitFlavor>>"
+  "@struct": CustomMapValue
 StructMap:
-  "@type": "map<string, Server>"
+  "@type": "map<string, Country>"
   "@struct":
-    Name: string
-    Confs:
-      "@type": "map<string,Conf>"
+    Desc: string
+    Fruits:
+      "@type": "map<enum<.FruitType>,Fruit>"
       "@struct":
         "@key": CustomKey
-        Async: bool
-        Limit: int32
+        Name: string
+        Paid: bool
 EnumKeyStructMap:
   "@type": "map<enum<.FruitType>, Fruit>"
   "@struct":
@@ -41,19 +49,35 @@ EnumKeyStructMap:
 "@sheet": LiteConf
 Scalar: 1
 Enum: FRUIT_TYPE_APPLE
-RoleLite:
+
+# struct
+Struct:
+  ID: 1
+  StartTime: 2024-10-01 10:10:10
+  Expire: 1h
+InplacePredefinedStruct:
+  ID: 2
+  StartTime: 2026-10-01 10:10:10
   Expire: 2h
-  Count: 50
-GuildLite:
-  Expire: 2h
-  Count: 50
-Ids: [1, 2, 3]
+PredefinedStruct:
+  ID: 1
+  Num: 10
+
+# list
+ScalarList: [1, 2, 3]
 EnumList: [FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA]
 StructList:
   - ID: 1
-    Name: fish
-  - ID: 2
     Name: dog
+  - ID: 2
+    Name: bird
+PredefinedStructList:
+  - ID: 1
+    Num: 10
+  - ID: 2
+    Num: 20
+
+# map
 ScalarMap:
   1: dog
   2: bird
@@ -71,24 +95,24 @@ EnumKVScalarMap:
   FRUIT_TYPE_ORANGE: FRUIT_FLAVOR_SOUR
   FRUIT_TYPE_BANANA: FRUIT_FLAVOR_SWEET
 StructMap:
-  gamesvr:
-    Name: gamesvr
-    Confs:
-      ItemConf:
-        Async: true
-        Limit: 1
-      DropConf:
-        Async: true
-        Limit: 1
-  mailsvr:
-    Name: mailsvr
-    Confs:
-      ItemConf:
-        Async: true
-        Limit: 1
-      DropConf:
-        Async: true
-        Limit: 1
+  America:
+    Desc: gamesvr
+    Fruits:
+      FRUIT_TYPE_APPLE:
+        Name: apple
+        Paid: true
+      FRUIT_TYPE_ORANGE:
+        Name: orange
+        Paid: false
+  China:
+    Desc: mailsvr
+    Fruits:
+      FRUIT_TYPE_APPLE:
+        Name: apple
+        Paid: false
+      FRUIT_TYPE_ORANGE:
+        Name: orange
+        Paid: true
 EnumKeyStructMap:
   FRUIT_TYPE_APPLE:
     Name: apple
