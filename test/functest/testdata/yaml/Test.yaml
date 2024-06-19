@@ -1,0 +1,127 @@
+---
+"@sheet": "@TABLEAU"
+LiteConf:
+---
+"@sheet": "@LiteConf"
+Scalar: int32
+Enum: "enum<.FruitType>"
+
+# struct
+Struct:
+  "@type": "{Order}"
+  "@struct":
+    ID: uint32
+    StartTime: datetime
+    Expire: duration
+InplacePredefinedStruct: "{Order}"
+PredefinedStruct: "{.Item}"
+
+# list
+ScalarList: "[int32]"
+EnumList: "[enum<.FruitType>]"
+StructList:
+  "@type": "[Hero]"
+  "@struct":
+    ID: uint32
+    Name: string
+PredefinedStructList: "[.Item]"
+
+# map
+ScalarMap: "map<uint32, string>"
+EnumKeyScalarMap: "map<enum<.FruitType>, string>"
+EnumValueScalarMap: "map<string, enum<.FruitType>>"
+EnumKVScalarMap:
+  "@type": "map<enum<.FruitType>, enum<.FruitFlavor>>"
+  "@struct": CustomMapValue
+StructMap:
+  "@type": "map<string, Country>"
+  "@struct":
+    Desc: string
+    Fruits:
+      "@type": "map<enum<.FruitType>,Fruit>"
+      "@struct":
+        "@key": CustomKey
+        Name: string
+        Paid: bool
+EnumKeyStructMap:
+  "@type": "map<enum<.FruitType>, Fruit>"
+  "@struct":
+    Name: string
+    Paid: bool
+---
+"@sheet": LiteConf
+Scalar: 1
+Enum: FRUIT_TYPE_APPLE
+# struct
+Struct:
+  ID: 1
+  StartTime: "2024-10-01 10:10:10"
+  Expire: 1h
+InplacePredefinedStruct:
+  ID: 2
+  StartTime: 2026-10-01 10:10:10
+  Expire: 2h
+PredefinedStruct:
+  ID: 1
+  Num: 10
+
+# list
+ScalarList: [1, 2, 3]
+EnumList: [FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA]
+StructList:
+  - ID: 1
+    Name: dog
+  - ID: 2
+    Name: bird
+PredefinedStructList:
+  - ID: 1
+    Num: 10
+  - ID: 2
+    Num: 20
+
+# map
+ScalarMap:
+  1: dog
+  2: bird
+  3: cat
+EnumKeyScalarMap:
+  FRUIT_TYPE_APPLE: apple
+  FRUIT_TYPE_ORANGE: orange
+  FRUIT_TYPE_BANANA: banana
+EnumValueScalarMap:
+  apple: FRUIT_TYPE_APPLE
+  orange: FRUIT_TYPE_ORANGE
+  banana: FRUIT_TYPE_BANANA
+EnumKVScalarMap:
+  FRUIT_TYPE_APPLE: FRUIT_FLAVOR_FRAGRANT
+  FRUIT_TYPE_ORANGE: FRUIT_FLAVOR_SOUR
+  FRUIT_TYPE_BANANA: FRUIT_FLAVOR_SWEET
+StructMap:
+  America:
+    Desc: gamesvr
+    Fruits:
+      FRUIT_TYPE_APPLE:
+        Name: apple
+        Paid: true
+      FRUIT_TYPE_ORANGE:
+        Name: orange
+        Paid: false
+  China:
+    Desc: mailsvr
+    Fruits:
+      FRUIT_TYPE_APPLE:
+        Name: apple
+        Paid: false
+      FRUIT_TYPE_ORANGE:
+        Name: orange
+        Paid: true
+EnumKeyStructMap:
+  FRUIT_TYPE_APPLE:
+    Name: apple
+    Paid: true
+  FRUIT_TYPE_ORANGE:
+    Name: orange
+    Paid: true
+  FRUIT_TYPE_BANANA:
+    Name: banana
+    Paid: true
