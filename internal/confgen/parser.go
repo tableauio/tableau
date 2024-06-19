@@ -235,6 +235,11 @@ func (sp *sheetParser) GetBookFormat() format.Format {
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+	if sp.GetBookFormat() == format.YAML {
+		docParser := &documentParser{parser: sp}
+		return docParser.Parse(protomsg, sheet)
+	}
+
 	// log.Debugf("parse sheet: %s", sheet.Name)
 	msg := protomsg.ProtoReflect()
 	if sp.opts.Transpose {

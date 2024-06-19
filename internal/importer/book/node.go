@@ -39,8 +39,6 @@ const (
 	KeywordKey    = "@key"
 )
 
-// const DefaultNodeKeyVarName = "key"
-
 // Node represents an element in the tree document hierarchy.
 //
 // References:
@@ -56,6 +54,15 @@ type Node struct {
 	// Line and Column hold the node position in the file.
 	Line   int
 	Column int
+}
+
+// GetContent returns node's content. It will return empty string if
+// node is nil.
+func (n *Node) GetContent() string {
+	if n == nil {
+		return ""
+	}
+	return n.Content
 }
 
 // IsMeta checks whether this node is meta (which defines schema) or not.
@@ -77,32 +84,31 @@ func (n *Node) GetMetaType() string {
 	if len(n.Children) == 0 {
 		return n.Content
 	}
-	for _, child := range n.Children {
-		if child.Name == KeywordType {
-			return child.Content
-		}
-	}
-	return ""
+	return n.FindChild(KeywordType).GetContent()
 }
 
 // GetMetaKey returns this node's key defined in schema sheet.
 func (n *Node) GetMetaKey() string {
 	// If no children, then just treat content as type name
-	structNode := n.GetMetaStructNode()
-	if structNode != nil {
-		for _, child := range structNode.Children {
-			if child.Name == KeywordKey {
-				return child.Content
-			}
-		}
+	keyNode := n.GetMetaStructNode().FindChild(KeywordKey)
+	if keyNode != nil {
+		return keyNode.Content
 	}
 	return strings.TrimPrefix(KeywordKey, "@")
 }
 
 // GetMetaStructNode returns this node's struct defined in schema sheet.
 func (n *Node) GetMetaStructNode() *Node {
+	return n.FindChild(KeywordStruct)
+}
+
+// FindChild finds the child with specified name.
+func (n *Node) FindChild(name string) *Node {
+	if n == nil {
+		return nil
+	}
 	for _, child := range n.Children {
-		if child.Name == "@struct" {
+		if child.Name == name {
 			return child
 		}
 	}
