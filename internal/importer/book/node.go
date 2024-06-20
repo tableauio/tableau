@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/printer"
+	"github.com/tableauio/tableau/internal/types"
 )
 
 type Kind int
@@ -36,8 +37,8 @@ const (
 	KeywordSheet  = "@sheet"
 	KeywordType   = "@type"
 	KeywordStruct = "@struct"
-	KeywordKey    = "@key"
-	KeywordValue  = "@value"
+	KeywordKey    = types.DefaultDocumentMapKeyOptName   // @key
+	KeywordValue  = types.DefaultDocumentMapValueOptName // @value
 )
 
 // MetaSign signifies the name starts with leading "@" is meta name.

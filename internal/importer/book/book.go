@@ -126,17 +126,6 @@ func (b *Book) Clear() {
 	b.sheetNames = nil
 }
 
-// ParseMetasheet parses a sheet to Metabook by the specified parser.
-func ParseMetasheet(sheet *Sheet, parser SheetParser) (*tableaupb.Metabook, error) {
-	metabook := &tableaupb.Metabook{}
-	if sheet.Document != nil || sheet.MaxRow > 1 {
-		if err := parser.Parse(metabook, sheet); err != nil {
-			return nil, errors.WithMessagef(err, "failed to parse metasheet")
-		}
-	}
-	return metabook, nil
-}
-
 // ParseMetaAndPurge parses metasheet to Metabook and
 // purge needless sheets which is not in parsed Metabook.
 func (b *Book) ParseMetaAndPurge() (err error) {
@@ -147,7 +136,7 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 		return nil
 	}
 
-	b.meta, err = ParseMetasheet(metasheet, b.metaParser)
+	b.meta, err = metasheet.ParseMetasheet(b.metaParser)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", b.Filename(), MetasheetName)
 	}
@@ -157,7 +146,14 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 		b.meta.MetasheetMap = make(map[string]*tableaupb.Metasheet) // init
 		for _, sheet := range b.GetSheets() {
 			if sheet.Name != MetasheetName && sheet.Name != BookNameInMetasheet {
-				if sheet.Document == nil || (!sheet.Document.IsMeta()) {
+				if sheet.Document != nil {
+					if sheet.Document.IsMeta() {
+						sheetName := sheet.Document.GetDataSheetName()
+						b.meta.MetasheetMap[sheetName] = &tableaupb.Metasheet{
+							Sheet: sheetName,
+						}
+					}
+				} else {
 					b.meta.MetasheetMap[sheet.Name] = &tableaupb.Metasheet{
 						Sheet: sheet.Name,
 					}

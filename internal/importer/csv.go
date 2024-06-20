@@ -62,7 +62,7 @@ func adjustCSVTopN(brOpts *bookReaderOptions, parser book.SheetParser, cloned bo
 		if err != nil {
 			return err
 		}
-		meta, err := book.ParseMetasheet(metasheet, parser)
+		meta, err := metasheet.ParseMetasheet(parser)
 		if err != nil {
 			return errors.WithMessagef(err, "failed to parse metasheet: %s", book.MetasheetName)
 		}

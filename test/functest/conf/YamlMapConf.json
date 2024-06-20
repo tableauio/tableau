@@ -1,0 +1,91 @@
+{
+    "scalarMap": {
+        "1": "dog",
+        "2": "bird",
+        "3": "cat"
+    },
+    "enumKeyScalarMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "apple"
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": "orange"
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "value": "banana"
+        }
+    },
+    "enumValueScalarMap": {
+        "apple": "FRUIT_TYPE_APPLE",
+        "banana": "FRUIT_TYPE_BANANA",
+        "orange": "FRUIT_TYPE_ORANGE"
+    },
+    "enumKvScalarMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "FRUIT_FLAVOR_FRAGRANT"
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": "FRUIT_FLAVOR_SOUR"
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "value": "FRUIT_FLAVOR_SWEET"
+        }
+    },
+    "structMap": {
+        "America": {
+            "key": "America",
+            "desc": "gamesvr",
+            "fruits": {
+                "1": {
+                    "customKey": "FRUIT_TYPE_APPLE",
+                    "name": "apple",
+                    "paid": true
+                },
+                "3": {
+                    "customKey": "FRUIT_TYPE_ORANGE",
+                    "name": "orange",
+                    "paid": false
+                }
+            }
+        },
+        "China": {
+            "key": "China",
+            "desc": "mailsvr",
+            "fruits": {
+                "1": {
+                    "customKey": "FRUIT_TYPE_APPLE",
+                    "name": "apple",
+                    "paid": false
+                },
+                "3": {
+                    "customKey": "FRUIT_TYPE_ORANGE",
+                    "name": "orange",
+                    "paid": true
+                }
+            }
+        }
+    },
+    "enumKeyStructMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "name": "apple",
+            "paid": true
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "name": "orange",
+            "paid": true
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "name": "banana",
+            "paid": true
+        }
+    }
+}

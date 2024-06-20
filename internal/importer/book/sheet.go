@@ -102,6 +102,17 @@ func ExtendSheet(sheet *Sheet, rows [][]string) {
 	}
 }
 
+// ParseMetasheet parses a sheet to Metabook by the specified parser.
+func (s *Sheet) ParseMetasheet(parser SheetParser) (*tableaupb.Metabook, error) {
+	metabook := &tableaupb.Metabook{}
+	if s.Document != nil || s.MaxRow > 1 {
+		if err := parser.Parse(metabook, s); err != nil {
+			return nil, errors.WithMessagef(err, "failed to parse metasheet")
+		}
+	}
+	return metabook, nil
+}
+
 // GetRow returns the row data by row index (started with 0). If not found,
 // then returns nil.
 func (s *Sheet) GetRow(row int) []string {

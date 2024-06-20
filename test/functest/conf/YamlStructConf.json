@@ -1,0 +1,16 @@
+{
+    "struct": {
+        "id": 1,
+        "startTime": "2024-10-01T02:10:10Z",
+        "expire": "3600s"
+    },
+    "inplacePredefinedStruct": {
+        "id": 2,
+        "startTime": "2026-10-01T02:10:10Z",
+        "expire": "7200s"
+    },
+    "predefinedStruct": {
+        "id": 1,
+        "num": 10
+    }
+}
