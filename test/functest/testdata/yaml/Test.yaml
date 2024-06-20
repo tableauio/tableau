@@ -1,12 +1,14 @@
 ---
 "@sheet": "@TABLEAU"
-LiteConf:
+YamlScalarConf:
+
 ---
-"@sheet": "@LiteConf"
+"@sheet": "@YamlScalarConf"
 Scalar: int32
 Enum: "enum<.FruitType>"
 
-# struct
+---
+"@sheet": "@YamlStructConf"
 Struct:
   "@type": "{Order}"
   "@struct":
@@ -16,7 +18,8 @@ Struct:
 InplacePredefinedStruct: "{Order}"
 PredefinedStruct: "{.Item}"
 
-# list
+---
+"@sheet": "@YamlListConf"
 ScalarList: "[int32]"
 EnumList: "[enum<.FruitType>]"
 StructList:
@@ -26,7 +29,8 @@ StructList:
     Name: string
 PredefinedStructList: "[.Item]"
 
-# map
+---
+"@sheet": "@YamlMapConf"
 ScalarMap: "map<uint32, string>"
 EnumKeyScalarMap: "map<enum<.FruitType>, string>"
 EnumValueScalarMap: "map<string, enum<.FruitType>>"
@@ -48,11 +52,14 @@ EnumKeyStructMap:
   "@struct":
     Name: string
     Paid: bool
+
 ---
-"@sheet": LiteConf
+"@sheet": YamlScalarConf
 Scalar: 1
 Enum: FRUIT_TYPE_APPLE
-# struct
+
+---
+"@sheet": "YamlStructConf"
 Struct:
   ID: 1
   StartTime: "2024-10-01 10:10:10"
@@ -65,7 +72,8 @@ PredefinedStruct:
   ID: 1
   Num: 10
 
-# list
+---
+"@sheet": "YamlListConf"
 ScalarList: [1, 2, 3]
 EnumList: [FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA]
 StructList:
@@ -79,7 +87,8 @@ PredefinedStructList:
   - ID: 2
     Num: 20
 
-# map
+---
+"@sheet": "YamlMapConf"
 ScalarMap:
   1: dog
   2: bird

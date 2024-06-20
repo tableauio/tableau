@@ -13,40 +13,55 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"yaml/Test.yaml"};
 
-message LiteConf {
-  option (tableau.worksheet) = {name:"LiteConf"};
+message YamlScalarConf {
+  option (tableau.worksheet) = {name:"YamlScalarConf"};
 
   int32 scalar = 1 [(tableau.field) = {name:"Scalar"}];
   protoconf.FruitType enum = 2 [(tableau.field) = {name:"Enum"}];
-  Order struct = 3 [(tableau.field) = {name:"Struct"}];
+}
+
+message YamlStructConf {
+  option (tableau.worksheet) = {name:"YamlStructConf"};
+
+  Order struct = 1 [(tableau.field) = {name:"Struct"}];
   message Order {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     google.protobuf.Timestamp start_time = 2 [(tableau.field) = {name:"StartTime"}];
     google.protobuf.Duration expire = 3 [(tableau.field) = {name:"Expire"}];
   }
-  Order inplace_predefined_struct = 4 [(tableau.field) = {name:"InplacePredefinedStruct"}];
-  protoconf.Item predefined_struct = 5 [(tableau.field) = {name:"PredefinedStruct"}];
-  repeated int32 scalar_list = 6 [(tableau.field) = {name:"ScalarList"}];
-  repeated protoconf.FruitType enum_list = 7 [(tableau.field) = {name:"EnumList"}];
-  repeated Hero struct_list = 8 [(tableau.field) = {name:"StructList"}];
+  Order inplace_predefined_struct = 2 [(tableau.field) = {name:"InplacePredefinedStruct"}];
+  protoconf.Item predefined_struct = 3 [(tableau.field) = {name:"PredefinedStruct"}];
+}
+
+message YamlListConf {
+  option (tableau.worksheet) = {name:"YamlListConf"};
+
+  repeated int32 scalar_list = 1 [(tableau.field) = {name:"ScalarList"}];
+  repeated protoconf.FruitType enum_list = 2 [(tableau.field) = {name:"EnumList"}];
+  repeated Hero struct_list = 3 [(tableau.field) = {name:"StructList"}];
   message Hero {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
-  repeated protoconf.Item predefined_struct_list = 9 [(tableau.field) = {name:"PredefinedStructList"}];
-  map<uint32, string> scalar_map = 10 [(tableau.field) = {name:"ScalarMap"}];
-  map<int32, EnumKeyScalarMapValue> enum_key_scalar_map = 11 [(tableau.field) = {name:"EnumKeyScalarMap" key:"Key"}];
+  repeated protoconf.Item predefined_struct_list = 4 [(tableau.field) = {name:"PredefinedStructList"}];
+}
+
+message YamlMapConf {
+  option (tableau.worksheet) = {name:"YamlMapConf"};
+
+  map<uint32, string> scalar_map = 1 [(tableau.field) = {name:"ScalarMap"}];
+  map<int32, EnumKeyScalarMapValue> enum_key_scalar_map = 2 [(tableau.field) = {name:"EnumKeyScalarMap" key:"Key"}];
   message EnumKeyScalarMapValue {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"Key"}];
     string value = 2 [(tableau.field) = {name:"Value"}];
   }
-  map<string, protoconf.FruitType> enum_value_scalar_map = 12 [(tableau.field) = {name:"EnumValueScalarMap"}];
-  map<int32, CustomMapValue> enum_kv_scalar_map = 13 [(tableau.field) = {name:"EnumKVScalarMap" key:"Key"}];
+  map<string, protoconf.FruitType> enum_value_scalar_map = 3 [(tableau.field) = {name:"EnumValueScalarMap"}];
+  map<int32, CustomMapValue> enum_kv_scalar_map = 4 [(tableau.field) = {name:"EnumKVScalarMap" key:"Key"}];
   message CustomMapValue {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"Key"}];
     protoconf.FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
   }
-  map<string, Country> struct_map = 14 [(tableau.field) = {name:"StructMap" key:"@key"}];
+  map<string, Country> struct_map = 5 [(tableau.field) = {name:"StructMap" key:"@key"}];
   message Country {
     string key = 1 [(tableau.field) = {name:"@key"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
@@ -57,7 +72,7 @@ message LiteConf {
       bool paid = 3 [(tableau.field) = {name:"Paid"}];
     }
   }
-  map<int32, Fruit> enum_key_struct_map = 15 [(tableau.field) = {name:"EnumKeyStructMap" key:"@key"}];
+  map<int32, Fruit> enum_key_struct_map = 6 [(tableau.field) = {name:"EnumKeyStructMap" key:"@key"}];
   message Fruit {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
     string name = 2 [(tableau.field) = {name:"Name"}];

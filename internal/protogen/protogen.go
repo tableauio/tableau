@@ -252,15 +252,14 @@ func (gen *Generator) getBookParser(absPath string) *bookParser {
 
 func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFileConflicts bool, pass parsePass) error {
 	fmt := format.GetFormat(filename)
-	switch fmt {
-	case format.YAML:
+	if format.IsInputDocumentFormat(fmt) {
 		if err := gen.convertDocument(dir, filename, checkProtoFileConflicts, pass); err != nil {
 			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 		}
-	default:
-		if err := gen.convert(dir, filename, checkProtoFileConflicts, pass); err != nil {
-			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
-		}
+		return nil
+	}
+	if err := gen.convertTable(dir, filename, checkProtoFileConflicts, pass); err != nil {
+		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 	}
 	return nil
 }
@@ -378,7 +377,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	return nil
 }
 
-func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
+func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
 	absPath := filepath.Join(dir, filename)
 	var imp importer.Importer
 	if pass == firstPass {

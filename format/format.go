@@ -82,6 +82,12 @@ func Format2Ext(fmt Format) string {
 var InputFormats = []Format{Excel, CSV, XML, YAML}
 var OutputFormats = []Format{JSON, Bin, Text}
 
+var inputDocumentFormats = map[Format]bool{
+	YAML: true,
+	// XML: true, // TODO: including xml
+}
+
+// IsInputFormat checks whether the fmt belongs to [InputFormats], such as Excel.
 func IsInputFormat(fmt Format) bool {
 	for _, f := range InputFormats {
 		if f == fmt {
@@ -89,6 +95,12 @@ func IsInputFormat(fmt Format) bool {
 		}
 	}
 	return false
+}
+
+// IsInputDocumentFormat checks whether the fmt belongs to input document
+// formats, such as yaml.
+func IsInputDocumentFormat(fmt Format) bool {
+	return inputDocumentFormats[fmt]
 }
 
 func Amongst(fmt Format, formats []Format) bool {

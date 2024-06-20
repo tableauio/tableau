@@ -19,21 +19,15 @@ type documentParser struct {
 func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	// log.Debugf("parse sheet: %s", sheet.Name)
 	msg := protomsg.ProtoReflect()
-	// for _, node := range sheet.Document.Children[0].Children {
-	// 	_, err := sp.parseFieldOptions(msg, node)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-	_, err := sp.parseFieldOptions(msg, sheet.Document.Children[0])
+	_, err := sp.parseMessage(msg, sheet.Document.Children[0])
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// parseFieldOptions is aimed to parse the options of all the fields of a protobuf message.
-func (sp *documentParser) parseFieldOptions(msg protoreflect.Message, node *book.Node) (present bool, err error) {
+// parseMessage parses all fields of a protobuf message.
+func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node) (present bool, err error) {
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
@@ -129,7 +123,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					Column:     node.Column,
 				}
 				elemNode.Children = append(elemNode.Children, keyNode)
-				valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), elemNode)
+				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode)
 				if err != nil {
 					return false, xerrors.WithMessageKV(err)
 				}
@@ -171,7 +165,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 		newListValue := list.NewElement()
 		if field.fd.Kind() == protoreflect.MessageKind {
 			// cross-cell struct list
-			elemPresent, err = sp.parseFieldOptions(newListValue.Message(), elemNode)
+			elemPresent, err = sp.parseMessage(newListValue.Message(), elemNode)
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, "cross-cell struct list", "failed to parse struct")
 			}
@@ -220,7 +214,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 		}
 		return present, nil
 	} else {
-		present, err := sp.parseFieldOptions(structValue.Message(), node)
+		present, err := sp.parseMessage(structValue.Message(), node)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err)
 		}
