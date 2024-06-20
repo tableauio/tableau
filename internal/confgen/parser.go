@@ -210,7 +210,7 @@ type SheetParserExtInfo struct {
 	BookFormat     format.Format // workbook format
 }
 
-// NewSheetParser creates a new sheet parser extended info.
+// NewSheetParser creates a new sheet parser.
 func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
 	return NewExtendedSheetParser(protoPackage, locationName, opts, nil)
 }
@@ -235,7 +235,7 @@ func (sp *sheetParser) GetBookFormat() format.Format {
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
-	if format.IsInputDocumentFormat(sp.GetBookFormat()) {
+	if sheet.Document != nil {
 		docParser := &documentParser{parser: sp}
 		return docParser.Parse(protomsg, sheet)
 	}

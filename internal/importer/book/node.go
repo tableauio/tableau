@@ -37,7 +37,11 @@ const (
 	KeywordType   = "@type"
 	KeywordStruct = "@struct"
 	KeywordKey    = "@key"
+	KeywordValue  = "@value"
 )
+
+// MetaSign signifies the name starts with leading "@" is meta name.
+const MetaSign = "@"
 
 // Node represents an element in the tree document hierarchy.
 //
@@ -45,29 +49,28 @@ const (
 //   - https://pkg.go.dev/gopkg.in/yaml.v3?utm_source=godoc#Node
 //   - https://pkg.go.dev/github.com/moovweb/gokogiri/xml#Node
 type Node struct {
-	Kind       Kind
-	Name       string
-	Content    string
-	Attributes map[string]string // name -> value
-	Children   []*Node
+	Kind     Kind
+	Name     string
+	Value    string
+	Children []*Node
 
 	// Line and Column hold the node position in the file.
 	Line   int
 	Column int
 }
 
-// GetContent returns node's content. It will return empty string if
+// GetValue returns node's value. It will return empty string if
 // node is nil.
-func (n *Node) GetContent() string {
+func (n *Node) GetValue() string {
 	if n == nil {
 		return ""
 	}
-	return n.Content
+	return n.Value
 }
 
-// IsMeta checks whether this node is meta (which defines schema) or not.
+// IsMeta checks whether this node is meta (name starts with leading "@") or not.
 func (n *Node) IsMeta() bool {
-	return strings.HasPrefix(n.Name, "@")
+	return strings.HasPrefix(n.Name, MetaSign)
 }
 
 // GetDataSheetName returns original data sheet name by removing
@@ -75,16 +78,24 @@ func (n *Node) IsMeta() bool {
 //
 // e.g.: "@SheetName" -> "SheetName"
 func (n *Node) GetDataSheetName() string {
-	return strings.TrimPrefix(n.Name, "@")
+	return strings.TrimPrefix(n.Name, MetaSign)
 }
 
-// GetMetaType returns this node's type defined in schema sheet.
+// GetMetaSheet returns this node's @sheet defined in document node.
+func (n *Node) GetMetaSheet() string {
+	if n.Kind == DocumentNode && len(n.Children) > 0 {
+		return n.Children[0].FindChild(KeywordSheet).GetValue()
+	}
+	return ""
+}
+
+// GetMetaType returns this node's @type defined in schema sheet.
 func (n *Node) GetMetaType() string {
 	// If no children, then just treat content as type name
 	if len(n.Children) == 0 {
-		return n.Content
+		return n.Value
 	}
-	return n.FindChild(KeywordType).GetContent()
+	return n.FindChild(KeywordType).GetValue()
 }
 
 // GetMetaKey returns this node's key defined in schema sheet.
@@ -92,7 +103,7 @@ func (n *Node) GetMetaKey() string {
 	// If no children, then just treat content as type name
 	keyNode := n.GetMetaStructNode().FindChild(KeywordKey)
 	if keyNode != nil {
-		return keyNode.Content
+		return keyNode.Value
 	}
 	return strings.TrimPrefix(KeywordKey, "@")
 }
@@ -129,9 +140,9 @@ func dumpNode(node *Node, parentKind Kind, buffer *bytes.Buffer, depth int) {
 	case ScalarNode:
 		switch parentKind {
 		case ListNode:
-			line = fmt.Sprintf("%s- %s # %s", printer.Indent(depth), node.Content, node.Kind)
+			line = fmt.Sprintf("%s- %s # %s", printer.Indent(depth), node.Value, node.Kind)
 		default:
-			line = fmt.Sprintf("%s%s: %s # %s", printer.Indent(depth), node.Name, node.Content, node.Kind)
+			line = fmt.Sprintf("%s%s: %s # %s", printer.Indent(depth), node.Name, node.Value, node.Kind)
 		}
 	case ListNode:
 		line = fmt.Sprintf("%s%s: # %s", printer.Indent(depth), node.Name, node.Kind)

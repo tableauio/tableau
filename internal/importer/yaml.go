@@ -41,10 +41,9 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 	}
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(bookName, filename, parser)
-
 	// parse all documents in a file
 	decoder := yaml.NewDecoder(file)
-	for {
+	for i := 0; ; i++ {
 		var doc yaml.Node
 		// Decode one document at a time
 		err = decoder.Decode(&doc)
@@ -55,9 +54,9 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 				return nil, err
 			}
 		}
-		sheet, err := parseYAMLSheet(&doc)
+		sheet, err := parseYAMLSheet(&doc, i)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "%s", filename)
+			return nil, errors.WithMessagef(err, "file: %s", filename)
 		}
 		newBook.AddSheet(sheet)
 	}
@@ -65,29 +64,37 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 	return newBook, nil
 }
 
-func parseYAMLSheet(doc *yaml.Node) (*book.Sheet, error) {
+func parseYAMLSheet(doc *yaml.Node, index int) (*book.Sheet, error) {
 	bdoc := &book.Node{}
-	err := parseYAMLNode(doc, bdoc, &bdoc.Name)
+	err := parseYAMLNode(doc, bdoc)
 	if err != nil {
 		return nil, err
 	}
-	sheet := book.NewSheetWithDocument(
-		bdoc.Name,
+	sheetName := bdoc.GetMetaSheet()
+	if sheetName == "" {
+		// no sheet name specified, then auto generate it
+		sheetName = fmt.Sprintf("Sheet%d", index)
+	}
+	bdoc.Name = sheetName
+	sheet := book.NewDocumentSheet(
+		sheetName,
 		bdoc,
 	)
 	return sheet, nil
 }
 
-func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string) error {
+func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 	switch node.Kind {
 	case yaml.DocumentNode:
 		bnode.Kind = book.DocumentNode
-		bnode.Content = node.Value
+		bnode.Value = node.Value
 		for _, child := range node.Content {
 			subNode := &book.Node{
-				Content: child.Value,
+				Value:  child.Value,
+				Line:   child.Line,
+				Column: child.Column,
 			}
-			if err := parseYAMLNode(child, subNode, &bnode.Name); err != nil {
+			if err := parseYAMLNode(child, subNode); err != nil {
 				return err
 			}
 			bnode.Children = append(bnode.Children, subNode)
@@ -99,20 +106,16 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string) error {
 			key := node.Content[i]
 			value := node.Content[i+1]
 			subNode := &book.Node{
-				Name:    key.Value,
-				Content: value.Value,
-			}
-			if subNode.Name == book.SheetKey {
-				if *sheetName != "" {
-					return fmt.Errorf("duplicate sheet name specified: %s -> %s", *sheetName, subNode.Content)
-				}
-				*sheetName = subNode.Content
+				Name:   key.Value,
+				Value:  value.Value,
+				Line:   key.Line,
+				Column: key.Column,
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if value.Kind == yaml.ScalarNode {
 				continue
 			}
-			if err := parseYAMLNode(value, subNode, sheetName); err != nil {
+			if err := parseYAMLNode(value, subNode); err != nil {
 				return err
 			}
 		}
@@ -121,14 +124,16 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node, sheetName *string) error {
 		bnode.Kind = book.ListNode
 		for _, elem := range node.Content {
 			subNode := &book.Node{
-				Name:    "",
-				Content: elem.Value,
+				Name:   "",
+				Value:  elem.Value,
+				Line:   elem.Line,
+				Column: elem.Column,
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if elem.Kind == yaml.ScalarNode {
 				continue
 			}
-			if err := parseYAMLNode(elem, subNode, sheetName); err != nil {
+			if err := parseYAMLNode(elem, subNode); err != nil {
 				return err
 			}
 		}

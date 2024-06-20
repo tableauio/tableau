@@ -73,8 +73,8 @@ func NewSheet(name string, rows [][]string) *Sheet {
 	}
 }
 
-// NewSheetWithDocument creats a new Sheet with a document.
-func NewSheetWithDocument(name string, doc *Node) *Sheet {
+// NewDocumentSheet creats a new Sheet with a document.
+func NewDocumentSheet(name string, doc *Node) *Sheet {
 	return &Sheet{
 		Name:     name,
 		Document: doc,
@@ -132,17 +132,18 @@ func (s *Sheet) Cell(row, col int) (string, error) {
 //   - Table: CSV form
 //   - Document: hierachy form
 func (s *Sheet) String() string {
-	if s.Document == nil {
+	if s.Document != nil {
 		var buffer bytes.Buffer
-		w := csv.NewWriter(&buffer)
-		err := w.WriteAll(s.Rows) // calls Flush internally
-		if err != nil {
-			log.Panicf("write csv failed: %v", err)
-		}
+		dumpNode(s.Document, DocumentNode, &buffer, 0)
 		return buffer.String()
 	}
+
 	var buffer bytes.Buffer
-	dumpNode(s.Document, DocumentNode, &buffer, 0)
+	w := csv.NewWriter(&buffer)
+	err := w.WriteAll(s.Rows) // calls Flush internally
+	if err != nil {
+		log.Panicf("write csv failed: %v", err)
+	}
 	return buffer.String()
 }
 

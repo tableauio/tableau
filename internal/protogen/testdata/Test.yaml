@@ -1,6 +1,8 @@
 ---
 "@sheet": "@TABLEAU"
 LiteConf:
+  Alias: LiteAliasConf
+  OrderedMap: true
 ---
 "@sheet": "@LiteConf"
 Scalar: int32

@@ -7,6 +7,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -17,9 +18,13 @@ type documentParser struct {
 }
 
 func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
-	// log.Debugf("parse sheet: %s", sheet.Name)
+	if len(sheet.Document.Children) != 1 {
+		return xerrors.Errorf("document should have and only have one child (map node), sheet: %s", sheet.Name)
+	}
+	// get the first child (map node) in document
+	child := sheet.Document.Children[0]
 	msg := protomsg.ProtoReflect()
-	_, err := sp.parseMessage(msg, sheet.Document.Children[0])
+	_, err := sp.parseMessage(msg, child)
 	if err != nil {
 		return err
 	}
@@ -34,9 +39,32 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 		err := func() error {
 			field := parseFieldDescriptor(fd, sp.parser.opts.Sep, sp.parser.opts.Subsep)
 			defer field.release()
-			fieldNode := node.FindChild(field.opts.Name)
-			if fieldNode == nil {
-				return xerrors.Errorf("field node not found: %s", field.opts.Name)
+			var fieldNode *book.Node
+			if field.opts.Name == "" {
+				// just treat self node (with meta child removed) as field node
+				// if option Name is empty
+				fieldNode = &book.Node{
+					Kind:     node.Kind,
+					Name:     node.Name,
+					Value:    node.Value,
+					Children: []*book.Node{},
+					Line:     node.Line,
+					Column:   node.Column,
+				}
+				for _, child := range node.Children {
+					if !child.IsMeta() {
+						fieldNode.Children = append(fieldNode.Children, child)
+					}
+				}
+			} else {
+				fieldNode = node.FindChild(field.opts.Name)
+				if fieldNode == nil {
+					if field.opts.Optional {
+						// field not found and is optional, no need to process, just return.
+						return nil
+					}
+					return xerrors.Errorf("field node not found: %s", field.opts.Name)
+				}
 			}
 			fieldPresent, err := sp.parseField(field, msg, fieldNode)
 			if err != nil {
@@ -81,18 +109,11 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 	// keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
 
-	// simple scalar map
-	var isScalar bool
-	for _, elemNode := range node.Children {
-		if elemNode.Kind == book.ScalarNode {
-			isScalar = true
-			break
-		}
-	}
-	if isScalar {
+	// simple scalar map (span inner cell)
+	if valueFd.Kind() != protoreflect.MessageKind || field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		var pairs []string
 		for _, elemNode := range node.Children {
-			pairs = append(pairs, elemNode.Name+":"+elemNode.Content)
+			pairs = append(pairs, elemNode.Name+":"+elemNode.Value)
 		}
 		data := strings.Join(pairs, ",")
 		err = sp.parser.parseIncellMap(field, reflectMap, data)
@@ -114,13 +135,12 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				}
 				// auto add virtual key node
 				keyNode := &book.Node{
-					Kind:       book.ScalarNode,
-					Name:       book.KeywordKey,
-					Content:    elemNode.Name,
-					Attributes: nil,
-					Children:   nil,
-					Line:       node.Line,
-					Column:     node.Column,
+					Kind:     book.ScalarNode,
+					Name:     field.opts.Key,
+					Value:    elemNode.Name,
+					Children: nil,
+					Line:     node.Line,
+					Column:   node.Column,
 				}
 				elemNode.Children = append(elemNode.Children, keyNode)
 				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode)
@@ -171,7 +191,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 			}
 		} else {
 			// cross-cell scalar list
-			newListValue, elemPresent, err = sp.parser.parseFieldValue(field.fd, elemNode.Content, field.opts.Prop)
+			newListValue, elemPresent, err = sp.parser.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
 			if err != nil {
 				return false, xerrors.WithMessageKV(err)
 			}
@@ -205,7 +225,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 	subMsgName := string(field.fd.Message().FullName())
 	if types.IsWellKnownMessage(subMsgName) {
 		// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
-		value, present, err := sp.parser.parseFieldValue(field.fd, node.Content, field.opts.Prop)
+		value, present, err := sp.parser.parseFieldValue(field.fd, node.Value, field.opts.Prop)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err)
 		}
@@ -233,7 +253,7 @@ func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Messag
 		return true, nil
 	}
 	var newValue protoreflect.Value
-	newValue, present, err = sp.parser.parseFieldValue(field.fd, node.Content, field.opts.Prop)
+	newValue, present, err = sp.parser.parseFieldValue(field.fd, node.Value, field.opts.Prop)
 	if err != nil {
 		return false, xerrors.WithMessageKV(err)
 	}

@@ -13,7 +13,7 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"yaml/Test.yaml"};
 
-message YamlScalarConf {
+message YamlScalarAliasConf {
   option (tableau.worksheet) = {name:"YamlScalarConf"};
 
   int32 scalar = 1 [(tableau.field) = {name:"Scalar"}];
@@ -47,19 +47,19 @@ message YamlListConf {
 }
 
 message YamlMapConf {
-  option (tableau.worksheet) = {name:"YamlMapConf"};
+  option (tableau.worksheet) = {name:"YamlMapConf" ordered_map:true};
 
   map<uint32, string> scalar_map = 1 [(tableau.field) = {name:"ScalarMap"}];
-  map<int32, EnumKeyScalarMapValue> enum_key_scalar_map = 2 [(tableau.field) = {name:"EnumKeyScalarMap" key:"Key"}];
+  map<int32, EnumKeyScalarMapValue> enum_key_scalar_map = 2 [(tableau.field) = {name:"EnumKeyScalarMap" key:"@key" span:SPAN_INNER_CELL}];
   message EnumKeyScalarMapValue {
-    protoconf.FruitType key = 1 [(tableau.field) = {name:"Key"}];
-    string value = 2 [(tableau.field) = {name:"Value"}];
+    protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
+    string value = 2 [(tableau.field) = {name:"@value"}];
   }
   map<string, protoconf.FruitType> enum_value_scalar_map = 3 [(tableau.field) = {name:"EnumValueScalarMap"}];
-  map<int32, CustomMapValue> enum_kv_scalar_map = 4 [(tableau.field) = {name:"EnumKVScalarMap" key:"Key"}];
+  map<int32, CustomMapValue> enum_kv_scalar_map = 4 [(tableau.field) = {name:"EnumKVScalarMap" key:"@key" span:SPAN_INNER_CELL}];
   message CustomMapValue {
-    protoconf.FruitType key = 1 [(tableau.field) = {name:"Key"}];
-    protoconf.FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+    protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
+    protoconf.FruitFlavor value = 2 [(tableau.field) = {name:"@value"}];
   }
   map<string, Country> struct_map = 5 [(tableau.field) = {name:"StructMap" key:"@key"}];
   message Country {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
@@ -835,9 +836,9 @@ func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*tableaupb.Field
 			xerrors.KeyPBFieldType, typ,
 			xerrors.KeyTrimmedNameCell, name)
 	}
-
+	pureName := strings.TrimPrefix(name, book.MetaSign) // remove leading meta sign "@""
 	return &tableaupb.Field{
-		Name:       strcase.ToSnake(name),
+		Name:       strcase.ToSnake(pureName),
 		Type:       typeDesc.Name,
 		FullType:   typeDesc.FullName,
 		Predefined: typeDesc.Predefined,

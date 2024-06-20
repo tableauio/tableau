@@ -301,9 +301,6 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	}
 	bp := newDocumentBookParser(bookName, rewrittenBookName, gen)
 	for _, sheet := range imp.GetSheets() {
-		if !sheet.Document.IsMeta() {
-			continue
-		}
 		// parse sheet options
 		sheetName := sheet.Document.GetDataSheetName()
 		debugSheetName := sheetName
@@ -342,9 +339,14 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 
 		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 
-		var parsed bool
 		log.Debugf("\ndocument: %s", sheet.String())
-		for _, node := range sheet.Document.Children[0].Children {
+		if len(sheet.Document.Children) != 1 {
+			return xerrors.Errorf("document should have and only have one child (map node), sheet: %s", sheet.Name)
+		}
+		// get the first child (map node) in document
+		child := sheet.Document.Children[0]
+		var parsed bool
+		for _, node := range child.Children {
 			field := &tableaupb.Field{}
 			parsed, err = bp.parseField(field, node)
 			if err != nil {
@@ -359,7 +361,6 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		}
 		// append parsed sheet to workbook
 		bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
-
 	}
 	// export book
 	be := newBookExporter(
@@ -373,7 +374,6 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	if err := be.export(checkProtoFileConflicts); err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName)
 	}
-
 	return nil
 }
 

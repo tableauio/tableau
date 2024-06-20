@@ -141,8 +141,8 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 			valuePredefined = false
 			parsedValueName = node.Name + "Value"
 			// custom value type name
-			if structNode := node.GetMetaStructNode(); structNode != nil && structNode.Content != "" {
-				parsedValueName = structNode.Content
+			if structNode := node.GetMetaStructNode(); structNode != nil && structNode.Value != "" {
+				parsedValueName = structNode.Value
 			}
 			parsedValueFullName = parsedValueName
 			mapType = fmt.Sprintf("map<%s, %s>", parsedKeyType, parsedValueName)
@@ -171,9 +171,9 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
-			field.Options.Key = types.DefaultMapKeyOptName
+			field.Options.Key = book.KeywordKey
 			// 1. append key to the first value struct field
-			scalarField, err := parseField(p.gen.typeInfos, types.DefaultMapKeyOptName, desc.KeyType+desc.Prop.RawProp())
+			scalarField, err := parseField(p.gen.typeInfos, book.KeywordKey, desc.KeyType+desc.Prop.RawProp())
 			if err != nil {
 				return xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -181,13 +181,14 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 			}
 			field.Fields = append(field.Fields, scalarField)
 			// 2. append value to the second value struct field
-			scalarField, err = parseField(p.gen.typeInfos, types.DefaultMapValueOptName, desc.ValueType)
+			scalarField, err = parseField(p.gen.typeInfos, book.KeywordValue, desc.ValueType)
 			if err != nil {
 				return xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 					xerrors.KeyPBFieldOpts, desc.Prop.Text)
 			}
 			field.Fields = append(field.Fields, scalarField)
+			field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
 		}
 		return nil
 	}

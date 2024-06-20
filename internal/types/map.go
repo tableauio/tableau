@@ -10,12 +10,19 @@ const DefaultMapFieldOptNameSuffix = "Map"
 
 const DefaultMapKeyOptName = "Key"
 const DefaultMapValueOptName = "Value"
+const DefaultDocumentMapKeyOptName = "@key"
+const DefaultDocumentMapValueOptName = "@value"
 
 func CheckMessageWithOnlyKVFields(md protoreflect.MessageDescriptor) bool {
 	if md.Fields().Len() == 2 {
 		keyFd := md.Fields().Get(0)
 		valFd := md.Fields().Get(1)
-		return expectFieldOptName(keyFd, DefaultMapKeyOptName) && expectFieldOptName(valFd, DefaultMapValueOptName)
+		isTableKV := expectFieldOptName(keyFd, DefaultMapKeyOptName) && expectFieldOptName(valFd, DefaultMapValueOptName)
+		if isTableKV {
+			return true
+		}
+		isDocumentKV := expectFieldOptName(keyFd, DefaultDocumentMapKeyOptName) && expectFieldOptName(valFd, DefaultDocumentMapValueOptName)
+		return isDocumentKV
 	}
 	return false
 }
