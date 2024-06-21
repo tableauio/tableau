@@ -66,10 +66,13 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 						// field not found and is optional, no need to process, just return.
 						return nil
 					}
-					return xerrors.ErrorKV("field node not found: %s",
+					kvs := node.DebugNameKV()
+					kvs = append(kvs,
 						xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
 						xerrors.KeyPBFieldName, fd.FullName(),
-						xerrors.KeyPBFieldOpts, field.opts)
+						xerrors.KeyPBFieldOpts, field.opts,
+					)
+					return xerrors.WrapKV(xerrors.E2014(field.opts.Name), kvs...)
 				}
 			}
 			fieldPresent, err := sp.parseField(field, msg, fieldNode)
@@ -117,14 +120,14 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 
 	// simple scalar map (span inner cell)
 	if valueFd.Kind() != protoreflect.MessageKind || field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		var pairs []string
-		for _, elemNode := range node.Children {
-			pairs = append(pairs, elemNode.Name+":"+elemNode.Value)
-		}
-		data := strings.Join(pairs, ",")
+		// var pairs []string
+		// for _, elemNode := range node.Children {
+		// 	pairs = append(pairs, elemNode.Name+":"+elemNode.Value)
+		// }
+		// data := strings.Join(pairs, ",")
 		// TODO: refector parseIncellMap with param KVs, to give more accurate
 		// node line and column when encouters error
-		err = sp.parser.parseIncellMap(field, reflectMap, data)
+		err = sp.parseScalarMap(field, reflectMap, node)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
 		}
@@ -181,6 +184,103 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 		present = true
 	}
 	return present, nil
+}
+
+func (sp *documentParser) parseScalarMap(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
+	// keyFd := field.fd.MapKey()
+	valueFd := field.fd.MapValue()
+	if valueFd.Kind() != protoreflect.MessageKind {
+		return sp.parseScalarMapWithSimpleKV(field, reflectMap, node)
+	}
+
+	if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
+		return xerrors.Errorf("map value type is not KV struct, and is not supported")
+	}
+	return sp.parseScalarMapWithValueAsSimpleKVMessage(field, reflectMap, node)
+}
+
+// parseScalarMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
+// For example:
+//   - map<int32, int32>
+//   - map<int32, EnumType>
+func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
+	// If s does not contain sep and sep is not empty, Split returns a
+	// slice of length 1 whose only element is s.
+	keyFd := field.fd.MapKey()
+	valueFd := field.fd.MapValue()
+	for _, elemNode := range node.Children {
+		key, value := elemNode.Name, elemNode.Value
+
+		fieldValue, keyPresent, err := sp.parser.parseFieldValue(keyFd, key, field.opts.Prop)
+		if err != nil {
+			return xerrors.WithMessageKV(err, elemNode.DebugNameKV()...)
+		}
+
+		newMapKey := fieldValue.MapKey()
+		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
+		fieldValue, valuePresent, err := sp.parser.parseFieldValue(valueFd, value, nil)
+		if err != nil {
+			return xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+		}
+		newMapValue := fieldValue
+
+		if !keyPresent && !valuePresent {
+			continue
+		}
+		reflectMap.Set(newMapKey, newMapValue)
+	}
+	return nil
+}
+
+// parseScalarMapWithValueAsSimpleKVMessage parses simple incell map with key as scalar or enum type
+// and value as simple message with only key and value fields. For example:
+//
+//	enum FruitType {
+//		FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//		FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
+//		FRUIT_TYPE_ORANGE  = 2 [(tableau.evalue).name = "Orange"];
+//		FRUIT_TYPE_BANANA  = 3 [(tableau.evalue).name = "Banana"];
+//	}
+//	enum FruitFlavor {
+//		FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//		FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
+//		FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
+//		FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
+//	}
+//
+//	map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+//	message Fruit {
+//		FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//		int64 value = 2 [(tableau.field) = {name:"Value"}];
+//	}
+//
+//	map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+//	message Item {
+//		FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//		FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+//	}
+func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
+	// If s does not contain sep and sep is not empty, Split returns a
+	// slice of length 1 whose only element is s.
+	for _, elemNode := range node.Children {
+		key, value := elemNode.Name, elemNode.Value
+		mapItemData := strings.Join([]string{key, value}, field.opts.Subsep)
+		newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, key)
+		if err != nil {
+			return xerrors.WithMessageKV(err, elemNode.DebugNameKV()...)
+		}
+		newMapValue := reflectMap.NewValue()
+		valuePresent, err := sp.parser.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.opts.Subsep)
+		if err != nil {
+			return xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+		}
+
+		if !keyPresent && !valuePresent {
+			continue
+		}
+		reflectMap.Set(newMapKey, newMapValue)
+	}
+	return nil
 }
 
 func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {

@@ -160,6 +160,28 @@ func (n *Node) DebugKV() []any {
 	}
 }
 
+func (n *Node) DebugNameKV() []any {
+	if n == nil {
+		return []any{}
+	}
+	namePos := fmt.Sprintf("Ln %d, Col %d", n.NamePos.Line, n.NamePos.Column)
+	return []any{
+		xerrors.KeyDataCellPos, namePos,
+		xerrors.KeyDataCell, n.Name,
+	}
+}
+
+func (n *Node) DebugValueKV() []any {
+	if n == nil {
+		return []any{}
+	}
+	valuePos := fmt.Sprintf("Ln %d, Col %d", n.ValuePos.Line, n.ValuePos.Column)
+	return []any{
+		xerrors.KeyDataCellPos, valuePos,
+		xerrors.KeyDataCell, n.Value,
+	}
+}
+
 // String returns hierarchy representation of the Node, mainly
 // for debugging.
 func (n *Node) String() string {

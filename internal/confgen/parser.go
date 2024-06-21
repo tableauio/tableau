@@ -596,21 +596,14 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 func (sp *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	// keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
-	if valueFd.Kind() == protoreflect.MessageKind {
-		if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
-			return xerrors.Errorf("map value type is not KV struct, and is not supported")
-		}
-		err := sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := sp.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
-		if err != nil {
-			return err
-		}
+	if valueFd.Kind() != protoreflect.MessageKind {
+		return sp.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
 	}
-	return nil
+
+	if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
+		return xerrors.Errorf("map value type is not KV struct, and is not supported")
+	}
+	return sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
 }
 
 // parseIncellMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
@@ -661,30 +654,30 @@ func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap proto
 // parseIncellMapWithValueAsSimpleKVMessage parses simple incell map with key as scalar or enum type
 // and value as simple message with only key and value fields. For example:
 //
-//	 enum FruitType {
-//	   FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
-//	   FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
-//	   FRUIT_TYPE_ORANGE  = 2 [(tableau.evalue).name = "Orange"];
-//	   FRUIT_TYPE_BANANA  = 3 [(tableau.evalue).name = "Banana"];
-//	 }
-//	 enum FruitFlavor {
-//	   FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
-//	   FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
-//	   FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
-//	   FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
-//	 }
+//	enum FruitType {
+//		FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//		FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
+//		FRUIT_TYPE_ORANGE  = 2 [(tableau.evalue).name = "Orange"];
+//		FRUIT_TYPE_BANANA  = 3 [(tableau.evalue).name = "Banana"];
+//	}
+//	enum FruitFlavor {
+//		FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//		FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
+//		FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
+//		FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
+//	}
 //
-//	 map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
-//	 message Fruit {
-//	   FruitType key = 1 [(tableau.field) = {name:"Key"}];
-//	   int64 value = 2 [(tableau.field) = {name:"Value"}];
-//		}
+//	map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+//	message Fruit {
+//		FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//		int64 value = 2 [(tableau.field) = {name:"Value"}];
+//	}
 //
-//	 map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
-//	 message Item {
-//	   FruitType key = 1 [(tableau.field) = {name:"Key"}];
-//	   FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
-//	 }
+//	map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+//	message Item {
+//		FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//		FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+//	}
 func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
 		return nil
