@@ -29,8 +29,19 @@ message YamlStructConf {
     google.protobuf.Timestamp start_time = 2 [(tableau.field) = {name:"StartTime"}];
     google.protobuf.Duration expire = 3 [(tableau.field) = {name:"Expire"}];
   }
-  Order inplace_predefined_struct = 2 [(tableau.field) = {name:"InplacePredefinedStruct"}];
+  Order reuse_predefined_struct = 2 [(tableau.field) = {name:"ReusePredefinedStruct"}];
   protoconf.Item predefined_struct = 3 [(tableau.field) = {name:"PredefinedStruct"}];
+  IncellItem incell_struct = 4 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}];
+  message IncellItem {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 num = 2 [(tableau.field) = {name:"Num"}];
+  }
+  InplaceIncellItem incell_struct_2 = 5 [(tableau.field) = {name:"IncellStruct2" span:SPAN_INNER_CELL}];
+  message InplaceIncellItem {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 num = 2 [(tableau.field) = {name:"Num"}];
+  }
+  protoconf.Item predefined_incell_struct = 6 [(tableau.field) = {name:"PredefinedIncellStruct" span:SPAN_INNER_CELL}];
 }
 
 message YamlListConf {
@@ -38,12 +49,14 @@ message YamlListConf {
 
   repeated int32 scalar_list = 1 [(tableau.field) = {name:"ScalarList"}];
   repeated protoconf.FruitType enum_list = 2 [(tableau.field) = {name:"EnumList"}];
-  repeated Hero struct_list = 3 [(tableau.field) = {name:"StructList"}];
+  repeated int32 incell_scalar_list = 3 [(tableau.field) = {name:"IncellScalarList" layout:LAYOUT_INCELL}];
+  repeated protoconf.FruitType incell_enum_list = 4 [(tableau.field) = {name:"IncellEnumList" layout:LAYOUT_INCELL}];
+  repeated Hero struct_list = 5 [(tableau.field) = {name:"StructList"}];
   message Hero {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
-  repeated protoconf.Item predefined_struct_list = 4 [(tableau.field) = {name:"PredefinedStructList"}];
+  repeated protoconf.Item predefined_struct_list = 6 [(tableau.field) = {name:"PredefinedStructList"}];
 }
 
 message YamlMapConf {
@@ -61,7 +74,9 @@ message YamlMapConf {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
     protoconf.FruitFlavor value = 2 [(tableau.field) = {name:"@value"}];
   }
-  map<string, Country> struct_map = 5 [(tableau.field) = {name:"StructMap" key:"@key"}];
+  map<uint32, string> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}];
+  map<int32, CustomMapValue> incell_enum_map = 6 [(tableau.field) = {name:"IncellEnumMap" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  map<string, Country> struct_map = 7 [(tableau.field) = {name:"StructMap" key:"@key"}];
   message Country {
     string key = 1 [(tableau.field) = {name:"@key"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
@@ -72,7 +87,7 @@ message YamlMapConf {
       bool paid = 3 [(tableau.field) = {name:"Paid"}];
     }
   }
-  map<int32, Fruit> enum_key_struct_map = 6 [(tableau.field) = {name:"EnumKeyStructMap" key:"@key"}];
+  map<int32, Fruit> enum_key_struct_map = 8 [(tableau.field) = {name:"EnumKeyStructMap" key:"@key"}];
   message Fruit {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
     string name = 2 [(tableau.field) = {name:"Name"}];

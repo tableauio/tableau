@@ -40,6 +40,7 @@ const (
 	KeywordStruct = "@struct"
 	KeywordKey    = types.DefaultDocumentMapKeyOptName   // @key
 	KeywordValue  = types.DefaultDocumentMapValueOptName // @value
+	KeywordIncell = "@incell"
 )
 
 // MetaSign signifies the name starts with leading "@" is meta name.
@@ -122,7 +123,18 @@ func (n *Node) GetMetaKey() string {
 	if keyNode != nil {
 		return keyNode.Value
 	}
+	// default is "key"
 	return strings.TrimPrefix(KeywordKey, "@")
+}
+
+// GetMetaIncell returns this node's @incell defined in schema sheet.
+func (n *Node) GetMetaIncell() bool {
+	// If no children, then just treat value as type name
+	if len(n.Children) == 0 {
+		return false
+	}
+	val := n.FindChild(KeywordIncell).GetValue()
+	return val == "true"
 }
 
 // GetMetaStructNode returns this node's @struct node defined in schema sheet.

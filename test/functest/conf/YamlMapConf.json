@@ -37,6 +37,21 @@
             "value": "FRUIT_FLAVOR_SWEET"
         }
     },
+    "incellMap": {
+        "1": "dog",
+        "2": "bird",
+        "3": "cat"
+    },
+    "incellEnumMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "FRUIT_FLAVOR_FRAGRANT"
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": "FRUIT_FLAVOR_SOUR"
+        }
+    },
     "structMap": {
         "America": {
             "key": "America",

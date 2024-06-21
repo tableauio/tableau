@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/iancoleman/strcase"
+	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -95,6 +96,12 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 	parsedValueFullName := valueTypeDesc.FullName
 	valuePredefined := valueTypeDesc.Predefined
 
+	// whether layout is incell or not
+	layout := tableaupb.Layout_LAYOUT_DEFAULT
+	if node.GetMetaIncell() {
+		layout = tableaupb.Layout_LAYOUT_INCELL
+	}
+
 	prop, err := desc.Prop.FieldProp()
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
@@ -140,8 +147,9 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		// field.Name = strcase.ToSnake(node.Name) + mapVarSuffix
 		field.Name = strcase.ToSnake(node.Name)
 		field.Options = &tableaupb.FieldOptions{
-			Name: node.Name,
-			Prop: ExtractMapFieldProp(prop),
+			Name:   node.Name,
+			Layout: layout,
+			Prop:   ExtractMapFieldProp(prop),
 		}
 
 		// special process for key as enum type: create a new simple KV message as map value type.
@@ -227,7 +235,16 @@ func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.N
 			xerrors.KeyPBFieldOpts, desc.Prop.Text,
 			xerrors.KeyTrimmedNameCell, node.Name)
 	}
-	scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.ElemType)
+	// whether layout is incell or not
+	layout := tableaupb.Layout_LAYOUT_DEFAULT
+	if desc.ElemType == "" || node.GetMetaIncell() {
+		layout = tableaupb.Layout_LAYOUT_INCELL
+	}
+	elemType := desc.ElemType
+	if desc.ElemType == "" {
+		elemType = desc.ColumnType
+	}
+	scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, elemType)
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.ElemType,
@@ -246,8 +263,9 @@ func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.N
 	// field.Name = strcase.ToSnake(node.Name) + listVarSuffix
 	field.Name = strcase.ToSnake(node.Name)
 	field.Options = &tableaupb.FieldOptions{
-		Name: node.Name,
-		Prop: ExtractStructFieldProp(prop),
+		Name:   node.Name,
+		Layout: layout,
+		Prop:   ExtractStructFieldProp(prop),
 	}
 	structNode := node.GetMetaStructNode()
 	if structNode != nil {
@@ -274,18 +292,65 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 			xerrors.KeyPBFieldOpts, desc.Prop.Text,
 			xerrors.KeyTrimmedNameCell, node.Name)
 	}
+	// whether layout is incell or not
+	span := tableaupb.Span_SPAN_DEFAULT
+	if node.GetMetaIncell() {
+		span = tableaupb.Span_SPAN_INNER_CELL
+	}
+
 	structNode := node.GetMetaStructNode()
 	if structNode == nil {
-		// predefined struct
-		structField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
+		if desc.ColumnType == "" {
+			// predefined struct
+			structField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
+			if err != nil {
+				return errWithNodeKV(err, typeNode,
+					xerrors.KeyPBFieldType, desc.StructType,
+					xerrors.KeyPBFieldOpts, desc.Prop.Text,
+				)
+			}
+			proto.Merge(field, structField)
+			field.Options.Span = span
+			field.Options.Prop = ExtractStructFieldProp(prop)
+			return nil
+		}
+		// inner cell struct
+		fieldPairs, err := parseIncellStruct(desc.StructType)
 		if err != nil {
+			return err
+		}
+		if fieldPairs == nil {
+			err := errors.Errorf("no fields defined in inner cell struct")
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.StructType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 			)
 		}
-		proto.Merge(field, structField)
+		scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.ColumnType)
+		if err != nil {
+			return errWithNodeKV(err, typeNode,
+				xerrors.KeyPBFieldName, node.Name,
+				xerrors.KeyPBFieldType, desc.ColumnType,
+				xerrors.KeyPBFieldOpts, desc.Prop.Text,
+			)
+		}
+		proto.Merge(field, scalarField)
+		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
 		field.Options.Prop = ExtractStructFieldProp(prop)
+
+		for i := 0; i < len(fieldPairs); i += 2 {
+			fieldType := fieldPairs[i]
+			fieldName := fieldPairs[i+1]
+			scalarField, err := parseField(p.parser.gen.typeInfos, fieldName, fieldType)
+			if err != nil {
+				return errWithNodeKV(err, typeNode,
+					xerrors.KeyPBFieldName, fieldName,
+					xerrors.KeyPBFieldType, fieldType,
+					xerrors.KeyPBFieldOpts, desc.Prop.Text,
+				)
+			}
+			field.Fields = append(field.Fields, scalarField)
+		}
 		return nil
 	}
 	scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
@@ -300,6 +365,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 	field.Name = strcase.ToSnake(node.Name)
 	field.Options = &tableaupb.FieldOptions{
 		Name: node.Name,
+		Span: span,
 		Prop: ExtractStructFieldProp(prop),
 	}
 	for _, child := range structNode.Children {

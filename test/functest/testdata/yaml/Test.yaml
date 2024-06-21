@@ -19,13 +19,27 @@ Struct:
     ID: uint32
     StartTime: datetime
     Expire: duration
-InplacePredefinedStruct: "{Order}"
+ReusePredefinedStruct: "{Order}"
 PredefinedStruct: "{.Item}"
+IncellStruct:
+  "@type": "{IncellItem}"
+  "@incell": true
+  "@struct":
+    ID: uint32
+    Num: int32
+IncellStruct2: "{uint32 ID, int32 Num}InplaceIncellItem"
+PredefinedIncellStruct:
+  "@type": "{.Item}"
+  "@incell": true
 
 ---
 "@sheet": "@YamlListConf"
 ScalarList: "[int32]"
 EnumList: "[enum<.FruitType>]"
+IncellScalarList:
+  "@type": "[int32]"
+  "@incell": true
+IncellEnumList: "[]enum<.FruitType>"
 StructList:
   "@type": "[Hero]"
   "@struct":
@@ -41,6 +55,13 @@ EnumValueScalarMap: "map<string, enum<.FruitType>>"
 EnumKVScalarMap:
   "@type": "map<enum<.FruitType>, enum<.FruitFlavor>>"
   "@struct": CustomMapValue
+IncellMap:
+  "@type": "map<uint32, string>"
+  "@incell": true
+IncellEnumMap:
+  "@type": "map<enum<.FruitType>, enum<.FruitFlavor>>"
+  "@struct": CustomMapValue
+  "@incell": true
 StructMap:
   "@type": "map<string, Country>"
   "@struct":
@@ -68,18 +89,23 @@ Struct:
   ID: 1
   StartTime: "2024-10-01 10:10:10"
   Expire: 1h
-InplacePredefinedStruct:
+ReusePredefinedStruct:
   ID: 2
   StartTime: 2026-10-01 10:10:10
   Expire: 2h
 PredefinedStruct:
   ID: 1
   Num: 10
+IncellStruct: "2, 20"
+IncellStruct2: "3, 30"
+PredefinedIncellStruct: "4, 40"
 
 ---
 "@sheet": YamlListConf
 ScalarList: [1, 2, 3]
 EnumList: [FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA]
+IncellScalarList: "1, 2, 3"
+IncellEnumList: "FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA"
 StructList:
   - ID: 1
     Name: dog
@@ -109,6 +135,8 @@ EnumKVScalarMap:
   FRUIT_TYPE_APPLE: FRUIT_FLAVOR_FRAGRANT
   FRUIT_TYPE_ORANGE: FRUIT_FLAVOR_SOUR
   FRUIT_TYPE_BANANA: FRUIT_FLAVOR_SWEET
+IncellMap: "1:dog,2:bird,3:cat"
+IncellEnumMap: "FRUIT_TYPE_APPLE: FRUIT_FLAVOR_FRAGRANT,FRUIT_TYPE_ORANGE: FRUIT_FLAVOR_SOUR"
 StructMap:
   America:
     Desc: gamesvr

@@ -9,6 +9,16 @@
         "FRUIT_TYPE_ORANGE",
         "FRUIT_TYPE_BANANA"
     ],
+    "incellScalarList": [
+        1,
+        2,
+        3
+    ],
+    "incellEnumList": [
+        "FRUIT_TYPE_APPLE",
+        "FRUIT_TYPE_ORANGE",
+        "FRUIT_TYPE_BANANA"
+    ],
     "structList": [
         {
             "id": 1,

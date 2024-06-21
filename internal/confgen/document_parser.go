@@ -118,15 +118,15 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 	// keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
 
-	// simple scalar map (span inner cell)
-	if valueFd.Kind() != protoreflect.MessageKind || field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		// var pairs []string
-		// for _, elemNode := range node.Children {
-		// 	pairs = append(pairs, elemNode.Name+":"+elemNode.Value)
-		// }
-		// data := strings.Join(pairs, ",")
-		// TODO: refector parseIncellMap with param KVs, to give more accurate
-		// node line and column when encouters error
+	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
+		// incell map
+		err = sp.parser.parseIncellMap(field, reflectMap, node.Value)
+		if err != nil {
+			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
+		}
+	} else if valueFd.Kind() != protoreflect.MessageKind ||
+		field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+		// scalar map (key can be enum)
 		err = sp.parseScalarMap(field, reflectMap, node)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
@@ -287,25 +287,31 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	list := newValue.List()
-	// TODO: incell list?
-	for _, elemNode := range node.Children {
-		elemPresent := false
-		newListValue := list.NewElement()
-		if field.fd.Kind() == protoreflect.MessageKind {
-			// cross-cell struct list
-			elemPresent, err = sp.parseMessage(newListValue.Message(), elemNode)
-			if err != nil {
-				return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
-			}
-		} else {
-			// cross-cell scalar list
-			newListValue, elemPresent, err = sp.parser.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
-			if err != nil {
-				return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
-			}
+	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
+		present, err = sp.parser.parseIncellListField(field, list, node.Value)
+		if err != nil {
+			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
 		}
-		if elemPresent {
-			list.Append(newListValue)
+	} else {
+		for _, elemNode := range node.Children {
+			elemPresent := false
+			newListValue := list.NewElement()
+			if field.fd.Kind() == protoreflect.MessageKind {
+				// cross-cell struct list
+				elemPresent, err = sp.parseMessage(newListValue.Message(), elemNode)
+				if err != nil {
+					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+				}
+			} else {
+				// cross-cell scalar list
+				newListValue, elemPresent, err = sp.parser.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
+				if err != nil {
+					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+				}
+			}
+			if elemPresent {
+				list.Append(newListValue)
+			}
 		}
 	}
 
@@ -330,6 +336,17 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 	} else {
 		structValue = msg.NewField(field.fd)
 	}
+	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+		// incell struct
+		if present, err = sp.parser.parseIncellStruct(structValue, node.Value, field.opts.GetProp().GetForm(), field.opts.Sep); err != nil {
+			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
+		}
+		if present {
+			msg.Set(field.fd, structValue)
+		}
+		return present, nil
+	}
+	// cross cell struct
 	subMsgName := string(field.fd.Message().FullName())
 	if types.IsWellKnownMessage(subMsgName) {
 		// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
