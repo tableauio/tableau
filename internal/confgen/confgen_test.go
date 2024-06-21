@@ -43,6 +43,7 @@ func TestGenerator_GenAll(t *testing.T) {
 								// format.Excel,
 								format.CSV,
 								format.XML,
+								format.YAML,
 							},
 							ExcludedProtoFiles: []string{
 								"../../test/functest/proto/xml__metasheet__metasheet.proto",

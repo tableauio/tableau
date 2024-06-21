@@ -253,6 +253,7 @@ func TestGenerator_GenAll(t *testing.T) {
 								// format.Excel,
 								format.CSV,
 								format.XML,
+								format.YAML,
 							},
 							Header: &options.HeaderOption{
 								Namerow: 1,

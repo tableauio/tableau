@@ -85,8 +85,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
-			xerrors.KeyPBFieldOpts, desc.Prop.Text,
-		)
+			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
 
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, valueTypeDesc.Name)
@@ -104,9 +103,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 
 	prop, err := desc.Prop.FieldProp()
 	if err != nil {
-		return errWithNodeKV(err, typeNode,
-			xerrors.KeyPBFieldOpts, desc.Prop.Text,
-		)
+		return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
 
 	// scalar map
@@ -115,8 +112,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		if err != nil {
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
-			)
+				xerrors.KeyPBFieldOpts, desc.Prop.Text)
 		}
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
@@ -160,8 +156,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-					xerrors.KeyPBFieldOpts, desc.Prop.Text,
-				)
+					xerrors.KeyPBFieldOpts, desc.Prop.Text)
 			}
 			field.Fields = append(field.Fields, scalarField)
 			// 2. append value to the second value struct field
@@ -169,8 +164,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
-					xerrors.KeyPBFieldOpts, desc.Prop.Text,
-				)
+					xerrors.KeyPBFieldOpts, desc.Prop.Text)
 			}
 			field.Fields = append(field.Fields, scalarField)
 			field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
@@ -204,8 +198,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-			xerrors.KeyPBFieldOpts, desc.Prop.Text,
-		)
+			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
 	scalarField.Name = strcase.ToSnake(node.GetMetaKey())
 	field.Fields = append(field.Fields, scalarField)
@@ -230,10 +223,9 @@ func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.N
 	desc := types.MatchList(typeCell)
 	prop, err := desc.Prop.FieldProp()
 	if err != nil {
-		return xerrors.WithMessageKV(err,
+		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.ElemType,
-			xerrors.KeyPBFieldOpts, desc.Prop.Text,
-			xerrors.KeyTrimmedNameCell, node.Name)
+			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
 	// whether layout is incell or not
 	layout := tableaupb.Layout_LAYOUT_DEFAULT
@@ -248,8 +240,7 @@ func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.N
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.ElemType,
-			xerrors.KeyPBFieldOpts, desc.Prop.Text,
-		)
+			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
 	proto.Merge(field, scalarField)
 
@@ -287,10 +278,9 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 	desc := types.MatchStruct(typeCell)
 	prop, err := desc.Prop.FieldProp()
 	if err != nil {
-		return xerrors.WithMessageKV(err,
+		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.StructType,
-			xerrors.KeyPBFieldOpts, desc.Prop.Text,
-			xerrors.KeyTrimmedNameCell, node.Name)
+			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
 	// whether layout is incell or not
 	span := tableaupb.Span_SPAN_DEFAULT
@@ -306,8 +296,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.StructType,
-					xerrors.KeyPBFieldOpts, desc.Prop.Text,
-				)
+					xerrors.KeyPBFieldOpts, desc.Prop.Text)
 			}
 			proto.Merge(field, structField)
 			field.Options.Span = span
@@ -323,16 +312,14 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 			err := errors.Errorf("no fields defined in inner cell struct")
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.StructType,
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
-			)
+				xerrors.KeyPBFieldOpts, desc.Prop.Text)
 		}
 		scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.ColumnType)
 		if err != nil {
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldName, node.Name,
 				xerrors.KeyPBFieldType, desc.ColumnType,
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
-			)
+				xerrors.KeyPBFieldOpts, desc.Prop.Text)
 		}
 		proto.Merge(field, scalarField)
 		field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
@@ -346,8 +333,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldName, fieldName,
 					xerrors.KeyPBFieldType, fieldType,
-					xerrors.KeyPBFieldOpts, desc.Prop.Text,
-				)
+					xerrors.KeyPBFieldOpts, desc.Prop.Text)
 			}
 			field.Fields = append(field.Fields, scalarField)
 		}
@@ -357,8 +343,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.StructType,
-			xerrors.KeyPBFieldOpts, desc.Prop.Text,
-		)
+			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
 	proto.Merge(field, scalarField)
 
