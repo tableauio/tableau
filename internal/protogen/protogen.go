@@ -339,7 +339,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 
 		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 
-		log.Debugf("\ndocument: %s", sheet.String())
+		// log.Debugf("dump document:\n%s", sheet.String())
 		if len(sheet.Document.Children) != 1 {
 			return xerrors.Errorf("document should have and only have one child (map node), sheet: %s", sheet.Name)
 		}
@@ -360,7 +360,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 			}
 		}
 		// append parsed sheet to workbook
-		bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
+		bp.parser.wb.Worksheets = append(bp.parser.wb.Worksheets, ws)
 	}
 	// export book
 	be := newBookExporter(
@@ -368,8 +368,8 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		gen.OutputOpt.FileOptions,
 		filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir),
 		gen.OutputOpt.FilenameSuffix,
-		bp.wb,
-		bp.gen,
+		bp.parser.wb,
+		bp.parser.gen,
 	)
 	if err := be.export(checkProtoFileConflicts); err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName)

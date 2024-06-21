@@ -2,11 +2,8 @@ package protogen
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
 
 	"github.com/iancoleman/strcase"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -15,41 +12,12 @@ import (
 )
 
 type documentBookParser struct {
-	gen *Generator
-	wb  *tableaupb.Workbook
+	parser *bookParser
 }
 
 func newDocumentBookParser(bookName, relSlashPath string, gen *Generator) *documentBookParser {
-	// log.Debugf("filenameWithSubdirPrefix: %v", filenameWithSubdirPrefix)
-	filename := strcase.ToSnake(bookName)
-	if gen.OutputOpt.FilenameWithSubdirPrefix {
-		bookPath := filepath.Join(filepath.Dir(relSlashPath), bookName)
-		snakePath := strcase.ToSnake(fs.CleanSlashPath(bookPath))
-		filename = strings.ReplaceAll(snakePath, "/", "__")
-	}
-	bp := &documentBookParser{
-		gen: gen,
-		wb: &tableaupb.Workbook{
-			Options: &tableaupb.WorkbookOptions{
-				// NOTE(wenchy): all OS platforms use path slash separator `/`
-				// see: https://stackoverflow.com/questions/9371031/how-do-i-create-crossplatform-file-paths-in-go
-				Name: relSlashPath,
-			},
-			Worksheets: []*tableaupb.Worksheet{},
-			Name:       filename,
-			Imports:    make(map[string]int32),
-		},
-	}
-
-	// custom imported proto files
-	for _, path := range gen.InputOpt.ProtoFiles {
-		bp.wb.Imports[path] = 1
-	}
-	return bp
-}
-
-func (x *documentBookParser) GetProtoFilePath() string {
-	return genProtoFilePath(x.wb.Name, x.gen.OutputOpt.FilenameSuffix)
+	parser := newBookParser(bookName, relSlashPath, gen)
+	return &documentBookParser{parser: parser}
 }
 
 func (p *documentBookParser) parseField(field *tableaupb.Field, node *book.Node) (parsed bool, err error) {
@@ -76,7 +44,7 @@ func (p *documentBookParser) parseField(field *tableaupb.Field, node *book.Node)
 		}
 	} else {
 		// scalar or enum type
-		scalarField, err := parseField(p.gen.typeInfos, nameCell, typeCell)
+		scalarField, err := parseField(p.parser.gen.typeInfos, nameCell, typeCell)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum")
 		}
@@ -106,7 +74,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		// NOTE: support enum as map key, convert key type as `int32`.
 		parsedKeyType = "int32"
 	}
-	valueTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.ValueType)
+	valueTypeDesc, err := parseTypeDescriptor(p.parser.gen.typeInfos, desc.ValueType)
 	if err != nil {
 		return xerrors.WithMessageKV(err,
 			xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
@@ -130,7 +98,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 
 	// scalar map
 	if mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind {
-		keyTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.KeyType)
+		keyTypeDesc, err := parseTypeDescriptor(p.parser.gen.typeInfos, desc.KeyType)
 		if err != nil {
 			return xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -173,7 +141,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = book.KeywordKey
 			// 1. append key to the first value struct field
-			scalarField, err := parseField(p.gen.typeInfos, book.KeywordKey, desc.KeyType+desc.Prop.RawProp())
+			scalarField, err := parseField(p.parser.gen.typeInfos, book.KeywordKey, desc.KeyType+desc.Prop.RawProp())
 			if err != nil {
 				return xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -181,7 +149,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 			}
 			field.Fields = append(field.Fields, scalarField)
 			// 2. append value to the second value struct field
-			scalarField, err = parseField(p.gen.typeInfos, book.KeywordValue, desc.ValueType)
+			scalarField, err = parseField(p.parser.gen.typeInfos, book.KeywordValue, desc.ValueType)
 			if err != nil {
 				return xerrors.WithMessageKV(err,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -215,7 +183,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 	field.Options.Key = book.KeywordKey
 	// struct map
 	// auto append key to the first value struct field
-	scalarField, err := parseField(p.gen.typeInfos, book.KeywordKey, desc.KeyType+desc.Prop.RawProp())
+	scalarField, err := parseField(p.parser.gen.typeInfos, book.KeywordKey, desc.KeyType+desc.Prop.RawProp())
 	if err != nil {
 		return xerrors.WithMessageKV(err,
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -248,7 +216,7 @@ func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.N
 			xerrors.KeyPBFieldOpts, desc.Prop.Text,
 			xerrors.KeyTrimmedNameCell, node.Name)
 	}
-	scalarField, err := parseField(p.gen.typeInfos, node.Name, desc.ElemType)
+	scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.ElemType)
 	if err != nil {
 		return xerrors.WithMessageKV(err,
 			xerrors.KeyPBFieldType, desc.ElemType,
@@ -297,7 +265,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 	structNode := node.GetMetaStructNode()
 	if structNode == nil {
 		// predefined struct
-		structField, err := parseField(p.gen.typeInfos, node.Name, desc.StructType)
+		structField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
 		if err != nil {
 			return xerrors.WithMessageKV(err,
 				xerrors.KeyPBFieldType, desc.StructType,
@@ -308,7 +276,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 		field.Options.Prop = ExtractStructFieldProp(prop)
 		return nil
 	}
-	scalarField, err := parseField(p.gen.typeInfos, node.Name, desc.StructType)
+	scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
 	if err != nil {
 		return xerrors.WithMessageKV(err,
 			xerrors.KeyPBFieldType, desc.StructType,

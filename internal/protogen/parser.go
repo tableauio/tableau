@@ -63,8 +63,8 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 	return bp
 }
 
-func (x *bookParser) GetProtoFilePath() string {
-	return genProtoFilePath(x.wb.Name, x.gen.OutputOpt.FilenameSuffix)
+func (p *bookParser) GetProtoFilePath() string {
+	return genProtoFilePath(p.wb.Name, p.gen.OutputOpt.FilenameSuffix)
 }
 
 func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
