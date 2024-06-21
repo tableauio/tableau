@@ -90,9 +90,11 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 		bnode.Value = node.Value
 		for _, child := range node.Content {
 			subNode := &book.Node{
-				Value:  child.Value,
-				Line:   child.Line,
-				Column: child.Column,
+				Value: child.Value,
+				ValuePos: book.Position{
+					Line:   child.Line,
+					Column: child.Column,
+				},
 			}
 			if err := parseYAMLNode(child, subNode); err != nil {
 				return err
@@ -106,10 +108,16 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 			key := node.Content[i]
 			value := node.Content[i+1]
 			subNode := &book.Node{
-				Name:   key.Value,
-				Value:  value.Value,
-				Line:   key.Line,
-				Column: key.Column,
+				Name:  key.Value,
+				Value: value.Value,
+				NamePos: book.Position{
+					Line:   key.Line,
+					Column: key.Column,
+				},
+				ValuePos: book.Position{
+					Line:   value.Line,
+					Column: value.Column,
+				},
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if value.Kind == yaml.ScalarNode {
@@ -124,10 +132,12 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 		bnode.Kind = book.ListNode
 		for _, elem := range node.Content {
 			subNode := &book.Node{
-				Name:   "",
-				Value:  elem.Value,
-				Line:   elem.Line,
-				Column: elem.Column,
+				Name:  "",
+				Value: elem.Value,
+				ValuePos: book.Position{
+					Line:   elem.Line,
+					Column: elem.Column,
+				},
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if elem.Kind == yaml.ScalarNode {

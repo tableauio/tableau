@@ -1,6 +1,6 @@
 ---
 "@sheet": "@TABLEAU"
 ItemConf:
-  Alias: AliasConf
+  Alias: ItemAliasConf
   OrderedMap: true
 HeroConf:

@@ -7,6 +7,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 type Kind int
@@ -56,6 +57,12 @@ type Node struct {
 	Children []*Node
 
 	// Line and Column hold the node position in the file.
+	NamePos  Position
+	ValuePos Position
+}
+
+type Position struct {
+	// Line and Column hold the node position in the file.
 	Line   int
 	Column int
 }
@@ -92,16 +99,25 @@ func (n *Node) GetMetaSheet() string {
 
 // GetMetaType returns this node's @type defined in schema sheet.
 func (n *Node) GetMetaType() string {
-	// If no children, then just treat content as type name
+	// If no children, then just treat value as type name
 	if len(n.Children) == 0 {
 		return n.Value
 	}
 	return n.FindChild(KeywordType).GetValue()
 }
 
-// GetMetaKey returns this node's key defined in schema sheet.
+// GetMetaTypeNode returns this node's @type node defined in schema sheet.
+func (n *Node) GetMetaTypeNode() *Node {
+	// If no children, then just treat self as type node
+	if len(n.Children) == 0 {
+		return n
+	}
+	return n.FindChild(KeywordType)
+}
+
+// GetMetaKey returns this node's @key defined in schema sheet.
 func (n *Node) GetMetaKey() string {
-	// If no children, then just treat content as type name
+	// If no children, then just treat value as type name
 	keyNode := n.GetMetaStructNode().FindChild(KeywordKey)
 	if keyNode != nil {
 		return keyNode.Value
@@ -109,7 +125,7 @@ func (n *Node) GetMetaKey() string {
 	return strings.TrimPrefix(KeywordKey, "@")
 }
 
-// GetMetaStructNode returns this node's struct defined in schema sheet.
+// GetMetaStructNode returns this node's @struct node defined in schema sheet.
 func (n *Node) GetMetaStructNode() *Node {
 	return n.FindChild(KeywordStruct)
 }
@@ -127,6 +143,23 @@ func (n *Node) FindChild(name string) *Node {
 	return nil
 }
 
+func (n *Node) DebugKV() []any {
+	if n == nil {
+		return []any{}
+	}
+	namePos := fmt.Sprintf("Ln %d, Col %d", n.NamePos.Line, n.NamePos.Column)
+	valuePos := fmt.Sprintf("Ln %d, Col %d", n.ValuePos.Line, n.ValuePos.Column)
+	return []any{
+		xerrors.KeyDataCellPos, valuePos,
+		xerrors.KeyDataCell, n.Value,
+		xerrors.KeyTypeCellPos, valuePos,
+		xerrors.KeyTypeCell, n.Value,
+		xerrors.KeyNameCellPos, namePos,
+		xerrors.KeyNameCell, n.Name,
+		xerrors.KeyColumnName, n.Name,
+	}
+}
+
 // String returns hierarchy representation of the Node, mainly
 // for debugging.
 func (n *Node) String() string {
@@ -135,6 +168,7 @@ func (n *Node) String() string {
 	return buffer.String()
 }
 
+// dumpNode dumps hierarchy node tree for pretty print
 func dumpNode(node *Node, parentKind Kind, buffer *bytes.Buffer, depth int) {
 	var line string
 	switch node.Kind {

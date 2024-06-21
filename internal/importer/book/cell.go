@@ -79,7 +79,7 @@ var cellPool *sync.Pool
 
 func init() {
 	cellPool = &sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			return new(RowCell)
 		},
 	}
@@ -158,7 +158,7 @@ func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowC
 	return r.cells[uint32(minCol)], r.cells[uint32(maxCol)]
 }
 
-func (r *RowCells) CellDebugKV(name string) []interface{} {
+func (r *RowCells) CellDebugKV(name string) []any {
 	col := "?"
 	data := ""
 	rc, err := r.Cell(name, false)
@@ -177,7 +177,7 @@ func (r *RowCells) CellDebugKV(name string) []interface{} {
 	}
 	pos := fmt.Sprintf("%s%d", col, r.Row+1)
 
-	return []interface{}{
+	return []any{
 		xerrors.KeySheetName, r.SheetName,
 		xerrors.KeyDataCellPos, pos,
 		xerrors.KeyDataCell, data,

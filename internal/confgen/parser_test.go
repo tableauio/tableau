@@ -490,7 +490,7 @@ func TestParser_parseDocumentMetasheet(t *testing.T) {
 					},
 					"ItemConf": {
 						Sheet:      "ItemConf",
-						Alias:      "AliasConf",
+						Alias:      "ItemAliasConf",
 						OrderedMap: true,
 					},
 				},
@@ -502,7 +502,7 @@ func TestParser_parseDocumentMetasheet(t *testing.T) {
 			msg := &tableaupb.Metabook{}
 			err := tt.parser.Parse(msg, tt.args.sheet)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("sheetParser.Parse() error = %+v, wantErr %v", err, tt.wantErr)
+				t.Errorf("sheetParser.Parse() error = %s, wantErr %v", xerrors.NewDesc(err), tt.wantErr)
 			}
 			fmt.Println("sheet:", sheet)
 			fmt.Println("metabook:", msg)

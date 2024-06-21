@@ -19,14 +19,15 @@ type documentParser struct {
 
 func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	if len(sheet.Document.Children) != 1 {
-		return xerrors.Errorf("document should have and only have one child (map node), sheet: %s", sheet.Name)
+		return xerrors.ErrorKV("document should have and only have one child (map node)",
+			xerrors.KeySheetName, sheet.Name)
 	}
 	// get the first child (map node) in document
 	child := sheet.Document.Children[0]
 	msg := protomsg.ProtoReflect()
 	_, err := sp.parseMessage(msg, child)
 	if err != nil {
-		return err
+		return xerrors.WithMessageKV(err, xerrors.KeySheetName, sheet.Name)
 	}
 	return nil
 }
@@ -41,6 +42,8 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 			defer field.release()
 			var fieldNode *book.Node
 			if field.opts.Name == "" {
+				// NOTE: this is a workaround specially for parsing metasheet.
+				//
 				// just treat self node (with meta child removed) as field node
 				// if option Name is empty
 				fieldNode = &book.Node{
@@ -48,8 +51,8 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 					Name:     node.Name,
 					Value:    node.Value,
 					Children: []*book.Node{},
-					Line:     node.Line,
-					Column:   node.Column,
+					NamePos:  node.NamePos,
+					ValuePos: node.ValuePos,
 				}
 				for _, child := range node.Children {
 					if !child.IsMeta() {
@@ -63,7 +66,10 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 						// field not found and is optional, no need to process, just return.
 						return nil
 					}
-					return xerrors.Errorf("field node not found: %s", field.opts.Name)
+					return xerrors.ErrorKV("field node not found: %s",
+						xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
+						xerrors.KeyPBFieldName, fd.FullName(),
+						xerrors.KeyPBFieldOpts, field.opts)
 				}
 			}
 			fieldPresent, err := sp.parseField(field, msg, fieldNode)
@@ -116,16 +122,18 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 			pairs = append(pairs, elemNode.Name+":"+elemNode.Value)
 		}
 		data := strings.Join(pairs, ",")
+		// TODO: refector parseIncellMap with param KVs, to give more accurate
+		// node line and column when encouters error
 		err = sp.parser.parseIncellMap(field, reflectMap, data)
 		if err != nil {
-			return false, xerrors.WithMessageKV(err)
+			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
 		}
 	} else {
 		if valueFd.Kind() == protoreflect.MessageKind {
 			for _, elemNode := range node.Children {
 				newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, elemNode.Name)
 				if err != nil {
-					return false, xerrors.WithMessageKV(err)
+					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
 				}
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
@@ -139,20 +147,20 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					Name:     field.opts.Key,
 					Value:    elemNode.Name,
 					Children: nil,
-					Line:     node.Line,
-					Column:   node.Column,
+					NamePos:  node.NamePos,
+					ValuePos: node.ValuePos,
 				}
 				elemNode.Children = append(elemNode.Children, keyNode)
 				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode)
 				if err != nil {
-					return false, xerrors.WithMessageKV(err)
+					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
 				}
 				// TODO: auto remove added virtual key node?
 				// check key uniqueness
 				if reflectMap.Has(newMapKey) {
 					if prop.RequireUnique(field.opts.Prop) ||
 						(!prop.HasUnique(field.opts.Prop) && sp.parser.deduceMapKeyUnique(field, reflectMap)) {
-						return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name))
+						return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
 					}
 				}
 				if !keyPresent && !valuePresent {
@@ -162,7 +170,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				reflectMap.Set(newMapKey, newMapValue)
 			}
 		} else {
-			return false, xerrors.Errorf("should not reach here: %v", valueFd.Kind())
+			return false, xerrors.ErrorKV("should not reach here", node.DebugKV()...)
 		}
 	}
 
@@ -187,13 +195,13 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 			// cross-cell struct list
 			elemPresent, err = sp.parseMessage(newListValue.Message(), elemNode)
 			if err != nil {
-				return false, xerrors.WithMessageKV(err, "cross-cell struct list", "failed to parse struct")
+				return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
 			}
 		} else {
 			// cross-cell scalar list
 			newListValue, elemPresent, err = sp.parser.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
 			if err != nil {
-				return false, xerrors.WithMessageKV(err)
+				return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
 			}
 		}
 		if elemPresent {
@@ -227,7 +235,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 		// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
 		value, present, err := sp.parser.parseFieldValue(field.fd, node.Value, field.opts.Prop)
 		if err != nil {
-			return false, xerrors.WithMessageKV(err)
+			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
 		}
 		if present {
 			msg.Set(field.fd, value)
@@ -236,7 +244,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 	} else {
 		present, err := sp.parseMessage(structValue.Message(), node)
 		if err != nil {
-			return false, xerrors.WithMessageKV(err)
+			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
 		}
 		if present {
 			// only set field if it is present.
@@ -255,7 +263,7 @@ func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Messag
 	var newValue protoreflect.Value
 	newValue, present, err = sp.parser.parseFieldValue(field.fd, node.Value, field.opts.Prop)
 	if err != nil {
-		return false, xerrors.WithMessageKV(err)
+		return false, xerrors.WithMessageKV(err, node.DebugKV()...)
 	}
 	if !present {
 		return false, nil

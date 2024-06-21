@@ -9,7 +9,7 @@ protogen: |
   NameCellPos: {{.NameCellPos}}
   NameCell: {{.NameCell}}
   TypeCellPos: {{.TypeCellPos}}
-  TypeCell: {{.TypeCell}}|{{.PBFieldOpts}}
+  TypeCell: {{.TypeCell}}{{ if .PBFieldOpts }}|{{.PBFieldOpts}}{{ end }}
   Reason: {{.Reason}}
   {{ if .Help }}Help: {{.Help}}{{ end }}
 confgen: |
