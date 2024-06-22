@@ -1,0 +1,138 @@
+---
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlMapConf"
+ScalarMap: "map<uint32, string>"
+EnumKeyScalarMap: "map<enum<.FruitType>, string>"
+EnumValueScalarMap: "map<string, enum<.FruitType>>"
+EnumKVScalarMap:
+  "@type": "map<enum<.FruitType>, enum<.FruitFlavor>>"
+  "@struct": CustomMapValue
+IncellMap:
+  "@type": "map<uint32, string>"
+  "@incell": true
+IncellEnumMap:
+  "@type": "map<enum<.FruitType>, enum<.FruitFlavor>>"
+  "@struct": CustomMapValue
+  "@incell": true
+StructMap:
+  "@type": "map<uint32, Item>"
+  "@struct":
+    Name: string
+    Num: int32
+CustomKeyStructMap:
+  "@type": "map<uint32, CustomItem>"
+  "@struct":
+    "@key": CustomKey
+    Name: string
+    Num: int32
+EnumKeyStructMap:
+  "@type": "map<enum<.FruitType>, EnumItem>"
+  "@struct":
+    Name: string
+    Num: int32
+ListInMap:
+  "@type": "map<string, Country1>"
+  "@struct":
+    Desc: string
+    Items:
+      "@type": "[Item]"
+      "@struct":
+        Name: string
+        Num: int32
+MapInMap:
+  "@type": "map<string, Country2>"
+  "@struct":
+    Desc: string
+    Items:
+      "@type": "map<uint32, Item>"
+      "@struct":
+        Name: string
+        Num: int32
+
+---
+"@sheet": YamlMapConf
+ScalarMap:
+  1: dog
+  2: bird
+  3: cat
+EnumKeyScalarMap:
+  FRUIT_TYPE_APPLE: apple
+  FRUIT_TYPE_ORANGE: orange
+  FRUIT_TYPE_BANANA: banana
+EnumValueScalarMap:
+  apple: FRUIT_TYPE_APPLE
+  orange: FRUIT_TYPE_ORANGE
+  banana: FRUIT_TYPE_BANANA
+EnumKVScalarMap:
+  FRUIT_TYPE_APPLE: FRUIT_FLAVOR_FRAGRANT
+  FRUIT_TYPE_ORANGE: FRUIT_FLAVOR_SOUR
+  FRUIT_TYPE_BANANA: FRUIT_FLAVOR_SWEET
+IncellMap: "1:dog,2:bird,3:cat"
+IncellEnumMap: "FRUIT_TYPE_APPLE:FRUIT_FLAVOR_FRAGRANT, FRUIT_TYPE_ORANGE:FRUIT_FLAVOR_SOUR"
+StructMap:
+  1:
+    Name: apple
+    Num: 10
+  2:
+    Name: orange
+    Num: 20
+  3:
+    Name: banana
+    Num: 30
+CustomKeyStructMap:
+  1:
+    Name: apple
+    Num: 10
+  2:
+    Name: orange
+    Num: 20
+  3:
+    Name: banana
+    Num: 30
+EnumKeyStructMap:
+  FRUIT_TYPE_APPLE:
+    Name: apple
+    Num: 10
+  FRUIT_TYPE_ORANGE:
+    Name: orange
+    Num: 20
+  FRUIT_TYPE_BANANA:
+    Name: banana
+    Num: 30
+ListInMap:
+  USA:
+    Desc: A country in North America.
+    Items:
+      - Name: apple
+        Num: 10
+      - Name: orange
+        Num: 20
+  China:
+    Desc: A country in East Asia.
+    Items:
+      - Name: apple
+        Num: 100
+      - Name: orange
+        Num: 200
+MapInMap:
+  USA:
+    Desc: A country in North America.
+    Items:
+      1:
+        Name: apple
+        Num: 10
+      2:
+        Name: orange
+        Num: 20
+  China:
+    Desc: A country in East Asia.
+    Items:
+      1:
+        Name: apple
+        Num: 100
+      2:
+        Name: orange
+        Num: 200

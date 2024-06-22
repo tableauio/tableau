@@ -53,54 +53,118 @@
         }
     },
     "structMap": {
-        "America": {
-            "key": "America",
-            "desc": "gamesvr",
-            "fruits": {
-                "1": {
-                    "customKey": "FRUIT_TYPE_APPLE",
-                    "name": "apple",
-                    "paid": true
-                },
-                "3": {
-                    "customKey": "FRUIT_TYPE_ORANGE",
-                    "name": "orange",
-                    "paid": false
-                }
-            }
+        "1": {
+            "key": 1,
+            "name": "apple",
+            "num": 10
         },
-        "China": {
-            "key": "China",
-            "desc": "mailsvr",
-            "fruits": {
-                "1": {
-                    "customKey": "FRUIT_TYPE_APPLE",
-                    "name": "apple",
-                    "paid": false
-                },
-                "3": {
-                    "customKey": "FRUIT_TYPE_ORANGE",
-                    "name": "orange",
-                    "paid": true
-                }
-            }
+        "2": {
+            "key": 2,
+            "name": "orange",
+            "num": 20
+        },
+        "3": {
+            "key": 3,
+            "name": "banana",
+            "num": 30
+        }
+    },
+    "customKeyStructMap": {
+        "1": {
+            "customKey": 1,
+            "name": "apple",
+            "num": 10
+        },
+        "2": {
+            "customKey": 2,
+            "name": "orange",
+            "num": 20
+        },
+        "3": {
+            "customKey": 3,
+            "name": "banana",
+            "num": 30
         }
     },
     "enumKeyStructMap": {
         "1": {
             "key": "FRUIT_TYPE_APPLE",
             "name": "apple",
-            "paid": true
+            "num": 10
         },
         "3": {
             "key": "FRUIT_TYPE_ORANGE",
             "name": "orange",
-            "paid": true
+            "num": 20
         },
         "4": {
             "key": "FRUIT_TYPE_BANANA",
             "name": "banana",
-            "paid": true
+            "num": 30
+        }
+    },
+    "listInMap": {
+        "China": {
+            "key": "China",
+            "desc": "A country in East Asia.",
+            "items": [
+                {
+                    "name": "apple",
+                    "num": 100
+                },
+                {
+                    "name": "orange",
+                    "num": 200
+                }
+            ]
+        },
+        "USA": {
+            "key": "USA",
+            "desc": "A country in North America.",
+            "items": [
+                {
+                    "name": "apple",
+                    "num": 10
+                },
+                {
+                    "name": "orange",
+                    "num": 20
+                }
+            ]
+        }
+    },
+    "mapInMap": {
+        "China": {
+            "key": "China",
+            "desc": "A country in East Asia.",
+            "items": {
+                "1": {
+                    "key": 1,
+                    "name": "apple",
+                    "num": 100
+                },
+                "2": {
+                    "key": 2,
+                    "name": "orange",
+                    "num": 200
+                }
+            }
+        },
+        "USA": {
+            "key": "USA",
+            "desc": "A country in North America.",
+            "items": {
+                "1": {
+                    "key": 1,
+                    "name": "apple",
+                    "num": 10
+                },
+                "2": {
+                    "key": 2,
+                    "name": "orange",
+                    "num": 20
+                }
+            }
         }
     }
 }

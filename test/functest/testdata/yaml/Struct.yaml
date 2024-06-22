@@ -1,0 +1,41 @@
+---
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlStructConf"
+Struct:
+  "@type": "{Order}"
+  "@struct":
+    ID: uint32
+    StartTime: datetime
+    Expire: duration
+ReusePredefinedStruct: "{Order}"
+PredefinedStruct: "{.Item}"
+IncellStruct:
+  "@type": "{IncellItem}"
+  "@incell": true
+  "@struct":
+    ID: uint32
+    Num: int32
+IncellStruct2: "{uint32 ID, int32 Num}InplaceIncellItem"
+PredefinedIncellStruct:
+  "@type": "{.Item}"
+  "@incell": true
+
+---
+"@sheet": YamlStructConf
+Struct:
+  ID: 1
+  StartTime: 2024-10-01 10:10:10
+  Expire: 1h
+ReusePredefinedStruct:
+  ID: 2
+  StartTime: 2026-10-01 10:10:10
+  Expire: 2h
+PredefinedStruct:
+  ID: 1
+  Num: 10
+IncellStruct: "2, 20"
+IncellStruct2: "3, 30"
+PredefinedIncellStruct: "4, 40"

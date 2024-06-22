@@ -38,5 +38,69 @@
             "id": 2,
             "num": 20
         }
+    ],
+    "listInList": [
+        {
+            "country": "USA",
+            "desc": "A country in North America.",
+            "items": [
+                {
+                    "name": "apple",
+                    "num": 10
+                },
+                {
+                    "name": "orange",
+                    "num": 20
+                }
+            ]
+        },
+        {
+            "country": "China",
+            "desc": "A country in East Asia.",
+            "items": [
+                {
+                    "name": "apple",
+                    "num": 100
+                },
+                {
+                    "name": "orange",
+                    "num": 200
+                }
+            ]
+        }
+    ],
+    "mapInList": [
+        {
+            "country": "USA",
+            "desc": "A country in North America.",
+            "items": {
+                "1": {
+                    "key": 1,
+                    "name": "apple",
+                    "num": 10
+                },
+                "2": {
+                    "key": 2,
+                    "name": "orange",
+                    "num": 20
+                }
+            }
+        },
+        {
+            "country": "China",
+            "desc": "A country in East Asia.",
+            "items": {
+                "1": {
+                    "key": 1,
+                    "name": "apple",
+                    "num": 100
+                },
+                "2": {
+                    "key": 2,
+                    "name": "orange",
+                    "num": 200
+                }
+            }
+        }
     ]
 }

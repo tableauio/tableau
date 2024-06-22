@@ -1,0 +1,15 @@
+---
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlEnumConf"
+ID: uint32
+Type: "enum<.FruitType>"
+Desc: string
+
+---
+"@sheet": YamlEnumConf
+ID: 1
+Type: FRUIT_TYPE_APPLE
+Desc: A kind of delicious fruit.
