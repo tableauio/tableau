@@ -24,7 +24,7 @@ func init() {
 		// driver: &defaultdriver.DefaultDriver{
 		// 	CallerSkip: 1,
 		// },
-		driver: zapdriver.New(zap.NewDevelopmentConfig(), []zap.Option{zap.AddCallerSkip(4)}),
+		driver: zapdriver.New(zap.NewDevelopmentConfig(), zap.AddCallerSkip(4)),
 	}
 	gOpts = &Options{}
 }

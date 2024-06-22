@@ -22,12 +22,12 @@ type ZapDriver struct {
 const SkipUntilTrueCaller = 4
 
 func init() {
-	dr := New(zap.NewProductionConfig(), []zap.Option{zap.AddCallerSkip(SkipUntilTrueCaller)})
+	dr := New(zap.NewProductionConfig(), zap.AddCallerSkip(SkipUntilTrueCaller))
 	driver.RegisteDriver(dr)
 }
 
 // New creates the driver using the provided config wrapper
-func New(config zap.Config, opts []zap.Option) *ZapDriver {
+func New(config zap.Config, opts ...zap.Option) *ZapDriver {
 	logger, err := config.Build(opts...)
 	if err != nil {
 		panic(err)
