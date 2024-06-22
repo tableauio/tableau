@@ -44,7 +44,7 @@ func (d *DefaultDriver) GetLevel(logger string) core.Level {
 }
 
 // getMessage format with Sprint, Sprintf, or neither.
-func getMessage(format string, fmtArgs []interface{}) string {
+func getMessage(format string, fmtArgs []any) string {
 	if len(fmtArgs) == 0 {
 		return format
 	}

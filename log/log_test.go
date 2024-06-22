@@ -8,7 +8,7 @@ import (
 
 func TestDebug(t *testing.T) {
 	type args struct {
-		args []interface{}
+		args []any
 	}
 	tests := []struct {
 		name string
@@ -18,7 +18,7 @@ func TestDebug(t *testing.T) {
 		{
 			name: "test",
 			args: args{
-				args: []interface{}{"xxx", 1, true},
+				args: []any{"xxx", 1, true},
 			},
 		},
 	}
@@ -32,7 +32,7 @@ func TestDebug(t *testing.T) {
 func TestInfow(t *testing.T) {
 	type args struct {
 		msg           string
-		keysAndValues []interface{}
+		keysAndValues []any
 	}
 	tests := []struct {
 		name string
@@ -43,7 +43,7 @@ func TestInfow(t *testing.T) {
 			name: "test",
 			args: args{
 				msg:           "infow test",
-				keysAndValues: []interface{}{"xxx", 1, "key2", true},
+				keysAndValues: []any{"xxx", 1, "key2", true},
 			},
 		},
 	}

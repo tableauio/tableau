@@ -125,7 +125,7 @@ func NewGeneratedBuf() *GeneratedBuf {
 // P prints a line to the generated output. It converts each parameter to a
 // string following the same rules as fmt.Print. It never inserts spaces
 // between parameters.
-func (g *GeneratedBuf) P(v ...interface{}) {
+func (g *GeneratedBuf) P(v ...any) {
 	for _, x := range v {
 		fmt.Fprint(&g.buf, x)
 	}

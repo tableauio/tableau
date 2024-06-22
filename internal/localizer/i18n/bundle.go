@@ -34,7 +34,7 @@ type Bundle struct {
 	messages messageMap
 }
 
-func (l Bundle) RenderEcode(ecode string, data interface{}) *EcodeDetail {
+func (l Bundle) RenderEcode(ecode string, data any) *EcodeDetail {
 	rawDetail, ok := l.ecodes[ecode]
 	if !ok {
 		panic(fmt.Sprintf("ecode %s not found", ecode))
@@ -47,7 +47,7 @@ func (l Bundle) RenderEcode(ecode string, data interface{}) *EcodeDetail {
 	}
 }
 
-func (l Bundle) RenderMessage(key string, data interface{}) string {
+func (l Bundle) RenderMessage(key string, data any) string {
 	text, ok := l.messages[key]
 	if !ok {
 		panic(fmt.Sprintf("key %s not found", key))
@@ -101,7 +101,7 @@ func init() {
 	}
 }
 
-func render(text string, data interface{}) string {
+func render(text string, data any) string {
 	tmpl, err := template.New("ERROR").Parse(text)
 	if err != nil {
 		panic(err)

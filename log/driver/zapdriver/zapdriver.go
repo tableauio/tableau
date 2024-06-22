@@ -50,7 +50,7 @@ func (*ZapDriver) Name() string {
 }
 
 // refer: https://github.com/uber-go/zap/blob/v1.21.0/sugar.go#L249
-func (d *ZapDriver) sweetenFields(args []interface{}) []zap.Field {
+func (d *ZapDriver) sweetenFields(args []any) []zap.Field {
 	if len(args) == 0 {
 		return nil
 	}
@@ -168,7 +168,7 @@ func (d *ZapDriver) GetLevel(logger string) core.Level {
 
 type invalidPair struct {
 	position   int
-	key, value interface{}
+	key, value any
 }
 
 func (p invalidPair) MarshalLogObject(enc zapcore.ObjectEncoder) error {
