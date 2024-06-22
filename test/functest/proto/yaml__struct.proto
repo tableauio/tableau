@@ -16,23 +16,28 @@ option (tableau.workbook) = {name:"yaml/Struct.yaml"};
 message YamlStructConf {
   option (tableau.worksheet) = {name:"YamlStructConf"};
 
-  Order struct = 1 [(tableau.field) = {name:"Struct"}];
+  Fruit strict_struct = 1 [(tableau.field) = {name:"StrictStruct"}];
+  message Fruit {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+  Order struct = 2 [(tableau.field) = {name:"Struct"}];
   message Order {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     google.protobuf.Timestamp start_time = 2 [(tableau.field) = {name:"StartTime"}];
     google.protobuf.Duration expire = 3 [(tableau.field) = {name:"Expire"}];
   }
-  Order reuse_predefined_struct = 2 [(tableau.field) = {name:"ReusePredefinedStruct"}];
-  protoconf.Item predefined_struct = 3 [(tableau.field) = {name:"PredefinedStruct"}];
-  IncellItem incell_struct = 4 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}];
+  Order reuse_predefined_struct = 3 [(tableau.field) = {name:"ReusePredefinedStruct"}];
+  protoconf.Item predefined_struct = 4 [(tableau.field) = {name:"PredefinedStruct"}];
+  IncellItem incell_struct = 5 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}];
   message IncellItem {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
   }
-  InplaceIncellItem incell_struct_2 = 5 [(tableau.field) = {name:"IncellStruct2" span:SPAN_INNER_CELL}];
+  InplaceIncellItem incell_struct_2 = 6 [(tableau.field) = {name:"IncellStruct2" span:SPAN_INNER_CELL}];
   message InplaceIncellItem {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
   }
-  protoconf.Item predefined_incell_struct = 6 [(tableau.field) = {name:"PredefinedIncellStruct" span:SPAN_INNER_CELL}];
+  protoconf.Item predefined_incell_struct = 7 [(tableau.field) = {name:"PredefinedIncellStruct" span:SPAN_INNER_CELL}];
 }

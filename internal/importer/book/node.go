@@ -142,6 +142,17 @@ func (n *Node) GetMetaStructNode() *Node {
 	return n.FindChild(KeywordStruct)
 }
 
+// GetChildrenWithoutMeta returns this node's children without meta nodes
+// defined in schema sheet.
+func (n *Node) GetChildrenWithoutMeta() (nodes []*Node) {
+	for _, child := range n.Children {
+		if !child.IsMeta() {
+			nodes = append(nodes, child)
+		}
+	}
+	return nodes
+}
+
 // FindChild finds the child with specified name.
 func (n *Node) FindChild(name string) *Node {
 	if n == nil {

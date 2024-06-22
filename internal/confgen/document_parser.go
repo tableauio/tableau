@@ -50,14 +50,9 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 					Kind:     node.Kind,
 					Name:     node.Name,
 					Value:    node.Value,
-					Children: []*book.Node{},
+					Children: node.GetChildrenWithoutMeta(),
 					NamePos:  node.NamePos,
 					ValuePos: node.ValuePos,
-				}
-				for _, child := range node.Children {
-					if !child.IsMeta() {
-						fieldNode.Children = append(fieldNode.Children, child)
-					}
 				}
 			} else {
 				fieldNode = node.FindChild(field.opts.Name)

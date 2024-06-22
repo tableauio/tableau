@@ -4,20 +4,23 @@
 ---
 # define schema
 "@sheet": "@YamlStructConf"
-Struct:
-  "@type": "{Order}"
+StrictStruct:
+  "@type": "{Fruit}"
   "@struct":
     ID: uint32
-    StartTime: datetime
-    Expire: duration
+    Name: string
+Struct:
+  "@type": "{Order}"
+  ID: uint32
+  StartTime: datetime
+  Expire: duration
 ReusePredefinedStruct: "{Order}"
 PredefinedStruct: "{.Item}"
 IncellStruct:
   "@type": "{IncellItem}"
   "@incell": true
-  "@struct":
-    ID: uint32
-    Num: int32
+  ID: uint32
+  Num: int32
 IncellStruct2: "{uint32 ID, int32 Num}InplaceIncellItem"
 PredefinedIncellStruct:
   "@type": "{.Item}"
@@ -25,6 +28,9 @@ PredefinedIncellStruct:
 
 ---
 "@sheet": YamlStructConf
+StrictStruct:
+    ID: 1
+    Name: apple
 Struct:
   ID: 1
   StartTime: 2024-10-01 10:10:10

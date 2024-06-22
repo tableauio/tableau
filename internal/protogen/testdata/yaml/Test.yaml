@@ -9,10 +9,13 @@ Enum: "enum<.FruitType>"
 "@sheet": "@YamlStructConf"
 Struct:
   "@type": "{Order}"
-  "@struct":
-    ID: uint32
-    StartTime: datetime
-    Expire: duration
+  ID: uint32
+  StartTime: datetime
+  Expire: duration
+  # "@struct":
+  #   ID: uint32
+  #   StartTime: datetime
+  #   Expire: duration
 InplacePredefinedStruct: "{Order}"
 PredefinedStruct: "{.Item}"
 

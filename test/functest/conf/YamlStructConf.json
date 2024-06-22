@@ -1,4 +1,8 @@
 {
+    "strictStruct": {
+        "id": 1,
+        "name": "apple"
+    },
     "struct": {
         "id": 1,
         "startTime": "2024-10-01T02:10:10Z",

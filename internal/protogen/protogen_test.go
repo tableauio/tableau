@@ -318,7 +318,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 					},
 				),
 			),
-			args:    args{relWorkbookPaths: []string{"./testdata/Test.yaml"}},
+			args:    args{relWorkbookPaths: []string{"./testdata/yaml/Test.yaml"}},
 			wantErr: false,
 		},
 	}

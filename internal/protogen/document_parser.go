@@ -287,11 +287,42 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 	if node.GetMetaIncell() {
 		span = tableaupb.Span_SPAN_INNER_CELL
 	}
+	parseStrictStructField := func(fieldNodes []*book.Node) error {
+		scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
+		if err != nil {
+			return errWithNodeKV(err, typeNode,
+				xerrors.KeyPBFieldType, desc.StructType,
+				xerrors.KeyPBFieldOpts, desc.Prop.Text)
+		}
+		proto.Merge(field, scalarField)
+
+		field.Name = strcase.ToSnake(node.Name)
+		field.Options = &tableaupb.FieldOptions{
+			Name: node.Name,
+			Span: span,
+			Prop: ExtractStructFieldProp(prop),
+		}
+		for _, child := range fieldNodes {
+			if child.IsMeta() {
+				continue
+			}
+			if err := p.parseSubField(field, child); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 
 	structNode := node.GetMetaStructNode()
 	if structNode == nil {
+		// strict struct
+		fieldNodes := node.GetChildrenWithoutMeta()
+		if len(fieldNodes) != 0 {
+			return parseStrictStructField(fieldNodes)
+		}
+
+		// predefined struct
 		if desc.ColumnType == "" {
-			// predefined struct
 			structField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
@@ -303,6 +334,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 			field.Options.Prop = ExtractStructFieldProp(prop)
 			return nil
 		}
+		
 		// inner cell struct
 		fieldPairs, err := parseIncellStruct(desc.StructType)
 		if err != nil {
@@ -338,28 +370,97 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 			field.Fields = append(field.Fields, scalarField)
 		}
 		return nil
+	} else {
+		return parseStrictStructField(structNode.Children)
 	}
-	scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
-	if err != nil {
-		return errWithNodeKV(err, typeNode,
-			xerrors.KeyPBFieldType, desc.StructType,
-			xerrors.KeyPBFieldOpts, desc.Prop.Text)
-	}
-	proto.Merge(field, scalarField)
+}
 
-	field.Name = strcase.ToSnake(node.Name)
-	field.Options = &tableaupb.FieldOptions{
-		Name: node.Name,
-		Span: span,
-		Prop: ExtractStructFieldProp(prop),
-	}
-	for _, child := range structNode.Children {
-		if child.IsMeta() {
-			continue
-		}
-		if err := p.parseSubField(field, child); err != nil {
-			return err
-		}
-	}
+func (p *documentBookParser) parseStrictStructField(field *tableaupb.Field, name string, desc *types.StructDescriptor, span tableaupb.Span, children []*book.Node) error {
+	// typeNode := node.GetMetaTypeNode()
+	// typeCell := typeNode.GetValue()
+	// desc := types.MatchStruct(typeCell)
+	// prop, err := desc.Prop.FieldProp()
+	// if err != nil {
+	// 	return errWithNodeKV(err, typeNode,
+	// 		xerrors.KeyPBFieldType, desc.StructType,
+	// 		xerrors.KeyPBFieldOpts, desc.Prop.Text)
+	// }
+	// // whether layout is incell or not
+	// span := tableaupb.Span_SPAN_DEFAULT
+	// if node.GetMetaIncell() {
+	// 	span = tableaupb.Span_SPAN_INNER_CELL
+	// }
+
+	// structNode := node.GetMetaStructNode()
+	// if structNode == nil {
+	// 	if desc.ColumnType == "" {
+	// 		// predefined struct
+	// 		structField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
+	// 		if err != nil {
+	// 			return errWithNodeKV(err, typeNode,
+	// 				xerrors.KeyPBFieldType, desc.StructType,
+	// 				xerrors.KeyPBFieldOpts, desc.Prop.Text)
+	// 		}
+	// 		proto.Merge(field, structField)
+	// 		field.Options.Span = span
+	// 		field.Options.Prop = ExtractStructFieldProp(prop)
+	// 		return nil
+	// 	}
+	// 	// inner cell struct
+	// 	fieldPairs, err := parseIncellStruct(desc.StructType)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	if fieldPairs == nil {
+	// 		err := errors.Errorf("no fields defined in inner cell struct")
+	// 		return errWithNodeKV(err, typeNode,
+	// 			xerrors.KeyPBFieldType, desc.StructType,
+	// 			xerrors.KeyPBFieldOpts, desc.Prop.Text)
+	// 	}
+	// 	scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.ColumnType)
+	// 	if err != nil {
+	// 		return errWithNodeKV(err, typeNode,
+	// 			xerrors.KeyPBFieldName, node.Name,
+	// 			xerrors.KeyPBFieldType, desc.ColumnType,
+	// 			xerrors.KeyPBFieldOpts, desc.Prop.Text)
+	// 	}
+	// 	proto.Merge(field, scalarField)
+	// 	field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
+	// 	field.Options.Prop = ExtractStructFieldProp(prop)
+
+	// 	for i := 0; i < len(fieldPairs); i += 2 {
+	// 		fieldType := fieldPairs[i]
+	// 		fieldName := fieldPairs[i+1]
+	// 		scalarField, err := parseField(p.parser.gen.typeInfos, fieldName, fieldType)
+	// 		if err != nil {
+	// 			return errWithNodeKV(err, typeNode,
+	// 				xerrors.KeyPBFieldName, fieldName,
+	// 				xerrors.KeyPBFieldType, fieldType,
+	// 				xerrors.KeyPBFieldOpts, desc.Prop.Text)
+	// 		}
+	// 		field.Fields = append(field.Fields, scalarField)
+	// 	}
+	// 	return nil
+	// }
+	// scalarField, err := parseField(p.parser.gen.typeInfos, name, desc.StructType)
+	// if err != nil {
+	// 	return err
+	// }
+	// proto.Merge(field, scalarField)
+
+	// field.Name = strcase.ToSnake(name)
+	// field.Options = &tableaupb.FieldOptions{
+	// 	Name: name,
+	// 	Span: span,
+	// 	Prop: ExtractStructFieldProp(prop),
+	// }
+	// for _, child := range children {
+	// 	if child.IsMeta() {
+	// 		continue
+	// 	}
+	// 	if err := p.parseSubField(field, child); err != nil {
+	// 		return err
+	// 	}
+	// }
 	return nil
 }
