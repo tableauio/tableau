@@ -188,7 +188,7 @@ func TestGenerator_GenWorkbook_Document(t *testing.T) {
 			),
 			args: args{
 				bookSpecifiers: []string{
-					"yaml/Test.yaml",
+					"yaml/Map.yaml",
 				},
 			},
 			wantErr: false,

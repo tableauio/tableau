@@ -453,7 +453,7 @@ func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
 }
 
 func TestParser_parseDocumentMetasheet(t *testing.T) {
-	path := "./testdata/Test.yaml"
+	path := "./testdata/Metasheet.yaml"
 	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai", book.MetasheetOptions(),
 		&SheetParserExtInfo{
 			InputDir:       "",
