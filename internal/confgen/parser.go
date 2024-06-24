@@ -210,7 +210,7 @@ type SheetParserExtInfo struct {
 	BookFormat     format.Format // workbook format
 }
 
-// NewSheetParser creates a new sheet parser extended info.
+// NewSheetParser creates a new sheet parser.
 func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
 	return NewExtendedSheetParser(protoPackage, locationName, opts, nil)
 }
@@ -235,6 +235,14 @@ func (sp *sheetParser) GetBookFormat() format.Format {
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+	if sheet.Document != nil {
+		docParser := &documentParser{parser: sp}
+		return docParser.Parse(protomsg, sheet)
+	}
+	return sp.parseTable(protomsg, sheet)
+}
+
+func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) error {
 	// log.Debugf("parse sheet: %s", sheet.Name)
 	msg := protomsg.ProtoReflect()
 	if sp.opts.Transpose {
@@ -276,7 +284,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
 
-			_, err := sp.parseFieldOptions(msg, curr, "")
+			_, err := sp.parseMessage(msg, curr, "")
 			if err != nil {
 				return err
 			}
@@ -324,7 +332,7 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 
 			curr.SetColumnLookupTable(sp.lookupTable)
 
-			_, err := sp.parseFieldOptions(msg, curr, "")
+			_, err := sp.parseMessage(msg, curr, "")
 			if err != nil {
 				return err
 			}
@@ -338,8 +346,8 @@ func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	return nil
 }
 
-// parseFieldOptions is aimed to parse the options of all the fields of a protobuf message.
-func (sp *sheetParser) parseFieldOptions(msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
+// parseMessage parses all fields of a protobuf message.
+func (sp *sheetParser) parseMessage(msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
@@ -411,7 +419,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			// value must be empty if key not present
 			if !keyPresent && reflectMap.Has(newMapKey) {
 				tempCheckMapValue := reflectMap.NewValue()
-				valuePresent, err := sp.parseFieldOptions(tempCheckMapValue.Message(), rc, prefix+field.opts.Name)
+				valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, prefix+field.opts.Name)
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 				}
@@ -426,7 +434,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			} else {
 				newMapValue = reflectMap.NewValue()
 			}
-			valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), rc, prefix+field.opts.Name)
+			valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, prefix+field.opts.Name)
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 			}
@@ -521,7 +529,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				// value must be empty if key not present
 				if !keyPresent && reflectMap.Has(newMapKey) {
 					tempCheckMapValue := reflectMap.NewValue()
-					valuePresent, err := sp.parseFieldOptions(tempCheckMapValue.Message(), rc, prefix+field.opts.Name+strconv.Itoa(i))
+					valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, prefix+field.opts.Name+strconv.Itoa(i))
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 					}
@@ -536,7 +544,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				} else {
 					newMapValue = reflectMap.NewValue()
 				}
-				valuePresent, err := sp.parseFieldOptions(newMapValue.Message(), rc, prefix+field.opts.Name+strconv.Itoa(i))
+				valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, prefix+field.opts.Name+strconv.Itoa(i))
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 				}
@@ -588,21 +596,14 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 func (sp *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	// keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
-	if valueFd.Kind() == protoreflect.MessageKind {
-		if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
-			return xerrors.Errorf("map value type is not KV struct, and is not supported")
-		}
-		err := sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := sp.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
-		if err != nil {
-			return err
-		}
+	if valueFd.Kind() != protoreflect.MessageKind {
+		return sp.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
 	}
-	return nil
+
+	if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
+		return xerrors.Errorf("map value type is not KV struct, and is not supported")
+	}
+	return sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
 }
 
 // parseIncellMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
@@ -653,30 +654,30 @@ func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap proto
 // parseIncellMapWithValueAsSimpleKVMessage parses simple incell map with key as scalar or enum type
 // and value as simple message with only key and value fields. For example:
 //
-//	 enum FruitType {
-//	   FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
-//	   FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
-//	   FRUIT_TYPE_ORANGE  = 2 [(tableau.evalue).name = "Orange"];
-//	   FRUIT_TYPE_BANANA  = 3 [(tableau.evalue).name = "Banana"];
-//	 }
-//	 enum FruitFlavor {
-//	   FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
-//	   FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
-//	   FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
-//	   FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
-//	 }
+//	enum FruitType {
+//		FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//		FRUIT_TYPE_APPLE   = 1 [(tableau.evalue).name = "Apple"];
+//		FRUIT_TYPE_ORANGE  = 2 [(tableau.evalue).name = "Orange"];
+//		FRUIT_TYPE_BANANA  = 3 [(tableau.evalue).name = "Banana"];
+//	}
+//	enum FruitFlavor {
+//		FRUIT_FLAVOR_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
+//		FRUIT_FLAVOR_FRAGRANT = 1 [(tableau.evalue).name = "Fragrant"];
+//		FRUIT_FLAVOR_SOUR = 2 [(tableau.evalue).name = "Sour"];
+//		FRUIT_FLAVOR_SWEET = 3 [(tableau.evalue).name = "Sweet"];
+//	}
 //
-//	 map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
-//	 message Fruit {
-//	   FruitType key = 1 [(tableau.field) = {name:"Key"}];
-//	   int64 value = 2 [(tableau.field) = {name:"Value"}];
-//		}
+//	map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+//	message Fruit {
+//		FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//		int64 value = 2 [(tableau.field) = {name:"Value"}];
+//	}
 //
-//	 map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
-//	 message Item {
-//	   FruitType key = 1 [(tableau.field) = {name:"Key"}];
-//	   FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
-//	 }
+//	map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+//	message Item {
+//		FruitType key = 1 [(tableau.field) = {name:"Key"}];
+//		FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+//	}
 func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
 		return nil
@@ -864,7 +865,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						break
 					}
 				}
-				elemPresent, err := sp.parseFieldOptions(listItemValue.Message(), rc, prefix+field.opts.Name)
+				elemPresent, err := sp.parseMessage(listItemValue.Message(), rc, prefix+field.opts.Name)
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 				}
@@ -889,7 +890,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 				} else {
 					// cross-cell struct list
-					elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, prefix+field.opts.Name)
+					elemPresent, err = sp.parseMessage(newListValue.Message(), rc, prefix+field.opts.Name)
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, "cross-cell struct list", "failed to parse struct")
 					}
@@ -960,7 +961,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 							return false, xerrors.WithMessageKV(err, kvs...)
 						}
 					} else {
-						elemPresent, err = sp.parseFieldOptions(newListValue.Message(), rc, colName)
+						elemPresent, err = sp.parseMessage(newListValue.Message(), rc, colName)
 						if err != nil {
 							return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 						}
@@ -1141,7 +1142,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 			}
 			return present, nil
 		} else {
-			present, err := sp.parseFieldOptions(structValue.Message(), rc, prefix+field.opts.Name)
+			present, err := sp.parseMessage(structValue.Message(), rc, prefix+field.opts.Name)
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 			}

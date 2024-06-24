@@ -9,7 +9,7 @@ protogen: |
   命名单元格位置: {{.NameCellPos}}
   命名单元格数据: {{.NameCell}}
   类型单元格位置: {{.TypeCellPos}}
-  类型单元格数据: {{.TypeCell}}|{{.PBFieldOpts}}
+  类型单元格数据: {{.TypeCell}}{{ if .PBFieldOpts }}|{{.PBFieldOpts}}{{ end }}
   错误原因: {{.Reason}}
   {{ if .Help }}修复建议: {{.Help}}{{ end }}
 confgen: |

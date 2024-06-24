@@ -251,13 +251,133 @@ func (gen *Generator) getBookParser(absPath string) *bookParser {
 }
 
 func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFileConflicts bool, pass parsePass) error {
-	if err := gen.convert(dir, filename, checkProtoFileConflicts, pass); err != nil {
+	fmt := format.GetFormat(filename)
+	if format.IsInputDocumentFormat(fmt) {
+		if err := gen.convertDocument(dir, filename, checkProtoFileConflicts, pass); err != nil {
+			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
+		}
+		return nil
+	}
+	if err := gen.convertTable(dir, filename, checkProtoFileConflicts, pass); err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 	}
 	return nil
 }
 
-func (gen *Generator) convert(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
+func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
+	if pass == secondPass {
+		// NOTE: currently, document do not support two-pass parsing, so just return nil.
+		return nil
+	}
+	absPath := filepath.Join(dir, filename)
+	parser := confgen.NewSheetParser(xproto.TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
+	imp, err := importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
+	if err != nil {
+		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
+	}
+	if len(imp.GetSheets()) == 0 {
+		return nil
+	}
+	basename := filepath.Base(imp.Filename())
+	relativePath, err := getRelCleanSlashPath(gen.InputDir, dir, basename)
+	if err != nil {
+		return err
+	}
+	debugBookName := relativePath
+	// rewrite subdir
+	rewrittenBookName := fs.RewriteSubdir(relativePath, gen.InputOpt.SubdirRewrites)
+	if rewrittenBookName != relativePath {
+		debugBookName += " (rewrite: " + rewrittenBookName + ")"
+	}
+
+	log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugBookName, len(imp.GetSheets()))
+
+	// create a book parser
+	bookName := imp.BookName()
+	alias := getWorkbookAlias(imp)
+	if alias != "" {
+		bookName = alias
+		debugBookName += " (alias: " + alias + ")"
+	}
+	bp := newDocumentBookParser(bookName, rewrittenBookName, gen)
+	for _, sheet := range imp.GetSheets() {
+		// parse sheet options
+		sheetName := sheet.Document.GetDataSheetName()
+		debugSheetName := sheetName
+		sheetMsgName := sheetName
+		if sheet.Meta.Alias != "" {
+			sheetMsgName = sheet.Meta.Alias
+			debugSheetName += " (alias: " + sheet.Meta.Alias + ")"
+		}
+		ws := &tableaupb.Worksheet{
+			Options: &tableaupb.WorksheetOptions{
+				Name:          sheetName,
+				Namerow:       sheet.Meta.Namerow,
+				Typerow:       sheet.Meta.Typerow,
+				Noterow:       sheet.Meta.Noterow,
+				Datarow:       sheet.Meta.Datarow,
+				Transpose:     sheet.Meta.Transpose,
+				Tags:          "",
+				Nameline:      sheet.Meta.Nameline,
+				Typeline:      sheet.Meta.Typeline,
+				Nested:        sheet.Meta.Nested,
+				Sep:           sheet.Meta.Sep,
+				Subsep:        sheet.Meta.Subsep,
+				Merger:        sheet.Meta.Merger,
+				AdjacentKey:   sheet.Meta.AdjacentKey,
+				FieldPresence: sheet.Meta.FieldPresence,
+				Template:      sheet.Meta.Template,
+				Mode:          sheet.Meta.Mode,
+				Scatter:       sheet.Meta.Scatter,
+				// Loader options:
+				OrderedMap: sheet.Meta.OrderedMap,
+				Index:      parseIndexes(sheet.Meta.Index),
+			},
+			Fields: []*tableaupb.Field{},
+			Name:   sheetMsgName,
+		}
+
+		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+
+		// log.Debugf("dump document:\n%s", sheet.String())
+		if len(sheet.Document.Children) != 1 {
+			return xerrors.Errorf("document should have and only have one child (map node), sheet: %s", sheet.Name)
+		}
+		// get the first child (map node) in document
+		child := sheet.Document.Children[0]
+		var parsed bool
+		for _, node := range child.Children {
+			field := &tableaupb.Field{}
+			parsed, err = bp.parseField(field, node)
+			if err != nil {
+				return xerrors.WithMessageKV(err,
+					xerrors.KeyBookName, debugBookName,
+					xerrors.KeySheetName, debugSheetName,
+				)
+			}
+			if parsed {
+				ws.Fields = append(ws.Fields, field)
+			}
+		}
+		// append parsed sheet to workbook
+		bp.parser.wb.Worksheets = append(bp.parser.wb.Worksheets, ws)
+	}
+	// export book
+	be := newBookExporter(
+		gen.ProtoPackage,
+		gen.OutputOpt.FileOptions,
+		filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir),
+		gen.OutputOpt.FilenameSuffix,
+		bp.parser.wb,
+		bp.parser.gen,
+	)
+	if err := be.export(checkProtoFileConflicts); err != nil {
+		return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName)
+	}
+	return nil
+}
+
+func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
 	absPath := filepath.Join(dir, filename)
 	var imp importer.Importer
 	if pass == firstPass {

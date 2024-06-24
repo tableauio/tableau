@@ -1,0 +1,88 @@
+---
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlListConf"
+ScalarList: "[int32]"
+EnumList: "[enum<.FruitType>]"
+IncellScalarList:
+  "@type": "[int32]"
+  "@incell": true
+IncellEnumList: "[]enum<.FruitType>"
+StructList:
+  "@type": "[Hero]"
+  "@struct":
+    ID: uint32
+    Name: string
+PredefinedStructList: "[.Item]"
+ListInList:
+  "@type": "[Country1]"
+  "@struct":
+    Country: string 
+    Desc: string
+    Items:
+      "@type": "[Item]"
+      "@struct":
+        Name: string
+        Num: int32
+MapInList:
+  "@type": "[Country2]"
+  "@struct":
+    Country: string 
+    Desc: string
+    Items:
+      "@type": "map<uint32, Item>"
+      "@struct":
+        Name: string
+        Num: int32
+---
+"@sheet": YamlListConf
+ScalarList: [1, 2, 3]
+EnumList: [FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA]
+IncellScalarList: "1, 2, 3"
+IncellEnumList: "FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA"
+StructList:
+  - ID: 1
+    Name: dog
+  - ID: 2
+    Name: bird
+PredefinedStructList:
+  - ID: 1
+    Num: 10
+  - ID: 2
+    Num: 20
+ListInList:
+  - Country: USA
+    Desc: A country in North America.
+    Items:
+      - Name: apple
+        Num: 10
+      - Name: orange
+        Num: 20
+  - Country: China
+    Desc: A country in East Asia.
+    Items:
+      - Name: apple
+        Num: 100
+      - Name: orange
+        Num: 200
+MapInList:
+  - Country: USA
+    Desc: A country in North America.
+    Items:
+      1:
+        Name: apple
+        Num: 10
+      2:
+        Name: orange
+        Num: 20
+  - Country: China
+    Desc: A country in East Asia.
+    Items:
+      1:
+        Name: apple
+        Num: 100
+      2:
+        Name: orange
+        Num: 200

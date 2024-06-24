@@ -2,6 +2,7 @@ package protogen
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +16,9 @@ import (
 
 var testgen *Generator
 
-func init() {
+const outdir = "./testdata/_proto"
+
+func TestMain(m *testing.M) {
 	testgen = NewGeneratorWithOptions("protoconf", "testdata", "testdata", &options.Options{
 		LocationName: "Asia/Shanghai",
 		Proto: &options.ProtoOption{
@@ -25,6 +28,10 @@ func init() {
 			Output: &options.ProtoOutputOption{},
 		},
 	})
+	if err := prepareOutput(); err != nil {
+		log.Fatalf("failed to create output common dir: %v", err)
+	}
+	m.Run()
 }
 
 func TestGenerator_parseSpecialSheetMode(t *testing.T) {
@@ -197,7 +204,6 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 
 func prepareOutput() error {
 	// prepare output common dir
-	outdir := "./testdata/_proto"
 	err := os.MkdirAll(outdir, 0700)
 	if err != nil {
 		return fmt.Errorf("failed to create output dir: %v", err)
@@ -226,10 +232,6 @@ func prepareOutput() error {
 }
 
 func TestGenerator_GenAll(t *testing.T) {
-	if err := prepareOutput(); err != nil {
-		t.Fatalf("failed to create output common dir: %v", err)
-	}
-	outdir := "./testdata/_proto"
 	tests := []struct {
 		name    string
 		gen     *Generator
@@ -251,6 +253,7 @@ func TestGenerator_GenAll(t *testing.T) {
 								// format.Excel,
 								format.CSV,
 								format.XML,
+								format.YAML,
 							},
 							Header: &options.HeaderOption{
 								Namerow: 1,
@@ -275,6 +278,54 @@ func TestGenerator_GenAll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.gen.GenAll(); (err != nil) != tt.wantErr {
 				t.Errorf("Generator.GenAll() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestGenerator_GenWorkbook(t *testing.T) {
+	type args struct {
+		relWorkbookPaths []string
+	}
+	tests := []struct {
+		name    string
+		gen     *Generator
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "test1",
+			gen: NewGenerator("protoconf", "./", outdir,
+				options.Proto(
+					&options.ProtoOption{
+						Input: &options.ProtoInputOption{
+							ProtoPaths: []string{outdir},
+							ProtoFiles: []string{
+								"common/base.proto",
+								"common/common.proto",
+								"common/union.proto",
+							},
+							Formats: []format.Format{
+								format.YAML,
+							},
+						},
+						Output: &options.ProtoOutputOption{
+							FilenameWithSubdirPrefix: true,
+							FileOptions: map[string]string{
+								"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+							},
+						},
+					},
+				),
+			),
+			args:    args{relWorkbookPaths: []string{"./testdata/yaml/Test.yaml"}},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.gen.GenWorkbook(tt.args.relWorkbookPaths...); (err != nil) != tt.wantErr {
+				t.Errorf("Generator.GenWorkbook() error = %+v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -1,0 +1,27 @@
+---
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlScalarConf"
+ID: uint32
+Num: int32
+Value: uint64
+Weight: int64
+Percentage: float
+Ratio: double
+Name: string
+Blob: bytes
+OK: bool
+
+---
+"@sheet": YamlScalarConf
+ID: 1
+Num: 10
+Value: 20
+Weight: 30
+Percentage: 0.5
+Ratio: 3.14159
+Name: apple
+Blob: "VGFibGVhdQ==" # base64 of "Tableau"
+OK: true

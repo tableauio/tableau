@@ -73,7 +73,7 @@ func adjustExcelTopN(file *excelize.File, brOpts *bookReaderOptions, parser book
 			}
 			return err
 		}
-		meta, err := book.ParseMetasheet(metasheet, parser)
+		meta, err := metasheet.ParseMetasheet(parser)
 		if err != nil {
 			return errors.WithMessagef(err, "failed to parse metasheet: %s", book.MetasheetName)
 		}

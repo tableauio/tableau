@@ -19,33 +19,33 @@ func WithStack(err error) error {
 // WrapKV formats the key-value pairs as `[|key: value]...` string and
 // returns the string as a value that satisfies error.
 // WrapKV also records the stack trace at the point it was called.
-func WrapKV(err error, keysAndValues ...interface{}) error {
+func WrapKV(err error, keysAndValues ...any) error {
 	return ErrorKV(err.Error(), keysAndValues...)
 }
 
 // Errorf formats according to a format specifier and returns the string as a
 // value that satisfies error.
-func Errorf(format string, args ...interface{}) error {
+func Errorf(format string, args ...any) error {
 	return WithStack(fmt.Errorf(format, args...))
 }
 
 // ErrorKV returns an error with the supplied message and the key-value pairs
 // as `[|key: value]...` string.
 // ErrorKV also records the stack trace at the point it was called.
-func ErrorKV(msg string, keysAndValues ...interface{}) error {
+func ErrorKV(msg string, keysAndValues ...any) error {
 	return errors.New(CombineKV(keysAndValues...) + CombineKV(keyReason, msg))
 }
 
 // WithMessageKV annotates err with the key-value pairs as `[|key: value]...` string.
 // If err is nil, WithMessageKV returns nil.
-func WithMessageKV(err error, keysAndValues ...interface{}) error {
+func WithMessageKV(err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
 	}
 	return errors.WithMessage(err, CombineKV(keysAndValues...))
 }
 
-func CombineKV(keysAndValues ...interface{}) string {
+func CombineKV(keysAndValues ...any) string {
 	var msg string
 	for i := 0; i < len(keysAndValues); i += 2 {
 		if i == len(keysAndValues)-1 {

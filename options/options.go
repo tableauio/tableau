@@ -85,14 +85,15 @@ type ProtoInputOption struct {
 	// Default: nil.
 	ProtoPaths []string `yaml:"protoPaths"`
 
-	// The enums and messages in ProtoFiles can be used in Excel/CSV/XML as
-	// common types.
+	// The enums and messages in ProtoFiles can be used in Excel/CSV/XML/YAML
+	// as common types.
 	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
 
 	// Specify input file formats.
-	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
+	// Note: recognize all formats (Excel/CSV/XML/YAML) if not set (value is
+	// nil).
 	//
 	// Default: nil.
 
@@ -180,7 +181,8 @@ type ConfInputOption struct {
 	ExcludedProtoFiles []string `yaml:"excludedProtoFiles"`
 
 	// Specify input file formats to be parsed.
-	// Note: recognize all formats (Excel/CSV/XML) if not set (value is nil).
+	// Note: recognize all formats (Excel/CSV/XML/YAML) if not set (value is
+	// nil).
 	//
 	// Default: nil.
 	Formats []format.Format
@@ -195,7 +197,7 @@ type ConfInputOption struct {
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
 
-	// Whether converter will not report an error and abort if a workbook 
+	// Whether converter will not report an error and abort if a workbook
 	// is not recognized in proto files.
 	//
 	// Default: false.

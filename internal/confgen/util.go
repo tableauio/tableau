@@ -26,7 +26,7 @@ var fieldOptionsPool *sync.Pool
 
 func init() {
 	fieldOptionsPool = &sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			return new(tableaupb.FieldOptions)
 		},
 	}

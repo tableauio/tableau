@@ -1,0 +1,170 @@
+{
+    "scalarMap": {
+        "1": "dog",
+        "2": "bird",
+        "3": "cat"
+    },
+    "enumKeyScalarMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "apple"
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": "orange"
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "value": "banana"
+        }
+    },
+    "enumValueScalarMap": {
+        "apple": "FRUIT_TYPE_APPLE",
+        "banana": "FRUIT_TYPE_BANANA",
+        "orange": "FRUIT_TYPE_ORANGE"
+    },
+    "enumKvScalarMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "FRUIT_FLAVOR_FRAGRANT"
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": "FRUIT_FLAVOR_SOUR"
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "value": "FRUIT_FLAVOR_SWEET"
+        }
+    },
+    "incellMap": {
+        "1": "dog",
+        "2": "bird",
+        "3": "cat"
+    },
+    "incellEnumMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "FRUIT_FLAVOR_FRAGRANT"
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": "FRUIT_FLAVOR_SOUR"
+        }
+    },
+    "structMap": {
+        "1": {
+            "key": 1,
+            "name": "apple",
+            "num": 10
+        },
+        "2": {
+            "key": 2,
+            "name": "orange",
+            "num": 20
+        },
+        "3": {
+            "key": 3,
+            "name": "banana",
+            "num": 30
+        }
+    },
+    "customKeyStructMap": {
+        "1": {
+            "customKey": 1,
+            "name": "apple",
+            "num": 10
+        },
+        "2": {
+            "customKey": 2,
+            "name": "orange",
+            "num": 20
+        },
+        "3": {
+            "customKey": 3,
+            "name": "banana",
+            "num": 30
+        }
+    },
+    "enumKeyStructMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "name": "apple",
+            "num": 10
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "name": "orange",
+            "num": 20
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "name": "banana",
+            "num": 30
+        }
+    },
+    "listInMap": {
+        "China": {
+            "key": "China",
+            "desc": "A country in East Asia.",
+            "items": [
+                {
+                    "name": "apple",
+                    "num": 100
+                },
+                {
+                    "name": "orange",
+                    "num": 200
+                }
+            ]
+        },
+        "USA": {
+            "key": "USA",
+            "desc": "A country in North America.",
+            "items": [
+                {
+                    "name": "apple",
+                    "num": 10
+                },
+                {
+                    "name": "orange",
+                    "num": 20
+                }
+            ]
+        }
+    },
+    "mapInMap": {
+        "China": {
+            "key": "China",
+            "desc": "A country in East Asia.",
+            "items": {
+                "1": {
+                    "key": 1,
+                    "name": "apple",
+                    "num": 100
+                },
+                "2": {
+                    "key": 2,
+                    "name": "orange",
+                    "num": 200
+                }
+            }
+        },
+        "USA": {
+            "key": "USA",
+            "desc": "A country in North America.",
+            "items": {
+                "1": {
+                    "key": 1,
+                    "name": "apple",
+                    "num": 10
+                },
+                "2": {
+                    "key": 2,
+                    "name": "orange",
+                    "num": 20
+                }
+            }
+        }
+    }
+}

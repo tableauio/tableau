@@ -22,12 +22,12 @@ type ZapDriver struct {
 const SkipUntilTrueCaller = 4
 
 func init() {
-	dr := New(zap.NewProductionConfig(), []zap.Option{zap.AddCallerSkip(SkipUntilTrueCaller)})
+	dr := New(zap.NewProductionConfig(), zap.AddCallerSkip(SkipUntilTrueCaller))
 	driver.RegisteDriver(dr)
 }
 
 // New creates the driver using the provided config wrapper
-func New(config zap.Config, opts []zap.Option) *ZapDriver {
+func New(config zap.Config, opts ...zap.Option) *ZapDriver {
 	logger, err := config.Build(opts...)
 	if err != nil {
 		panic(err)
@@ -50,7 +50,7 @@ func (*ZapDriver) Name() string {
 }
 
 // refer: https://github.com/uber-go/zap/blob/v1.21.0/sugar.go#L249
-func (d *ZapDriver) sweetenFields(args []interface{}) []zap.Field {
+func (d *ZapDriver) sweetenFields(args []any) []zap.Field {
 	if len(args) == 0 {
 		return nil
 	}
@@ -168,7 +168,7 @@ func (d *ZapDriver) GetLevel(logger string) core.Level {
 
 type invalidPair struct {
 	position   int
-	key, value interface{}
+	key, value any
 }
 
 func (p invalidPair) MarshalLogObject(enc zapcore.ObjectEncoder) error {

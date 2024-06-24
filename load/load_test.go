@@ -34,6 +34,18 @@ func TestLoad(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "load-origin-path-failed",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				dir: "../testdata/",
+				fmt: format.CSV,
+				options: []Option{
+					SubdirRewrites(map[string]string{"unittest": "unittest-invalid-dir"}),
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "load-origin-with-sudir-rewrites",
 			args: args{
 				msg: &unittestpb.ItemConf{},

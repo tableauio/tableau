@@ -18,6 +18,8 @@ import (
 // of each worksheet. Default is "@TABLEAU".
 var MetasheetName = "@TABLEAU"
 
+const SheetKey = "@sheet"
+
 // BookNameInMetasheet is the special sign which represents workbook itself in metasheet.
 // Default is "#".
 const BookNameInMetasheet = "#"
@@ -37,11 +39,16 @@ type SheetParser interface {
 }
 
 type Sheet struct {
-	Name   string
+	Name string
+
+	// flat table
+	// TODO: encapsulate into a standalone `type Table struct`
 	MaxRow int
 	MaxCol int
+	Rows   [][]string // 2D array of strings.
 
-	Rows [][]string // 2D array of strings.
+	// tree document
+	Document *Node
 
 	Meta *tableaupb.Metasheet
 }
@@ -66,6 +73,14 @@ func NewSheet(name string, rows [][]string) *Sheet {
 	}
 }
 
+// NewDocumentSheet creats a new Sheet with a document.
+func NewDocumentSheet(name string, doc *Node) *Sheet {
+	return &Sheet{
+		Name:     name,
+		Document: doc,
+	}
+}
+
 // ExtendSheet extends an existing Sheet.
 func ExtendSheet(sheet *Sheet, rows [][]string) {
 	maxRow := len(rows)
@@ -85,6 +100,17 @@ func ExtendSheet(sheet *Sheet, rows [][]string) {
 		Rows:   append(sheet.Rows, rows...),
 		Meta:   sheet.Meta,
 	}
+}
+
+// ParseMetasheet parses a sheet to Metabook by the specified parser.
+func (s *Sheet) ParseMetasheet(parser SheetParser) (*tableaupb.Metabook, error) {
+	metabook := &tableaupb.Metabook{}
+	if s.Document != nil || s.MaxRow > 1 {
+		if err := parser.Parse(metabook, s); err != nil {
+			return nil, errors.WithMessagef(err, "failed to parse metasheet")
+		}
+	}
+	return metabook, nil
 }
 
 // GetRow returns the row data by row index (started with 0). If not found,
@@ -111,8 +137,18 @@ func (s *Sheet) Cell(row, col int) (string, error) {
 	return s.Rows[row][col], nil
 }
 
-// String returns the string representation (CSV) of the sheet.
+// String returns the string representation of the Sheet, mainly
+// for debugging.
+//
+//   - Table: CSV form
+//   - Document: hierachy form
 func (s *Sheet) String() string {
+	if s.Document != nil {
+		var buffer bytes.Buffer
+		dumpNode(s.Document, DocumentNode, &buffer, 0)
+		return buffer.String()
+	}
+
 	var buffer bytes.Buffer
 	w := csv.NewWriter(&buffer)
 	err := w.WriteAll(s.Rows) // calls Flush internally

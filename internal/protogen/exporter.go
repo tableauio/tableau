@@ -243,6 +243,7 @@ func (x *sheetExporter) exportUnion() error {
 }
 
 func (x *sheetExporter) exportMessager() error {
+	// log.Debugf("workbook: %s", x.ws.String())
 	x.g.P("message ", x.ws.Name, " {")
 	x.g.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
 	x.g.P("")

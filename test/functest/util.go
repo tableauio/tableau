@@ -57,6 +57,7 @@ func genProto(logLevel string) error {
 						// format.Excel,
 						format.CSV,
 						format.XML,
+						format.YAML,
 					},
 					Header: &options.HeaderOption{
 						Namerow: 1,
@@ -98,6 +99,7 @@ func genConf(logLevel string) error {
 						// format.Excel,
 						format.CSV,
 						format.XML,
+						format.YAML,
 					},
 					ExcludedProtoFiles: []string{
 						"./_proto/xml__metasheet__metasheet.proto",

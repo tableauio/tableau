@@ -10,7 +10,7 @@ import (
 func TestDefaultLogger_Debugf(t *testing.T) {
 	type args struct {
 		format string
-		args   []interface{}
+		args   []any
 	}
 	tests := []struct {
 		name string
@@ -26,7 +26,7 @@ func TestDefaultLogger_Debugf(t *testing.T) {
 			},
 			args: args{
 				format: "format: %s, %d",
-				args:   []interface{}{"haha", 3},
+				args:   []any{"haha", 3},
 			},
 		},
 	}

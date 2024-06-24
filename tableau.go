@@ -14,7 +14,7 @@ import (
 	"github.com/tableauio/tableau/options"
 )
 
-// Generate can convert Excel/CSV/XML files to protoconf files and
+// Generate can convert Excel/CSV/XML/YAML files to protoconf files and
 // different configuration files: JSON, Text, and Bin at the same time.
 func Generate(protoPackage, indir, outdir string, setters ...options.Option) error {
 	if err := GenProto(protoPackage, indir, outdir, setters...); err != nil {
@@ -26,7 +26,7 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) err
 	return nil
 }
 
-// GenProto can convert Excel/CSV/XML files to protoconf files.
+// GenProto can convert Excel/CSV/XML/YAML files to protoconf files.
 func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {
@@ -40,7 +40,7 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (er
 	return g.Generate()
 }
 
-// GenConf can convert Excel/CSV/XML files to different configuration files: JSON, Text, and Bin.
+// GenConf can convert Excel/CSV/XML/YAML files to different configuration files: JSON, Text, and Bin.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {

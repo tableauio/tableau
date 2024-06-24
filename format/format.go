@@ -11,6 +11,7 @@ const (
 	Excel Format = "xlsx"
 	CSV   Format = "csv"
 	XML   Format = "xml"
+	YAML  Format = "yaml"
 	// output formats
 	JSON Format = "json"
 	Bin  Format = "bin"
@@ -24,6 +25,7 @@ const (
 	ExcelExt string = ".xlsx"
 	CSVExt   string = ".csv"
 	XMLExt   string = ".xml"
+	YAMLExt  string = ".yaml"
 	// output formats
 	JSONExt string = ".json"
 	BinExt  string = ".bin"
@@ -43,6 +45,8 @@ func Ext2Format(ext string) Format {
 		return CSV
 	case XMLExt:
 		return XML
+	case YAMLExt:
+		return YAML
 	case JSONExt:
 		return JSON
 	case BinExt:
@@ -62,6 +66,8 @@ func Format2Ext(fmt Format) string {
 		return CSVExt
 	case XML:
 		return XMLExt
+	case YAML:
+		return YAMLExt
 	case JSON:
 		return JSONExt
 	case Bin:
@@ -73,9 +79,15 @@ func Format2Ext(fmt Format) string {
 	}
 }
 
-var InputFormats = []Format{Excel, CSV, XML}
+var InputFormats = []Format{Excel, CSV, XML, YAML}
 var OutputFormats = []Format{JSON, Bin, Text}
 
+var inputDocumentFormats = map[Format]bool{
+	YAML: true,
+	// XML: true, // TODO: including xml
+}
+
+// IsInputFormat checks whether the fmt belongs to [InputFormats], such as Excel.
 func IsInputFormat(fmt Format) bool {
 	for _, f := range InputFormats {
 		if f == fmt {
@@ -83,6 +95,12 @@ func IsInputFormat(fmt Format) bool {
 		}
 	}
 	return false
+}
+
+// IsInputDocumentFormat checks whether the fmt belongs to input document
+// formats, such as yaml.
+func IsInputDocumentFormat(fmt Format) bool {
+	return inputDocumentFormats[fmt]
 }
 
 func Amongst(fmt Format, formats []Format) bool {

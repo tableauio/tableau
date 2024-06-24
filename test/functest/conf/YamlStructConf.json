@@ -1,0 +1,32 @@
+{
+    "strictStruct": {
+        "id": 1,
+        "name": "apple"
+    },
+    "struct": {
+        "id": 1,
+        "startTime": "2024-10-01T02:10:10Z",
+        "expire": "3600s"
+    },
+    "reusePredefinedStruct": {
+        "id": 2,
+        "startTime": "2026-10-01T02:10:10Z",
+        "expire": "7200s"
+    },
+    "predefinedStruct": {
+        "id": 1,
+        "num": 10
+    },
+    "incellStruct": {
+        "id": 2,
+        "num": 20
+    },
+    "incellStruct2": {
+        "id": 3,
+        "num": 30
+    },
+    "predefinedIncellStruct": {
+        "id": 4,
+        "num": 40
+    }
+}

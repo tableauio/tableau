@@ -8,16 +8,16 @@ import (
 // refer: https://github.com/go-eden/slf4go/blob/master/slf_model.go
 
 // Fields represents attached fields of log
-type Fields map[string]interface{}
+type Fields map[string]any
 
 // Record represent an log, contains all properties.
 type Record struct {
 	Level Level
 
 	Format *string
-	Args   []interface{}
+	Args   []any
 
-	KVs       []interface{} // additional custom variadic key-value pairs
+	KVs       []any // additional custom variadic key-value pairs
 	CxtFields Fields        // caller's goroutine context fields
 }
 

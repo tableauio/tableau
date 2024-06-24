@@ -7,6 +7,7 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
@@ -62,8 +63,8 @@ func newBookParser(bookName, relSlashPath string, gen *Generator) *bookParser {
 	return bp
 }
 
-func (x *bookParser) GetProtoFilePath() string {
-	return genProtoFilePath(x.wb.Name, x.gen.OutputOpt.FilenameSuffix)
+func (p *bookParser) GetProtoFilePath() string {
+	return genProtoFilePath(p.wb.Name, p.gen.OutputOpt.FilenameSuffix)
 }
 
 func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
@@ -835,9 +836,9 @@ func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*tableaupb.Field
 			xerrors.KeyPBFieldType, typ,
 			xerrors.KeyTrimmedNameCell, name)
 	}
-
+	pureName := strings.TrimPrefix(name, book.MetaSign) // remove leading meta sign "@""
 	return &tableaupb.Field{
-		Name:       strcase.ToSnake(name),
+		Name:       strcase.ToSnake(pureName),
 		Type:       typeDesc.Name,
 		FullType:   typeDesc.FullName,
 		Predefined: typeDesc.Predefined,
