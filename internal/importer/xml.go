@@ -274,7 +274,7 @@ func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *bo
 		}
 		dataRow++
 	}
-	sheet := book.NewSheet(book.MetasheetName, rows)
+	sheet := book.NewTableSheet(book.MetasheetName, rows)
 	return metasheetMap, sheet, nil
 }
 
@@ -733,7 +733,7 @@ func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
 		rows = append(rows, row)
 	}
 	// insert sheets into map for importer
-	sheet = book.NewSheet(sheetName, rows)
+	sheet = book.NewTableSheet(sheetName, rows)
 	return sheet, nil
 }
 

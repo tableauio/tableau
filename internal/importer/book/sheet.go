@@ -49,8 +49,8 @@ type Sheet struct {
 	Meta *tableaupb.Metasheet
 }
 
-// NewSheet creates a new Sheet.
-func NewSheet(name string, rows [][]string) *Sheet {
+// NewTableSheet creates a new Sheet with a table.
+func NewTableSheet(name string, rows [][]string) *Sheet {
 	return &Sheet{
 		Name:  name,
 		Table: NewTable(rows),

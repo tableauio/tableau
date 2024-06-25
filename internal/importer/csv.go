@@ -90,7 +90,7 @@ func readCSVBook(brOpts *bookReaderOptions, parser book.SheetParser) (*book.Book
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read CSV file: %s", srOpts.Filename)
 		}
-		sheet := book.NewSheet(srOpts.Name, rows)
+		sheet := book.NewTableSheet(srOpts.Name, rows)
 		newBook.AddSheet(sheet)
 	}
 
@@ -102,7 +102,7 @@ func readCSVSheet(filename, sheetName string, topN uint) (*book.Sheet, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read CSV file: %s", filename)
 	}
-	return book.NewSheet(sheetName, rows), nil
+	return book.NewTableSheet(sheetName, rows), nil
 }
 
 func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
