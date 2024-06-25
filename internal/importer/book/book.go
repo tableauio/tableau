@@ -197,8 +197,10 @@ func (b *Book) ExportExcel() error {
 	}
 
 	for _, sheet := range b.GetSheets() {
-		if err := sheet.ExportExcel(file); err != nil {
-			return errors.WithMessagef(err, "export sheet %s to excel failed", sheet.Name)
+		if sheet.Table != nil {
+			if err := sheet.Table.ExportExcel(file, sheet.Name); err != nil {
+				return errors.WithMessagef(err, "export sheet %s to excel failed", sheet.Name)
+			}
 		}
 	}
 
@@ -221,9 +223,10 @@ func (b *Book) ExportCSV() error {
 			return errors.Wrapf(err, "failed to create csv file: %s", path)
 		}
 		defer f.Close()
-
-		if err := sheet.ExportCSV(f); err != nil {
-			return errors.WithMessagef(err, "export sheet %s to excel failed", sheet.Name)
+		if sheet.Table != nil {
+			if err := sheet.Table.ExportCSV(f); err != nil {
+				return errors.WithMessagef(err, "export sheet %s to excel failed", sheet.Name)
+			}
 		}
 	}
 	return nil

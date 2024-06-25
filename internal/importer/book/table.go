@@ -1,8 +1,110 @@
 package book
 
-// TODO: Table represents a 2D array table.
+import (
+	"bytes"
+	"encoding/csv"
+	"io"
+
+	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/xerrors"
+	"github.com/xuri/excelize/v2"
+)
+
+// Table represents a 2D array table.
 type Table struct {
 	MaxRow int
 	MaxCol int
 	Rows   [][]string // 2D array strings
+}
+
+// NewTable creates a new Table.
+func NewTable(rows [][]string) *Table {
+	maxRow := len(rows)
+	maxCol := 0
+	// NOTE: different rows may have different lengths,
+	// and we need to find the max col.
+	for _, row := range rows {
+		n := len(row)
+		if n > maxCol {
+			maxCol = n
+		}
+	}
+	return &Table{
+		MaxRow: maxRow,
+		MaxCol: maxCol,
+		Rows:   rows,
+	}
+}
+
+// GetRow returns the row data by row index (started with 0). If not found,
+// then returns nil.
+func (t *Table) GetRow(row int) []string {
+	if row >= len(t.Rows) {
+		return nil
+	}
+	return t.Rows[row]
+}
+
+// Cell returns the cell at (row, col).
+func (t *Table) Cell(row, col int) (string, error) {
+	if row < 0 || row >= t.MaxRow {
+		return "", xerrors.Errorf("cell row %d out of range", row)
+	}
+	if col < 0 || col >= t.MaxCol {
+		return "", xerrors.Errorf("cell col %d out of range", col)
+	}
+	// MOTE: different row may have different length.
+	if col >= len(t.Rows[row]) {
+		return "", nil
+	}
+	return t.Rows[row][col], nil
+}
+
+func (t *Table) String() string {
+	var buffer bytes.Buffer
+	w := csv.NewWriter(&buffer)
+	err := w.WriteAll(t.Rows) // calls Flush internally
+	if err != nil {
+		panic(err)
+	}
+	return buffer.String()
+}
+
+func (t *Table) ExportCSV(writer io.Writer) error {
+	w := csv.NewWriter(writer)
+	// FIXME(wenchy): will be something wrong if we add the empty cell?
+	// TODO: deepcopy a new rows!
+	for nrow, row := range t.Rows {
+		for i := len(row); i < t.MaxCol; i++ {
+			// log.Debugf("add empty cell: %s", s.Name)
+			row = append(row, "")
+		}
+		t.Rows[nrow] = row
+	}
+	// TODO: escape the cell value with `,` and `"`.
+	return w.WriteAll(t.Rows) // calls Flush internally
+}
+
+func (t *Table) ExportExcel(file *excelize.File, sheetName string) error {
+	file.NewSheet(sheetName)
+	// TODO: clean up the sheet by using RemoveRow API.
+	for nrow, row := range t.Rows {
+		// file.SetRowHeight(s.Name, nrow, 20)
+		for ncol, cell := range row {
+			colname, err := excelize.ColumnNumberToName(ncol + 1)
+			if err != nil {
+				return errors.Wrapf(err, "failed to convert column number %d to name", ncol+1)
+			}
+			file.SetColWidth(sheetName, colname, colname, 20)
+			axis, err := excelize.CoordinatesToCellName(ncol+1, nrow+1)
+			if err != nil {
+				return errors.Wrapf(err, "failed to convert coordinates (%d,%d) to cell name", ncol+1, nrow+1)
+			}
+			err = file.SetCellValue(sheetName, axis, cell)
+			if err != nil {
+				return errors.Wrapf(err, "failed to set cell value %s", axis)
+			}
+		}
+	}
+	return nil
 }

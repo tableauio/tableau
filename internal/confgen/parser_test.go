@@ -41,14 +41,16 @@ func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"1", "1", "10"},
-						{"2", "2", "20"},
-						{"3", "3", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"1", "1", "10"},
+							{"2", "2", "20"},
+							{"3", "3", "30"},
+						},
 					},
 				},
 			},
@@ -59,14 +61,16 @@ func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"1", "1", "10"},
-						{"1", "2", "20"},
-						{"1", "3", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"1", "1", "10"},
+							{"1", "2", "20"},
+							{"1", "3", "30"},
+						},
 					},
 				},
 			},
@@ -77,14 +81,16 @@ func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"1", "1", "10"},
-						{"2", "1", "20"},
-						{"3", "1", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"1", "1", "10"},
+							{"2", "1", "20"},
+							{"3", "1", "30"},
+						},
 					},
 				},
 			},
@@ -95,14 +101,16 @@ func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"1", "1", "10"},
-						{"1", "1", "20"},
-						{"1", "1", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"1", "1", "10"},
+							{"1", "1", "20"},
+							{"1", "1", "30"},
+						},
 					},
 				},
 			},
@@ -142,14 +150,16 @@ func TestParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"1", "1", "10"},
-						{"2", "2", "20"},
-						{"3", "3", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"1", "1", "10"},
+							{"2", "2", "20"},
+							{"3", "3", "30"},
+						},
 					},
 				},
 			},
@@ -160,14 +170,16 @@ func TestParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"", "1", "10"},
-						{"2", "2", "20"},
-						{"3", "3", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"", "1", "10"},
+							{"2", "2", "20"},
+							{"3", "3", "30"},
+						},
 					},
 				},
 			},
@@ -178,14 +190,16 @@ func TestParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"", "1", "10"},
-						{"", "2", "20"},
-						{"3", "3", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"", "1", "10"},
+							{"", "2", "20"},
+							{"3", "3", "30"},
+						},
 					},
 				},
 			},
@@ -225,14 +239,16 @@ func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"1", "1", "10"},
-						{"2", "2", "20"},
-						{"3", "3", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"1", "1", "10"},
+							{"2", "2", "20"},
+							{"3", "3", "30"},
+						},
 					},
 				},
 			},
@@ -243,14 +259,16 @@ func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"", "", ""},
-						{"2", "2", "20"},
-						{"3", "3", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"", "", ""},
+							{"2", "2", "20"},
+							{"3", "3", "30"},
+						},
 					},
 				},
 			},
@@ -261,14 +279,16 @@ func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"", "", ""},
-						{"", "", ""},
-						{"3", "3", "30"},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"", "", ""},
+							{"", "", ""},
+							{"3", "3", "30"},
+						},
 					},
 				},
 			},
@@ -279,14 +299,16 @@ func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "MallConf",
-					MaxRow: 4,
-					MaxCol: 3,
-					Rows: [][]string{
-						{"ShopID", "GoodsID", "Price"},
-						{"", "1", "10"},
-						{"", "", ""},
-						{"", "", ""},
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "Price"},
+							{"", "1", "10"},
+							{"", "", ""},
+							{"", "", ""},
+						},
 					},
 				},
 			},
@@ -325,13 +347,15 @@ func TestParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "RewardConf",
-					MaxRow: 3,
-					MaxCol: 5,
-					Rows: [][]string{
-						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
-						{"1", "1", "10", "2", "20"},
-						{"2", "1", "10", "2", "20"},
+					Name: "RewardConf",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+							{"1", "1", "10", "2", "20"},
+							{"2", "1", "10", "2", "20"},
+						},
 					},
 				},
 			},
@@ -342,13 +366,15 @@ func TestParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "RewardConf",
-					MaxRow: 3,
-					MaxCol: 5,
-					Rows: [][]string{
-						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
-						{"1", "1", "10", "1", "20"},
-						{"2", "1", "10", "2", "20"},
+					Name: "RewardConf",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+							{"1", "1", "10", "1", "20"},
+							{"2", "1", "10", "2", "20"},
+						},
 					},
 				},
 			},
@@ -388,13 +414,15 @@ func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "RewardConf",
-					MaxRow: 3,
-					MaxCol: 5,
-					Rows: [][]string{
-						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
-						{"1", "1", "10", "2", "20"},
-						{"2", "1", "10", "2", "20"},
+					Name: "RewardConf",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+							{"1", "1", "10", "2", "20"},
+							{"2", "1", "10", "2", "20"},
+						},
 					},
 				},
 			},
@@ -405,13 +433,15 @@ func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "RewardConf",
-					MaxRow: 3,
-					MaxCol: 5,
-					Rows: [][]string{
-						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
-						{"1", "1", "10", "", "20"},
-						{"2", "1", "10", "2", "20"},
+					Name: "RewardConf",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+							{"1", "1", "10", "", "20"},
+							{"2", "1", "10", "2", "20"},
+						},
 					},
 				},
 			},
@@ -422,13 +452,15 @@ func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
 			parser: testParser,
 			args: args{
 				sheet: &book.Sheet{
-					Name:   "RewardConf",
-					MaxRow: 3,
-					MaxCol: 7,
-					Rows: [][]string{
-						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num", "Item3ID", "Item3Num"},
-						{"1", "1", "10", "", "20", "", "30"},
-						{"2", "1", "10", "2", "20", "3", "30"},
+					Name: "RewardConf",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 7,
+						Rows: [][]string{
+							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num", "Item3ID", "Item3Num"},
+							{"1", "1", "10", "", "20", "", "30"},
+							{"2", "1", "10", "2", "20", "3", "30"},
+						},
 					},
 				},
 			},

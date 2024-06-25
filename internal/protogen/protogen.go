@@ -470,7 +470,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		}
 		// transpose or not
 		if sheet.Meta.Transpose {
-			for row := 0; row < sheet.MaxRow; row++ {
+			for row := 0; row < sheet.Table.MaxRow; row++ {
 				nameCol := int(sheet.Meta.Namerow) - 1
 				nameCell, err := sheet.Cell(row, nameCol)
 				if err != nil {

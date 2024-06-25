@@ -53,15 +53,17 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
 				ws:   &tableaupb.Worksheet{},
 				sheet: &book.Sheet{
-					Name:   "ItemType",
-					MaxRow: 3,
-					MaxCol: 4,
-					Rows: [][]string{
-						{"Number", "Name", "Alias"},
-						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-						{"1", "ITEM_TYPE_FRUIT", "Fruit"},
-						{"2", "ITEM_TYPE_EQUIP", "Equip"},
-						{"3", "ITEM_TYPE_BOX", "Box"},
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"3", "ITEM_TYPE_BOX", "Box"},
+						},
 					},
 				},
 			},
@@ -74,14 +76,16 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
 				ws:   &tableaupb.Worksheet{},
 				sheet: &book.Sheet{
-					Name:   "ItemType",
-					MaxRow: 3,
-					MaxCol: 2,
-					Rows: [][]string{
-						{"Name", "Type"},
-						{"ID", "uint32"},
-						{"Prop", "map<int32, string>"},
-						{"Feature", "[]int32"},
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 2,
+						Rows: [][]string{
+							{"Name", "Type"},
+							{"ID", "uint32"},
+							{"Prop", "map<int32, string>"},
+							{"Feature", "[]int32"},
+						},
 					},
 				},
 			},
@@ -94,13 +98,15 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
 				ws:   &tableaupb.Worksheet{},
 				sheet: &book.Sheet{
-					Name:   "ItemType",
-					MaxRow: 3,
-					MaxCol: 5,
-					Rows: [][]string{
-						{"Name", "Alias", "Field1", "Field2", "Field3"},
-						{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
-						{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"Name", "Alias", "Field1", "Field2", "Field3"},
+							{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
+							{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+						},
 					},
 				},
 			},
@@ -135,15 +141,17 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
 				sheet: &book.Sheet{
-					Name:   "ItemType",
-					MaxRow: 3,
-					MaxCol: 4,
-					Rows: [][]string{
-						{"Number", "Name", "Alias"},
-						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-						{"1", "ITEM_TYPE_FRUIT", "Fruit"},
-						{"2", "ITEM_TYPE_EQUIP", "Equip"},
-						{"3", "ITEM_TYPE_BOX", "Box"},
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"3", "ITEM_TYPE_BOX", "Box"},
+						},
 					},
 				},
 				typeName:       "ItemType",
@@ -157,14 +165,16 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
 				sheet: &book.Sheet{
-					Name:   "TaskReward",
-					MaxRow: 3,
-					MaxCol: 2,
-					Rows: [][]string{
-						{"Name", "Type"},
-						{"ID", "uint32"},
-						{"Prop", "map<int32, string>"},
-						{"Feature", "[]int32"},
+					Name: "TaskReward",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 2,
+						Rows: [][]string{
+							{"Name", "Type"},
+							{"ID", "uint32"},
+							{"Prop", "map<int32, string>"},
+							{"Feature", "[]int32"},
+						},
 					},
 				},
 				typeName:       "TaskReward",
@@ -178,13 +188,15 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
 				sheet: &book.Sheet{
-					Name:   "TaskTarget",
-					MaxRow: 3,
-					MaxCol: 5,
-					Rows: [][]string{
-						{"Name", "Alias", "Field1", "Field2", "Field3"},
-						{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
-						{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+					Name: "TaskTarget",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"Name", "Alias", "Field1", "Field2", "Field3"},
+							{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
+							{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+						},
 					},
 				},
 				typeName:       "TaskTarget",
