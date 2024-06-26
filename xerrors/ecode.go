@@ -16,11 +16,12 @@ func E0001(sheetName, bookName string) error {
 }
 
 // E0002: cannot unmarshal file content to given proto.Message.
-func E0002(filename, messageName, errstr string) error {
+func E0002(filename, messageName, errstr string, lines string) error {
 	return renderEcode("E0002", map[string]any{
 		"Filename":    filename,
 		"MessageName": messageName,
 		"Error":       errstr,
+		"Lines":       lines,
 	})
 }
 

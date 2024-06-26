@@ -4,7 +4,7 @@ E0001:
   text: sheet "{{.SheetName}}" not found in book "{{.BookName}}"
 E0002:
   desc: cannot unmarshal file content to given proto.Message
-  text: 'failed to unmarshal file "{{.Filename}}" to message "{{.MessageName}}": {{.Error}}'
+  text: 'failed to unmarshal file "{{.Filename}}" to message "{{.MessageName}}": {{.Error}}{{.Lines}}'
   help: check the file content format is correct
 # [1000, 1999]: protogen error
 E1000:
