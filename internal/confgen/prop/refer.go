@@ -188,7 +188,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 			foundColumn := -1
 			nameRow := int(sheetOpts.Namerow) - 1
 			for col := 0; col < sheet.Table.MaxRow; col++ {
-				nameCell, err := sheet.Cell(nameRow, col)
+				nameCell, err := sheet.Table.Cell(nameRow, col)
 				if err != nil {
 					return nil, xerrors.WrapKV(err)
 				}
@@ -202,7 +202,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 				return nil, xerrors.E2015(referInfo.Column, bookName, sheetName)
 			}
 			for row := int(sheetOpts.Datarow) - 1; row < sheet.Table.MaxRow; row++ {
-				data, err := sheet.Cell(row, foundColumn)
+				data, err := sheet.Table.Cell(row, foundColumn)
 				if err != nil {
 					return nil, xerrors.WrapKV(err)
 				}

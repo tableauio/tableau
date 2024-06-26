@@ -259,7 +259,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 			curr := book.NewRowCells(col, prev, sheet.Name)
 			for row := 0; row < sheet.Table.MaxRow; row++ {
 				if col == int(sp.opts.Datarow)-1 {
-					nameCell, err := sheet.Cell(row, nameCol)
+					nameCell, err := sheet.Table.Cell(row, nameCol)
 					if err != nil {
 						return xerrors.WrapKV(err)
 					}
@@ -267,7 +267,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 
 					if sp.opts.Typerow > 0 {
 						// if typerow is set!
-						typeCell, err := sheet.Cell(row, typeCol)
+						typeCell, err := sheet.Table.Cell(row, typeCol)
 						if err != nil {
 							return xerrors.WrapKV(err)
 						}
@@ -275,7 +275,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 					}
 				}
 
-				data, err := sheet.Cell(row, col)
+				data, err := sheet.Table.Cell(row, col)
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
@@ -306,7 +306,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 			curr := book.NewRowCells(row, prev, sheet.Name)
 			for col := 0; col < sheet.Table.MaxCol; col++ {
 				if row == int(sp.opts.Datarow)-1 {
-					nameCell, err := sheet.Cell(nameRow, col)
+					nameCell, err := sheet.Table.Cell(nameRow, col)
 					if err != nil {
 						return xerrors.WrapKV(err)
 					}
@@ -314,7 +314,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 
 					if sp.opts.Typerow > 0 {
 						// if typerow is set!
-						typeCell, err := sheet.Cell(typeRow, col)
+						typeCell, err := sheet.Table.Cell(typeRow, col)
 						if err != nil {
 							return xerrors.WrapKV(err)
 						}
@@ -322,7 +322,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 					}
 				}
 
-				data, err := sheet.Cell(row, col)
+				data, err := sheet.Table.Cell(row, col)
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}

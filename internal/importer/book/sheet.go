@@ -34,18 +34,14 @@ type SheetParser interface {
 
 type Sheet struct {
 	Name string
-
-	// flat table
-	// TODO: encapsulate into a standalone `type Table struct`
-	// MaxRow int
-	// MaxCol int
-	// Rows   [][]string // 2D array of strings.
-
-	// flat table
+	// Table represents data structure of 2D flat table formats.
+	// E.g.: Excel, CSV.
 	Table *Table
-	// tree document
+	// Document represents data structure of tree document formats.
+	// E.g.: XML, YAML.
 	Document *Node
-
+	// Meta represents sheet's metadata, containing sheet’s layout,
+	// parser options, loader options, and so on.
 	Meta *tableaupb.Metasheet
 }
 
@@ -74,17 +70,6 @@ func (s *Sheet) ParseMetasheet(parser SheetParser) (*tableaupb.Metabook, error) 
 		}
 	}
 	return metabook, nil
-}
-
-// GetRow returns the row data by row index (started with 0). If not found,
-// then returns nil.
-func (s *Sheet) GetRow(row int) []string {
-	return s.Table.GetRow(row)
-}
-
-// Cell returns the cell at (row, col).
-func (s *Sheet) Cell(row, col int) (string, error) {
-	return s.Table.Cell(row, col)
 }
 
 // String returns the string representation of the Sheet, mainly

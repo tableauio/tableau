@@ -36,8 +36,8 @@ func NewTable(rows [][]string) *Table {
 	}
 }
 
-// GetRow returns the row data by row index (started with 0). If not found,
-// then returns nil.
+// GetRow returns the row data by row index (started with 0). It will returns
+// nil if not found,
 func (t *Table) GetRow(row int) []string {
 	if row >= len(t.Rows) {
 		return nil
@@ -60,6 +60,7 @@ func (t *Table) Cell(row, col int) (string, error) {
 	return t.Rows[row][col], nil
 }
 
+// String converts Table to CSV string. It is mainly used for debugging.
 func (t *Table) String() string {
 	var buffer bytes.Buffer
 	w := csv.NewWriter(&buffer)
@@ -70,6 +71,7 @@ func (t *Table) String() string {
 	return buffer.String()
 }
 
+// ExportCSV exports Table to writer in CSV format.
 func (t *Table) ExportCSV(writer io.Writer) error {
 	w := csv.NewWriter(writer)
 	// FIXME(wenchy): will be something wrong if we add the empty cell?
@@ -85,6 +87,7 @@ func (t *Table) ExportCSV(writer io.Writer) error {
 	return w.WriteAll(t.Rows) // calls Flush internally
 }
 
+// ExportExcel exports Table to excel sheet.
 func (t *Table) ExportExcel(file *excelize.File, sheetName string) error {
 	file.NewSheet(sheetName)
 	// TODO: clean up the sheet by using RemoveRow API.
