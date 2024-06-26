@@ -464,7 +464,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			Name:   sheetMsgName,
 		}
 
-		shHeader := &sheetHeader{
+		shHeader := &tableHeader{
 			meta:       sheet.Meta,
 			validNames: map[string]int{},
 		}
@@ -665,7 +665,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			return errors.WithMessagef(err, "failed to parse struct type sheet: %s", sheet.Name)
 		}
 		bp := newBookParser("struct", "", gen)
-		shHeader := &sheetHeader{
+		shHeader := &tableHeader{
 			meta: &tableaupb.Metasheet{
 				Namerow: 1,
 				Typerow: 2,
@@ -709,7 +709,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			// create a book parser
 			bp := newBookParser("union", "", gen)
 
-			shHeader := &sheetHeader{
+			shHeader := &tableHeader{
 				meta: &tableaupb.Metasheet{
 					Namerow:  1,
 					Typerow:  1,

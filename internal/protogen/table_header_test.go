@@ -6,10 +6,10 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
-var testSheetHeader *sheetHeader
+var testSheetHeader *tableHeader
 
 func init() {
-	testSheetHeader = &sheetHeader{
+	testSheetHeader = &tableHeader{
 		meta: &tableaupb.Metasheet{
 			Namerow: 1,
 			Typerow: 2,
@@ -22,7 +22,7 @@ func init() {
 	}
 }
 
-func Test_sheetHeader_getValidNameCell(t *testing.T) {
+func Test_tableHeader_getValidNameCell(t *testing.T) {
 	cursor1 := 1
 	cursor2 := 2
 	type args struct {
@@ -30,7 +30,7 @@ func Test_sheetHeader_getValidNameCell(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		sh   *sheetHeader
+		sh   *tableHeader
 		args args
 		want string
 	}{
@@ -54,19 +54,19 @@ func Test_sheetHeader_getValidNameCell(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.sh.getValidNameCell(tt.args.cursor); got != tt.want {
-				t.Errorf("sheetHeader.getValidNameCell() = %v, want %v", got, tt.want)
+				t.Errorf("tableHeader.getValidNameCell() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_sheetHeader_getNameCell(t *testing.T) {
+func Test_tableHeader_getNameCell(t *testing.T) {
 	type args struct {
 		cursor int
 	}
 	tests := []struct {
 		name string
-		sh   *sheetHeader
+		sh   *tableHeader
 		args args
 		want string
 	}{
@@ -82,19 +82,19 @@ func Test_sheetHeader_getNameCell(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.sh.getNameCell(tt.args.cursor); got != tt.want {
-				t.Errorf("sheetHeader.getNameCell() = %v, want %v", got, tt.want)
+				t.Errorf("tableHeader.getNameCell() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_sheetHeader_getTypeCell(t *testing.T) {
+func Test_tableHeader_getTypeCell(t *testing.T) {
 	type args struct {
 		cursor int
 	}
 	tests := []struct {
 		name string
-		sh   *sheetHeader
+		sh   *tableHeader
 		args args
 		want string
 	}{
@@ -110,19 +110,19 @@ func Test_sheetHeader_getTypeCell(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.sh.getTypeCell(tt.args.cursor); got != tt.want {
-				t.Errorf("sheetHeader.getTypeCell() = %v, want %v", got, tt.want)
+				t.Errorf("tableHeader.getTypeCell() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_sheetHeader_getNoteCell(t *testing.T) {
+func Test_tableHeader_getNoteCell(t *testing.T) {
 	type args struct {
 		cursor int
 	}
 	tests := []struct {
 		name string
-		sh   *sheetHeader
+		sh   *tableHeader
 		args args
 		want string
 	}{
@@ -138,7 +138,7 @@ func Test_sheetHeader_getNoteCell(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.sh.getNoteCell(tt.args.cursor); got != tt.want {
-				t.Errorf("sheetHeader.getNoteCell() = %v, want %v", got, tt.want)
+				t.Errorf("tableHeader.getNoteCell() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -192,8 +192,8 @@ func Test_getCell(t *testing.T) {
 	}
 }
 
-func Test_sheetHeader_checkNameConflicts(t *testing.T) {
-	testSheetHeader := &sheetHeader{
+func Test_tableHeader_checkNameConflicts(t *testing.T) {
+	testSheetHeader := &tableHeader{
 		meta: &tableaupb.Metasheet{
 			Namerow: 1,
 			Typerow: 2,
@@ -207,7 +207,7 @@ func Test_sheetHeader_checkNameConflicts(t *testing.T) {
 		},
 	}
 
-	testTransposeSheetHeader := &sheetHeader{
+	testTransposeSheetHeader := &tableHeader{
 		meta: &tableaupb.Metasheet{
 			Namerow:   1,
 			Typerow:   2,
@@ -228,7 +228,7 @@ func Test_sheetHeader_checkNameConflicts(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		sh      *sheetHeader
+		sh      *tableHeader
 		args    args
 		wantErr bool
 	}{
@@ -263,7 +263,7 @@ func Test_sheetHeader_checkNameConflicts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.sh.checkNameConflicts(tt.args.name, tt.args.cursor); (err != nil) != tt.wantErr {
-				t.Errorf("sheetHeader.checkNameConflicts() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("tableHeader.checkNameConflicts() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
