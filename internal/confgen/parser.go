@@ -250,16 +250,16 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 		// namerow: name column
 		// [datarow, MaxCol]: data column
 		// kvRow := make(map[string]string)
-		sp.names = make([]string, sheet.MaxRow)
-		sp.types = make([]string, sheet.MaxRow)
+		sp.names = make([]string, sheet.Table.MaxRow)
+		sp.types = make([]string, sheet.Table.MaxRow)
 		nameCol := int(sp.opts.Namerow) - 1
 		typeCol := int(sp.opts.Typerow) - 1
 		var prev *book.RowCells
-		for col := int(sp.opts.Datarow) - 1; col < sheet.MaxCol; col++ {
+		for col := int(sp.opts.Datarow) - 1; col < sheet.Table.MaxCol; col++ {
 			curr := book.NewRowCells(col, prev, sheet.Name)
-			for row := 0; row < sheet.MaxRow; row++ {
+			for row := 0; row < sheet.Table.MaxRow; row++ {
 				if col == int(sp.opts.Datarow)-1 {
-					nameCell, err := sheet.Cell(row, nameCol)
+					nameCell, err := sheet.Table.Cell(row, nameCol)
 					if err != nil {
 						return xerrors.WrapKV(err)
 					}
@@ -267,7 +267,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 
 					if sp.opts.Typerow > 0 {
 						// if typerow is set!
-						typeCell, err := sheet.Cell(row, typeCol)
+						typeCell, err := sheet.Table.Cell(row, typeCol)
 						if err != nil {
 							return xerrors.WrapKV(err)
 						}
@@ -275,7 +275,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 					}
 				}
 
-				data, err := sheet.Cell(row, col)
+				data, err := sheet.Table.Cell(row, col)
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
@@ -297,16 +297,16 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 	} else {
 		// namerow: name row
 		// [datarow, MaxRow]: data row
-		sp.names = make([]string, sheet.MaxCol)
-		sp.types = make([]string, sheet.MaxCol)
+		sp.names = make([]string, sheet.Table.MaxCol)
+		sp.types = make([]string, sheet.Table.MaxCol)
 		nameRow := int(sp.opts.Namerow) - 1
 		typeRow := int(sp.opts.Typerow) - 1
 		var prev *book.RowCells
-		for row := int(sp.opts.Datarow) - 1; row < sheet.MaxRow; row++ {
+		for row := int(sp.opts.Datarow) - 1; row < sheet.Table.MaxRow; row++ {
 			curr := book.NewRowCells(row, prev, sheet.Name)
-			for col := 0; col < sheet.MaxCol; col++ {
+			for col := 0; col < sheet.Table.MaxCol; col++ {
 				if row == int(sp.opts.Datarow)-1 {
-					nameCell, err := sheet.Cell(nameRow, col)
+					nameCell, err := sheet.Table.Cell(nameRow, col)
 					if err != nil {
 						return xerrors.WrapKV(err)
 					}
@@ -314,7 +314,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 
 					if sp.opts.Typerow > 0 {
 						// if typerow is set!
-						typeCell, err := sheet.Cell(typeRow, col)
+						typeCell, err := sheet.Table.Cell(typeRow, col)
 						if err != nil {
 							return xerrors.WrapKV(err)
 						}
@@ -322,7 +322,7 @@ func (sp *sheetParser) parseTable(protomsg proto.Message, sheet *book.Sheet) err
 					}
 				}
 
-				data, err := sheet.Cell(row, col)
+				data, err := sheet.Table.Cell(row, col)
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}

@@ -1,95 +1,95 @@
 # [0001, 0999]: common error
 E0001:
-  desc: Sheet not found in book.
-  text: 工作表 "{{.SheetName}}" 在工作簿 "{{.BookName}}" 中未找到。
+  desc: sheet not found in book
+  text: 工作表 "{{.SheetName}}" 在工作簿 "{{.BookName}}" 中未找到
 E0002:
-  desc: Cannot unmarshal file content to given proto.Message.
-  text: '无法将"{{.Filename}}"的文件内容反序列化到Protobuf消息"{{.MessageName}}": {{.Error}}。'
-  help: 检查文件内容格式是否正确。
+  desc: cannot unmarshal file content to given proto.Message
+  text: '无法将"{{.Filename}}"的文件内容反序列化到Protobuf消息"{{.MessageName}}": {{.Error}}{{.Lines}}'
+  help: 检查文件内容格式是否正确
 # [1000, 1999]: protogen error
 E1000:
-  desc: Column name conflicts in name row.
-  text: '"{{.Position1}}" 和 "{{.Position2}}" 存在相同的列名 "{{.Name}}"。'
-  help: 修改冲突的列名，以确保唯一性。
+  desc: column name conflicts in name row
+  text: '"{{.Position1}}" 和 "{{.Position2}}" 存在相同的列名 "{{.Name}}"'
+  help: 修改冲突的列名，以确保唯一性
 # [2000, 2999]: confgen error
 E2000:
-  desc: Integer overflow.
-  text: '整数 "{{.Value}}" 溢出，不在类型 {{.Type}} 的值域范围：[{{.Min}},{{.Max}}]。'
-  help: 请检查配置的整数，确保不要溢出。
+  desc: integer overflow
+  text: '整数 "{{.Value}}" 溢出，不在类型 {{.Type}} 的值域范围：[{{.Min}},{{.Max}}]'
+  help: 请检查配置的整数，确保不要溢出
 E2001:
-  desc: Field prop "refer" not configured correctly.
-  text: 解析refer值空间校验 "{{.Refer}}" 时，找不到对应工作表 "{{.MessageName}}"。
-  help: '尝试加上sheet别名, 格式: "SheetName(SheetAlias).ColumnName"。'
+  desc: field prop "refer" not configured correctly
+  text: 解析refer值空间校验 "{{.Refer}}" 时，找不到对应工作表 "{{.MessageName}}"
+  help: '尝试加上sheet别名, 格式: "SheetName(SheetAlias).ColumnName"'
 E2002:
-  desc: Field value not in referred space.
-  text: 值 "{{.Value}}" 不在 "{{.Refer}}" 所指定的值空间中。
-  help: 请确保在 "{{.Refer}}" 所指定的值空间中提前配置好值 "{{.Value}}"。
+  desc: field value not in referred space
+  text: 值 "{{.Value}}" 不在 "{{.Refer}}" 所指定的值空间中
+  help: 请确保在 "{{.Refer}}" 所指定的值空间中提前配置好值 "{{.Value}}"
 E2003:
-  desc: Illegal sequence number.
-  text: '值 "{{.Value}}" 不符合序列 "sequence:{{.Sequence}}" 要求。'
-  help: '序列 "sequence:{{.Sequence}}" 要求值从 "{{.Sequence}}" 开始单调递增。'
+  desc: illegal sequence number
+  text: '值 "{{.Value}}" 不符合序列 "sequence:{{.Sequence}}" 要求'
+  help: '序列 "sequence:{{.Sequence}}" 要求值从 "{{.Sequence}}" 开始单调递增'
 E2004:
-  desc: Value is out of range.
-  text: '值 "{{.Value}}" 超出限制的区间 [{{.Range}}]。'
-  help: 修改值使其在限制的区间内。
+  desc: value is out of range
+  text: '值 "{{.Value}}" 超出限制的区间 [{{.Range}}]'
+  help: 修改值使其在限制的区间内
 E2005:
-  desc: Map key not unique.
-  text: Map的key "{{.Key}}" 已存在。
-  help: 此处map的key要保证唯一性, 不允许重复配置相同key。
+  desc: map key not unique
+  text: map的key "{{.Key}}" 已存在
+  help: 此处map的key要保证唯一性, 不允许重复配置相同key
 E2006:
-  desc: Enum value not defined in enum type.
-  text: Enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义。
-  help: 将 enum 值 "{{.Value}}" 添加到 enum 类型 "{{.EnumName}}" 定义中。
+  desc: enum value not defined in enum type
+  text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
+  help: 将 enum 值 "{{.Value}}" 添加到 enum 类型 "{{.EnumName}}" 定义中
 E2007:
-  desc: Invalid datetime format.
-  text: '"{{.Value}}" 是无效的日期时间(datetime)格式, {{.Error}}。'
-  help: '请遵循日期时间(datetime)格式: "yyyy-MM-dd HH:mm:ss", 示例: "2020-01-01 01:00:00"。'
+  desc: invalid datetime format
+  text: '"{{.Value}}" 是无效的日期时间(datetime)格式, {{.Error}}'
+  help: '请遵循日期时间(datetime)格式: "yyyy-MM-dd HH:mm:ss", 示例: "2020-01-01 01:00:00"'
 E2008:
-  desc: Invalid duration format.
-  text: '"{{.Value}}" 是无效的时间段(duration)格式, {{.Error}}。'
-  help: '请遵循时间段(duration)格式，以 "72h3m0.5s" 形式来配置。'
+  desc: invalid duration format
+  text: '"{{.Value}}" 是无效的时间段(duration)格式, {{.Error}}'
+  help: '请遵循时间段(duration)格式，以 "72h3m0.5s" 形式来配置'
 E2009:
-  desc: Duplicate key exists in different sheets.
-  text: '字段 {{.FieldName}} 在配置表合表时，存在重复的键 "{{.Key}}"。'
-  help: "合表时，不同的表不允许配置重复的键。"
+  desc: duplicate key exists in different sheets
+  text: '字段 {{.FieldName}} 在配置表合表时，存在重复的键 "{{.Key}}"'
+  help: "合表时，不同的表不允许配置重复的键"
 E2010:
-  desc: Union type has no corresponding value field.
-  text: 'Union 类型"{{.TypeValue}}"找不到 field number 为"{{.FieldNumber}}"的对应 value 字段。'
-  help: '新增 union value field 并绑定到类型"{{.TypeValue}}"。'
+  desc: union type has no corresponding value field
+  text: 'union 类型"{{.TypeValue}}"找不到 field number 为"{{.FieldNumber}}"的对应 value 字段'
+  help: '新增 union value field 并绑定到类型"{{.TypeValue}}"'
 E2011:
-  desc: Field presence required but cell not filled.
-  text: 单元格数据未被显式填充。
-  help: 请显式填充单元格数据。
+  desc: field presence required but cell not filled
+  text: 单元格数据未被显式填充
+  help: 请显式填充单元格数据
 E2012:
-  desc: Invalid syntax of numerical value.
-  text: 无法将 "{{.Value}}" 解析为数值类型 "{{.FieldType}}", {{.Error}}。
-  help: '请依据类型 "{{.FieldType}}" 填充合法的数值; int32/int64: 32/64位整数, uint32/uint64: 32/64位正整数, float32/float64: 32/64位浮点数。'
+  desc: invalid syntax of numerical value
+  text: 无法将 "{{.Value}}" 解析为数值类型 "{{.FieldType}}", {{.Error}}
+  help: '请依据类型 "{{.FieldType}}" 填充合法的数值; int32/int64: 32/64位整数, uint32/uint64: 32/64位正整数, float32/float64: 32/64位浮点数'
 E2013:
-  desc: Invalid syntax of boolean value.
-  text: 无法将 "{{.Value}}" 解析为布尔类型, {{.Error}}。
-  help: "布尔值可以为: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False。"
+  desc: invalid syntax of boolean value
+  text: 无法将 "{{.Value}}" 解析为布尔类型, {{.Error}}
+  help: "布尔值可以为: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
 E2014:
-  desc: Sheet column not found.
-  text: 未找到工作表的列 "{{.Column}}"。
-  help: 新增工作表的列 "{{.Column}}"。
+  desc: sheet column not found
+  text: 未找到工作表的列 "{{.Column}}"
+  help: 新增工作表的列 "{{.Column}}"
 E2015:
-  desc: Referred sheet column not found.
-  text: 在工作簿 "{{.BookName}}" 的工作表 "{{.SheetName}}" 中未找到外键对应的列 "{{.Column}}"。
-  help: 修改字段属性 "refer", 或新增外键的列 "{{.Column}}"。
+  desc: referred sheet column not found
+  text: 在工作簿 "{{.BookName}}" 的工作表 "{{.SheetName}}" 中未找到外键对应的列 "{{.Column}}"
+  help: 修改字段属性 "refer", 或新增外键的列 "{{.Column}}"
 E2016:
-  desc: List elements are not present continuously.
-  text: 数组第{{.FirstNonePresentIndex}}个元素为空, 但后续第{{.NextPresentIndex}}个元素却非空。
-  help: 请确保数组出现首个空元素时, 后续所有元素都为空。
+  desc: list elements are not present continuously
+  text: 数组第{{.FirstNonePresentIndex}}个元素为空, 但后续第{{.NextPresentIndex}}个元素却非空
+  help: 请确保数组出现首个空元素时, 后续所有元素都为空
 E2017:
-  desc: Map contains multiple empty keys.
-  text: '"{{.MapType}}" 存在多个空值key。'
-  help: 请确保map中最多仅有一个空值key，如果确实需要多个key为零值，请显式填充。
+  desc: map contains multiple empty keys
+  text: '"{{.MapType}}" 存在多个空值key'
+  help: 请确保map中最多仅有一个空值key，如果确实需要多个key为零值，请显式填充
 # [3000, 3999]: importer error
 E3000:
-  desc: No workbook file found about sheet specifier.
-  text: 解析工作表指示器 "{{.SheetSpecifier}}" 时, 模式 "{{.Pattern}}" 找不到工作簿文件。
-  help: 确保工作表指示器格式输入合法 "<BookNameGlob>[#SheetName]"。
+  desc: no workbook file found about sheet specifier
+  text: 解析工作表指示器 "{{.SheetSpecifier}}" 时, 模式 "{{.Pattern}}" 找不到工作簿文件
+  help: 确保工作表指示器格式输入合法 "<BookNameGlob>[#SheetName]"
 E3001:
-  desc: No worksheet found in workbook.
-  text: 工作簿 "{{.BookName}}" 中不存在工作表 "{{.SheetName}}"。
-  help: 将合适的工作表 "{{.SheetName}}" 添加到工作簿 "{{.BookName}}"。
+  desc: no worksheet found in workbook
+  text: 工作簿 "{{.BookName}}" 中不存在工作表 "{{.SheetName}}"
+  help: 将合适的工作表 "{{.SheetName}}" 添加到工作簿 "{{.BookName}}"

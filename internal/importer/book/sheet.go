@@ -2,15 +2,9 @@ package book
 
 import (
 	"bytes"
-	"encoding/csv"
-	"io"
-	"log"
-	"math"
 
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
-	"github.com/xuri/excelize/v2"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -40,36 +34,22 @@ type SheetParser interface {
 
 type Sheet struct {
 	Name string
-
-	// flat table
-	// TODO: encapsulate into a standalone `type Table struct`
-	MaxRow int
-	MaxCol int
-	Rows   [][]string // 2D array of strings.
-
-	// tree document
+	// Table represents data structure of 2D flat table formats.
+	// E.g.: Excel, CSV.
+	Table *Table
+	// Document represents data structure of tree document formats.
+	// E.g.: XML, YAML.
 	Document *Node
-
+	// Meta represents sheet's metadata, containing sheet’s layout,
+	// parser options, loader options, and so on.
 	Meta *tableaupb.Metasheet
 }
 
-// NewSheet creats a new Sheet.
-func NewSheet(name string, rows [][]string) *Sheet {
-	maxRow := len(rows)
-	maxCol := 0
-	// MOTE: different row may have different length.
-	// We need to find the max col.
-	for _, row := range rows {
-		n := len(row)
-		if n > maxCol {
-			maxCol = n
-		}
-	}
+// NewTableSheet creates a new Sheet with a table.
+func NewTableSheet(name string, rows [][]string) *Sheet {
 	return &Sheet{
-		Name:   name,
-		MaxRow: maxRow,
-		MaxCol: maxCol,
-		Rows:   rows,
+		Name:  name,
+		Table: NewTable(rows),
 	}
 }
 
@@ -81,60 +61,15 @@ func NewDocumentSheet(name string, doc *Node) *Sheet {
 	}
 }
 
-// ExtendSheet extends an existing Sheet.
-func ExtendSheet(sheet *Sheet, rows [][]string) {
-	maxRow := len(rows)
-	maxCol := 0
-	// MOTE: different row may have different length.
-	// We need to find the max col.
-	for _, row := range rows {
-		n := len(row)
-		if n > maxCol {
-			maxCol = n
-		}
-	}
-	sheet = &Sheet{
-		Name:   sheet.Name,
-		MaxRow: sheet.MaxRow + maxRow,
-		MaxCol: int(math.Max(float64(sheet.MaxCol), float64(maxCol))),
-		Rows:   append(sheet.Rows, rows...),
-		Meta:   sheet.Meta,
-	}
-}
-
 // ParseMetasheet parses a sheet to Metabook by the specified parser.
 func (s *Sheet) ParseMetasheet(parser SheetParser) (*tableaupb.Metabook, error) {
 	metabook := &tableaupb.Metabook{}
-	if s.Document != nil || s.MaxRow > 1 {
+	if s.Document != nil || (s.Table != nil && s.Table.MaxRow > 1) {
 		if err := parser.Parse(metabook, s); err != nil {
 			return nil, errors.WithMessagef(err, "failed to parse metasheet")
 		}
 	}
 	return metabook, nil
-}
-
-// GetRow returns the row data by row index (started with 0). If not found,
-// then returns nil.
-func (s *Sheet) GetRow(row int) []string {
-	if row >= len(s.Rows) {
-		return nil
-	}
-	return s.Rows[row]
-}
-
-// Cell returns the cell at (row, col).
-func (s *Sheet) Cell(row, col int) (string, error) {
-	if row < 0 || row >= s.MaxRow {
-		return "", xerrors.Errorf("cell row %d out of range", row)
-	}
-	if col < 0 || col >= s.MaxCol {
-		return "", xerrors.Errorf("cell col %d out of range", col)
-	}
-	// MOTE: different row may have different length.
-	if col >= len(s.Rows[row]) {
-		return "", nil
-	}
-	return s.Rows[row][col], nil
 }
 
 // String returns the string representation of the Sheet, mainly
@@ -147,56 +82,11 @@ func (s *Sheet) String() string {
 		var buffer bytes.Buffer
 		dumpNode(s.Document, DocumentNode, &buffer, 0)
 		return buffer.String()
+	} else if s.Table != nil {
+		return s.Table.String()
+	} else {
+		return "empty: no table or document"
 	}
-
-	var buffer bytes.Buffer
-	w := csv.NewWriter(&buffer)
-	err := w.WriteAll(s.Rows) // calls Flush internally
-	if err != nil {
-		log.Panicf("write csv failed: %v", err)
-	}
-	return buffer.String()
-}
-
-func (s *Sheet) ExportCSV(writer io.Writer) error {
-	w := csv.NewWriter(writer)
-	// FIXME(wenchy): will be something wrong if we add the empty cell?
-	// TODO: deepcopy a new rows!
-	for nrow, row := range s.Rows {
-		for i := len(row); i < s.MaxCol; i++ {
-			// log.Debugf("add empty cell: %s", s.Name)
-			row = append(row, "")
-		}
-		s.Rows[nrow] = row
-	}
-	// TODO: escape the cell value with `,` and `"`.
-	return w.WriteAll(s.Rows) // calls Flush internally
-}
-
-func (s *Sheet) ExportExcel(file *excelize.File) error {
-	file.NewSheet(s.Name)
-	// TODO: clean up the sheet by using RemoveRow API.
-
-	for nrow, row := range s.Rows {
-		// file.SetRowHeight(s.Name, nrow, 20)
-		for ncol, cell := range row {
-			colname, err := excelize.ColumnNumberToName(ncol + 1)
-			if err != nil {
-				return errors.Wrapf(err, "failed to convert column number %d to name", ncol+1)
-			}
-			file.SetColWidth(s.Name, colname, colname, 20)
-
-			axis, err := excelize.CoordinatesToCellName(ncol+1, nrow+1)
-			if err != nil {
-				return errors.Wrapf(err, "failed to convert coordinates (%d,%d) to cell name", ncol+1, nrow+1)
-			}
-			err = file.SetCellValue(s.Name, axis, cell)
-			if err != nil {
-				return errors.Wrapf(err, "failed to set cell value %s", axis)
-			}
-		}
-	}
-	return nil
 }
 
 func MetasheetOptions() *tableaupb.WorksheetOptions {

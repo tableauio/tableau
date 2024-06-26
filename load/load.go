@@ -54,7 +54,8 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 		return errors.Errorf("unknown format: %v", fmt)
 	}
 	if unmarshalErr != nil {
-		return xerrors.E0002(path, name, unmarshalErr.Error())
+		lines := extractLinesOnUnmarshalError(unmarshalErr, fmt, content)
+		return xerrors.E0002(path, name, unmarshalErr.Error(), lines)
 	}
 	return nil
 }

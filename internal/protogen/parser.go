@@ -67,7 +67,7 @@ func (p *bookParser) GetProtoFilePath() string {
 	return genProtoFilePath(p.wb.Name, p.gen.OutputOpt.FilenameSuffix)
 }
 
-func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
+func (p *bookParser) parseField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
 	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	// log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)
@@ -112,7 +112,7 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *sheetHeader, cur
 	return cursor, true, nil
 }
 
-func (p *bookParser) parseSubField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (int, error) {
+func (p *bookParser) parseSubField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (int, error) {
 	subField := &tableaupb.Field{}
 	cursor, parsed, err := p.parseField(subField, header, cursor, prefix, options...)
 	if err != nil {
@@ -124,7 +124,7 @@ func (p *bookParser) parseSubField(field *tableaupb.Field, header *sheetHeader, 
 	return cursor, nil
 }
 
-func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
+func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
 	// refer: https://developers.google.com/protocol-buffers/docs/proto3#maps
 	//
 	//	map<key_type, value_type> map_field = N;
@@ -395,7 +395,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *sheetHeader, 
 	return cursor, nil
 }
 
-func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
+func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
 	opts := parseroptions.ParseOptions(options...)
 
 	nameCell := header.getValidNameCell(&cursor)
@@ -683,7 +683,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *sheetHeader,
 	return cursor, nil
 }
 
-func (p *bookParser) parseStructField(field *tableaupb.Field, header *sheetHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
+func (p *bookParser) parseStructField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
 	opts := parseroptions.ParseOptions(options...)
 
 	nameCell := header.getValidNameCell(&cursor)

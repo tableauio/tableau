@@ -464,38 +464,38 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			Name:   sheetMsgName,
 		}
 
-		shHeader := &sheetHeader{
+		shHeader := &tableHeader{
 			meta:       sheet.Meta,
 			validNames: map[string]int{},
 		}
 		// transpose or not
 		if sheet.Meta.Transpose {
-			for row := 0; row < sheet.MaxRow; row++ {
+			for row := 0; row < sheet.Table.MaxRow; row++ {
 				nameCol := int(sheet.Meta.Namerow) - 1
-				nameCell, err := sheet.Cell(row, nameCol)
+				nameCell, err := sheet.Table.Cell(row, nameCol)
 				if err != nil {
 					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, nameCol))
 				}
 				shHeader.namerow = append(shHeader.namerow, nameCell)
 
 				typeCol := int(sheet.Meta.Typerow) - 1
-				typeCell, err := sheet.Cell(row, typeCol)
+				typeCell, err := sheet.Table.Cell(row, typeCol)
 				if err != nil {
 					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, typeCol))
 				}
 				shHeader.typerow = append(shHeader.typerow, typeCell)
 
 				noteCol := int(sheet.Meta.Noterow) - 1
-				noteCell, err := sheet.Cell(row, noteCol)
+				noteCell, err := sheet.Table.Cell(row, noteCol)
 				if err != nil {
 					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, noteCol))
 				}
 				shHeader.noterow = append(shHeader.noterow, noteCell)
 			}
 		} else {
-			shHeader.namerow = sheet.GetRow(int(sheet.Meta.Namerow - 1))
-			shHeader.typerow = sheet.GetRow(int(sheet.Meta.Typerow - 1))
-			shHeader.noterow = sheet.GetRow(int(sheet.Meta.Noterow - 1))
+			shHeader.namerow = sheet.Table.GetRow(int(sheet.Meta.Namerow - 1))
+			shHeader.typerow = sheet.Table.GetRow(int(sheet.Meta.Typerow - 1))
+			shHeader.noterow = sheet.Table.GetRow(int(sheet.Meta.Noterow - 1))
 		}
 
 		// Two-pass flow:
@@ -665,7 +665,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			return errors.WithMessagef(err, "failed to parse struct type sheet: %s", sheet.Name)
 		}
 		bp := newBookParser("struct", "", gen)
-		shHeader := &sheetHeader{
+		shHeader := &tableHeader{
 			meta: &tableaupb.Metasheet{
 				Namerow: 1,
 				Typerow: 2,
@@ -709,7 +709,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			// create a book parser
 			bp := newBookParser("union", "", gen)
 
-			shHeader := &sheetHeader{
+			shHeader := &tableHeader{
 				meta: &tableaupb.Metasheet{
 					Namerow:  1,
 					Typerow:  1,

@@ -142,7 +142,7 @@ func (g *GeneratedBuf) String() string {
 	return g.buf.String()
 }
 
-func wrapDebugErr(err error, bookName, sheetName string, sh *sheetHeader, cursor int) error {
+func wrapDebugErr(err error, bookName, sheetName string, sh *tableHeader, cursor int) error {
 	nameCellPos := excel.Postion(int(sh.meta.Namerow-1), cursor)
 	typeCellPos := excel.Postion(int(sh.meta.Typerow-1), cursor)
 	if sh.meta.Transpose {

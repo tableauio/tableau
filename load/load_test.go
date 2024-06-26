@@ -187,3 +187,25 @@ func TestLoad(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadJSON_E0002(t *testing.T) {
+	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
+		Paths(map[string]string{
+			"ItemConf": "../testdata/unittest/invalidconf/ItemConf.json",
+		}),
+	)
+	require.Error(t, err, "should return an error")
+	desc := xerrors.NewDesc(err)
+	require.Equal(t, "E0002", desc.ErrCode())
+	t.Logf("error: %s", desc.String())
+
+	err = Load(&unittestpb.ItemConf{}, "../testdata/", format.Text,
+		Paths(map[string]string{
+			"ItemConf": "../testdata/unittest/invalidconf/ItemConf.txt",
+		}),
+	)
+	require.Error(t, err, "should return an error")
+	desc = xerrors.NewDesc(err)
+	require.Equal(t, "E0002", desc.ErrCode())
+	t.Logf("error: %s", desc.String())
+}

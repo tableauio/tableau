@@ -159,7 +159,7 @@ func Test_genProtoFilePath(t *testing.T) {
 }
 
 func Test_wrapDebugErr(t *testing.T) {
-	testTransposeSheetHeader := &sheetHeader{
+	testTransposeSheetHeader := &tableHeader{
 		meta: &tableaupb.Metasheet{
 			Namerow:   1,
 			Typerow:   2,
@@ -176,7 +176,7 @@ func Test_wrapDebugErr(t *testing.T) {
 		err       error
 		bookName  string
 		sheetName string
-		sh        *sheetHeader
+		sh        *tableHeader
 		cursor    int
 	}
 	tests := []struct {

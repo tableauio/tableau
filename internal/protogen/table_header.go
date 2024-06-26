@@ -7,7 +7,7 @@ import (
 	"github.com/tableauio/tableau/xerrors"
 )
 
-type sheetHeader struct {
+type tableHeader struct {
 	meta    *tableaupb.Metasheet
 	namerow []string
 	typerow []string
@@ -20,7 +20,7 @@ type sheetHeader struct {
 // getValidNameCell try best to get a none-empty cell, starting from
 // the specified cursor. Current and subsequent empty cells are skipped
 // to find the first none-empty name cell.
-func (sh *sheetHeader) getValidNameCell(cursor *int) string {
+func (sh *tableHeader) getValidNameCell(cursor *int) string {
 	for *cursor < len(sh.namerow) {
 		cell := getCell(sh.namerow, *cursor, sh.meta.Nameline)
 		if cell == "" {
@@ -32,19 +32,19 @@ func (sh *sheetHeader) getValidNameCell(cursor *int) string {
 	return ""
 }
 
-func (sh *sheetHeader) getNameCell(cursor int) string {
+func (sh *tableHeader) getNameCell(cursor int) string {
 	return getCell(sh.namerow, cursor, sh.meta.Nameline)
 }
 
-func (sh *sheetHeader) getTypeCell(cursor int) string {
+func (sh *tableHeader) getTypeCell(cursor int) string {
 	return getCell(sh.typerow, cursor, sh.meta.Typeline)
 }
-func (sh *sheetHeader) getNoteCell(cursor int) string {
+func (sh *tableHeader) getNoteCell(cursor int) string {
 	return getCell(sh.noterow, cursor, 1) // default note line is 1
 }
 
 // checkNameConflicts checks to keep sure each column name must be unique in name row.
-func (sh *sheetHeader) checkNameConflicts(name string, cursor int) error {
+func (sh *tableHeader) checkNameConflicts(name string, cursor int) error {
 	foundCursor, ok := sh.validNames[name]
 	if !ok {
 		sh.validNames[name] = cursor
