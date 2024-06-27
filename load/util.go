@@ -27,6 +27,8 @@ func extractLinesOnUnmarshalError(err error, f format.Format, data []byte) strin
 		line++
 		if line >= minLine && line <= maxLine {
 			lines += fmt.Sprintf("%6d\t%s\n", line, scanner.Text())
+		} else if line > maxLine {
+			break
 		}
 	}
 	return lines
