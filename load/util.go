@@ -10,10 +10,15 @@ import (
 	"github.com/tableauio/tableau/format"
 )
 
+const fileContentIsEmpty = "<file content is empty>"
+
 func extractLinesOnUnmarshalError(err error, f format.Format, data []byte) string {
 	// only JSON and text formats are supported.
 	if f != format.JSON && f != format.Text {
 		return ""
+	}
+	if len(data) == 0 {
+		return fileContentIsEmpty
 	}
 	const deltaLines = 5
 	ln, _ := extractLineAndColumn(err.Error())
