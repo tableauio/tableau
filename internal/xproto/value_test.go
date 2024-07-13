@@ -102,12 +102,22 @@ func TestParseFieldValue(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name: "int64",
+			name: "int64 max",
 			args: args{
 				fd:       int64ValueFd,
-				rawValue: "100",
+				rawValue: "9223372036854775807",
 			},
-			wantV:       pref.ValueOfInt64(100),
+			wantV:       pref.ValueOfInt64(9223372036854775807),
+			wantPresent: true,
+			wantErr:     false,
+		},
+		{
+			name: "int64 min",
+			args: args{
+				fd:       int64ValueFd,
+				rawValue: "-9223372036854775807",
+			},
+			wantV:       pref.ValueOfInt64(-9223372036854775807),
 			wantPresent: true,
 			wantErr:     false,
 		},
@@ -132,12 +142,12 @@ func TestParseFieldValue(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name: "uint64",
+			name: "uint64 max",
 			args: args{
 				fd:       uint64ValueFd,
-				rawValue: "100",
+				rawValue: "18446744073709551615 ",
 			},
-			wantV:       pref.ValueOfUint64(100),
+			wantV:       pref.ValueOfUint64(18446744073709551615 ),
 			wantPresent: true,
 			wantErr:     false,
 		},
@@ -152,7 +162,7 @@ func TestParseFieldValue(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name: "uint64 overflow > math.MaxUint32",
+			name: "uint64 overflow > math.MaxUint64",
 			args: args{
 				fd:       uint64ValueFd,
 				rawValue: fmt.Sprintf("10%d", uint64(math.MaxUint64)),

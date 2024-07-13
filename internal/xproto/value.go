@@ -97,6 +97,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		// maybe:
 		// - decimal fraction: 1.0
 		// - scientific notation: 1.0000001e7
+		//
+		// NOTE: IEEE-754 64-bit floats (float64 in Go) can only accurately
+		// represent integers in the range [-2^53,2^53].
 		val, err := strconv.ParseFloat(value, 64)
 		if val < math.MinInt32 || val > math.MaxInt32 {
 			return DefaultInt32Value, false, xerrors.E2000("int32", value, math.MinInt32, math.MaxInt32)
@@ -118,24 +121,20 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		if value == "" {
 			return DefaultInt64Value, false, nil
 		}
-		// val, err := strconv.ParseInt(value, 10, 64)
-		// Keep compatibility with excel number format.
-		val, err := strconv.ParseFloat(value, 64)
-		if val < math.MinInt64 || val > math.MaxInt64 {
-			return DefaultInt64Value, false, xerrors.E2000("int64", value, math.MinInt64, math.MaxInt64)
+		val, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return DefaultInt64Value, false, xerrors.E2012("int64", value, err)
 		}
-		return pref.ValueOfInt64(int64(val)), true, xerrors.E2012("int64", value, err)
+		return pref.ValueOfInt64(val), true, nil
 	case pref.Uint64Kind, pref.Fixed64Kind:
 		if value == "" {
 			return DefaultUint64Value, false, nil
 		}
-		// val, err := strconv.ParseUint(value, 10, 64)
-		// Keep compatibility with excel number format.
-		val, err := strconv.ParseFloat(value, 64)
-		if val < 0 || val > math.MaxUint64 {
-			return DefaultUint64Value, false, xerrors.E2000("uint64", value, 0, uint64(math.MaxUint64))
+		val, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return DefaultUint64Value, false, xerrors.E2012("uint64", value, err)
 		}
-		return pref.ValueOfUint64(uint64(val)), true, xerrors.E2012("uint64", value, err)
+		return pref.ValueOfUint64(val), true, nil
 	case pref.BoolKind:
 		if value == "" {
 			return DefaultBoolValue, false, nil
