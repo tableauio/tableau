@@ -18,7 +18,7 @@ message ListConf {
   message Parent {
     Parent2 parent_2 = 1 [(tableau.field) = {name:"Parent2"}];
     message Parent2 {
-      repeated CrossCell cross_cell_list = 1 [(tableau.field) = {name:"CrossCell" layout:LAYOUT_VERTICAL}];
+      repeated CrossCell cross_cell_list = 1 [(tableau.field) = {name:"CrossCell"}];
       message CrossCell {
         int32 value = 1 [(tableau.field) = {name:"Value"}];
         string name = 2 [(tableau.field) = {name:"Name"}];

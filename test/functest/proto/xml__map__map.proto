@@ -14,11 +14,11 @@ message MapConf {
   option (tableau.worksheet) = {name:"MapConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
 
   bool open = 1 [(tableau.field) = {name:"Open"}];
-  map<string, PreEntry> pre_entry_map = 2 [(tableau.field) = {name:"PreEntry" key:"Name" layout:LAYOUT_VERTICAL}];
+  map<string, PreEntry> pre_entry_map = 2 [(tableau.field) = {name:"PreEntry" key:"Name"}];
   message PreEntry {
     string name = 1 [(tableau.field) = {name:"Name"}];
   }
-  map<uint32, Entry> entry_map = 3 [(tableau.field) = {name:"Entry" key:"Id" layout:LAYOUT_VERTICAL}];
+  map<uint32, Entry> entry_map = 3 [(tableau.field) = {name:"Entry" key:"Id"}];
   message Entry {
     uint32 id = 1 [(tableau.field) = {name:"Id"}];
     int32 value = 2 [(tableau.field) = {name:"Value"}];
