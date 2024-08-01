@@ -11,7 +11,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"xml/metasheet/Metasheet.xml"};
 
 message MetasheetConf {
-  option (tableau.worksheet) = {name:"MetasheetConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true sep:";"};
+  option (tableau.worksheet) = {name:"MetasheetConf" sep:";"};
 
   int32 max_num = 1 [(tableau.field) = {name:"MaxNum"}];
   SepConf sep_conf = 2 [(tableau.field) = {name:"SepConf"}];
@@ -21,7 +21,7 @@ message MetasheetConf {
 }
 
 message TemplateConf {
-  option (tableau.worksheet) = {name:"TemplateConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true template:true};
+  option (tableau.worksheet) = {name:"TemplateConf" template:true};
 
   OutputType output_type = 1 [(tableau.field) = {name:"OutputType"}];
   message OutputType {

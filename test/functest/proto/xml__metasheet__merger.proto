@@ -11,7 +11,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"xml/metasheet/Merger.xml"};
 
 message MergerConf {
-  option (tableau.worksheet) = {name:"MergerConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true merger:"Merger*.xml"};
+  option (tableau.worksheet) = {name:"MergerConf" merger:"Merger*.xml"};
 
   map<int32, Fuben> fuben_map = 1 [(tableau.field) = {name:"Fuben" key:"Id"}];
   message Fuben {

@@ -11,7 +11,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"xml/map/Map.xml"};
 
 message MapConf {
-  option (tableau.worksheet) = {name:"MapConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true};
+  option (tableau.worksheet) = {name:"MapConf"};
 
   bool open = 1 [(tableau.field) = {name:"Open"}];
   map<string, PreEntry> pre_entry_map = 2 [(tableau.field) = {name:"PreEntry" key:"Name"}];
