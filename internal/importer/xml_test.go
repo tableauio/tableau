@@ -642,44 +642,41 @@ func Test_genMetasheet(t *testing.T) {
 			},
 			want: map[string]map[string]string{
 				"ServerConf": {
-					"Nested":   "true",
-					"Sheet":    "ServerConf",
-					"Sep":      "|",
-					"Namerow":  "1",
-					"Typerow":  "2",
-					"Noterow":  "3",
-					"Datarow":  "4",
-					"Nameline": "1",
-					"Typeline": "1",
+					"Sheet": "ServerConf",
+					"Sep":   "|",
 				},
 			},
 			want1: &book.Sheet{
 				Name: book.MetasheetName,
-				Table: &book.Table{
-					MaxRow: 2,
-					MaxCol: 9,
-					Rows: [][]string{
+				Document: &book.Node{
+					Kind: book.DocumentNode,
+					Name: book.MetasheetName,
+					Children: []*book.Node{
 						{
-							"Datarow",
-							"Nameline",
-							"Namerow",
-							"Nested",
-							"Noterow",
-							"Sep",
-							"Sheet",
-							"Typeline",
-							"Typerow",
-						},
-						{
-							"4",
-							"1",
-							"1",
-							"true",
-							"3",
-							"|",
-							"ServerConf",
-							"1",
-							"2",
+							Kind: book.MapNode,
+							Children: []*book.Node{
+								{
+									Kind:  book.MapNode,
+									Name:  book.KeywordSheet,
+									Value: book.MetasheetName,
+								},
+								{
+									Kind: book.MapNode,
+									Name: "ServerConf",
+									Children: []*book.Node{
+										{
+											Kind:  book.MapNode,
+											Name:  "Sheet",
+											Value: "ServerConf",
+										},
+										{
+											Kind:  book.MapNode,
+											Name:  "Sep",
+											Value: "|",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -1295,7 +1292,10 @@ func Test_genSheet(t *testing.T) {
 	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
 	xmlMeta, _ := readXMLFile(metasheet, content, newBook, Protogen)
 	xmlSheet := xmlMeta.SheetList[0]
-	if err := preprocess(xmlSheet, xmlSheet.Meta); err != nil {
+	if err := preprocessMeta(xmlSheet, xmlSheet.Meta); err != nil {
+		return
+	}
+	if err := preprocessData(xmlSheet, xmlSheet.Meta); err != nil {
 		return
 	}
 	type args struct {

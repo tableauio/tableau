@@ -125,8 +125,11 @@ func parseXML(filename string, sheetNames []string, parser book.SheetParser, mod
 	for _, xmlSheet := range xmlMeta.SheetList {
 		sheetName := xmlSheet.Meta.Name
 		// The second pass
-		if err := preprocess(xmlSheet, xmlSheet.Meta); err != nil {
-			return nil, errors.Wrapf(err, "failed to preprocess for sheet: %s", sheetName)
+		if err := preprocessMeta(xmlSheet, xmlSheet.Meta); err != nil {
+			return nil, errors.Wrapf(err, "failed to preprocessMeta for sheet: %s", sheetName)
+		}
+		if err := preprocessData(xmlSheet, xmlSheet.Data); err != nil {
+			return nil, errors.Wrapf(err, "failed to preprocessData for sheet: %s", sheetName)
 		}
 		// The third pass
 		metaSheet, dataSheet, err := genSheet(xmlSheet)
@@ -237,14 +240,6 @@ func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *bo
 		for _, attr := range n.Attr {
 			sheetMap[attr.Name.Local] = attr.Value
 		}
-		sheetMap["Nested"] = "true"
-		// use explicit settings to avoid implicit settings exception.
-		sheetMap["Namerow"] = "1"
-		sheetMap["Typerow"] = "2"
-		sheetMap["Noterow"] = "3"
-		sheetMap["Datarow"] = "4"
-		sheetMap["Nameline"] = "1"
-		sheetMap["Typeline"] = "1"
 		sheetName, ok := sheetMap["Sheet"]
 		if !ok {
 			return metasheetMap, nil, fmt.Errorf("@TABLEAU not specified sheetName by keyword `Sheet`")
@@ -569,7 +564,7 @@ func getXMLSheet(xmlMeta *tableaupb.XMLBook, sheetName string) *tableaupb.XMLShe
 // The second pass preprocesses the tree structure. In this phase the parser will do some necessary jobs
 // before generating a 2-dimensional sheet, like correctType which make the types of attributes in the
 // nodes meet the requirements of protogen.
-func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
+func preprocessMeta(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
 	// rearrange attributes
 	if err := rearrangeAttrs(node.AttrMap); err != nil {
 		return errors.Wrapf(err, "failed to rearrangeAttrs")
@@ -581,10 +576,34 @@ func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
 	// 	}
 	// }
 
-	// recursively preprocess
+	// recursively preprocessMeta
 	for _, child := range node.ChildList {
-		if err := preprocess(xmlSheet, child); err != nil {
-			return errors.Wrapf(err, "failed to preprocess node:%s", child.Name)
+		if err := preprocessMeta(xmlSheet, child); err != nil {
+			return errors.Wrapf(err, "failed to preprocessMeta node:%s", child.Name)
+		}
+	}
+	return nil
+}
+
+func preprocessData(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
+	path := node.Path
+	// read type info from meta node map
+	meta, ok := xmlSheet.MetaNodeMap[path]
+	if !ok {
+		return errors.Errorf("Node[%s] has no meta definition", path)
+	}
+	for _, attr := range meta.AttrMap.List {
+		mustFirst := isCrossCell(attr.Value)
+		if mustFirst {
+			swapAttr(node.AttrMap, int(node.AttrMap.Map[attr.Name]), 0)
+			break
+		}
+	}
+
+	// recursively preprocessData
+	for _, child := range node.ChildList {
+		if err := preprocessData(xmlSheet, child); err != nil {
+			return errors.Wrapf(err, "failed to preprocessData node:%s", child.Name)
 		}
 	}
 	return nil
