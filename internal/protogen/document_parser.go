@@ -2,6 +2,7 @@ package protogen
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
@@ -75,6 +76,8 @@ func (p *documentBookParser) parseSubField(field *tableaupb.Field, node *book.No
 func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.Node) error {
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
+	variableCell := node.GetMetaVariable()
+	keynameCell := node.GetMetaKeyname()
 	desc := types.MatchMap(typeCell)
 	parsedKeyType := desc.KeyType
 	if types.IsEnum(desc.KeyType) {
@@ -129,7 +132,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 
 		// auto add suffix "_map".
 		// field.Name = strcase.ToSnake(valueTypeDesc.Name) + mapVarSuffix
-		field.Name = strcase.ToSnake(valueTypeDesc.Name)
+		field.Name = strcase.ToSnake(variableCell)
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
@@ -139,9 +142,6 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 			ValueType:     parsedValueName,
 			ValueFullType: parsedValueFullName,
 		}
-		// auto add suffix "_map".
-		// field.Name = strcase.ToSnake(node.Name) + mapVarSuffix
-		field.Name = strcase.ToSnake(node.Name)
 		field.Options = &tableaupb.FieldOptions{
 			Name:   node.Name,
 			Layout: layout,
@@ -150,9 +150,9 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
-			field.Options.Key = book.KeywordKey
+			field.Options.Key = keynameCell
 			// 1. append key to the first value struct field
-			scalarField, err := parseField(p.parser.gen.typeInfos, book.KeywordKey, desc.KeyType+desc.Prop.RawProp())
+			scalarField, err := parseField(p.parser.gen.typeInfos, keynameCell, desc.KeyType+desc.Prop.RawProp())
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -174,7 +174,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 	// struct map
 	// auto add suffix "_map".
 	// field.Name = strcase.ToSnake(valueTypeDesc.Name) + mapVarSuffix
-	field.Name = strcase.ToSnake(valueTypeDesc.Name)
+	field.Name = strcase.ToSnake(variableCell)
 	field.Type = mapType
 	field.FullType = fullMapType
 	// For map type, Predefined indicates the ValueType of map has been defined.
@@ -184,23 +184,20 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		ValueType:     parsedValueName,
 		ValueFullType: parsedValueFullName,
 	}
-	// auto add suffix "_map".
-	// field.Name = strcase.ToSnake(node.Name) + mapVarSuffix
-	field.Name = strcase.ToSnake(node.Name)
 	field.Options = &tableaupb.FieldOptions{
 		Name: node.Name,
 		Prop: ExtractMapFieldProp(prop),
 	}
-	field.Options.Key = book.KeywordKey
+	field.Options.Key = keynameCell
 	// struct map
 	// auto append key to the first value struct field
-	scalarField, err := parseField(p.parser.gen.typeInfos, book.KeywordKey, desc.KeyType+desc.Prop.RawProp())
+	scalarField, err := parseField(p.parser.gen.typeInfos, keynameCell, desc.KeyType+desc.Prop.RawProp())
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
-	scalarField.Name = strcase.ToSnake(node.GetMetaKey())
+	scalarField.Name = strcase.ToSnake(strings.TrimPrefix(node.GetMetaKey(), book.MetaSign))
 	field.Fields = append(field.Fields, scalarField)
 	// parse other value fields
 	structNode := node.GetMetaStructNode()
@@ -220,6 +217,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.Node) error {
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
+	variableCell := node.GetMetaVariable()
 	desc := types.MatchList(typeCell)
 	prop, err := desc.Prop.FieldProp()
 	if err != nil {
@@ -252,7 +250,7 @@ func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.N
 	}
 	// auto add suffix "_list".
 	// field.Name = strcase.ToSnake(node.Name) + listVarSuffix
-	field.Name = strcase.ToSnake(node.Name)
+	field.Name = strcase.ToSnake(variableCell)
 	field.Options = &tableaupb.FieldOptions{
 		Name:   node.Name,
 		Layout: layout,
@@ -334,7 +332,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 			field.Options.Prop = ExtractStructFieldProp(prop)
 			return nil
 		}
-		
+
 		// inner cell struct
 		fieldPairs, err := parseIncellStruct(desc.StructType)
 		if err != nil {

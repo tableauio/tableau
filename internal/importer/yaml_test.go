@@ -20,6 +20,7 @@ LiteConf:
 LoaderConf:
   OrderedMap: true
 ---
+ScalarList: [1, 2, 3]
 Servers:
   gamesvr:
     Name: gamesvr

@@ -14,6 +14,31 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
+const (
+	matchDoc = `
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+<@TABLEAU>
+	<Item Sheet="MatchCfg" />
+</@TABLEAU>
+
+<MatchCfg open="bool">
+	<Broadcast Id="[Broadcast]int32" Priority="int32">
+		<BroadcastTime BeginTime="datetime" EndTime="datetime" Gap="duration" />
+		<Content txt="string"/>
+	</Broadcast>
+</MatchCfg>
+-->
+
+<MatchCfg>
+	<Broadcast Id="2" Priority="2">
+		<BroadcastTime BeginTime="2016-11-15 19:30:10" EndTime="2022-04-21 23:29:59" Gap="60s" />
+		<Content txt="每分钟发送一次测试"/>
+	</Broadcast>
+</MatchCfg>
+`
+)
+
 func Test_escapeAttrs(t *testing.T) {
 	type args struct {
 		doc string
@@ -288,7 +313,7 @@ func Test_fixNodeType(t *testing.T) {
 	<Item Sheet="MatchCfg" />
 </@TABLEAU>
 
-<MatchCfg open="true">
+<MatchCfg open="bool">
 	<MatchMode MissionType="map&lt;enum&lt;.MissionType&gt;,MatchMode&gt;">
 		<MatchAI IsOpen="bool" PlayerOnlyOneCamp="bool">
 			<AI Type="[AI]&lt;enum&lt;.ENMAIWarmType&gt;&gt;" IsOpen="bool" MinTime="duration" MaxTime="duration" />
@@ -617,44 +642,41 @@ func Test_genMetasheet(t *testing.T) {
 			},
 			want: map[string]map[string]string{
 				"ServerConf": {
-					"Nested":   "true",
-					"Sheet":    "ServerConf",
-					"Sep":      "|",
-					"Namerow":  "1",
-					"Typerow":  "2",
-					"Noterow":  "3",
-					"Datarow":  "4",
-					"Nameline": "1",
-					"Typeline": "1",
+					"Sheet": "ServerConf",
+					"Sep":   "|",
 				},
 			},
 			want1: &book.Sheet{
 				Name: book.MetasheetName,
-				Table: &book.Table{
-					MaxRow: 2,
-					MaxCol: 9,
-					Rows: [][]string{
+				Document: &book.Node{
+					Kind: book.DocumentNode,
+					Name: book.MetasheetName,
+					Children: []*book.Node{
 						{
-							"Datarow",
-							"Nameline",
-							"Namerow",
-							"Nested",
-							"Noterow",
-							"Sep",
-							"Sheet",
-							"Typeline",
-							"Typerow",
-						},
-						{
-							"4",
-							"1",
-							"1",
-							"true",
-							"3",
-							"|",
-							"ServerConf",
-							"1",
-							"2",
+							Kind: book.MapNode,
+							Children: []*book.Node{
+								{
+									Kind:  book.MapNode,
+									Name:  book.KeywordSheet,
+									Value: book.MetasheetName,
+								},
+								{
+									Kind: book.MapNode,
+									Name: "ServerConf",
+									Children: []*book.Node{
+										{
+											Kind:  book.MapNode,
+											Name:  "Sheet",
+											Value: "ServerConf",
+										},
+										{
+											Kind:  book.MapNode,
+											Name:  "Sep",
+											Value: "|",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -1260,6 +1282,217 @@ func TestNewXMLImporter(t *testing.T) {
 				}
 				csvName := fmt.Sprintf("%s#%s.csv", strings.TrimSuffix(tt.args.filename, filepath.Ext(tt.args.filename)), sheet)
 				os.Remove(csvName)
+			}
+		})
+	}
+}
+
+func Test_genSheet(t *testing.T) {
+	metasheet, content := splitRawXML(matchDoc)
+	newBook := book.NewBook(`Test.xml`, `Test.xml`, nil)
+	xmlMeta, _ := readXMLFile(metasheet, content, newBook, Protogen)
+	xmlSheet := xmlMeta.SheetList[0]
+	if err := preprocessMeta(xmlSheet, xmlSheet.Meta); err != nil {
+		return
+	}
+	if err := preprocessData(xmlSheet, xmlSheet.Meta); err != nil {
+		return
+	}
+	type args struct {
+		xmlSheet *tableaupb.XMLSheet
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantMetaSheet *book.Sheet
+		wantDataSheet *book.Sheet
+		wantErr       bool
+	}{
+		{
+			name: "test",
+			args: args{
+				xmlSheet: xmlSheet,
+			},
+			wantMetaSheet: &book.Sheet{
+				Name: "@MatchCfg",
+				Document: &book.Node{
+					Kind: book.DocumentNode,
+					Name: "@MatchCfg",
+					Children: []*book.Node{
+						{
+							Kind: book.MapNode,
+							Name: "@MatchCfg",
+							Children: []*book.Node{
+								{
+									Name:  book.KeywordSheet,
+									Value: "@MatchCfg",
+								},
+								{
+									Name:  "open",
+									Value: "bool",
+								},
+								{
+									Kind: book.MapNode,
+									Name: "Broadcast",
+									Children: []*book.Node{
+										{
+											Name:  book.KeywordType,
+											Value: "[Broadcast]",
+										},
+										{
+											Name:  book.KeywordVariable,
+											Value: "BroadcastList",
+										},
+										{
+											Kind: book.MapNode,
+											Name: book.KeywordStruct,
+											Children: []*book.Node{
+												{
+													Name:  "Id",
+													Value: "int32",
+												},
+												{
+													Name:  "Priority",
+													Value: "int32",
+												},
+												{
+													Kind: book.MapNode,
+													Name: "BroadcastTime",
+													Children: []*book.Node{
+														{
+															Name:  book.KeywordType,
+															Value: "{BroadcastTime}",
+														},
+														{
+															Kind: book.MapNode,
+															Name: book.KeywordStruct,
+															Children: []*book.Node{
+																{
+																	Name:  "BeginTime",
+																	Value: "datetime",
+																},
+																{
+																	Name:  "EndTime",
+																	Value: "datetime",
+																},
+																{
+																	Name:  "Gap",
+																	Value: "duration",
+																},
+															},
+														},
+													},
+												},
+												{
+													Kind: book.MapNode,
+													Name: "Content",
+													Children: []*book.Node{
+														{
+															Name:  book.KeywordType,
+															Value: "{Content}",
+														},
+														{
+															Kind: book.MapNode,
+															Name: book.KeywordStruct,
+															Children: []*book.Node{
+																{
+																	Name:  "txt",
+																	Value: "string",
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantDataSheet: &book.Sheet{
+				Name: "MatchCfg",
+				Document: &book.Node{
+					Kind: book.DocumentNode,
+					Name: "MatchCfg",
+					Children: []*book.Node{
+						{
+							Kind: book.MapNode,
+							Name: "MatchCfg",
+							Children: []*book.Node{
+								{
+									Name:  book.KeywordSheet,
+									Value: "MatchCfg",
+								},
+								{
+									Kind: book.ListNode,
+									Name: "Broadcast",
+									Children: []*book.Node{
+										{
+											Kind: book.MapNode,
+											Children: []*book.Node{
+												{
+													Name:  "Id",
+													Value: "2",
+												},
+												{
+													Name:  "Priority",
+													Value: "2",
+												},
+												{
+													Kind: book.MapNode,
+													Name: "BroadcastTime",
+													Children: []*book.Node{
+														{
+															Name:  "BeginTime",
+															Value: "2016-11-15 19:30:10",
+														},
+														{
+															Name:  "EndTime",
+															Value: "2022-04-21 23:29:59",
+														},
+														{
+															Name:  "Gap",
+															Value: "60s",
+														},
+													},
+												},
+												{
+													Kind: book.MapNode,
+													Name: "Content",
+													Children: []*book.Node{
+														{
+															Name:  "txt",
+															Value: "每分钟发送一次测试",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotMetaSheet, gotDataSheet, err := genSheet(tt.args.xmlSheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("genSheet() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotMetaSheet, tt.wantMetaSheet) {
+				t.Errorf("genSheet() gotMetaSheet = %v, want %v", gotMetaSheet, tt.wantMetaSheet)
+			}
+			if !reflect.DeepEqual(gotDataSheet, tt.wantDataSheet) {
+				t.Errorf("genSheet() gotDataSheet = %v, want %v", gotDataSheet, tt.wantDataSheet)
 			}
 		})
 	}

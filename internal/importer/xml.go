@@ -16,9 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
-	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
@@ -70,10 +68,7 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	// NOTE: DO NOT EXPORT csv files, otherwise trigger bugs in unittest.
-	// if log.Level() == core.DebugLevel.CapitalString() {
-	// 	newBook.ExportCSV()
-	// }
+	log.Debugf("newBook:%+v", newBook)
 
 	return &XMLImporter{
 		Book: newBook,
@@ -86,7 +81,7 @@ func splitRawXML(rawXML string) (metasheet, content string) {
 	if len(matches) < 2 {
 		return "", rawXML
 	}
-	scanner := bufio.NewScanner(strings.NewReader(matches[0]))	
+	scanner := bufio.NewScanner(strings.NewReader(matches[0]))
 	emptyLines := ""
 	for scanner.Scan() {
 		emptyLines += "\n"
@@ -130,15 +125,19 @@ func parseXML(filename string, sheetNames []string, parser book.SheetParser, mod
 	for _, xmlSheet := range xmlMeta.SheetList {
 		sheetName := xmlSheet.Meta.Name
 		// The second pass
-		if err := preprocess(xmlSheet, xmlSheet.Meta); err != nil {
-			return nil, errors.Wrapf(err, "failed to preprocess for sheet: %s", sheetName)
+		if err := preprocessMeta(xmlSheet, xmlSheet.Meta); err != nil {
+			return nil, errors.Wrapf(err, "failed to preprocessMeta for sheet: %s", sheetName)
+		}
+		if err := preprocessData(xmlSheet, xmlSheet.Data); err != nil {
+			return nil, errors.Wrapf(err, "failed to preprocessData for sheet: %s", sheetName)
 		}
 		// The third pass
-		sheet, err := genSheet(xmlSheet)
+		metaSheet, dataSheet, err := genSheet(xmlSheet)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to genSheet for sheet: %s", sheetName)
 		}
-		newBook.AddSheet(sheet)
+		newBook.AddSheet(metaSheet)
+		newBook.AddSheet(dataSheet)
 	}
 
 	// parse meta sheet
@@ -232,8 +231,6 @@ func readXMLFile(metasheet, content string, newBook *book.Book, mode ImporterMod
 func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *book.Sheet, error) {
 	// sheetName -> {colName -> val}
 	metasheetMap := make(map[string]map[string]string)
-	nameRow := book.MetasheetOptions().Namerow - 1
-	dataRow := book.MetasheetOptions().Datarow - 1
 	set := treeset.NewWithStringComparator()
 	for n := tableauNode.FirstChild; n != nil; n = n.NextSibling {
 		if n.Type != xmlquery.ElementNode {
@@ -243,14 +240,6 @@ func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *bo
 		for _, attr := range n.Attr {
 			sheetMap[attr.Name.Local] = attr.Value
 		}
-		sheetMap["Nested"] = "true"
-		// use explicit settings to avoid implicit settings exception.
-		sheetMap["Namerow"] = "1"
-		sheetMap["Typerow"] = "2"
-		sheetMap["Noterow"] = "3"
-		sheetMap["Datarow"] = "4"
-		sheetMap["Nameline"] = "1"
-		sheetMap["Typeline"] = "1"
 		sheetName, ok := sheetMap["Sheet"]
 		if !ok {
 			return metasheetMap, nil, fmt.Errorf("@TABLEAU not specified sheetName by keyword `Sheet`")
@@ -260,21 +249,36 @@ func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *bo
 			set.Add(k)
 		}
 	}
-	rows := make([][]string, len(metasheetMap)+int(dataRow))
-	for _, k := range set.Values() {
-		rows[nameRow] = append(rows[nameRow], k.(string))
+	root := &book.Node{
+		Kind: book.MapNode,
+		Children: []*book.Node{
+			{
+				Kind:  book.MapNode,
+				Name:  book.KeywordSheet,
+				Value: book.MetasheetName,
+			},
+		},
 	}
-	for _, sheet := range metasheetMap {
-		for _, k := range set.Values() {
-			if v, ok := sheet[k.(string)]; ok {
-				rows[dataRow] = append(rows[dataRow], v)
-			} else {
-				rows[dataRow] = append(rows[dataRow], "")
-			}
+	bdoc := &book.Node{
+		Kind:     book.DocumentNode,
+		Name:     book.MetasheetName,
+		Children: []*book.Node{root},
+	}
+	for sheetName, sheet := range metasheetMap {
+		sheetNode := &book.Node{
+			Kind: book.MapNode,
+			Name: sheetName,
 		}
-		dataRow++
+		root.Children = append(root.Children, sheetNode)
+		for k, v := range sheet {
+			sheetNode.Children = append(sheetNode.Children, &book.Node{
+				Kind:  book.MapNode,
+				Name:  k,
+				Value: v,
+			})
+		}
 	}
-	sheet := book.NewTableSheet(book.MetasheetName, rows)
+	sheet := book.NewDocumentSheet(book.MetasheetName, bdoc)
 	return metasheetMap, sheet, nil
 }
 
@@ -560,22 +564,46 @@ func getXMLSheet(xmlMeta *tableaupb.XMLBook, sheetName string) *tableaupb.XMLShe
 // The second pass preprocesses the tree structure. In this phase the parser will do some necessary jobs
 // before generating a 2-dimensional sheet, like correctType which make the types of attributes in the
 // nodes meet the requirements of protogen.
-func preprocess(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
+func preprocessMeta(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
 	// rearrange attributes
 	if err := rearrangeAttrs(node.AttrMap); err != nil {
 		return errors.Wrapf(err, "failed to rearrangeAttrs")
 	}
 	// fix node types when it is the first attribute
-	for i, attr := range node.AttrMap.List {
-		if i == 0 {
-			attr.Value = fixNodeType(xmlSheet, node, attr.Value)
+	// for i, attr := range node.AttrMap.List {
+	// 	if i == 0 {
+	// 		attr.Value = fixNodeType(xmlSheet, node, attr.Value)
+	// 	}
+	// }
+
+	// recursively preprocessMeta
+	for _, child := range node.ChildList {
+		if err := preprocessMeta(xmlSheet, child); err != nil {
+			return errors.Wrapf(err, "failed to preprocessMeta node:%s", child.Name)
+		}
+	}
+	return nil
+}
+
+func preprocessData(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode) error {
+	path := node.Path
+	// read type info from meta node map
+	meta, ok := xmlSheet.MetaNodeMap[path]
+	if !ok {
+		return errors.Errorf("Node[%s] has no meta definition", path)
+	}
+	for _, attr := range meta.AttrMap.List {
+		mustFirst := isCrossCell(attr.Value)
+		if mustFirst {
+			swapAttr(node.AttrMap, int(node.AttrMap.Map[attr.Name]), 0)
+			break
 		}
 	}
 
-	// recursively preprocess
+	// recursively preprocessData
 	for _, child := range node.ChildList {
-		if err := preprocess(xmlSheet, child); err != nil {
-			return errors.Wrapf(err, "failed to preprocess node:%s", child.Name)
+		if err := preprocessData(xmlSheet, child); err != nil {
+			return errors.Wrapf(err, "failed to preprocessData node:%s", child.Name)
 		}
 	}
 	return nil
@@ -711,83 +739,314 @@ func swapAttr(attrMap *tableaupb.XMLNode_AttrMap, i, j int) {
 // which can be further processed into protoconf.
 //
 // genSheet generates a `book.Sheet` which can be furtherly processed by `protogen`.
-func genSheet(xmlSheet *tableaupb.XMLSheet) (sheet *book.Sheet, err error) {
-	sheetName := xmlSheet.Meta.Name
-	header := options.NewDefault().Proto.Input.Header
-	metaSheet := xlsxgen.NewMetaSheet(sheetName, header, false)
-	// generate sheet header rows
-	if err := genHeaderRows(xmlSheet.Meta, metaSheet, ""); err != nil {
-		return nil, errors.Wrapf(err, "failed to genHeaderRows for sheet: %s", sheetName)
+func genSheet(xmlSheet *tableaupb.XMLSheet) (metaSheet *book.Sheet, dataSheet *book.Sheet, err error) {
+	sheetName := fmt.Sprintf("@%s", xmlSheet.Meta.Name)
+	root := &book.Node{Name: sheetName}
+	// fill meta nodes
+	if err := fillMetaNode(xmlSheet, xmlSheet.Meta, root); err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to fillMetaNode for sheet: %s", sheetName)
 	}
-	// fill sheet data rows
-	if err := fillDataRows(xmlSheet.Data, metaSheet, "", int(metaSheet.Datarow)-1); err != nil {
-		return nil, errors.Wrapf(err, "failed to fillDataRows for sheet: %s", sheetName)
+	metaSheet = book.NewDocumentSheet(sheetName, &book.Node{
+		Kind:     book.DocumentNode,
+		Name:     sheetName,
+		Children: []*book.Node{root},
+	})
+
+	sheetName = xmlSheet.Meta.Name
+	root = &book.Node{Name: sheetName}
+	// fill data nodes
+	if err := fillDataNode(xmlSheet, xmlSheet.Data, root); err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to fillDataNode for sheet: %s", sheetName)
 	}
-	// unpack rows from the MetaSheet struct
-	var rows [][]string
-	for i := 0; i < len(metaSheet.Rows); i++ {
-		var row []string
-		for _, cell := range metaSheet.Rows[i].Cells {
-			row = append(row, cell.Data)
-		}
-		rows = append(rows, row)
-	}
-	// insert sheets into map for importer
-	sheet = book.NewTableSheet(sheetName, rows)
-	return sheet, nil
+	dataSheet = book.NewDocumentSheet(sheetName, &book.Node{
+		Kind:     book.DocumentNode,
+		Name:     sheetName,
+		Children: []*book.Node{root},
+	})
+	return metaSheet, dataSheet, nil
 }
 
-// genHeaderRows recursively read meta info from `node` and generates the header rows of `metaSheet`, which is a 2-dimensional IR.
-func genHeaderRows(node *tableaupb.XMLNode, metaSheet *xlsxgen.MetaSheet, prefix string) error {
-	curPrefix := newPrefix(prefix, node.Name, metaSheet.Worksheet)
-	for _, attr := range node.AttrMap.List {
-		metaSheet.SetColType(curPrefix+attr.Name, attr.Value)
+// fillMetaNode recursively read data from `node` and fill them to the data rows of `metaSheet`.
+func fillMetaNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode, bnode *book.Node) error {
+	path := node.Path
+	meta, ok := xmlSheet.MetaNodeMap[path]
+	if !ok {
+		return errors.Errorf("Node[%s] has no meta definition", path)
 	}
-	for _, child := range node.ChildList {
-		if err := genHeaderRows(child, metaSheet, curPrefix); err != nil {
-			return errors.Wrapf(err, "failed to genHeaderRows for %s@%s", child.Name, curPrefix)
-		}
+	bnode.Kind = book.MapNode
+	if meta.Parent == nil {
+		// generate `@sheet: TableName` when level = 0
+		bnode.Children = append(bnode.Children, &book.Node{
+			Name:  book.KeywordSheet,
+			Value: bnode.Name,
+		})
 	}
-	return nil
-}
-
-// fillDataRows recursively read data from `node` and fill them to the data rows of `metaSheet`, which is a 2-dimensional IR.
-func fillDataRows(node *tableaupb.XMLNode, metaSheet *xlsxgen.MetaSheet, prefix string, cursor int) error {
-	curPrefix := newPrefix(prefix, node.Name, metaSheet.Worksheet)
-	// clear to the bottom, since `metaSheet.NewRow()` will copy all data of all columns to create a new row
-	if len(node.ChildList) == 0 {
-		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
-			metaSheet.ForEachCol(tmpCusor, func(name string, cell *xlsxgen.Cell) error {
-				if strings.HasPrefix(name, curPrefix) {
-					cell.Data = ""
+	// NOTE: curBNode may be pointed to one subnode when needed
+	curBNode := bnode
+	for i, attr := range node.AttrMap.List {
+		if desc := types.MatchMap(attr.Value); desc != nil {
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: book.KeywordStruct,
+				Children: []*book.Node{
+					{
+						Name:  book.KeywordKey,
+						Value: attr.Name,
+					},
+					{
+						Name:  book.KeywordKeyname,
+						Value: attr.Name,
+					},
+				},
+			}
+			bnode.Children = append(bnode.Children, &book.Node{
+				Name:  book.KeywordType,
+				Value: attr.Value,
+			}, &book.Node{
+				Name:  book.KeywordVariable,
+				Value: fmt.Sprintf("%sMap", node.Name),
+			}, curBNode)
+		} else if desc := types.MatchKeyedList(attr.Value); desc != nil {
+			// treat keyed list as normal list
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: book.KeywordStruct,
+				Children: []*book.Node{
+					{
+						Name:  book.KeywordKey,
+						Value: attr.Name,
+					},
+					{
+						Name:  attr.Name,
+						Value: desc.ColumnType,
+					},
+				},
+			}
+			bnode.Children = append(bnode.Children, &book.Node{
+				Name:  book.KeywordType,
+				Value: fmt.Sprintf("[%s]", node.Name),
+			}, &book.Node{
+				Name:  book.KeywordVariable,
+				Value: fmt.Sprintf("%sList", node.Name),
+			}, curBNode)
+		} else if desc := types.MatchList(attr.Value); desc != nil {
+			if desc.ElemType != "" {
+				// struct list
+				curBNode = &book.Node{
+					Kind: book.MapNode,
+					Name: book.KeywordStruct,
+					Children: []*book.Node{
+						{
+							Name:  attr.Name,
+							Value: desc.ColumnType,
+						},
+					},
 				}
-				return nil
+				bnode.Children = append(bnode.Children, &book.Node{
+					Name:  book.KeywordType,
+					Value: fmt.Sprintf("[%s]", node.Name),
+				}, &book.Node{
+					Name:  book.KeywordVariable,
+					Value: fmt.Sprintf("%sList", node.Name),
+				}, curBNode)
+			} else {
+				// incell list
+				curBNode = &book.Node{
+					Kind: book.MapNode,
+					Name: book.KeywordStruct,
+					Children: []*book.Node{
+						{
+							Kind: book.MapNode,
+							Name: attr.Name,
+							Children: []*book.Node{
+								{
+									Name:  book.KeywordType,
+									Value: fmt.Sprintf("[%s]", desc.ColumnType),
+								},
+								{
+									Name:  book.KeywordVariable,
+									Value: fmt.Sprintf("%sList", attr.Name),
+								},
+								{
+									Name:  book.KeywordIncell,
+									Value: "true",
+								},
+							},
+						},
+					},
+				}
+				bnode.Children = append(bnode.Children, &book.Node{
+					Name:  book.KeywordType,
+					Value: fmt.Sprintf("{%s}", node.Name),
+				}, curBNode)
+			}
+		} else if desc := types.MatchStruct(attr.Value); desc != nil {
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: book.KeywordStruct,
+				Children: []*book.Node{
+					{
+						Name:  attr.Name,
+						Value: desc.ColumnType,
+					},
+				},
+			}
+			bnode.Children = append(bnode.Children, &book.Node{
+				Name:  book.KeywordType,
+				Value: fmt.Sprintf("{%s}", node.Name),
+			}, curBNode)
+		} else if i == 0 && meta.Parent != nil {
+			// generate struct when first encounter scalar attribute
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: book.KeywordStruct,
+				Children: []*book.Node{
+					{
+						Name:  attr.Name,
+						Value: attr.Value,
+					},
+				},
+			}
+			bnode.Children = append(bnode.Children, &book.Node{
+				Name:  book.KeywordType,
+				Value: fmt.Sprintf("{%s}", node.Name),
+			}, curBNode)
+		} else {
+			curBNode.Children = append(curBNode.Children, &book.Node{
+				Name:  attr.Name,
+				Value: attr.Value,
 			})
 		}
 	}
+	// generate struct even if encounter empty node (level>=1)
+	if meta.Parent != nil && len(node.AttrMap.List) == 0 {
+		curBNode = &book.Node{
+			Kind: book.MapNode,
+			Name: book.KeywordStruct,
+		}
+		bnode.Children = append(bnode.Children, &book.Node{
+			Name:  book.KeywordType,
+			Value: fmt.Sprintf("{%s}", node.Name),
+		}, curBNode)
+	}
+	// iterate over child nodes
+	nodeMap := make(map[string]*book.Node)
+	for _, child := range node.ChildList {
+		tagName := child.Name
+		if subNode, existed := nodeMap[tagName]; existed {
+			if err := fillMetaNode(xmlSheet, child, subNode); err != nil {
+				return errors.Wrapf(err, "failed to fillMetaNode for %s@%s", tagName, node.Name)
+			}
+		} else {
+			subNode := &book.Node{
+				Name: tagName,
+			}
+			curBNode.Children = append(curBNode.Children, subNode)
+			if err := fillMetaNode(xmlSheet, child, subNode); err != nil {
+				return errors.Wrapf(err, "failed to fillMetaNode for %s@%s", tagName, node.Name)
+			}
+			nodeMap[tagName] = subNode
+		}
+	}
+
+	return nil
+}
+
+// fillDataNode recursively read data from `node` and fill them to the data rows of `metaSheet`.
+func fillDataNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode, bnode *book.Node) error {
+	path := node.Path
+	// read type info from meta node map
+	meta, ok := xmlSheet.MetaNodeMap[path]
+	if !ok {
+		return errors.Errorf("Node[%s] has no meta definition", path)
+	}
+	bnode.Kind = book.MapNode
+	if meta.Parent == nil {
+		// generate `@sheet: TableName` when level = 0
+		bnode.Children = append(bnode.Children, &book.Node{
+			Name:  book.KeywordSheet,
+			Value: bnode.Name,
+		})
+	}
+	// NOTE: curBNode may be pointed to one subnode when needed
+	curBNode := bnode
 	for _, attr := range node.AttrMap.List {
-		colName := curPrefix + attr.Name
-		// fill values to the bottom when backtrace to top line
-		for tmpCusor := cursor; tmpCusor < len(metaSheet.Rows); tmpCusor++ {
-			metaSheet.Cell(tmpCusor, len(metaSheet.Rows[metaSheet.Namerow-1].Cells), colName).Data = attr.Value
+		typeAttr := meta.AttrMap.List[meta.AttrMap.Map[attr.Name]].Value
+		if desc := types.MatchMap(typeAttr); desc != nil {
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: attr.Value,
+				Children: []*book.Node{
+					{
+						Name:  attr.Name,
+						Value: attr.Value,
+					},
+				},
+			}
+			bnode.Children = append(bnode.Children, curBNode)
+		} else if desc := types.MatchKeyedList(typeAttr); desc != nil {
+			//treat keyed list as normal list
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Children: []*book.Node{
+					{
+						Name:  attr.Name,
+						Value: attr.Value,
+					},
+				},
+			}
+			bnode.Kind = book.ListNode
+			bnode.Children = append(bnode.Children, curBNode)
+		} else if desc := types.MatchList(typeAttr); desc != nil {
+			if desc.ElemType != "" {
+				// struct list
+				curBNode = &book.Node{
+					Kind: book.MapNode,
+					Children: []*book.Node{
+						{
+							Name:  attr.Name,
+							Value: attr.Value,
+						},
+					},
+				}
+				bnode.Kind = book.ListNode
+				bnode.Children = append(bnode.Children, curBNode)
+			} else {
+				// incell list
+				curBNode.Children = append(curBNode.Children, &book.Node{
+					Name:  attr.Name,
+					Value: attr.Value,
+				})
+			}
+		} else if desc := types.MatchStruct(typeAttr); desc != nil {
+			bnode.Children = append(bnode.Children, &book.Node{
+				Name:  attr.Name,
+				Value: desc.ColumnType,
+			})
+		} else {
+			curBNode.Children = append(curBNode.Children, &book.Node{
+				Name:  attr.Name,
+				Value: attr.Value,
+			})
 		}
 	}
 	// iterate over child nodes
-	nodeMap := make(map[string]int)
+	nodeMap := make(map[string]*book.Node)
 	for _, child := range node.ChildList {
 		tagName := child.Name
-		if count, existed := nodeMap[tagName]; existed {
-			// duplicate means a list, should expand vertically
-			row := metaSheet.NewRow()
-			if err := fillDataRows(child, metaSheet, curPrefix, row.Index); err != nil {
-				return errors.Wrapf(err, "fillDataRows %dth node %s@%s failed", count+1, tagName, curPrefix)
+		if subNode, existed := nodeMap[tagName]; existed {
+			if err := fillDataNode(xmlSheet, child, subNode); err != nil {
+				return errors.Wrapf(err, "failed to fillDataNode for %s@%s", tagName, node.Name)
 			}
-			nodeMap[tagName]++
 		} else {
-			if err := fillDataRows(child, metaSheet, curPrefix, cursor); err != nil {
-				return errors.Wrapf(err, "fillDataRows 1st node %s@%s failed", tagName, curPrefix)
+			subNode := &book.Node{
+				Name: tagName,
 			}
-			nodeMap[tagName] = 1
+			curBNode.Children = append(curBNode.Children, subNode)
+			if err := fillDataNode(xmlSheet, child, subNode); err != nil {
+				return errors.Wrapf(err, "failed to fillDataNode for %s@%s", tagName, node.Name)
+			}
+			nodeMap[tagName] = subNode
 		}
 	}
 

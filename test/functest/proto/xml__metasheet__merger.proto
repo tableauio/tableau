@@ -11,25 +11,25 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"xml/metasheet/Merger.xml"};
 
 message MergerConf {
-  option (tableau.worksheet) = {name:"MergerConf" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 nested:true merger:"Merger*.xml"};
+  option (tableau.worksheet) = {name:"MergerConf" merger:"Merger*.xml"};
 
-  map<int32, Fuben> fuben_map = 1 [(tableau.field) = {name:"Fuben" key:"Id" layout:LAYOUT_VERTICAL}];
+  map<int32, Fuben> fuben_map = 1 [(tableau.field) = {name:"Fuben" key:"Id"}];
   message Fuben {
     int32 id = 1 [(tableau.field) = {name:"Id"}];
-    map<int32, Stage> stage_map = 2 [(tableau.field) = {name:"Stage" key:"Id" layout:LAYOUT_VERTICAL}];
+    map<int32, Stage> stage_map = 2 [(tableau.field) = {name:"Stage" key:"Id"}];
     message Stage {
       int32 id = 1 [(tableau.field) = {name:"Id"}];
-      map<int32, Zone> zone_map = 2 [(tableau.field) = {name:"Zone" key:"Id" layout:LAYOUT_VERTICAL}];
+      map<int32, Zone> zone_map = 2 [(tableau.field) = {name:"Zone" key:"Id"}];
       message Zone {
         int32 id = 1 [(tableau.field) = {name:"Id"}];
-        map<int32, Round> round_map = 2 [(tableau.field) = {name:"Round" key:"Id" layout:LAYOUT_VERTICAL}];
+        map<int32, Round> round_map = 2 [(tableau.field) = {name:"Round" key:"Id"}];
         message Round {
           int32 id = 1 [(tableau.field) = {name:"Id"}];
         }
       }
       AdjacentStageList adjacent_stage_list = 3 [(tableau.field) = {name:"AdjacentStageList"}];
       message AdjacentStageList {
-        map<int32, AdjacentStage> adjacent_stage_map = 1 [(tableau.field) = {name:"AdjacentStage" key:"Id" layout:LAYOUT_VERTICAL}];
+        map<int32, AdjacentStage> adjacent_stage_map = 1 [(tableau.field) = {name:"AdjacentStage" key:"Id"}];
         message AdjacentStage {
           int32 id = 1 [(tableau.field) = {name:"Id"}];
         }

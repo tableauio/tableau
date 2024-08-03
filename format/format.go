@@ -84,7 +84,7 @@ var OutputFormats = []Format{JSON, Bin, Text}
 
 var inputDocumentFormats = map[Format]bool{
 	YAML: true,
-	// XML: true, // TODO: including xml
+	XML:  true,
 }
 
 // IsInputFormat checks whether the fmt belongs to [InputFormats], such as Excel.
