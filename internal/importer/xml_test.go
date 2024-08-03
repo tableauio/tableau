@@ -2,8 +2,6 @@ package importer
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -1277,8 +1275,6 @@ func TestNewXMLImporter(t *testing.T) {
 					t.Errorf("NewXMLImporter() GetSheet = nil, want %v", sheet)
 					return
 				}
-				csvName := fmt.Sprintf("%s#%s.csv", strings.TrimSuffix(tt.args.filename, filepath.Ext(tt.args.filename)), sheet)
-				os.Remove(csvName)
 			}
 		})
 	}
