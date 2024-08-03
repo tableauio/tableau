@@ -251,14 +251,13 @@ func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *bo
 			name := attr.Name.Local
 			value := attr.Value
 			children = append(children, &book.Node{
-				Kind:  book.MapNode,
 				Name:  name,
 				Value: value,
 			})
 			sheetMap[name] = value
 
 			if name == "Sheet" {
-				sheetName = name
+				sheetName = value
 			}
 		}
 		if sheetName == "" {
