@@ -2,13 +2,12 @@ package importer
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/antchfx/xmlquery"
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -665,12 +664,10 @@ func Test_genMetasheet(t *testing.T) {
 									Name: "ServerConf",
 									Children: []*book.Node{
 										{
-											Kind:  book.MapNode,
 											Name:  "Sheet",
 											Value: "ServerConf",
 										},
 										{
-											Kind:  book.MapNode,
 											Name:  "Sep",
 											Value: "|",
 										},
@@ -694,9 +691,7 @@ func Test_genMetasheet(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("genMetasheet() got = %v, want %v", got, tt.want)
 			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("genMetasheet() got1 = %v, want %v", got1, tt.want1)
-			}
+			require.Equalf(t, got1, tt.want1, "genMetasheet() got1 = %v, want %v", got1, tt.want1)
 		})
 	}
 }
@@ -1280,8 +1275,6 @@ func TestNewXMLImporter(t *testing.T) {
 					t.Errorf("NewXMLImporter() GetSheet = nil, want %v", sheet)
 					return
 				}
-				csvName := fmt.Sprintf("%s#%s.csv", strings.TrimSuffix(tt.args.filename, filepath.Ext(tt.args.filename)), sheet)
-				os.Remove(csvName)
 			}
 		})
 	}

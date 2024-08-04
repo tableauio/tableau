@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/antchfx/xmlquery"
-	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
@@ -229,26 +228,6 @@ func readXMLFile(metasheet, content string, newBook *book.Book, mode ImporterMod
 //	    <Item Sheet="XXXConf" />
 //	</@TABLEAU>`
 func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *book.Sheet, error) {
-	// sheetName -> {colName -> val}
-	metasheetMap := make(map[string]map[string]string)
-	set := treeset.NewWithStringComparator()
-	for n := tableauNode.FirstChild; n != nil; n = n.NextSibling {
-		if n.Type != xmlquery.ElementNode {
-			continue
-		}
-		sheetMap := make(map[string]string)
-		for _, attr := range n.Attr {
-			sheetMap[attr.Name.Local] = attr.Value
-		}
-		sheetName, ok := sheetMap["Sheet"]
-		if !ok {
-			return metasheetMap, nil, fmt.Errorf("@TABLEAU not specified sheetName by keyword `Sheet`")
-		}
-		metasheetMap[sheetName] = sheetMap
-		for k := range sheetMap {
-			set.Add(k)
-		}
-	}
 	root := &book.Node{
 		Kind: book.MapNode,
 		Children: []*book.Node{
@@ -259,26 +238,45 @@ func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *bo
 			},
 		},
 	}
-	bdoc := &book.Node{
+	// sheetName -> {colName -> val}
+	metasheetMap := make(map[string]map[string]string)
+	for n := tableauNode.FirstChild; n != nil; n = n.NextSibling {
+		if n.Type != xmlquery.ElementNode {
+			continue
+		}
+		var children []*book.Node
+		sheetMap := make(map[string]string)
+		var sheetName string
+		for _, attr := range n.Attr {
+			name := attr.Name.Local
+			value := attr.Value
+			children = append(children, &book.Node{
+				Name:  name,
+				Value: value,
+			})
+			sheetMap[name] = value
+
+			if name == "Sheet" {
+				sheetName = value
+			}
+		}
+		if sheetName == "" {
+			return metasheetMap, nil, errors.Errorf("field `Sheet` not specified in metasheet @TABLEAU")
+		}
+		metasheetMap[sheetName] = sheetMap
+		sheetNode := &book.Node{
+			Kind:     book.MapNode,
+			Name:     sheetName,
+			Children: children,
+		}
+		root.Children = append(root.Children, sheetNode)
+	}
+	doc := &book.Node{
 		Kind:     book.DocumentNode,
 		Name:     book.MetasheetName,
 		Children: []*book.Node{root},
 	}
-	for sheetName, sheet := range metasheetMap {
-		sheetNode := &book.Node{
-			Kind: book.MapNode,
-			Name: sheetName,
-		}
-		root.Children = append(root.Children, sheetNode)
-		for k, v := range sheet {
-			sheetNode.Children = append(sheetNode.Children, &book.Node{
-				Kind:  book.MapNode,
-				Name:  k,
-				Value: v,
-			})
-		}
-	}
-	sheet := book.NewDocumentSheet(book.MetasheetName, bdoc)
+	sheet := book.NewDocumentSheet(book.MetasheetName, doc)
 	return metasheetMap, sheet, nil
 }
 

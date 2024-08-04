@@ -25,17 +25,16 @@ func Test_GenProto(t *testing.T) {
 			&options.ProtoOption{
 				Input: &options.ProtoInputOption{
 					ProtoFiles: []string{
-						"common/cs_dbkeyword.proto",
 						"common/common.proto",
 						"common/time.proto",
 					},
 					Formats: []format.Format{
 						// format.Excel,
 						format.CSV,
-						format.XML,
+						// format.XML,
 					},
 					// Formats: []format.Format{format.CSV},
-					Subdirs: []string{`xml/tableau_xml`, `excel`},
+					Subdirs: []string{`excel`},
 					// SubdirRewrites: map[string]string{
 					// 	`excel/`: ``,
 					// },
@@ -191,7 +190,7 @@ func Test_GenJSON_Subdir(t *testing.T) {
 		options.Conf(
 			&options.ConfOption{
 				Input: &options.ConfInputOption{
-					Formats: []format.Format{format.XML},
+					Formats: []format.Format{format.CSV},
 					// Subdirs: []string{`excel/`},
 					// SubdirRewrites: map[string]string{
 					// 	`excel/`: ``,
