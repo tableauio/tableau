@@ -1,0 +1,22 @@
+{
+    "id": 1,
+    "num": 0,
+    "cost": null,
+    "structMap": {
+        "1": {
+            "key": 1,
+            "name": "apple",
+            "num": 10
+        },
+        "2": {
+            "key": 2,
+            "name": "orange",
+            "num": 20
+        },
+        "3": {
+            "key": 3,
+            "name": "banana",
+            "num": 0
+        }
+    }
+}

@@ -29,6 +29,8 @@ func NewYAMLImporter(filename string, sheetNames []string, parser book.SheetPars
 		}
 	}
 
+	// log.Debugf("book: %+v", book)
+
 	return &YAMLImporter{
 		Book: book,
 	}, nil

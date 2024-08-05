@@ -1,0 +1,33 @@
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlFieldPropOptionalConf"
+ID: uint32
+Num: "int32|{optional:true}"
+Cost:
+  "@type": "{Cost}|{optional:true}"
+  Type: string
+  Price: int32
+StructMap:
+  "@type": "map<uint32, Item>"
+  "@struct":
+    Name: string
+    Num: "int32|{optional:true}"
+---
+"@sheet": YamlFieldPropOptionalConf
+ID: 1
+# Num: 10 # optional field
+# Cost: # optional field
+#   Type: dollar
+#   Price: 100
+StructMap:
+  1:
+    Name: apple
+    Num: 10
+  2:
+    Name: orange
+    Num: 20
+  3:
+    Name: banana
+    # Num: 10 # optional field

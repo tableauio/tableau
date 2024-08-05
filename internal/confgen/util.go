@@ -52,7 +52,6 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 	layout := tableaupb.Layout_LAYOUT_DEFAULT
 	sep := ""
 	subsep := ""
-	optional := false
 	var prop *tableaupb.FieldProp
 
 	// opts := fd.Options().(*descriptorpb.FieldOptions)
@@ -65,7 +64,6 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 		layout = fieldOpts.Layout
 		sep = strings.TrimSpace(fieldOpts.Sep)
 		subsep = strings.TrimSpace(fieldOpts.Subsep)
-		optional = fieldOpts.Optional
 		prop = fieldOpts.Prop
 	} else {
 		// default processing
@@ -100,7 +98,6 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 	pooledOpts.Layout = layout
 	pooledOpts.Sep = sep
 	pooledOpts.Subsep = subsep
-	pooledOpts.Optional = optional
 	pooledOpts.Prop = prop
 
 	return &Field{

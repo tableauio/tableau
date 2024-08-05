@@ -67,7 +67,8 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 			Book: book.NewBook(bookName, filename, nil),
 		}, nil
 	}
-	log.Debugf("newBook:%+v", newBook)
+
+	// log.Debugf("book: %+v", newBook)
 
 	return &XMLImporter{
 		Book: newBook,
