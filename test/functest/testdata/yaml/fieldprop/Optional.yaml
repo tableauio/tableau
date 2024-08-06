@@ -5,8 +5,9 @@
 "@sheet": "@YamlFieldPropOptionalConf"
 ID: uint32
 Num: "int32|{optional:true}"
-Cost:
-  "@type": "{Cost}|{optional:true}"
+Type: "enum<.FruitType>|{optional:true}"
+OptionalStruct:
+  "@type": "{Struct}|{optional:true}"
   Type: string
   Price: int32
 StructMap:
@@ -14,11 +15,23 @@ StructMap:
   "@struct":
     Name: string
     Num: "int32|{optional:true}"
+OptionalStructMap:
+  "@type": "map<uint32, Item2>|{optional:true}"
+  "@struct":
+    Name: string
+    Num: "int32"
+StructList:
+  "@type": "[Fruit]"
+  "@struct":
+    Name: string
+    Num: "int32|{optional:true}"
+OptionalStructList: "[Fruit]|{optional:true}"
 ---
 "@sheet": YamlFieldPropOptionalConf
 ID: 1
 # Num: 10 # optional field
-# Cost: # optional field
+# Type: FRUIT_TYPE_APPLE # optional field
+# OptionalStruct:
 #   Type: dollar
 #   Price: 100
 StructMap:
@@ -31,3 +44,22 @@ StructMap:
   3:
     Name: banana
     # Num: 10 # optional field
+# OptionalStructMap:
+#   1:
+#     Name: apple
+#     Num: 10
+#   2:
+#     Name: orange
+#     Num: 20
+StructList:
+  - Name: apple
+    Num: 10
+  - Name: orange
+    Num: 20
+  - Name: banana
+    # Num: 10 # optional field
+# OptionalStructList:
+#   - Name: apple
+#     Num: 10
+#   - Name: orange
+#     Num: 20

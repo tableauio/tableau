@@ -66,3 +66,17 @@ message RewardConf {
     map<uint32, unittest.Item> item_map = 2 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
   }
 }
+
+message YamlScalarConf {
+  option (tableau.worksheet) = {name:"YamlScalarConf"};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  int32 num = 2 [(tableau.field) = {name:"Num"}];
+  uint64 value = 3 [(tableau.field) = {name:"Value"}];
+  int64 weight = 4 [(tableau.field) = {name:"Weight"}];
+  float percentage = 5 [(tableau.field) = {name:"Percentage"}];
+  double ratio = 6 [(tableau.field) = {name:"Ratio"}];
+  string name = 7 [(tableau.field) = {name:"Name"}];
+  bytes blob = 8 [(tableau.field) = {name:"Blob"}];
+  bool ok = 9 [(tableau.field) = {name:"OK"}];
+}

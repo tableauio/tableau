@@ -1,7 +1,8 @@
 {
     "id": 1,
     "num": 0,
-    "cost": null,
+    "type": "FRUIT_TYPE_UNKNOWN",
+    "optionalStruct": null,
     "structMap": {
         "1": {
             "key": 1,
@@ -18,5 +19,21 @@
             "name": "banana",
             "num": 0
         }
-    }
+    },
+    "optionalStructMap": {},
+    "structList": [
+        {
+            "name": "apple",
+            "num": 10
+        },
+        {
+            "name": "orange",
+            "num": 20
+        },
+        {
+            "name": "banana",
+            "num": 0
+        }
+    ],
+    "optionalStructList": []
 }

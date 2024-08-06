@@ -93,6 +93,10 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 		for _, child := range node.Content {
 			subNode := &book.Node{
 				Value: child.Value,
+				NamePos: book.Position{
+					Line:   child.Line,
+					Column: child.Column,
+				},
 				ValuePos: book.Position{
 					Line:   child.Line,
 					Column: child.Column,
@@ -136,6 +140,10 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 			subNode := &book.Node{
 				Name:  "",
 				Value: elem.Value,
+				NamePos: book.Position{
+					Line:   elem.Line,
+					Column: elem.Column,
+				},
 				ValuePos: book.Position{
 					Line:   elem.Line,
 					Column: elem.Column,
