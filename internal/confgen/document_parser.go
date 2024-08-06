@@ -57,19 +57,17 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 			} else {
 				fieldNode = node.FindChild(field.opts.Name)
 				if fieldNode == nil {
-					// if field.opts.Optional {
-					// 	// field not found and is optional, no need to process, just return.
-					// 	return nil
-					// }
-					// kvs := node.DebugNameKV()
-					// kvs = append(kvs,
-					// 	xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
-					// 	xerrors.KeyPBFieldName, fd.FullName(),
-					// 	xerrors.KeyPBFieldOpts, field.opts,
-					// )
-					// return xerrors.WrapKV(xerrors.E2014(field.opts.Name), kvs...)
-					// TODO: return err when required
-					return nil
+					if sp.parser.IsFieldOptional(field) {
+						// field not found and is optional, just return nil.
+						return nil
+					}
+					kvs := node.DebugNameKV()
+					kvs = append(kvs,
+						xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
+						xerrors.KeyPBFieldName, fd.FullName(),
+						xerrors.KeyPBFieldOpts, field.opts,
+					)
+					return xerrors.WrapKV(xerrors.E2014(field.opts.Name), kvs...)
 				}
 			}
 			fieldPresent, err := sp.parseField(field, msg, fieldNode)

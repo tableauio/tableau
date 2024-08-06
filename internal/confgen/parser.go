@@ -234,6 +234,13 @@ func (sp *sheetParser) GetBookFormat() format.Format {
 	return sp.extInfo.BookFormat
 }
 
+// IsFieldOptional returns whether this field is optional (field name existence).
+//   - table formats (Excel/CSV): field's column can be absent.
+//   - document formats (XML/YAML): field's name can be absent.
+func (sp *sheetParser) IsFieldOptional(field *Field) bool {
+	return sp.opts.GetOptional() || field.opts.GetProp().GetOptional()
+}
+
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	if sheet.Document != nil {
 		docParser := &documentParser{parser: sp}
@@ -408,7 +415,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		if valueFd.Kind() == protoreflect.MessageKind {
 			keyColName := prefix + field.opts.Name + field.opts.Key
-			cell, err := rc.Cell(keyColName, field.opts.Optional)
+			cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 			}
@@ -456,7 +463,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			value := types.DefaultMapValueOptName // default value name
 			// key cell
 			keyColName := prefix + field.opts.Name + key
-			cell, err := rc.Cell(keyColName, field.opts.Optional)
+			cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 			}
@@ -468,7 +475,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			newMapKey := fieldValue.MapKey()
 			// value cell
 			valueColName := prefix + field.opts.Name + value
-			cell, err = rc.Cell(valueColName, field.opts.Optional)
+			cell, err = rc.Cell(valueColName, sp.IsFieldOptional(field))
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(valueColName)...)
 			}
@@ -517,7 +524,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			// log.Debug("prefix size: ", size)
 			for i := 1; i <= size; i++ {
 				keyColName := prefix + field.opts.Name + strconv.Itoa(i) + field.opts.Key
-				cell, err := rc.Cell(keyColName, field.opts.Optional)
+				cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 				}
@@ -574,7 +581,7 @@ func (sp *sheetParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 
 	case tableaupb.Layout_LAYOUT_INCELL:
 		colName := prefix + field.opts.Name
-		cell, err := rc.Cell(colName, field.opts.Optional)
+		cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 		}
@@ -849,7 +856,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if fd == nil {
 					return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", keyProtoName), rc.CellDebugKV(keyColName)...)
 				}
-				cell, err := rc.Cell(keyColName, field.opts.Optional)
+				cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 				}
@@ -881,7 +888,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 					// incell-struct list
 					colName := prefix + field.opts.Name
-					cell, err := rc.Cell(colName, field.opts.Optional)
+					cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 					}
@@ -929,7 +936,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			if field.fd.Kind() == protoreflect.MessageKind {
 				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 					// horizontal incell-struct list
-					cell, err := rc.Cell(colName, field.opts.Optional)
+					cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 					}
@@ -950,7 +957,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					subMsgName := string(field.fd.Message().FullName())
 					if types.IsWellKnownMessage(subMsgName) {
 						// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
-						cell, err := rc.Cell(colName, field.opts.Optional)
+						cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 						if err != nil {
 							kvs := rc.CellDebugKV(colName)
 							return false, xerrors.WithMessageKV(err, kvs...)
@@ -982,7 +989,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				list.Append(newListValue)
 			} else {
 				// scalar list
-				cell, err := rc.Cell(colName, field.opts.Optional)
+				cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 				}
@@ -1014,7 +1021,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// incell list
 		colName := prefix + field.opts.Name
-		cell, err := rc.Cell(colName, field.opts.Optional)
+		cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 		}
@@ -1113,7 +1120,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 	colName := prefix + field.opts.Name
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		cell, err := rc.Cell(colName, field.opts.Optional)
+		cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 		}
@@ -1129,7 +1136,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 		subMsgName := string(field.fd.Message().FullName())
 		if types.IsWellKnownMessage(subMsgName) {
 			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
-			cell, err := rc.Cell(colName, field.opts.Optional)
+			cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 			if err != nil {
 				return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 			}
@@ -1206,7 +1213,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		colName := prefix + field.opts.Name
 		// incell union
-		cell, err := rc.Cell(colName, field.opts.Optional)
+		cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 		}
@@ -1226,7 +1233,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 
 	// parse union type
 	typeColName := prefix + field.opts.Name + unionDesc.TypeName()
-	cell, err := rc.Cell(typeColName, field.opts.Optional)
+	cell, err := rc.Cell(typeColName, sp.IsFieldOptional(field))
 	if err != nil {
 		return false, xerrors.WithMessageKV(err, rc.CellDebugKV(typeColName)...)
 	}
@@ -1260,7 +1267,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 				subField := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
 				defer subField.release()
 				// incell scalar
-				cell, err := rc.Cell(colName, subField.opts.Optional)
+				cell, err := rc.Cell(colName, sp.IsFieldOptional(subField))
 				if err != nil {
 					return xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 				}
@@ -1370,7 +1377,7 @@ func (sp *sheetParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	}
 	var newValue protoreflect.Value
 	colName := prefix + field.opts.Name
-	cell, err := rc.Cell(colName, field.opts.Optional)
+	cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 	if err != nil {
 		return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 	}

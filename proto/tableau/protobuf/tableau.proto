@@ -109,6 +109,11 @@ message WorksheetOptions {
   // Scatter convert multiple workbook sheets (comma-separated) separately
   // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
   repeated string scatter = 18;
+  // Whether all fields in this sheet are optional (field name existence).
+  // If set to true, then:
+  //  - table formats (Excel/CSV): field's column can be absent.
+  //  - document formats (XML/YAML): field's name can be absent.
+  bool optional = 19;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
@@ -148,7 +153,6 @@ message FieldOptions {
   Span span = 5;      // For list element or map value types. Default: SPAN_CROSS_CELL.
   string sep = 6;     // NOT USED yet. Default: ",".
   string subsep = 7;  // NOT USED yet. Default: ":".
-  bool optional = 8;  // Whether the field is optional.
 
   FieldProp prop = 15;  // Property of field.
 }
@@ -194,9 +198,18 @@ message FieldProp {
   // will be used. Otherwise, it's deduced from the field's name by converting
   // it to camelCase.
   string json_name = 9;
-  // Must fill cell data explicitly if present is true, otherwise
-  // an error will be reported.
+  // Whether this field value is present (field value existence).
+  // If set to true, then do the following checks for different field types:
+  //  - scalar/enum: cell data cannot be empty string (TODO: If this field's
+  //    type is string, then how to set empty string explicitly?)
+  //  - struct: check at least one field is present recursively
+  //  - map/list: len(elements) > 0
   bool present = 10;
+  // Whether this field is optional (field name existence).
+  // If set to true, then:
+  //  - table formats (Excel/CSV): field's column can be absent.
+  //  - document formats (XML/YAML): field's name can be absent.
+  bool optional = 11;
 }
 
 // Layout of list and map.

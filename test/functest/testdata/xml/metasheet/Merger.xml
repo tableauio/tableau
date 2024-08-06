@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
 <@TABLEAU>
-    <Item Sheet="MergerConf" Merger="Merger*.xml"/>
+    <Item Sheet="MergerConf" Merger="Merger*.xml" Optional="true"/>
 </@TABLEAU>
 
 <MergerConf>

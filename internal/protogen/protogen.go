@@ -329,6 +329,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 				Template:      sheet.Meta.Template,
 				Mode:          sheet.Meta.Mode,
 				Scatter:       sheet.Meta.Scatter,
+				Optional:      sheet.Meta.Optional,
 				// Loader options:
 				OrderedMap: sheet.Meta.OrderedMap,
 				Index:      parseIndexes(sheet.Meta.Index),
@@ -456,6 +457,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				Template:      sheet.Meta.Template,
 				Mode:          sheet.Meta.Mode,
 				Scatter:       sheet.Meta.Scatter,
+				Optional:      sheet.Meta.Optional,
 				// Loader options:
 				OrderedMap: sheet.Meta.OrderedMap,
 				Index:      parseIndexes(sheet.Meta.Index),
