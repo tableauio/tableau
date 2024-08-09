@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 )
 
@@ -47,15 +48,25 @@ Enabled: false
 	}
 }
 
-func Test_readYAMLBook(t *testing.T) {
+type TestSheetParser struct {
+}
+
+func (p *TestSheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+	return nil
+}
+
+func TestNewYAMLImporter(t *testing.T) {
 	type args struct {
-		filename string
-		parser   book.SheetParser
+		filename   string
+		sheetNames []string
+		parser     book.SheetParser
+		mode       ImporterMode
+		cloned     bool
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *book.Book
+		want    *YAMLImporter
 		wantErr bool
 	}{
 		{
@@ -65,51 +76,25 @@ func Test_readYAMLBook(t *testing.T) {
 				parser:   nil,
 			},
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := readYAMLBook(tt.args.filename, tt.args.parser)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("readYAMLBook() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			fmt.Println(got.String())
-			// if !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("readYAMLBook() = %v, want %v", got, tt.want)
-			// }
-		})
-	}
-}
-
-func Test_readYAMLBookWithOnlySchemaSheet(t *testing.T) {
-	type args struct {
-		filename string
-		parser   book.SheetParser
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *book.Book
-		wantErr bool
-	}{
 		{
 			name: "TestTemplate.yaml",
 			args: args{
 				filename: "testdata/TestTemplate.yaml",
-				parser:   nil,
+				mode:     Protogen,
+				parser:   &TestSheetParser{},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := readYAMLBookWithOnlySchemaSheet(tt.args.filename, tt.args.parser)
+			got, err := NewYAMLImporter(tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("readYAMLBookWithOnlySchemaSheet() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewYAMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			fmt.Println(got.String())
 			// if !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("readYAMLBookWithOnlySchemaSheet() = %v, want %v", got, tt.want)
+			// 	t.Errorf("NewYAMLImporter() = %v, want %v", got, tt.want)
 			// }
 		})
 	}
