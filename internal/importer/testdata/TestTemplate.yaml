@@ -1,0 +1,18 @@
+---
+"@sheet": "@TABLEAU"
+ServiceConf:
+  Template: true
+---
+# define schema
+"@sheet": "@ServiceConf"
+ID: uint32
+Name: string
+---
+"@sheet": ServiceConf
+ID: {{ env.id }}
+Name: {{ env.name}}
+{% if env.name == 'prod' %}
+Enabled: true
+{% else %}
+Enabled: false
+{% endif %}

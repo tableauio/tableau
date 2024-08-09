@@ -1,10 +1,12 @@
 package importer
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -18,31 +20,36 @@ type YAMLImporter struct {
 }
 
 func NewYAMLImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*YAMLImporter, error) {
-	book, err := readYAMLBook(filename, parser)
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
-	}
-
+	var book *book.Book
+	var err error
 	if mode == Protogen {
+		book, err = readYAMLBookWithOnlySchemaSheet(filename, parser)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
+		}
 		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, errors.WithMessage(err, "failed to parse metasheet")
+		}
+	} else {
+		book, err = readYAMLBook(filename, parser)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
 		}
 	}
 
 	// log.Debugf("book: %+v", book)
-
 	return &YAMLImporter{
 		Book: book,
 	}, nil
 }
 
 func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
+	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
+	newBook := book.NewBook(bookName, filename, parser)
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
-	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	newBook := book.NewBook(bookName, filename, parser)
 	// parse all documents in a file
 	decoder := yaml.NewDecoder(file)
 	for i := 0; ; i++ {
@@ -62,7 +69,36 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 		}
 		newBook.AddSheet(sheet)
 	}
+	return newBook, nil
+}
 
+func readYAMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (*book.Book, error) {
+	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
+	newBook := book.NewBook(bookName, filename, parser)
+
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	rawDocs, err := extractRawYAMLDocuments(string(content))
+	if err != nil {
+		return nil, err
+	}
+	for i, rawDoc := range rawDocs {
+		if !isSchemaSheet(rawDoc) {
+			continue
+		}
+		var doc yaml.Node
+		err := yaml.Unmarshal([]byte(rawDoc), &doc)
+		if err != nil {
+			return nil, err
+		}
+		sheet, err := parseYAMLSheet(&doc, i)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "file: %s", filename)
+		}
+		newBook.AddSheet(sheet)
+	}
 	return newBook, nil
 }
 
@@ -164,4 +200,39 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 	default:
 		return errors.Errorf("unknown yaml node(%d:%d) kind: %v, value: %v", node.Line, node.Column, node.Kind, node.Value)
 	}
+}
+
+var yamlSheetNameRegexp *regexp.Regexp
+
+func init() {
+	yamlSheetNameRegexp = regexp.MustCompile(`"@sheet"\s*:\s*(.+)`) // e.g.: "@sheet": "@EnvConf"
+}
+
+const yamlDocumentSeparator = "---"
+
+// extractRawYAMLDocuments extracts raw YAML into separate documents.
+func extractRawYAMLDocuments(content string) ([]string, error) {
+	rawDocuments := strings.Split(content, yamlDocumentSeparator)
+	var documents []string
+	for _, doc := range rawDocuments {
+		trimmedDoc := strings.TrimSpace(doc)
+		if trimmedDoc != "" {
+			documents = append(documents, trimmedDoc)
+		}
+	}
+	return documents, nil
+}
+
+func isSchemaSheet(rawDoc string) bool {
+	scanner := bufio.NewScanner(strings.NewReader(rawDoc))
+	for scanner.Scan() {
+		line := scanner.Text()
+		matches := yamlSheetNameRegexp.FindStringSubmatch(line)
+		if len(matches) == 2 {
+			sheetName := strings.Trim(matches[1], `"`)
+			// log.Debugf("sheet: %s", sheetName)
+			return strings.HasPrefix(sheetName, "@")
+		}
+	}
+	return false
 }
