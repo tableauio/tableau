@@ -1,5 +1,7 @@
 // Package load provides functions to load a protobuf message from
-// different formats: json, bin, txt, xlsx, csv, and xml.
+// different formats:
+//   - generated fomats: json, bin, txt
+//   - origin formats: xlsx, csv, xml, yaml.
 package load
 
 import (
@@ -60,7 +62,8 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	return nil
 }
 
-// loadOrigin loads the origin file(excel/csv/xml) from the given directory.
+// loadOrigin loads the origin file (excel/csv/xml/yaml) from the given
+// directory.
 func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	opts := ParseOptions(options...)
 
