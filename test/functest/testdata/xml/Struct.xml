@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+<@TABLEAU>
+    <Item Sheet="XMLStructConf" />
+</@TABLEAU>
+
+<XMLStructConf>
+   <Item ID="uint32" Name="string" />
+</XMLStructConf>
+-->
+
+<XMLStructConf>
+    <Item ID="1" Name="Apple" Desc="A kind of fruit."  />
+</XMLStructConf>

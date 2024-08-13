@@ -192,11 +192,11 @@ func readXMLFile(metasheet, content string, newBook *book.Book, mode ImporterMod
 
 	if mode == Protogen {
 		// strip template sheets
-		for sheet, colMap := range metasheetMap {
+		for sheetname, colMap := range metasheetMap {
 			if template, ok := colMap["Template"]; !ok || template != "true" {
 				continue
 			}
-			matches := matchSheetBlock(content, sheet)
+			matches := matchSheetBlock(content, sheetname)
 			if len(matches) == 0 {
 				continue
 			}
@@ -223,11 +223,11 @@ func readXMLFile(metasheet, content string, newBook *book.Book, mode ImporterMod
 	return xmlMeta, nil
 }
 
-// genMetasheet generates metasheet according to `
+// genMetasheet generates metasheet according to
 //
 //	<@TABLEAU>
-//	    <Item Sheet="XXXConf" />
-//	</@TABLEAU>`
+//		<Item Sheet="XXXConf" />
+//	</@TABLEAU>
 func genMetasheet(tableauNode *xmlquery.Node) (map[string]map[string]string, *book.Sheet, error) {
 	root := &book.Node{
 		Kind: book.MapNode,
@@ -297,14 +297,7 @@ func addMetaNodeAttr(attrMap *tableaupb.XMLNode_AttrMap, name, val string) {
 }
 
 // addDataNodeAttr adds an attribute to DataNode AttrMap
-func addDataNodeAttr(metaMap, dataMap *tableaupb.XMLNode_AttrMap, name, val string) {
-	if _, ok := metaMap.Map[name]; !ok {
-		metaMap.Map[name] = int32(len(metaMap.List))
-		metaMap.List = append(metaMap.List, &tableaupb.XMLNode_AttrMap_Attr{
-			Name:  name,
-			Value: inferType(val),
-		})
-	}
+func addDataNodeAttr(dataMap *tableaupb.XMLNode_AttrMap, name, val string) {
 	dataMap.Map[name] = int32(len(dataMap.List))
 	dataMap.List = append(dataMap.List, &tableaupb.XMLNode_AttrMap_Attr{
 		Name:  name,
@@ -381,7 +374,7 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 	data := data_nodes[len(data_nodes)-1]
 	for _, attr := range curr.Attr {
 		attrName := attr.Name.Local
-		addDataNodeAttr(meta.AttrMap, data.AttrMap, attrName, attr.Value)
+		addDataNodeAttr(data.AttrMap, attrName, attr.Value)
 	}
 	for n := curr.FirstChild; n != nil; n = n.NextSibling {
 		if n.Type != xmlquery.ElementNode {
@@ -390,7 +383,7 @@ func parseDataNode(curr *xmlquery.Node, xmlSheet *tableaupb.XMLSheet) error {
 		// e.g.: <MaxNum>100</MaxNum>
 		if innerText := getTextContent(n); innerText != "" {
 			attrName := n.Data
-			addDataNodeAttr(meta.AttrMap, data.AttrMap, attrName, innerText)
+			addDataNodeAttr(data.AttrMap, attrName, innerText)
 			continue
 		}
 		childName := n.Data
@@ -460,20 +453,6 @@ func getNodePath(curr *xmlquery.Node) (root *xmlquery.Node, path string) {
 		}
 	}
 	return root, path
-}
-
-// inferType infer type from the node value, e.g.:
-// - 4324342: `int32`
-// - 4324324324324343243432: `int64`
-// - 4535ffdr43t3r: `string`
-func inferType(value string) string {
-	if _, err := strconv.Atoi(value); err == nil {
-		return "int32"
-	} else if _, err := strconv.ParseInt(value, 10, 64); err == nil {
-		return "int64"
-	} else {
-		return "string"
-	}
 }
 
 func matchAttr(s string) []string {
@@ -970,7 +949,11 @@ func fillDataNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode, bnode *
 	// NOTE: curBNode may be pointed to one subnode when needed
 	curBNode := bnode
 	for _, attr := range node.AttrMap.List {
-		typeAttr := meta.AttrMap.List[meta.AttrMap.Map[attr.Name]].Value
+		index, ok := meta.AttrMap.Map[attr.Name]
+		if !ok {
+			continue
+		}
+		typeAttr := meta.AttrMap.List[index].Value
 		if desc := types.MatchMap(typeAttr); desc != nil {
 			curBNode = &book.Node{
 				Kind: book.MapNode,
@@ -982,19 +965,6 @@ func fillDataNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode, bnode *
 					},
 				},
 			}
-			bnode.Children = append(bnode.Children, curBNode)
-		} else if desc := types.MatchKeyedList(typeAttr); desc != nil {
-			//treat keyed list as normal list
-			curBNode = &book.Node{
-				Kind: book.MapNode,
-				Children: []*book.Node{
-					{
-						Name:  attr.Name,
-						Value: attr.Value,
-					},
-				},
-			}
-			bnode.Kind = book.ListNode
 			bnode.Children = append(bnode.Children, curBNode)
 		} else if desc := types.MatchList(typeAttr); desc != nil {
 			if desc.ElemType != "" {
@@ -1050,13 +1020,4 @@ func fillDataNode(xmlSheet *tableaupb.XMLSheet, node *tableaupb.XMLNode, bnode *
 	}
 
 	return nil
-}
-
-func newPrefix(prefix, curNode, sheetName string) string {
-	// sheet name should not occur in the prefix
-	if curNode != sheetName {
-		return prefix + curNode
-	} else {
-		return prefix
-	}
 }
