@@ -95,8 +95,7 @@ func splitRawXML(rawXML string) (metasheet, content string) {
 	return metasheet, content
 }
 
-// parseXML parse sheets in the XML file named `filename` and return a book with multiple sheets
-// in TABLEAU grammar which can be exported to protobuf by excel parser.
+// parseXML parses a XML file to a book.
 func parseXML(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool, primaryBookName string) (*book.Book, error) {
 	log.Debugf("xml:%s|cloned:%v|primaryBookName:%s", filename, cloned, primaryBookName)
 	buf, err := os.ReadFile(filename)
@@ -628,54 +627,6 @@ func rearrangeAttrs(attrMap *tableaupb.XMLNode_AttrMap) error {
 		return fmt.Errorf("more than one non-scalar types: %v", typeMap)
 	}
 	return nil
-}
-
-// fixNodeType fix the type of `curr` in the `xmlSheet` based on its `oriType`. e.g.:
-// - map<uint32,Weight>: {Test}map<uint32,Weight>
-// - int32: {StructConf}{Weight}int32
-// - []int64: {MapConf}[]int64
-//
-// NOTE: list and keyedlist auto-deduction not supported temporarily
-func fixNodeType(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.XMLNode, oriType string) (t string) {
-	t = oriType
-	// add type prefixes
-	for n, c := curr, curr; n != nil && n.Parent != nil; n, c = n.Parent, n {
-		if n == curr {
-			// curr is cross-cell, parent should not add prefix
-			if isCrossCell(oriType) {
-				continue
-			}
-		} else {
-			// not the first attr or not the first child, fix ok
-			if len(n.AttrMap.List) > 0 || !isFirstChild(c) {
-				break
-			}
-		}
-		if isRepeated(xmlSheet, n) {
-			if n == curr {
-				t = fmt.Sprintf("[%s]<%s>", n.Name, t)
-			} else {
-				t = fmt.Sprintf("[%s]%s", n.Name, t)
-			}
-		} else {
-			t = fmt.Sprintf("{%s}%s", n.Name, t)
-		}
-	}
-	return t
-}
-
-// isRepeated check if `curr` has other sibling nodes with the same name with itself.
-func isRepeated(xmlSheet *tableaupb.XMLSheet, curr *tableaupb.XMLNode) bool {
-	strList := strings.Split(curr.Path, "/")
-	parentPath := strings.Join(strList[:len(strList)-1], "/")
-	if nodes, ok := xmlSheet.DataNodeMap[parentPath]; ok {
-		for _, n := range nodes.Nodes {
-			if indexes, ok := n.ChildMap[curr.Name]; ok && len(indexes.Indexes) > 1 {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // isCrossCell check if type string `t` is a cross-cell type.
