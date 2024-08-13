@@ -44,7 +44,7 @@ func New(filename string, setters ...Option) (Importer, error) {
 	case format.CSV:
 		return NewCSVImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	case format.XML:
-		return NewXMLImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned, opts.PrimaryBookName)
+		return NewXMLImporterDeprecated(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned, opts.PrimaryBookName)
 	case format.YAML:
 		return NewYAMLImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	default:

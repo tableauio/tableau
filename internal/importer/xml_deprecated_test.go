@@ -1009,7 +1009,7 @@ func TestNewXMLImporter(t *testing.T) {
 	})
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewXMLImporter(tt.args.filename, tt.args.sheets, tt.args.parser, tt.args.mode, tt.args.cloned, tt.args.primaryBookName)
+			got, err := NewXMLImporterDeprecated(tt.args.filename, tt.args.sheets, tt.args.parser, tt.args.mode, tt.args.cloned, tt.args.primaryBookName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewXMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return
