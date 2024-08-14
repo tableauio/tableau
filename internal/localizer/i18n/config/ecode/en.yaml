@@ -84,6 +84,10 @@ E2017:
   desc: map contains multiple empty keys
   text: '"{{.MapType}}" contains multiple empty keys'
   help: ensure there is at most one empty key in map, or assign them explicitly if you need multiple zero-value keys
+E2018:
+  desc: map key not exist
+  text: 'map key field "{{.KeyName}}" not exist'
+  help: ensure the key field is set in elements of map
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

@@ -1,11 +1,6 @@
 {
     "parent": {
         "parent2": {
-            "enumIncellList": [
-                "FRUIT_TYPE_APPLE",
-                "FRUIT_TYPE_ORANGE",
-                "FRUIT_TYPE_BANANA"
-            ],
             "incell": {
                 "valueList": [
                     1,
@@ -13,7 +8,12 @@
                     3,
                     1
                 ]
-            }
+            },
+            "enumIncellList": [
+                "FRUIT_TYPE_APPLE",
+                "FRUIT_TYPE_ORANGE",
+                "FRUIT_TYPE_BANANA"
+            ]
         }
     }
 }

@@ -13,11 +13,11 @@ option (tableau.workbook) = {name:"xml/metasheet/Metasheet.xml"};
 message MetasheetConf {
   option (tableau.worksheet) = {name:"MetasheetConf" sep:";"};
 
-  int32 max_num = 1 [(tableau.field) = {name:"MaxNum"}];
-  SepConf sep_conf = 2 [(tableau.field) = {name:"SepConf"}];
+  SepConf sep_conf = 1 [(tableau.field) = {name:"SepConf"}];
   message SepConf {
     repeated int32 number_list = 1 [(tableau.field) = {name:"number" layout:LAYOUT_INCELL}];
   }
+  int32 max_num = 2 [(tableau.field) = {name:"MaxNum"}];
 }
 
 message TemplateConf {

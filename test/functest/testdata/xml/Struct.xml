@@ -10,6 +10,6 @@
 -->
 
 <XMLStructConf>
-    <Item ID="1" Name="Apple" Desc="A kind of fruit."  />
-    <!-- <Cost ID="10" Num="100" /> -->
+    <Item ID="1" Name="Apple" VerboseAttr="A kind of fruit."/>
+    <VerboseElement ID="10" Num="100" />
 </XMLStructConf>
