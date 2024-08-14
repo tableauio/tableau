@@ -145,45 +145,14 @@ func parseXMLSheet(doc *xmldom.Document, mode ImporterMode) (*book.Sheet, error)
 		Value: name,
 	})
 
-	for _, attr := range doc.Root.Attributes {
-		subNode := &book.Node{
-			Name:  attr.Name,
-			Value: attr.Value,
-		}
-		bnode.Children = append(bnode.Children, subNode)
-	}
-	for _, child := range doc.Root.Children {
-		if child.Text != "" {
-			// child with text is regarded as an attribute
-			if len(child.Attributes) != 0 || len(child.Children) != 0 {
-				return nil, errors.Errorf("node contains text so attributes and children must be empty|name: %s", child.Name)
-			}
-			_ = parseXMLAttribute(bnode, child.Name, child.Text, false)
-			continue
-		}
-		subNode := &book.Node{}
-		parseXMLNode(child, subNode, mode)
-		if mode == Confgen {
-			if subNode.Kind == book.ScalarNode {
-				bnode.Children = append(bnode.Children, subNode)
-			} else if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
-				bnode.Children = append(bnode.Children, &book.Node{
-					Kind: book.ListNode,
-					Name: subNode.Name,
-					Children: []*book.Node{
-						{
-							Kind:     book.MapNode,
-							Children: subNode.Children,
-						},
-					},
-				})
-			} else {
-				subNode.Name = ""
-				existingBnode.Children = append(existingBnode.Children, subNode)
-			}
-		} else {
-			bnode.Children = append(bnode.Children, subNode)
-		}
+	rootNode := &book.Node{}
+	parseXMLNode(doc.Root, rootNode, mode)
+	if structNode := rootNode.FindChild(book.KeywordStruct); structNode != nil {
+		// used for protogen
+		bnode.Children = append(bnode.Children, structNode.Children...)
+	} else {
+		// used for confgen
+		bnode.Children = append(bnode.Children, rootNode.Children...)
 	}
 
 	sheet := book.NewDocumentSheet(

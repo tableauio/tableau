@@ -22,6 +22,7 @@ message ListConf {
       message CrossCell {
         int32 value = 1 [(tableau.field) = {name:"Value"}];
         string name = 2 [(tableau.field) = {name:"Name"}];
+        repeated int32 cost_list = 3 [(tableau.field) = {name:"Cost" layout:LAYOUT_INCELL}];
       }
     }
   }
@@ -37,6 +38,7 @@ message ListConf2 {
       Incell incell = 1 [(tableau.field) = {name:"Incell"}];
       message Incell {
         repeated int32 value_list = 1 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL}];
+        repeated int32 cost_list = 2 [(tableau.field) = {name:"Cost" layout:LAYOUT_INCELL}];
       }
       repeated protoconf.FruitType enum_incell_list = 2 [(tableau.field) = {name:"EnumIncell" layout:LAYOUT_INCELL}];
     }

@@ -17,6 +17,7 @@ message MapConf {
   map<string, PreEntry> pre_entry_map = 2 [(tableau.field) = {name:"PreEntry" key:"Name"}];
   message PreEntry {
     string name = 1 [(tableau.field) = {name:"Name"}];
+    repeated int32 cost_list = 2 [(tableau.field) = {name:"Cost" layout:LAYOUT_INCELL}];
   }
   map<uint32, Entry> entry_map = 3 [(tableau.field) = {name:"Entry" key:"Id"}];
   message Entry {

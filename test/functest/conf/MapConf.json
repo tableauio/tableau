@@ -2,10 +2,20 @@
     "open": true,
     "preEntryMap": {
         "1": {
-            "name": "1"
+            "name": "1",
+            "costList": [
+                1,
+                2,
+                3
+            ]
         },
         "2": {
-            "name": "2"
+            "name": "2",
+            "costList": [
+                4,
+                5,
+                6
+            ]
         }
     },
     "entryMap": {
