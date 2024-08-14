@@ -88,3 +88,101 @@ func TestNewXMLImporter(t *testing.T) {
 		})
 	}
 }
+
+func Test_escapeAttrs(t *testing.T) {
+	type args struct {
+		doc string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "standard",
+			args: args{
+				doc: `
+<Conf>
+    <Server Type = "map<enum<.ServerType>, Server>" Value = "int32"/>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+    <Server Type="map&lt;enum&lt;.ServerType&gt;, Server&gt;" Value="int32"/>
+</Conf>
+`,
+		},
+		{
+			name: "FeatureToggle",
+			args: args{
+				doc: `
+<Conf>
+	<Client EnvID="map<uint32,Client>">
+		<Toggle ID="map<enum<.ToggleType>, Toggle>" WorldID="uint32"/>
+	</Client>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<Client EnvID="map&lt;uint32,Client&gt;">
+		<Toggle ID="map&lt;enum&lt;.ToggleType&gt;, Toggle&gt;" WorldID="uint32"/>
+	</Client>
+</Conf>
+`,
+		},
+		{
+			name: "Prop",
+			args: args{
+				doc: `
+<Conf>
+	<Client ID="map<uint32, Client>|{unique:true range:"1,~"}" OpenTime="datetime|{default:"2022-01-23 15:40:00"}"/>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<Client ID="map&lt;uint32, Client&gt;|{unique:true range:&#34;1,~&#34;}" OpenTime="datetime|{default:&#34;2022-01-23 15:40:00&#34;}"/>
+</Conf>
+`,
+		},
+		{
+			name: "SimpleTag",
+			args: args{
+				doc: `
+<Conf>
+	<ClientID>enum<.ClientIDType></ClientID>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<ClientID>enum&lt;.ClientIDType&gt;</ClientID>
+</Conf>
+`,
+		},
+		{
+			name: "ComplexTag",
+			args: args{
+				doc: `
+<Conf>
+	<ClientID>map<uint32, Client>|{unique:true range:"1,~"}</ClientID>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<ClientID>map&lt;uint32, Client&gt;|{unique:true range:&#34;1,~&#34;}</ClientID>
+</Conf>
+`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := escapeAttrs(tt.args.doc); got != tt.want {
+				t.Errorf("escapeAttrs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
