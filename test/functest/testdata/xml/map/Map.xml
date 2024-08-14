@@ -7,6 +7,16 @@
 <MapConf Open="bool">
     <PreEntry Name="map<string, PreEntry>" Cost="[]int32" />
     <Entry Id="map<uint32, Entry>" Value="int32" />
+
+    <Meal Id="map<string, Meal>" Time="duration">
+        <Meat Name="map<string, Meat>" Weight="string" />
+        <Vegetables>
+            <Vegetable Name="map<string, Vegetable>|{optional:true}" Num="int32" />
+        </Vegetables>
+        <Fruits>
+            <Fruit Name="map<string, Fruit>" Desc="string|{optional:true}" />
+        </Fruits>
+    </Meal>
 </MapConf>
 -->
 
@@ -16,4 +26,32 @@
     <Entry Id="1" Value="1" />
     <Entry Id="2" Value="2" />
     <Entry Id="3" Value="3" />
+
+    <Meal Id="breakfast" Time="15m">
+        <Meat Name="Egg" Weight="100g" />
+        <Vegetables>
+            <Vegetable Name="Cauliflower" Num="2" />
+            <Vegetable Name="Cucumber" Num="1" />
+        </Vegetables>
+        <Fruits>
+            <Fruit Name="Apple" Desc="sour" />
+        </Fruits>
+    </Meal>
+    <Meal Id="lunch" Time="30m">
+        <Meat Name="Chicken" Weight="150g" />
+        <Meat Name="Fish" Weight="100g" />
+        <Vegetables>
+            <Vegetable Name="Spinach" Num="1" />
+        </Vegetables>
+        <Fruits>
+            <Fruit Name="Mongo" Desc="sweet" />
+        </Fruits>
+    </Meal>
+    <Meal Id="dinner" Time="30m">
+        <Meat Name="Beef" Weight="200g" />
+        <Vegetables />
+        <Fruits>
+            <Fruit Name="Banana" />
+        </Fruits>
+    </Meal>
 </MapConf>

@@ -31,5 +31,86 @@
             "id": 3,
             "value": 3
         }
+    },
+    "mealMap": {
+        "breakfast": {
+            "id": "breakfast",
+            "time": "900s",
+            "meatMap": {
+                "Egg": {
+                    "name": "Egg",
+                    "weight": "100g"
+                }
+            },
+            "vegetables": {
+                "vegetableMap": {
+                    "Cauliflower": {
+                        "name": "Cauliflower",
+                        "num": 2
+                    },
+                    "Cucumber": {
+                        "name": "Cucumber",
+                        "num": 1
+                    }
+                }
+            },
+            "fruits": {
+                "fruitMap": {
+                    "Apple": {
+                        "name": "Apple",
+                        "desc": "sour"
+                    }
+                }
+            }
+        },
+        "dinner": {
+            "id": "dinner",
+            "time": "1800s",
+            "meatMap": {
+                "Beef": {
+                    "name": "Beef",
+                    "weight": "200g"
+                }
+            },
+            "vegetables": null,
+            "fruits": {
+                "fruitMap": {
+                    "Banana": {
+                        "name": "Banana",
+                        "desc": ""
+                    }
+                }
+            }
+        },
+        "lunch": {
+            "id": "lunch",
+            "time": "1800s",
+            "meatMap": {
+                "Chicken": {
+                    "name": "Chicken",
+                    "weight": "150g"
+                },
+                "Fish": {
+                    "name": "Fish",
+                    "weight": "100g"
+                }
+            },
+            "vegetables": {
+                "vegetableMap": {
+                    "Spinach": {
+                        "name": "Spinach",
+                        "num": 1
+                    }
+                }
+            },
+            "fruits": {
+                "fruitMap": {
+                    "Mongo": {
+                        "name": "Mongo",
+                        "desc": "sweet"
+                    }
+                }
+            }
+        }
     }
 }
