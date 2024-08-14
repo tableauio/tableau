@@ -80,3 +80,18 @@ message YamlScalarConf {
   bytes blob = 8 [(tableau.field) = {name:"Blob"}];
   bool ok = 9 [(tableau.field) = {name:"OK"}];
 }
+
+message PatchReplaceConf {
+  option (tableau.worksheet) = {name:"PatchReplaceConf" namerow:1 typerow:2 noterow:3 datarow:4 patch: PATCH_REPLACE};
+  
+  string name = 1 [(tableau.field) = { name: "Name" }];
+  repeated int32 price_list = 2 [(tableau.field) = { name: "Price" layout: LAYOUT_INCELL }];
+}
+
+message PatchMergeConf {
+  option (tableau.worksheet) = {name:"PatchMergeConf" namerow:1 typerow:2 noterow:3 datarow:4 patch: PATCH_MERGE};
+  
+  string name = 1 [(tableau.field) = { name: "Name" }];
+  repeated int32 price_list = 2 [(tableau.field) = { name: "Price" layout: LAYOUT_INCELL }];
+  map<uint32, unittest.Item> item_map = 3 [(tableau.field) = {key:"ID" layout:LAYOUT_HORIZONTAL}];
+}

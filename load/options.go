@@ -1,5 +1,7 @@
 package load
 
+import "google.golang.org/protobuf/reflect/protoreflect"
+
 type Options struct {
 	// Location represents the collection of time offsets in use in
 	// a geographical area.
@@ -27,10 +29,41 @@ type Options struct {
 	//
 	// Default: nil.
 	Paths map[string]string
+	// PatchDir specifies the directory path for config patching. If not
+	// specified, then no patching will be applied.
+	//
+	// Default: "".
+	PatchDir string
+	// Filter can only filter in certain specific messagers based on the
+	// condition that you provide.
+	//
+	// NOTE:
+	//	- messagers specified in "Paths" cannot be patched.
+	//  - only used in https://github.com/tableauio/loader.
+	//
+	// Default: nil.
+	Filter func(msg protoreflect.FullName) bool
 }
 
 // Option is the functional option type.
 type Option func(*Options)
+
+// newDefault returns a default Options.
+func newDefault() *Options {
+	return &Options{
+		LocationName: "Local",
+	}
+}
+
+// ParseOptions parses functional options and merge them to default Options.
+func ParseOptions(setters ...Option) *Options {
+	// Default Options
+	opts := newDefault()
+	for _, setter := range setters {
+		setter(opts)
+	}
+	return opts
+}
 
 // LocationName sets TZ location name for parsing datetime format.
 func LocationName(name string) Option {
@@ -63,19 +96,23 @@ func Paths(paths map[string]string) Option {
 	}
 }
 
-// newDefault returns a default Options.
-func newDefault() *Options {
-	return &Options{
-		LocationName: "Local",
+// PatchDir specifies the directory path for config patching. If not
+// specified, then no patching will be applied.
+func PatchDir(dir string) Option {
+	return func(opts *Options) {
+		opts.PatchDir = dir
 	}
 }
 
-// ParseOptions parses functional options and merge them to default Options.
-func ParseOptions(setters ...Option) *Options {
-	// Default Options
-	opts := newDefault()
-	for _, setter := range setters {
-		setter(opts)
+// Filter can only filter in certain specific messagers based on the
+// condition that you provide.
+//
+// NOTE:
+//	- messagers specified in "Paths" cannot be patched.
+//  - only used in https://github.com/tableauio/loader.
+//
+func Filter(filter func(msg protoreflect.FullName) bool) Option {
+	return func(opts *Options) {
+		opts.Filter = filter
 	}
-	return opts
 }

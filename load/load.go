@@ -14,6 +14,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -26,16 +27,59 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, options...)
 	}
-	name := string(msg.ProtoReflect().Descriptor().Name())
+	md := msg.ProtoReflect().Descriptor()
+	name := string(md.Name())
 	path := filepath.Join(dir, name+format.Format2Ext(fmt))
 	opts := ParseOptions(options...)
+	var specifiedInPaths bool
 	if opts.Paths != nil {
 		if p, ok := opts.Paths[name]; ok {
 			// path specified explicitly, then use it directly
+			specifiedInPaths = true
 			path = p
 			fmt = format.GetFormat(path)
 		}
 	}
+	_, sheetOpts := confgen.ParseMessageOptions(md)
+	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE && opts.PatchDir != "" && !specifiedInPaths {
+		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
+	}
+	return load(msg, path, fmt, opts)
+}
+
+func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
+	md := msg.ProtoReflect().Descriptor()
+	name := string(md.Name())
+	patchPath := filepath.Join(opts.PatchDir, name+format.Format2Ext(fmt))
+	existed, err := fs.Exists(patchPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check file existence: %s", patchPath)
+	}
+	if !existed {
+		// If patch file not existed, then just load from file in the "main" dir.
+		return load(msg, path, fmt, opts)
+	}
+	switch patch {
+	case tableaupb.Patch_PATCH_REPLACE:
+		return load(msg, patchPath, fmt, opts)
+	case tableaupb.Patch_PATCH_MERGE:
+		patchMsg := proto.Clone(msg)
+		// load msg from "main" dir
+		if err := load(msg, path, fmt, opts); err != nil {
+			return err
+		}
+		// load patchMsg from "patch" dir
+		if err := load(patchMsg, patchPath, fmt, opts); err != nil {
+			return err
+		}
+		return merge(msg, patchMsg)
+	}
+	return nil
+}
+
+// load loads the generated config file (json/text/bin) from the given
+// directory.
+func load(msg proto.Message, path string, fmt format.Format, opts *Options) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read file: %v", path)
@@ -57,7 +101,8 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	}
 	if unmarshalErr != nil {
 		lines := extractLinesOnUnmarshalError(unmarshalErr, fmt, content)
-		return xerrors.E0002(path, name, unmarshalErr.Error(), lines)
+		fullName := msg.ProtoReflect().Descriptor().FullName()
+		return xerrors.E0002(path, string(fullName), unmarshalErr.Error(), lines)
 	}
 	return nil
 }
