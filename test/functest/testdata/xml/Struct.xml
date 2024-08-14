@@ -5,11 +5,16 @@
 </@TABLEAU>
 
 <XMLStructConf>
-   <Item ID="uint32" Name="string" />
+    <Item ID="uint32" Name="string" />
+    <FruitShopData @type="{.Fruits}" />
 </XMLStructConf>
 -->
 
 <XMLStructConf>
     <Item ID="1" Name="Apple" VerboseAttr="A kind of fruit."/>
     <VerboseElement ID="10" Num="100" />
+    <FruitShopData>
+        <Fruit Name="apple" Flavor="Sour,Sweet"/>
+        <Fruit Name="banana" Flavor="Fragrant,Sweet"/>
+    </FruitShopData>
 </XMLStructConf>

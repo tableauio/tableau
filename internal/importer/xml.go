@@ -31,6 +31,7 @@ var (
 const (
 	xmlProlog             = `<?xml version='1.0' encoding='UTF-8'?>`
 	atTableauDisplacement = `ATABLEAU`
+	atTypeDisplacement    = "ATYPE"
 	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`                       // e.g.: |{default:"100"}
 	metasheetItemBlock    = `<Item(\s+\S+\s*=\s*("\S+"|'\S+'))+\s*/>` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
 	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`                // e.g.: <XXXConf>...</XXXConf>
@@ -208,6 +209,15 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 	case Protogen:
 		bnode.Kind = book.MapNode
 		bnode.Name = node.Name
+		if typeAttr := node.GetAttribute(atTypeDisplacement); typeAttr != nil {
+			// predefined struct
+			if len(node.Attributes) != 1 || len(node.Children) != 0 || node.Text != "" {
+				return errors.Errorf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)
+			}
+			bnode.Kind = book.ScalarNode
+			bnode.Value = typeAttr.Value
+			return nil
+		}
 		// NOTE: curBNode may be pointed to one subnode when needed
 		curBNode := bnode
 		for i, attr := range node.Attributes {
@@ -464,9 +474,11 @@ func splitXMLMetasheet(content string) string {
 		log.Panicf("scanner err:%v", err)
 		return ""
 	}
-	metasheet := xmlProlog + "\n" + escapeAttrs(strings.ReplaceAll(
-		matches[1], book.MetasheetName, atTableauDisplacement,
-	))
+	metasheet := matches[1]
+	metasheet = strings.ReplaceAll(metasheet, book.MetasheetName, atTableauDisplacement)
+	metasheet = strings.ReplaceAll(metasheet, book.KeywordType, atTypeDisplacement)
+	metasheet = escapeAttrs(metasheet)
+	metasheet = xmlProlog + "\n" + metasheet
 	return metasheet
 }
 
