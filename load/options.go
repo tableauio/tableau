@@ -49,8 +49,11 @@ type Options struct {
 	//  - only used in https://github.com/tableauio/loader.
 	//
 	// Default: nil.
-	Filter func(msg protoreflect.FullName) bool
+	Filter FilterFunc
 }
+
+// FilterFunc filter in messagers if returned value is true.
+type FilterFunc func(msg protoreflect.FullName) bool
 
 // Option is the functional option type.
 type Option func(*Options)
@@ -130,7 +133,7 @@ func PatchDir(dir string) Option {
 //	- messagers specified in "Paths" cannot be patched.
 //  - only used in https://github.com/tableauio/loader.
 //
-func Filter(filter func(msg protoreflect.FullName) bool) Option {
+func Filter(filter FilterFunc) Option {
 	return func(opts *Options) {
 		opts.Filter = filter
 	}
