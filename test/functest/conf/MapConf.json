@@ -84,7 +84,7 @@
         },
         "lunch": {
             "id": "lunch",
-            "time": "1800s",
+            "time": "1200s",
             "meatMap": {
                 "Chicken": {
                     "name": "Chicken",

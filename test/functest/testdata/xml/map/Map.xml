@@ -8,7 +8,7 @@
     <PreEntry Name="map<string, PreEntry>" Cost="[]int32" />
     <Entry Id="map<uint32, Entry>" Value="int32" />
 
-    <Meal Id="map<string, Meal>" Time="duration">
+    <Meal Id="map<string, Meal>" Time="duration|{default:"30m"}">
         <Meat Name="map<string, Meat>" Weight="string" />
         <Vegetables>
             <Vegetable Name="map<string, Vegetable>|{optional:true}" Num="int32" />
@@ -37,7 +37,7 @@
             <Fruit Name="Apple" Desc="sour" />
         </Fruits>
     </Meal>
-    <Meal Id="lunch" Time="30m">
+    <Meal Id="lunch" Time="20m">
         <Meat Name="Chicken" Weight="150g" />
         <Meat Name="Fish" Weight="100g" />
         <Vegetables>
@@ -47,7 +47,7 @@
             <Fruit Name="Mongo" Desc="sweet" />
         </Fruits>
     </Meal>
-    <Meal Id="dinner" Time="30m">
+    <Meal Id="dinner">
         <Meat Name="Beef" Weight="200g" />
         <Vegetables />
         <Fruits>
