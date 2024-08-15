@@ -2,12 +2,17 @@
 <!--
 <@TABLEAU>
     <Item Sheet="XMLStructConf" />
+    <Item Sheet="XMLStructConf2" />
 </@TABLEAU>
 
 <XMLStructConf>
     <Item ID="uint32" Name="string" />
     <FruitShopData @type="{.Fruits}" />
 </XMLStructConf>
+
+<XMLStructConf2>
+    <Node desc="string" />
+</XMLStructConf2>
 -->
 
 <XMLStructConf>
@@ -18,3 +23,7 @@
         <Fruit Name="banana" Flavor="Fragrant,Sweet"/>
     </FruitShopData>
 </XMLStructConf>
+
+<XMLStructConf2>
+    <Node desc="Multiple root nodes are supported."/>
+</XMLStructConf2>

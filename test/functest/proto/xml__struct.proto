@@ -21,3 +21,12 @@ message XMLStructConf {
   }
   protoconf.Fruits fruit_shop_data = 2 [(tableau.field) = {name:"FruitShopData"}];
 }
+
+message XMLStructConf2 {
+  option (tableau.worksheet) = {name:"XMLStructConf2"};
+
+  Node node = 1 [(tableau.field) = {name:"Node"}];
+  message Node {
+    string desc = 1 [(tableau.field) = {name:"desc"}];
+  }
+}

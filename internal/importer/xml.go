@@ -94,7 +94,7 @@ func readXMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
 		if err != nil {
 			return nil, err
 		}
-		sheet, err := parseXMLSheet(doc, Confgen)
+		sheet, err := parseXMLSheet(doc, UnknownMode)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "file: %s", filename)
 		}
@@ -147,7 +147,9 @@ func parseXMLSheet(doc *xmldom.Document, mode ImporterMode) (*book.Sheet, error)
 	})
 
 	rootNode := &book.Node{}
-	parseXMLNode(doc.Root, rootNode, mode)
+	if err := parseXMLNode(doc.Root, rootNode, mode); err != nil {
+		return nil, errors.Wrapf(err, "parse xml node failed")
+	}
 	if structNode := rootNode.FindChild(book.KeywordStruct); structNode != nil {
 		// used for protogen
 		bnode.Children = append(bnode.Children, structNode.Children...)
@@ -244,10 +246,12 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 				continue
 			}
 			subNode := &book.Node{}
-			parseXMLNode(child, subNode, mode)
+			if err := parseXMLNode(child, subNode, mode); err != nil {
+				return errors.Wrapf(err, "parse xml node failed")
+			}
 			curBNode.Children = append(curBNode.Children, subNode)
 		}
-	case Confgen:
+	default:
 		if node.Text != "" {
 			if len(node.Attributes) != 0 || len(node.Children) != 0 {
 				return errors.Errorf("node contains text so attributes and children must be empty|name: %s", node.Name)
@@ -267,7 +271,9 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		}
 		for _, child := range node.Children {
 			subNode := &book.Node{}
-			parseXMLNode(child, subNode, mode)
+			if err := parseXMLNode(child, subNode, mode); err != nil {
+				return errors.Wrapf(err, "parse xml node failed")
+			}
 			if subNode.Kind == book.ScalarNode {
 				bnode.Children = append(bnode.Children, subNode)
 			} else if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {

@@ -122,7 +122,10 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 
 	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
 		// incell map
-		if node.Kind == book.ListNode && len(node.Children) > 0 {
+		if node.Kind == book.ListNode {
+			if len(node.Children) != 1 {
+				return false, xerrors.ErrorKV("list node of incell map must have and only have one child", node.DebugKV()...)
+			}
 			node = node.Children[0]
 		}
 		err = sp.parser.parseIncellMap(field, reflectMap, node.Value)
@@ -138,19 +141,11 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 		}
 	} else {
 		if valueFd.Kind() == protoreflect.MessageKind {
-			switch node.Kind {
-			case book.MapNode:
-				for _, elemNode := range node.Children {
-					newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, elemNode.Name)
-					if err != nil {
-						return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
-					}
-					var newMapValue protoreflect.Value
-					if reflectMap.Has(newMapKey) {
-						newMapValue = reflectMap.Mutable(newMapKey)
-					} else {
-						newMapValue = reflectMap.NewValue()
-					}
+			for _, elemNode := range node.Children {
+				var keyData string
+				switch node.Kind {
+				case book.MapNode:
+					keyData = elemNode.Name
 					// auto add virtual key node
 					keyNode := &book.Node{
 						Kind:     book.ScalarNode,
@@ -161,57 +156,42 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 						ValuePos: node.ValuePos,
 					}
 					elemNode.Children = append(elemNode.Children, keyNode)
-					valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode)
-					if err != nil {
-						return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
-					}
-					// TODO: auto remove added virtual key node?
-					// check key uniqueness
-					if reflectMap.Has(newMapKey) {
-						if prop.RequireUnique(field.opts.Prop) ||
-							(!prop.HasUnique(field.opts.Prop) && sp.parser.deduceMapKeyUnique(field, reflectMap)) {
-							return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
-						}
-					}
-					if !keyPresent && !valuePresent {
-						// key and value are both not present.
-						continue
-					}
-					reflectMap.Set(newMapKey, newMapValue)
-				}
-			case book.ListNode:
-				for _, elemNode := range node.Children {
+				case book.ListNode:
 					keyNode := elemNode.FindChild(field.opts.Key)
 					if keyNode == nil {
 						return false, xerrors.WrapKV(xerrors.E2018(field.opts.Key), elemNode.DebugKV()...)
 					}
-					newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, keyNode.Value)
-					if err != nil {
-						return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
-					}
-					var newMapValue protoreflect.Value
-					if reflectMap.Has(newMapKey) {
-						newMapValue = reflectMap.Mutable(newMapKey)
-					} else {
-						newMapValue = reflectMap.NewValue()
-					}
-					valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode)
-					if err != nil {
-						return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
-					}
-					// check key uniqueness
-					if reflectMap.Has(newMapKey) {
-						if prop.RequireUnique(field.opts.Prop) ||
-							(!prop.HasUnique(field.opts.Prop) && sp.parser.deduceMapKeyUnique(field, reflectMap)) {
-							return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
-						}
-					}
-					if !keyPresent && !valuePresent {
-						// key and value are both not present.
-						continue
-					}
-					reflectMap.Set(newMapKey, newMapValue)
+					keyData = keyNode.Value
+				default:
+					return false, xerrors.ErrorKV("should not reach here", node.DebugKV()...)
 				}
+				newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, keyData)
+				if err != nil {
+					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+				}
+				var newMapValue protoreflect.Value
+				if reflectMap.Has(newMapKey) {
+					newMapValue = reflectMap.Mutable(newMapKey)
+				} else {
+					newMapValue = reflectMap.NewValue()
+				}
+				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode)
+				if err != nil {
+					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+				}
+				// TODO: auto remove added virtual key node?
+				// check key uniqueness
+				if reflectMap.Has(newMapKey) {
+					if prop.RequireUnique(field.opts.Prop) ||
+						(!prop.HasUnique(field.opts.Prop) && sp.parser.deduceMapKeyUnique(field, reflectMap)) {
+						return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
+					}
+				}
+				if !keyPresent && !valuePresent {
+					// key and value are both not present.
+					continue
+				}
+				reflectMap.Set(newMapKey, newMapValue)
 			}
 		} else {
 			return false, xerrors.ErrorKV("should not reach here", node.DebugKV()...)
@@ -400,7 +380,10 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 		}
 		return present, nil
 	} else {
-		if node.Kind == book.ListNode && len(node.Children) > 0 {
+		if node.Kind == book.ListNode {
+			if len(node.Children) != 1 {
+				return false, xerrors.ErrorKV("list node of struct must have and only have one child", node.DebugKV()...)
+			}
 			node = node.Children[0]
 		}
 		present, err := sp.parseMessage(structValue.Message(), node)
