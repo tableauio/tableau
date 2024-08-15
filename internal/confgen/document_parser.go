@@ -56,6 +56,13 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 				}
 			} else {
 				fieldNode = node.FindChild(field.opts.Name)
+				if xproto.GetFieldDefaultValue(fd) != "" {
+					// if this field has a default value, use virtual node
+					fieldNode = &book.Node{
+						Name:  node.Name,
+						Value: node.Value,
+					}
+				}
 				if fieldNode == nil {
 					if sp.parser.IsFieldOptional(field) {
 						// field not found and is optional, just return nil.
