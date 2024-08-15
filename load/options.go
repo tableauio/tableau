@@ -22,13 +22,20 @@ type Options struct {
 	// Default: nil.
 	SubdirRewrites map[string]string
 	// Paths maps each messager name to a corresponding config file path.
-	// If a messager name is existed, then the messager will be parsed from
-	// the config file directly.
+	// If specified, then the main messager will be parsed from the file
+	// directly, other than the specified load dir.
 	//
-	// NOTE: only JSON, bin, and text formats are supported.
+	// NOTE: only JSON, Bin, and Text formats are supported.
 	//
 	// Default: nil.
 	Paths map[string]string
+	// PatchPaths maps each messager name to a corresponding patch file path.
+	// If specified, then main messager will patched.
+	//
+	// NOTE: only JSON, Bin, and Text formats are supported.
+	//
+	// Default: nil.
+	PatchPaths map[string]string
 	// PatchDir specifies the directory path for config patching. If not
 	// specified, then no patching will be applied.
 	//
@@ -88,11 +95,23 @@ func SubdirRewrites(subdirRewrites map[string]string) Option {
 }
 
 // Paths maps each messager name to a corresponding config file path.
-// If a messager name is existed, then the messager will be parsed from
-// the config file directly.
+// If specified, then the main messager will be parsed from the file
+// directly, other than the specified load dir.
+//
+// NOTE: only JSON, Bin, and Text formats are supported.
 func Paths(paths map[string]string) Option {
 	return func(opts *Options) {
 		opts.Paths = paths
+	}
+}
+
+// PatchPaths maps each messager name to a corresponding patch file path.
+// If specified, then main messager will patched.
+//
+// NOTE: only JSON, Bin, and Text formats are supported.
+func PatchPaths(paths map[string]string) Option {
+	return func(opts *Options) {
+		opts.PatchPaths = paths
 	}
 }
 

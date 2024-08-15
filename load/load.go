@@ -29,19 +29,16 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	}
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
+	// path in dir
 	path := filepath.Join(dir, name+format.Format2Ext(fmt))
 	opts := ParseOptions(options...)
-	var specifiedInPaths bool
-	if opts.Paths != nil {
-		if p, ok := opts.Paths[name]; ok {
-			// path specified explicitly, then use it directly
-			specifiedInPaths = true
-			path = p
-			fmt = format.GetFormat(path)
-		}
+	if p, ok := opts.Paths[name]; ok {
+		// path specified in Paths, then use it instead of dir.
+		path = p
+		fmt = format.GetFormat(p)
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
-	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE && opts.PatchDir != "" && !specifiedInPaths {
+	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
 		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
 	}
 	return load(msg, path, fmt, opts)
@@ -50,7 +47,14 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
+	// patchPath in PatchDir
 	patchPath := filepath.Join(opts.PatchDir, name+format.Format2Ext(fmt))
+	patchFmt := fmt
+	if p, ok := opts.PatchPaths[name]; ok {
+		// patchPath specified in PatchPaths, then use it instead of PatchDir.
+		patchPath = p
+		patchFmt = format.GetFormat(p)
+	}
 	existed, err := fs.Exists(patchPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check file existence: %s", patchPath)
@@ -61,7 +65,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	}
 	switch patch {
 	case tableaupb.Patch_PATCH_REPLACE:
-		return load(msg, patchPath, fmt, opts)
+		return load(msg, patchPath, patchFmt, opts)
 	case tableaupb.Patch_PATCH_MERGE:
 		patchMsg := proto.Clone(msg)
 		// load msg from "main" dir
@@ -69,7 +73,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 			return err
 		}
 		// load patchMsg from "patch" dir
-		if err := load(patchMsg, patchPath, fmt, opts); err != nil {
+		if err := load(patchMsg, patchPath, patchFmt, opts); err != nil {
 			return err
 		}
 		return merge(msg, patchMsg)

@@ -224,7 +224,7 @@ func TestLoadWithPatch(t *testing.T) {
 		wantJson string
 	}{
 		{
-			name: "replace",
+			name: "PatchDir-replace",
 			args: args{
 				msg:     &unittestpb.PatchReplaceConf{},
 				dir:     "../testdata/unittest/conf/",
@@ -234,7 +234,17 @@ func TestLoadWithPatch(t *testing.T) {
 			wantJson: `{"name":"orange", "priceList":[20, 200]}`,
 		},
 		{
-			name: "replace-not-existed",
+			name: "PatchPaths-replace",
+			args: args{
+				msg:     &unittestpb.PatchReplaceConf{},
+				dir:     "../testdata/unittest/conf/",
+				fmt:     format.JSON,
+				options: []Option{PatchPaths(map[string]string{"PatchReplaceConf": "../testdata/unittest/patchconf/PatchReplaceConf.json"})},
+			},
+			wantJson: `{"name":"orange", "priceList":[20, 200]}`,
+		},
+		{
+			name: "PatchDir-replace-not-existed",
 			args: args{
 				msg:     &unittestpb.PatchReplaceConf{},
 				dir:     "../testdata/unittest/conf/",
@@ -244,7 +254,7 @@ func TestLoadWithPatch(t *testing.T) {
 			wantJson: `{"name":"apple", "priceList":[10, 100]}`,
 		},
 		{
-			name: "merge-none-map",
+			name: "PatchDir-merge-none-map",
 			args: args{
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
@@ -254,7 +264,27 @@ func TestLoadWithPatch(t *testing.T) {
 			wantJson: `{"name":"orange", "priceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
 		},
 		{
-			name: "merge-map",
+			name: "PatchPaths-merge-none-map",
+			args: args{
+				msg:     &unittestpb.PatchMergeConf{},
+				dir:     "../testdata/unittest/conf/",
+				fmt:     format.JSON,
+				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf/PatchMergeConf.json"})},
+			},
+			wantJson: `{"name":"orange", "priceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
+		},
+		{
+			name: "PatchPaths-with-PatchDir-merge-none-map",
+			args: args{
+				msg:     &unittestpb.PatchMergeConf{},
+				dir:     "../testdata/unittest/conf/",
+				fmt:     format.JSON,
+				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf/PatchMergeConf.json"}), PatchDir("../testdata/unittest/patchconf2/")},
+			},
+			wantJson: `{"name":"orange", "priceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
+		},
+		{
+			name: "PatchDir-merge-map",
 			args: args{
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
@@ -264,7 +294,17 @@ func TestLoadWithPatch(t *testing.T) {
 			wantJson: `{"name":"apple", "priceList":[10, 100], "itemMap":{"1":{"id":1, "num":99}, "2":{"id":2, "num":20}, "999":{"id":999, "num":99900}}}`,
 		},
 		{
-			name: "merge-not-existed",
+			name: "PatchPaths-different-format-merge-map",
+			args: args{
+				msg:     &unittestpb.PatchMergeConf{},
+				dir:     "../testdata/unittest/conf/",
+				fmt:     format.JSON,
+				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf2/PatchMergeConf.txt"})},
+			},
+			wantJson: `{"name":"apple", "priceList":[10, 100], "itemMap":{"1":{"id":1, "num":99}, "2":{"id":2, "num":20}, "999":{"id":999, "num":99900}}}`,
+		},
+		{
+			name: "PatchDir-merge-not-existed",
 			args: args{
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
