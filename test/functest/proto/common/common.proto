@@ -37,7 +37,7 @@ message Transform {
   Vector3 scale = 3;
 }
 
-message Fruits {
+message FruitInfo {
   map<string, Fruit> fruit_map = 1 [(tableau.field) = { name: "Fruit" key: "Name" }];
   message Fruit {
     string name = 1 [(tableau.field) = { name: "Name" }];

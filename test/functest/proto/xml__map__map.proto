@@ -34,16 +34,16 @@ message MapConf {
       string name = 1 [(tableau.field) = {name:"Name"}];
       string weight = 2 [(tableau.field) = {name:"Weight"}];
     }
-    Vegetables vegetables = 4 [(tableau.field) = {name:"Vegetables"}];
-    message Vegetables {
+    VegetableInfo vegetable_info = 4 [(tableau.field) = {name:"VegetableInfo"}];
+    message VegetableInfo {
       map<string, Vegetable> vegetable_map = 1 [(tableau.field) = {name:"Vegetable" key:"Name" prop:{optional:true}}];
       message Vegetable {
         string name = 1 [(tableau.field) = {name:"Name" prop:{optional:true}}];
         int32 num = 2 [(tableau.field) = {name:"Num"}];
       }
     }
-    Fruits fruits = 5 [(tableau.field) = {name:"Fruits"}];
-    message Fruits {
+    FruitInfo fruit_info = 5 [(tableau.field) = {name:"FruitInfo"}];
+    message FruitInfo {
       map<string, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Name"}];
       message Fruit {
         string name = 1 [(tableau.field) = {name:"Name"}];

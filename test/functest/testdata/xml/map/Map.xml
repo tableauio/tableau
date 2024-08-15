@@ -10,12 +10,12 @@
 
     <Meal Id="map<string, Meal>" Time="duration|{default:"30m"}">
         <Meat Name="map<string, Meat>" Weight="string" />
-        <Vegetables>
+        <VegetableInfo>
             <Vegetable Name="map<string, Vegetable>|{optional:true}" Num="int32" />
-        </Vegetables>
-        <Fruits>
+        </VegetableInfo>
+        <FruitInfo>
             <Fruit Name="map<string, Fruit>" Desc="string|{optional:true}" />
-        </Fruits>
+        </FruitInfo>
     </Meal>
 </MapConf>
 -->
@@ -29,29 +29,29 @@
 
     <Meal Id="breakfast" Time="15m">
         <Meat Name="Egg" Weight="100g" />
-        <Vegetables>
+        <VegetableInfo>
             <Vegetable Name="Cauliflower" Num="2" />
             <Vegetable Name="Cucumber" Num="1" />
-        </Vegetables>
-        <Fruits>
+        </VegetableInfo>
+        <FruitInfo>
             <Fruit Name="Apple" Desc="sour" />
-        </Fruits>
+        </FruitInfo>
     </Meal>
     <Meal Id="lunch" Time="20m">
         <Meat Name="Chicken" Weight="150g" />
         <Meat Name="Fish" Weight="100g" />
-        <Vegetables>
+        <VegetableInfo>
             <Vegetable Name="Spinach" Num="1" />
-        </Vegetables>
-        <Fruits>
+        </VegetableInfo>
+        <FruitInfo>
             <Fruit Name="Mongo" Desc="sweet" />
-        </Fruits>
+        </FruitInfo>
     </Meal>
     <Meal Id="dinner">
         <Meat Name="Beef" Weight="200g" />
-        <Vegetables />
-        <Fruits>
+        <VegetableInfo />
+        <FruitInfo>
             <Fruit Name="Banana" />
-        </Fruits>
+        </FruitInfo>
     </Meal>
 </MapConf>

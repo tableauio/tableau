@@ -42,7 +42,7 @@
                     "weight": "100g"
                 }
             },
-            "vegetables": {
+            "vegetableInfo": {
                 "vegetableMap": {
                     "Cauliflower": {
                         "name": "Cauliflower",
@@ -54,7 +54,7 @@
                     }
                 }
             },
-            "fruits": {
+            "fruitInfo": {
                 "fruitMap": {
                     "Apple": {
                         "name": "Apple",
@@ -72,8 +72,8 @@
                     "weight": "200g"
                 }
             },
-            "vegetables": null,
-            "fruits": {
+            "vegetableInfo": null,
+            "fruitInfo": {
                 "fruitMap": {
                     "Banana": {
                         "name": "Banana",
@@ -95,7 +95,7 @@
                     "weight": "100g"
                 }
             },
-            "vegetables": {
+            "vegetableInfo": {
                 "vegetableMap": {
                     "Spinach": {
                         "name": "Spinach",
@@ -103,7 +103,7 @@
                     }
                 }
             },
-            "fruits": {
+            "fruitInfo": {
                 "fruitMap": {
                     "Mongo": {
                         "name": "Mongo",

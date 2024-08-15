@@ -7,7 +7,7 @@
 
 <XMLStructConf>
     <Item ID="uint32" Name="string" />
-    <FruitShopData @type="{.Fruits}" />
+    <FruitShopData @type="{.FruitInfo}" />
 </XMLStructConf>
 
 <XMLStructConf2>
