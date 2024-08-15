@@ -212,6 +212,7 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		bnode.Kind = book.MapNode
 		bnode.Name = node.Name
 		if typeAttr := node.GetAttribute(atTypeDisplacement); typeAttr != nil {
+			fmt.Println(node.Name, typeAttr.Value)
 			// predefined struct
 			if len(node.Attributes) != 1 || len(node.Children) != 0 || node.Text != "" {
 				return errors.Errorf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)

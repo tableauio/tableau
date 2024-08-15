@@ -5,7 +5,12 @@
 </@TABLEAU>
 
 <Item>
-    <Item Id="map<uint32,Item>">
-    </Item>
+    <PreEntry Name="map<string, PreEntry>" Cost="[]int32" />
+    <Entry Id="map<uint32, Entry>" Value="int32" IncellMap="map<int32, string>" />
+    <Incell Map="map<string, int32>" />
+    <IncellMap>map<int32, int32></IncellMap>
+    <CrossCell Value="[CrossCell]int32" Name="string" Cost="[]int32" />
+    <Incell Value="[]int32" Cost="[]int32" />
+    <EnumIncell>[]enum<.FruitType></EnumIncell>
 </Item>
 -->

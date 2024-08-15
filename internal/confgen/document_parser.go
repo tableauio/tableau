@@ -122,12 +122,6 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 
 	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
 		// incell map
-		if node.Kind == book.ListNode {
-			if len(node.Children) != 1 {
-				return false, xerrors.ErrorKV("list node of incell map must have and only have one child", node.DebugKV()...)
-			}
-			node = node.Children[0]
-		}
 		err = sp.parser.parseIncellMap(field, reflectMap, node.Value)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
