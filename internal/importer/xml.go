@@ -223,7 +223,11 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		// NOTE: curBNode may be pointed to one subnode when needed
 		curBNode := bnode
 		for i, attr := range node.Attributes {
-			curBNode = parseXMLAttribute(curBNode, attr.Name, attr.Value, i == 0)
+			var err error
+			curBNode, err = parseXMLAttribute(curBNode, attr.Name, attr.Value, i == 0)
+			if err != nil {
+				return errors.WithMessagef(err, "parse xml attribute failed")
+			}
 		}
 		// generate struct even if encounter empty node
 		if len(node.Attributes) == 0 {
@@ -242,7 +246,10 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 				if len(child.Attributes) != 0 || len(child.Children) != 0 {
 					return errors.Errorf("node contains text so attributes and children must be empty|name: %s", child.Name)
 				}
-				_ = parseXMLAttribute(curBNode, child.Name, child.Text, false)
+				_, err := parseXMLAttribute(curBNode, child.Name, child.Text, false)
+				if err != nil {
+					return errors.WithMessagef(err, "parse xml text-only child failed")
+				}
 				continue
 			}
 			subNode := &book.Node{}
@@ -296,24 +303,74 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 	return nil
 }
 
-func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr bool) *book.Node {
+func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr bool) (*book.Node, error) {
 	curBNode := bnode
 	if desc := types.MatchMap(attrValue); desc != nil {
-		curBNode = &book.Node{
-			Kind: book.MapNode,
-			Name: book.KeywordStruct,
-			Children: []*book.Node{
-				{
-					Name:  book.KeywordKey,
-					Value: attrName,
+		valueDesc := types.ParseTypeDescriptor(desc.ValueType)
+		switch valueDesc.Kind {
+		case types.ScalarKind, types.EnumKind:
+			// incell map
+			if isFirstAttr {
+				curBNode = &book.Node{
+					Kind: book.MapNode,
+					Name: book.KeywordStruct,
+					Children: []*book.Node{
+						{
+							Kind: book.MapNode,
+							Name: attrName,
+							Children: []*book.Node{
+								{
+									Name:  book.KeywordType,
+									Value: attrValue,
+								},
+								{
+									Name:  book.KeywordIncell,
+									Value: "true",
+								},
+							},
+						},
+					},
+				}
+				bnode.Children = append(bnode.Children, &book.Node{
+					Name:  book.KeywordType,
+					Value: fmt.Sprintf("{%s}", bnode.Name),
+				}, curBNode)
+				return curBNode, nil
+			}
+			bnode.Children = append(bnode.Children, &book.Node{
+				Kind: book.MapNode,
+				Name: attrName,
+				Children: []*book.Node{
+					{
+						Name:  book.KeywordType,
+						Value: attrValue,
+					},
+					{
+						Name:  book.KeywordIncell,
+						Value: "true",
+					},
 				},
-				{
-					Name:  book.KeywordKeyname,
-					Value: attrName,
+			})
+			return bnode, nil
+		default:
+			if !isFirstAttr {
+				return nil, errors.Errorf("vertical map not supported on non-first attributes")
+			}
+			// vertical map
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: book.KeywordStruct,
+				Children: []*book.Node{
+					{
+						Name:  book.KeywordKey,
+						Value: attrName,
+					},
+					{
+						Name:  book.KeywordKeyname,
+						Value: attrName,
+					},
 				},
-			},
-		}
-		if isFirstAttr {
+			}
 			bnode.Children = append(bnode.Children, &book.Node{
 				Name:  book.KeywordType,
 				Value: attrValue,
@@ -321,39 +378,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 				Name:  book.KeywordVariable,
 				Value: fmt.Sprintf("%sMap", bnode.Name),
 			}, curBNode)
-			return curBNode
-		} else {
-			bnode.Children = append(bnode.Children, curBNode)
-			return bnode
-		}
-	} else if desc := types.MatchKeyedList(attrValue); desc != nil {
-		// treat keyed list as normal list
-		curBNode = &book.Node{
-			Kind: book.MapNode,
-			Name: book.KeywordStruct,
-			Children: []*book.Node{
-				{
-					Name:  book.KeywordKey,
-					Value: attrName,
-				},
-				{
-					Name:  attrName,
-					Value: desc.ColumnType,
-				},
-			},
-		}
-		if isFirstAttr {
-			bnode.Children = append(bnode.Children, &book.Node{
-				Name:  book.KeywordType,
-				Value: fmt.Sprintf("[%s]", bnode.Name),
-			}, &book.Node{
-				Name:  book.KeywordVariable,
-				Value: fmt.Sprintf("%sList", bnode.Name),
-			}, curBNode)
-			return curBNode
-		} else {
-			bnode.Children = append(bnode.Children, curBNode)
-			return bnode
+			return curBNode, nil
 		}
 	} else if desc := types.MatchList(attrValue); desc != nil {
 		if desc.ElemType != "" {
@@ -376,10 +401,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					Name:  book.KeywordVariable,
 					Value: fmt.Sprintf("%sList", bnode.Name),
 				}, curBNode)
-				return curBNode
+				return curBNode, nil
 			} else {
 				bnode.Children = append(bnode.Children, curBNode.Children[0])
-				return bnode
+				return bnode, nil
 			}
 		} else {
 			// incell list
@@ -412,10 +437,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					Name:  book.KeywordType,
 					Value: fmt.Sprintf("{%s}", bnode.Name),
 				}, curBNode)
-				return curBNode
+				return curBNode, nil
 			} else {
 				bnode.Children = append(bnode.Children, curBNode.Children[0])
-				return bnode
+				return bnode, nil
 			}
 		}
 	} else if desc := types.MatchStruct(attrValue); desc != nil {
@@ -434,10 +459,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 				Name:  book.KeywordType,
 				Value: fmt.Sprintf("{%s}", bnode.Name),
 			}, curBNode)
-			return curBNode
+			return curBNode, nil
 		} else {
 			bnode.Children = append(bnode.Children, curBNode)
-			return bnode
+			return bnode, nil
 		}
 	} else if isFirstAttr {
 		// generate struct when first encounter scalar attribute
@@ -455,13 +480,13 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 			Name:  book.KeywordType,
 			Value: fmt.Sprintf("{%s}", bnode.Name),
 		}, curBNode)
-		return curBNode
+		return curBNode, nil
 	} else {
 		bnode.Children = append(bnode.Children, &book.Node{
 			Name:  attrName,
 			Value: attrValue,
 		})
-		return bnode
+		return bnode, nil
 	}
 }
 

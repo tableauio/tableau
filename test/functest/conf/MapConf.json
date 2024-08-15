@@ -21,16 +21,35 @@
     "entryMap": {
         "1": {
             "id": 1,
-            "value": 1
+            "value": 1,
+            "incellMap": {
+                "1": "first",
+                "2": "second"
+            }
         },
         "2": {
             "id": 2,
-            "value": 2
+            "value": 2,
+            "incellMap": {}
         },
         "3": {
             "id": 3,
-            "value": 3
+            "value": 3,
+            "incellMap": {
+                "3": "third"
+            }
         }
+    },
+    "incell": {
+        "map": {
+            "Jerry": 2,
+            "Tom": 1
+        }
+    },
+    "incellMap": {
+        "1": 1,
+        "2": 10,
+        "3": 100
     },
     "mealMap": {
         "breakfast": {

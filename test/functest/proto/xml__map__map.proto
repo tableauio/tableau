@@ -24,8 +24,14 @@ message MapConf {
   message Entry {
     uint32 id = 1 [(tableau.field) = {name:"Id"}];
     int32 value = 2 [(tableau.field) = {name:"Value"}];
+    map<int32, string> incell_map = 3 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}];
   }
-  map<string, Meal> meal_map = 4 [(tableau.field) = {name:"Meal" key:"Id"}];
+  Incell incell = 4 [(tableau.field) = {name:"Incell"}];
+  message Incell {
+    map<string, int32> map = 1 [(tableau.field) = {name:"Map" layout:LAYOUT_INCELL}];
+  }
+  map<int32, int32> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}];
+  map<string, Meal> meal_map = 6 [(tableau.field) = {name:"Meal" key:"Id"}];
   message Meal {
     string id = 1 [(tableau.field) = {name:"Id"}];
     google.protobuf.Duration time = 2 [(tableau.field) = {name:"Time" prop:{default:"30m"}}];
