@@ -1,7 +1,5 @@
 package load
 
-import "google.golang.org/protobuf/reflect/protoreflect"
-
 type Options struct {
 	// Location represents the collection of time offsets in use in
 	// a geographical area.
@@ -53,7 +51,9 @@ type Options struct {
 }
 
 // FilterFunc filter in messagers if returned value is true.
-type FilterFunc func(msg protoreflect.FullName) bool
+//
+// NOTE: name is the protobuf message name, e.g.: "message ItemConf{...}".
+type FilterFunc func(name string) bool
 
 // Option is the functional option type.
 type Option func(*Options)
@@ -130,9 +130,8 @@ func PatchDir(dir string) Option {
 // condition that you provide.
 //
 // NOTE:
-//	- messagers specified in "Paths" cannot be patched.
-//  - only used in https://github.com/tableauio/loader.
-//
+//   - messagers specified in "Paths" cannot be patched.
+//   - only used in https://github.com/tableauio/loader.
 func Filter(filter FilterFunc) Option {
 	return func(opts *Options) {
 		opts.Filter = filter
