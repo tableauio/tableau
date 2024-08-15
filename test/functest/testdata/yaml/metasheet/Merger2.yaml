@@ -1,0 +1,5 @@
+"@sheet": YamlMergerConf
+StructMap:
+  2:
+    Name: banana
+    Num: 20

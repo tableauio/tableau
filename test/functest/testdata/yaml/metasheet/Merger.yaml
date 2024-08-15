@@ -1,0 +1,18 @@
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+"YamlMergerConf":
+  Merger: "Merger*.yaml"
+---
+# define schema
+"@sheet": "@YamlMergerConf"
+StructMap:
+  "@type": "map<uint32, Item>"
+  "@struct":
+    Name: string
+    Num: int32
+---
+"@sheet": YamlMergerConf
+StructMap:
+  100:
+    Name: apple
+    Num: 1000

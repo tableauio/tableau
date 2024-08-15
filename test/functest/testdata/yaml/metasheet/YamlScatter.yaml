@@ -1,0 +1,17 @@
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+"YamlScatterConf":
+  Scatter: "YamlScatter*.yaml"
+---
+# define schema
+"@sheet": "@YamlScatterConf"
+StrictStruct:
+  "@type": "{Fruit}"
+  "@struct":
+    ID: uint32
+    Name: string
+---
+"@sheet": YamlScatterConf
+StrictStruct:
+    ID: 100
+    Name: apple
