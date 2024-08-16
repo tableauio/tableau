@@ -295,28 +295,36 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 			x.Imports[typeInfo.ParentFilename] = true
 		}
 	} else {
-		if !types.IsScalarType(typeName) {
-			// iff field is a map or list and message type is not imported.
-			nestedMsgName := prefix + "." + typeName
+		// iff field is a map or list and message type is not imported.
+		nestedMsgName := prefix + "." + typeName
+		switch {
+		case field.Fields != nil:
+			if isSameFieldMessageType(field, x.nestedMessages[nestedMsgName]) {
+				// if the nested message is the same as the previous one,
+				// just use the previous one, and don't generate a new one.
+				return nil
+			}
+		case !types.IsScalarType(typeName):
 			if _, ok := x.nestedMessages[nestedMsgName]; ok {
 				// if the nested message has the same name with the previous one,
 				// just use the previous one, and don't generate a new one.
 				return nil
 			}
-
-			// bookkeeping this nested msessage, so we can check if we can reuse it later.
-			x.nestedMessages[nestedMsgName] = field
-
-			// x.g.P("")
-			x.g.P(printer.Indent(depth), "message ", typeName, " {")
-			for i, f := range field.Fields {
-				tagid := i + 1
-				if err := x.exportField(depth+1, tagid, f, nestedMsgName); err != nil {
-					return err
-				}
-			}
-			x.g.P(printer.Indent(depth), "}")
+		default:
+			return nil
 		}
+		// bookkeeping this nested msessage, so we can check if we can reuse it later.
+		x.nestedMessages[nestedMsgName] = field
+
+		// x.g.P("")
+		x.g.P(printer.Indent(depth), "message ", typeName, " {")
+		for i, f := range field.Fields {
+			tagid := i + 1
+			if err := x.exportField(depth+1, tagid, f, nestedMsgName); err != nil {
+				return err
+			}
+		}
+		x.g.P(printer.Indent(depth), "}")
 	}
 	return nil
 }
