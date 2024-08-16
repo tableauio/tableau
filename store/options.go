@@ -38,10 +38,41 @@ type Options struct {
 
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool
+
+	// Filter can only filter in certain specific messagers based on the
+	// condition that you provide.
+	//
+	// NOTE: only used in https://github.com/tableauio/loader.
+	//
+	// Default: nil.
+	Filter FilterFunc
 }
+
+// FilterFunc filter in messagers if returned value is true.
+//
+// NOTE: name is the protobuf message name, e.g.: "message ItemConf{...}".
+//
+// FilterFunc is redefined here (also defined in "load" package) to avoid
+// "import cycle" problem.
+type FilterFunc func(name string) bool
 
 // Option is the functional option type.
 type Option func(*Options)
+
+// newDefault returns a default Options.
+func newDefault() *Options {
+	return &Options{}
+}
+
+// ParseOptions parses functional options and merge them to default Options.
+func ParseOptions(setters ...Option) *Options {
+	// Default Options
+	opts := newDefault()
+	for _, setter := range setters {
+		setter(opts)
+	}
+	return opts
+}
 
 // Name specifies the output file name (without file extension).
 func Name(v string) Option {
@@ -82,17 +113,12 @@ func UseEnumNumbers(v bool) Option {
 	}
 }
 
-// newDefault returns a default Options.
-func newDefault() *Options {
-	return &Options{}
-}
-
-// ParseOptions parses functional options and merge them to default Options.
-func ParseOptions(setters ...Option) *Options {
-	// Default Options
-	opts := newDefault()
-	for _, setter := range setters {
-		setter(opts)
+// Filter can only filter in certain specific messagers based on the
+// condition that you provide.
+//
+// NOTE: only used in https://github.com/tableauio/loader.
+func Filter(filter FilterFunc) Option {
+	return func(opts *Options) {
+		opts.Filter = filter
 	}
-	return opts
 }

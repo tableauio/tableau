@@ -42,9 +42,7 @@ type Options struct {
 	// Filter can only filter in certain specific messagers based on the
 	// condition that you provide.
 	//
-	// NOTE:
-	//	- messagers specified in "Paths" cannot be patched.
-	//  - only used in https://github.com/tableauio/loader.
+	// NOTE: only used in https://github.com/tableauio/loader.
 	//
 	// Default: nil.
 	Filter FilterFunc
@@ -129,9 +127,7 @@ func PatchDir(dir string) Option {
 // Filter can only filter in certain specific messagers based on the
 // condition that you provide.
 //
-// NOTE:
-//   - messagers specified in "Paths" cannot be patched.
-//   - only used in https://github.com/tableauio/loader.
+// NOTE: only used in https://github.com/tableauio/loader.
 func Filter(filter FilterFunc) Option {
 	return func(opts *Options) {
 		opts.Filter = filter
