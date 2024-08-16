@@ -51,6 +51,30 @@
         "2": 10,
         "3": 100
     },
+    "keyEnumMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": 1
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "value": 2
+        }
+    },
+    "valueEnumMap": {
+        "1": "FRUIT_TYPE_BANANA",
+        "2": "FRUIT_TYPE_ORANGE"
+    },
+    "kvEnumMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "FRUIT_TYPE_BANANA"
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "value": "FRUIT_TYPE_ORANGE"
+        }
+    },
     "mealMap": {
         "breakfast": {
             "id": "breakfast",

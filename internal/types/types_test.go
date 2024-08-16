@@ -543,6 +543,11 @@ func TestParseTypeDescriptor(t *testing.T) {
 			args: "Item",
 			want: MessageKind,
 		},
+		{
+			name: "enum<.FruitType>",
+			args: "enum<.FruitType>",
+			want: EnumKind,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

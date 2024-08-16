@@ -9,6 +9,9 @@
     <Entry Id="map<uint32, Entry>" Value="int32" IncellMap="map<int32, string>" />
     <Incell Map="map<string, int32>" />
     <IncellMap>map<int32, int32></IncellMap>
+    <KeyEnumMap>map<enum<.FruitType>, int32></KeyEnumMap>
+    <ValueEnumMap>map<int32, enum<.FruitType>></ValueEnumMap>
+    <KvEnumMap>map<enum<.FruitType>, enum<.FruitType>></KvEnumMap>
 
     <Meal Id="map<string, Meal>" Time="duration|{default:"30m"}">
         <Meat Name="map<string, Meat>" Weight="string" />
@@ -30,6 +33,9 @@
     <Entry Id="3" Value="3" IncellMap="3:third" />
     <Incell Map="Tom:1,Jerry:2" />
     <IncellMap>1:1,2:10,3:100</IncellMap>
+    <KeyEnumMap>Apple:1,Banana:2</KeyEnumMap>
+    <ValueEnumMap>1:Banana,2:Orange</ValueEnumMap>
+    <KvEnumMap>Apple:Banana,Banana:Orange</KvEnumMap>
 
     <Meal Id="breakfast" Time="15m">
         <Meat Name="Egg" Weight="100g" />

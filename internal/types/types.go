@@ -382,11 +382,6 @@ type Descriptor struct {
 }
 
 func ParseTypeDescriptor(rawType string) *Descriptor {
-	// enum syntax pattern
-	if desc := MatchEnum(rawType); desc != nil {
-		rawType = desc.EnumType
-	}
-
 	switch rawType {
 	case "datetime", "date":
 		return &Descriptor{
@@ -410,6 +405,8 @@ func ParseTypeDescriptor(rawType string) *Descriptor {
 		}
 		if IsScalarType(desc.Name) {
 			desc.Kind = ScalarKind
+		} else if MatchEnum(rawType) != nil {
+			desc.Kind = EnumKind
 		} else {
 			desc.Kind = MessageKind
 		}

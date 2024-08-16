@@ -5,6 +5,7 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "google/protobuf/duration.proto";
 import "tableau/protobuf/tableau.proto";
 
@@ -31,7 +32,18 @@ message MapConf {
     map<string, int32> map = 1 [(tableau.field) = {name:"Map" layout:LAYOUT_INCELL}];
   }
   map<int32, int32> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}];
-  map<string, Meal> meal_map = 6 [(tableau.field) = {name:"Meal" key:"Id"}];
+  map<int32, KeyEnumMapValue> key_enum_map = 6 [(tableau.field) = {name:"KeyEnumMap" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  message KeyEnumMapValue {
+    protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
+    int32 value = 2 [(tableau.field) = {name:"@value"}];
+  }
+  map<int32, protoconf.FruitType> value_enum_map = 7 [(tableau.field) = {name:"ValueEnumMap" layout:LAYOUT_INCELL}];
+  map<int32, KvEnumMapValue> kv_enum_map = 8 [(tableau.field) = {name:"KvEnumMap" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  message KvEnumMapValue {
+    protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
+    protoconf.FruitType value = 2 [(tableau.field) = {name:"@value"}];
+  }
+  map<string, Meal> meal_map = 9 [(tableau.field) = {name:"Meal" key:"Id"}];
   message Meal {
     string id = 1 [(tableau.field) = {name:"Id"}];
     google.protobuf.Duration time = 2 [(tableau.field) = {name:"Time" prop:{default:"30m"}}];
