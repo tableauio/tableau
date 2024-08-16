@@ -1,6 +1,14 @@
 package store
 
 type Options struct {
+	// Filter can only filter in certain specific messagers based on the
+	// condition that you provide.
+	//
+	// NOTE: only used in https://github.com/tableauio/loader.
+	//
+	// Default: nil.
+	Filter FilterFunc
+
 	// Specify output file name (without file extension).
 	//
 	// Default: "".
@@ -9,7 +17,6 @@ type Options struct {
 	//
 	// Default: false.
 	Pretty bool
-
 	// EmitUnpopulated specifies whether to emit unpopulated fields. It does not
 	// emit unpopulated oneof fields or unpopulated extension fields.
 	// The JSON value emitted for unpopulated fields are as follows:
@@ -31,21 +38,11 @@ type Options struct {
 	//
 	// Default: false.
 	EmitUnpopulated bool
-
 	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
 	// field names.
 	UseProtoNames bool
-
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool
-
-	// Filter can only filter in certain specific messagers based on the
-	// condition that you provide.
-	//
-	// NOTE: only used in https://github.com/tableauio/loader.
-	//
-	// Default: nil.
-	Filter FilterFunc
 }
 
 // FilterFunc filter in messagers if returned value is true.
@@ -72,6 +69,16 @@ func ParseOptions(setters ...Option) *Options {
 		setter(opts)
 	}
 	return opts
+}
+
+// Filter can only filter in certain specific messagers based on the
+// condition that you provide.
+//
+// NOTE: only used in https://github.com/tableauio/loader.
+func Filter(filter FilterFunc) Option {
+	return func(opts *Options) {
+		opts.Filter = filter
+	}
 }
 
 // Name specifies the output file name (without file extension).
@@ -110,15 +117,5 @@ func UseProtoNames(v bool) Option {
 func UseEnumNumbers(v bool) Option {
 	return func(opts *Options) {
 		opts.UseEnumNumbers = v
-	}
-}
-
-// Filter can only filter in certain specific messagers based on the
-// condition that you provide.
-//
-// NOTE: only used in https://github.com/tableauio/loader.
-func Filter(filter FilterFunc) Option {
-	return func(opts *Options) {
-		opts.Filter = filter
 	}
 }
