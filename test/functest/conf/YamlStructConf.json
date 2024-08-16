@@ -28,5 +28,6 @@
     "predefinedIncellStruct": {
         "id": 4,
         "num": 40
-    }
+    },
+    "emptyStruct": null
 }

@@ -24,12 +24,13 @@ IncellStruct2: "{uint32 ID, int32 Num}InplaceIncellItem"
 PredefinedIncellStruct:
   "@type": "{.Item}"
   "@incell": true
-
+EmptyStruct:
+  "@type": "{Empty}"
 ---
 "@sheet": YamlStructConf
 StrictStruct:
-    ID: 1
-    Name: apple
+  ID: 1
+  Name: apple
 Struct:
   ID: 1
   StartTime: 2024-10-01 10:10:10
@@ -44,3 +45,4 @@ PredefinedStruct:
 IncellStruct: "2, 20"
 IncellStruct2: "3, 30"
 PredefinedIncellStruct: "4, 40"
+EmptyStruct:

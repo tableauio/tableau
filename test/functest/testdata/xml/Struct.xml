@@ -8,6 +8,8 @@
 <XMLStructConf>
     <Item ID="uint32" Name="string" />
     <FruitShopData @type="{.FruitInfo}" />
+    <Empty>
+    </Empty>
 </XMLStructConf>
 
 <XMLStructConf2>
@@ -22,6 +24,8 @@
         <Fruit Name="apple" Flavor="Sour,Sweet"/>
         <Fruit Name="banana" Flavor="Fragrant,Sweet"/>
     </FruitShopData>
+    <Empty>
+    </Empty>
 </XMLStructConf>
 
 <XMLStructConf2>

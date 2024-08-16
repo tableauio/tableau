@@ -20,6 +20,9 @@ message XMLStructConf {
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
   protoconf.FruitInfo fruit_shop_data = 2 [(tableau.field) = {name:"FruitShopData"}];
+  Empty empty = 3 [(tableau.field) = {name:"Empty"}];
+  message Empty {
+  }
 }
 
 message XMLStructConf2 {
