@@ -35,10 +35,10 @@ type SheetParser interface {
 
 type Sheet struct {
 	Name string
-	// Table represents data structure of 2D flat table formats.
+	// Table represents the data structure of 2D flat table formats.
 	// E.g.: Excel, CSV.
 	Table *Table
-	// Document represents data structure of tree document formats.
+	// Document represents the data structure of tree document formats.
 	// E.g.: XML, YAML.
 	Document *Node
 	// Meta represents sheet's metadata, containing sheet’s layout,
@@ -54,7 +54,7 @@ func NewTableSheet(name string, rows [][]string) *Sheet {
 	}
 }
 
-// NewDocumentSheet creats a new Sheet with a document.
+// NewDocumentSheet creates a new Sheet with a document.
 func NewDocumentSheet(name string, doc *Node) *Sheet {
 	return &Sheet{
 		Name:     name,
@@ -90,7 +90,9 @@ func (s *Sheet) String() string {
 	}
 }
 
-func (s *Sheet) GetName() string {
+// GetDataName returns original data sheet name by removing leading symbol "@"
+// from meta sheet name. For example: "@SheetName" -> "SheetName".
+func (s *Sheet) GetDataName() string {
 	if s.Document != nil {
 		return s.Document.GetDataSheetName()
 	} else {
@@ -98,25 +100,29 @@ func (s *Sheet) GetName() string {
 	}
 }
 
+// GetDebugName returns sheet name with alias if specified.
 func (s *Sheet) GetDebugName() string {
 	if s.Meta.Alias != "" {
-		return s.GetName() + " (alias: " + s.Meta.Alias + ")"
+		return s.Name + " (alias: " + s.Meta.Alias + ")"
 	}
-	return s.GetName()
-
+	return s.Name
 }
 
+// GetDebugName returns this sheet's corresponding protobuf message name.
 func (s *Sheet) GetProtoName() string {
 	if s.Meta.Alias != "" {
 		return s.Meta.Alias
 	}
-	return s.GetName()
+	return s.GetDataName()
 }
 
+// ToWorkseet creates a new basic tableaupb.Worksheet without fields popolated,
+// based on this sheet's info.
 func (s *Sheet) ToWorkseet() *tableaupb.Worksheet {
 	return &tableaupb.Worksheet{
+		Name: s.GetProtoName(),
 		Options: &tableaupb.WorksheetOptions{
-			Name:          s.GetName(),
+			Name:          s.GetDataName(),
 			Namerow:       s.Meta.Namerow,
 			Typerow:       s.Meta.Typerow,
 			Noterow:       s.Meta.Noterow,
@@ -140,8 +146,6 @@ func (s *Sheet) ToWorkseet() *tableaupb.Worksheet {
 			OrderedMap: s.Meta.OrderedMap,
 			Index:      parseIndexes(s.Meta.Index),
 		},
-		Fields: []*tableaupb.Field{},
-		Name:   s.GetProtoName(),
 	}
 }
 
