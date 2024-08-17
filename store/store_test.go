@@ -35,6 +35,9 @@ func TestStore(t *testing.T) {
 				fmt: "json",
 				options: []Option{
 					Pretty(true),
+					Filter(nil),            // just for test coverage
+					EmitUnpopulated(false), // just for test coverage
+					UseEnumNumbers(false),  // just for test coverage
 				},
 			},
 			wantErr: false,
