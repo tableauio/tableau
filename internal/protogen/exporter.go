@@ -295,10 +295,10 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 			x.Imports[typeInfo.ParentFilename] = true
 		}
 	} else {
-		// iff field is a map or list and message type is not imported.
 		nestedMsgName := prefix + "." + typeName
 		switch {
 		case field.Fields != nil:
+			// iff field is a map or list and message type is not imported.
 			if isSameFieldMessageType(field, x.nestedMessages[nestedMsgName]) {
 				// if the nested message is the same as the previous one,
 				// just use the previous one, and don't generate a new one.
