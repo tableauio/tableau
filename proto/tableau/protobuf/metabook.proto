@@ -69,7 +69,7 @@ message Metasheet {
   //  - document formats (XML/YAML): field's name can be absent.
   bool optional = 19 [(tableau.field) = {name:"Optional" prop:{optional:true}}];
   // Sheet patch type.
-  Patch patch = 20 [(tableau.field) = { name: "Patch " prop:{optional:true}}];
+  Patch patch = 20 [(tableau.field) = {name:"Patch" prop:{optional:true}}];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers

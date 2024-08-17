@@ -1,0 +1,49 @@
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+"YamlPatchConf":
+  Patch: PATCH_MERGE
+---
+# define schema
+"@sheet": "@YamlPatchConf"
+Env: "string|{patch:PATCH_MERGE}"
+StrictStruct:
+  "@type": "{Fruit}|{patch:PATCH_MERGE}"
+  "@struct":
+    ID: uint32
+    Name: string
+ScalarList: "[int32]|{patch:PATCH_REPLACE}"
+StructList:
+  "@type": "[Fruit]|{patch:PATCH_REPLACE}"
+  "@struct": "{.Fruit}"
+ScalarMap: "map<uint32, string>|{patch:PATCH_REPLACE}"
+StructMap:
+  "@type": "map<uint32, Item>|{patch:PATCH_REPLACE}"
+  "@struct":
+    Name: string
+    Num: int32
+---
+"@sheet": YamlPatchConf
+Env: dev
+StrictStruct:
+  ID: 1
+  Name: apple
+ScalarList: [1, 2, 3]
+StructList:
+  - ID: 1
+    Name: dog
+  - ID: 2
+    Name: bird
+ScalarMap:
+  1: dog
+  2: bird
+  3: cat
+StructMap:
+  1:
+    Name: apple
+    Num: 10
+  2:
+    Name: orange
+    Num: 20
+  3:
+    Name: banana
+    Num: 30
