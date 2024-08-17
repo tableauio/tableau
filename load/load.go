@@ -29,13 +29,15 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	}
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
-	// path in dir
-	path := filepath.Join(dir, name+format.Format2Ext(fmt))
+	var path string
 	opts := ParseOptions(options...)
 	if p, ok := opts.Paths[name]; ok {
 		// path specified in Paths, then use it instead of dir.
 		path = p
 		fmt = format.GetFormat(p)
+	} else {
+		// path in dir
+		path = filepath.Join(dir, name+format.Format2Ext(fmt))
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
 	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
@@ -45,22 +47,27 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 }
 
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
-	md := msg.ProtoReflect().Descriptor()
-	name := string(md.Name())
-	// patchPath in PatchDir
-	patchPath := filepath.Join(opts.PatchDir, name+format.Format2Ext(fmt))
+	name := string(msg.ProtoReflect().Descriptor().Name())
+	var patchPath string
 	patchFmt := fmt
 	if p, ok := opts.PatchPaths[name]; ok {
 		// patchPath specified in PatchPaths, then use it instead of PatchDir.
 		patchPath = p
 		patchFmt = format.GetFormat(p)
+	} else {
+		if opts.PatchDir == "" {
+			// PatchDir not provided, then just load from the "main" file.
+			return load(msg, path, fmt, opts)
+		}
+		// patchPath in PatchDir
+		patchPath = filepath.Join(opts.PatchDir, name+format.Format2Ext(fmt))
 	}
 	existed, err := fs.Exists(patchPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check file existence: %s", patchPath)
 	}
 	if !existed {
-		// If patch file not existed, then just load from file in the "main" dir.
+		// If patch file not exists, then just load from the "main" file.
 		return load(msg, path, fmt, opts)
 	}
 	switch patch {
@@ -68,17 +75,18 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		return load(msg, patchPath, patchFmt, opts)
 	case tableaupb.Patch_PATCH_MERGE:
 		patchMsg := proto.Clone(msg)
-		// load msg from "main" dir
+		// load msg from the "main" file
 		if err := load(msg, path, fmt, opts); err != nil {
 			return err
 		}
-		// load patchMsg from "patch" dir
+		// load patchMsg from the "patch" file
 		if err := load(patchMsg, patchPath, patchFmt, opts); err != nil {
 			return err
 		}
 		return merge(msg, patchMsg)
+	default:
+		return xerrors.Errorf("unknown patch type: %v", patch)
 	}
-	return nil
 }
 
 // load loads the generated config file (json/text/bin) from the given

@@ -8,7 +8,7 @@ import (
 )
 
 type tableHeader struct {
-	meta    *tableaupb.Metasheet
+	meta    *tableaupb.WorksheetOptions
 	namerow []string
 	typerow []string
 	noterow []string

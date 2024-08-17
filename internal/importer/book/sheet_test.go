@@ -1,4 +1,4 @@
-package protogen
+package book
 
 import (
 	"reflect"

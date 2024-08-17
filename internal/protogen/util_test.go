@@ -88,7 +88,7 @@ func Test_getRelCleanSlashPath(t *testing.T) {
 
 func Test_mergeHeaderOptions(t *testing.T) {
 	type args struct {
-		sheetMeta *tableaupb.Metasheet
+		sheetOptions *tableaupb.WorksheetOptions
 		headerOpt *options.HeaderOption
 	}
 	tests := []struct {
@@ -98,7 +98,7 @@ func Test_mergeHeaderOptions(t *testing.T) {
 		{
 			name: "merge-header-options",
 			args: args{
-				sheetMeta: &tableaupb.Metasheet{
+				sheetOptions: &tableaupb.WorksheetOptions{
 					Namerow: 2,
 				},
 				headerOpt: &options.HeaderOption{
@@ -114,7 +114,7 @@ func Test_mergeHeaderOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mergeHeaderOptions(tt.args.sheetMeta, tt.args.headerOpt)
+			mergeHeaderOptions(tt.args.sheetOptions, tt.args.headerOpt)
 			wantSheetMeta := &tableaupb.Metasheet{
 				Namerow:  2,
 				Typerow:  2,
@@ -123,8 +123,8 @@ func Test_mergeHeaderOptions(t *testing.T) {
 				Nameline: 1,
 				Typeline: 2,
 			}
-			if !proto.Equal(wantSheetMeta, tt.args.sheetMeta) {
-				t.Errorf("mergeHeaderOptions() output %v, want %v", tt.args.sheetMeta, wantSheetMeta)
+			if !proto.Equal(wantSheetMeta, tt.args.sheetOptions) {
+				t.Errorf("mergeHeaderOptions() output %v, want %v", tt.args.sheetOptions, wantSheetMeta)
 			}
 		})
 	}
@@ -160,7 +160,7 @@ func Test_genProtoFilePath(t *testing.T) {
 
 func Test_wrapDebugErr(t *testing.T) {
 	testTransposeSheetHeader := &tableHeader{
-		meta: &tableaupb.Metasheet{
+		meta: &tableaupb.WorksheetOptions{
 			Namerow:   1,
 			Typerow:   2,
 			Noterow:   3,
