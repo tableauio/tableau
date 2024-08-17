@@ -51,7 +51,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	var patchPath string
 	patchFmt := fmt
 	if p, ok := opts.PatchPaths[name]; ok {
-		// patchPath specified in PatchPaths, then use it instead of PatchDir.
+		// patch path specified in PatchPaths, then use it instead of PatchDir.
 		patchPath = p
 		patchFmt = format.GetFormat(p)
 	} else {
@@ -59,7 +59,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 			// PatchDir not provided, then just load from the "main" file.
 			return load(msg, path, fmt, opts)
 		}
-		// patchPath in PatchDir
+		// patch path in PatchDir
 		patchPath = filepath.Join(opts.PatchDir, name+format.Format2Ext(fmt))
 	}
 	existed, err := fs.Exists(patchPath)
@@ -83,7 +83,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		if err := load(patchMsg, patchPath, patchFmt, opts); err != nil {
 			return err
 		}
-		return merge(msg, patchMsg)
+		return Merge(msg, patchMsg)
 	default:
 		return xerrors.Errorf("unknown patch type: %v", patch)
 	}

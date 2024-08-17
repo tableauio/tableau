@@ -212,6 +212,8 @@ message FieldProp {
   //  - table formats (Excel/CSV): field's column can be absent.
   //  - document formats (XML/YAML): field's name can be absent.
   bool optional = 11;
+  // Field patch type.
+  Patch patch = 12;
 }
 
 // Layout of list and map.

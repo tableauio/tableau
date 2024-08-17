@@ -89,7 +89,8 @@ func Test_getRelCleanSlashPath(t *testing.T) {
 func Test_mergeHeaderOptions(t *testing.T) {
 	type args struct {
 		sheetOptions *tableaupb.WorksheetOptions
-		headerOpt *options.HeaderOption
+		headerOpt    *options.HeaderOption
+		want         *tableaupb.WorksheetOptions
 	}
 	tests := []struct {
 		name string
@@ -109,22 +110,22 @@ func Test_mergeHeaderOptions(t *testing.T) {
 					Nameline: 1,
 					Typeline: 2,
 				},
+				want: &tableaupb.WorksheetOptions{
+					Namerow:  2,
+					Typerow:  2,
+					Noterow:  3,
+					Datarow:  4,
+					Nameline: 1,
+					Typeline: 2,
+				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mergeHeaderOptions(tt.args.sheetOptions, tt.args.headerOpt)
-			wantSheetMeta := &tableaupb.Metasheet{
-				Namerow:  2,
-				Typerow:  2,
-				Noterow:  3,
-				Datarow:  4,
-				Nameline: 1,
-				Typeline: 2,
-			}
-			if !proto.Equal(wantSheetMeta, tt.args.sheetOptions) {
-				t.Errorf("mergeHeaderOptions() output %v, want %v", tt.args.sheetOptions, wantSheetMeta)
+			if !proto.Equal(tt.args.want, tt.args.sheetOptions) {
+				t.Errorf("mergeHeaderOptions() output %v, want %v", tt.args.sheetOptions, tt.args.want)
 			}
 		})
 	}
