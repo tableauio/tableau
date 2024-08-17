@@ -1,19 +1,25 @@
 {
     "parent": {
         "parent2": {
-            "enumIncellList": [
-                "FRUIT_TYPE_APPLE",
-                "FRUIT_TYPE_ORANGE",
-                "FRUIT_TYPE_BANANA"
-            ],
             "incell": {
                 "valueList": [
                     1,
                     2,
                     3,
                     1
+                ],
+                "costList": [
+                    1,
+                    2,
+                    3,
+                    2
                 ]
-            }
+            },
+            "enumIncellList": [
+                "FRUIT_TYPE_APPLE",
+                "FRUIT_TYPE_ORANGE",
+                "FRUIT_TYPE_BANANA"
+            ]
         }
     }
 }

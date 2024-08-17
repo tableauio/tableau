@@ -5,15 +5,63 @@
 </@TABLEAU>
 
 <MapConf Open="bool">
-    <PreEntry Name="map<string, PreEntry>" />
-    <Entry Id="map<uint32, Entry>" Value="int32" />
+    <PreEntry Name="map<string, PreEntry>" Cost="[]int32" />
+    <Entry Id="map<uint32, Entry>" Value="int32|{default:"1"}" IncellMap="map<int32, string>" />
+    <Incell Map="map<string, int32>" />
+    <IncellMap>map<int32, int32></IncellMap>
+    <KeyEnumMap>map<enum<.FruitType>, int32></KeyEnumMap>
+    <ValueEnumMap>map<int32, enum<.FruitType>></ValueEnumMap>
+    <KvEnumMap>map<enum<.FruitType>, enum<.FruitType>></KvEnumMap>
+
+    <Meal Id="map<string, Meal>" Time="duration|{default:"30m"}">
+        <Meat Name="map<string, Meat>" Weight="string" />
+        <VegetableInfo>
+            <Vegetable Name="map<string, Vegetable>|{optional:true}" Num="int32" />
+        </VegetableInfo>
+        <FruitInfo>
+            <Fruit Name="map<string, Fruit>" Desc="string|{optional:true}" />
+        </FruitInfo>
+    </Meal>
 </MapConf>
 -->
 
 <MapConf Open="true">
-    <PreEntry Name="1" />
-    <PreEntry Name="2" />
-    <Entry Id="1" Value="1" />
-    <Entry Id="2" Value="2" />
-    <Entry Id="3" Value="3" />
+    <PreEntry Name="1" Cost="1,2,3" />
+    <PreEntry Name="2" Cost="4,5,6" />
+    <Entry Id="1" Value="1" IncellMap="1:first,2:second" />
+    <Entry Id="2" Value="2" IncellMap=""/>
+    <Entry Id="3" IncellMap="3:third" />
+    <Incell Map="Tom:1,Jerry:2" />
+    <IncellMap>1:1,2:10,3:100</IncellMap>
+    <KeyEnumMap>Apple:1,Banana:2</KeyEnumMap>
+    <ValueEnumMap>1:Banana,2:Orange</ValueEnumMap>
+    <KvEnumMap>Apple:Banana,Banana:Orange</KvEnumMap>
+
+    <Meal Id="breakfast" Time="15m">
+        <Meat Name="Egg" Weight="100g" />
+        <VegetableInfo>
+            <Vegetable Name="Cauliflower" Num="2" />
+            <Vegetable Name="Cucumber" Num="1" />
+        </VegetableInfo>
+        <FruitInfo>
+            <Fruit Name="Apple" Desc="sour" />
+        </FruitInfo>
+    </Meal>
+    <Meal Id="lunch" Time="20m">
+        <Meat Name="Chicken" Weight="150g" />
+        <Meat Name="Fish" Weight="100g" />
+        <VegetableInfo>
+            <Vegetable Name="Spinach" Num="1" />
+        </VegetableInfo>
+        <FruitInfo>
+            <Fruit Name="Mongo" Desc="sweet" />
+        </FruitInfo>
+    </Meal>
+    <Meal Id="dinner">
+        <Meat Name="Beef" Weight="200g" />
+        <VegetableInfo />
+        <FruitInfo>
+            <Fruit Name="Banana" />
+        </FruitInfo>
+    </Meal>
 </MapConf>

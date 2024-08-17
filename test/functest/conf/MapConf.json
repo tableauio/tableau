@@ -2,24 +2,158 @@
     "open": true,
     "preEntryMap": {
         "1": {
-            "name": "1"
+            "name": "1",
+            "costList": [
+                1,
+                2,
+                3
+            ]
         },
         "2": {
-            "name": "2"
+            "name": "2",
+            "costList": [
+                4,
+                5,
+                6
+            ]
         }
     },
     "entryMap": {
         "1": {
             "id": 1,
-            "value": 1
+            "value": 1,
+            "incellMap": {
+                "1": "first",
+                "2": "second"
+            }
         },
         "2": {
             "id": 2,
-            "value": 2
+            "value": 2,
+            "incellMap": {}
         },
         "3": {
             "id": 3,
-            "value": 3
+            "value": 1,
+            "incellMap": {
+                "3": "third"
+            }
+        }
+    },
+    "incell": {
+        "map": {
+            "Jerry": 2,
+            "Tom": 1
+        }
+    },
+    "incellMap": {
+        "1": 1,
+        "2": 10,
+        "3": 100
+    },
+    "keyEnumMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": 1
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "value": 2
+        }
+    },
+    "valueEnumMap": {
+        "1": "FRUIT_TYPE_BANANA",
+        "2": "FRUIT_TYPE_ORANGE"
+    },
+    "kvEnumMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": "FRUIT_TYPE_BANANA"
+        },
+        "4": {
+            "key": "FRUIT_TYPE_BANANA",
+            "value": "FRUIT_TYPE_ORANGE"
+        }
+    },
+    "mealMap": {
+        "breakfast": {
+            "id": "breakfast",
+            "time": "900s",
+            "meatMap": {
+                "Egg": {
+                    "name": "Egg",
+                    "weight": "100g"
+                }
+            },
+            "vegetableInfo": {
+                "vegetableMap": {
+                    "Cauliflower": {
+                        "name": "Cauliflower",
+                        "num": 2
+                    },
+                    "Cucumber": {
+                        "name": "Cucumber",
+                        "num": 1
+                    }
+                }
+            },
+            "fruitInfo": {
+                "fruitMap": {
+                    "Apple": {
+                        "name": "Apple",
+                        "desc": "sour"
+                    }
+                }
+            }
+        },
+        "dinner": {
+            "id": "dinner",
+            "time": "1800s",
+            "meatMap": {
+                "Beef": {
+                    "name": "Beef",
+                    "weight": "200g"
+                }
+            },
+            "vegetableInfo": null,
+            "fruitInfo": {
+                "fruitMap": {
+                    "Banana": {
+                        "name": "Banana",
+                        "desc": ""
+                    }
+                }
+            }
+        },
+        "lunch": {
+            "id": "lunch",
+            "time": "1200s",
+            "meatMap": {
+                "Chicken": {
+                    "name": "Chicken",
+                    "weight": "150g"
+                },
+                "Fish": {
+                    "name": "Fish",
+                    "weight": "100g"
+                }
+            },
+            "vegetableInfo": {
+                "vegetableMap": {
+                    "Spinach": {
+                        "name": "Spinach",
+                        "num": 1
+                    }
+                }
+            },
+            "fruitInfo": {
+                "fruitMap": {
+                    "Mongo": {
+                        "name": "Mongo",
+                        "desc": "sweet"
+                    }
+                }
+            }
         }
     }
 }

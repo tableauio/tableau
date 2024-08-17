@@ -516,3 +516,44 @@ func TestIsScalarType(t *testing.T) {
 		})
 	}
 }
+
+func TestParseTypeDescriptor(t *testing.T) {
+	tests := []struct {
+		name string
+		args string
+		want Kind
+	}{
+		{
+			name: "int32",
+			args: "int32",
+			want: ScalarKind,
+		},
+		{
+			name: "datetime",
+			args: "datetime",
+			want: ScalarKind,
+		},
+		{
+			name: "duration",
+			args: "duration",
+			want: ScalarKind,
+		},
+		{
+			name: "Item",
+			args: "Item",
+			want: MessageKind,
+		},
+		{
+			name: "enum<.FruitType>",
+			args: "enum<.FruitType>",
+			want: EnumKind,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ParseTypeDescriptor(tt.args); got.Kind != tt.want {
+				t.Errorf("IsScalarType() = %v, want %v", got.Kind, tt.want)
+			}
+		})
+	}
+}

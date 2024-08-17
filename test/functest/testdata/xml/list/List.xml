@@ -8,7 +8,7 @@
 <ListConf>
     <Parent>
         <Parent2>
-            <CrossCell Value="[CrossCell]int32" Name="string" />
+            <CrossCell Value="[CrossCell]int32" Name="string" Cost="[]int32" />
         </Parent2>
     </Parent>
 </ListConf>
@@ -16,7 +16,7 @@
 <ListConf2>
     <Parent>
         <Parent2>
-            <Incell Value="[]int32" />
+            <Incell Value="[]int32" Cost="[]int32" />
             <EnumIncell>[]enum<.FruitType></EnumIncell>
         </Parent2>
     </Parent>
@@ -26,10 +26,10 @@
 <ListConf>
     <Parent>
         <Parent2>
-            <CrossCell Value="1" Name="Apple" />
-            <CrossCell Value="2" Name="Banana" />
-            <CrossCell Value="3" Name="Orange" />
-            <CrossCell Value="1" Name="Grape" />    
+            <CrossCell Value="1" Name="Apple" Cost="1,2,3" />
+            <CrossCell Value="2" Name="Banana" Cost="4,5,6" />
+            <CrossCell Value="3" Name="Orange" Cost="7,8,9" />
+            <CrossCell Value="1" Name="Grape" Cost="10,11,12,13" />
         </Parent2>
     </Parent>
 </ListConf>
@@ -37,7 +37,7 @@
 <ListConf2>
     <Parent>
         <Parent2>
-            <Incell Value="1,2,3,1" />
+            <Incell Value="1,2,3,1" Cost="1,2,3,2" />
             <EnumIncell>Apple, Orange, Banana</EnumIncell>
         </Parent2>
     </Parent>

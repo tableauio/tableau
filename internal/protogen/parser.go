@@ -869,34 +869,7 @@ func parseTypeDescriptor(typeInfos *xproto.TypeInfos, rawType string) (*types.De
 			return nil, xerrors.Errorf("predefined type not found: %s", rawType)
 		}
 	}
-	switch rawType {
-	case "datetime", "date":
-		return &types.Descriptor{
-			Name:       types.WellKnownMessageTimestamp,
-			FullName:   types.WellKnownMessageTimestamp,
-			Predefined: true,
-			Kind:       types.ScalarKind,
-		}, nil
-	case "time", "duration":
-		return &types.Descriptor{
-			Name:       types.WellKnownMessageDuration,
-			FullName:   types.WellKnownMessageDuration,
-			Predefined: true,
-			Kind:       types.ScalarKind,
-		}, nil
-	default:
-		desc := &types.Descriptor{
-			Name:       rawType,
-			FullName:   rawType,
-			Predefined: false,
-		}
-		if types.IsScalarType(desc.Name) {
-			desc.Kind = types.ScalarKind
-		} else {
-			desc.Kind = types.MessageKind
-		}
-		return desc, nil
-	}
+	return types.ParseTypeDescriptor(rawType), nil
 }
 
 // parseIncellStruct parses incell struct type definition. For example:

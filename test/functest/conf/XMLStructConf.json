@@ -1,0 +1,25 @@
+{
+    "item": {
+        "id": 1,
+        "name": "Apple"
+    },
+    "fruitShopData": {
+        "fruitMap": {
+            "apple": {
+                "name": "apple",
+                "flavorList": [
+                    "FRUIT_FLAVOR_SOUR",
+                    "FRUIT_FLAVOR_SWEET"
+                ]
+            },
+            "banana": {
+                "name": "banana",
+                "flavorList": [
+                    "FRUIT_FLAVOR_FRAGRANT",
+                    "FRUIT_FLAVOR_SWEET"
+                ]
+            }
+        }
+    },
+    "empty": null
+}

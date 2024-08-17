@@ -182,6 +182,13 @@ func E2017(mapType string) error {
 	})
 }
 
+// E2018: map key not exist.
+func E2018(keyName string) error {
+	return renderEcode("E2018", map[string]any{
+		"KeyName": keyName,
+	})
+}
+
 // E3000: no workbook file found about sheet specifier.
 func E3000(sheetSpecifier, pattern string) error {
 	return renderEcode("E3000", map[string]any{

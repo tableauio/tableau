@@ -380,3 +380,36 @@ type Descriptor struct {
 	Predefined bool
 	Kind       Kind
 }
+
+func ParseTypeDescriptor(rawType string) *Descriptor {
+	switch rawType {
+	case "datetime", "date":
+		return &Descriptor{
+			Name:       WellKnownMessageTimestamp,
+			FullName:   WellKnownMessageTimestamp,
+			Predefined: true,
+			Kind:       ScalarKind,
+		}
+	case "time", "duration":
+		return &Descriptor{
+			Name:       WellKnownMessageDuration,
+			FullName:   WellKnownMessageDuration,
+			Predefined: true,
+			Kind:       ScalarKind,
+		}
+	default:
+		desc := &Descriptor{
+			Name:       rawType,
+			FullName:   rawType,
+			Predefined: false,
+		}
+		if IsScalarType(desc.Name) {
+			desc.Kind = ScalarKind
+		} else if MatchEnum(rawType) != nil {
+			desc.Kind = EnumKind
+		} else {
+			desc.Kind = MessageKind
+		}
+		return desc
+	}
+}

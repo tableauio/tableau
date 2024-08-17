@@ -49,7 +49,7 @@ func init() {
 	DefaultDurationValue = pref.ValueOfMessage(du.ProtoReflect())
 }
 
-func getFieldDefaultValue(fd pref.FieldDescriptor) string {
+func GetFieldDefaultValue(fd pref.FieldDescriptor) string {
 	opts := fd.Options().(*descriptorpb.FieldOptions)
 	fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
 	if fieldOpts != nil && fieldOpts.Prop != nil {
@@ -82,7 +82,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 	}
 
 	value := strings.TrimSpace(rawValue)
-	defaultValue := getFieldDefaultValue(fd)
+	defaultValue := GetFieldDefaultValue(fd)
 	if value == "" {
 		value = strings.TrimSpace(defaultValue)
 	}

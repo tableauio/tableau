@@ -36,3 +36,11 @@ message Transform {
   Vector3 rotation = 2;
   Vector3 scale = 3;
 }
+
+message FruitInfo {
+  map<string, Fruit> fruit_map = 1 [(tableau.field) = { name: "Fruit" key: "Name" }];
+  message Fruit {
+    string name = 1 [(tableau.field) = { name: "Name" }];
+    repeated FruitFlavor flavor_list = 2 [(tableau.field) = { name: "Flavor" layout: LAYOUT_INCELL }];
+  }
+}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -310,10 +311,12 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 					Fields: []*tableaupb.Field{
 						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
 						{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
-						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Options: &tableaupb.FieldOptions{Name: "FruitType"}},
+						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
 					},
 				},
-				g: NewGeneratedBuf(),
+				g:              NewGeneratedBuf(),
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*tableaupb.Field),
 			},
 			want: `// Generated from sheet: StructTaskReward.
 message TaskReward {
@@ -357,13 +360,16 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 								{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
 								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
 								{Name: "type_list", Type: "repeated", FullType: "repeated protoconf.FruitType",
-									ListEntry: &tableaupb.Field_ListEntry{ElemType: "FruitType", ElemFullType: "protoconf.FruitType"},
-									Options:   &tableaupb.FieldOptions{Name: "Type", Layout: tableaupb.Layout_LAYOUT_INCELL}},
+									ListEntry:  &tableaupb.Field_ListEntry{ElemType: "FruitType", ElemFullType: "protoconf.FruitType"},
+									Predefined: true,
+									Options:    &tableaupb.FieldOptions{Name: "Type", Layout: tableaupb.Layout_LAYOUT_INCELL}},
 							},
 						},
 					},
 				},
-				g: NewGeneratedBuf(),
+				g:              NewGeneratedBuf(),
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*tableaupb.Field),
 			},
 			want: `// Generated from sheet: UnionTaskTarget.
 message TaskTarget {

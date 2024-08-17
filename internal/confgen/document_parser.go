@@ -56,6 +56,13 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 				}
 			} else {
 				fieldNode = node.FindChild(field.opts.Name)
+				if fieldNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
+					// if this field has a default value, use virtual node
+					fieldNode = &book.Node{
+						Name:  node.Name,
+						Value: node.Value,
+					}
+				}
 				if fieldNode == nil {
 					if sp.parser.IsFieldOptional(field) {
 						// field not found and is optional, just return nil.
@@ -129,7 +136,30 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 	} else {
 		if valueFd.Kind() == protoreflect.MessageKind {
 			for _, elemNode := range node.Children {
-				newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, elemNode.Name)
+				var keyData string
+				switch node.Kind {
+				case book.MapNode:
+					keyData = elemNode.Name
+					// auto add virtual key node
+					keyNode := &book.Node{
+						Kind:     book.ScalarNode,
+						Name:     field.opts.Key,
+						Value:    elemNode.Name,
+						Children: nil,
+						NamePos:  node.NamePos,
+						ValuePos: node.ValuePos,
+					}
+					elemNode.Children = append(elemNode.Children, keyNode)
+				case book.ListNode:
+					keyNode := elemNode.FindChild(field.opts.Key)
+					if keyNode == nil {
+						return false, xerrors.WrapKV(xerrors.E2018(field.opts.Key), elemNode.DebugKV()...)
+					}
+					keyData = keyNode.Value
+				default:
+					return false, xerrors.ErrorKV("should not reach here", node.DebugKV()...)
+				}
+				newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, keyData)
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
 				}
@@ -139,16 +169,6 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				} else {
 					newMapValue = reflectMap.NewValue()
 				}
-				// auto add virtual key node
-				keyNode := &book.Node{
-					Kind:     book.ScalarNode,
-					Name:     field.opts.Key,
-					Value:    elemNode.Name,
-					Children: nil,
-					NamePos:  node.NamePos,
-					ValuePos: node.ValuePos,
-				}
-				elemNode.Children = append(elemNode.Children, keyNode)
 				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode)
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
@@ -354,6 +374,12 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 		}
 		return present, nil
 	} else {
+		if node.Kind == book.ListNode {
+			if len(node.Children) != 1 {
+				return false, xerrors.ErrorKV("list node of struct must have and only have one child", node.DebugKV()...)
+			}
+			node = node.Children[0]
+		}
 		present, err := sp.parseMessage(structValue.Message(), node)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
