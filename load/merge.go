@@ -1,6 +1,8 @@
 package load
 
 import (
+	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -28,16 +30,18 @@ import (
 // [proto.Merge]: https://pkg.go.dev/google.golang.org/protobuf/proto#Merge
 func Merge(dst, src proto.Message) error {
 	dstMsg, srcMsg := dst.ProtoReflect(), src.ProtoReflect()
+	if dstMsg.Descriptor().FullName() != srcMsg.Descriptor().FullName() {
+		return errors.Errorf("dst %s and src %s are not messages with the same descriptor",
+			dstMsg.Descriptor().FullName(),
+			srcMsg.Descriptor().FullName())
+	}
 	// Range iterates over every populated field in an undefined order.
 	srcMsg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 		opts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
-		if opts.GetProp().GetPatch() == tableaupb.Patch_PATCH_REPLACE {
-			switch {
-			case fd.IsList():
-				dstMsg.Clear(fd)
-			case fd.IsMap():
-				dstMsg.Clear(fd)
-			}
+		patch := opts.GetProp().GetPatch()
+		if patch == tableaupb.Patch_PATCH_REPLACE {
+			log.Debugf("patch(%s) %s's field: %s", patch, dstMsg.Descriptor().Name(), fd.Name())
+			dstMsg.Clear(fd)
 		}
 		return true
 	})

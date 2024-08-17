@@ -70,9 +70,10 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		// If patch file not exists, then just load from the "main" file.
 		return load(msg, path, fmt, opts)
 	}
+	var patcherr error
 	switch patch {
 	case tableaupb.Patch_PATCH_REPLACE:
-		return load(msg, patchPath, patchFmt, opts)
+		patcherr = load(msg, patchPath, patchFmt, opts)
 	case tableaupb.Patch_PATCH_MERGE:
 		patchMsg := proto.Clone(msg)
 		// load msg from the "main" file
@@ -83,10 +84,14 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		if err := load(patchMsg, patchPath, patchFmt, opts); err != nil {
 			return err
 		}
-		return Merge(msg, patchMsg)
+		patcherr = Merge(msg, patchMsg)
 	default:
 		return xerrors.Errorf("unknown patch type: %v", patch)
 	}
+	if patcherr == nil {
+		log.Debugf("patched(%s) %s by %s: %s", patch, name, patchPath, msg)
+	}
+	return patcherr
 }
 
 // load loads the generated config file (json/text/bin) from the given

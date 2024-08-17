@@ -5,14 +5,11 @@ syntax = "proto3";
 package unittest;
 
 option go_package = "github.com/tableauio/tableau/proto/tableaupb/unittestpb";
-option (tableau.workbook) = {
-  name: "unittest/Unittest#*.csv"
-};
+option (tableau.workbook) = {name: "unittest/Unittest#*.csv"};
 
 import "tableau/protobuf/tableau.proto";
 import "tableau/protobuf/unittest/common.proto";
 
-// clang-format off
 message IncellMap {
   option (tableau.worksheet) = {name:"IncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
 
