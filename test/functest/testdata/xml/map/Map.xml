@@ -6,7 +6,7 @@
 
 <MapConf Open="bool">
     <PreEntry Name="map<string, PreEntry>" Cost="[]int32" />
-    <Entry Id="map<uint32, Entry>" Value="int32" IncellMap="map<int32, string>" />
+    <Entry Id="map<uint32, Entry>" Value="int32|{default:"1"}" IncellMap="map<int32, string>" />
     <Incell Map="map<string, int32>" />
     <IncellMap>map<int32, int32></IncellMap>
     <KeyEnumMap>map<enum<.FruitType>, int32></KeyEnumMap>
@@ -30,7 +30,7 @@
     <PreEntry Name="2" Cost="4,5,6" />
     <Entry Id="1" Value="1" IncellMap="1:first,2:second" />
     <Entry Id="2" Value="2" IncellMap=""/>
-    <Entry Id="3" Value="3" IncellMap="3:third" />
+    <Entry Id="3" IncellMap="3:third" />
     <Incell Map="Tom:1,Jerry:2" />
     <IncellMap>1:1,2:10,3:100</IncellMap>
     <KeyEnumMap>Apple:1,Banana:2</KeyEnumMap>

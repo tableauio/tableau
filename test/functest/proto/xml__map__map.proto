@@ -24,7 +24,7 @@ message MapConf {
   map<uint32, Entry> entry_map = 3 [(tableau.field) = {name:"Entry" key:"Id"}];
   message Entry {
     uint32 id = 1 [(tableau.field) = {name:"Id"}];
-    int32 value = 2 [(tableau.field) = {name:"Value"}];
+    int32 value = 2 [(tableau.field) = {name:"Value" prop:{default:"1"}}];
     map<int32, string> incell_map = 3 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}];
   }
   Incell incell = 4 [(tableau.field) = {name:"Incell"}];
