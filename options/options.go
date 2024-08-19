@@ -201,7 +201,7 @@ type ConfInputOption struct {
 	// is not recognized in proto files.
 	//
 	// Default: false.
-	IgnoreUnknownWorkbook bool
+	IgnoreUnknownWorkbook bool `yaml:"-"`
 }
 
 // Output options for generating conf files.
@@ -250,7 +250,18 @@ type ConfOutputOption struct {
 
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool `yaml:"useEnumNumbers"`
+
+	// Specify dry run mode, available: patch.
+	//
+	// Default: "".
+	DryRun DryRun `yaml:"-"`
 }
+
+type DryRun = string
+
+const (
+	DryRunPatch DryRun = "patch"
+)
 
 // Option is the functional option type.
 type Option func(*Options)

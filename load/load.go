@@ -13,6 +13,7 @@ import (
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -84,7 +85,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		if err := load(patchMsg, patchPath, patchFmt, opts); err != nil {
 			return err
 		}
-		patcherr = Merge(msg, patchMsg)
+		patcherr = xproto.PatchMerge(msg, patchMsg)
 	default:
 		return xerrors.Errorf("unknown patch type: %v", patch)
 	}

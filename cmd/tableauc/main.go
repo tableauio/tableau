@@ -35,6 +35,7 @@ var (
 	mode             string
 	configPath       string
 	showConfigSample bool
+	dryRun           options.DryRun
 )
 
 func main() {
@@ -52,8 +53,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&confOutputSubdir, "conf-output-subdir", "", "", "Conf output sub-directory, set it to override conf.output.subdir.")
 	rootCmd.Flags().StringSliceVarP(&confOutputFormats, "conf-output-formats", "", nil, "Available format: json, bin, and text, set it to override conf.output.formats.")
 	rootCmd.Flags().BoolVarP(&confInputIgnoreUnknownWorkbook, "conf-input-ignore-unknown-workbook", "", false, `Whether converter will not report an error and abort if a workbook
-is not recognized in proto files. 
-Set it to override conf.input.ignoreUnknownWorkbook.`)
+is not recognized in proto files.`)
 
 	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `Available mode: default, proto, and conf. 
   - default: generate both proto and conf files.
@@ -62,6 +62,7 @@ Set it to override conf.input.ignoreUnknownWorkbook.`)
 `)
 	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", "Tableauc config file path, e.g.: ./config.yaml.")
 	rootCmd.Flags().BoolVarP(&showConfigSample, "show-config-sample", "s", false, "Show config sample.")
+	rootCmd.Flags().StringVarP(&dryRun, "dry-run", "", "", "Preview the final result, available: patch.")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -102,6 +103,8 @@ func runE(cmd *cobra.Command, args []string) error {
 	if confInputIgnoreUnknownWorkbook {
 		config.Conf.Input.IgnoreUnknownWorkbook = true
 	}
+	config.Conf.Output.DryRun = dryRun
+
 	log.Debugf("load config success: %+v", spew.Sdump(config))
 
 	switch mode {

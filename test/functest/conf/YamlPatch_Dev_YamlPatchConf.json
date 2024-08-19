@@ -1,0 +1,11 @@
+{
+    "env": "dev",
+    "strictStruct": {
+        "id": 1,
+        "name": "orange"
+    },
+    "scalarList": [],
+    "structList": [],
+    "scalarMap": {},
+    "structMap": {}
+}
