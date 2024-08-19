@@ -29,16 +29,16 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Install protoc
+      - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
-          version: "3.x"
+          version: "23.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Installing protoc-gen-go
         run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
 
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup
