@@ -918,7 +918,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 					}
 				} else {
-					elemPresent, err = sp.parseHorizonalUnion(newListValue, field, rc, prefix+field.opts.Name)
+					elemPresent, err = sp.parseUnionValue(newListValue, field, rc, prefix+field.opts.Name)
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(prefix+field.opts.Name)...)
 					}
@@ -998,7 +998,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 				} else if xproto.IsUnionField(field.fd) {
 					// horizontal union list
-					elemPresent, err = sp.parseHorizonalUnion(newListValue, field, rc, colName)
+					elemPresent, err = sp.parseUnionValue(newListValue, field, rc, colName)
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 					}
@@ -1276,7 +1276,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		return present, nil
 	}
 
-	present, err = sp.parseHorizonalUnion(structValue, field, rc, prefix+field.opts.Name)
+	present, err = sp.parseUnionValue(structValue, field, rc, prefix+field.opts.Name)
 	if err != nil {
 		return false, xerrors.WithMessageKV(err, rc.CellDebugKV(prefix+field.opts.Name)...)
 	}
@@ -1362,7 +1362,7 @@ func (sp *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData
 	}
 }
 
-func (sp *sheetParser) parseHorizonalUnion(unionValue protoreflect.Value, field *Field, rc *book.RowCells, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseUnionValue(unionValue protoreflect.Value, field *Field, rc *book.RowCells, prefix string) (present bool, err error) {
 	unionDesc := xproto.ExtractUnionDescriptor(field.fd.Message())
 	if unionDesc == nil {
 		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
