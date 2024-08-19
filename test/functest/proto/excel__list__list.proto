@@ -5,7 +5,6 @@ syntax = "proto3";
 
 package protoconf;
 
-import "common/union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -35,14 +34,4 @@ message IncellScalarList {
   option (tableau.worksheet) = {name:"IncellScalarList" namerow:1 typerow:2 noterow:3 datarow:4};
 
   repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}];
-}
-
-message UnionList {
-  option (tableau.worksheet) = {name:"UnionList" namerow:1 typerow:2 noterow:3 datarow:4};
-
-  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message Task {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    repeated union.Target target_list = 2 [(tableau.field) = {name:"Target" layout:LAYOUT_HORIZONTAL}];
-  }
 }

@@ -904,6 +904,28 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 				if !keyedListItemExisted {
 					list.Append(listItemValue)
 				}
+			} else if xproto.IsUnionField(field.fd) {
+				elemPresent := false
+				newListValue := list.NewElement()
+				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+					colName := prefix + field.opts.Name
+					// incell union
+					cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
+					if err != nil {
+						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
+					}
+					if elemPresent, err = sp.parseIncellUnion(newListValue, cell.Data, field.opts.GetProp().GetForm()); err != nil {
+						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
+					}
+				} else {
+					elemPresent, err = sp.parseHorizonalUnion(newListValue, field, rc, prefix+field.opts.Name)
+					if err != nil {
+						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(prefix+field.opts.Name)...)
+					}
+				}
+				if elemPresent {
+					list.Append(newListValue)
+				}
 			} else {
 				elemPresent := false
 				newListValue := list.NewElement()

@@ -1,0 +1,7 @@
+Type,Field1,Field2,Field3," Progress"
+[union.Target]enum<union.Target.Type>,union,union,union," int32"
+Target's type,Target's field1,Target's field2,Target's field3," Progress"
+PVP,1,10,"Apple,Orange,Banana",3
+PVE,"1,100,999","1,2,3","1:10,2:20,3:30",10
+Story,"1001,10","1:Apple,2:Orange","Fragrant:1,Sour:2",10
+Skill,1,2,,8
