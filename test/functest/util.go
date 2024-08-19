@@ -1,6 +1,7 @@
-package functest
+package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -121,4 +122,63 @@ func genConf(logLevel string) error {
 		),
 		options.Lang("zh"),
 	)
+}
+
+func EqualTextFile(fileExt string, oldDir, newDir string, startLineN int) error {
+	files, err := os.ReadDir(oldDir)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if filepath.Ext(file.Name()) != fileExt {
+			continue
+		}
+		oldPath := filepath.Join(oldDir, file.Name())
+		absOldPath, err := filepath.Abs(oldPath)
+		if err != nil {
+			return err
+		}
+		oldfile, err := os.Open(oldPath)
+		if err != nil {
+			return err
+		}
+
+		newPath := filepath.Join(newDir, file.Name())
+		absNewPath, err := filepath.Abs(newPath)
+		if err != nil {
+			return err
+		}
+		newfile, err := os.Open(newPath)
+		if err != nil {
+			return err
+		}
+
+		oscan := bufio.NewScanner(oldfile)
+		nscan := bufio.NewScanner(newfile)
+
+		ln := 0
+		for {
+			sok := oscan.Scan()
+			dok := nscan.Scan()
+			ln++
+			if sok != dok {
+				return fmt.Errorf("line count not equal: %s:%d -> %s:%d", absOldPath, ln, absNewPath, ln)
+			}
+			if !sok || !dok {
+				break
+			}
+			if ln < startLineN {
+				// as the first line is one line comment
+				// (including dynamic version number), ignore it.
+				continue
+			}
+			oldLine := string(oscan.Bytes())
+			newLine := string(nscan.Bytes())
+			if oldLine != newLine {
+				return fmt.Errorf("line diff:\nold: %s:%d\n%s\nnew: %s:%d\n%s", 
+				absOldPath, ln, oldLine, absNewPath, ln, newLine)
+			}
+		}
+	}
+	return nil
 }

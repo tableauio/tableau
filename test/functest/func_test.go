@@ -1,4 +1,4 @@
-// Package functest is aimed for Functional Testing.
+// Package main is aimed for Functional Testing.
 //
 // "Functional Testing" is a black box testing technique, where
 // the functionality of the application is tested to generate
@@ -19,13 +19,9 @@
 // requirement and tested accordingly. In a Business scenario based
 // functional testing, testing is performed by keeping in mind all
 // the scenarios from a business perspective.
-package functest
+package main
 
 import (
-	"bufio"
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,45 +37,9 @@ func Test_CompareGeneratedProto(t *testing.T) {
 		t.Errorf("%+v", err)
 		t.Fatalf("%s", xerrors.NewDesc(err))
 	}
-	oldConfDir := "proto"
-	newConfDir := "_proto"
-	files, err := os.ReadDir(oldConfDir)
-	require.NoError(t, err)
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".proto") {
-			continue
-		}
-		oldPath := filepath.Join(oldConfDir, file.Name())
-		absOldPath, err := filepath.Abs(oldPath)
-		require.NoError(t, err)
-		oldfile, err := os.Open(oldPath)
-		require.NoError(t, err)
-
-		newPath := filepath.Join(newConfDir, file.Name())
-		absNewPath, err := filepath.Abs(newPath)
-		require.NoError(t, err)
-		newfile, err := os.Open(newPath)
-		require.NoError(t, err)
-
-		oscan := bufio.NewScanner(oldfile)
-		nscan := bufio.NewScanner(newfile)
-
-		line := 0
-		for {
-			sok := oscan.Scan()
-			dok := nscan.Scan()
-			line++
-			require.Equalf(t, sok, dok, "unequal line count: %s:%d -> %s:%d", absOldPath, line, absNewPath, line)
-			if !sok || !dok {
-				break
-			}
-			if line == 1 {
-				// as the first line is one line comment
-				// (including dynamic version number), ignore it.
-				continue
-			}
-			require.Equalf(t, string(oscan.Bytes()), string(nscan.Bytes()), "unequal line content: %s:%d -> %s:%d", absOldPath, line, absNewPath, line)
-		}
+	err = EqualTextFile(".proto", "proto", "_proto", 2)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -89,28 +49,9 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 		t.Errorf("%+v", err)
 		t.Fatalf("%s", xerrors.NewDesc(err))
 	}
-
-	oldConfDir := "conf"
-	newConfDir := "_conf"
-	files, err := os.ReadDir(oldConfDir)
-	require.NoError(t, err)
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".json") {
-			continue
-		}
-		oldPath := filepath.Join(oldConfDir, file.Name())
-		absOldPath, err := filepath.Abs(oldPath)
-		require.NoError(t, err)
-		newPath := filepath.Join(newConfDir, file.Name())
-		absNewPath, err := filepath.Abs(newPath)
-		require.NoError(t, err)
-		oldData, err := os.ReadFile(oldPath)
-		require.NoError(t, err)
-		newData, err := os.ReadFile(newPath)
-		require.NoError(t, err)
-
-		t.Logf("compare json file: %s\n", file.Name())
-		require.JSONEqf(t, string(oldData), string(newData), "%s -> %s content not same.", absOldPath, absNewPath)
+	err = EqualTextFile(".json", "conf", "_conf", 1)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
