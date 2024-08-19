@@ -21,4 +21,6 @@ GOCOVERDIR=covdatafiles ./functest.exe
 # go tool covdata percent -i=covdatafiles
 
 # Converting profiles to ‘-coverprofile’ text format
-go tool covdata textfmt -i=covdatafiles -o=coverage.txt
+go tool covdata textfmt -i=covdatafiles -o=/tmp/coverage.txt
+# remove generated file coverage
+grep -v '.pb.go' /tmp/coverage.txt > coverage.txt
