@@ -918,7 +918,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 					}
 				} else {
-					elemPresent, err = sp.parseUnionValue(newListValue, field, rc, prefix+field.opts.Name)
+					elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, prefix+field.opts.Name)
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(prefix+field.opts.Name)...)
 					}
@@ -998,7 +998,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 				} else if xproto.IsUnionField(field.fd) {
 					// horizontal union list
-					elemPresent, err = sp.parseUnionValue(newListValue, field, rc, colName)
+					elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, colName)
 					if err != nil {
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 					}
@@ -1276,7 +1276,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		return present, nil
 	}
 
-	present, err = sp.parseUnionValue(structValue, field, rc, prefix+field.opts.Name)
+	present, err = sp.parseUnionMessage(structValue.Message(), field, rc, prefix+field.opts.Name)
 	if err != nil {
 		return false, xerrors.WithMessageKV(err, rc.CellDebugKV(prefix+field.opts.Name)...)
 	}
@@ -1286,7 +1286,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 	return present, nil
 }
 
-func (sp *sheetParser) parseUnionValueField(field *Field, msg protoreflect.Message, cellData string) error {
+func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cellData string) error {
 	if field.fd.IsMap() {
 		// incell map
 		value := msg.NewField(field.fd)
@@ -1362,7 +1362,7 @@ func (sp *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData
 	}
 }
 
-func (sp *sheetParser) parseUnionValue(unionValue protoreflect.Value, field *Field, rc *book.RowCells, prefix string) (present bool, err error) {
+func (sp *sheetParser) parseUnionMessage(msg protoreflect.Message, field *Field, rc *book.RowCells, prefix string) (present bool, err error) {
 	unionDesc := xproto.ExtractUnionDescriptor(field.fd.Message())
 	if unionDesc == nil {
 		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
@@ -1380,7 +1380,7 @@ func (sp *sheetParser) parseUnionValue(unionValue protoreflect.Value, field *Fie
 	if err != nil {
 		return false, xerrors.WithMessageKV(err, rc.CellDebugKV(typeColName)...)
 	}
-	unionValue.Message().Set(unionDesc.Type, typeVal)
+	msg.Set(unionDesc.Type, typeVal)
 
 	// parse value
 	fieldNumber := int32(typeVal.Enum())
@@ -1393,7 +1393,7 @@ func (sp *sheetParser) parseUnionValue(unionValue protoreflect.Value, field *Fie
 		typeValue := unionDesc.Type.Enum().Values().ByNumber(protoreflect.EnumNumber(fieldNumber)).Name()
 		return false, xerrors.WithMessageKV(xerrors.E2010(typeValue, fieldNumber), rc.CellDebugKV(prefix)...)
 	}
-	fieldValue := unionValue.Message().NewField(valueFD)
+	fieldValue := msg.NewField(valueFD)
 	if valueFD.Kind() == protoreflect.MessageKind {
 		// MUST be message type.
 		md := valueFD.Message()
@@ -1409,7 +1409,7 @@ func (sp *sheetParser) parseUnionValue(unionValue protoreflect.Value, field *Fie
 				if err != nil {
 					return xerrors.WithMessageKV(err, rc.CellDebugKV(valColName)...)
 				}
-				err = sp.parseUnionValueField(subField, msg, cell.Data)
+				err = sp.parseUnionMessageField(subField, msg, cell.Data)
 				if err != nil {
 					return xerrors.WithMessageKV(err, rc.CellDebugKV(valColName)...)
 				}
@@ -1423,7 +1423,7 @@ func (sp *sheetParser) parseUnionValue(unionValue protoreflect.Value, field *Fie
 		// scalar: not supported yet.
 		return false, xerrors.Errorf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
 	}
-	unionValue.Message().Set(valueFD, fieldValue)
+	msg.Set(valueFD, fieldValue)
 	return present, nil
 }
 
