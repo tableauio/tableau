@@ -1,0 +1,5 @@
+ID,Target1Type,Target1Field1,Target1Field2,Target1Field3,Target2Type,Target2Field1,Target2Field2,Target2Field3
+"map<int32, Task>",[union.Target]enum<union.Target.Type>,union,union,union,enum<union.Target.Type>,union,union,union
+ID,Target's type,Target's field1,Target's field2,Target's field3,Target's type,Target's field1,Target's field2,Target's field3
+1,PVP,1,10,"Apple,Orange,Banana",PVE,"1,100,999","1,2,3","1:10,2:20,3:30"
+2,Story,"1001,10","1:Apple,2:Orange","Fragrant:1,Sour:2",Skill,1,2,
