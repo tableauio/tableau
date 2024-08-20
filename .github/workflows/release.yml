@@ -3,6 +3,7 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   release:
@@ -12,10 +13,12 @@ jobs:
     strategy:
       matrix:
         goos: [linux, darwin, windows]
-        goarch: [386, amd64]
+        goarch: [amd64, arm64]
         exclude:
-          - goos: darwin
-            goarch: 386
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: arm64
 
     steps:
       - name: Checkout code
