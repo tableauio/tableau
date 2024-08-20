@@ -1,0 +1,4 @@
+codecov:
+  ignore:
+    - "*.pb.go" # Ignore all *.pb.go files
+    - "test/*" # Ignore all files in the directory
