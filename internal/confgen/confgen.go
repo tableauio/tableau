@@ -167,6 +167,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 					SubdirRewrites: gen.InputOpt.SubdirRewrites,
 					PRFiles:        prFiles,
 					BookFormat:     workbookFormat,
+					DryRun:         gen.OutputOpt.DryRun,
 				},
 			}
 			sheets = append(sheets, sheetOpts.Name)
@@ -224,9 +225,9 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 		return err
 	}
 	// append self
-	importers = append(importers, importer.ImporterInfo{Importer: self})
+	mainImporter := importer.ImporterInfo{Importer: self}
 	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
-	if err := exporter.ScatterAndExport(sheetInfo, importers...); err != nil {
+	if err := exporter.ScatterAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
 	return nil

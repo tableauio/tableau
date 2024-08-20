@@ -302,42 +302,8 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	bp := newDocumentBookParser(bookName, rewrittenBookName, gen)
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet options
-		sheetName := sheet.Document.GetDataSheetName()
-		debugSheetName := sheetName
-		sheetMsgName := sheetName
-		if sheet.Meta.Alias != "" {
-			sheetMsgName = sheet.Meta.Alias
-			debugSheetName += " (alias: " + sheet.Meta.Alias + ")"
-		}
-		ws := &tableaupb.Worksheet{
-			Options: &tableaupb.WorksheetOptions{
-				Name:          sheetName,
-				Namerow:       sheet.Meta.Namerow,
-				Typerow:       sheet.Meta.Typerow,
-				Noterow:       sheet.Meta.Noterow,
-				Datarow:       sheet.Meta.Datarow,
-				Transpose:     sheet.Meta.Transpose,
-				Tags:          "",
-				Nameline:      sheet.Meta.Nameline,
-				Typeline:      sheet.Meta.Typeline,
-				Nested:        sheet.Meta.Nested,
-				Sep:           sheet.Meta.Sep,
-				Subsep:        sheet.Meta.Subsep,
-				Merger:        sheet.Meta.Merger,
-				AdjacentKey:   sheet.Meta.AdjacentKey,
-				FieldPresence: sheet.Meta.FieldPresence,
-				Template:      sheet.Meta.Template,
-				Mode:          sheet.Meta.Mode,
-				Scatter:       sheet.Meta.Scatter,
-				Optional:      sheet.Meta.Optional,
-				// Loader options:
-				OrderedMap: sheet.Meta.OrderedMap,
-				Index:      parseIndexes(sheet.Meta.Index),
-			},
-			Fields: []*tableaupb.Field{},
-			Name:   sheetMsgName,
-		}
-
+		ws := sheet.ToWorkseet()
+		debugSheetName := sheet.GetDebugName()
 		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 
 		// log.Debugf("dump document:\n%s", sheet.String())
@@ -430,64 +396,33 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet header
-		debugSheetName := sheet.Name
-		sheetMsgName := sheet.Name
-		if sheet.Meta.Alias != "" {
-			sheetMsgName = sheet.Meta.Alias
-			debugSheetName += " (alias: " + sheet.Meta.Alias + ")"
-		}
-		mergeHeaderOptions(sheet.Meta, gen.InputOpt.Header)
-		ws := &tableaupb.Worksheet{
-			Options: &tableaupb.WorksheetOptions{
-				Name:          sheet.Name,
-				Namerow:       sheet.Meta.Namerow,
-				Typerow:       sheet.Meta.Typerow,
-				Noterow:       sheet.Meta.Noterow,
-				Datarow:       sheet.Meta.Datarow,
-				Transpose:     sheet.Meta.Transpose,
-				Tags:          "",
-				Nameline:      sheet.Meta.Nameline,
-				Typeline:      sheet.Meta.Typeline,
-				Nested:        sheet.Meta.Nested,
-				Sep:           sheet.Meta.Sep,
-				Subsep:        sheet.Meta.Subsep,
-				Merger:        sheet.Meta.Merger,
-				AdjacentKey:   sheet.Meta.AdjacentKey,
-				FieldPresence: sheet.Meta.FieldPresence,
-				Template:      sheet.Meta.Template,
-				Mode:          sheet.Meta.Mode,
-				Scatter:       sheet.Meta.Scatter,
-				Optional:      sheet.Meta.Optional,
-				// Loader options:
-				OrderedMap: sheet.Meta.OrderedMap,
-				Index:      parseIndexes(sheet.Meta.Index),
-			},
-			Fields: []*tableaupb.Field{},
-			Name:   sheetMsgName,
-		}
+		ws := sheet.ToWorkseet()
+		mergeHeaderOptions(ws.Options, gen.InputOpt.Header)
+		debugSheetName := sheet.GetDebugName()
+		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 
 		shHeader := &tableHeader{
-			meta:       sheet.Meta,
+			meta:       ws.Options,
 			validNames: map[string]int{},
 		}
 		// transpose or not
-		if sheet.Meta.Transpose {
+		if ws.Options.Transpose {
 			for row := 0; row < sheet.Table.MaxRow; row++ {
-				nameCol := int(sheet.Meta.Namerow) - 1
+				nameCol := int(ws.Options.Namerow) - 1
 				nameCell, err := sheet.Table.Cell(row, nameCol)
 				if err != nil {
 					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, nameCol))
 				}
 				shHeader.namerow = append(shHeader.namerow, nameCell)
 
-				typeCol := int(sheet.Meta.Typerow) - 1
+				typeCol := int(ws.Options.Typerow) - 1
 				typeCell, err := sheet.Table.Cell(row, typeCol)
 				if err != nil {
 					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, typeCol))
 				}
 				shHeader.typerow = append(shHeader.typerow, typeCell)
 
-				noteCol := int(sheet.Meta.Noterow) - 1
+				noteCol := int(ws.Options.Noterow) - 1
 				noteCell, err := sheet.Table.Cell(row, noteCol)
 				if err != nil {
 					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, noteCol))
@@ -495,19 +430,19 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				shHeader.noterow = append(shHeader.noterow, noteCell)
 			}
 		} else {
-			shHeader.namerow = sheet.Table.GetRow(int(sheet.Meta.Namerow - 1))
-			shHeader.typerow = sheet.Table.GetRow(int(sheet.Meta.Typerow - 1))
-			shHeader.noterow = sheet.Table.GetRow(int(sheet.Meta.Noterow - 1))
+			shHeader.namerow = sheet.Table.GetRow(int(ws.Options.Namerow - 1))
+			shHeader.typerow = sheet.Table.GetRow(int(ws.Options.Typerow - 1))
+			shHeader.noterow = sheet.Table.GetRow(int(ws.Options.Noterow - 1))
 		}
 
 		// Two-pass flow:
 		// 	1. first pass: extract type info from special sheet mode (none default mode)
 		// 	2. second pass: parse sheet
-		if pass == firstPass && sheet.Meta.Mode != tableaupb.Mode_MODE_DEFAULT {
+		if pass == firstPass && ws.Options.Mode != tableaupb.Mode_MODE_DEFAULT {
 			log.Debugf("extract type info from %s", debugSheetName)
 
 			parentFilename := bp.GetProtoFilePath()
-			err := gen.extractTypeInfoFromSpecialSheetMode(sheet.Meta.Mode, sheet, ws.Name, parentFilename)
+			err := gen.extractTypeInfoFromSpecialSheetMode(ws.Options.Mode, sheet, ws.Name, parentFilename)
 			if err != nil {
 				return xerrors.WithMessageKV(err,
 					xerrors.KeyBookName, debugBookName,
@@ -516,11 +451,11 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		} else if pass == secondPass {
 			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 
-			if sheet.Meta.Mode == tableaupb.Mode_MODE_DEFAULT {
+			if ws.Options.Mode == tableaupb.Mode_MODE_DEFAULT {
 				var parsed bool
 				for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
 					field := &tableaupb.Field{}
-					cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(sheet.Meta.Nested))
+					cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(ws.Options.Nested))
 					if err != nil {
 						return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 					}
@@ -529,7 +464,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 					}
 				}
 			} else {
-				err := gen.parseSpecialSheetMode(sheet.Meta.Mode, ws, sheet, debugBookName, debugSheetName)
+				err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
 				if err != nil {
 					return err
 				}
@@ -668,7 +603,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		}
 		bp := newBookParser("struct", "", gen)
 		shHeader := &tableHeader{
-			meta: &tableaupb.Metasheet{
+			meta: &tableaupb.WorksheetOptions{
 				Namerow: 1,
 				Typerow: 2,
 			},
@@ -712,7 +647,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			bp := newBookParser("union", "", gen)
 
 			shHeader := &tableHeader{
-				meta: &tableaupb.Metasheet{
+				meta: &tableaupb.WorksheetOptions{
 					Namerow:  1,
 					Typerow:  1,
 					Nameline: 1,

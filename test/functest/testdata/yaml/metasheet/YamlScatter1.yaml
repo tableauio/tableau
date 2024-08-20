@@ -1,0 +1,4 @@
+"@sheet": YamlScatterConf
+StrictStruct:
+    ID: 1
+    Name: banana

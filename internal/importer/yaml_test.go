@@ -17,6 +17,7 @@ func Test_inspectYAMLNode(t *testing.T) {
 "@sheet": "@TABLEAU"
 ServiceConf:
   Template: true
+  Patch: PATCH_MERGE
 ---
 # define schema
 "@sheet": "@ServiceConf"

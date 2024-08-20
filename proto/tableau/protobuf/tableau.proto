@@ -114,6 +114,8 @@ message WorksheetOptions {
   //  - table formats (Excel/CSV): field's column can be absent.
   //  - document formats (XML/YAML): field's name can be absent.
   bool optional = 19;
+  // Sheet patch type.
+  Patch patch = 20;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
@@ -210,6 +212,8 @@ message FieldProp {
   //  - table formats (Excel/CSV): field's column can be absent.
   //  - document formats (XML/YAML): field's name can be absent.
   bool optional = 11;
+  // Field patch type.
+  Patch patch = 12;
 }
 
 // Layout of list and map.
@@ -253,4 +257,20 @@ enum Form {
   FORM_DEFAULT = 0;  // Default form which confgen parser defines.
   FORM_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec
   FORM_JSON = 2;     // Refer: https://developers.google.com/protocol-buffers/docs/proto3#json
+}
+
+// Patch type for both sheet-level and field-level.
+enum Patch {
+  PATCH_NONE = 0;
+  // 1. For patch option in sheet-level: `replace` all fields' value
+  // 2. For patch option in field-level: `replace` specified field's value
+  PATCH_REPLACE = 1;
+  // 1. For patch option in sheet-level:
+  //   1. top none-map field (field value):
+  //     - `replace`: if field present in both **main** and **patch** sheet
+  //   2. top map field patch (key-value pair):
+  //     - `add`: if key not exists in **main** sheet
+  //     - `replace`: if key exists in both **main** and **patch** sheet
+  // 2. For patch option in field-level: NOT supported yet!
+  PATCH_MERGE = 2;
 }

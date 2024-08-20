@@ -1,0 +1,21 @@
+{
+    "env": "test",
+    "strictStruct": null,
+    "scalarList": [
+        10,
+        20,
+        30
+    ],
+    "structList": [
+        {
+            "id": 10,
+            "name": "snake"
+        },
+        {
+            "id": 20,
+            "name": "python"
+        }
+    ],
+    "scalarMap": {},
+    "structMap": {}
+}

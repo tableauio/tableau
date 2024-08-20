@@ -1,0 +1,11 @@
+{
+    "name": "orange",
+    "priceList": [
+        20,
+        200
+    ],
+    "replacePriceList": [
+        20,
+        200
+    ]
+}

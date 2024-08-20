@@ -1,0 +1,19 @@
+{
+    "structMap": {
+        "1": {
+            "key": 1,
+            "name": "orange",
+            "num": 10
+        },
+        "2": {
+            "key": 2,
+            "name": "banana",
+            "num": 20
+        },
+        "100": {
+            "key": 100,
+            "name": "apple",
+            "num": 1000
+        }
+    }
+}

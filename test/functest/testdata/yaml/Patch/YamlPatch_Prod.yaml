@@ -1,0 +1,14 @@
+"@sheet": YamlPatchConf
+Env: prod
+ScalarMap:
+  10: snake
+  20: python
+StructMap:
+  1:
+    Num: 100
+  20:
+    Name: pineapple
+    Num: 200
+  30:
+    Name: durian
+    Num: 300

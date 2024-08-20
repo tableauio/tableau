@@ -1,0 +1,8 @@
+"@sheet": YamlPatchConf
+Env: test
+ScalarList: [10, 20, 30]
+StructList:
+  - ID: 10
+    Name: snake
+  - ID: 20
+    Name: python

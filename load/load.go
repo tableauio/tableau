@@ -1,5 +1,7 @@
 // Package load provides functions to load a protobuf message from
-// different formats: json, bin, txt, xlsx, csv, and xml.
+// different formats:
+//   - generated fomats: json, bin, txt
+//   - origin formats: xlsx, csv, xml, yaml.
 package load
 
 import (
@@ -11,7 +13,9 @@ import (
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -24,16 +28,76 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, options...)
 	}
-	name := string(msg.ProtoReflect().Descriptor().Name())
-	path := filepath.Join(dir, name+format.Format2Ext(fmt))
+	md := msg.ProtoReflect().Descriptor()
+	name := string(md.Name())
+	var path string
 	opts := ParseOptions(options...)
-	if opts.Paths != nil {
-		if p, ok := opts.Paths[name]; ok {
-			// path specified explicitly, then use it directly
-			path = p
-			fmt = format.GetFormat(path)
-		}
+	if p, ok := opts.Paths[name]; ok {
+		// path specified in Paths, then use it instead of dir.
+		path = p
+		fmt = format.GetFormat(p)
+	} else {
+		// path in dir
+		path = filepath.Join(dir, name+format.Format2Ext(fmt))
 	}
+	_, sheetOpts := confgen.ParseMessageOptions(md)
+	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
+		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
+	}
+	return load(msg, path, fmt, opts)
+}
+
+func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
+	name := string(msg.ProtoReflect().Descriptor().Name())
+	var patchPath string
+	patchFmt := fmt
+	if p, ok := opts.PatchPaths[name]; ok {
+		// patch path specified in PatchPaths, then use it instead of PatchDir.
+		patchPath = p
+		patchFmt = format.GetFormat(p)
+	} else {
+		if opts.PatchDir == "" {
+			// PatchDir not provided, then just load from the "main" file.
+			return load(msg, path, fmt, opts)
+		}
+		// patch path in PatchDir
+		patchPath = filepath.Join(opts.PatchDir, name+format.Format2Ext(fmt))
+	}
+	existed, err := fs.Exists(patchPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check file existence: %s", patchPath)
+	}
+	if !existed {
+		// If patch file not exists, then just load from the "main" file.
+		return load(msg, path, fmt, opts)
+	}
+	var patcherr error
+	switch patch {
+	case tableaupb.Patch_PATCH_REPLACE:
+		patcherr = load(msg, patchPath, patchFmt, opts)
+	case tableaupb.Patch_PATCH_MERGE:
+		patchMsg := proto.Clone(msg)
+		// load msg from the "main" file
+		if err := load(msg, path, fmt, opts); err != nil {
+			return err
+		}
+		// load patchMsg from the "patch" file
+		if err := load(patchMsg, patchPath, patchFmt, opts); err != nil {
+			return err
+		}
+		patcherr = xproto.PatchMerge(msg, patchMsg)
+	default:
+		return xerrors.Errorf("unknown patch type: %v", patch)
+	}
+	if patcherr == nil {
+		log.Debugf("patched(%s) %s by %s: %s", patch, name, patchPath, msg)
+	}
+	return patcherr
+}
+
+// load loads the generated config file (json/text/bin) from the given
+// directory.
+func load(msg proto.Message, path string, fmt format.Format, opts *Options) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read file: %v", path)
@@ -55,12 +119,14 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	}
 	if unmarshalErr != nil {
 		lines := extractLinesOnUnmarshalError(unmarshalErr, fmt, content)
-		return xerrors.E0002(path, name, unmarshalErr.Error(), lines)
+		fullName := msg.ProtoReflect().Descriptor().FullName()
+		return xerrors.E0002(path, string(fullName), unmarshalErr.Error(), lines)
 	}
 	return nil
 }
 
-// loadOrigin loads the origin file(excel/csv/xml) from the given directory.
+// loadOrigin loads the origin file (excel/csv/xml/yaml) from the given
+// directory.
 func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	opts := ParseOptions(options...)
 

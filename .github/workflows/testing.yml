@@ -17,7 +17,7 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.18.x, 1.19.x, 1.20.x]
+        go-version: [1.20.x, 1.21.x, 1.22.x]
         os: [ubuntu-latest]
         targetplatform: [x86, x64]
 
@@ -25,21 +25,21 @@ jobs:
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
         with:
-          version: "3.x"
+          version: "23.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Installing protoc-gen-go
         run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
 
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup
         run: ./test/setup.sh
@@ -47,11 +47,14 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Test
+      - name: Unittest
         run: go test -v -timeout 30m -race ./... -coverprofile=coverage.txt -covermode=atomic
+      
+      - name: Functest
+        run: ./test/functest/run.sh
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.0.1
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: tableauio/tableau

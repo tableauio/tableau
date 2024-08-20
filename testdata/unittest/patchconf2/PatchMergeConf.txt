@@ -1,0 +1,28 @@
+item_map: {
+    key: 1
+    value: {
+        id: 1
+        num: 99
+    }
+}
+item_map: {
+    key: 999
+    value: {
+        id: 999
+        num: 99900
+    }
+}
+replace_item_map: {
+    key: 1
+    value: {
+        id: 1
+        num: 99
+    }
+}
+replace_item_map: {
+    key: 999
+    value: {
+        id: 999
+        num: 99900
+    }
+}

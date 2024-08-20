@@ -84,28 +84,28 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 }
 
 // mergeHeaderOptions merge from options.HeaderOption to tableaupb.Metasheet.
-func mergeHeaderOptions(sheetMeta *tableaupb.Metasheet, headerOpt *options.HeaderOption) {
+func mergeHeaderOptions(sheetOpts *tableaupb.WorksheetOptions, headerOpt *options.HeaderOption) {
 	if headerOpt == nil {
 		return
 	}
 
-	if sheetMeta.Namerow == 0 {
-		sheetMeta.Namerow = headerOpt.Namerow
+	if sheetOpts.Namerow == 0 {
+		sheetOpts.Namerow = headerOpt.Namerow
 	}
-	if sheetMeta.Typerow == 0 {
-		sheetMeta.Typerow = headerOpt.Typerow
+	if sheetOpts.Typerow == 0 {
+		sheetOpts.Typerow = headerOpt.Typerow
 	}
-	if sheetMeta.Noterow == 0 {
-		sheetMeta.Noterow = headerOpt.Noterow
+	if sheetOpts.Noterow == 0 {
+		sheetOpts.Noterow = headerOpt.Noterow
 	}
-	if sheetMeta.Datarow == 0 {
-		sheetMeta.Datarow = headerOpt.Datarow
+	if sheetOpts.Datarow == 0 {
+		sheetOpts.Datarow = headerOpt.Datarow
 	}
-	if sheetMeta.Nameline == 0 {
-		sheetMeta.Nameline = headerOpt.Nameline
+	if sheetOpts.Nameline == 0 {
+		sheetOpts.Nameline = headerOpt.Nameline
 	}
-	if sheetMeta.Typeline == 0 {
-		sheetMeta.Typeline = headerOpt.Typeline
+	if sheetOpts.Typeline == 0 {
+		sheetOpts.Typeline = headerOpt.Typeline
 	}
 }
 

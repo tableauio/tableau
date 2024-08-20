@@ -10,7 +10,7 @@ var testSheetHeader *tableHeader
 
 func init() {
 	testSheetHeader = &tableHeader{
-		meta: &tableaupb.Metasheet{
+		meta: &tableaupb.WorksheetOptions{
 			Namerow: 1,
 			Typerow: 2,
 			Noterow: 3,
@@ -194,7 +194,7 @@ func Test_getCell(t *testing.T) {
 
 func Test_tableHeader_checkNameConflicts(t *testing.T) {
 	testSheetHeader := &tableHeader{
-		meta: &tableaupb.Metasheet{
+		meta: &tableaupb.WorksheetOptions{
 			Namerow: 1,
 			Typerow: 2,
 			Noterow: 3,
@@ -208,7 +208,7 @@ func Test_tableHeader_checkNameConflicts(t *testing.T) {
 	}
 
 	testTransposeSheetHeader := &tableHeader{
-		meta: &tableaupb.Metasheet{
+		meta: &tableaupb.WorksheetOptions{
 			Namerow:   1,
 			Typerow:   2,
 			Noterow:   3,

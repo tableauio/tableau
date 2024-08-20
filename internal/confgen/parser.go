@@ -41,21 +41,42 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheet
 }
 
 // ScatterAndExport parse multiple importer infos into separate protomsgs, then export each other.
-func (x *sheetExporter) ScatterAndExport(info *SheetInfo, impInfos ...importer.ImporterInfo) error {
-	// NOTE: use map-reduce pattern to accelerate parsing multiple importer Infos.
+func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
+	mainImpInfo importer.ImporterInfo,
+	impInfos ...importer.ImporterInfo) error {
+	// exported conf name pattern is : <BookName>_<SheetName>
+	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
+		sheetName := getRealSheetName(info, impInfo)
+		return fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
+	}
+	// parse main sheet
+	mainMsg, err := parseMessageFromOneImporter(info, mainImpInfo)
+	if err != nil {
+		return err
+	}
+	mainName := getExportedConfName(info, mainImpInfo)
+	err = storeMessage(mainMsg, mainName, x.OutputDir, x.OutputOpt)
+	if err != nil {
+		return err
+	}
+
 	var eg errgroup.Group
 	for _, impInfo := range impInfos {
 		impInfo := impInfo
 		// map-reduce: map jobs for concurrent processing
 		eg.Go(func() error {
-			protomsg, err := parseMessageFromOneImporter(info, impInfo)
+			msg, err := parseMessageFromOneImporter(info, impInfo)
 			if err != nil {
 				return err
 			}
-			// exported conf name pattern is : <BookName>_<SheetName>
-			sheetName := getRealSheetName(info, impInfo)
-			name := fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
-			return storeMessage(protomsg, name, x.OutputDir, x.OutputOpt)
+			name := getExportedConfName(info, impInfo)
+			if info.ExtInfo.DryRun == options.DryRunPatch &&
+				info.Opts.Patch == tableaupb.Patch_PATCH_MERGE {
+				clonedMainMsg := proto.Clone(mainMsg)
+				xproto.PatchMerge(clonedMainMsg, msg)
+				msg = clonedMainMsg
+			}
+			return storeMessage(msg, name, x.OutputDir, x.OutputOpt)
 		})
 	}
 	if err := eg.Wait(); err != nil {
@@ -208,6 +229,7 @@ type SheetParserExtInfo struct {
 	SubdirRewrites map[string]string
 	PRFiles        *protoregistry.Files
 	BookFormat     format.Format // workbook format
+	DryRun         options.DryRun
 }
 
 // NewSheetParser creates a new sheet parser.

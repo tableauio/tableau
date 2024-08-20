@@ -27,3 +27,4 @@ test/parallel/protoconf/
 *.prof
 test/functest/testdata/xml/*/*.csv
 coverage.txt
+covdatafiles

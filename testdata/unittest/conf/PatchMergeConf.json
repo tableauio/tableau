@@ -1,0 +1,31 @@
+{
+    "name": "apple",
+    "priceList": [
+        10,
+        100
+    ],
+    "replacePriceList": [
+        10,
+        100
+    ],
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "num": 10
+        },
+        "2": {
+            "id": 2,
+            "num": 20
+        }
+    },
+    "replaceItemMap": {
+        "1": {
+            "id": 1,
+            "num": 10
+        },
+        "2": {
+            "id": 2,
+            "num": 20
+        }
+    }
+}

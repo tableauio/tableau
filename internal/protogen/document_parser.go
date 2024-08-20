@@ -172,8 +172,6 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		return nil
 	}
 	// struct map
-	// auto add suffix "_map".
-	// field.Name = strcase.ToSnake(valueTypeDesc.Name) + mapVarSuffix
 	field.Name = strcase.ToSnake(variableCell)
 	field.Type = mapType
 	field.FullType = fullMapType
