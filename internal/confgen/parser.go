@@ -907,8 +907,8 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			} else if xproto.IsUnionField(field.fd) {
 				elemPresent := false
 				newListValue := list.NewElement()
+				colName := prefix + field.opts.Name
 				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-					colName := prefix + field.opts.Name
 					// incell union
 					cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 					if err != nil {
@@ -918,9 +918,9 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 					}
 				} else {
-					elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, prefix+field.opts.Name)
+					elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, colName)
 					if err != nil {
-						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(prefix+field.opts.Name)...)
+						return false, xerrors.WithMessageKV(err, rc.CellDebugKV(colName)...)
 					}
 				}
 				if elemPresent {

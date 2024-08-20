@@ -1,0 +1,66 @@
+{
+    "targetList": [
+        {
+            "type": "TYPE_PVP",
+            "pvp": {
+                "type": 1,
+                "damage": "10",
+                "types": [
+                    "FRUIT_TYPE_APPLE",
+                    "FRUIT_TYPE_ORANGE",
+                    "FRUIT_TYPE_BANANA"
+                ]
+            }
+        },
+        {
+            "type": "TYPE_PVE",
+            "pve": {
+                "mission": {
+                    "id": 1,
+                    "level": 100,
+                    "damage": "999"
+                },
+                "heros": [
+                    1,
+                    2,
+                    3
+                ],
+                "dungeons": {
+                    "1": "10",
+                    "2": "20",
+                    "3": "30"
+                }
+            }
+        },
+        {
+            "type": "TYPE_STORY",
+            "story": {
+                "cost": {
+                    "id": 1001,
+                    "num": 10
+                },
+                "fruits": {
+                    "1": "FRUIT_TYPE_APPLE",
+                    "2": "FRUIT_TYPE_ORANGE"
+                },
+                "flavors": {
+                    "1": {
+                        "key": "FRUIT_FLAVOR_FRAGRANT",
+                        "value": 1
+                    },
+                    "2": {
+                        "key": "FRUIT_FLAVOR_SOUR",
+                        "value": 2
+                    }
+                }
+            }
+        },
+        {
+            "type": "TYPE_SKILL",
+            "skill": {
+                "id": 1,
+                "damage": "2"
+            }
+        }
+    ]
+}

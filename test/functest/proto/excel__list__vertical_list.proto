@@ -28,6 +28,12 @@ message VerticalIncellStructList {
   }
 }
 
+message VerticalIncellUnionList {
+  option (tableau.worksheet) = {name:"VerticalIncellUnionList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated union.Target target_list = 1 [(tableau.field) = {name:"Target" layout:LAYOUT_VERTICAL span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}];
+}
+
 message VerticalPredefinedStructList {
   option (tableau.worksheet) = {name:"VerticalPredefinedStructList" namerow:1 typerow:2 noterow:3 datarow:4};
 
