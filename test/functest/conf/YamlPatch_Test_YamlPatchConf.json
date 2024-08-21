@@ -9,11 +9,15 @@
     "structList": [
         {
             "id": 10,
-            "name": "snake"
+            "name": "snake",
+            "start": null,
+            "expiry": null
         },
         {
             "id": 20,
-            "name": "python"
+            "name": "python",
+            "start": null,
+            "expiry": null
         }
     ],
     "scalarMap": {},

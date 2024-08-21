@@ -13,6 +13,8 @@ StrictStruct:
   "@struct":
     ID: uint32
     Name: string
+    Start: datetime
+    Expiry: duration
 ScalarList: "[int32]|{patch:PATCH_REPLACE}"
 StructList:
   "@type": "[Fruit]"
@@ -29,6 +31,8 @@ Env: base
 StrictStruct:
   ID: 1
   Name: apple
+  Start: 2024-10-01 10:10:10
+  Expiry: 1h
 ScalarList: [1, 2, 3]
 StructList:
   - ID: 1
