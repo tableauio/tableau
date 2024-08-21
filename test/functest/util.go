@@ -110,7 +110,7 @@ func genConf(logLevel string) error {
 					Pretty:          true,
 					Formats:         []format.Format{format.JSON},
 					EmitUnpopulated: true,
-					// DryRun:          options.DryRunPatch,
+					DryRun:          options.DryRunPatch,
 				},
 			},
 		),
