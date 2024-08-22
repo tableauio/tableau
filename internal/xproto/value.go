@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/dynamicpb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -180,12 +181,20 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 				return DefaultTimestampValue, true, xerrors.E2007(value, err)
 			}
 			// log.Debugf("timeStr: %v, unix timestamp: %v", value, t.Unix())
+
 			ts := timestamppb.New(t)
 			if err := ts.CheckValid(); err != nil {
 				return DefaultTimestampValue, true, xerrors.WrapKV(err)
 			}
-			return pref.ValueOf(ts.ProtoReflect()), true, nil
+			md := fd.Message()
+			msg := dynamicpb.NewMessage(md)
+			msg.Set(md.Fields().ByName("seconds"), pref.ValueOfInt64(ts.Seconds))
+			msg.Set(md.Fields().ByName("nanos"), pref.ValueOfInt32(ts.Nanos))
+			return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 
+			// NOTE(wenchy): should not use ts.ProtoReflect(), as descriptor not same.
+			// See more details at internal/xproto/build_test.go#TestCloneWellknownTypes
+			// return pref.ValueOf(ts.ProtoReflect()), true, nil
 		case types.WellKnownMessageDuration:
 			if value == "" {
 				return DefaultDurationValue, false, nil
@@ -198,8 +207,15 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			if err := du.CheckValid(); err != nil {
 				return DefaultDurationValue, true, xerrors.WrapKV(err)
 			}
-			return pref.ValueOf(du.ProtoReflect()), true, nil
+			md := fd.Message()
+			msg := dynamicpb.NewMessage(md)
+			msg.Set(md.Fields().ByName("seconds"), pref.ValueOfInt64(du.Seconds))
+			msg.Set(md.Fields().ByName("nanos"), pref.ValueOfInt32(du.Nanos))
+			return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 
+			// NOTE(wenchy): should not use du.ProtoReflect(), as descriptor not same.
+			// See more details at internal/xproto/build_test.go#TestCloneWellknownTypes
+			// return pref.ValueOf(du.ProtoReflect()), true, nil
 		default:
 			return pref.Value{}, false, xerrors.Errorf("not supported message type: %s", msgName)
 		}

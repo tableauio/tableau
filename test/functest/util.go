@@ -110,7 +110,7 @@ func genConf(logLevel string) error {
 					Pretty:          true,
 					Formats:         []format.Format{format.JSON},
 					EmitUnpopulated: true,
-					DryRun:          options.DryRunPatch,
+					// DryRun:          options.DryRunPatch,
 				},
 			},
 		),
@@ -175,8 +175,8 @@ func EqualTextFile(fileExt string, oldDir, newDir string, startLineN int) error 
 			oldLine := string(oscan.Bytes())
 			newLine := string(nscan.Bytes())
 			if oldLine != newLine {
-				return fmt.Errorf("line diff:\nold: %s:%d\n%s\nnew: %s:%d\n%s", 
-				absOldPath, ln, oldLine, absNewPath, ln, newLine)
+				return fmt.Errorf("line diff:\nold: %s:%d\n%s\nnew: %s:%d\n%s",
+					absOldPath, ln, oldLine, absNewPath, ln, newLine)
 			}
 		}
 	}
