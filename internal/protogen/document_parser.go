@@ -17,8 +17,8 @@ type documentBookParser struct {
 	parser *bookParser
 }
 
-func newDocumentBookParser(bookName, relSlashPath string, gen *Generator) *documentBookParser {
-	parser := newBookParser(bookName, relSlashPath, gen)
+func newDocumentBookParser(bookName, alias, relSlashPath string, gen *Generator) *documentBookParser {
+	parser := newBookParser(bookName, alias, relSlashPath, gen)
 	return &documentBookParser{parser: parser}
 }
 

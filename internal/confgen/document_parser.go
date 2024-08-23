@@ -41,8 +41,8 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 			field := parseFieldDescriptor(fd, sp.parser.opts.Sep, sp.parser.opts.Subsep)
 			defer field.release()
 			var fieldNode *book.Node
-			if field.opts.Name == "" {
-				// NOTE: this is a workaround specially for parsing metasheet.
+			if md.FullName() == "tableau.Metabook" {
+				// NOTE: this is a workaround specially for parsing metabook.
 				//
 				// just treat self node (with meta child removed) as field node
 				// if option Name is empty

@@ -10,7 +10,7 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/patch/YamlPatch_Base.yaml"};
+option (tableau.workbook) = {name:"yaml/patch/YamlPatch_Base.yaml" alias:"Base"};
 
 message YamlPatchConf {
   option (tableau.worksheet) = {name:"YamlPatchConf" scatter:"YamlPatch*.yaml" optional:true patch:PATCH_MERGE};

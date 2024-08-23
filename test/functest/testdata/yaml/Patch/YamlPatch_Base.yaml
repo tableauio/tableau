@@ -1,5 +1,7 @@
 # define metasheet: generate all sheets
 "@sheet": "@TABLEAU"
+"#":
+  Alias: Base # book name alias
 "YamlPatchConf":
   Patch: PATCH_MERGE
   Scatter: "YamlPatch*.yaml"

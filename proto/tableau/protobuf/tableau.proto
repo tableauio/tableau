@@ -43,7 +43,8 @@ extend google.protobuf.OneofOptions {
 }
 
 message WorkbookOptions {
-  string name = 1;  // Workbook name
+  string name = 1;   // filename with path, e.g.: "relative/path/BookName.suffix" (slash path)
+  string alias = 2;  // book alias without suffix, e.g.: "BookAlias"
 }
 
 message WorksheetOptions {

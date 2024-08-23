@@ -1,5 +1,7 @@
 ---
 "@sheet": "@TABLEAU"
+"#": 
+  Alias: BookAlias
 ServiceConf:
   Template: true
 ---
