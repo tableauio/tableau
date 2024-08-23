@@ -2,7 +2,7 @@ coverage:
   status:
     project:
       default:
-        target: 55%
+        target: 63%
         threshold: 1%
 ignore:
     - "**/*.pb.go" # ignore all *.pb.go files
