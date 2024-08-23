@@ -252,17 +252,25 @@ type Patch int32
 
 const (
 	Patch_PATCH_NONE Patch = 0
-	// 1. For patch option in sheet-level: `replace` all fields' value
-	// 2. For patch option in field-level: `replace` specified field's value
-	Patch_PATCH_REPLACE Patch = 1
-	// 1. For patch option in sheet-level:
-	//  1. top none-map field (field value):
-	//     - `replace`: if field present in both **main** and **patch** sheet
-	//  2. top map field patch (key-value pair):
-	//     - `add`: if key not exists in **main** sheet
-	//     - `replace`: if key exists in both **main** and **patch** sheet
+	// 1 Sheet-level patch option "PATCH_REPLACE"
+	//   - replace whole message
 	//
-	// 2. For patch option in field-level: NOT supported yet!
+	// 2 Top-field patch option "PATCH_REPLACE"
+	//   - list: Clear field firstly, and then all elements of this list field
+	//     in src are appended to the corresponded list fields in dst.
+	//   - map: Clear field firstly, and then all entries of this map field in src
+	//     are copied into the corresponding map field in dst.
+	Patch_PATCH_REPLACE Patch = 1
+	// Merges src into dst, which must be a message with the same descriptor.
+	//   - scalar: Populated scalar fields in src are copied to dst.
+	//   - message: Populated singular messages in src are merged into dst by
+	//     recursively calling [proto.Merge](https://pkg.go.dev/google.golang.org/protobuf/proto#Merge).
+	//   - list: The elements of every list field in src are appended to the
+	//     corresponded list fields in dst.
+	//   - map: The entries of every map field in src are copied into the
+	//     corresponding map field in dst, possibly replacing existing entries.
+	//   - unknown: The unknown fields of src are appended to the unknown
+	//     fields of dst.
 	Patch_PATCH_MERGE Patch = 2
 )
 

@@ -106,7 +106,7 @@ func CheckMapDuplicateKey(dst, src proto.Message) error {
 //   - map: Clear field firstly, and then all entries of this map field in src
 //     are copied into the corresponding map field in dst.
 //
-// [proto.Merge]: https://pkg.go.dev/google.golang.org/protobuf/proto#PatchMerge
+// [proto.Merge]: https://pkg.go.dev/google.golang.org/protobuf/proto#Merge
 func PatchMerge(dst, src proto.Message) error {
 	dstMsg, srcMsg := dst.ProtoReflect(), src.ProtoReflect()
 	if dstMsg.Descriptor().FullName() != srcMsg.Descriptor().FullName() {
