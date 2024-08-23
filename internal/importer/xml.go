@@ -333,6 +333,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 									Value: attrValue,
 								},
 								{
+									Name:  book.KeywordVariable,
+									Value: fmt.Sprintf("%sMap", attrName),
+								},
+								{
 									Name:  book.KeywordIncell,
 									Value: "true",
 								},
@@ -353,6 +357,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					{
 						Name:  book.KeywordType,
 						Value: attrValue,
+					},
+					{
+						Name:  book.KeywordVariable,
+						Value: fmt.Sprintf("%sMap", attrName),
 					},
 					{
 						Name:  book.KeywordIncell,

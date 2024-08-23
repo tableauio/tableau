@@ -25,21 +25,21 @@ message MapConf {
   message Entry {
     uint32 id = 1 [(tableau.field) = {name:"Id"}];
     int32 value = 2 [(tableau.field) = {name:"Value" prop:{default:"1"}}];
-    map<int32, string> incell_map = 3 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}];
+    map<int32, string> incell_map = 3 [(tableau.field) = {name:"Incell" layout:LAYOUT_INCELL}];
   }
-  Incell incell = 4 [(tableau.field) = {name:"Incell"}];
-  message Incell {
-    map<string, int32> map = 1 [(tableau.field) = {name:"Map" layout:LAYOUT_INCELL}];
+  Friends friends = 4 [(tableau.field) = {name:"Friends"}];
+  message Friends {
+    map<string, int32> friend_map = 1 [(tableau.field) = {name:"Friend" layout:LAYOUT_INCELL}];
   }
-  map<int32, int32> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}];
-  map<int32, KeyEnumMapValue> key_enum_map = 6 [(tableau.field) = {name:"KeyEnumMap" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
-  message KeyEnumMapValue {
+  map<int32, int32> incell_map = 5 [(tableau.field) = {name:"Incell" layout:LAYOUT_INCELL}];
+  map<int32, KeyEnumValue> key_enum_map = 6 [(tableau.field) = {name:"KeyEnum" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  message KeyEnumValue {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
     int32 value = 2 [(tableau.field) = {name:"@value"}];
   }
-  map<int32, protoconf.FruitType> value_enum_map = 7 [(tableau.field) = {name:"ValueEnumMap" layout:LAYOUT_INCELL}];
-  map<int32, KvEnumMapValue> kv_enum_map = 8 [(tableau.field) = {name:"KvEnumMap" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
-  message KvEnumMapValue {
+  map<int32, protoconf.FruitType> value_enum_map = 7 [(tableau.field) = {name:"ValueEnum" layout:LAYOUT_INCELL}];
+  map<int32, KvEnumValue> kv_enum_map = 8 [(tableau.field) = {name:"KvEnum" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  message KvEnumValue {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
     protoconf.FruitType value = 2 [(tableau.field) = {name:"@value"}];
   }
