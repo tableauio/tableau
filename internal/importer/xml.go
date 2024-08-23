@@ -422,8 +422,18 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 				Name: book.KeywordStruct,
 				Children: []*book.Node{
 					{
-						Name:  attrName,
-						Value: attrValue,
+						Kind: book.MapNode,
+						Name: attrName,
+						Children: []*book.Node{
+							{
+								Name:  book.KeywordType,
+								Value: attrValue,
+							},
+							{
+								Name:  book.KeywordVariable,
+								Value: fmt.Sprintf("%sList", attrName),
+							},
+						},
 					},
 				},
 			}

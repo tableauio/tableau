@@ -22,7 +22,7 @@
             ]
         }
     },
-    "enumList": [
+    "fruitList": [
         "FRUIT_TYPE_APPLE",
         "FRUIT_TYPE_ORANGE",
         "FRUIT_TYPE_BANANA"
