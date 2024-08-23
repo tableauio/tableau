@@ -1,13 +1,8 @@
 {
     "env": "dev",
     "strictStruct": {
-        "id": 0,
         "name": "orange",
         "start": "2026-09-30T22:06:06Z",
         "expiry": "7200s"
-    },
-    "scalarList": [],
-    "structList": [],
-    "scalarMap": {},
-    "structMap": {}
+    }
 }

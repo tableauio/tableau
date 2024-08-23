@@ -254,3 +254,26 @@ func storeMessage(msg proto.Message, name string, outputDir string, opt *options
 	}
 	return nil
 }
+
+// storePatchMergeMessage stores a patch merge message to one or multiple file
+// formats. It will not emit unpopulated fields for clear reading.
+func storePatchMergeMessage(msg proto.Message, name string, outputDir string, opt *options.ConfOutputOption) error {
+	outputDir = filepath.Join(outputDir, opt.Subdir)
+	formats := format.OutputFormats
+	if len(opt.Formats) != 0 {
+		formats = opt.Formats
+	}
+	for _, fmt := range formats {
+		err := store.Store(msg, outputDir, fmt,
+			store.Name(name),
+			store.Pretty(opt.Pretty),
+			// store.EmitUnpopulated(opt.EmitUnpopulated), // DO NOT emit unpopulated fields for clear reading
+			store.UseProtoNames(opt.UseProtoNames),
+			store.UseEnumNumbers(opt.UseEnumNumbers),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

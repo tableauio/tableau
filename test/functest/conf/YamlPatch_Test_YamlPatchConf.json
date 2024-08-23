@@ -1,6 +1,5 @@
 {
     "env": "test",
-    "strictStruct": null,
     "scalarList": [
         10,
         20,
@@ -9,17 +8,11 @@
     "structList": [
         {
             "id": 10,
-            "name": "snake",
-            "start": null,
-            "expiry": null
+            "name": "snake"
         },
         {
             "id": 20,
-            "name": "python",
-            "start": null,
-            "expiry": null
+            "name": "python"
         }
-    ],
-    "scalarMap": {},
-    "structMap": {}
+    ]
 }

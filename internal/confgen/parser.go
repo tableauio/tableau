@@ -76,13 +76,19 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 				xproto.PatchMerge(clonedMainMsg, msg)
 				msg = clonedMainMsg
 			}
+			if info.Opts.Patch == tableaupb.Patch_PATCH_MERGE {
+				if info.ExtInfo.DryRun == options.DryRunPatch {
+					clonedMainMsg := proto.Clone(mainMsg)
+					xproto.PatchMerge(clonedMainMsg, msg)
+					msg = clonedMainMsg
+				} else {
+					return storePatchMergeMessage(msg, name, x.OutputDir, x.OutputOpt)
+				}
+			}
 			return storeMessage(msg, name, x.OutputDir, x.OutputOpt)
 		})
 	}
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-	return nil
+	return eg.Wait()
 }
 
 // MergeAndExport parse multiple importer infos and merge into one protomsg, then export it.
