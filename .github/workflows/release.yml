@@ -46,7 +46,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           cd cmd/tableauc
-          go build -trimpath -o $GITHUB_WORKSPACE/build
+          go build -trimpath -ldflags="-s -w" -o $GITHUB_WORKSPACE/build
 
       - name: Create package
         id: package
