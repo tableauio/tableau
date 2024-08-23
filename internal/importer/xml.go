@@ -382,7 +382,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 			return curBNode, nil
 		}
 	} else if desc := types.MatchList(attrValue); desc != nil {
-		if desc.ElemType != "" {
+		if desc.ElemType != "" && desc.ColumnType != "" {
 			// struct list
 			curBNode = &book.Node{
 				Kind: book.MapNode,
@@ -391,6 +391,31 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					{
 						Name:  attrName,
 						Value: desc.ColumnType,
+					},
+				},
+			}
+			if isFirstAttr {
+				bnode.Children = append(bnode.Children, &book.Node{
+					Name:  book.KeywordType,
+					Value: fmt.Sprintf("[%s]", desc.ElemType),
+				}, &book.Node{
+					Name:  book.KeywordVariable,
+					Value: fmt.Sprintf("%sList", bnode.Name),
+				}, curBNode)
+				return curBNode, nil
+			} else {
+				bnode.Children = append(bnode.Children, curBNode.Children[0])
+				return bnode, nil
+			}
+		} else if desc.ElemType != "" {
+			// scalar or enum list
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: book.KeywordStruct,
+				Children: []*book.Node{
+					{
+						Name:  attrName,
+						Value: attrValue,
 					},
 				},
 			}

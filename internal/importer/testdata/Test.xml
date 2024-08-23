@@ -12,5 +12,6 @@
     <CrossCell Value="[CrossCell]int32" Name="string" Cost="[]int32" />
     <Incell Value="[]int32" Cost="[]int32" />
     <EnumIncell>[]enum<.FruitType></EnumIncell>
+    <ScalarList>[int32]</ScalarList>
 </Item>
 -->

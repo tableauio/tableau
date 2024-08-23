@@ -76,6 +76,23 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 					)
 					return xerrors.WrapKV(xerrors.E2014(field.opts.Name), kvs...)
 				}
+				if field.fd.IsList() {
+					fieldNodes := node.FindAllChildren(field.opts.Name)
+					if len(fieldNodes) > 1 {
+						fieldPresent, err := sp.parseListFieldWithMulptileNodes(field, msg, fieldNodes)
+						if err != nil {
+							return xerrors.WithMessageKV(err,
+								xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
+								xerrors.KeyPBFieldName, fd.FullName(),
+								xerrors.KeyPBFieldOpts, field.opts)
+						}
+						if fieldPresent {
+							// The message is treated as present at least one field is present.
+							present = true
+						}
+						return nil
+					}
+				}
 			}
 			fieldPresent, err := sp.parseField(field, msg, fieldNode)
 			if err != nil {
@@ -327,6 +344,40 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 			if elemPresent {
 				list.Append(newListValue)
 			}
+		}
+	}
+
+	if !msg.Has(field.fd) && list.Len() != 0 {
+		msg.Set(field.fd, newValue)
+	}
+	if msg.Has(field.fd) || list.Len() != 0 {
+		present = true
+	}
+	return present, nil
+}
+
+func (sp *documentParser) parseListFieldWithMulptileNodes(field *Field, msg protoreflect.Message, nodes []*book.Node) (present bool, err error) {
+	// Mutable returns a mutable reference to a composite type.
+	newValue := msg.Mutable(field.fd)
+	list := newValue.List()
+	for _, elemNode := range nodes {
+		elemPresent := false
+		newListValue := list.NewElement()
+		if field.fd.Kind() == protoreflect.MessageKind {
+			// cross-cell struct list
+			elemPresent, err = sp.parseMessage(newListValue.Message(), elemNode)
+			if err != nil {
+				return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+			}
+		} else {
+			// cross-cell scalar list
+			newListValue, elemPresent, err = sp.parser.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
+			if err != nil {
+				return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+			}
+		}
+		if elemPresent {
+			list.Append(newListValue)
 		}
 	}
 

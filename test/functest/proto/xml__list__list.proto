@@ -26,6 +26,7 @@ message ListConf {
       }
     }
   }
+  repeated int32 scalar_list = 2 [(tableau.field) = {name:"ScalarList"}];
 }
 
 message ListConf2 {
@@ -43,4 +44,5 @@ message ListConf2 {
       repeated protoconf.FruitType enum_incell_list = 2 [(tableau.field) = {name:"EnumIncell" layout:LAYOUT_INCELL}];
     }
   }
+  repeated protoconf.FruitType enum_list = 2 [(tableau.field) = {name:"EnumList"}];
 }
