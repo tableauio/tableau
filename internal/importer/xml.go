@@ -212,13 +212,21 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		bnode.Kind = book.MapNode
 		bnode.Name = node.Name
 		if typeAttr := node.GetAttribute(atTypeDisplacement); typeAttr != nil {
-			fmt.Println(node.Name, typeAttr.Value)
 			// predefined struct
 			if len(node.Attributes) != 1 || len(node.Children) != 0 || node.Text != "" {
 				return errors.Errorf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)
 			}
-			bnode.Kind = book.ScalarNode
-			bnode.Value = typeAttr.Value
+			bnode.Kind = book.MapNode
+			bnode.Children = append(bnode.Children, &book.Node{
+				Name:  book.KeywordType,
+				Value: typeAttr.Value,
+			})
+			if desc := types.MatchList(typeAttr.Value); desc != nil {
+				bnode.Children = append(bnode.Children, &book.Node{
+					Name:  book.KeywordVariable,
+					Value: fmt.Sprintf("%sList", bnode.Name),
+				})
+			}
 			return nil
 		}
 		// NOTE: curBNode may be pointed to one subnode when needed
