@@ -190,20 +190,6 @@ func (n *Node) FindChild(name string) *Node {
 	return nil
 }
 
-// FindAllChildren finds all children with specified name.
-func (n *Node) FindAllChildren(name string) []*Node {
-	if n == nil {
-		return nil
-	}
-	children := []*Node{}
-	for _, child := range n.Children {
-		if child.Name == name {
-			children = append(children, child)
-		}
-	}
-	return children
-}
-
 func (n *Node) DebugKV() []any {
 	if n == nil {
 		return []any{}

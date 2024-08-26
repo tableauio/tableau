@@ -291,21 +291,36 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 				return errors.Wrapf(err, "parse xml node failed")
 			}
 			if subNode.Kind == book.ScalarNode {
-				bnode.Children = append(bnode.Children, subNode)
-			} else if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
-				bnode.Children = append(bnode.Children, &book.Node{
-					Kind: book.ListNode,
-					Name: subNode.Name,
-					Children: []*book.Node{
-						{
-							Kind:     book.MapNode,
-							Children: subNode.Children,
-						},
-					},
-				})
+				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
+					bnode.Children = append(bnode.Children, subNode)
+				} else if existingBnode.Kind == book.ScalarNode {
+					existingBnode.Kind = book.ListNode
+					subNode.Name = ""
+					existingBnode.Children = append(existingBnode.Children, &book.Node{
+						Kind:  book.ScalarNode,
+						Value: existingBnode.Value,
+					}, subNode)
+					existingBnode.Value = ""
+				} else {
+					subNode.Name = ""
+					existingBnode.Children = append(existingBnode.Children, subNode)
+				}
 			} else {
-				subNode.Name = ""
-				existingBnode.Children = append(existingBnode.Children, subNode)
+				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
+					bnode.Children = append(bnode.Children, &book.Node{
+						Kind: book.ListNode,
+						Name: subNode.Name,
+						Children: []*book.Node{
+							{
+								Kind:     book.MapNode,
+								Children: subNode.Children,
+							},
+						},
+					})
+				} else {
+					subNode.Name = ""
+					existingBnode.Children = append(existingBnode.Children, subNode)
+				}
 			}
 		}
 	}
