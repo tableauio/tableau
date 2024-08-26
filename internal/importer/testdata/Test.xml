@@ -13,5 +13,6 @@
     <Incell Value="[]int32" Cost="[]int32" />
     <EnumIncell>[]enum<.FruitType></EnumIncell>
     <ScalarList>[int32]</ScalarList>
+    <Predefined @type="[.Item]"/>
 </Item>
 -->

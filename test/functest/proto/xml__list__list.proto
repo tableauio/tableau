@@ -27,6 +27,7 @@ message ListConf {
     }
   }
   repeated int32 value_list = 2 [(tableau.field) = {name:"Value"}];
+  repeated protoconf.Item item_list = 3 [(tableau.field) = {name:"Item"}];
 }
 
 message ListConf2 {

@@ -12,6 +12,7 @@
         </Parent2>
     </Parent>
     <Value>[int32]</Value>
+    <Item @type="[.Item]"/>
 </ListConf>
 
 <ListConf2>
@@ -35,6 +36,8 @@
         </Parent2>
     </Parent>
     <Value>1</Value>
+    <Item ID="1" Num="10"/>
+    <Item ID="2" Num="20"/>
 </ListConf>
 
 <ListConf2>
