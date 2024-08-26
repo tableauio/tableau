@@ -305,7 +305,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	switch {
 	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
 		// node of XML scalar list with only 1 element is just like an incell list
-		node.Value != "" && len(node.Children) == 0:
+		node.Kind == book.ScalarNode:
 		present, err = sp.parser.parseIncellListField(field, list, node.Value)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
