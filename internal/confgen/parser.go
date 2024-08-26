@@ -3,6 +3,7 @@ package confgen
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -10,6 +11,7 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/prop"
+	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
@@ -44,10 +46,21 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheet
 func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 	mainImpInfo importer.ImporterInfo,
 	impInfos ...importer.ImporterInfo) error {
-	// exported conf name pattern is : <BookName>_<SheetName>
+	// exported conf name pattern is : [ParentDir/]<BookName>_<SheetName>
 	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
 		sheetName := getRealSheetName(info, impInfo)
-		return fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
+		// here filename has no ext suffix
+		var filename string
+		if info.Opts.ScatterWithoutBookName {
+			filename = sheetName
+		} else {
+			filename = fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
+		}
+		if info.Opts.WithParentDir {
+			parentDirName := fs.GetDirectParentDirName(impInfo.Filename())
+			return filepath.Join(parentDirName, filename)
+		}
+		return filename
 	}
 	// parse main sheet
 	mainMsg, err := parseMessageFromOneImporter(info, mainImpInfo)
@@ -92,12 +105,27 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 }
 
 // MergeAndExport parse multiple importer infos and merge into one protomsg, then export it.
-func (x *sheetExporter) MergeAndExport(info *SheetInfo, impInfos ...importer.ImporterInfo) error {
-	protomsg, err := ParseMessage(info, impInfos...)
+func (x *sheetExporter) MergeAndExport(info *SheetInfo,
+	mainImpInfo importer.ImporterInfo,
+	impInfos ...importer.ImporterInfo) error {
+	// append main
+	allImpInfos := append(impInfos, importer.ImporterInfo{Importer: mainImpInfo})
+	protomsg, err := ParseMessage(info, allImpInfos...)
 	if err != nil {
 		return err
 	}
-	return storeMessage(protomsg, string(info.MD.Name()), x.OutputDir, x.OutputOpt)
+	// exported conf name pattern is : [ParentDir/]<SheetName>
+	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
+		// here filename has no ext suffix
+		filename := string(info.MD.Name())
+		if info.Opts.WithParentDir {
+			parentDirName := fs.GetDirectParentDirName(impInfo.Filename())
+			return filepath.Join(parentDirName, filename)
+		}
+		return filename
+	}
+	name := getExportedConfName(info, mainImpInfo)
+	return storeMessage(protomsg, name, x.OutputDir, x.OutputOpt)
 }
 
 type oneMsg struct {

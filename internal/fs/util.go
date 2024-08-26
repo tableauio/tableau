@@ -161,3 +161,21 @@ func RangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath st
 	}
 	return nil
 }
+
+// GetDirectParentDirName returns the name of the direct parent directory
+// of the given path. E.g.: "/parent/to/file.txt" -> "to".
+func GetDirectParentDirName(path string) string {
+	pathDir := filepath.Dir(path)
+	// Split the parent directory into components
+	components := strings.Split(pathDir, string(filepath.Separator))
+	if len(components) != 0 {
+		// The last componentis the direct parent directory name
+		parentDir := components[len(components)-1]
+		if parentDir == "." {
+			// Dir returns ".". If the path consists entirely of separators
+			return ""
+		}
+		return parentDir
+	}
+	return ""
+}

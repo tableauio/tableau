@@ -117,6 +117,10 @@ message WorksheetOptions {
   bool optional = 19;
   // Sheet patch type.
   Patch patch = 20;
+  // confgen: export JSON/Bin/Text files with parent dir created.
+  bool with_parent_dir = 21;
+  // confgen(scatter): export JSON/Bin/Text filenames without book name prefix.
+  bool scatter_without_book_name = 22;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
@@ -271,7 +275,7 @@ enum Patch {
   //   - map: Clear field firstly, and then all entries of this map field in src
   //     are copied into the corresponding map field in dst.
   PATCH_REPLACE = 1;
-  // Merges src into dst, which must be a message with the same descriptor.
+  // Merge src into dst, which must be a message with the same descriptor.
   //  - scalar: Populated scalar fields in src are copied to dst.
   //  - message: Populated singular messages in src are merged into dst by
   //     recursively calling [proto.Merge](https://pkg.go.dev/google.golang.org/protobuf/proto#Merge).

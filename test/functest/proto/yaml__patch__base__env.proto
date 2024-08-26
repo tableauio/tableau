@@ -10,10 +10,10 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/patch/YamlPatch_Base.yaml" alias:"Base"};
+option (tableau.workbook) = {name:"yaml/patch/base/Env.yaml"};
 
 message YamlPatchConf {
-  option (tableau.worksheet) = {name:"YamlPatchConf" scatter:"YamlPatch*.yaml" optional:true patch:PATCH_MERGE};
+  option (tableau.worksheet) = {name:"YamlPatchConf" scatter:"../overlays/*/Env.yaml" optional:true patch:PATCH_MERGE with_parent_dir:true scatter_without_book_name:true};
 
   string env = 1 [(tableau.field) = {name:"Env"}];
   Fruit strict_struct = 2 [(tableau.field) = {name:"StrictStruct"}];
