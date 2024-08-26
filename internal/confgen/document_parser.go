@@ -302,12 +302,15 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	list := newValue.List()
-	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
+	switch {
+	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
+		// node of XML scalar list with only 1 element is just like an incell list
+		node.Kind == book.ScalarNode:
 		present, err = sp.parser.parseIncellListField(field, list, node.Value)
 		if err != nil {
 			return false, xerrors.WithMessageKV(err, node.DebugKV()...)
 		}
-	} else {
+	default:
 		for _, elemNode := range node.Children {
 			elemPresent := false
 			newListValue := list.NewElement()

@@ -212,13 +212,21 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		bnode.Kind = book.MapNode
 		bnode.Name = node.Name
 		if typeAttr := node.GetAttribute(atTypeDisplacement); typeAttr != nil {
-			fmt.Println(node.Name, typeAttr.Value)
 			// predefined struct
 			if len(node.Attributes) != 1 || len(node.Children) != 0 || node.Text != "" {
 				return errors.Errorf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)
 			}
-			bnode.Kind = book.ScalarNode
-			bnode.Value = typeAttr.Value
+			bnode.Kind = book.MapNode
+			bnode.Children = append(bnode.Children, &book.Node{
+				Name:  book.KeywordType,
+				Value: typeAttr.Value,
+			})
+			if desc := types.MatchList(typeAttr.Value); desc != nil {
+				bnode.Children = append(bnode.Children, &book.Node{
+					Name:  book.KeywordVariable,
+					Value: fmt.Sprintf("%sList", bnode.Name),
+				})
+			}
 			return nil
 		}
 		// NOTE: curBNode may be pointed to one subnode when needed
@@ -283,21 +291,36 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 				return errors.Wrapf(err, "parse xml node failed")
 			}
 			if subNode.Kind == book.ScalarNode {
-				bnode.Children = append(bnode.Children, subNode)
-			} else if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
-				bnode.Children = append(bnode.Children, &book.Node{
-					Kind: book.ListNode,
-					Name: subNode.Name,
-					Children: []*book.Node{
-						{
-							Kind:     book.MapNode,
-							Children: subNode.Children,
-						},
-					},
-				})
+				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
+					bnode.Children = append(bnode.Children, subNode)
+				} else if existingBnode.Kind == book.ScalarNode {
+					existingBnode.Kind = book.ListNode
+					subNode.Name = ""
+					existingBnode.Children = append(existingBnode.Children, &book.Node{
+						Kind:  book.ScalarNode,
+						Value: existingBnode.Value,
+					}, subNode)
+					existingBnode.Value = ""
+				} else {
+					subNode.Name = ""
+					existingBnode.Children = append(existingBnode.Children, subNode)
+				}
 			} else {
-				subNode.Name = ""
-				existingBnode.Children = append(existingBnode.Children, subNode)
+				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
+					bnode.Children = append(bnode.Children, &book.Node{
+						Kind: book.ListNode,
+						Name: subNode.Name,
+						Children: []*book.Node{
+							{
+								Kind:     book.MapNode,
+								Children: subNode.Children,
+							},
+						},
+					})
+				} else {
+					subNode.Name = ""
+					existingBnode.Children = append(existingBnode.Children, subNode)
+				}
 			}
 		}
 	}
@@ -325,6 +348,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 									Value: attrValue,
 								},
 								{
+									Name:  book.KeywordVariable,
+									Value: fmt.Sprintf("%sMap", attrName),
+								},
+								{
 									Name:  book.KeywordIncell,
 									Value: "true",
 								},
@@ -345,6 +372,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					{
 						Name:  book.KeywordType,
 						Value: attrValue,
+					},
+					{
+						Name:  book.KeywordVariable,
+						Value: fmt.Sprintf("%sMap", attrName),
 					},
 					{
 						Name:  book.KeywordIncell,
@@ -382,7 +413,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 			return curBNode, nil
 		}
 	} else if desc := types.MatchList(attrValue); desc != nil {
-		if desc.ElemType != "" {
+		if desc.ElemType != "" && desc.ColumnType != "" {
 			// struct list
 			curBNode = &book.Node{
 				Kind: book.MapNode,
@@ -391,6 +422,41 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					{
 						Name:  attrName,
 						Value: desc.ColumnType,
+					},
+				},
+			}
+			if isFirstAttr {
+				bnode.Children = append(bnode.Children, &book.Node{
+					Name:  book.KeywordType,
+					Value: fmt.Sprintf("[%s]", bnode.Name),
+				}, &book.Node{
+					Name:  book.KeywordVariable,
+					Value: fmt.Sprintf("%sList", bnode.Name),
+				}, curBNode)
+				return curBNode, nil
+			} else {
+				bnode.Children = append(bnode.Children, curBNode.Children[0])
+				return bnode, nil
+			}
+		} else if desc.ElemType != "" {
+			// scalar or enum list
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: book.KeywordStruct,
+				Children: []*book.Node{
+					{
+						Kind: book.MapNode,
+						Name: attrName,
+						Children: []*book.Node{
+							{
+								Name:  book.KeywordType,
+								Value: attrValue,
+							},
+							{
+								Name:  book.KeywordVariable,
+								Value: fmt.Sprintf("%sList", attrName),
+							},
+						},
 					},
 				},
 			}

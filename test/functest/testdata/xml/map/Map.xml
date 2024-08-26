@@ -6,12 +6,12 @@
 
 <MapConf Open="bool">
     <PreEntry Name="map<string, PreEntry>" Cost="[]int32" />
-    <Entry Id="map<uint32, Entry>" Value="int32|{default:"1"}" IncellMap="map<int32, string>" />
-    <Incell Map="map<string, int32>" />
-    <IncellMap>map<int32, int32></IncellMap>
-    <KeyEnumMap>map<enum<.FruitType>, int32></KeyEnumMap>
-    <ValueEnumMap>map<int32, enum<.FruitType>></ValueEnumMap>
-    <KvEnumMap>map<enum<.FruitType>, enum<.FruitType>></KvEnumMap>
+    <Entry Id="map<uint32, Entry>" Value="int32|{default:"1"}" Incell="map<int32, string>" />
+    <Friends Friend="map<string, int32>" />
+    <Incell>map<int32, int32></Incell>
+    <KeyEnum>map<enum<.FruitType>, int32></KeyEnum>
+    <ValueEnum>map<int32, enum<.FruitType>></ValueEnum>
+    <KvEnum>map<enum<.FruitType>, enum<.FruitType>></KvEnum>
 
     <Meal Id="map<string, Meal>" Time="duration|{default:"30m"}">
         <Meat Name="map<string, Meat>" Weight="string" />
@@ -28,14 +28,14 @@
 <MapConf Open="true">
     <PreEntry Name="1" Cost="1,2,3" />
     <PreEntry Name="2" Cost="4,5,6" />
-    <Entry Id="1" Value="1" IncellMap="1:first,2:second" />
-    <Entry Id="2" Value="2" IncellMap=""/>
-    <Entry Id="3" IncellMap="3:third" />
-    <Incell Map="Tom:1,Jerry:2" />
-    <IncellMap>1:1,2:10,3:100</IncellMap>
-    <KeyEnumMap>Apple:1,Banana:2</KeyEnumMap>
-    <ValueEnumMap>1:Banana,2:Orange</ValueEnumMap>
-    <KvEnumMap>Apple:Banana,Banana:Orange</KvEnumMap>
+    <Entry Id="1" Value="1" Incell="1:first,2:second" />
+    <Entry Id="2" Value="2" Incell=""/>
+    <Entry Id="3" Incell="3:third" />
+    <Friends Friend="Tom:1,Jerry:2" />
+    <Incell>1:1,2:10,3:100</Incell>
+    <KeyEnum>Apple:1,Banana:2</KeyEnum>
+    <ValueEnum>1:Banana,2:Orange</ValueEnum>
+    <KvEnum>Apple:Banana,Banana:Orange</KvEnum>
 
     <Meal Id="breakfast" Time="15m">
         <Meat Name="Egg" Weight="100g" />

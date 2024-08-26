@@ -40,8 +40,8 @@
             }
         }
     },
-    "incell": {
-        "map": {
+    "friends": {
+        "friendMap": {
             "Jerry": 2,
             "Tom": 1
         }

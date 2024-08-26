@@ -11,6 +11,8 @@
             <CrossCell Value="[CrossCell]int32" Name="string" Cost="[]int32" />
         </Parent2>
     </Parent>
+    <Value>[int32]</Value>
+    <Item @type="[.Item]"/>
 </ListConf>
 
 <ListConf2>
@@ -20,6 +22,7 @@
             <EnumIncell>[]enum<.FruitType></EnumIncell>
         </Parent2>
     </Parent>
+    <Fruit>[enum<.FruitType>]</Fruit>
 </ListConf2>
 -->
 
@@ -32,6 +35,9 @@
             <CrossCell Value="1" Name="Grape" Cost="10,11,12,13" />
         </Parent2>
     </Parent>
+    <Value>1</Value>
+    <Item ID="1" Num="10"/>
+    <Item ID="2" Num="20"/>
 </ListConf>
 
 <ListConf2>
@@ -41,4 +47,7 @@
             <EnumIncell>Apple, Orange, Banana</EnumIncell>
         </Parent2>
     </Parent>
+    <Fruit>FRUIT_TYPE_APPLE</Fruit>
+    <Fruit>FRUIT_TYPE_ORANGE</Fruit>
+    <Fruit>FRUIT_TYPE_BANANA</Fruit>
 </ListConf2>
