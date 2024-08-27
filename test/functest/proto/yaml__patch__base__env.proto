@@ -13,23 +13,27 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"yaml/patch/base/Env.yaml"};
 
 message YamlPatchConf {
-  option (tableau.worksheet) = {name:"YamlPatchConf" scatter:"../overlays/*/Env.yaml" optional:true patch:PATCH_MERGE with_parent_dir:true scatter_without_book_name:true};
+  option (tableau.worksheet) = {name:"YamlPatchConf" field_presence:true scatter:"../overlays/*/Env.yaml" optional:true patch:PATCH_MERGE with_parent_dir:true scatter_without_book_name:true};
 
-  string env = 1 [(tableau.field) = {name:"Env"}];
+  optional string env = 1 [(tableau.field) = {name:"Env"}];
   Fruit strict_struct = 2 [(tableau.field) = {name:"StrictStruct"}];
   message Fruit {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    google.protobuf.Timestamp start = 3 [(tableau.field) = {name:"Start"}];
-    google.protobuf.Duration expiry = 4 [(tableau.field) = {name:"Expiry"}];
+    optional uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    optional string name = 2 [(tableau.field) = {name:"Name"}];
+    optional google.protobuf.Timestamp start = 3 [(tableau.field) = {name:"Start"}];
+    optional google.protobuf.Duration expiry = 4 [(tableau.field) = {name:"Expiry"}];
   }
   repeated int32 scalar_list = 3 [(tableau.field) = {name:"ScalarList" prop:{patch:PATCH_REPLACE}}];
-  repeated Fruit struct_list = 4 [(tableau.field) = {name:"StructList"}];
+  repeated Animal struct_list = 4 [(tableau.field) = {name:"StructList"}];
+  message Animal {
+    optional uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    optional string name = 2 [(tableau.field) = {name:"Name"}];
+  }
   map<uint32, string> scalar_map = 5 [(tableau.field) = {name:"ScalarMap" prop:{patch:PATCH_REPLACE}}];
   map<uint32, Item> struct_map = 6 [(tableau.field) = {name:"StructMap" key:"@key"}];
   message Item {
-    uint32 key = 1 [(tableau.field) = {name:"@key"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    int32 num = 3 [(tableau.field) = {name:"Num"}];
+    optional uint32 key = 1 [(tableau.field) = {name:"@key"}];
+    optional string name = 2 [(tableau.field) = {name:"Name"}];
+    optional int32 num = 3 [(tableau.field) = {name:"Num"}];
   }
 }

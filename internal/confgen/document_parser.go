@@ -393,12 +393,8 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 }
 
 func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
-	if msg.Has(field.fd) {
-		// Only parse if this field is not populated. This means the first
-		// none-empty related row part (related to scalar) is parsed.
-		return true, nil
-	}
 	var newValue protoreflect.Value
+	// FIXME(wenchy): treat any scalar field's present as true if this field's key exists?
 	newValue, present, err = sp.parser.parseFieldValue(field.fd, node.Value, field.opts.Prop)
 	if err != nil {
 		return false, xerrors.WithMessageKV(err, node.DebugKV()...)

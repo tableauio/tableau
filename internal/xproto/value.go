@@ -50,15 +50,6 @@ func init() {
 	DefaultDurationValue = pref.ValueOfMessage(du.ProtoReflect())
 }
 
-func GetFieldDefaultValue(fd pref.FieldDescriptor) string {
-	opts := fd.Options().(*descriptorpb.FieldOptions)
-	fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
-	if fieldOpts != nil && fieldOpts.Prop != nil {
-		return fieldOpts.Prop.Default
-	}
-	return ""
-}
-
 // ParseFieldValue parses field value by FieldDescriptor. It can parse following
 // basic types:
 //
@@ -82,14 +73,25 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		return s
 	}
 
-	value := strings.TrimSpace(rawValue)
-	defaultValue := GetFieldDefaultValue(fd)
-	if value == "" {
-		value = strings.TrimSpace(defaultValue)
+	getTrimmedValue := func() string {
+		value := strings.TrimSpace(rawValue)
+		if value == "" {
+			value = strings.TrimSpace(GetFieldDefaultValue(fd))
+		}
+		return value
+	}
+
+	getValue := func() string {
+		value := rawValue
+		if value == "" {
+			value = GetFieldDefaultValue(fd)
+		}
+		return value
 	}
 
 	switch fd.Kind() {
 	case pref.Int32Kind, pref.Sint32Kind, pref.Sfixed32Kind:
+		value := getTrimmedValue()
 		if value == "" {
 			return DefaultInt32Value, false, nil
 		}
@@ -108,6 +110,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		return pref.ValueOfInt32(int32(val)), true, xerrors.E2012("int32", value, err)
 
 	case pref.Uint32Kind, pref.Fixed32Kind:
+		value := getTrimmedValue()
 		if value == "" {
 			return DefaultUint32Value, false, nil
 		}
@@ -118,7 +121,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			return DefaultUint32Value, false, xerrors.E2000("uint32", value, 0, math.MaxUint32)
 		}
 		return pref.ValueOfUint32(uint32(val)), true, xerrors.E2012("uint32", value, err)
+
 	case pref.Int64Kind, pref.Sint64Kind, pref.Sfixed64Kind:
+		value := getTrimmedValue()
 		if value == "" {
 			return DefaultInt64Value, false, nil
 		}
@@ -127,7 +132,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			return DefaultInt64Value, false, xerrors.E2012("int64", value, err)
 		}
 		return pref.ValueOfInt64(val), true, nil
+
 	case pref.Uint64Kind, pref.Fixed64Kind:
+		value := getTrimmedValue()
 		if value == "" {
 			return DefaultUint64Value, false, nil
 		}
@@ -136,7 +143,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			return DefaultUint64Value, false, xerrors.E2012("uint64", value, err)
 		}
 		return pref.ValueOfUint64(val), true, nil
+
 	case pref.BoolKind:
+		value := getTrimmedValue()
 		if value == "" {
 			return DefaultBoolValue, false, nil
 		}
@@ -148,6 +157,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		return pref.ValueOfBool(val), true, xerrors.E2013(value, err)
 
 	case pref.FloatKind:
+		value := getTrimmedValue()
 		if value == "" {
 			return DefaultFloat32Value, false, nil
 		}
@@ -155,19 +165,38 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		return pref.ValueOfFloat32(float32(val)), true, xerrors.E2012("float", value, err)
 
 	case pref.DoubleKind:
+		value := getTrimmedValue()
 		if value == "" {
 			return DefaultFloat64Value, false, nil
 		}
 		val, err := strconv.ParseFloat(value, 64)
-		return pref.ValueOfFloat64(val), true, xerrors.E2012("float64", value, err)
+		return pref.ValueOfFloat64(val), true, xerrors.E2012("double", value, err)
 
 	case pref.StringKind:
-		return pref.ValueOfString(value), value != "", nil
+		value := getValue()
+		var present bool
+		if value != "" {
+			present = true
+		} else {
+			present = fd.HasPresence()
+		}
+		return pref.ValueOfString(value), present, nil
+
 	case pref.BytesKind:
-		return pref.ValueOfBytes([]byte(value)), value != "", nil
+		value := getValue()
+		var present bool
+		if value != "" {
+			present = true
+		} else {
+			present = fd.HasPresence()
+		}
+		return pref.ValueOfBytes([]byte(value)), present, nil
+
 	case pref.EnumKind:
+		value := getTrimmedValue()
 		return parseEnumValue(fd, value)
 	case pref.MessageKind:
+		value := getTrimmedValue()
 		msgName := fd.Message().FullName()
 		switch msgName {
 		case types.WellKnownMessageTimestamp:
@@ -225,6 +254,15 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 	default:
 		return pref.Value{}, false, xerrors.Errorf("not supported scalar type: %s", fd.Kind().String())
 	}
+}
+
+func GetFieldDefaultValue(fd pref.FieldDescriptor) string {
+	opts := fd.Options().(*descriptorpb.FieldOptions)
+	fieldOpts := proto.GetExtension(opts, tableaupb.E_Field).(*tableaupb.FieldOptions)
+	if fieldOpts != nil && fieldOpts.Prop != nil {
+		return fieldOpts.Prop.Default
+	}
+	return ""
 }
 
 func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, present bool, err error) {

@@ -14,15 +14,11 @@
     "structList": [
         {
             "id": 1,
-            "name": "dog",
-            "start": null,
-            "expiry": null
+            "name": "dog"
         },
         {
             "id": 2,
-            "name": "bird",
-            "start": null,
-            "expiry": null
+            "name": "bird"
         }
     ],
     "scalarMap": {
