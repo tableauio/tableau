@@ -101,9 +101,13 @@ func runE(cmd *cobra.Command, args []string) error {
 		config.Conf.Output.Formats = formats
 	}
 	if confInputIgnoreUnknownWorkbook {
+		// use command argument if provided
 		config.Conf.Input.IgnoreUnknownWorkbook = true
 	}
-	config.Conf.Output.DryRun = dryRun
+	if dryRun != "" {
+		// use command argument if provided
+		config.Conf.Output.DryRun = dryRun
+	}
 
 	log.Debugf("load config success: %+v", spew.Sdump(config))
 
