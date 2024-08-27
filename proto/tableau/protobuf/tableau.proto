@@ -101,6 +101,8 @@ message WorksheetOptions {
   bool adjacent_key = 14;
   // In order to track field presence of basic types (numeric, string, bytes,
   // and enums), the generated field will be labeled "optional".
+  //
+  // See https://protobuf.dev/programming-guides/field_presence/
   bool field_presence = 15;
   // Indicate this XML sheet is a template or not. Template sheet structure will
   // only be parsed based on metasheet "@TABLEAU" in comments.

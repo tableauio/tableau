@@ -366,8 +366,8 @@ func init() {
 	}
 }
 
-func IsScalarType(t string) bool {
-	if kind, ok := typeKindMap[t]; ok {
+func IsScalarType(fullTypeName string) bool {
+	if kind, ok := typeKindMap[fullTypeName]; ok {
 		return kind == ScalarKind
 	}
 	return false

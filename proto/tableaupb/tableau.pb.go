@@ -428,6 +428,8 @@ type WorksheetOptions struct {
 	AdjacentKey bool `protobuf:"varint,14,opt,name=adjacent_key,json=adjacentKey,proto3" json:"adjacent_key,omitempty"`
 	// In order to track field presence of basic types (numeric, string, bytes,
 	// and enums), the generated field will be labeled "optional".
+	//
+	// See https://protobuf.dev/programming-guides/field_presence/
 	FieldPresence bool `protobuf:"varint,15,opt,name=field_presence,json=fieldPresence,proto3" json:"field_presence,omitempty"`
 	// Indicate this XML sheet is a template or not. Template sheet structure will
 	// only be parsed based on metasheet "@TABLEAU" in comments.
