@@ -46,7 +46,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           cd cmd/tableauc
-          CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o $GITHUB_WORKSPACE/build
+          CGO_ENABLED=0 go build -installsuffix cgo -trimpath -ldflags="-s -w" -o $GITHUB_WORKSPACE/build
 
       - name: Create package
         id: package
