@@ -3,6 +3,10 @@
         "id": 1,
         "name": "Apple"
     },
+    "item2": {
+        "id": 2,
+        "name": "Banana"
+    },
     "fruitShopData": {
         "fruitMap": {
             "apple": {

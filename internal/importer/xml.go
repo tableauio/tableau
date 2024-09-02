@@ -543,7 +543,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 			if isFirstAttr {
 				bnode.Children = append(bnode.Children, &book.Node{
 					Name:  book.KeywordType,
-					Value: fmt.Sprintf("{%s}", bnode.Name),
+					Value: fmt.Sprintf("{%s}", desc.StructType),
 				}, curBNode)
 				return curBNode, nil
 			} else {
