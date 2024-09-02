@@ -511,25 +511,45 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 			}
 		}
 	} else if desc := types.MatchStruct(attrValue); desc != nil {
-		curBNode = &book.Node{
-			Kind: book.MapNode,
-			Name: book.KeywordStruct,
-			Children: []*book.Node{
-				{
-					Name:  attrName,
-					Value: desc.ColumnType,
-				},
-			},
-		}
-		if isFirstAttr {
+		switch {
+		case desc.ColumnType == "", // predefined incell struct, e.g.: {.Item}
+			strings.Contains(desc.StructType, " "): // incell struct, e.g.: {int32 ID, string Name}Item
 			bnode.Children = append(bnode.Children, &book.Node{
-				Name:  book.KeywordType,
-				Value: fmt.Sprintf("{%s}", bnode.Name),
-			}, curBNode)
-			return curBNode, nil
-		} else {
-			bnode.Children = append(bnode.Children, curBNode)
+				Kind: book.MapNode,
+				Name: attrName,
+				Children: []*book.Node{
+					{
+						Name:  book.KeywordType,
+						Value: attrValue,
+					},
+					{
+						Name:  book.KeywordIncell,
+						Value: "true",
+					},
+				},
+			})
 			return bnode, nil
+		default:
+			curBNode = &book.Node{
+				Kind: book.MapNode,
+				Name: book.KeywordStruct,
+				Children: []*book.Node{
+					{
+						Name:  attrName,
+						Value: desc.ColumnType,
+					},
+				},
+			}
+			if isFirstAttr {
+				bnode.Children = append(bnode.Children, &book.Node{
+					Name:  book.KeywordType,
+					Value: fmt.Sprintf("{%s}", bnode.Name),
+				}, curBNode)
+				return curBNode, nil
+			} else {
+				bnode.Children = append(bnode.Children, curBNode)
+				return bnode, nil
+			}
 		}
 	} else if isFirstAttr {
 		// generate struct when first encounter scalar attribute

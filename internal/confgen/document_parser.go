@@ -1,12 +1,14 @@
 package confgen
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/tableauio/tableau/internal/confgen/prop"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
@@ -314,7 +316,13 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 		for _, elemNode := range node.Children {
 			elemPresent := false
 			newListValue := list.NewElement()
-			if field.fd.Kind() == protoreflect.MessageKind {
+			if xproto.IsUnionField(field.fd) {
+				// cross-cell union list
+				elemPresent, err = sp.parseUnionMessage(field, newListValue.Message(), elemNode)
+				if err != nil {
+					return false, xerrors.WithMessageKV(err, elemNode.DebugKV()...)
+				}
+			} else if field.fd.Kind() == protoreflect.MessageKind {
 				// cross-cell struct list
 				elemPresent, err = sp.parseMessage(newListValue.Message(), elemNode)
 				if err != nil {
@@ -343,7 +351,38 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 }
 
 func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
-	return false, xerrors.Errorf("union type not supported yet")
+	var structValue protoreflect.Value
+	if msg.Has(field.fd) {
+		// Get it if this field is populated. It will be overwritten if present.
+		structValue = msg.Mutable(field.fd)
+	} else {
+		structValue = msg.NewField(field.fd)
+	}
+
+	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+		if present, err = sp.parser.parseIncellUnion(structValue, node.Value, field.opts.GetProp().GetForm()); err != nil {
+			return false, xerrors.WithMessageKV(err, node.DebugNameKV()...)
+		}
+		if present {
+			msg.Set(field.fd, structValue)
+		}
+		return present, nil
+	}
+
+	if node.Kind == book.ListNode {
+		if len(node.Children) != 1 {
+			return false, xerrors.ErrorKV("list node of union must have and only have one child", node.DebugKV()...)
+		}
+		node = node.Children[0]
+	}
+	present, err = sp.parseUnionMessage(field, structValue.Message(), node)
+	if err != nil {
+		return false, xerrors.WithMessageKV(err, node.DebugKV()...)
+	}
+	if present {
+		msg.Set(field.fd, structValue)
+	}
+	return present, nil
 }
 
 func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
@@ -411,4 +450,103 @@ func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Messag
 	}
 	msg.Set(field.fd, newValue)
 	return true, nil
+}
+
+func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
+	unionDesc := xproto.ExtractUnionDescriptor(field.fd.Message())
+	if unionDesc == nil {
+		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
+	}
+
+	// parse union type
+	typeNodeName := unionDesc.TypeName()
+	typeNode := node.FindChild(typeNodeName)
+	if typeNode == nil && xproto.GetFieldDefaultValue(unionDesc.Type) != "" {
+		// if this field has a default value, use virtual node
+		typeNode = &book.Node{
+			Name:  node.Name,
+			Value: node.Value,
+		}
+	}
+	if typeNode == nil {
+		if sp.parser.IsFieldOptional(field) {
+			// field not found and is optional, just return nil.
+			return false, nil
+		}
+		kvs := node.DebugNameKV()
+		kvs = append(kvs,
+			xerrors.KeyPBFieldType, xproto.GetFieldTypeName(unionDesc.Type),
+			xerrors.KeyPBFieldName, unionDesc.Type.FullName(),
+			xerrors.KeyPBFieldOpts, field.opts,
+		)
+		return false, xerrors.WrapKV(xerrors.E2014(field.opts.Name), kvs...)
+	}
+
+	var typeVal protoreflect.Value
+	typeVal, present, err = sp.parser.parseFieldValue(unionDesc.Type, typeNode.Value, nil)
+	if err != nil {
+		return false, xerrors.WithMessageKV(err, typeNode.DebugNameKV()...)
+	}
+	log.Debugf("zinozhang666:%s", typeVal)
+	msg.Set(unionDesc.Type, typeVal)
+
+	// parse value
+	fieldNumber := int32(typeVal.Enum())
+	if fieldNumber == 0 {
+		// default enum value 0, no need to parse.
+		return false, nil
+	}
+	valueFD := unionDesc.GetValueByNumber(fieldNumber)
+	if valueFD == nil {
+		typeValue := unionDesc.Type.Enum().Values().ByNumber(protoreflect.EnumNumber(fieldNumber)).Name()
+		return false, xerrors.WithMessageKV(xerrors.E2010(typeValue, fieldNumber), node.DebugKV()...)
+	}
+	fieldValue := msg.NewField(valueFD)
+	if valueFD.Kind() == protoreflect.MessageKind {
+		// MUST be message type.
+		md := valueFD.Message()
+		msg := fieldValue.Message()
+		for i := 0; i < md.Fields().Len(); i++ {
+			fd := md.Fields().Get(i)
+			valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+			err := func() error {
+				subField := parseFieldDescriptor(fd, sp.parser.opts.Sep, sp.parser.opts.Subsep)
+				defer subField.release()
+				valNode := node.FindChild(valNodeName)
+				if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
+					// if this field has a default value, use virtual node
+					valNode = &book.Node{
+						Name:  node.Name,
+						Value: node.Value,
+					}
+				}
+				if valNode == nil {
+					if sp.parser.IsFieldOptional(subField) {
+						// field not found and is optional, just return nil.
+						return nil
+					}
+					kvs := node.DebugNameKV()
+					kvs = append(kvs,
+						xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
+						xerrors.KeyPBFieldName, fd.FullName(),
+						xerrors.KeyPBFieldOpts, subField.opts,
+					)
+					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
+				}
+				err = sp.parser.parseUnionMessageField(subField, msg, valNode.Value)
+				if err != nil {
+					return xerrors.WithMessageKV(err, valNode.DebugNameKV()...)
+				}
+				return nil
+			}()
+			if err != nil {
+				return false, err
+			}
+		}
+	} else {
+		// scalar: not supported yet.
+		return false, xerrors.Errorf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
+	}
+	msg.Set(valueFD, fieldValue)
+	return present, nil
 }

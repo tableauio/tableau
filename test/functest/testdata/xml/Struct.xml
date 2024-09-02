@@ -10,6 +10,8 @@
     <FruitShopData @type="{.FruitInfo}" />
     <Empty>
     </Empty>
+    <Award>{uint32 ID, int32 Num}Award</Award>
+    <Vector>{.Vector3}</Vector>
 </XMLStructConf>
 
 <XMLStructConf2>
@@ -26,6 +28,8 @@
     </FruitShopData>
     <Empty>
     </Empty>
+    <Award>3, 30</Award>
+    <Vector>2.7182818, 3.1415926, -1</Vector>
 </XMLStructConf>
 
 <XMLStructConf2>

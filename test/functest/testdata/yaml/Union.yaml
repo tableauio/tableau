@@ -1,0 +1,26 @@
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlUnionConf"
+PredefinedUnion: "{union.Target}"
+PredefinedIncellUnion:
+  "@type": "{union.Target}|{form:FORM_TEXT}"
+  "@incell": true
+UnionList: "[union.Target]"
+---
+"@sheet": YamlUnionConf
+PredefinedUnion:
+  Type: PVP
+  Field1: 1
+  Field2: 10
+  Field3: Apple,Orange,Banana
+PredefinedIncellUnion: "type:TYPE_PVE pve:{mission:{id:1 level:100 damage:999} heros:1 heros:2 heros:3 dungeons:{key:1 value:10} dungeons:{key:2 value:20} dungeons:{key:3 value:30}}"
+UnionList:
+  - Type: Story
+    Field1: 1001,10
+    Field2: 1:Apple,2:Orange
+    Field3: Fragrant:1,Sour:2
+  - Type: Skill
+    Field1: 1
+    Field2: 2
