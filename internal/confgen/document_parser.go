@@ -8,7 +8,6 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
-	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
@@ -487,7 +486,6 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	if err != nil {
 		return false, xerrors.WithMessageKV(err, typeNode.DebugNameKV()...)
 	}
-	log.Debugf("zinozhang666:%s", typeVal)
 	msg.Set(unionDesc.Type, typeVal)
 
 	// parse value

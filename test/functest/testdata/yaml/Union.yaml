@@ -11,7 +11,6 @@ UnionList: "[union.Target]"
 ---
 "@sheet": YamlUnionConf
 PredefinedUnion:
-  Type: PVP
   Field1: 1
   Field2: 10
   Field3: Apple,Orange,Banana
