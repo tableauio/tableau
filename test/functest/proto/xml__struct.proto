@@ -19,10 +19,21 @@ message XMLStructConf {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
-  protoconf.FruitInfo fruit_shop_data = 2 [(tableau.field) = {name:"FruitShopData"}];
-  Empty empty = 3 [(tableau.field) = {name:"Empty"}];
+  OtherItem item_2 = 2 [(tableau.field) = {name:"Item2"}];
+  message OtherItem {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+  protoconf.FruitInfo fruit_shop_data = 3 [(tableau.field) = {name:"FruitShopData"}];
+  Empty empty = 4 [(tableau.field) = {name:"Empty"}];
   message Empty {
   }
+  Award award = 5 [(tableau.field) = {name:"Award" span:SPAN_INNER_CELL}];
+  message Award {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 num = 2 [(tableau.field) = {name:"Num"}];
+  }
+  protoconf.Vector3 vector = 6 [(tableau.field) = {name:"Vector" span:SPAN_INNER_CELL}];
 }
 
 message XMLStructConf2 {

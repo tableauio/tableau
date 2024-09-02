@@ -14,5 +14,12 @@
     <EnumIncell>[]enum<.FruitType></EnumIncell>
     <ScalarList>[int32]</ScalarList>
     <Predefined @type="[.Item]"/>
+    <Struct ID="uint32" Name="string" />
+    <StructWithTypeName ID="{CustomStruct}uint32" Name="string" />
+    <IncellStruct>{uint32 ID, int32 Num}IncellStruct</IncellStruct>
+    <PredefinedIncellStruct>{.Vector3}</PredefinedIncellStruct>
+    <PredefinedUnion @type="{union.Target}" />
+    <PredefinedIncellUnion>{union.Target}|{form:FORM_TEXT}</PredefinedIncellUnion>
+    <Union @type="[union.Target]" />
 </Item>
 -->

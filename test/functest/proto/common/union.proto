@@ -11,7 +11,10 @@ import "common/common.proto";
 message Target {
   option (tableau.union) = true;
 
-  Type type = 9999 [(tableau.field) = { name: "Type" }];
+  Type type = 9999 [(tableau.field) = {
+    name: "Type"
+    prop: { default: "TYPE_PVP" }
+  }];
   oneof value {
     option (tableau.oneof) = {
       field: "Field"

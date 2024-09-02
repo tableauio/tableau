@@ -7,9 +7,12 @@
 
 <XMLStructConf>
     <Item ID="uint32" Name="string" />
+    <Item2 ID="{OtherItem}uint32" Name="string" />
     <FruitShopData @type="{.FruitInfo}" />
     <Empty>
     </Empty>
+    <Award>{uint32 ID, int32 Num}Award</Award>
+    <Vector>{.Vector3}</Vector>
 </XMLStructConf>
 
 <XMLStructConf2>
@@ -19,6 +22,7 @@
 
 <XMLStructConf>
     <Item ID="1" Name="Apple" VerboseAttr="A kind of fruit."/>
+    <Item2 ID="2" Name="Banana" />
     <VerboseElement ID="10" Num="100" />
     <FruitShopData>
         <Fruit Name="apple" Flavor="Sour,Sweet"/>
@@ -26,6 +30,8 @@
     </FruitShopData>
     <Empty>
     </Empty>
+    <Award>3, 30</Award>
+    <Vector>2.7182818, 3.1415926, -1</Vector>
 </XMLStructConf>
 
 <XMLStructConf2>

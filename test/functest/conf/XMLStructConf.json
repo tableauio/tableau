@@ -3,6 +3,10 @@
         "id": 1,
         "name": "Apple"
     },
+    "item2": {
+        "id": 2,
+        "name": "Banana"
+    },
     "fruitShopData": {
         "fruitMap": {
             "apple": {
@@ -21,5 +25,14 @@
             }
         }
     },
-    "empty": null
+    "empty": null,
+    "award": {
+        "id": 3,
+        "num": 30
+    },
+    "vector": {
+        "x": 2.7182817,
+        "y": 3.1415925,
+        "z": -1
+    }
 }
