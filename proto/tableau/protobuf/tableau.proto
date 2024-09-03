@@ -150,7 +150,7 @@ message WorksheetOptions {
   // Examples:
   //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index supported in cpp and go
   //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all languages
-  string loader_lang_options = 52;
+  map<string, string> lang_options = 52;
 }
 
 message EnumOptions {
