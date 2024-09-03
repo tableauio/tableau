@@ -145,8 +145,9 @@ func (s *Sheet) ToWorkseet() *tableaupb.Worksheet {
 			WithParentDir:          s.Meta.WithParentDir,
 			ScatterWithoutBookName: s.Meta.ScatterWithoutBookName,
 			// Loader options:
-			OrderedMap: s.Meta.OrderedMap,
-			Index:      parseIndexes(s.Meta.Index),
+			OrderedMap:  s.Meta.OrderedMap,
+			Index:       parseIndexes(s.Meta.Index),
+			LangOptions: s.Meta.LangOptions,
 		},
 	}
 }

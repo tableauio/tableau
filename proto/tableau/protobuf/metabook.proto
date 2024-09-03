@@ -93,6 +93,17 @@ message Metasheet {
   // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
   string index = 51 [(tableau.field) = {name:"Index" prop:{optional:true}}];
+
+  // Specify loader language options.
+  // Valid keys are: OrderedMap, Index.
+  // Different kvs must be seperated by ',' and one key value must be seperated by ':'.
+  // If one key doesn't exist in map, it means that this loader option is supported in all languages.
+  // Valid values are all combinations of "cpp", "go" with ' ' as seperator.
+  //
+  // Examples:
+  //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index supported in cpp and go
+  //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all languages
+  map<string, string> lang_options = 52[(tableau.field) = {name:"LangOptions" layout:LAYOUT_INCELL prop:{optional:true}}];
 }
 
 // EnumDescriptor represents enum type definition in sheet.

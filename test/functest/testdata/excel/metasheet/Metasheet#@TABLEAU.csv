@@ -1,3 +1,3 @@
-Sheet,Transpose,Index
-Transpose,true,
-Index,,"ID, (ID,Name)@SpecialItem"
+Sheet,Transpose,Index,LangOptions
+Transpose,true,,
+Index,,"ID, (ID,Name)@SpecialItem","Index:cpp go,OrderedMap:cpp"
