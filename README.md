@@ -55,4 +55,4 @@ Goto [Protocol Buffers v21.12](https://github.com/protocolbuffers/protobuf/relea
 
 #### protoc-gen-go
 
-Install: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1`
+Install: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.33.0`

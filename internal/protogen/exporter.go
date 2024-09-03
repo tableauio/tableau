@@ -264,7 +264,9 @@ func (x *sheetExporter) exportMessager() error {
 
 func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field, prefix string) error {
 	label := ""
-	if x.ws.Options != nil && x.ws.Options.FieldPresence && types.IsScalarType(field.FullType) {
+	if x.ws.GetOptions().GetFieldPresence() &&
+		types.IsScalarType(field.FullType) &&
+		!types.IsWellKnownMessage(field.FullType) {
 		label = "optional "
 	}
 

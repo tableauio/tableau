@@ -1,5 +1,9 @@
 {
     "name": "apple",
+    "time": {
+        "start": "2024-10-01T02:10:10Z",
+        "expiry": "3600s"
+    },
     "priceList": [
         10,
         100

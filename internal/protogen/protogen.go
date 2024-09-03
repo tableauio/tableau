@@ -296,10 +296,9 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	bookName := imp.BookName()
 	alias := getWorkbookAlias(imp)
 	if alias != "" {
-		bookName = alias
 		debugBookName += " (alias: " + alias + ")"
 	}
-	bp := newDocumentBookParser(bookName, rewrittenBookName, gen)
+	bp := newDocumentBookParser(bookName, alias, rewrittenBookName, gen)
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet options
 		ws := sheet.ToWorkseet()
@@ -384,10 +383,9 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		bookName := imp.BookName()
 		alias := getWorkbookAlias(imp)
 		if alias != "" {
-			bookName = alias
 			debugBookName += " (alias: " + alias + ")"
 		}
-		bp = newBookParser(bookName, rewrittenBookName, gen)
+		bp = newBookParser(bookName, alias, rewrittenBookName, gen)
 		// cache this new bookParser
 		gen.addBookParser(absPath, bp)
 	} else {
@@ -601,7 +599,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		if err := parser.Parse(desc, sheet); err != nil {
 			return errors.WithMessagef(err, "failed to parse struct type sheet: %s", sheet.Name)
 		}
-		bp := newBookParser("struct", "", gen)
+		bp := newBookParser("struct", "", "", gen)
 		shHeader := &tableHeader{
 			meta: &tableaupb.WorksheetOptions{
 				Namerow: 1,
@@ -644,7 +642,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 				Alias:  value.Alias,
 			}
 			// create a book parser
-			bp := newBookParser("union", "", gen)
+			bp := newBookParser("union", "", "", gen)
 
 			shHeader := &tableHeader{
 				meta: &tableaupb.WorksheetOptions{

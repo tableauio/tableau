@@ -10,11 +10,10 @@ option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 import "tableau/protobuf/tableau.proto";
 
 message Workbook {
-  string name = 1; // e.g.: "relative/path/bookname"
-  string alias = 2;
-  WorkbookOptions options = 3;
-  repeated Worksheet worksheets = 4;
-  map<string, int32> imports = 5;  // imported proto files
+  string name = 1;  // book name without suffix
+  WorkbookOptions options = 2;
+  repeated Worksheet worksheets = 3;
+  map<string, int32> imports = 4;  // imported proto files
 }
 
 message Worksheet {

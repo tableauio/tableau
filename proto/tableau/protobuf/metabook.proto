@@ -1,6 +1,6 @@
 // Protoconf - Tableau's data interchange format
 // https://tableauio.github.io/
-
+// clang-format off
 syntax = "proto3";
 
 package tableau;
@@ -10,11 +10,7 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/proto/tableaupb";
 
 message Metabook {
-  option (tableau.worksheet) = {
-    name: "@TABLEAU"
-    namerow: 1
-    datarow: 2
-  };
+  option (tableau.worksheet) = {name:"@TABLEAU" namerow:1 datarow:2};
 
   map<string, Metasheet> metasheet_map = 1 [(tableau.field).key = "Sheet"];
 }
@@ -70,6 +66,10 @@ message Metasheet {
   bool optional = 19 [(tableau.field) = {name:"Optional" prop:{optional:true}}];
   // Sheet patch type.
   Patch patch = 20 [(tableau.field) = {name:"Patch" prop:{optional:true}}];
+  // confgen: export JSON/Bin/Text files with parent dir created.
+  bool with_parent_dir = 21 [(tableau.field) = {name:"WithParentDir" prop:{optional:true}}];
+  // confgen(scatter): export JSON/Bin/Text filenames without book name prefix.
+  bool scatter_without_book_name = 22 [(tableau.field) = {name:"ScatterWithoutBookName" prop:{optional:true}}];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers

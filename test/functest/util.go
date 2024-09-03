@@ -125,15 +125,23 @@ func genConf(logLevel string) error {
 }
 
 func EqualTextFile(fileExt string, oldDir, newDir string, startLineN int) error {
-	files, err := os.ReadDir(oldDir)
+	dirEntries, err := os.ReadDir(oldDir)
 	if err != nil {
 		return err
 	}
-	for _, file := range files {
-		if filepath.Ext(file.Name()) != fileExt {
+	for _, entry := range dirEntries {
+		if entry.IsDir() {
+			subOldDir := filepath.Join(oldDir, entry.Name())
+			subNewDir := filepath.Join(newDir, entry.Name())
+			err := EqualTextFile(fileExt, subOldDir, subNewDir, startLineN)
+			if err != nil {
+				return err
+			}
+			continue
+		} else if filepath.Ext(entry.Name()) != fileExt {
 			continue
 		}
-		oldPath := filepath.Join(oldDir, file.Name())
+		oldPath := filepath.Join(oldDir, entry.Name())
 		absOldPath, err := filepath.Abs(oldPath)
 		if err != nil {
 			return err
@@ -143,7 +151,7 @@ func EqualTextFile(fileExt string, oldDir, newDir string, startLineN int) error 
 			return err
 		}
 
-		newPath := filepath.Join(newDir, file.Name())
+		newPath := filepath.Join(newDir, entry.Name())
 		absNewPath, err := filepath.Abs(newPath)
 		if err != nil {
 			return err
@@ -175,8 +183,8 @@ func EqualTextFile(fileExt string, oldDir, newDir string, startLineN int) error 
 			oldLine := string(oscan.Bytes())
 			newLine := string(nscan.Bytes())
 			if oldLine != newLine {
-				return fmt.Errorf("line diff:\nold: %s:%d\n%s\nnew: %s:%d\n%s", 
-				absOldPath, ln, oldLine, absNewPath, ln, newLine)
+				return fmt.Errorf("line diff:\nold: %s:%d\n%s\nnew: %s:%d\n%s",
+					absOldPath, ln, oldLine, absNewPath, ln, newLine)
 			}
 		}
 	}

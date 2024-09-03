@@ -3,6 +3,7 @@
 # set -eux
 set -e
 set -o pipefail
+shopt -s globstar
 
 cd "$(git rev-parse --show-toplevel)"
 
@@ -21,4 +22,4 @@ protoc \
 --go_opt=paths=source_relative \
 --proto_path="$INDIR" \
 --proto_path="$TABLEAU_PROTO_PATH" \
-"$INDIR"/*.proto "$INDIR"/common/*.proto
+"$INDIR"/**/*.proto # List all .proto files in the directory and subdirectories

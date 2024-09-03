@@ -263,7 +263,7 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchDir("../testdata/unittest/patchconf/")},
 			},
-			wantJson: `{"name":"orange", "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
+			wantJson: `{"name":"orange", "time": {"start": "2024-10-01T02:10:10Z","expiry": "7200s"}, "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
 		},
 		{
 			name: "PatchPaths-merge-none-map",
@@ -273,7 +273,7 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf/PatchMergeConf.json"})},
 			},
-			wantJson: `{"name":"orange", "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
+			wantJson: `{"name":"orange", "time": {"start": "2024-10-01T02:10:10Z","expiry": "7200s"}, "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
 		},
 		{
 			name: "PatchPaths-with-PatchDir-merge-none-map",
@@ -283,7 +283,7 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf/PatchMergeConf.json"}), PatchDir("../testdata/unittest/patchconf2/")},
 			},
-			wantJson: `{"name":"orange", "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
+			wantJson: `{"name":"orange", "time": {"start": "2024-10-01T02:10:10Z","expiry": "7200s"}, "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
 		},
 		{
 			name: "PatchDir-merge-map",
@@ -293,7 +293,7 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchDir("../testdata/unittest/patchconf2/")},
 			},
-			wantJson: `{"name":"apple", "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":99}, "2":{"id":2, "num":20}, "999":{"id":999, "num":99900}}, "replaceItemMap":{"1":{"id":1, "num":99}, "999":{"id":999, "num":99900}}}`,
+			wantJson: `{"name":"apple", "time": {"start": "2024-10-01T02:10:10Z","expiry": "3600s"}, "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":99}, "2":{"id":2, "num":20}, "999":{"id":999, "num":99900}}, "replaceItemMap":{"1":{"id":1, "num":99}, "999":{"id":999, "num":99900}}}`,
 		},
 		{
 			name: "PatchPaths-different-format-merge-map",
@@ -303,7 +303,7 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf2/PatchMergeConf.txt"})},
 			},
-			wantJson: `{"name":"apple", "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":99}, "2":{"id":2, "num":20}, "999":{"id":999, "num":99900}}, "replaceItemMap":{"1":{"id":1, "num":99}, "999":{"id":999, "num":99900}}}`,
+			wantJson: `{"name":"apple", "time": {"start": "2024-10-01T02:10:10Z","expiry": "3600s"}, "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":99}, "2":{"id":2, "num":20}, "999":{"id":999, "num":99900}}, "replaceItemMap":{"1":{"id":1, "num":99}, "999":{"id":999, "num":99900}}}`,
 		},
 		{
 			name: "PatchDir-merge-not-existed",
@@ -313,7 +313,7 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchDir("../testdata/unittest/not-existed/")},
 			},
-			wantJson: `{"name":"apple", "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
+			wantJson: `{"name":"apple", "time": {"start": "2024-10-01T02:10:10Z","expiry": "3600s"}, "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
 		},
 	}
 	for _, tt := range tests {

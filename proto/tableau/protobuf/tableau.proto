@@ -43,7 +43,8 @@ extend google.protobuf.OneofOptions {
 }
 
 message WorkbookOptions {
-  string name = 1;  // Workbook name
+  string name = 1;   // filename with path, e.g.: "relative/path/BookName.suffix" (slash path)
+  string alias = 2;  // book alias without suffix, e.g.: "BookAlias"
 }
 
 message WorksheetOptions {
@@ -100,6 +101,8 @@ message WorksheetOptions {
   bool adjacent_key = 14;
   // In order to track field presence of basic types (numeric, string, bytes,
   // and enums), the generated field will be labeled "optional".
+  //
+  // See https://protobuf.dev/programming-guides/field_presence/
   bool field_presence = 15;
   // Indicate this XML sheet is a template or not. Template sheet structure will
   // only be parsed based on metasheet "@TABLEAU" in comments.
@@ -116,6 +119,10 @@ message WorksheetOptions {
   bool optional = 19;
   // Sheet patch type.
   Patch patch = 20;
+  // confgen: export JSON/Bin/Text files with parent dir created.
+  bool with_parent_dir = 21;
+  // confgen(scatter): export JSON/Bin/Text filenames without book name prefix.
+  bool scatter_without_book_name = 22;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
@@ -262,15 +269,23 @@ enum Form {
 // Patch type for both sheet-level and field-level.
 enum Patch {
   PATCH_NONE = 0;
-  // 1. For patch option in sheet-level: `replace` all fields' value
-  // 2. For patch option in field-level: `replace` specified field's value
+  // 1 Sheet-level patch option "PATCH_REPLACE"
+  //   - replace whole message
+  // 2 Top-field patch option "PATCH_REPLACE"
+  //   - list: Clear field firstly, and then all elements of this list field
+  //     in src are appended to the corresponded list fields in dst.
+  //   - map: Clear field firstly, and then all entries of this map field in src
+  //     are copied into the corresponding map field in dst.
   PATCH_REPLACE = 1;
-  // 1. For patch option in sheet-level:
-  //   1. top none-map field (field value):
-  //     - `replace`: if field present in both **main** and **patch** sheet
-  //   2. top map field patch (key-value pair):
-  //     - `add`: if key not exists in **main** sheet
-  //     - `replace`: if key exists in both **main** and **patch** sheet
-  // 2. For patch option in field-level: NOT supported yet!
+  // Merge src into dst, which must be a message with the same descriptor.
+  //  - scalar: Populated scalar fields in src are copied to dst.
+  //  - message: Populated singular messages in src are merged into dst by
+  //     recursively calling [proto.Merge](https://pkg.go.dev/google.golang.org/protobuf/proto#Merge).
+  //  - list: The elements of every list field in src are appended to the
+  //     corresponded list fields in dst.
+  //  - map: The entries of every map field in src are copied into the
+  //     corresponding map field in dst, possibly replacing existing entries.
+  //  - unknown: The unknown fields of src are appended to the unknown
+  //     fields of dst.
   PATCH_MERGE = 2;
 }

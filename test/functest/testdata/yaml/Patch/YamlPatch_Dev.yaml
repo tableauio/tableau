@@ -1,5 +1,0 @@
-"@sheet": YamlPatchConf
-Env: dev
-StrictStruct:
-  ID: 1
-  Name: orange

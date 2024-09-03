@@ -53,6 +53,7 @@ type TestSheetParser struct {
 }
 
 func (p *TestSheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+	fmt.Println("no-op: TestSheetParser for only test")
 	return nil
 }
 

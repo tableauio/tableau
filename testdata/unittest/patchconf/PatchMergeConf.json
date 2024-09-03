@@ -1,5 +1,8 @@
 {
     "name": "orange",
+    "time": {
+        "expiry": "7200s"
+    },
     "priceList": [
         20,
         200

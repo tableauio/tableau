@@ -33,26 +33,16 @@ import (
 
 func Test_CompareGeneratedProto(t *testing.T) {
 	err := genProto("DEBUG")
-	if err != nil {
-		t.Errorf("%+v", err)
-		t.Fatalf("%s", xerrors.NewDesc(err))
-	}
+	require.NoErrorf(t, err, "%+v\n%+v", err, xerrors.NewDesc(err))
 	err = EqualTextFile(".proto", "proto", "_proto", 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 }
 
 func Test_CompareGeneratedJSON(t *testing.T) {
 	err := genConf("DEBUG")
-	if err != nil {
-		t.Errorf("%+v", err)
-		t.Fatalf("%s", xerrors.NewDesc(err))
-	}
+	require.NoErrorf(t, err, "%+v\n%+v", err, xerrors.NewDesc(err))
 	err = EqualTextFile(".json", "conf", "_conf", 1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 }
 
 func Test_Excel2CSV(t *testing.T) {

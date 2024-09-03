@@ -86,6 +86,9 @@ type Desc struct {
 }
 
 func NewDesc(err error) *Desc {
+	if err == nil {
+		return nil
+	}
 	desc := &Desc{
 		err:    err,
 		fields: map[string]any{},
@@ -119,6 +122,9 @@ func (d *Desc) ErrCode() string {
 
 // String render description in specified language.
 func (d *Desc) String() string {
+	if d.err == nil {
+		return ""
+	}
 	if d.fields[keyReason] == nil {
 		return d.err.Error()
 	}

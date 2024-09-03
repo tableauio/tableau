@@ -55,13 +55,13 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 		return errors.Errorf("unknown output format: %v", fmt)
 	}
 
-	// prepare output dir
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return xerrors.Errorf(`create output dir "%s" failed: %s`, dir, err)
+	fpath := filepath.Join(dir, filename)
+	// prepare dir
+	if err := os.MkdirAll(filepath.Dir(fpath), 0700); err != nil {
+		return xerrors.WrapKV(err, `failed to create dir "%s"`, filepath.Dir(fpath))
 	}
 
 	// write file
-	fpath := filepath.Join(dir, filename)
 	err = os.WriteFile(fpath, out, 0644)
 	if err != nil {
 		return xerrors.Errorf(`write file "%s" failed: %s`, fpath, err)

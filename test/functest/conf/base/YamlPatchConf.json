@@ -2,7 +2,9 @@
     "env": "base",
     "strictStruct": {
         "id": 1,
-        "name": "apple"
+        "name": "apple",
+        "start": "2024-10-01T02:10:10Z",
+        "expiry": "3600s"
     },
     "scalarList": [
         1,

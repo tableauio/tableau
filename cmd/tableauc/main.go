@@ -16,7 +16,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const version = "0.6.0"
+const version = "0.6.1"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"   // generate proto files only
@@ -101,9 +101,13 @@ func runE(cmd *cobra.Command, args []string) error {
 		config.Conf.Output.Formats = formats
 	}
 	if confInputIgnoreUnknownWorkbook {
+		// use command argument if provided
 		config.Conf.Input.IgnoreUnknownWorkbook = true
 	}
-	config.Conf.Output.DryRun = dryRun
+	if dryRun != "" {
+		// use command argument if provided
+		config.Conf.Output.DryRun = dryRun
+	}
 
 	log.Debugf("load config success: %+v", spew.Sdump(config))
 

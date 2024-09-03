@@ -1,8 +1,5 @@
 {
     "env": "prod",
-    "strictStruct": null,
-    "scalarList": [],
-    "structList": [],
     "scalarMap": {
         "10": "snake",
         "20": "python"
@@ -10,7 +7,6 @@
     "structMap": {
         "1": {
             "key": 1,
-            "name": "",
             "num": 100
         },
         "20": {

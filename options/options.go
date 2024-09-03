@@ -251,10 +251,11 @@ type ConfOutputOption struct {
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool `yaml:"useEnumNumbers"`
 
-	// Specify dry run mode, available: patch.
+	// Specify dry run mode:
+	//  - patch: if sheet options are specified: Patch (PATCH_MERGE) and Scatter
 	//
 	// Default: "".
-	DryRun DryRun `yaml:"-"`
+	DryRun DryRun `yaml:"dryRun"`
 }
 
 type DryRun = string

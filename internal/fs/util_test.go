@@ -171,7 +171,7 @@ func TestHasSubdirPrefix(t *testing.T) {
 
 func TestRewriteSubdir(t *testing.T) {
 	type args struct {
-		path       string
+		path           string
 		subdirRewrites map[string]string
 	}
 	tests := []struct {
@@ -237,6 +237,39 @@ func TestRangeFilesByFormat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := RangeFilesByFormat(tt.args.dir, tt.args.fmt, tt.args.callback); (err != nil) != tt.wantErr {
 				t.Errorf("RangeFilesByFormat() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestGetDirectParentDirName(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "found",
+			args: args{
+				path: "/path/to/file.txt",
+			},
+			want: "to",
+		},
+		{
+			name: "not-found",
+			args: args{
+				path: "file.txt",
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetDirectParentDirName(tt.args.path); got != tt.want {
+				t.Errorf("GetDirectParentDirName() = %v, want %v", got, tt.want)
 			}
 		})
 	}
