@@ -140,6 +140,17 @@ message WorksheetOptions {
   //  - (ID,Type)@Item
   //  - ID, (ID,Type)@Item
   repeated string index = 51;
+
+  // Specify loader language options.
+  // Valid keys are: OrderedMap, Index.
+  // Different kvs must be seperated by ',' and one key value must be seperated by ':'.
+  // If one key doesn't exist in map, it means that this loader option is supported in all languages.
+  // Valid values are all combinations of "cpp", "go" with ' ' as seperator.
+  //
+  // Examples:
+  //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index supported in cpp and go
+  //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all languages
+  string loader_lang_options = 52;
 }
 
 message EnumOptions {
