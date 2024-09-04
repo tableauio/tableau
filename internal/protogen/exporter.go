@@ -61,7 +61,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	set.Add(tableauProtoPath) // default must be imported path
 	g3 := NewGeneratedBuf()
 	for i, ws := range x.wb.Worksheets {
-		x := &sheetExporter{
+		se := &sheetExporter{
 			be:             x,
 			ws:             ws,
 			g:              g3,
@@ -70,10 +70,10 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 			nestedMessages: make(map[string]*tableaupb.Field),
 			Imports:        make(map[string]bool),
 		}
-		if err := x.export(); err != nil {
+		if err := se.export(); err != nil {
 			return err
 		}
-		for key := range x.Imports {
+		for key := range se.Imports {
 			set.Add(key)
 		}
 	}

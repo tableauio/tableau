@@ -397,7 +397,9 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		ws := sheet.ToWorkseet()
 		mergeHeaderOptions(ws.Options, gen.InputOpt.Header)
 		debugSheetName := sheet.GetDebugName()
-		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+		if pass == firstPass {
+			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+		}
 
 		shHeader := &tableHeader{
 			meta:       ws.Options,
@@ -435,9 +437,9 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 
 		// Two-pass flow:
 		// 	1. first pass: extract type info from special sheet mode (none default mode)
-		// 	2. second pass: parse sheet
+		// 	2. second pass: parse sheet schema
 		if pass == firstPass && ws.Options.Mode != tableaupb.Mode_MODE_DEFAULT {
-			log.Debugf("extract type info from %s", debugSheetName)
+			log.Debugf("first pass: extract type info from %s", debugSheetName)
 
 			parentFilename := bp.GetProtoFilePath()
 			err := gen.extractTypeInfoFromSpecialSheetMode(ws.Options.Mode, sheet, ws.Name, parentFilename)
@@ -447,8 +449,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 					xerrors.KeySheetName, debugSheetName)
 			}
 		} else if pass == secondPass {
-			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
-
+			log.Debugf("second pass: parse sheet schema from %s", debugSheetName)
 			if ws.Options.Mode == tableaupb.Mode_MODE_DEFAULT {
 				var parsed bool
 				for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
@@ -469,21 +470,24 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			}
 			// append parsed sheet to workbook
 			bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
+
 		}
 	}
-	// export book
-	be := newBookExporter(
-		gen.ProtoPackage,
-		gen.OutputOpt.FileOptions,
-		filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir),
-		gen.OutputOpt.FilenameSuffix,
-		bp.wb,
-		bp.gen,
-	)
-	if err := be.export(checkProtoFileConflicts); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName)
-	}
 
+	if pass == secondPass {
+		// export book
+		be := newBookExporter(
+			gen.ProtoPackage,
+			gen.OutputOpt.FileOptions,
+			filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir),
+			gen.OutputOpt.FilenameSuffix,
+			bp.wb,
+			bp.gen,
+		)
+		if err := be.export(checkProtoFileConflicts); err != nil {
+			return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName)
+		}
+	}
 	return nil
 }
 
