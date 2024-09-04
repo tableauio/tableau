@@ -169,7 +169,7 @@ func (x *sheetExporter) exportEnum() error {
 			ename := strcase.ToScreamingSnake(x.ws.Name) + "_INVALID"
 			x.g.P("  ", ename, " = 0;")
 		}
-		x.g.P("  ", field.Name, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
+		x.g.P("  ", strings.TrimSpace(field.Name), " = ", field.Number, ` [(tableau.evalue).name = "`, strings.TrimSpace(field.Alias), `"];`)
 	}
 	x.g.P("}")
 	if !x.isLastSheet {
@@ -207,7 +207,7 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P()
 	for _, field := range x.ws.Fields {
 		ename := "TYPE_" + strcase.ToScreamingSnake(field.Name)
-		x.g.P("    ", field.Name, " ", strcase.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+		x.g.P("    ", strings.TrimSpace(field.Name), " ", strcase.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 	}
 	x.g.P(`  }`)
 
@@ -223,7 +223,7 @@ func (x *sheetExporter) exportUnion() error {
 
 	// generate message type
 	for _, msgField := range x.ws.Fields {
-		x.g.P("  message ", msgField.Name, " {")
+		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
 		// generate the fields
 		depth := 2
 		for i, field := range msgField.Fields {
