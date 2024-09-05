@@ -21,6 +21,25 @@
 
 A modern configuration converter based on Protobuf (proto3).
 
+## Prerequisites
+
+- **[Go](https://go.dev/)**: any one of the **three latest major** [releases](https://go.dev/doc/devel/release).
+
+## Installation
+
+### API
+
+Simply add the following import to your code, and then `go [build|run|test]`
+will automatically fetch the necessary dependencies:
+
+```go
+import "github.com/tableauio/tableau"
+```
+
+### tableauc
+
+Install: `go install github.com/tableauio/tableau/cmd/tableauc@latest`
+
 ## Features
 
 - Convert **Excel/CSV/XML/YAML** to **JSON/Text/Bin**.

@@ -7,7 +7,7 @@ import (
 	"github.com/tableauio/tableau/internal/protogen"
 )
 
-// VersionInfo holds versions of tableau'd main modules and VCS info.
+// VersionInfo holds versions of tableau's main modules and VCS info.
 type VersionInfo struct {
 	ProtogenVersion string // version of protogen module
 	ConfgenVersion  string // version of confgen module
