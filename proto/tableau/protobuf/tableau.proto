@@ -68,9 +68,15 @@ message WorksheetOptions {
   int32 datarow = 5;
   // Interchange the rows and columns of worksheet.
   bool transpose = 6;
-  // Tags for usage, e.g.: "1,2" specifying loading servers. Specially,
-  // "*" means all servers.
-  string tags = 7;
+  // Labels are key/value pairs that are attached to sheet.
+  // Labels can be used to organize and to select subsets of sheets.
+  // For example:
+  //  - "app:gamesvr,patch:merge" indicates app is gamesvr and patch is true.
+  //  - "app:*" indicates all apps.
+  //
+  // This concept is much like it is in k8s, see
+  // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/.
+  map<string, string> labels = 7;
   // The line number of column name definition in a cell. 0 means
   // the whole cell.
   //
