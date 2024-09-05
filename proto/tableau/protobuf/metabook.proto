@@ -70,6 +70,15 @@ message Metasheet {
   bool with_parent_dir = 21 [(tableau.field) = {name:"WithParentDir" prop:{optional:true}}];
   // confgen(scatter): export JSON/Bin/Text filenames without book name prefix.
   bool scatter_without_book_name = 22 [(tableau.field) = {name:"ScatterWithoutBookName" prop:{optional:true}}];
+  // Labels are key/value pairs that are attached to sheet.
+  // Labels can be used to organize and to select subsets of sheets.
+  // For example:
+  //  - "app:gamesvr,patch:merge" indicates app is gamesvr and patch is true.
+  //  - "app:*" indicates all apps.
+  //
+  // This concept is much like it is in k8s, see
+  // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/.
+  map<string, string> labels = 23 [(tableau.field) = {name:"Labels" layout:LAYOUT_INCELL prop:{optional:true}}];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers
@@ -103,7 +112,7 @@ message Metasheet {
   // Examples:
   //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index supported in cpp and go
   //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all languages
-  map<string, string> lang_options = 52[(tableau.field) = {name:"LangOptions" layout:LAYOUT_INCELL prop:{optional:true}}];
+  map<string, string> lang_options = 52 [(tableau.field) = {name:"LangOptions" layout:LAYOUT_INCELL prop:{optional:true}}];
 }
 
 // EnumDescriptor represents enum type definition in sheet.

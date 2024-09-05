@@ -128,7 +128,7 @@ func (s *Sheet) ToWorkseet() *tableaupb.Worksheet {
 			Noterow:                s.Meta.Noterow,
 			Datarow:                s.Meta.Datarow,
 			Transpose:              s.Meta.Transpose,
-			Tags:                   "",
+			Labels:                 s.Meta.Labels,
 			Nameline:               s.Meta.Nameline,
 			Typeline:               s.Meta.Typeline,
 			Nested:                 s.Meta.Nested,

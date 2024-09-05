@@ -1,3 +1,3 @@
-Sheet,Alias
-#,AliasedWorkbook
-Scalar,AliasedSheetScalar
+Sheet,Alias,Labels
+#,AliasedWorkbook,
+Scalar,AliasedSheetScalar,"app:gamesvr,patch:merge"
