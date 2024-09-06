@@ -107,6 +107,9 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 							ExcludedProtoFiles: []string{
 								"../../test/functest/proto/xml__metasheet__metasheet.proto",
 							},
+							Subdirs: []string{
+								"excel/",
+							},
 						},
 						Output: &options.ConfOutputOption{
 							Pretty:          true,

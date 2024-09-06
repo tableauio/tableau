@@ -91,7 +91,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		return err
 	}
 	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-	bookIndexes, err := buildWorkbookIndex(protoreflect.FullName(gen.ProtoPackage), gen.InputDir, gen.InputOpt.Subdirs, gen.InputOpt.SubdirRewrites, prFiles)
+	bookIndexes, err := buildWorkbookIndex(gen.ProtoPackage, gen.InputDir, gen.InputOpt.Subdirs, gen.InputOpt.SubdirRewrites, prFiles)
 	if err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}

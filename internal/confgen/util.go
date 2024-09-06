@@ -139,10 +139,10 @@ type bookIndexInfo struct {
 }
 
 // buildWorkbookIndex builds the secondary workbook name (including self) -> primary workbook info indexes.
-func buildWorkbookIndex(protoPackage protoreflect.FullName, inputDir string, subdirs []string, subdirRewrites map[string]string, prFiles *protoregistry.Files) (bookIndexes map[string]*bookIndexInfo, err error) {
+func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirRewrites map[string]string, prFiles *protoregistry.Files) (bookIndexes map[string]*bookIndexInfo, err error) {
 	bookIndexes = map[string]*bookIndexInfo{} // init
 	prFiles.RangeFilesByPackage(
-		protoPackage,
+		protoreflect.FullName(protoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
 			_, workbook := ParseFileOptions(fd)
 			if workbook == nil {
