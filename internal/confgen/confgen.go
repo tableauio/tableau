@@ -91,7 +91,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		return err
 	}
 	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-	bookIndexes, err := buildWorkbookIndex(protoreflect.FullName(gen.ProtoPackage), gen.InputDir, gen.InputOpt.SubdirRewrites, prFiles)
+	bookIndexes, err := buildWorkbookIndex(protoreflect.FullName(gen.ProtoPackage), gen.InputDir, gen.InputOpt.Subdirs, gen.InputOpt.SubdirRewrites, prFiles)
 	if err != nil {
 		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
@@ -111,7 +111,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			}
 			return errors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
-		// NOTE: one book maybe relates to multiple primary books
+		// NOTE: one book may relates to multiple primary books
 		for _, fd := range primaryBookIndexInfo.books {
 			fd := fd
 			eg.Go(func() error {
