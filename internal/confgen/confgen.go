@@ -111,7 +111,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			}
 			return errors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
-		// NOTE: one book may relates to multiple primary books
+		// NOTE: one book may relate to multiple primary books
 		for _, fd := range primaryBookIndexInfo.books {
 			fd := fd
 			eg.Go(func() error {
