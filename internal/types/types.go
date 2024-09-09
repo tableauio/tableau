@@ -357,8 +357,10 @@ func init() {
 		"bytes":    ScalarKind,
 
 		// well-known message type
-		WellKnownMessageTimestamp: ScalarKind,
-		WellKnownMessageDuration:  ScalarKind,
+		WellKnownMessageTimestamp:  ScalarKind,
+		WellKnownMessageDuration:   ScalarKind,
+		WellKnownMessageFraction:   ScalarKind,
+		WellKnownMessageComparator: ScalarKind,
 
 		// "enum":     EnumKind,
 		// "repeated": ListKind,
@@ -394,6 +396,20 @@ func ParseTypeDescriptor(rawType string) *Descriptor {
 		return &Descriptor{
 			Name:       WellKnownMessageDuration,
 			FullName:   WellKnownMessageDuration,
+			Predefined: true,
+			Kind:       ScalarKind,
+		}
+	case "fraction":
+		return &Descriptor{
+			Name:       WellKnownMessageFraction,
+			FullName:   WellKnownMessageFraction,
+			Predefined: true,
+			Kind:       ScalarKind,
+		}
+	case "comparator":
+		return &Descriptor{
+			Name:       WellKnownMessageComparator,
+			FullName:   WellKnownMessageComparator,
 			Predefined: true,
 			Kind:       ScalarKind,
 		}

@@ -283,10 +283,9 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field
 		fullTypeName = field.MapEntry.ValueFullType
 	}
 
-	if fullTypeName == types.WellKnownMessageTimestamp {
-		x.Imports[timestampProtoPath] = true
-	} else if fullTypeName == types.WellKnownMessageDuration {
-		x.Imports[durationProtoPath] = true
+	if types.IsWellKnownMessage(fullTypeName) {
+		importPath := types.GetWellKnownMessageImport(fullTypeName)
+		x.Imports[importPath] = true
 	}
 
 	if field.Predefined {

@@ -1,0 +1,46 @@
+{
+    "minRatio": {
+        "sign": "SIGN_NOT_EQUAL",
+        "value": {
+            "num": 1,
+            "den": 4
+        }
+    },
+    "ratioList": [
+        {
+            "sign": "SIGN_LESS",
+            "value": {
+                "num": 10,
+                "den": 100
+            }
+        },
+        {
+            "sign": "SIGN_LESS_OR_EQUAL",
+            "value": {
+                "num": 10,
+                "den": 1000
+            }
+        },
+        {
+            "sign": "SIGN_GREATER",
+            "value": {
+                "num": 10,
+                "den": 10000
+            }
+        },
+        {
+            "sign": "SIGN_GREATER_OR_EQUAL",
+            "value": {
+                "num": 10,
+                "den": 1
+            }
+        },
+        {
+            "sign": "SIGN_EQUAL",
+            "value": {
+                "num": 3,
+                "den": 5
+            }
+        }
+    ]
+}

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -30,6 +31,8 @@ var DefaultEnumValue pref.Value
 
 var DefaultTimestampValue pref.Value
 var DefaultDurationValue pref.Value
+var DefaultFractionValue pref.Value
+var DefaultComparatorValue pref.Value
 
 func init() {
 	DefaultBoolValue = pref.ValueOfBool(false)
@@ -245,6 +248,46 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			// NOTE(wenchy): should not use du.ProtoReflect(), as descriptor not same.
 			// See more details at internal/xproto/build_test.go#TestCloneWellknownTypes
 			// return pref.ValueOf(du.ProtoReflect()), true, nil
+		case types.WellKnownMessageFraction:
+			if value == "" {
+				return DefaultFractionValue, false, nil
+			}
+			fraction, err := parseFraction(value)
+			if err != nil {
+				return DefaultFractionValue, true, xerrors.E2008(value, err)
+			}
+			md := fd.Message()
+			msg := dynamicpb.NewMessage(md)
+			msg.Set(md.Fields().ByName("num"), pref.ValueOfInt32(fraction.Num))
+			msg.Set(md.Fields().ByName("den"), pref.ValueOfInt32(fraction.Den))
+			return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
+		case types.WellKnownMessageComparator:
+			if value == "" {
+				return DefaultComparatorValue, false, nil
+			}
+			comparator, err := parseComparator(value)
+			if err != nil {
+				return DefaultComparatorValue, true, xerrors.E2008(value, err)
+			}
+			md := fd.Message()
+			msg := dynamicpb.NewMessage(md)
+			// sign
+			signFD := md.Fields().ByName("sign")
+			signVal, _, err := parseEnumValue(signFD, comparator.Sign.String())
+			if err != nil {
+				return DefaultComparatorValue, true, xerrors.E2008(value, err)
+			}
+			// fraction
+			valueFD := md.Fields().ByName("value")
+			valueMD := valueFD.Message()
+			valueMsg := dynamicpb.NewMessage(valueMD)
+			valueMsg.Set(valueMD.Fields().ByName("num"), pref.ValueOfInt32(comparator.Value.Num))
+			valueMsg.Set(valueMD.Fields().ByName("den"), pref.ValueOfInt32(comparator.Value.Den))
+			valueVal := pref.ValueOfMessage(valueMsg.ProtoReflect())
+
+			msg.Set(signFD, signVal)
+			msg.Set(valueFD, valueVal)
+			return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 		default:
 			return pref.Value{}, false, xerrors.Errorf("not supported message type: %s", msgName)
 		}
@@ -328,34 +371,129 @@ func parseTimeWithLocation(locationName string, timeStr string) (time.Time, erro
 	}
 }
 
-func parseDuration(duration string) (time.Duration, error) {
-	duration = strings.TrimSpace(duration)
-	if !strings.ContainsAny(duration, ":hmsµu") {
-		switch len(duration) {
+func parseDuration(val string) (time.Duration, error) {
+	val = strings.TrimSpace(val)
+	if !strings.ContainsAny(val, ":hmsµu") {
+		switch len(val) {
 		case 4:
 			// "HHmm" -> "<HH>h<mm>m", e.g.:  "1010" -> "10h10m"
-			duration = duration[0:2] + "h" + duration[2:4] + "m"
+			val = val[0:2] + "h" + val[2:4] + "m"
 		case 6:
 			// "HHmmss" -> "<HH>h<mm>m<ss>s", e.g.: "101010" -> "10h10m10s"
-			duration = duration[0:2] + "h" + duration[2:4] + "m" + duration[4:] + "s"
+			val = val[0:2] + "h" + val[2:4] + "m" + val[4:] + "s"
 		default:
 			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HHmmss" or "HHmm"`)
 		}
-	} else if strings.Contains(duration, ":") {
+	} else if strings.Contains(val, ":") {
 		// TODO: check hour < 24, minute < 60, second < 60
-		splits := strings.SplitN(duration, ":", 3)
+		splits := strings.SplitN(val, ":", 3)
 		switch len(splits) {
 		case 2:
 			// "HH:mm" -> "<HH>h<mm>m", e.g.: "10:10" -> "10h10m"
-			duration = splits[0] + "h" + splits[1] + "m"
+			val = splits[0] + "h" + splits[1] + "m"
 		case 3:
 			// "HH:mm:ss" -> "<HH>h<mm>m<ss>s", e.g.: "10:10:10" -> "10h10m10s"
-			duration = splits[0] + "h" + splits[1] + "m" + splits[2] + "s"
+			val = splits[0] + "h" + splits[1] + "m" + splits[2] + "s"
 		default:
 			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HH:mm:ss" or "HH:mm"`)
 		}
 
 	}
 
-	return time.ParseDuration(duration)
+	return time.ParseDuration(val)
+}
+
+// parseFraction parses a fraction from following forms:
+//   - N%: percentage, e.g.: 10%
+//   - N‰: per thounsand, e.g.: 10‰
+//   - N‱: per ten thounsand, e.g.: 10‱
+//   - N/D: 3/4
+//   - N: 3 is same to 3/1
+func parseFraction(value string) (f *tableaupb.Fraction, err error) {
+	var numStr string
+	var den int32
+	if strings.HasSuffix(value, "%") {
+		numStr = strings.TrimSuffix(value, "%")
+		den = 100
+	} else if strings.HasSuffix(value, "‰") {
+		numStr = strings.TrimSuffix(value, "‰")
+		den = 1000
+	} else if strings.HasSuffix(value, "‱") {
+		numStr = strings.TrimSuffix(value, "‱")
+		den = 10000
+	} else if strings.Contains(value, "/") {
+		splits := strings.SplitN(value, "/", 2)
+		numStr = splits[0]
+		denStr := splits[1]
+		den, err = parseInt32(denStr)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		numStr = value
+		den = 1
+	}
+	num, err := parseInt32(numStr)
+	if err != nil {
+		return nil, err
+	}
+	return &tableaupb.Fraction{
+		Num: num,
+		Den: den,
+	}, nil
+}
+
+func parseComparator(value string) (c *tableaupb.Comparator, err error) {
+	index := findFirstDigitIndex(value)
+	if index == -1 {
+		return nil, xerrors.Errorf("no digit found for comparator")
+	}
+	// split the string into two parts
+	signStr := strings.TrimSpace(value[:index])
+	fractionStr := strings.TrimSpace(value[index:])
+	var sign tableaupb.Comparator_Sign
+	switch signStr {
+	case "==":
+		sign = tableaupb.Comparator_SIGN_EQUAL
+	case "!=":
+		sign = tableaupb.Comparator_SIGN_NOT_EQUAL
+	case "<":
+		sign = tableaupb.Comparator_SIGN_LESS
+	case "<=":
+		sign = tableaupb.Comparator_SIGN_LESS_OR_EQUAL
+	case ">":
+		sign = tableaupb.Comparator_SIGN_GREATER
+	case ">=":
+		sign = tableaupb.Comparator_SIGN_GREATER_OR_EQUAL
+	default:
+		return nil, xerrors.Errorf("unknown comparator sign: %s", signStr)
+	}
+	fraction, err := parseFraction(fractionStr)
+	if err != nil {
+		return nil, err
+	}
+	return &tableaupb.Comparator{
+		Sign:  sign,
+		Value: fraction,
+	}, nil
+}
+
+func findFirstDigitIndex(s string) int {
+	for i, char := range s {
+		if unicode.IsDigit(char) {
+			return i
+		}
+	}
+	return -1 // Return -1 if no digit is found
+}
+
+func parseInt32(value string) (int32, error) {
+	val, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	if val < math.MinInt32 || val > math.MaxInt32 {
+		return 0, xerrors.E2000("int32", value, math.MinInt32, math.MaxInt32)
+	}
+	return int32(val), nil
 }

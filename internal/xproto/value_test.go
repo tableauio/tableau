@@ -3,8 +3,10 @@ package xproto
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"testing"
 
+	"github.com/tableauio/tableau/proto/tableaupb"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -147,7 +149,7 @@ func TestParseFieldValue(t *testing.T) {
 				fd:       uint64ValueFd,
 				rawValue: "18446744073709551615 ",
 			},
-			wantV:       pref.ValueOfUint64(18446744073709551615 ),
+			wantV:       pref.ValueOfUint64(18446744073709551615),
 			wantPresent: true,
 			wantErr:     false,
 		},
@@ -355,6 +357,191 @@ func TestParseFieldValue(t *testing.T) {
 			}
 			if gotPresent != tt.wantPresent {
 				t.Errorf("ParseFieldValue() gotPresent = %v, want %v", gotPresent, tt.wantPresent)
+			}
+		})
+	}
+}
+
+func Test_parseFraction(t *testing.T) {
+	type args struct {
+		value string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantF   *tableaupb.Fraction
+		wantErr bool
+	}{
+		{
+			name: "percentage",
+			args: args{
+				value: "10%",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 10,
+				Den: 100,
+			},
+		},
+		{
+			name: "per-thounsand",
+			args: args{
+				value: "10‰",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 10,
+				Den: 1000,
+			},
+		},
+		{
+			name: "per-ten-thounsand",
+			args: args{
+				value: "10‱",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 10,
+				Den: 10000,
+			},
+		},
+		{
+			name: "num-den",
+			args: args{
+				value: "3/4",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 3,
+				Den: 4,
+			},
+		},
+		{
+			name: "only-num",
+			args: args{
+				value: "10",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 10,
+				Den: 1,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotF, err := parseFraction(tt.args.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseFraction() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotF, tt.wantF) {
+				t.Errorf("parseFraction() = %v, want %v", gotF, tt.wantF)
+			}
+		})
+	}
+}
+
+func Test_parseComparator(t *testing.T) {
+	type args struct {
+		value string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantC   *tableaupb.Comparator
+		wantErr bool
+	}{
+		{
+			name: "equal",
+			args: args{
+				value: "==10%",
+			},
+			wantC: &tableaupb.Comparator{
+				Sign: tableaupb.Comparator_SIGN_EQUAL,
+				Value: &tableaupb.Fraction{
+					Num: 10,
+					Den: 100,
+				},
+			},
+		},
+		{
+			name: "not-equal",
+			args: args{
+				value: "!=10",
+			},
+			wantC: &tableaupb.Comparator{
+				Sign: tableaupb.Comparator_SIGN_NOT_EQUAL,
+				Value: &tableaupb.Fraction{
+					Num: 10,
+					Den: 1,
+				},
+			},
+		},
+		{
+			name: "less",
+			args: args{
+				value: "<10%",
+			},
+			wantC: &tableaupb.Comparator{
+				Sign: tableaupb.Comparator_SIGN_LESS,
+				Value: &tableaupb.Fraction{
+					Num: 10,
+					Den: 100,
+				},
+			},
+		},
+		{
+			name: "less-or-equal",
+			args: args{
+				value: "<=10%",
+			},
+			wantC: &tableaupb.Comparator{
+				Sign: tableaupb.Comparator_SIGN_LESS_OR_EQUAL,
+				Value: &tableaupb.Fraction{
+					Num: 10,
+					Den: 100,
+				},
+			},
+		},
+		{
+			name: "greater-with-space",
+			args: args{
+				value: "> 10%",
+			},
+			wantC: &tableaupb.Comparator{
+				Sign: tableaupb.Comparator_SIGN_GREATER,
+				Value: &tableaupb.Fraction{
+					Num: 10,
+					Den: 100,
+				},
+			},
+		},
+		{
+			name: "greater-or-equal-with-two-space",
+			args: args{
+				value: ">=  10%",
+			},
+			wantC: &tableaupb.Comparator{
+				Sign: tableaupb.Comparator_SIGN_GREATER_OR_EQUAL,
+				Value: &tableaupb.Fraction{
+					Num: 10,
+					Den: 100,
+				},
+			},
+		},
+		{
+			name: "invalid",
+			args: args{
+				value: ">==10%",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotC, err := parseComparator(tt.args.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseComparator() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotC, tt.wantC) {
+				t.Errorf("parseComparator() = %v, want %v", gotC, tt.wantC)
 			}
 		})
 	}
