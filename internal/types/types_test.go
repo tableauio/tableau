@@ -503,6 +503,16 @@ func TestIsScalarType(t *testing.T) {
 			want: true,
 		},
 		{
+			name: WellKnownMessageFraction,
+			args: args{t: WellKnownMessageFraction},
+			want: true,
+		},
+		{
+			name: WellKnownMessageComparator,
+			args: args{t: WellKnownMessageComparator},
+			want: true,
+		},
+		{
 			name: "MessageType",
 			args: args{t: "MessageType"},
 			want: false,

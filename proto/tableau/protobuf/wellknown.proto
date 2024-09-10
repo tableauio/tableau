@@ -1,0 +1,94 @@
+// Protoconf - Tableau's data interchange format
+// https://tableauio.github.io/
+
+syntax = "proto3";
+
+package tableau;
+
+option cc_enable_arenas = true;
+option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+option java_package = "com.tableau.protobuf";
+option java_outer_classname = "TableauProto";
+option java_multiple_files = true;
+option objc_class_prefix = "TPB";
+option csharp_namespace = "Tableau.Protobuf.Tableau";
+
+import "tableau/protobuf/tableau.proto";
+
+// Supported forms:
+//  - N%: percentage, e.g.: 10%
+//  - N‰: per thounsand, e.g.: 10‰
+//  - N‱: per ten thounsand, e.g.: 10‱
+//  - N/D: 3/4
+//  - N: 3 is same to 3/1
+message Fraction {
+  int32 num = 1;  // numerator
+  int32 den = 2;  // denominator
+}
+
+message Comparator {
+  Sign sign = 1;
+  Fraction value = 2;
+
+  enum Sign {
+    SIGN_EQUAL = 0;             // ==
+    SIGN_NOT_EQUAL = 1;         // !=
+    SIGN_LESS = 2;              // <
+    SIGN_LESS_OR_EQUAL = 3;     // <=
+    SIGN_GREATER = 4;           // >
+    SIGN_GREATER_OR_EQUAL = 5;  // >=
+  }
+}
+
+// TODO:
+// - Vector2d for double 2D vector
+// - Vector2l for int64 (long) 2D vector
+// ...
+
+// A 2D vector using float coordinates.
+// See https://docs.godotengine.org/en/stable/classes/class_vector2.html
+message Vector2 {
+  float x = 1 [(tableau.field) = { name: "X" }];
+  float y = 2 [(tableau.field) = { name: "Y" }];
+}
+
+// A 3D vector using float coordinates.
+// See https://docs.godotengine.org/en/stable/classes/class_vector3.html
+message Vector3 {
+  float x = 1 [(tableau.field) = { name: "X" }];
+  float y = 2 [(tableau.field) = { name: "Y" }];
+  float z = 3 [(tableau.field) = { name: "Z" }];
+}
+
+// A 4D vector using float coordinates.
+// See https://docs.godotengine.org/en/stable/classes/class_vector4.html
+message Vector4 {
+  float x = 1 [(tableau.field) = { name: "X" }];
+  float y = 2 [(tableau.field) = { name: "Y" }];
+  float z = 3 [(tableau.field) = { name: "Z" }];
+  float w = 4 [(tableau.field) = { name: "W" }];
+}
+
+// A 2D vector using int32 coordinates.
+// See https://docs.godotengine.org/en/stable/classes/class_vector2i.html
+message Vector2i {
+  int32 x = 1 [(tableau.field) = { name: "X" }];
+  int32 y = 2 [(tableau.field) = { name: "Y" }];
+}
+
+// A 3D vector using int32 coordinates.
+// See https://docs.godotengine.org/en/stable/classes/class_vector3i.html
+message Vector3i {
+  int32 x = 1 [(tableau.field) = { name: "X" }];
+  int32 y = 2 [(tableau.field) = { name: "Y" }];
+  int32 z = 3 [(tableau.field) = { name: "Z" }];
+}
+
+// A 4D vector using int32 coordinates.
+// See https://docs.godotengine.org/en/stable/classes/class_vector4i.html
+message Vector4i {
+  int32 x = 1 [(tableau.field) = { name: "X" }];
+  int32 y = 2 [(tableau.field) = { name: "Y" }];
+  int32 z = 3 [(tableau.field) = { name: "Z" }];
+  int32 w = 4 [(tableau.field) = { name: "W" }];
+}

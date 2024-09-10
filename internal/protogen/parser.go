@@ -19,9 +19,7 @@ import (
 )
 
 const (
-	tableauProtoPath   = "tableau/protobuf/tableau.proto"
-	timestampProtoPath = "google/protobuf/timestamp.proto"
-	durationProtoPath  = "google/protobuf/duration.proto"
+	tableauProtoPath = "tableau/protobuf/tableau.proto"
 )
 
 const (
