@@ -3,7 +3,6 @@ package xproto
 import (
 	"fmt"
 	"math"
-	"reflect"
 	"testing"
 
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -363,6 +362,8 @@ func TestParseFieldValue(t *testing.T) {
 }
 
 func Test_parseFraction(t *testing.T) {
+	msg := &tableaupb.Fraction{}
+	md := msg.ProtoReflect().Descriptor()
 	type args struct {
 		value string
 	}
@@ -422,15 +423,35 @@ func Test_parseFraction(t *testing.T) {
 				Den: 1,
 			},
 		},
+		{
+			name: "negative",
+			args: args{
+				value: "-6/10",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: -6,
+				Den: 10,
+			},
+		},
+		{
+			name: "positive",
+			args: args{
+				value: "+6/10",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: +6,
+				Den: 10,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotF, err := parseFraction(tt.args.value)
+			gotF, _, err := parseFraction(md, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseFraction() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotF, tt.wantF) {
+			if err == nil && !gotF.Equal(pref.ValueOfMessage(tt.wantF.ProtoReflect())) {
 				t.Errorf("parseFraction() = %v, want %v", gotF, tt.wantF)
 			}
 		})
@@ -438,6 +459,8 @@ func Test_parseFraction(t *testing.T) {
 }
 
 func Test_parseComparator(t *testing.T) {
+	msg := &tableaupb.Comparator{}
+	md := msg.ProtoReflect().Descriptor()
 	type args struct {
 		value string
 	}
@@ -526,6 +549,32 @@ func Test_parseComparator(t *testing.T) {
 			},
 		},
 		{
+			name: "negative",
+			args: args{
+				value: ">=-10%",
+			},
+			wantC: &tableaupb.Comparator{
+				Sign: tableaupb.Comparator_SIGN_GREATER_OR_EQUAL,
+				Value: &tableaupb.Fraction{
+					Num: -10,
+					Den: 100,
+				},
+			},
+		},
+		{
+			name: "positive",
+			args: args{
+				value: ">=+10%",
+			},
+			wantC: &tableaupb.Comparator{
+				Sign: tableaupb.Comparator_SIGN_GREATER_OR_EQUAL,
+				Value: &tableaupb.Fraction{
+					Num: +10,
+					Den: 100,
+				},
+			},
+		},
+		{
 			name: "invalid",
 			args: args{
 				value: ">==10%",
@@ -535,12 +584,12 @@ func Test_parseComparator(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotC, err := parseComparator(tt.args.value)
+			gotC, _, err := parseComparator(md, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseComparator() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotC, tt.wantC) {
+			if err == nil && !gotC.Equal(pref.ValueOfMessage(tt.wantC.ProtoReflect())) {
 				t.Errorf("parseComparator() = %v, want %v", gotC, tt.wantC)
 			}
 		})

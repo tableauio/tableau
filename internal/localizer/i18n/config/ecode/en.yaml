@@ -88,6 +88,14 @@ E2018:
   desc: map key not exist
   text: 'map key field "{{.KeyName}}" not exist'
   help: ensure the key field is set in elements of map
+E2019:
+  desc: invalid fraction pattern
+  text: '"{{.Value}}" cannot be parsed by pattern: "N/D", {{.Error}}'
+  help: "available patterns: 5, 5/6, 10%, 10‰, 10‱"
+E2020:
+  desc: invalid comparator pattern
+  text: '"{{.Value}}" cannot be parsed by pattern: "<CompareOperator><Fraction>", {{.Error}}'
+  help: "available patterns: ==5, !=5, <3/5, <=10%, >10‰, >=10‱"
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

@@ -1,6 +1,7 @@
 package xproto
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -252,42 +253,12 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			if value == "" {
 				return DefaultFractionValue, false, nil
 			}
-			fraction, err := parseFraction(value)
-			if err != nil {
-				return DefaultFractionValue, true, xerrors.E2008(value, err)
-			}
-			md := fd.Message()
-			msg := dynamicpb.NewMessage(md)
-			msg.Set(md.Fields().ByName("num"), pref.ValueOfInt32(fraction.Num))
-			msg.Set(md.Fields().ByName("den"), pref.ValueOfInt32(fraction.Den))
-			return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
+			return parseFraction(fd.Message(), value)
 		case types.WellKnownMessageComparator:
 			if value == "" {
 				return DefaultComparatorValue, false, nil
 			}
-			comparator, err := parseComparator(value)
-			if err != nil {
-				return DefaultComparatorValue, true, xerrors.E2008(value, err)
-			}
-			md := fd.Message()
-			msg := dynamicpb.NewMessage(md)
-			// sign
-			signFD := md.Fields().ByName("sign")
-			signVal, _, err := parseEnumValue(signFD, comparator.Sign.String())
-			if err != nil {
-				return DefaultComparatorValue, true, xerrors.E2008(value, err)
-			}
-			// fraction
-			valueFD := md.Fields().ByName("value")
-			valueMD := valueFD.Message()
-			valueMsg := dynamicpb.NewMessage(valueMD)
-			valueMsg.Set(valueMD.Fields().ByName("num"), pref.ValueOfInt32(comparator.Value.Num))
-			valueMsg.Set(valueMD.Fields().ByName("den"), pref.ValueOfInt32(comparator.Value.Den))
-			valueVal := pref.ValueOfMessage(valueMsg.ProtoReflect())
-
-			msg.Set(signFD, signVal)
-			msg.Set(valueFD, valueVal)
-			return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
+			return parseComparator(fd.Message(), value)
 		default:
 			return pref.Value{}, false, xerrors.Errorf("not supported message type: %s", msgName)
 		}
@@ -409,7 +380,7 @@ func parseDuration(val string) (time.Duration, error) {
 //   - N‱: per ten thounsand, e.g.: 10‱
 //   - N/D: 3/4
 //   - N: 3 is same to 3/1
-func parseFraction(value string) (f *tableaupb.Fraction, err error) {
+func parseFraction(md pref.MessageDescriptor, value string) (v pref.Value, present bool, err error) {
 	var numStr string
 	var den int32
 	if strings.HasSuffix(value, "%") {
@@ -427,7 +398,7 @@ func parseFraction(value string) (f *tableaupb.Fraction, err error) {
 		denStr := splits[1]
 		den, err = parseInt32(denStr)
 		if err != nil {
-			return nil, err
+			return DefaultFractionValue, false, xerrors.E2019(value, err)
 		}
 	} else {
 		numStr = value
@@ -435,18 +406,18 @@ func parseFraction(value string) (f *tableaupb.Fraction, err error) {
 	}
 	num, err := parseInt32(numStr)
 	if err != nil {
-		return nil, err
+		return DefaultFractionValue, false, xerrors.E2019(value, err)
 	}
-	return &tableaupb.Fraction{
-		Num: num,
-		Den: den,
-	}, nil
+	msg := dynamicpb.NewMessage(md)
+	msg.Set(md.Fields().ByName("num"), pref.ValueOfInt32(num))
+	msg.Set(md.Fields().ByName("den"), pref.ValueOfInt32(den))
+	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 }
 
-func parseComparator(value string) (c *tableaupb.Comparator, err error) {
-	index := findFirstDigitIndex(value)
-	if index == -1 {
-		return nil, xerrors.Errorf("no digit found for comparator")
+func parseComparator(md pref.MessageDescriptor, value string) (v pref.Value, present bool, err error) {
+	index, err := findFirstDigitOrSignIndex(value)
+	if err != nil {
+		return DefaultComparatorValue, false, xerrors.E2020(value, err)
 	}
 	// split the string into two parts
 	signStr := strings.TrimSpace(value[:index])
@@ -466,25 +437,36 @@ func parseComparator(value string) (c *tableaupb.Comparator, err error) {
 	case ">=":
 		sign = tableaupb.Comparator_SIGN_GREATER_OR_EQUAL
 	default:
-		return nil, xerrors.Errorf("unknown comparator sign: %s", signStr)
+		err := fmt.Errorf("unknown comparator sign: %s", signStr)
+		return DefaultComparatorValue, false, xerrors.E2020(value, err)
 	}
-	fraction, err := parseFraction(fractionStr)
+
+	msg := dynamicpb.NewMessage(md)
+	// sign
+	signFD := md.Fields().ByName("sign")
+	signVal, _, err := parseEnumValue(signFD, sign.String())
 	if err != nil {
-		return nil, err
+		return DefaultComparatorValue, false, err
 	}
-	return &tableaupb.Comparator{
-		Sign:  sign,
-		Value: fraction,
-	}, nil
+	msg.Set(signFD, signVal)
+	// fraction
+	valueFD := md.Fields().ByName("value")
+	valueMD := valueFD.Message()
+	valueVal, _, err := parseFraction(valueMD, fractionStr)
+	if err != nil {
+		return DefaultComparatorValue, false, err
+	}
+	msg.Set(valueFD, valueVal)
+	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 }
 
-func findFirstDigitIndex(s string) int {
+func findFirstDigitOrSignIndex(s string) (int, error) {
 	for i, char := range s {
-		if unicode.IsDigit(char) {
-			return i
+		if unicode.IsDigit(char) || char == '-' || char == '+' {
+			return i, nil
 		}
 	}
-	return -1 // Return -1 if no digit is found
+	return 0, fmt.Errorf("number part not found")
 }
 
 func parseInt32(value string) (int32, error) {

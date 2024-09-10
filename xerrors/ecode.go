@@ -189,6 +189,22 @@ func E2018(keyName string) error {
 	})
 }
 
+// E2019: invalid fraction pattern.
+func E2019(value string, err error) error {
+	return renderEcode("E2019", map[string]any{
+		"Value": value,
+		"Error": err,
+	})
+}
+
+// E2020: invalid comparator pattern.
+func E2020(value string, err error) error {
+	return renderEcode("E2020", map[string]any{
+		"Value": value,
+		"Error": err,
+	})
+}
+
 // E3000: no workbook file found about sheet specifier.
 func E3000(sheetSpecifier, pattern string) error {
 	return renderEcode("E3000", map[string]any{
