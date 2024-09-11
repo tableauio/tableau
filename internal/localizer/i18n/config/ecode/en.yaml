@@ -96,6 +96,10 @@ E2020:
   desc: invalid comparator pattern
   text: '"{{.Value}}" cannot be parsed by pattern: "<CompareOperator><Fraction>", {{.Error}}'
   help: "available patterns: ==5, !=5, <3/5, <=10%, >10‰, >=10‱"
+E2021:
+  desc: duplicate enum value alias
+  text: 'in enum {{.EnumType}} definition, {{.EnumValue1}} and {{.EnumValue2}} have duplicate value alias "{{.Alias}}"'
+  help: ensure the enum value alias is unique
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

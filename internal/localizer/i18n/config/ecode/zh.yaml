@@ -96,6 +96,10 @@ E2020:
   desc: invalid comparator pattern
   text: '"{{.Value}}" 无法以比较式 "<比较运算符><分数>" 解析, {{.Error}}'
   help: "支持的比较形式: ==5, !=5, <3/5, <=10%, >10‰, >=10‱"
+E2021:
+  desc: duplicate enum value alias
+  text: '在枚举类型 {{.EnumType}} 定义中, {{.EnumValue1}} 和 {{.EnumValue2}} 定义了重复的枚举值别名 "{{.Alias}}"'
+  help: 请确保枚举值别名唯一性
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

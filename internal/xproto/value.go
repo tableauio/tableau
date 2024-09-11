@@ -307,11 +307,11 @@ func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, pre
 	}
 
 	// try enum value alias
-	evalue, ok := enumCache.GetValueByAlias(ed, value)
-	if ok {
-		return evalue, true, nil
+	evalue, err := enumCache.GetValueByAlias(ed, value)
+	if err != nil {
+		return DefaultEnumValue, false, err
 	}
-	return DefaultEnumValue, true, xerrors.E2006(value, ed.FullName())
+	return evalue, true, nil
 }
 
 func parseTimeWithLocation(locationName string, timeStr string) (time.Time, error) {

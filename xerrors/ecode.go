@@ -205,6 +205,16 @@ func E2020(value string, err error) error {
 	})
 }
 
+// E2021: duplicate enum value alias.
+func E2021(enumType, enumValue1, enumValue2, alias any) error {
+	return renderEcode("E2021", map[string]any{
+		"EnumType":   enumType,
+		"EnumValue1": enumValue1,
+		"EnumValue2": enumValue2,
+		"Alias":      alias,
+	})
+}
+
 // E3000: no workbook file found about sheet specifier.
 func E3000(sheetSpecifier, pattern string) error {
 	return renderEcode("E3000", map[string]any{
