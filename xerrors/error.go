@@ -33,7 +33,7 @@ func Errorf(format string, args ...any) error {
 // as `[|key: value]...` string.
 // ErrorKV also records the stack trace at the point it was called.
 func ErrorKV(msg string, keysAndValues ...any) error {
-	return errors.New(CombineKV(keysAndValues...) + CombineKV(keyReason, msg))
+	return errors.New(CombineKV(keysAndValues...) + CombineKV(KeyReason, msg))
 }
 
 // WithMessageKV annotates err with the key-value pairs as `[|key: value]...` string.

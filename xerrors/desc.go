@@ -38,10 +38,9 @@ const (
 	KeyPBFieldOpts = "PBFieldOpts" // protobuf message field options (extensions)
 	KeyColumnName  = "ColumnName"  // column name
 
-	// private keys below
 	keyErrCode = "ErrCode"
 	keyErrDesc = "ErrDesc"
-	keyReason  = "Reason" // error
+	KeyReason  = "Reason" // error
 	// In addition to telling the user exactly why their code is wrong, it's oftentimes
 	// furthermore possible to tell them how to fix it.
 	//
@@ -76,7 +75,7 @@ var keys = []string{
 
 	keyErrCode,
 	keyErrDesc,
-	keyReason,
+	KeyReason,
 	keyHelp,
 }
 
@@ -125,7 +124,7 @@ func (d *Desc) String() string {
 	if d.err == nil {
 		return ""
 	}
-	if d.fields[keyReason] == nil {
+	if d.fields[KeyReason] == nil {
 		return d.err.Error()
 	}
 	if d.fields[KeyModule] == nil && d.fields[keyErrCode] != nil {

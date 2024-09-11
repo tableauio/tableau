@@ -13,7 +13,6 @@ import (
 func Test_inspectYAMLNode(t *testing.T) {
 	// your byte array
 	data := []byte(`
----
 "@sheet": "@TABLEAU"
 ServiceConf:
   Template: true

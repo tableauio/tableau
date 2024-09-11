@@ -327,3 +327,25 @@ func TestLoadWithPatch(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadEmptyJSON_E0002(t *testing.T) {
+	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
+		Paths(map[string]string{
+			"ItemConf": "../testdata/unittest/invalidconf/Empty.json",
+		}),
+	)
+	require.Error(t, err, "should return an error")
+	desc := xerrors.NewDesc(err)
+	require.Equal(t, "E0002", desc.ErrCode())
+	require.Contains(t, desc.GetValue(xerrors.KeyReason), fileContentIsEmpty)
+	t.Logf("error: %s", desc.String())
+}
+
+func TestLoadEmptyText(t *testing.T) {
+	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
+		Paths(map[string]string{
+			"ItemConf": "../testdata/unittest/invalidconf/Empty.txt",
+		}),
+	)
+	require.NoError(t, err, "should return no error")
+}

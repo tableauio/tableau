@@ -902,10 +902,10 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 			// struct list
 			if field.opts.Key != "" {
 				// KeyedList means the list is keyed by the specified Key option.
-				listItemValue := list.NewElement()
-				keyedListItemExisted := false
+				listElemValue := list.NewElement()
+				keyedListElemExisted := false
 				keyColName := prefix + field.opts.Name + field.opts.Key
-				md := listItemValue.Message().Descriptor()
+				md := listElemValue.Message().Descriptor()
 				keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
 
 				fd := md.Fields().ByName(keyProtoName)
@@ -921,22 +921,22 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 				}
 				for i := 0; i < list.Len(); i++ {
-					item := list.Get(i)
-					if xproto.EqualValue(fd, item.Message().Get(fd), key) {
-						listItemValue = item
-						keyedListItemExisted = true
+					elemVal := list.Get(i)
+					if elemVal.Message().Get(fd).Equal(key) {
+						listElemValue = elemVal
+						keyedListElemExisted = true
 						break
 					}
 				}
-				elemPresent, err := sp.parseMessage(listItemValue.Message(), rc, prefix+field.opts.Name)
+				elemPresent, err := sp.parseMessage(listElemValue.Message(), rc, prefix+field.opts.Name)
 				if err != nil {
 					return false, xerrors.WithMessageKV(err, rc.CellDebugKV(keyColName)...)
 				}
 				if !keyPresent && !elemPresent {
 					break
 				}
-				if !keyedListItemExisted {
-					list.Append(listItemValue)
+				if !keyedListElemExisted {
+					list.Append(listElemValue)
 				}
 			} else if xproto.IsUnionField(field.fd) {
 				elemPresent := false
@@ -1146,15 +1146,15 @@ func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List
 		}
 		if field.opts.Key != "" {
 			// keyed list
-			keyedListItemExisted := false
+			keyedListElemExisted := false
 			for i := 0; i < list.Len(); i++ {
-				item := list.Get(i)
-				if xproto.EqualValue(field.fd, item, fieldValue) {
-					keyedListItemExisted = true
+				elemVal := list.Get(i)
+				if elemVal.Equal(fieldValue) {
+					keyedListElemExisted = true
 					break
 				}
 			}
-			if !keyedListItemExisted {
+			if !keyedListElemExisted {
 				list.Append(fieldValue)
 			}
 		} else {

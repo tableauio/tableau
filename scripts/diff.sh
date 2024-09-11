@@ -2,6 +2,9 @@
 
 # Check if the user provided at least two arguments
 if [ $# -lt 2 ]; then
+  echo "Check files differences in two dirs. Files are based on the old dir."
+  echo "If the file format(json, txt...) is not specified, it will check all files in the old dir."
+  echo ""
   echo "Usage: $0 <old_dir> <new_dir> [file_format]"
   exit 1
 fi
