@@ -1,0 +1,50 @@
+{
+    "shopMap": {
+        "1": {
+            "shopId": 1,
+            "goodsMap": {
+                "1001": {
+                    "goodsId": 1001,
+                    "currencyMap": {
+                        "10000001": {
+                            "type": 10000001,
+                            "priceList": [
+                                1,
+                                2,
+                                3
+                            ]
+                        },
+                        "10000002": {
+                            "type": 10000002,
+                            "priceList": [
+                                4,
+                                5,
+                                6
+                            ]
+                        }
+                    },
+                    "tagList": [
+                        "new",
+                        "discount"
+                    ]
+                },
+                "1002": {
+                    "goodsId": 1002,
+                    "currencyMap": {
+                        "10000002": {
+                            "type": 10000002,
+                            "priceList": [
+                                7,
+                                8,
+                                9
+                            ]
+                        }
+                    },
+                    "tagList": [
+                        "new"
+                    ]
+                }
+            }
+        }
+    }
+}

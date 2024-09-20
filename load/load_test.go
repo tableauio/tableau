@@ -1,6 +1,9 @@
 package load
 
 import (
+	"fmt"
+	"io"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -221,9 +224,8 @@ func TestLoadWithPatch(t *testing.T) {
 		options []Option
 	}
 	tests := []struct {
-		name     string
-		args     args
-		wantJson string
+		name string
+		args args
 	}{
 		{
 			name: "PatchDir-replace",
@@ -233,7 +235,6 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchDir("../testdata/unittest/patchconf/")},
 			},
-			wantJson: `{"name":"orange", "priceList":[20, 200]}`,
 		},
 		{
 			name: "PatchPaths-replace",
@@ -243,7 +244,6 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchPaths(map[string]string{"PatchReplaceConf": "../testdata/unittest/patchconf/PatchReplaceConf.json"})},
 			},
-			wantJson: `{"name":"orange", "priceList":[20, 200]}`,
 		},
 		{
 			name: "PatchDir-replace-not-existed",
@@ -253,7 +253,6 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchDir("../testdata/unittest/not-existed/")},
 			},
-			wantJson: `{"name":"apple", "priceList":[10, 100]}`,
 		},
 		{
 			name: "PatchDir-merge-none-map",
@@ -263,7 +262,6 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchDir("../testdata/unittest/patchconf/")},
 			},
-			wantJson: `{"name":"orange", "time": {"start": "2024-10-01T02:10:10Z","expiry": "7200s"}, "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
 		},
 		{
 			name: "PatchPaths-merge-none-map",
@@ -273,7 +271,6 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf/PatchMergeConf.json"})},
 			},
-			wantJson: `{"name":"orange", "time": {"start": "2024-10-01T02:10:10Z","expiry": "7200s"}, "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
 		},
 		{
 			name: "PatchPaths-with-PatchDir-merge-none-map",
@@ -283,7 +280,6 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf/PatchMergeConf.json"}), PatchDir("../testdata/unittest/patchconf2/")},
 			},
-			wantJson: `{"name":"orange", "time": {"start": "2024-10-01T02:10:10Z","expiry": "7200s"}, "priceList":[10, 100, 20, 200], "replacePriceList":[20, 200], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
 		},
 		{
 			name: "PatchDir-merge-map",
@@ -293,7 +289,6 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchDir("../testdata/unittest/patchconf2/")},
 			},
-			wantJson: `{"name":"apple", "time": {"start": "2024-10-01T02:10:10Z","expiry": "3600s"}, "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":99}, "2":{"id":2, "num":20}, "999":{"id":999, "num":99900}}, "replaceItemMap":{"1":{"id":1, "num":99}, "999":{"id":999, "num":99900}}}`,
 		},
 		{
 			name: "PatchPaths-different-format-merge-map",
@@ -303,7 +298,6 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchPaths(map[string]string{"PatchMergeConf": "../testdata/unittest/patchconf2/PatchMergeConf.txt"})},
 			},
-			wantJson: `{"name":"apple", "time": {"start": "2024-10-01T02:10:10Z","expiry": "3600s"}, "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":99}, "2":{"id":2, "num":20}, "999":{"id":999, "num":99900}}, "replaceItemMap":{"1":{"id":1, "num":99}, "999":{"id":999, "num":99900}}}`,
 		},
 		{
 			name: "PatchDir-merge-not-existed",
@@ -313,7 +307,15 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt:     format.JSON,
 				options: []Option{PatchDir("../testdata/unittest/not-existed/")},
 			},
-			wantJson: `{"name":"apple", "time": {"start": "2024-10-01T02:10:10Z","expiry": "3600s"}, "priceList":[10, 100], "replacePriceList":[10, 100], "itemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}, "replaceItemMap":{"1":{"id":1, "num":10}, "2":{"id":2, "num":20}}}`,
+		},
+		{
+			name: "Recursively-patch",
+			args: args{
+				msg:     &unittestpb.RecursivePatchConf{},
+				dir:     "../testdata/unittest/conf/",
+				fmt:     format.JSON,
+				options: []Option{PatchDir("../testdata/unittest/patchconf/")},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -323,7 +325,11 @@ func TestLoadWithPatch(t *testing.T) {
 			json, err := protojson.Marshal(tt.args.msg)
 			require.NoError(t, err)
 			// t.Logf("JSON: %v", string(json))
-			require.JSONEqf(t, tt.wantJson, string(json), "%s: patch result not same.", tt.args.msg.ProtoReflect().Descriptor().FullName())
+			f, err := os.Open(fmt.Sprintf("../testdata/unittest/patchresult/%s.json", tt.name))
+			require.NoError(t, err)
+			wantJson, err := io.ReadAll(f)
+			require.NoError(t, err)
+			require.JSONEqf(t, string(wantJson), string(json), "%s: patch result not same.", tt.args.msg.ProtoReflect().Descriptor().FullName())
 		})
 	}
 }

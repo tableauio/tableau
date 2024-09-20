@@ -1,0 +1,68 @@
+{
+    "shopMap": {
+        "1": {
+            "shopId": 1,
+            "goodsMap": {
+                "1001": {
+                    "goodsId": 1001,
+                    "currencyMap": {
+                        "10000003": {
+                            "type": 10000003,
+                            "priceList": [
+                                31,
+                                32,
+                                33
+                            ]
+                        },
+                        "10000004": {
+                            "type": 10000004,
+                            "priceList": [
+                                44,
+                                45,
+                                46
+                            ]
+                        }
+                    },
+                    "tagList": [
+                        "offshelf soon",
+                        "discount"
+                    ]
+                },
+                "1003": {
+                    "goodsId": 1003,
+                    "currencyMap": {
+                        "10000002": {
+                            "type": 10000002,
+                            "priceList": [
+                                37,
+                                38,
+                                39
+                            ]
+                        }
+                    },
+                    "tagList": [
+                        "new"
+                    ]
+                }
+            }
+        },
+        "2": {
+            "shopId": 2,
+            "goodsMap": {
+                "2002": {
+                    "goodsId": 2001,
+                    "currencyMap": {
+                        "20000001": {
+                            "type": 20000001,
+                            "priceList": [
+                                2001,
+                                2002,
+                                2003
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

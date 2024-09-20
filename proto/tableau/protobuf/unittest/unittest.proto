@@ -85,6 +85,7 @@ message PatchReplaceConf {
   
   string name = 1 [(tableau.field) = {name: "Name" }];
   repeated int32 price_list = 2 [(tableau.field) = {name: "Price" layout: LAYOUT_INCELL }];
+  string alias = 3 [(tableau.field) = {name: "Alias" }];
 }
 
 message PatchMergeConf {
@@ -100,4 +101,23 @@ message PatchMergeConf {
   repeated int32 replace_price_list = 4 [(tableau.field) = {name:"ReplacePrice" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
   map<uint32, unittest.Item> item_map = 5 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
   map<uint32, unittest.Item> replace_item_map = 6 [(tableau.field) = {name:"ReplaceItem" key:"ID" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
+}
+
+message RecursivePatchConf {
+  option (tableau.worksheet) = {name:"RecursivePatchConf" namerow:1 typerow:2 noterow:3 datarow:4 patch:PATCH_MERGE};
+  
+  map<int32, Shop> shop_map = 1 [(tableau.field) = {key:"ShopID" layout:LAYOUT_VERTICAL}];
+  message Shop {
+    int32 shop_id = 1 [(tableau.field) = {name:"ShopID"}];
+    map<int32, Goods> goods_map = 2 [(tableau.field) = {key:"GoodsID" layout:LAYOUT_VERTICAL}];
+    message Goods {
+      int32 goods_id = 1 [(tableau.field) = {name:"GoodsID"}];
+      map<int32, Currency> currency_map = 2 [(tableau.field) = {name:"Currency" key:"Type" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
+      message Currency {
+        int32 type = 1 [(tableau.field) = {name:"Type"}];
+        repeated int32 price_list = 2 [(tableau.field) = {name:"Price" layout:LAYOUT_INCELL}];
+      }
+      repeated string tag_list = 3 [(tableau.field) = {name:"Tag" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
+    }
+  }
 }
