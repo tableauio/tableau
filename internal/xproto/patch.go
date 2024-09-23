@@ -80,11 +80,11 @@ func patchList(dst, src protoreflect.List, fd protoreflect.FieldDescriptor) {
 }
 
 func patchMap(dst, src protoreflect.Map, fd protoreflect.FieldDescriptor) {
-	// Merge semantics replaces, rather than merges into existing entries.
+	// Merge semantics MERGES INFO, rather than REPLACES existing entries.
 	src.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
 		switch {
 		case fd.Message() != nil:
-			// NOTE: this behavior is different from proto.Clone
+			// NOTE: this behavior is different from [proto.Clone]
 			var dstv protoreflect.Value
 			if dst.Has(k) {
 				dstv = dst.Mutable(k)
