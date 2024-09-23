@@ -9,59 +9,47 @@ import (
 
 // PatchMessage patches src into dst, which must be a message with the same descriptor.
 //
-// # Patch option "PATCH_MERGE"
+// # Default PatchMessage mechanism
 //   - scalar: Populated scalar fields in src are copied to dst.
 //   - message: Populated singular messages in src are merged into dst by
-//     recursively calling [xproto.PatchMessage].
+//     recursively calling [xproto.PatchMessage], or replace dst message if
+//     "PATCH_REPLACE" is specified for this field.
 //   - list: The elements of every list field in src are appended to the
-//     corresponded list fields in dst.
+//     corresponded list fields in dst, or replace dst list if "PATCH_REPLACE"
+//     is specified for this field.
 //   - map: The entries of every map field in src are MERGED (different from
-//     the behavior of proto.Merge) into the corresponding map field in dst.
-//
-// # Patch option "PATCH_REPLACE"
-//   - scalar: Same with "PATCH_MERGE".
-//   - message: Clear message firstly, then copy the source message to dst.
-//   - list: Clear list firstly, and then all elements of this list field
-//     in src are appended to the corresponded list fields in dst.
-//   - map: Clear list firstly, and then all entries of this map field in src
-//     are copied into the corresponding map field in dst.
+//     the behavior of proto.Merge) into the corresponding map field in dst,
+//     or replace dst map if "PATCH_REPLACE" is specified for this field.
+//   - unknown: The unknown fields of src are appended to the unknown
+//     fields of dst (TODO: untested).
 //
 // [proto.Merge]: https://pkg.go.dev/google.golang.org/protobuf/proto#Merge
-func PatchMessage(dst, src proto.Message, patch tableaupb.Patch) error {
-	if patch == tableaupb.Patch_PATCH_NONE {
-		return errors.Errorf("patch type none is invalid")
-	}
+func PatchMessage(dst, src proto.Message) error {
 	dstMsg, srcMsg := dst.ProtoReflect(), src.ProtoReflect()
 	if dstMsg.Descriptor().FullName() != srcMsg.Descriptor().FullName() {
 		return errors.Errorf("dst %s and src %s are not messages with the same descriptor",
 			dstMsg.Descriptor().FullName(),
 			srcMsg.Descriptor().FullName())
 	}
-	patchMessage(dstMsg, srcMsg, patch)
+	patchMessage(dstMsg, srcMsg)
 	return nil
 }
 
-func patchMessage(dst, src protoreflect.Message, patch tableaupb.Patch) {
-	if patch == tableaupb.Patch_PATCH_REPLACE {
-		dst.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-			dst.Clear(fd)
-			return true
-		})
-	}
+func patchMessage(dst, src protoreflect.Message) {
 	// Range iterates over every populated field in an undefined order.
 	src.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 		opts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
 		fieldPatch := opts.GetProp().GetPatch()
-		if fieldPatch == tableaupb.Patch_PATCH_NONE {
-			fieldPatch = patch
+		if fieldPatch == tableaupb.Patch_PATCH_REPLACE {
+			dst.Clear(fd)
 		}
 		switch {
 		case fd.IsList():
-			patchList(dst.Mutable(fd).List(), v.List(), fd, fieldPatch)
+			patchList(dst.Mutable(fd).List(), v.List(), fd)
 		case fd.IsMap():
-			patchMap(dst.Mutable(fd).Map(), v.Map(), fd.MapValue(), fieldPatch)
+			patchMap(dst.Mutable(fd).Map(), v.Map(), fd.MapValue())
 		case fd.Message() != nil:
-			patchMessage(dst.Mutable(fd).Message(), v.Message(), fieldPatch)
+			patchMessage(dst.Mutable(fd).Message(), v.Message())
 		case fd.Kind() == protoreflect.BytesKind:
 			dst.Set(fd, cloneBytes(v))
 		default:
@@ -69,18 +57,19 @@ func patchMessage(dst, src protoreflect.Message, patch tableaupb.Patch) {
 		}
 		return true
 	})
+
+	if len(src.GetUnknown()) > 0 {
+		dst.SetUnknown(append(dst.GetUnknown(), src.GetUnknown()...))
+	}
 }
 
-func patchList(dst, src protoreflect.List, fd protoreflect.FieldDescriptor, patch tableaupb.Patch) {
-	if patch == tableaupb.Patch_PATCH_REPLACE {
-		dst.Truncate(0)
-	}
+func patchList(dst, src protoreflect.List, fd protoreflect.FieldDescriptor) {
 	// Merge semantics appends to the end of the existing list.
 	for i, n := 0, src.Len(); i < n; i++ {
 		switch v := src.Get(i); {
 		case fd.Message() != nil:
 			dstv := dst.NewElement()
-			patchMessage(dstv.Message(), v.Message(), patch)
+			patchMessage(dstv.Message(), v.Message())
 			dst.Append(dstv)
 		case fd.Kind() == protoreflect.BytesKind:
 			dst.Append(cloneBytes(v))
@@ -90,13 +79,7 @@ func patchList(dst, src protoreflect.List, fd protoreflect.FieldDescriptor, patc
 	}
 }
 
-func patchMap(dst, src protoreflect.Map, fd protoreflect.FieldDescriptor, patch tableaupb.Patch) {
-	if patch == tableaupb.Patch_PATCH_REPLACE {
-		dst.Range(func(mk protoreflect.MapKey, _ protoreflect.Value) bool {
-			dst.Clear(mk)
-			return true
-		})
-	}
+func patchMap(dst, src protoreflect.Map, fd protoreflect.FieldDescriptor) {
 	// Merge semantics replaces, rather than merges into existing entries.
 	src.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
 		switch {
@@ -108,7 +91,7 @@ func patchMap(dst, src protoreflect.Map, fd protoreflect.FieldDescriptor, patch 
 			} else {
 				dstv = dst.NewValue()
 			}
-			patchMessage(dstv.Message(), v.Message(), patch)
+			patchMessage(dstv.Message(), v.Message())
 			dst.Set(k, dstv)
 		case fd.Kind() == protoreflect.BytesKind:
 			dst.Set(k, cloneBytes(v))

@@ -83,10 +83,10 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 				return err
 			}
 			name := getExportedConfName(info, impInfo)
-			if info.Opts.Patch != tableaupb.Patch_PATCH_NONE {
+			if info.Opts.Patch == tableaupb.Patch_PATCH_MERGE {
 				if info.ExtInfo.DryRun == options.DryRunPatch {
 					clonedMainMsg := proto.Clone(mainMsg)
-					xproto.PatchMessage(clonedMainMsg, msg, info.Opts.Patch)
+					xproto.PatchMessage(clonedMainMsg, msg)
 					msg = clonedMainMsg
 				} else {
 					return storePatchMergeMessage(msg, name, x.OutputDir, x.OutputOpt)

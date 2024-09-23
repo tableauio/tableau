@@ -85,22 +85,23 @@ message PatchReplaceConf {
   
   string name = 1 [(tableau.field) = {name: "Name" }];
   repeated int32 price_list = 2 [(tableau.field) = {name: "Price" layout: LAYOUT_INCELL }];
-  string alias = 3 [(tableau.field) = {name: "Alias" }];
 }
 
 message PatchMergeConf {
   option (tableau.worksheet) = {name:"PatchMergeConf" namerow:1 typerow:2 noterow:3 datarow:4 patch:PATCH_MERGE};
   
   string name = 1 [(tableau.field) = {name:"Name" }];
-  Time time = 2 [(tableau.field) = {name:"Time"}];
+  string name2 = 2 [(tableau.field) = {name: "Name2" }];
+  optional string name3 = 3 [(tableau.field) = {name: "Name3" }];
+  Time time = 4 [(tableau.field) = {name:"Time"}];
   message Time {
     google.protobuf.Timestamp start = 1 [(tableau.field) = {name:"Start"}];
     google.protobuf.Duration expiry = 2 [(tableau.field) = {name:"Expiry"}];
   }
-  repeated int32 price_list = 3 [(tableau.field) = {name:"Price" layout:LAYOUT_INCELL }];
-  repeated int32 replace_price_list = 4 [(tableau.field) = {name:"ReplacePrice" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
-  map<uint32, unittest.Item> item_map = 5 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
-  map<uint32, unittest.Item> replace_item_map = 6 [(tableau.field) = {name:"ReplaceItem" key:"ID" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
+  repeated int32 price_list = 5 [(tableau.field) = {name:"Price" layout:LAYOUT_INCELL }];
+  repeated int32 replace_price_list = 6 [(tableau.field) = {name:"ReplacePrice" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
+  map<uint32, unittest.Item> item_map = 7 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
+  map<uint32, unittest.Item> replace_item_map = 8 [(tableau.field) = {name:"ReplaceItem" key:"ID" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
 }
 
 message RecursivePatchConf {
