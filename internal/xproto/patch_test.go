@@ -17,7 +17,7 @@ func TestLoadWithPatch(t *testing.T) {
 		args args
 	}{
 		{
-			name: "Empty proto3 string field",
+			name: "Empty string field",
 			args: args{
 				dst: &unittestpb.PatchMergeConf{
 					Name:  "apple",
@@ -25,7 +25,7 @@ func TestLoadWithPatch(t *testing.T) {
 				},
 				src: &unittestpb.PatchMergeConf{
 					Name:  "orange",
-					Name2: "apple2",
+					Name2: "",
 				},
 				result: &unittestpb.PatchMergeConf{
 					Name:  "orange",
@@ -34,7 +34,7 @@ func TestLoadWithPatch(t *testing.T) {
 			},
 		},
 		{
-			name: "Empty proto2 string field",
+			name: "Empty optional string field",
 			args: args{
 				dst: &unittestpb.PatchMergeConf{
 					Name:  "apple",
