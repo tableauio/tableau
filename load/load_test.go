@@ -309,7 +309,7 @@ func TestLoadWithPatch(t *testing.T) {
 			},
 		},
 		{
-			name: "Recursively-patch",
+			name: "Recursive-patch",
 			args: args{
 				msg:     &unittestpb.RecursivePatchConf{},
 				dir:     "../testdata/unittest/conf/",
