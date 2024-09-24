@@ -2,10 +2,13 @@ package xproto
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestLoadWithPatch(t *testing.T) {
@@ -47,6 +50,31 @@ func TestLoadWithPatch(t *testing.T) {
 				result: &unittestpb.PatchMergeConf{
 					Name:  "orange",
 					Name3: proto.String(""),
+				},
+			},
+		},
+		{
+			name: "Merge message",
+			args: args{
+				dst: &unittestpb.PatchMergeConf{
+					Name: "apple",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start:  timestamppb.New(time.Date(2024, 10, 1, 2, 10, 10, 0, time.UTC)),
+						Expiry: durationpb.New(time.Hour),
+					},
+				},
+				src: &unittestpb.PatchMergeConf{
+					Name: "orange",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Expiry: durationpb.New(2 * time.Hour),
+					},
+				},
+				result: &unittestpb.PatchMergeConf{
+					Name: "orange",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start:  timestamppb.New(time.Date(2024, 10, 1, 2, 10, 10, 0, time.UTC)),
+						Expiry: durationpb.New(2 * time.Hour),
+					},
 				},
 			},
 		},
@@ -186,6 +214,7 @@ func TestLoadWithPatch(t *testing.T) {
 							GoodsMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods{
 								1001: {
 									GoodsId: 1001,
+									Desc:    []byte("apple"),
 									CurrencyMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
 										10000001: {
 											Type:      10000001,
@@ -194,23 +223,37 @@ func TestLoadWithPatch(t *testing.T) {
 										10000002: {
 											Type:      10000002,
 											PriceList: []int32{4, 5, 6},
+											MessageList: map[int32][]byte{
+												1: []byte("Message1"),
+											},
 										},
 									},
-									TagList: []string{
-										"new",
-										"discount",
+									TagList: [][]byte{
+										[]byte("new"),
+										[]byte("discount"),
+									},
+									AwardList: []*unittestpb.RecursivePatchConf_Shop_Goods_Award{
+										{
+											Id:  1,
+											Num: 1,
+										},
+										{
+											Id:  2,
+											Num: 2,
+										},
 									},
 								},
 								1002: {
 									GoodsId: 1002,
+									Desc:    []byte("orange"),
 									CurrencyMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
 										10000002: {
 											Type:      10000002,
 											PriceList: []int32{7, 8, 9},
 										},
 									},
-									TagList: []string{
-										"new",
+									TagList: [][]byte{
+										[]byte("new"),
 									},
 								},
 							},
@@ -228,27 +271,44 @@ func TestLoadWithPatch(t *testing.T) {
 										10000002: {
 											Type:      10000002,
 											PriceList: []int32{31, 32, 33},
+											ValueList: map[int32]int32{
+												1: 1,
+											},
+											MessageList: map[int32][]byte{
+												2: []byte("Message2"),
+											},
 										},
 										10000003: {
 											Type:      10000003,
 											PriceList: []int32{44, 45, 46},
 										},
 									},
-									TagList: []string{
-										"offshelf soon",
-										"discount",
+									TagList: [][]byte{
+										[]byte("offshelf soon"),
+										[]byte("discount"),
+									},
+									AwardList: []*unittestpb.RecursivePatchConf_Shop_Goods_Award{
+										{
+											Id:  1,
+											Num: 1,
+										},
+										{
+											Id:  2,
+											Num: 2,
+										},
 									},
 								},
 								1003: {
 									GoodsId: 1003,
+									Desc:    []byte("mango"),
 									CurrencyMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
 										10000002: {
 											Type:      10000002,
 											PriceList: []int32{37, 38, 39},
 										},
 									},
-									TagList: []string{
-										"new",
+									TagList: [][]byte{
+										[]byte("new"),
 									},
 								},
 							},
@@ -258,6 +318,7 @@ func TestLoadWithPatch(t *testing.T) {
 							GoodsMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods{
 								2001: {
 									GoodsId: 2001,
+									Desc:    []byte("potato"),
 									CurrencyMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
 										20000001: {
 											Type:      20000001,
@@ -276,6 +337,7 @@ func TestLoadWithPatch(t *testing.T) {
 							GoodsMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods{
 								1001: {
 									GoodsId: 1001,
+									Desc:    []byte("apple"),
 									CurrencyMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
 										10000001: {
 											Type:      10000001,
@@ -284,39 +346,66 @@ func TestLoadWithPatch(t *testing.T) {
 										10000002: {
 											Type:      10000002,
 											PriceList: []int32{31, 32, 33},
+											ValueList: map[int32]int32{
+												1: 1,
+											},
+											MessageList: map[int32][]byte{
+												1: []byte("Message1"),
+												2: []byte("Message2"),
+											},
 										},
 										10000003: {
 											Type:      10000003,
 											PriceList: []int32{44, 45, 46},
 										},
 									},
-									TagList: []string{
-										"offshelf soon",
-										"discount",
+									TagList: [][]byte{
+										[]byte("offshelf soon"),
+										[]byte("discount"),
+									},
+									AwardList: []*unittestpb.RecursivePatchConf_Shop_Goods_Award{
+										{
+											Id:  1,
+											Num: 1,
+										},
+										{
+											Id:  2,
+											Num: 2,
+										},
+										{
+											Id:  1,
+											Num: 1,
+										},
+										{
+											Id:  2,
+											Num: 2,
+										},
 									},
 								},
 								1002: {
 									GoodsId: 1002,
+									Desc:    []byte("orange"),
 									CurrencyMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
 										10000002: {
 											Type:      10000002,
 											PriceList: []int32{7, 8, 9},
 										},
 									},
-									TagList: []string{
-										"new",
+									TagList: [][]byte{
+										[]byte("new"),
 									},
 								},
 								1003: {
 									GoodsId: 1003,
+									Desc:    []byte("mango"),
 									CurrencyMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
 										10000002: {
 											Type:      10000002,
 											PriceList: []int32{37, 38, 39},
 										},
 									},
-									TagList: []string{
-										"new",
+									TagList: [][]byte{
+										[]byte("new"),
 									},
 								},
 							},
@@ -326,6 +415,7 @@ func TestLoadWithPatch(t *testing.T) {
 							GoodsMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods{
 								2001: {
 									GoodsId: 2001,
+									Desc:    []byte("potato"),
 									CurrencyMap: map[uint32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
 										20000001: {
 											Type:      20000001,

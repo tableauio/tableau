@@ -12,7 +12,13 @@
                                 31,
                                 32,
                                 33
-                            ]
+                            ],
+                            "valueList": {
+                                "1": 1
+                            },
+                            "messageList": {
+                                "2": "TWVzc2FnZTI="
+                            }
                         },
                         "10000003": {
                             "type": 10000003,
@@ -24,12 +30,23 @@
                         }
                     },
                     "tagList": [
-                        "offshelf soon",
-                        "discount"
+                        "b2Zmc2hlbGYgc29vbg==",
+                        "ZGlzY291bnQ="
+                    ],
+                    "awardList": [
+                        {
+                            "id": 1,
+                            "num": 1
+                        },
+                        {
+                            "id": 2,
+                            "num": 2
+                        }
                     ]
                 },
                 "1003": {
                     "goodsId": 1003,
+                    "desc": "bWFuZ28=",
                     "currencyMap": {
                         "10000002": {
                             "type": 10000002,
@@ -41,7 +58,7 @@
                         }
                     },
                     "tagList": [
-                        "new"
+                        "bmV3"
                     ]
                 }
             }
@@ -51,6 +68,7 @@
             "goodsMap": {
                 "2002": {
                     "goodsId": 2001,
+                    "desc": "cG90YXRv",
                     "currencyMap": {
                         "20000001": {
                             "type": 20000001,

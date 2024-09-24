@@ -113,12 +113,20 @@ message RecursivePatchConf {
     map<uint32, Goods> goods_map = 2 [(tableau.field) = {key:"GoodsID" layout:LAYOUT_VERTICAL}];
     message Goods {
       uint32 goods_id = 1 [(tableau.field) = {name:"GoodsID"}];
-      map<uint32, Currency> currency_map = 2 [(tableau.field) = {name:"Currency" key:"Type" layout:LAYOUT_HORIZONTAL}];
+      bytes desc = 2 [(tableau.field) = {name:"Desc"}];
+      map<uint32, Currency> currency_map = 3 [(tableau.field) = {name:"Currency" key:"Type" layout:LAYOUT_HORIZONTAL}];
       message Currency {
         uint32 type = 1 [(tableau.field) = {name:"Type"}];
         repeated int32 price_list = 2 [(tableau.field) = {name:"Price" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
+        map<int32, int32> value_list = 3 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL}];
+        map<int32, bytes> message_list = 4 [(tableau.field) = {name:"Message" layout:LAYOUT_INCELL}];
       }
-      repeated string tag_list = 3 [(tableau.field) = {name:"Tag" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
+      repeated bytes tag_list = 4 [(tableau.field) = {name:"Tag" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
+      repeated Award award_list = 5 [(tableau.field) = {name:"Award" layout:LAYOUT_HORIZONTAL}];
+      message Award {
+        uint32 id = 1 [(tableau.field) = {name:"Id"}];
+        int32 num = 2 [(tableau.field) = {name:"Num"}];
+      }
     }
   }
 }
