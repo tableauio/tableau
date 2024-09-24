@@ -176,6 +176,165 @@ func TestLoadWithPatch(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Recursively patch",
+			args: args{
+				dst: &unittestpb.RecursivePatchConf{
+					ShopMap: map[int32]*unittestpb.RecursivePatchConf_Shop{
+						1: {
+							ShopId: 1,
+							GoodsMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods{
+								1001: {
+									GoodsId: 1001,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										10000001: {
+											Type:      10000001,
+											PriceList: []int32{1, 2, 3},
+										},
+										10000002: {
+											Type:      10000002,
+											PriceList: []int32{4, 5, 6},
+										},
+									},
+									TagList: []string{
+										"new",
+										"discount",
+									},
+								},
+								1002: {
+									GoodsId: 1002,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										10000002: {
+											Type:      10000002,
+											PriceList: []int32{7, 8, 9},
+										},
+									},
+									TagList: []string{
+										"new",
+									},
+								},
+							},
+						},
+					},
+				},
+				src: &unittestpb.RecursivePatchConf{
+					ShopMap: map[int32]*unittestpb.RecursivePatchConf_Shop{
+						1: {
+							ShopId: 1,
+							GoodsMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods{
+								1001: {
+									GoodsId: 1001,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										10000003: {
+											Type:      10000003,
+											PriceList: []int32{31, 32, 33},
+										},
+										10000004: {
+											Type:      10000004,
+											PriceList: []int32{44, 45, 46},
+										},
+									},
+									TagList: []string{
+										"offshelf soon",
+										"discount",
+									},
+								},
+								1003: {
+									GoodsId: 1003,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										10000002: {
+											Type:      10000002,
+											PriceList: []int32{37, 38, 39},
+										},
+									},
+									TagList: []string{
+										"new",
+									},
+								},
+							},
+						},
+						2: {
+							ShopId: 2,
+							GoodsMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods{
+								2001: {
+									GoodsId: 2001,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										20000001: {
+											Type:      20000001,
+											PriceList: []int32{2001, 2002, 2003},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				result: &unittestpb.RecursivePatchConf{
+					ShopMap: map[int32]*unittestpb.RecursivePatchConf_Shop{
+						1: {
+							ShopId: 1,
+							GoodsMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods{
+								1001: {
+									GoodsId: 1001,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										10000003: {
+											Type:      10000003,
+											PriceList: []int32{31, 32, 33},
+										},
+										10000004: {
+											Type:      10000004,
+											PriceList: []int32{44, 45, 46},
+										},
+									},
+									TagList: []string{
+										"offshelf soon",
+										"discount",
+									},
+								},
+								1002: {
+									GoodsId: 1002,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										10000002: {
+											Type:      10000002,
+											PriceList: []int32{7, 8, 9},
+										},
+									},
+									TagList: []string{
+										"new",
+									},
+								},
+								1003: {
+									GoodsId: 1003,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										10000002: {
+											Type:      10000002,
+											PriceList: []int32{37, 38, 39},
+										},
+									},
+									TagList: []string{
+										"new",
+									},
+								},
+							},
+						},
+						2: {
+							ShopId: 2,
+							GoodsMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods{
+								2001: {
+									GoodsId: 2001,
+									CurrencyMap: map[int32]*unittestpb.RecursivePatchConf_Shop_Goods_Currency{
+										20000001: {
+											Type:      20000001,
+											PriceList: []int32{2001, 2002, 2003},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
