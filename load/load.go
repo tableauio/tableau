@@ -85,7 +85,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		if err := load(patchMsg, patchPath, patchFmt, opts); err != nil {
 			return err
 		}
-		patcherr = xproto.PatchMerge(msg, patchMsg)
+		patcherr = xproto.PatchMessage(msg, patchMsg)
 	default:
 		return xerrors.Errorf("unknown patch type: %v", patch)
 	}
