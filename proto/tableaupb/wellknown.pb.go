@@ -81,12 +81,12 @@ func (Comparator_Sign) EnumDescriptor() ([]byte, []int) {
 	return file_tableau_protobuf_wellknown_proto_rawDescGZIP(), []int{1, 0}
 }
 
-// Supported forms:
+// Supported formats:
 //   - N%: percentage, e.g.: 10%
 //   - N‰: per thounsand, e.g.: 10‰
 //   - N‱: per ten thounsand, e.g.: 10‱
-//   - N/D: 3/4
-//   - N: 3 is same to 3/1
+//   - N/D: simple fraction, e.g.: 3/4
+//   - N: only numerator, e.g.: 3 is same to 3/1
 type Fraction struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -142,6 +142,8 @@ func (x *Fraction) GetDen() int32 {
 	return 0
 }
 
+// Format: <Sign><Fraction>
+// e.g.: ==10, !=1/2, <10%, <=10‰, >10%, >=10‱
 type Comparator struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

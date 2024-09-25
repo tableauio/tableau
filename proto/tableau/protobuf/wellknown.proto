@@ -15,17 +15,19 @@ option csharp_namespace = "Tableau.Protobuf.Tableau";
 
 import "tableau/protobuf/tableau.proto";
 
-// Supported forms:
+// Supported formats:
 //  - N%: percentage, e.g.: 10%
 //  - N‰: per thounsand, e.g.: 10‰
 //  - N‱: per ten thounsand, e.g.: 10‱
-//  - N/D: 3/4
-//  - N: 3 is same to 3/1
+//  - N/D: simple fraction, e.g.: 3/4
+//  - N: only numerator, e.g.: 3 is same to 3/1
 message Fraction {
   int32 num = 1;  // numerator
   int32 den = 2;  // denominator
 }
 
+// Format: <Sign><Fraction>
+// e.g.: ==10, !=1/2, <10%, <=10‰, >10%, >=10‱
 message Comparator {
   Sign sign = 1;
   Fraction value = 2;

@@ -1,0 +1,18 @@
+Name,Alias,Field1,Field2,Field3
+PVP,AliasPVP,"ID
+uint32
+Note","Damage
+int64
+Note","Type
+enum<.FruitType>
+Note"
+PVE,AliasPVE,"Hero
+[]uint32
+Note","Dungeon
+map<int32, int64>
+Note",
+Skill,AliasSkill,"StartTime
+datetime
+Note","Duration
+duration
+Note",

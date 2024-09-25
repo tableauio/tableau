@@ -3,8 +3,8 @@
         "1": {
             "id": 1,
             "taskTarget": {
-                "type": "TYPE_PVP_BATTLE",
-                "pvpBattle": {
+                "type": "TYPE_PVP",
+                "pvp": {
                     "id": 1,
                     "damage": "10",
                     "typeList": [
@@ -19,12 +19,11 @@
         "2": {
             "id": 2,
             "taskTarget": {
-                "type": "TYPE_PVE_BATTLE",
-                "pveBattle": {
+                "type": "TYPE_PVE",
+                "pve": {
                     "mission": {
                         "id": 1,
-                        "level": 100,
-                        "itemType": "ITEM_TYPE_EQUIP"
+                        "type": "ITEM_TYPE_EQUIP"
                     },
                     "heroList": [
                         1,
@@ -43,8 +42,8 @@
         "3": {
             "id": 3,
             "taskTarget": {
-                "type": "TYPE_MAIN_STORY",
-                "mainStory": {
+                "type": "TYPE_STORY",
+                "story": {
                     "cost": {
                         "id": 1001,
                         "num": 10
@@ -70,8 +69,8 @@
         "4": {
             "id": 4,
             "taskTarget": {
-                "type": "TYPE_MAIN_HOBBY",
-                "mainHobby": {
+                "type": "TYPE_HOBBY",
+                "hobby": {
                     "flavorMap": {
                         "1": {
                             "key": "FRUIT_FLAVOR_FRAGRANT",
@@ -91,8 +90,8 @@
         "5": {
             "id": 5,
             "taskTarget": {
-                "type": "TYPE_MAIN_SKILL",
-                "mainSkill": {
+                "type": "TYPE_SKILL",
+                "skill": {
                     "id": 1,
                     "damage": "200"
                 }
@@ -102,8 +101,8 @@
         "6": {
             "id": 6,
             "taskTarget": {
-                "type": "TYPE_EMPTY_TARGET",
-                "emptyTarget": {}
+                "type": "TYPE_EMPTY",
+                "empty": {}
             },
             "progress": 0
         }

@@ -1,24 +1,35 @@
 Name,Alias,Field1,Field2,Field3
-PvpBattle,SoloPVPBattle,"ID
+PVP,AliasPVP,"ID
 uint32
-Note: battle id","Damage
+Note","Damage
 int64
-Note: battle damage","Type
+Note","Type
 []enum<.FruitType>
-Note: In battle fruite type"
-PveBattle,SoloPVEBattle,"Mission
-{uint32 ID, int32 Level, enum<.ItemType> ItemType}Mission","Hero
-[]uint32","Dungeon
-map<int32, int64>"
-MainStory,HeroMainStory,"Cost
-{.Item}","Fruit
-map<int32, enum<.FruitType>>","Flavor
-map<enum<.FruitFlavor>, enum<.FruitType>>"
-MainHobby,HeroMainHobby,"Flavor
-map<enum<.FruitFlavor>, enum<.FruitType>>","StartTime
-datetime","Duration
-duration"
-MainSkill,HeroMainSkill,"ID
-uint32","Damage
-int64",
-EmptyTarget,EmptyTarget,,,
+Note"
+PVE,AliasPVE,"Mission
+{uint32 ID, enum<.ItemType> Type}Mission
+Note","Hero
+[]uint32
+Note","Dungeon
+map<int32, int64>
+Note"
+Story,AliasStory,"Cost
+{.Item}
+Note","Fruit
+map<int32, enum<.FruitType>>
+Note","Flavor
+map<enum<.FruitFlavor>, enum<.FruitType>>
+Note"
+Hobby,AliasHobby,"Flavor
+map<enum<.FruitFlavor>, enum<.FruitType>>
+Note","StartTime
+datetime
+Note","Duration
+duration
+Note"
+Skill,AliasSkill,"ID
+uint32
+Note","Damage
+int64
+Note",
+Empty,AliasEmpty,,,

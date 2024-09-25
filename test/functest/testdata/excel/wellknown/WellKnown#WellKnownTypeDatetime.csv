@@ -1,0 +1,4 @@
+BeginDatetime,EndDatetime,Datetime
+datetime,datetime,[]datetime
+Begin datetime,End datetime,Datetime
+2020-01-01 10:25:00,2022-10-10 05:10:00,"2020-01-01 10:25:00,2022-10-10 05:10:00"
