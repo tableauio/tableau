@@ -1,9 +1,9 @@
 ID,TaskTargetType,TaskTargetField1,TaskTargetField2,TaskTargetField3," Progress"
 "map<int32, Task>",{.TaskTarget}enum<.TaskTarget.Type>,union,union,union," int32"
 ID,Target's type,Target's field1,Target's field2,Target's field3," Progress"
-1,SoloPVPBattle,1,10,"Apple,Orange,Banana",3
-2,SoloPVEBattle,"1,100,Equip","1,2,3","1:10,2:20,3:30",10
-3,HeroMainStory,"1001,10","1:Apple,2:Orange","Fragrant:Apple,Sour:Orange",10
-4,HeroMainHobby,"Fragrant:Apple,Sour:Orange",2023-06-01 10:00:00,22s,12
-5,HeroMainSkill,1,200,,8
-6,EmptyTarget,,,,
+1,AliasPVP,1,10,"Apple,Orange,Banana",3
+2,AliasPVE,"1,Equip","1,2,3","1:10,2:20,3:30",10
+3,AliasStory,"1001,10","1:Apple,2:Orange","Fragrant:Apple,Sour:Orange",10
+4,AliasHobby,"Fragrant:Apple,Sour:Orange",2023-06-01 10:00:00,22s,12
+5,AliasSkill,1,200,,8
+6,AliasEmpty,,,,
