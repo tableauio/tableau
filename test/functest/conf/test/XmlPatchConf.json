@@ -1,0 +1,18 @@
+{
+    "env": "test",
+    "scalarListList": [
+        10,
+        20,
+        30
+    ],
+    "structListList": [
+        {
+            "id": 10,
+            "name": "snake"
+        },
+        {
+            "id": 20,
+            "name": "python"
+        }
+    ]
+}

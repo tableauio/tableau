@@ -1,0 +1,23 @@
+{
+    "env": "prod",
+    "scalarMapMap": {
+        "10": "snake",
+        "20": "python"
+    },
+    "structMapMap": {
+        "1": {
+            "key": 1,
+            "num": 100
+        },
+        "20": {
+            "key": 20,
+            "name": "pineapple",
+            "num": 200
+        },
+        "30": {
+            "key": 30,
+            "name": "durian",
+            "num": 300
+        }
+    }
+}

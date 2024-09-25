@@ -1,0 +1,46 @@
+{
+    "env": "base",
+    "strictStruct": {
+        "id": 1,
+        "name": "apple",
+        "start": "2024-10-01T02:10:10Z",
+        "expiry": "3600s"
+    },
+    "scalarListList": [
+        1,
+        2,
+        3
+    ],
+    "structListList": [
+        {
+            "id": 1,
+            "name": "dog"
+        },
+        {
+            "id": 2,
+            "name": "bird"
+        }
+    ],
+    "scalarMapMap": {
+        "1": "dog",
+        "2": "bird",
+        "3": "cat"
+    },
+    "structMapMap": {
+        "1": {
+            "key": 1,
+            "name": "apple",
+            "num": 10
+        },
+        "2": {
+            "key": 2,
+            "name": "orange",
+            "num": 20
+        },
+        "3": {
+            "key": 3,
+            "name": "banana",
+            "num": 30
+        }
+    }
+}
