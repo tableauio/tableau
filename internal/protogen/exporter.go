@@ -13,6 +13,7 @@ import (
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -24,12 +25,12 @@ type bookExporter struct {
 	ProtoFileOptions map[string]string
 	OutputDir        string
 	FilenameSuffix   string
-	wb               *tableaupb.Workbook
+	wb               *internalpb.Workbook
 
 	gen *Generator
 }
 
-func newBookExporter(protoPackage string, protoFileOptions map[string]string, outputDir, filenameSuffix string, wb *tableaupb.Workbook, gen *Generator) *bookExporter {
+func newBookExporter(protoPackage string, protoFileOptions map[string]string, outputDir, filenameSuffix string, wb *internalpb.Workbook, gen *Generator) *bookExporter {
 	return &bookExporter{
 		ProtoPackage:     protoPackage,
 		ProtoFileOptions: protoFileOptions,
@@ -66,7 +67,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 			g:              g3,
 			isLastSheet:    i == len(x.wb.Worksheets)-1,
 			typeInfos:      x.gen.typeInfos,
-			nestedMessages: make(map[string]*tableaupb.Field),
+			nestedMessages: make(map[string]*internalpb.Field),
 			Imports:        make(map[string]bool),
 		}
 		if err := se.export(); err != nil {
@@ -134,13 +135,13 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 
 type sheetExporter struct {
 	be          *bookExporter
-	ws          *tableaupb.Worksheet
+	ws          *internalpb.Worksheet
 	g           *GeneratedBuf
 	isLastSheet bool
 	typeInfos   *xproto.TypeInfos
 
 	Imports        map[string]bool             // import name -> defined
-	nestedMessages map[string]*tableaupb.Field // top message scoped type name -> field
+	nestedMessages map[string]*internalpb.Field // top message scoped type name -> field
 }
 
 func (x *sheetExporter) export() error {
@@ -261,7 +262,7 @@ func (x *sheetExporter) exportMessager() error {
 	return nil
 }
 
-func (x *sheetExporter) exportField(depth int, tagid int, field *tableaupb.Field, prefix string) error {
+func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Field, prefix string) error {
 	label := ""
 	if x.ws.GetOptions().GetFieldPresence() &&
 		types.IsScalarType(field.FullType) &&
@@ -363,7 +364,7 @@ func marshalToText(m protoreflect.ProtoMessage) string {
 	return text
 }
 
-func isSameFieldMessageType(left, right *tableaupb.Field) bool {
+func isSameFieldMessageType(left, right *internalpb.Field) bool {
 	if left == nil || right == nil {
 		return false
 	}

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
@@ -43,7 +44,7 @@ type Sheet struct {
 	Document *Node
 	// Meta represents sheet's metadata, containing sheet’s layout,
 	// parser options, loader options, and so on.
-	Meta *tableaupb.Metasheet
+	Meta *internalpb.Metasheet
 }
 
 // NewTableSheet creates a new Sheet with a table.
@@ -63,8 +64,8 @@ func NewDocumentSheet(name string, doc *Node) *Sheet {
 }
 
 // ParseMetasheet parses a sheet to Metabook by the specified parser.
-func (s *Sheet) ParseMetasheet(parser SheetParser) (*tableaupb.Metabook, error) {
-	metabook := &tableaupb.Metabook{}
+func (s *Sheet) ParseMetasheet(parser SheetParser) (*internalpb.Metabook, error) {
+	metabook := &internalpb.Metabook{}
 	if s.Document != nil || (s.Table != nil && s.Table.MaxRow > 1) {
 		if err := parser.Parse(metabook, s); err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
@@ -116,10 +117,10 @@ func (s *Sheet) GetProtoName() string {
 	return s.GetDataName()
 }
 
-// ToWorkseet creates a new basic tableaupb.Worksheet without fields popolated,
+// ToWorkseet creates a new basic internalpb.Worksheet without fields popolated,
 // based on this sheet's info.
-func (s *Sheet) ToWorkseet() *tableaupb.Worksheet {
-	return &tableaupb.Worksheet{
+func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
+	return &internalpb.Worksheet{
 		Name: s.GetProtoName(),
 		Options: &tableaupb.WorksheetOptions{
 			Name:                   s.GetDataName(),

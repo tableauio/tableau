@@ -13,6 +13,7 @@ import (
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -29,7 +30,7 @@ const (
 
 type bookParser struct {
 	gen *Generator
-	wb  *tableaupb.Workbook
+	wb  *internalpb.Workbook
 }
 
 func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookParser {
@@ -46,14 +47,14 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	}
 	bp := &bookParser{
 		gen: gen,
-		wb: &tableaupb.Workbook{
+		wb: &internalpb.Workbook{
 			Options: &tableaupb.WorkbookOptions{
 				// NOTE(wenchy): all OS platforms use path slash separator `/`
 				// see: https://stackoverflow.com/questions/9371031/how-do-i-create-crossplatform-file-paths-in-go
 				Name:  relSlashPath,
 				Alias: alias,
 			},
-			Worksheets: []*tableaupb.Worksheet{},
+			Worksheets: []*internalpb.Worksheet{},
 			Name:       filename,
 			Imports:    make(map[string]int32),
 		},
@@ -70,7 +71,7 @@ func (p *bookParser) GetProtoFilePath() string {
 	return genProtoFilePath(p.wb.Name, p.gen.OutputOpt.FilenameSuffix)
 }
 
-func (p *bookParser) parseField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
+func (p *bookParser) parseField(field *internalpb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
 	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	// log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)
@@ -115,8 +116,8 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *tableHeader, cur
 	return cursor, true, nil
 }
 
-func (p *bookParser) parseSubField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (int, error) {
-	subField := &tableaupb.Field{}
+func (p *bookParser) parseSubField(field *internalpb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (int, error) {
+	subField := &internalpb.Field{}
 	cursor, parsed, err := p.parseField(subField, header, cursor, prefix, options...)
 	if err != nil {
 		return cursor, xerrors.WrapKV(err, xerrors.KeyPBFieldType, "scalar/enum")
@@ -127,7 +128,7 @@ func (p *bookParser) parseSubField(field *tableaupb.Field, header *tableHeader, 
 	return cursor, nil
 }
 
-func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
+func (p *bookParser) parseMapField(field *internalpb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
 	// refer: https://developers.google.com/protocol-buffers/docs/proto3#maps
 	//
 	//	map<key_type, value_type> map_field = N;
@@ -216,7 +217,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 		// TODO: support define custom variable name for predefined map value type.
 		// We can use descriptor to get the first field of predefined map value type,
 		// use its name option as column name, and then extract the custom variable name.
-		field.MapEntry = &tableaupb.Field_MapEntry{
+		field.MapEntry = &internalpb.Field_MapEntry{
 			KeyType:       parsedKeyType,
 			ValueType:     valueTypeDesc.Name,
 			ValueFullType: valueTypeDesc.FullName,
@@ -271,7 +272,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
 		field.Predefined = valueTypeDesc.Predefined
-		field.MapEntry = &tableaupb.Field_MapEntry{
+		field.MapEntry = &internalpb.Field_MapEntry{
 			KeyType:       parsedKeyType,
 			ValueType:     valueTypeDesc.Name,
 			ValueFullType: valueTypeDesc.FullName,
@@ -351,7 +352,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 		// For map type, Predefined indicates the ValueType of map has already
 		// been defined before.
 		field.Predefined = valuePredefined
-		field.MapEntry = &tableaupb.Field_MapEntry{
+		field.MapEntry = &internalpb.Field_MapEntry{
 			KeyType:       parsedKeyType,
 			ValueType:     parsedValueName,
 			ValueFullType: parsedValueFullName,
@@ -398,7 +399,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 	return cursor, nil
 }
 
-func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
+func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
 	opts := parseroptions.ParseOptions(options...)
 
 	nameCell := header.getValidNameCell(&cursor)
@@ -497,7 +498,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 		proto.Merge(field, scalarField)
 		field.Type = "repeated " + scalarField.Type
 		field.FullType = "repeated " + scalarField.FullType
-		field.ListEntry = &tableaupb.Field_ListEntry{
+		field.ListEntry = &internalpb.Field_ListEntry{
 			ElemType:     scalarField.Type,
 			ElemFullType: scalarField.FullType,
 		}
@@ -531,7 +532,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colType+desc.Prop.RawProp()))
 		if listElemSpanInnerCell {
 			// inner cell element
-			tempField := &tableaupb.Field{}
+			tempField := &internalpb.Field{}
 			_, parsed, err := p.parseField(tempField, header, cursor, prefix, firstFieldOptions...)
 			if err != nil {
 				return cursor, err
@@ -580,7 +581,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 		proto.Merge(field, scalarField)
 		field.Type = "repeated " + scalarField.Type
 		field.FullType = "repeated " + scalarField.FullType
-		field.ListEntry = &tableaupb.Field_ListEntry{
+		field.ListEntry = &internalpb.Field_ListEntry{
 			ElemType:     scalarField.Type,
 			ElemFullType: scalarField.FullType,
 		}
@@ -603,7 +604,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
 		if listElemSpanInnerCell {
 			// inner cell element
-			tempField := &tableaupb.Field{}
+			tempField := &internalpb.Field{}
 			_, parsed, err := p.parseField(tempField, header, cursor, prefix+"1", firstFieldOptions...)
 			if err != nil {
 				return cursor, err
@@ -674,7 +675,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 		field.Name += listVarSuffix
 		field.Type = "repeated " + scalarField.Type
 		field.FullType = "repeated " + scalarField.FullType
-		field.ListEntry = &tableaupb.Field_ListEntry{
+		field.ListEntry = &internalpb.Field_ListEntry{
 			ElemType:     scalarField.Type,
 			ElemFullType: scalarField.FullType,
 		}
@@ -686,7 +687,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 	return cursor, nil
 }
 
-func (p *bookParser) parseStructField(field *tableaupb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
+func (p *bookParser) parseStructField(field *internalpb.Field, header *tableHeader, cursor int, prefix string, options ...parseroptions.Option) (cur int, err error) {
 	opts := parseroptions.ParseOptions(options...)
 
 	nameCell := header.getValidNameCell(&cursor)
@@ -813,7 +814,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *tableHeade
 	return cursor, nil
 }
 
-func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*tableaupb.Field, error) {
+func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*internalpb.Field, error) {
 	var prop types.PropDescriptor
 	// enum syntax pattern
 	if desc := types.MatchEnum(typ); desc != nil {
@@ -840,7 +841,7 @@ func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*tableaupb.Field
 			xerrors.KeyTrimmedNameCell, name)
 	}
 	pureName := strings.TrimPrefix(name, book.MetaSign) // remove leading meta sign "@""
-	return &tableaupb.Field{
+	return &internalpb.Field{
 		Name:       strcase.ToSnake(pureName),
 		Type:       typeDesc.Name,
 		FullType:   typeDesc.FullName,

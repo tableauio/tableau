@@ -20,6 +20,7 @@ import (
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -274,7 +275,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		return nil
 	}
 	absPath := filepath.Join(dir, filename)
-	parser := confgen.NewSheetParser(xproto.TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, book.MetasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
@@ -317,7 +318,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		child := sheet.Document.Children[0]
 		var parsed bool
 		for _, node := range child.Children {
-			field := &tableaupb.Field{}
+			field := &internalpb.Field{}
 			parsed, err = bp.parseField(field, node)
 			if err != nil {
 				return xerrors.WrapKV(err,
@@ -351,7 +352,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	absPath := filepath.Join(dir, filename)
 	var imp importer.Importer
 	if pass == firstPass {
-		parser := confgen.NewSheetParser(xproto.TableauProtoPackage, gen.LocationName, book.MetasheetOptions())
+		parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, book.MetasheetOptions())
 		imp, err = importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
 		if err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
@@ -457,7 +458,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			if ws.Options.Mode == tableaupb.Mode_MODE_DEFAULT {
 				var parsed bool
 				for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
-					field := &tableaupb.Field{}
+					field := &internalpb.Field{}
 					cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(ws.Options.Nested))
 					if err != nil {
 						return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
@@ -502,7 +503,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		Namerow: 1,
 		Datarow: 2,
 	}
-	parser := confgen.NewSheetParser(xproto.TableauProtoPackage, gen.LocationName, sheetOpts)
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, sheetOpts)
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
@@ -514,7 +515,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		}
 		gen.typeInfos.Put(info)
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
-		desc := &tableaupb.StructDescriptor{}
+		desc := &internalpb.StructDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
 			return xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
 		}
@@ -549,7 +550,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		}
 		gen.typeInfos.Put(enumInfo)
 
-		desc := &tableaupb.UnionDescriptor{}
+		desc := &internalpb.UnionDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
 			return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
 		}
@@ -574,19 +575,19 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 	return nil
 }
 
-func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.Worksheet, sheet *book.Sheet, debugBookName, debugSheetName string) error {
+func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.Worksheet, sheet *book.Sheet, debugBookName, debugSheetName string) error {
 	// create parser
 	sheetOpts := &tableaupb.WorksheetOptions{
 		Name:    sheet.Name,
 		Namerow: 1,
 		Datarow: 2,
 	}
-	parser := confgen.NewSheetParser(xproto.TableauProtoPackage, gen.LocationName, sheetOpts)
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, sheetOpts)
 
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
-		desc := &tableaupb.EnumDescriptor{}
+		desc := &internalpb.EnumDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
 			return xerrors.Wrapf(err, "failed to parse enum type sheet: %s", sheet.Name)
 		}
@@ -595,7 +596,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			if value.Number != nil {
 				number = *value.Number
 			}
-			field := &tableaupb.Field{
+			field := &internalpb.Field{
 				Number: number,
 				Name:   value.Name,
 				Alias:  value.Alias,
@@ -603,7 +604,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			ws.Fields = append(ws.Fields, field)
 		}
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
-		desc := &tableaupb.StructDescriptor{}
+		desc := &internalpb.StructDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
 			return xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
 		}
@@ -623,7 +624,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		var parsed bool
 		var err error
 		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
-			subField := &tableaupb.Field{}
+			subField := &internalpb.Field{}
 			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
 			if err != nil {
 				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
@@ -634,7 +635,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 		}
 
 	case tableaupb.Mode_MODE_UNION_TYPE:
-		desc := &tableaupb.UnionDescriptor{}
+		desc := &internalpb.UnionDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
 			return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
 		}
@@ -644,7 +645,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			if value.Number != nil {
 				number = *value.Number
 			}
-			field := &tableaupb.Field{
+			field := &internalpb.Field{
 				Number: number,
 				Name:   value.Name,
 				Alias:  value.Alias,
@@ -667,7 +668,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			var parsed bool
 			var err error
 			for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
-				subField := &tableaupb.Field{}
+				subField := &internalpb.Field{}
 				cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
 				if err != nil {
 					return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)

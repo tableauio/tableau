@@ -1,5 +1,6 @@
 package xproto
 
 const (
-	TableauProtoPackage = "tableau"
+	TableauProtoPackage  = "tableau"
+	InternalProtoPackage = "internal"
 )

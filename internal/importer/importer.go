@@ -8,7 +8,7 @@ import (
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 )
 
@@ -26,7 +26,7 @@ type Importer interface {
 	// Format returns workboot format.
 	Format() format.Format
 	// Metabook returns the metadata of the book.
-	Metabook() *tableaupb.Metabook
+	Metabook() *internalpb.Metabook
 	// GetSheets returns all sheets in order of the book.
 	GetSheets() []*book.Sheet
 	// GetSheet returns a Sheet of the specified sheet name.
