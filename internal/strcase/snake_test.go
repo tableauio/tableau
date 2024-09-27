@@ -93,6 +93,60 @@ func BenchmarkToSnakeWithIgnore(b *testing.B) {
 	benchmarkSnakeTest(b, toSnakeWithIgnore)
 }
 
+func TestCustomAcronymsToSnake(t *testing.T) {
+	tests := []struct {
+		name         string
+		acronymKey   string
+		acronymValue string
+		value        string
+		expected     string
+	}{
+		// TODO: API and APIV3, find the longest acronym
+		// {	
+		// 	name:         "API Custom Acronym",
+		// 	acronymKey:   "API",
+		// 	acronymValue: "api",
+		// 	expected:     "Api",
+		// },
+		{
+			name:         "APIV3 Custom Acronym",
+			acronymKey:   "APIV3",
+			acronymValue: "apiv3",
+			value:        "APIV3Spec",
+			expected:     "apiv3_spec",
+		},
+		{
+			name:         "APIV3 Custom Acronym with spaces",
+			acronymKey:   "APIV3",
+			acronymValue: "apiv3",
+			value:        "APIV3 Spec ",
+			expected:     "apiv3_spec",
+		},
+		{
+			name:         "K8s Custom Acroynm",
+			acronymKey:   "K8s",
+			acronymValue: "k8s",
+			value:        "InK8s",
+			expected:     "in_k8s",
+		},
+		{
+			name:         "K8s Custom Acroynm with spaces",
+			acronymKey:   "K8s",
+			acronymValue: "k8s",
+			value:        " InK8s  XX",
+			expected:     "in_k8s__xx",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ConfigureAcronym(test.acronymKey, test.acronymValue)
+			if result := ToSnake(test.value); result != test.expected {
+				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
+			}
+		})
+	}
+}
+
 func toDelimited(tb testing.TB) {
 	cases := [][]string{
 		{"testCase", "test@case"},

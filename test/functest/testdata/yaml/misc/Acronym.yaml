@@ -4,8 +4,8 @@
 # define schema
 "@sheet": "@YamlAcronymConf"
 InK8s: book
-OpenAISite: string
+APIV3Spec: string
 ---
 "@sheet": YamlAcronymConf
 InK8s: true
-OpenAISite: https://openai.com/
+APIV3Spec: https://openai.com/

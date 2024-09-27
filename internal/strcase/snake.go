@@ -39,10 +39,35 @@ func ToDelimited(s string, delimiter uint8) string {
 // or delimited.snake.case
 // (in this case `delimiter = '.'; screaming = false`)
 func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bool) string {
-	s = strings.TrimSpace(s)
 	n := strings.Builder{}
 	n.Grow(len(s) + 2) // nominal 2 bytes of extra space for inserted delimiters
-	for i, v := range []byte(s) {
+
+	s = strings.TrimSpace(s)
+	bytes := []byte(s)
+	for i := 0; i < len(bytes); i++ {
+		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
+		acronymFound := false
+		uppercaseAcronym.Range(func(key, value any) bool {
+			remain := string(bytes[i:])
+			if strings.HasPrefix(remain, key.(string)) {
+				n.WriteString(value.(string))
+				i += len(key.(string)) - 1
+				if i+1 < len(bytes) {
+					next := bytes[i+1]
+					if isIdentifier(next) && !strings.ContainsAny(string(next), ignore) {
+						n.WriteByte(delimiter)
+					}
+				}
+				acronymFound = true
+				return false
+			}
+			return true
+		})
+		if acronymFound {
+			continue
+		}
+
+		v := bytes[i]
 		vIsCap := v >= 'A' && v <= 'Z'
 		vIsLow := v >= 'a' && v <= 'z'
 		if vIsLow && screaming {
@@ -61,7 +86,9 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 			nextIsLow := next >= 'a' && next <= 'z'
 			nextIsNum := next >= '0' && next <= '9'
 			// add underscore if next letter case type is changed
-			if (vIsCap && (nextIsLow || nextIsNum)) || (vIsLow && (nextIsCap || nextIsNum)) || (vIsNum && (nextIsCap || nextIsLow)) {
+			if (vIsCap && (nextIsLow || nextIsNum)) ||
+				(vIsLow && (nextIsCap || nextIsNum)) ||
+				(vIsNum && (nextIsCap || nextIsLow)) {
 				prevIgnore := ignore != "" && i > 0 && strings.ContainsAny(string(s[i-1]), ignore)
 				if !prevIgnore {
 					if vIsCap && nextIsLow {

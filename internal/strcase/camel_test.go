@@ -69,10 +69,10 @@ func TestCustomAcronymsToCamel(t *testing.T) {
 		expected     string
 	}{
 		{
-			name:         "API Custom Acronym",
-			acronymKey:   "API",
-			acronymValue: "api",
-			expected:     "Api",
+			name:         "CCTV Custom Acronym",
+			acronymKey:   "CCTV",
+			acronymValue: "Cctv",
+			expected:     "Cctv",
 		},
 		{
 			name:         "ABCDACME Custom Acroynm",
@@ -105,10 +105,10 @@ func TestCustomAcronymsToLowerCamel(t *testing.T) {
 		expected     string
 	}{
 		{
-			name:         "API Custom Acronym",
-			acronymKey:   "API",
-			acronymValue: "api",
-			expected:     "api",
+			name:         "CCTV Custom Acronym",
+			acronymKey:   "CCTV",
+			acronymValue: "Cctv",
+			expected:     "cctv",
 		},
 		{
 			name:         "ABCDACME Custom Acroynm",
