@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/printer"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"

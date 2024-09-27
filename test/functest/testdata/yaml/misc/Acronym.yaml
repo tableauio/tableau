@@ -1,0 +1,11 @@
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlAcronymConf"
+InK8s: book
+OpenAISite: string
+---
+"@sheet": YamlAcronymConf
+InK8s: true
+OpenAISite: https://openai.com/

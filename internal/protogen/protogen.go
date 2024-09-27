@@ -15,6 +15,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
@@ -64,6 +65,10 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 
 	if opts.Proto.Input.MetasheetName != "" {
 		book.SetMetasheetName(opts.Proto.Input.MetasheetName)
+	}
+
+	for key, val := range opts.Acronyms {
+		strcase.ConfigureAcronym(key, val)
 	}
 
 	// parse custom imported proto files

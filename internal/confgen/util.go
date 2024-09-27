@@ -5,10 +5,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/iancoleman/strcase"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"

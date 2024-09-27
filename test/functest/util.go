@@ -81,6 +81,10 @@ func genProto(logLevel string) error {
 				Mode:  "FULL",
 			},
 		),
+		options.Acronyms(map[string]string{
+			"K8s":    "k8s",
+			"OpenAI": "openai",
+		}),
 		// options.Lang("zh"),
 	)
 }

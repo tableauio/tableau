@@ -1,7 +1,7 @@
 package xproto
 
 import (
-	"github.com/iancoleman/strcase"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
