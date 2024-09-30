@@ -485,7 +485,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 						Children: []*book.Node{
 							{
 								Name:  book.KeywordType,
-								Value: fmt.Sprintf("[%s]", desc.ColumnType),
+								Value: attrValue,
 							},
 							{
 								Name:  book.KeywordVariable,
