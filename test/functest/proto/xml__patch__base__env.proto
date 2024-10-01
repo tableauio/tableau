@@ -24,13 +24,14 @@ message XmlPatchConf {
     google.protobuf.Duration expiry = 4 [(tableau.field) = {name:"Expiry"}];
   }
   repeated int32 scalar_list_list = 3 [(tableau.field) = {name:"ScalarList" prop:{patch:PATCH_REPLACE}}];
-  repeated Animal struct_list_list = 4 [(tableau.field) = {name:"StructList"}];
+  repeated int32 incell_scalar_list_list = 4 [(tableau.field) = {name:"IncellScalarList" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
+  repeated Animal struct_list_list = 5 [(tableau.field) = {name:"StructList"}];
   message Animal {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
-  map<uint32, string> scalar_map_map = 5 [(tableau.field) = {name:"ScalarMap" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
-  map<uint32, Item> struct_map_map = 6 [(tableau.field) = {name:"StructMap" key:"key"}];
+  map<uint32, string> scalar_map_map = 6 [(tableau.field) = {name:"ScalarMap" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
+  map<uint32, Item> struct_map_map = 7 [(tableau.field) = {name:"StructMap" key:"key"}];
   message Item {
     uint32 key = 1 [(tableau.field) = {name:"key"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
