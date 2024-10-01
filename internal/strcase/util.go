@@ -1,7 +1,5 @@
 package strcase
 
-import "slices"
-
 type byteType int
 
 const (
@@ -29,7 +27,12 @@ func getType(b byte) byteType {
 
 func belong(b byte, types ...byteType) bool {
 	t := getType(b)
-	return slices.Contains(types, t)
+	for _, typ := range types {
+		if t == typ {
+			return true
+		}
+	}
+	return false
 }
 
 // isIdentifier checks whether b belongs Upper, Lower, or Digit.
