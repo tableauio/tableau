@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"

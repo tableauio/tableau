@@ -24,6 +24,12 @@ type Options struct {
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
 
+	// Configure your custom acronyms. Out of the box, "ID" -> "id" is auto configured.
+	//
+	// For example, if you configure K8s -> k8s, then the field name in PascalCase "InK8s"
+	// will be converted to snake_case "in_k8s" but not "in_k_8_s".
+	Acronyms map[string]string `yaml:"acronyms"`
+
 	Log *log.Options // Log options.
 
 	Proto *ProtoOption `yaml:"proto"` // Proto generation options.
@@ -278,6 +284,13 @@ func LocationName(o string) Option {
 func Lang(o string) Option {
 	return func(opts *Options) {
 		opts.Lang = o
+	}
+}
+
+// Acronyms configures your custom acronyms globally in protogen.
+func Acronyms(o map[string]string) Option {
+	return func(opts *Options) {
+		opts.Acronyms = o
 	}
 }
 

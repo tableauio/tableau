@@ -8,8 +8,8 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/tableauio/tableau/internal/camelcase"
 	"github.com/tableauio/tableau/internal/excel"
+	"github.com/tableauio/tableau/internal/strcase/camelcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/xerrors"

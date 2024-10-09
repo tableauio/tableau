@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/emirpasic/gods v1.18.1
-	github.com/iancoleman/strcase v0.3.0
 	github.com/jhump/protoreflect v1.16.0
 	github.com/pkg/errors v0.9.1
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240820135758-21b1d9897dc7

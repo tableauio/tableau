@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/iancoleman/strcase"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"

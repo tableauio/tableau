@@ -11,8 +11,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
