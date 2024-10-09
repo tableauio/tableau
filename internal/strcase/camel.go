@@ -4,48 +4,68 @@ import (
 	"strings"
 )
 
-// Converts a string to CamelCase
-func toCamelInitCase(s string, initCase bool) string {
+// Converts a string to camelCase/CamelCase. The first word starting with
+// initial uppercase or lowercase letter.
+func toCamelInitCase(s string, initUppercase bool) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return s
 	}
-	a, hasAcronym := uppercaseAcronym.Load(s)
-	if hasAcronym {
-		s = a.(string)
-	}
 
 	n := strings.Builder{}
 	n.Grow(len(s))
-	capNext := initCase
-	prevIsCap := false
-	for i, v := range []byte(s) {
-		vIsCap := v >= 'A' && v <= 'Z'
-		vIsLow := v >= 'a' && v <= 'z'
-		if capNext {
-			if vIsLow {
-				v += 'A'
-				v -= 'a'
+	upperNext := initUppercase
+	prevIsUpper := false
+
+	bytes := []byte(s)
+	for i := 0; i < len(bytes); i++ {
+		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
+		acronymFound := false
+		uppercaseAcronym.Range(func(key, value any) bool {
+			remain := string(bytes[i:])
+			if strings.HasPrefix(remain, key.(string)) {
+				val := value.(string)
+				if i > 0 || upperNext {
+					val = upperFirst(val)
+				} else {
+					val = lowerFirst(val)
+				}
+				n.WriteString(val)
+				i += len(key.(string)) - 1
+				upperNext = true
+				acronymFound = true
+				return false
+			}
+			return true
+		})
+		if acronymFound {
+			continue
+		}
+
+		v := bytes[i]
+		vIsUpper := isUpper(v)
+		vIsLower := isLower(v)
+		if upperNext {
+			if vIsLower {
+				v = toUpper(v)
 			}
 		} else if i == 0 {
-			if vIsCap {
-				v += 'a'
-				v -= 'A'
+			if vIsUpper {
+				v = toLower(v)
 			}
-		} else if prevIsCap && vIsCap && !hasAcronym {
-			v += 'a'
-			v -= 'A'
+		} else if prevIsUpper && vIsUpper {
+			v = toLower(v)
 		}
-		prevIsCap = vIsCap
+		prevIsUpper = vIsUpper
 
-		if vIsCap || vIsLow {
+		if vIsUpper || vIsLower {
 			n.WriteByte(v)
-			capNext = false
-		} else if vIsNum := v >= '0' && v <= '9'; vIsNum {
+			upperNext = false
+		} else if isDigit(v) {
 			n.WriteByte(v)
-			capNext = true
+			upperNext = true
 		} else {
-			capNext = isSeparator(v)
+			upperNext = isSeparator(v)
 		}
 	}
 	return n.String()

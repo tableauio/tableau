@@ -102,7 +102,7 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 		expected     string
 	}{
 		// TODO: API and APIV3, find the longest acronym
-		// {	
+		// {
 		// 	name:         "API Custom Acronym",
 		// 	acronymKey:   "API",
 		// 	acronymValue: "api",
@@ -112,8 +112,8 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 			name:         "APIV3 Custom Acronym",
 			acronymKey:   "APIV3",
 			acronymValue: "apiv3",
-			value:        "APIV3Spec",
-			expected:     "apiv3_spec",
+			value:        "WebAPIV3Spec",
+			expected:     "web_apiv3_spec",
 		},
 		{
 			name:         "APIV3 Custom Acronym with spaces",

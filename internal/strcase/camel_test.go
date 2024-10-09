@@ -61,72 +61,94 @@ func TestToLowerCamel(t *testing.T) {
 	toLowerCamel(t)
 }
 
-func TestCustomAcronymsToCamel(t *testing.T) {
+func TestCustomAcronymToCamel(t *testing.T) {
 	tests := []struct {
 		name         string
 		acronymKey   string
 		acronymValue string
+		value        string
 		expected     string
 	}{
 		{
 			name:         "CCTV Custom Acronym",
 			acronymKey:   "CCTV",
-			acronymValue: "Cctv",
-			expected:     "Cctv",
+			acronymValue: "cctv",
+			value:        "CCTVChannel",
+			expected:     "CctvChannel",
 		},
 		{
 			name:         "ABCDACME Custom Acroynm",
 			acronymKey:   "ABCDACME",
 			acronymValue: "AbcdAcme",
-			expected:     "AbcdAcme",
+			value:        "ABCDACMEAlias",
+			expected:     "AbcdAcmeAlias",
 		},
 		{
 			name:         "PostgreSQL Custom Acronym",
 			acronymKey:   "PostgreSQL",
-			acronymValue: "PostgreSQL",
-			expected:     "PostgreSQL",
+			acronymValue: "postgreSQL",
+			value:        "powerfulPostgreSQLDatabase",
+			expected:     "PowerfulPostgreSQLDatabase",
+		},
+		{
+			name:         "APIV3 Custom Acronym",
+			acronymKey:   "APIV3",
+			acronymValue: "apiv3",
+			value:        "WebAPIV3Spec",
+			expected:     "WebApiv3Spec",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ConfigureAcronym(test.acronymKey, test.acronymValue)
-			if result := ToCamel(test.acronymKey); result != test.expected {
+			if result := ToCamel(test.value); result != test.expected {
 				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
 			}
 		})
 	}
 }
 
-func TestCustomAcronymsToLowerCamel(t *testing.T) {
+func TestCustomAcronymToLowerCamel(t *testing.T) {
 	tests := []struct {
 		name         string
 		acronymKey   string
 		acronymValue string
+		value        string
 		expected     string
 	}{
 		{
 			name:         "CCTV Custom Acronym",
 			acronymKey:   "CCTV",
-			acronymValue: "Cctv",
-			expected:     "cctv",
+			acronymValue: "cctv",
+			value:        "CCTVChannel",
+			expected:     "cctvChannel",
 		},
 		{
 			name:         "ABCDACME Custom Acroynm",
 			acronymKey:   "ABCDACME",
 			acronymValue: "AbcdAcme",
-			expected:     "abcdAcme",
+			value:        "ABCDACMEAlias",
+			expected:     "abcdAcmeAlias",
 		},
 		{
 			name:         "PostgreSQL Custom Acronym",
 			acronymKey:   "PostgreSQL",
-			acronymValue: "PostgreSQL",
-			expected:     "postgreSQL",
+			acronymValue: "postgreSQL",
+			value:        "PowerfulPostgreSQLDatabase",
+			expected:     "powerfulPostgreSQLDatabase",
+		},
+		{
+			name:         "APIV3 Custom Acronym",
+			acronymKey:   "APIV3",
+			acronymValue: "apiv3",
+			value:        "WebAPIV3Spec",
+			expected:     "webApiv3Spec",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ConfigureAcronym(test.acronymKey, test.acronymValue)
-			if result := ToLowerCamel(test.acronymKey); result != test.expected {
+			if result := ToLowerCamel(test.value); result != test.expected {
 				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
 			}
 		})

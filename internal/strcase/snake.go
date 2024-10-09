@@ -54,7 +54,7 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 				i += len(key.(string)) - 1
 				if i+1 < len(bytes) {
 					next := bytes[i+1]
-					if isIdentifier(next) && !strings.ContainsAny(string(next), ignore) {
+					if belong(next, Upper, Lower, Digit) && !strings.ContainsAny(string(next), ignore) {
 						n.WriteByte(delimiter)
 					}
 				}
@@ -68,36 +68,34 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 		}
 
 		v := bytes[i]
-		vIsCap := v >= 'A' && v <= 'Z'
-		vIsLow := v >= 'a' && v <= 'z'
+		vIsUpper := isUpper(v)
+		vIsLow := isLower(v)
 		if vIsLow && screaming {
-			v += 'A'
-			v -= 'a'
-		} else if vIsCap && !screaming {
-			v += 'a'
-			v -= 'A'
+			v = toUpper(v)
+		} else if vIsUpper && !screaming {
+			v = toLower(v)
 		}
 
 		// treat acronyms as words, eg for JSONData -> JSON is a whole word
 		if i+1 < len(s) {
 			next := s[i+1]
-			vIsNum := v >= '0' && v <= '9'
-			nextIsCap := next >= 'A' && next <= 'Z'
-			nextIsLow := next >= 'a' && next <= 'z'
-			nextIsNum := next >= '0' && next <= '9'
+			vIsDigit := isDigit(v)
+			nextIsUpper := isUpper(next)
+			nextIsLower := isLower(next)
+			nextIsDigit := isDigit(next)
 			// add underscore if next letter case type is changed
-			if (vIsCap && (nextIsLow || nextIsNum)) ||
-				(vIsLow && (nextIsCap || nextIsNum)) ||
-				(vIsNum && (nextIsCap || nextIsLow)) {
+			if (vIsUpper && (nextIsLower || nextIsDigit)) ||
+				(vIsLow && (nextIsUpper || nextIsDigit)) ||
+				(vIsDigit && (nextIsUpper || nextIsLower)) {
 				prevIgnore := ignore != "" && i > 0 && strings.ContainsAny(string(s[i-1]), ignore)
 				if !prevIgnore {
-					if vIsCap && nextIsLow {
-						if prevIsCap := i > 0 && s[i-1] >= 'A' && s[i-1] <= 'Z'; prevIsCap {
+					if vIsUpper && nextIsLower {
+						if prevIsCap := i > 0 && isUpper(s[i-1]); prevIsCap {
 							n.WriteByte(delimiter)
 						}
 					}
 					n.WriteByte(v)
-					if vIsLow || vIsNum || nextIsNum {
+					if vIsLow || vIsDigit || nextIsDigit {
 						n.WriteByte(delimiter)
 					}
 					continue
@@ -105,7 +103,7 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 			}
 		}
 
-		if (v == ' ' || v == '_' || v == '-' || v == '.') && !strings.ContainsAny(string(v), ignore) {
+		if isSeparator(v) && !strings.ContainsAny(string(v), ignore) {
 			// replace space/underscore/hyphen/dot with delimiter
 			n.WriteByte(delimiter)
 		} else {
