@@ -11,12 +11,12 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -173,7 +173,7 @@ func (sheet *MetaSheet) ForEachCol(rowId int, f func(name string, cell *Cell) er
 	for name, i := range sheet.colMap {
 		cell := sheet.Cell(rowId, len(sheet.Rows[sheet.Namerow-1].Cells), name)
 		if err := f(name, cell); err != nil {
-			return errors.Wrapf(err, "call user-defined failed when iterating col %s (%d, %d)", name, rowId, i)
+			return xerrors.Wrapf(err, "call user-defined failed when iterating col %s (%d, %d)", name, rowId, i)
 		}
 	}
 	return nil
@@ -233,7 +233,7 @@ func (gen *Generator) Generate() {
 func (gen *Generator) ExportSheet(metaSheet *MetaSheet) error {
 	// create output dir
 	if err := os.MkdirAll(gen.OutputDir, 0700); err != nil {
-		return errors.WithMessagef(err, "failed to create output dir: %s", gen.OutputDir)
+		return xerrors.Wrapf(err, "failed to create output dir: %s", gen.OutputDir)
 	}
 	filename := filepath.Join(gen.OutputDir, gen.Workbook)
 	var wb *excelize.File

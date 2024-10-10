@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 // CSVImporter recognizes pattern: "<BookName>#<SheetName>.csv"
@@ -28,18 +28,18 @@ func NewCSVImporter(filename string, sheetNames []string, parser book.SheetParse
 	if mode == Protogen {
 		err := adjustCSVTopN(brOpts, parser, cloned)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 		}
 	}
 
 	book, err := readCSVBook(brOpts, parser)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
+		return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
 	}
 
 	if mode == Protogen {
 		if err := book.ParseMetaAndPurge(); err != nil {
-			return nil, errors.WithMessage(err, "failed to parse metasheet")
+			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	}
 	return &CSVImporter{
@@ -64,7 +64,7 @@ func adjustCSVTopN(brOpts *bookReaderOptions, parser book.SheetParser, cloned bo
 		}
 		meta, err := metasheet.ParseMetasheet(parser)
 		if err != nil {
-			return errors.WithMessagef(err, "failed to parse metasheet: %s", book.MetasheetName)
+			return xerrors.Wrapf(err, "failed to parse metasheet: %s", book.MetasheetName)
 		}
 
 		for _, srOpts := range brOpts.Sheets {
@@ -88,7 +88,7 @@ func readCSVBook(brOpts *bookReaderOptions, parser book.SheetParser) (*book.Book
 	for _, srOpts := range brOpts.Sheets {
 		rows, err := readCSVRows(srOpts.Filename, srOpts.TopN)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read CSV file: %s", srOpts.Filename)
+			return nil, xerrors.Wrapf(err, "failed to read CSV file: %s", srOpts.Filename)
 		}
 		sheet := book.NewTableSheet(srOpts.Name, rows)
 		newBook.AddSheet(sheet)
@@ -100,7 +100,7 @@ func readCSVBook(brOpts *bookReaderOptions, parser book.SheetParser) (*book.Book
 func readCSVSheet(filename, sheetName string, topN uint) (*book.Sheet, error) {
 	rows, err := readCSVRows(filename, topN)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read CSV file: %s", filename)
+		return nil, xerrors.Wrapf(err, "failed to read CSV file: %s", filename)
 	}
 	return book.NewTableSheet(sheetName, rows), nil
 }
@@ -108,7 +108,7 @@ func readCSVSheet(filename, sheetName string, topN uint) (*book.Sheet, error) {
 func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 	f, err := os.Open(filename)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open file: %s", filename)
+		return nil, xerrors.Wrapf(err, "failed to open file: %s", filename)
 	}
 	defer f.Close()
 
@@ -133,7 +133,7 @@ func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, errors.Wrapf(err, "read one CSV row failed")
+			return nil, xerrors.Wrapf(err, "read one CSV row failed")
 		}
 		rows = append(rows, row)
 	}
@@ -143,15 +143,15 @@ func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReaderOptions, error) {
 	bookName, _, err := fs.ParseCSVFilenamePattern(filename)
 	if err != nil {
-		return nil, errors.Errorf("cannot parse the book name from filename: %s", filename)
+		return nil, xerrors.Errorf("cannot parse the book name from filename: %s", filename)
 	}
 	globFilename := fs.GenCSVBooknamePattern(filepath.Dir(filename), bookName)
 	matches, err := filepath.Glob(globFilename)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to glob %s", globFilename)
+		return nil, xerrors.Wrapf(err, "failed to glob %s", globFilename)
 	}
 	if len(matches) == 0 {
-		return nil, errors.Errorf("no matching files found for %s", globFilename)
+		return nil, xerrors.Errorf("no matching files found for %s", globFilename)
 	}
 
 	// NOTE: keep the order of sheets
@@ -168,7 +168,7 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReade
 		filename := val.(string)
 		_, sheetName, err := fs.ParseCSVFilenamePattern(filename)
 		if err != nil {
-			return nil, errors.Errorf("cannot parse the book name from filename: %s", filename)
+			return nil, xerrors.Errorf("cannot parse the book name from filename: %s", filename)
 		}
 		if NeedSheet(sheetName, sheetNames) {
 			shReaderOpt := &sheetReaderOptions{

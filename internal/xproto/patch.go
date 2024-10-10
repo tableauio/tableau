@@ -1,8 +1,8 @@
 package xproto
 
 import (
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -27,7 +27,7 @@ import (
 func PatchMessage(dst, src proto.Message) error {
 	dstMsg, srcMsg := dst.ProtoReflect(), src.ProtoReflect()
 	if dstMsg.Descriptor().FullName() != srcMsg.Descriptor().FullName() {
-		return errors.Errorf("dst %s and src %s are not messages with the same descriptor",
+		return xerrors.Errorf("dst %s and src %s are not messages with the same descriptor",
 			dstMsg.Descriptor().FullName(),
 			srcMsg.Descriptor().FullName())
 	}

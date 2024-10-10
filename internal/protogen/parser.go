@@ -90,24 +90,24 @@ func (p *bookParser) parseField(field *tableaupb.Field, header *tableHeader, cur
 	if types.IsMap(typeCell) {
 		cursor, err = p.parseMapField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "map")
+			return cursor, false, xerrors.WrapKV(err, xerrors.KeyPBFieldType, "map")
 		}
 	} else if types.IsList(typeCell) {
 		cursor, err = p.parseListField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "list")
+			return cursor, false, xerrors.WrapKV(err, xerrors.KeyPBFieldType, "list")
 		}
 	} else if types.IsStruct(typeCell) {
 		cursor, err = p.parseStructField(field, header, cursor, prefix, options...)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "struct")
+			return cursor, false, xerrors.WrapKV(err, xerrors.KeyPBFieldType, "struct")
 		}
 	} else {
 		// scalar or enum type
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, typeCell)
 		if err != nil {
-			return cursor, false, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum")
+			return cursor, false, xerrors.WrapKV(err, xerrors.KeyPBFieldType, "scalar/enum")
 		}
 		proto.Merge(field, scalarField)
 	}
@@ -119,7 +119,7 @@ func (p *bookParser) parseSubField(field *tableaupb.Field, header *tableHeader, 
 	subField := &tableaupb.Field{}
 	cursor, parsed, err := p.parseField(subField, header, cursor, prefix, options...)
 	if err != nil {
-		return cursor, xerrors.WithMessageKV(err, xerrors.KeyPBFieldType, "scalar/enum")
+		return cursor, xerrors.WrapKV(err, xerrors.KeyPBFieldType, "scalar/enum")
 	}
 	if parsed {
 		field.Fields = append(field.Fields, subField)
@@ -154,7 +154,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 
 	valueTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.ValueType)
 	if err != nil {
-		return cursor, xerrors.WithMessageKV(err,
+		return cursor, xerrors.WrapKV(err,
 			xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
 			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
@@ -226,7 +226,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 		// extract map field property
 		prop, err := desc.Prop.FieldProp()
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -241,7 +241,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 		}
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.KeyType+desc.Prop.RawProp())
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -281,7 +281,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 		// extract map field property
 		prop, err := desc.Prop.FieldProp()
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -294,7 +294,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 		}
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.KeyType+desc.Prop.RawProp())
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -330,7 +330,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 
 		keyTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.KeyType)
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.ValueType+" (map key)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text)
 		}
@@ -358,7 +358,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 		}
 		prop, err := desc.Prop.FieldProp()
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, mapType+" (incell map)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -375,7 +375,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 
 			scalarField, err := parseField(p.gen.typeInfos, types.DefaultMapKeyOptName, desc.KeyType+desc.Prop.RawProp())
 			if err != nil {
-				return cursor, xerrors.WithMessageKV(err,
+				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 					xerrors.KeyPBFieldOpts, desc.Prop.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -384,7 +384,7 @@ func (p *bookParser) parseMapField(field *tableaupb.Field, header *tableHeader, 
 
 			scalarField, err = parseField(p.gen.typeInfos, types.DefaultMapValueOptName, desc.ValueType)
 			if err != nil {
-				return cursor, xerrors.WithMessageKV(err,
+				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
 					xerrors.KeyPBFieldOpts, desc.Prop.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -429,7 +429,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 				elemType = structDesc.StructType
 				typeDesc, err := parseTypeDescriptor(p.gen.typeInfos, structDesc.StructType)
 				if err != nil {
-					return cursor, xerrors.WithMessageKV(err,
+					return cursor, xerrors.WrapKV(err,
 						xerrors.KeyPBFieldType, structDesc.StructType,
 						xerrors.KeyPBFieldOpts, structDesc.Prop.Text)
 				}
@@ -440,7 +440,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 	} else {
 		typeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.ElemType)
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.ElemType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text)
 		}
@@ -489,7 +489,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 		// vertical list: all columns belong to this list after this cursor.
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, elemType)
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, elemType+" (list element)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -508,7 +508,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 
 		prop, err := desc.Prop.FieldProp()
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, field.Type+" (vertical list)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -572,7 +572,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, elemType)
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, elemType+" (list element)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -592,7 +592,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 		// extract list field property
 		prop, err := desc.Prop.FieldProp()
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, field.Type+" (horizontal list)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -653,7 +653,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 		}
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, colType+desc.Prop.RawProp())
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, colType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -662,7 +662,7 @@ func (p *bookParser) parseListField(field *tableaupb.Field, header *tableHeader,
 
 		prop, err := desc.Prop.FieldProp()
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, field.Type+" (incell list)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -700,7 +700,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *tableHeade
 	desc := types.MatchStruct(typeCell)
 	prop, err := desc.Prop.FieldProp()
 	if err != nil {
-		return cursor, xerrors.WithMessageKV(err,
+		return cursor, xerrors.WrapKV(err,
 			xerrors.KeyPBFieldType, desc.StructType,
 			xerrors.KeyPBFieldOpts, desc.Prop.Text,
 			xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -710,7 +710,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *tableHeade
 		// incell predefined struct
 		structField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.StructType)
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.StructType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -728,7 +728,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *tableHeade
 	if fieldPairs != nil {
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.ColumnType)
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.ColumnType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -742,7 +742,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *tableHeade
 			fieldName := fieldPairs[i+1]
 			scalarField, err := parseField(p.gen.typeInfos, fieldName, fieldType)
 			if err != nil {
-				return cursor, xerrors.WithMessageKV(err,
+				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, fieldType,
 					xerrors.KeyPBFieldOpts, desc.Prop.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -754,7 +754,7 @@ func (p *bookParser) parseStructField(field *tableaupb.Field, header *tableHeade
 		// NOTE(wenchy): each column name should be prefixed with the same struct variable name.
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.StructType)
 		if err != nil {
-			return cursor, xerrors.WithMessageKV(err,
+			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.StructType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
@@ -826,7 +826,7 @@ func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*tableaupb.Field
 	}
 	typeDesc, err := parseTypeDescriptor(typeInfos, typ)
 	if err != nil {
-		return nil, xerrors.WithMessageKV(err,
+		return nil, xerrors.WrapKV(err,
 			xerrors.KeyPBFieldOpts, prop.Text,
 			xerrors.KeyPBFieldType, typ,
 			xerrors.KeyTrimmedNameCell, name)
@@ -834,7 +834,7 @@ func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*tableaupb.Field
 
 	fieldProp, err := prop.FieldProp()
 	if err != nil {
-		return nil, xerrors.WithMessageKV(err,
+		return nil, xerrors.WrapKV(err,
 			xerrors.KeyPBFieldOpts, prop.Text,
 			xerrors.KeyPBFieldType, typ,
 			xerrors.KeyTrimmedNameCell, name)

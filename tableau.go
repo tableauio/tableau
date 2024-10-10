@@ -2,7 +2,6 @@ package tableau
 
 import (
 	"github.com/davecgh/go-spew/spew"
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -12,16 +11,17 @@ import (
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 // Generate can convert Excel/CSV/XML/YAML files to protoconf files and
 // different configuration files: JSON, Text, and Bin at the same time.
 func Generate(protoPackage, indir, outdir string, setters ...options.Option) error {
 	if err := GenProto(protoPackage, indir, outdir, setters...); err != nil {
-		return errors.WithMessagef(err, "failed to generate proto files")
+		return xerrors.Wrapf(err, "failed to generate proto files")
 	}
 	if err := GenConf(protoPackage, indir, outdir, setters...); err != nil {
-		return errors.WithMessagef(err, "failed to generate conf files")
+		return xerrors.Wrapf(err, "failed to generate conf files")
 	}
 	return nil
 }

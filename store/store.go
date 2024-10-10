@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/xerrors"
@@ -37,22 +36,22 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 		}
 		out, err = MarshalToJSON(msg, options)
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to JSON", name)
+			return xerrors.Wrapf(err, "failed to export %s to JSON", name)
 		}
 	case format.Text:
 		filename += format.TextExt
 		out, err = MarshalToText(msg, opts.Pretty)
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to Text", name)
+			return xerrors.Wrapf(err, "failed to export %s to Text", name)
 		}
 	case format.Bin:
 		filename += format.BinExt
 		out, err = MarshalToBin(msg)
 		if err != nil {
-			return errors.Wrapf(err, "failed to export %s to Bin", name)
+			return xerrors.Wrapf(err, "failed to export %s to Bin", name)
 		}
 	default:
-		return errors.Errorf("unknown output format: %v", fmt)
+		return xerrors.Errorf("unknown output format: %v", fmt)
 	}
 
 	fpath := filepath.Join(dir, filename)

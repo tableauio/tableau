@@ -1,11 +1,10 @@
 package importer
 
 import (
-	errs "errors"
+	"errors"
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -13,7 +12,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var ErrSheetNotFound = errs.New("sheet not found")
+var ErrSheetNotFound = errors.New("sheet not found")
 
 type ExcelImporter struct {
 	*book.Book
@@ -22,7 +21,7 @@ type ExcelImporter struct {
 func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*ExcelImporter, error) {
 	file, err := excelize.OpenFile(filename)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to open file %s", filename)
+		return nil, xerrors.Wrapf(err, "failed to open file %s", filename)
 	}
 	defer func() {
 		// Close the spreadsheet.
@@ -39,18 +38,18 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 	if mode == Protogen {
 		err := adjustExcelTopN(file, brOpts, parser, cloned)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 		}
 	}
 
 	book, err := readExcelBook(file, brOpts, parser)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to read book: %s", filename)
+		return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 	}
 
 	if mode == Protogen {
 		if err := book.ParseMetaAndPurge(); err != nil {
-			return nil, errors.WithMessage(err, "failed to parse metasheet")
+			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	}
 
@@ -75,7 +74,7 @@ func adjustExcelTopN(file *excelize.File, brOpts *bookReaderOptions, parser book
 		}
 		meta, err := metasheet.ParseMetasheet(parser)
 		if err != nil {
-			return errors.WithMessagef(err, "failed to parse metasheet: %s", book.MetasheetName)
+			return xerrors.Wrapf(err, "failed to parse metasheet: %s", book.MetasheetName)
 		}
 
 		for _, srOpts := range brOpts.Sheets {
@@ -98,7 +97,7 @@ func readExcelBook(file *excelize.File, brOpts *bookReaderOptions, parser book.S
 	newBook := book.NewBook(brOpts.Name, brOpts.Filename, parser)
 	sheets, err := readExcelSheets(file, brOpts.Sheets)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to read excel: %s", brOpts.Filename)
+		return nil, xerrors.Wrapf(err, "failed to read excel: %s", brOpts.Filename)
 	}
 	for _, sheet := range sheets {
 		newBook.AddSheet(sheet)
@@ -111,7 +110,7 @@ func readExcelMetasheet(file *excelize.File) (*book.Sheet, error) {
 	sheetName := book.MetasheetName
 	rows, err := readExcelSheetRows(file, sheetName, 0)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get rows of sheet: %s", sheetName)
+		return nil, xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetName)
 	}
 	return book.NewTableSheet(sheetName, rows), nil
 }
@@ -124,7 +123,7 @@ func readExcelSheets(file *excelize.File, srOpts []*sheetReaderOptions) ([]*book
 			if errors.Is(err, ErrSheetNotFound) {
 				return nil, xerrors.E3001(sheetReader.Name, file.Path)
 			}
-			return nil, errors.Wrapf(err, "failed to get rows of sheet: %s", sheetReader.Name)
+			return nil, xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetReader.Name)
 		}
 		sheets = append(sheets, book.NewTableSheet(sheetReader.Name, rows))
 	}
@@ -145,7 +144,7 @@ func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][
 		// cells in the tail of each row will be skipped.
 		rows, err := f.GetRows(sheetName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get all rows of sheet: %s#%s", f.Path, sheetName)
+			return nil, xerrors.Wrapf(err, "failed to get all rows of sheet: %s#%s", f.Path, sheetName)
 		}
 		return rows, nil
 	}
@@ -153,7 +152,7 @@ func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][
 	// read top N rows
 	excelRows, err := f.Rows(sheetName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get topN(%d) rows of sheet: %s#%s", topN, f.Path, sheetName)
+		return nil, xerrors.Wrapf(err, "failed to get topN(%d) rows of sheet: %s#%s", topN, f.Path, sheetName)
 	}
 	var nrow uint
 	for excelRows.Next() {
@@ -163,7 +162,7 @@ func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][
 		}
 		row, err := excelRows.Columns()
 		if err != nil {
-			return nil, errors.Wrapf(err, "read the %dth row failed: %s#%s", nrow, f.Path, sheetName)
+			return nil, xerrors.Wrapf(err, "read the %dth row failed: %s#%s", nrow, f.Path, sheetName)
 		}
 		rows = append(rows, row)
 	}

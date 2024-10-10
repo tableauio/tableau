@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/pkg/errors"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/printer"
@@ -97,7 +96,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	// mu := lockedfile.MutexAt(path)
 	// unlock, err := mu.Lock()
 	// if err != nil {
-	// 	return errors.Wrapf(err, "failed to lock file: %s", path)
+	// 	return xerrors.Wrapf(err, "failed to lock file: %s", path)
 	// }
 	// defer unlock()
 
@@ -156,7 +155,7 @@ func (x *sheetExporter) export() error {
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		return x.exportUnion()
 	default:
-		return errors.Errorf("unknown mode: %d", mode)
+		return xerrors.Errorf("unknown mode: %d", mode)
 	}
 }
 

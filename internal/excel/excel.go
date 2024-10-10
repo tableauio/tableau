@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/xerrors"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -54,7 +54,7 @@ func Open(filename string, sheetName string) (*excelize.File, error) {
 			Version:        "1.0.0",
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to set doc props: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to set doc props: %s", filename)
 		}
 		// The newly created workbook will by default contain a worksheet named `Sheet1`.
 		wb.SetSheetName("Sheet1", sheetName)
@@ -63,7 +63,7 @@ func Open(filename string, sheetName string) (*excelize.File, error) {
 		// fmt.Println("existed file: ", filename)
 		wb, err = excelize.OpenFile(filename)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open file: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to open file: %s", filename)
 		}
 		wb.NewSheet(sheetName)
 	}

@@ -2,6 +2,7 @@ package importer
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,9 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/xerrors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -25,15 +26,15 @@ func NewYAMLImporter(filename string, sheetNames []string, parser book.SheetPars
 	if mode == Protogen {
 		book, err = readYAMLBookWithOnlySchemaSheet(filename, parser)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
 		}
 		if err := book.ParseMetaAndPurge(); err != nil {
-			return nil, errors.WithMessage(err, "failed to parse metasheet")
+			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	} else {
 		book, err = readYAMLBook(filename, parser)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
 		}
 	}
 
@@ -65,7 +66,7 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 		}
 		sheet, err := parseYAMLSheet(&doc, i)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "file: %s", filename)
+			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
 		newBook.AddSheet(sheet)
 	}
@@ -95,7 +96,7 @@ func readYAMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (
 		}
 		sheet, err := parseYAMLSheet(&doc, i)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "file: %s", filename)
+			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
 		newBook.AddSheet(sheet)
 	}
@@ -198,7 +199,7 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 		log.Warnf("logic should not reach scalar node(%d:%d), value: %v, maybe encounter an empty document", node.Line, node.Column, node.Value)
 		return nil
 	default:
-		return errors.Errorf("unknown yaml node(%d:%d) kind: %v, value: %v", node.Line, node.Column, node.Kind, node.Value)
+		return xerrors.Errorf("unknown yaml node(%d:%d) kind: %v, value: %v", node.Line, node.Column, node.Kind, node.Value)
 	}
 }
 

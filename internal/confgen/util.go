@@ -176,7 +176,7 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 				for _, specifier := range sheetSpecifiers {
 					relBookPaths, _, err1 := importer.ResolveSheetSpecifier(inputDir, workbook.Name, specifier, subdirRewrites)
 					if err1 != nil {
-						err = xerrors.WithMessageKV(err1, xerrors.KeyPrimarySheetName, sheetOpts.GetName())
+						err = xerrors.WrapKV(err1, xerrors.KeyPrimarySheetName, sheetOpts.GetName())
 						return false
 					}
 					for relBookPath := range relBookPaths {

@@ -12,10 +12,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/subchen/go-xmldom"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 type XMLImporter struct {
@@ -59,15 +59,15 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 	if mode == Protogen {
 		book, err = readXMLBookWithOnlySchemaSheet(filename, parser)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
 		}
 		if err := book.ParseMetaAndPurge(); err != nil {
-			return nil, errors.WithMessage(err, "failed to parse metasheet")
+			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	} else {
 		book, err = readXMLBook(filename, parser)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "failed to read csv book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
 		}
 	}
 
@@ -96,7 +96,7 @@ func readXMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
 		}
 		sheet, err := parseXMLSheet(doc, UnknownMode)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "file: %s", filename)
+			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
 		newBook.AddSheet(sheet)
 	}
@@ -123,7 +123,7 @@ func readXMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (*
 		}
 		sheet, err := parseXMLSheet(doc, Protogen)
 		if err != nil {
-			return nil, errors.WithMessagef(err, "file: %s", filename)
+			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
 		newBook.AddSheet(sheet)
 	}
@@ -148,7 +148,7 @@ func parseXMLSheet(doc *xmldom.Document, mode ImporterMode) (*book.Sheet, error)
 
 	rootNode := &book.Node{}
 	if err := parseXMLNode(doc.Root, rootNode, mode); err != nil {
-		return nil, errors.Wrapf(err, "parse xml node failed")
+		return nil, xerrors.Wrapf(err, "parse xml node failed")
 	}
 	if structNode := rootNode.FindChild(book.KeywordStruct); structNode != nil {
 		// used for protogen
@@ -214,7 +214,7 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		if typeAttr := node.GetAttribute(atTypeDisplacement); typeAttr != nil {
 			// predefined struct
 			if len(node.Attributes) != 1 || len(node.Children) != 0 || node.Text != "" {
-				return errors.Errorf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)
+				return xerrors.Errorf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)
 			}
 			bnode.Kind = book.MapNode
 			bnode.Children = append(bnode.Children, &book.Node{
@@ -235,7 +235,7 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			var err error
 			curBNode, err = parseXMLAttribute(curBNode, attr.Name, attr.Value, i == 0)
 			if err != nil {
-				return errors.WithMessagef(err, "parse xml attribute failed")
+				return xerrors.Wrapf(err, "parse xml attribute failed")
 			}
 		}
 		// generate struct even if encounter empty node
@@ -253,24 +253,24 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			if child.Text != "" {
 				// child with text is regarded as an attribute
 				if len(child.Attributes) != 0 || len(child.Children) != 0 {
-					return errors.Errorf("node contains text so attributes and children must be empty|name: %s", child.Name)
+					return xerrors.Errorf("node contains text so attributes and children must be empty|name: %s", child.Name)
 				}
 				_, err := parseXMLAttribute(curBNode, child.Name, child.Text, false)
 				if err != nil {
-					return errors.WithMessagef(err, "parse xml text-only child failed")
+					return xerrors.Wrapf(err, "parse xml text-only child failed")
 				}
 				continue
 			}
 			subNode := &book.Node{}
 			if err := parseXMLNode(child, subNode, mode); err != nil {
-				return errors.Wrapf(err, "parse xml node failed")
+				return xerrors.Wrapf(err, "parse xml node failed")
 			}
 			curBNode.Children = append(curBNode.Children, subNode)
 		}
 	default:
 		if node.Text != "" {
 			if len(node.Attributes) != 0 || len(node.Children) != 0 {
-				return errors.Errorf("node contains text so attributes and children must be empty|name: %s", node.Name)
+				return xerrors.Errorf("node contains text so attributes and children must be empty|name: %s", node.Name)
 			}
 			bnode.Name = node.Name
 			bnode.Value = node.Text
@@ -288,7 +288,7 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		for _, child := range node.Children {
 			subNode := &book.Node{}
 			if err := parseXMLNode(child, subNode, mode); err != nil {
-				return errors.Wrapf(err, "parse xml node failed")
+				return xerrors.Wrapf(err, "parse xml node failed")
 			}
 			if subNode.Kind == book.ScalarNode {
 				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
@@ -386,7 +386,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 			return bnode, nil
 		default:
 			if !isFirstAttr {
-				return nil, errors.Errorf("vertical map not supported on non-first attributes")
+				return nil, xerrors.Errorf("vertical map not supported on non-first attributes")
 			}
 			// vertical map
 			curBNode = &book.Node{

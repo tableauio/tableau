@@ -149,7 +149,7 @@ func wrapDebugErr(err error, bookName, sheetName string, sh *tableHeader, cursor
 		nameCellPos = excel.Postion(cursor, int(sh.meta.Namerow-1))
 		typeCellPos = excel.Postion(cursor, int(sh.meta.Typerow-1))
 	}
-	return xerrors.WithMessageKV(err,
+	return xerrors.WrapKV(err,
 		xerrors.KeyBookName, bookName,
 		xerrors.KeySheetName, sheetName,
 		xerrors.KeyNameCellPos, nameCellPos,

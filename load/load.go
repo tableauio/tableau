@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/fs"
@@ -65,7 +64,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	}
 	existed, err := fs.Exists(patchPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to check file existence: %s", patchPath)
+		return xerrors.Wrapf(err, "failed to check file existence: %s", patchPath)
 	}
 	if !existed {
 		// If patch file not exists, then just load from the "main" file.
@@ -100,7 +99,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 func load(msg proto.Message, path string, fmt format.Format, opts *Options) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read file: %v", path)
+		return xerrors.Wrapf(err, "failed to read file: %v", path)
 	}
 
 	var unmarshalErr error
@@ -115,7 +114,7 @@ func load(msg proto.Message, path string, fmt format.Format, opts *Options) erro
 	case format.Bin:
 		unmarshalErr = proto.Unmarshal(content, msg)
 	default:
-		return errors.Errorf("unknown format: %v", fmt)
+		return xerrors.Errorf("unknown format: %v", fmt)
 	}
 	if unmarshalErr != nil {
 		lines := extractLinesOnUnmarshalError(unmarshalErr, fmt, content)
@@ -133,7 +132,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	md := msg.ProtoReflect().Descriptor()
 	protofile, workbook := confgen.ParseFileOptions(md.ParentFile())
 	if workbook == nil {
-		return errors.Errorf("workbook options not found of protofile: %v", protofile)
+		return xerrors.Errorf("workbook options not found of protofile: %v", protofile)
 	}
 	// rewrite subdir
 	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, opts.SubdirRewrites)
@@ -148,13 +147,13 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 		importer.Sheets(sheets),
 	)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to import workbook: %v", wbPath)
+		return xerrors.Wrapf(err, "failed to import workbook: %v", wbPath)
 	}
 
 	// get merger importer infos
 	impInfos, err := importer.GetMergerImporters(dir, workbook.Name, wsOpts.Name, wsOpts.Merger, opts.SubdirRewrites)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to get merger importer infos for %s", wbPath)
+		return xerrors.Wrapf(err, "failed to get merger importer infos for %s", wbPath)
 	}
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: self})
