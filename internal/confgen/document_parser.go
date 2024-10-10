@@ -42,7 +42,7 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 			field := parseFieldDescriptor(fd, sp.parser.opts.Sep, sp.parser.opts.Subsep)
 			defer field.release()
 			var fieldNode *book.Node
-			if md.FullName() == "tableau.Metabook" {
+			if md.FullName() == xproto.MetabookFullName {
 				// NOTE: this is a workaround specially for parsing metabook.
 				//
 				// just treat self node (with meta child removed) as field node

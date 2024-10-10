@@ -1,6 +1,6 @@
 package xproto
 
 const (
-	TableauProtoPackage  = "tableau"
 	InternalProtoPackage = "internal"
+	MetabookFullName     = "internal.Metabook"
 )
