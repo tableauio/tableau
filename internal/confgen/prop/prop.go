@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -129,7 +128,7 @@ func convertValueToInt64(kind protoreflect.Kind, value protoreflect.Value) (int6
 		// NOTE: as sequence type is int64, so convert to int64 even if the value is uint64.
 		return int64(value.Uint()), nil
 	default:
-		return 0, errors.Errorf("not supported sequence kind: %s", kind)
+		return 0, xerrors.Errorf("not supported sequence kind: %s", kind)
 	}
 }
 
@@ -145,7 +144,7 @@ func getPrevValueOfSequence(kind protoreflect.Kind, value protoreflect.Value) (p
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
 		prevValue = protoreflect.ValueOfUint64(value.Uint() - 1)
 	default:
-		return prevValue, errors.Errorf("not supported sequence kind: %s", kind)
+		return prevValue, xerrors.Errorf("not supported sequence kind: %s", kind)
 	}
 	return prevValue, nil
 }

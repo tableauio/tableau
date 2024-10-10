@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/log"
@@ -138,7 +137,7 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 
 	b.meta, err = metasheet.ParseMetasheet(b.metaParser)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to parse sheet: %s#%s", b.Filename(), MetasheetName)
+		return xerrors.Wrapf(err, "failed to parse sheet: %s#%s", b.Filename(), MetasheetName)
 	}
 
 	if len(b.meta.MetasheetMap) == 0 {
@@ -193,19 +192,19 @@ func (b *Book) ExportExcel() error {
 	}
 	file, err := excel.Open(filename, b.sheetNames[0])
 	if err != nil {
-		return errors.WithMessagef(err, "failed to open file %s", filename)
+		return xerrors.Wrapf(err, "failed to open file %s", filename)
 	}
 
 	for _, sheet := range b.GetSheets() {
 		if sheet.Table != nil {
 			if err := sheet.Table.ExportExcel(file, sheet.Name); err != nil {
-				return errors.WithMessagef(err, "export sheet %s to excel failed", sheet.Name)
+				return xerrors.Wrapf(err, "export sheet %s to excel failed", sheet.Name)
 			}
 		}
 	}
 
 	if err := file.SaveAs(filename); err != nil {
-		return errors.WithMessagef(err, "failed to save file %s", filename)
+		return xerrors.Wrapf(err, "failed to save file %s", filename)
 	}
 	return nil
 }
@@ -220,12 +219,12 @@ func (b *Book) ExportCSV() error {
 		path := fmt.Sprintf("%s#%s%s", basename, sheet.Name, format.CSVExt)
 		f, err := os.Create(path)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create csv file: %s", path)
+			return xerrors.Wrapf(err, "failed to create csv file: %s", path)
 		}
 		defer f.Close()
 		if sheet.Table != nil {
 			if err := sheet.Table.ExportCSV(f); err != nil {
-				return errors.WithMessagef(err, "export sheet %s to excel failed", sheet.Name)
+				return xerrors.Wrapf(err, "export sheet %s to excel failed", sheet.Name)
 			}
 		}
 	}

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/excel"
@@ -176,7 +175,7 @@ func (gen *Generator) generate(dir string) (err error) {
 			subdir := filepath.Join(dir, entry.Name())
 			err = gen.generate(subdir)
 			if err != nil {
-				return xerrors.WithMessageKV(err, xerrors.KeySubdir, subdir)
+				return xerrors.WrapKV(err, xerrors.KeySubdir, subdir)
 			}
 			continue
 		} else if gen.InputOpt.FollowSymlink && entry.Type() == iofs.ModeSymlink {
@@ -195,7 +194,7 @@ func (gen *Generator) generate(dir string) (err error) {
 			}
 			err = gen.generate(dstPath)
 			if err != nil {
-				return xerrors.WithMessageKV(err, xerrors.KeySubdir, dstPath)
+				return xerrors.WrapKV(err, xerrors.KeySubdir, dstPath)
 			}
 			continue
 		}
@@ -259,12 +258,12 @@ func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFil
 	fmt := format.GetFormat(filename)
 	if format.IsInputDocumentFormat(fmt) {
 		if err := gen.convertDocument(dir, filename, checkProtoFileConflicts, pass); err != nil {
-			return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
+			return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 		}
 		return nil
 	}
 	if err := gen.convertTable(dir, filename, checkProtoFileConflicts, pass); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleProto)
+		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 	}
 	return nil
 }
@@ -321,7 +320,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 			field := &tableaupb.Field{}
 			parsed, err = bp.parseField(field, node)
 			if err != nil {
-				return xerrors.WithMessageKV(err,
+				return xerrors.WrapKV(err,
 					xerrors.KeyBookName, debugBookName,
 					xerrors.KeySheetName, debugSheetName,
 				)
@@ -343,7 +342,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		bp.parser.gen,
 	)
 	if err := be.export(checkProtoFileConflicts); err != nil {
-		return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName)
+		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)
 	}
 	return nil
 }
@@ -416,21 +415,21 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				nameCol := int(ws.Options.Namerow) - 1
 				nameCell, err := sheet.Table.Cell(row, nameCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, nameCol))
+					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, nameCol))
 				}
 				shHeader.namerow = append(shHeader.namerow, nameCell)
 
 				typeCol := int(ws.Options.Typerow) - 1
 				typeCell, err := sheet.Table.Cell(row, typeCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, typeCol))
+					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, typeCol))
 				}
 				shHeader.typerow = append(shHeader.typerow, typeCell)
 
 				noteCol := int(ws.Options.Noterow) - 1
 				noteCell, err := sheet.Table.Cell(row, noteCol)
 				if err != nil {
-					return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, noteCol))
+					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, noteCol))
 				}
 				shHeader.noterow = append(shHeader.noterow, noteCell)
 			}
@@ -449,7 +448,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			parentFilename := bp.GetProtoFilePath()
 			err := gen.extractTypeInfoFromSpecialSheetMode(ws.Options.Mode, sheet, ws.Name, parentFilename)
 			if err != nil {
-				return xerrors.WithMessageKV(err,
+				return xerrors.WrapKV(err,
 					xerrors.KeyBookName, debugBookName,
 					xerrors.KeySheetName, debugSheetName)
 			}
@@ -490,7 +489,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			bp.gen,
 		)
 		if err := be.export(checkProtoFileConflicts); err != nil {
-			return xerrors.WithMessageKV(err, xerrors.KeyBookName, debugBookName)
+			return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)
 		}
 	}
 	return nil
@@ -517,7 +516,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
 		desc := &tableaupb.StructDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse struct type sheet: %s", sheet.Name)
+			return xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
 		}
 		firstFieldOptionName := ""
 		if len(desc.Fields) != 0 {
@@ -552,7 +551,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 
 		desc := &tableaupb.UnionDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse union type sheet: %s", sheet.Name)
+			return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
 		}
 		// add types nested in union type
 		for _, value := range desc.Values {
@@ -570,7 +569,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 			gen.typeInfos.Put(info)
 		}
 	default:
-		return errors.Errorf("unknown mode: %v", mode)
+		return xerrors.Errorf("unknown mode: %v", mode)
 	}
 	return nil
 }
@@ -589,7 +588,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 	case tableaupb.Mode_MODE_ENUM_TYPE:
 		desc := &tableaupb.EnumDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse enum type sheet: %s", sheet.Name)
+			return xerrors.Wrapf(err, "failed to parse enum type sheet: %s", sheet.Name)
 		}
 		for i, value := range desc.Values {
 			number := int32(i + 1)
@@ -606,7 +605,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
 		desc := &tableaupb.StructDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse struct type sheet: %s", sheet.Name)
+			return xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
 		}
 		bp := newBookParser("struct", "", "", gen)
 		shHeader := &tableHeader{
@@ -637,7 +636,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		desc := &tableaupb.UnionDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return errors.WithMessagef(err, "failed to parse union type sheet: %s", sheet.Name)
+			return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
 		}
 
 		for i, value := range desc.Values {
@@ -681,7 +680,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *tableaupb.W
 			ws.Fields = append(ws.Fields, field)
 		}
 	default:
-		return errors.Errorf("unknown mode: %v", mode)
+		return xerrors.Errorf("unknown mode: %v", mode)
 	}
 	return nil
 }

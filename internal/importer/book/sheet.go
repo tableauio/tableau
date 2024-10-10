@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -67,7 +67,7 @@ func (s *Sheet) ParseMetasheet(parser SheetParser) (*tableaupb.Metabook, error) 
 	metabook := &tableaupb.Metabook{}
 	if s.Document != nil || (s.Table != nil && s.Table.MaxRow > 1) {
 		if err := parser.Parse(metabook, s); err != nil {
-			return nil, errors.WithMessagef(err, "failed to parse metasheet")
+			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	}
 	return metabook, nil

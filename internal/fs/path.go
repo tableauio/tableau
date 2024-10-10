@@ -3,7 +3,7 @@ package fs
 import (
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 // Dir returns all but the last element of path, typically the path's directory.
@@ -33,7 +33,7 @@ func IsSamePath(leftPath, rightPath string) bool {
 func Rel(basepath string, targetpath string) (string, error) {
 	relPath, err := filepath.Rel(basepath, targetpath)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get relative path from %s to %s", basepath, targetpath)
+		return "", xerrors.Wrapf(err, "failed to get relative path from %s to %s", basepath, targetpath)
 	}
 	return CleanSlashPath(relPath), nil
 }

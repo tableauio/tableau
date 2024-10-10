@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 // CopyFile copies a file from src to dst. If src and dst files exist, and are
@@ -156,7 +156,7 @@ func RangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath st
 				return err
 			}
 		default:
-			return errors.New("unknown fommat: " + string(fmt))
+			return xerrors.Errorf("unknown fommat: %s", fmt)
 		}
 	}
 	return nil

@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 func ParseCSVFilenamePattern(filename string) (bookName, sheetName string, err error) {
@@ -15,7 +15,7 @@ func ParseCSVFilenamePattern(filename string) (bookName, sheetName string, err e
 	if len(splits) == 2 {
 		return CleanSlashPath(splits[0]), splits[1], nil
 	}
-	return "", "", errors.Errorf("cannot parse the book name and sheet name from filename: %s", filename)
+	return "", "", xerrors.Errorf("cannot parse the book name and sheet name from filename: %s", filename)
 }
 
 func GenCSVBooknamePattern(dir, bookName string) string {

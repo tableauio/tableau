@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
@@ -93,13 +92,13 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 	bookIndexes, err := buildWorkbookIndex(gen.ProtoPackage, gen.InputDir, gen.InputOpt.Subdirs, gen.InputOpt.SubdirRewrites, prFiles)
 	if err != nil {
-		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
 	var eg errgroup.Group
 	for _, specifier := range bookSpecifiers {
 		bookName, sheetName, err := parseBookSpecifier(specifier)
 		if err != nil {
-			return errors.Wrapf(err, "parse book specifier failed: %s", specifier)
+			return xerrors.Wrapf(err, "parse book specifier failed: %s", specifier)
 		}
 		relCleanSlashPath := fs.CleanSlashPath(bookName)
 		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
@@ -109,7 +108,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 				log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)
 				continue
 			}
-			return errors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
+			return xerrors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
 		// NOTE: one book may relate to multiple primary books
 		for _, fd := range primaryBookIndexInfo.books {
@@ -176,7 +175,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 
 	imp, err := importer.New(absWbPath, importer.Sheets(sheets), importer.Mode(importer.Confgen))
 	if err != nil {
-		return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
+		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
 	worksheetFound := false
@@ -198,12 +197,12 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 			}
 			err := gen.processScatter(imp, sheetInfo, rewrittenWorkbookName, sheetName)
 			if err != nil {
-				return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
+				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
 		} else {
 			err := gen.processMerger(imp, sheetInfo, rewrittenWorkbookName, sheetName)
 			if err != nil {
-				return xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
+				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
 		}
 

@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -48,7 +47,7 @@ func New(filename string, setters ...Option) (Importer, error) {
 	case format.YAML:
 		return NewYAMLImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	default:
-		return nil, errors.Errorf("unsupported format: %v", fmt)
+		return nil, xerrors.Errorf("unsupported format: %v", fmt)
 	}
 }
 
@@ -66,7 +65,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 	for _, specifier := range scatterSpecifiers {
 		relBookPaths, specifiedSheetName, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
 		if err != nil {
-			return nil, xerrors.WithMessageKV(err, xerrors.KeyPrimarySheetName, sheetName)
+			return nil, xerrors.WrapKV(err, xerrors.KeyPrimarySheetName, sheetName)
 		}
 		if specifiedSheetName == "" {
 			specifiedSheetName = sheetName
@@ -78,7 +77,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
-				return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+				return nil, xerrors.Wrapf(err, "failed to create importer: %s", fpath)
 			}
 			importerInfos = append(importerInfos, ImporterInfo{Importer: importer, SpecifiedSheetName: specifiedSheetName})
 		}
@@ -95,7 +94,7 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 	for _, specifier := range sheetSpecifiers {
 		relBookPaths, specifiedSheetName, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
 		if err != nil {
-			return nil, xerrors.WithMessageKV(err, xerrors.KeyPrimarySheetName, sheetName)
+			return nil, xerrors.WrapKV(err, xerrors.KeyPrimarySheetName, sheetName)
 		}
 		if specifiedSheetName == "" {
 			specifiedSheetName = sheetName
@@ -107,7 +106,7 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
-				return nil, errors.WithMessagef(err, "failed to create importer: %s", fpath)
+				return nil, xerrors.Wrapf(err, "failed to create importer: %s", fpath)
 			}
 			importerInfos = append(importerInfos, ImporterInfo{Importer: importer, SpecifiedSheetName: specifiedSheetName})
 		}
@@ -133,11 +132,11 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 	pattern := fs.Join(filepath.Dir(primaryBookPath), bookNameGlob)
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
-		return nil, "", errors.WithMessagef(err, "failed to glob pattern: %s", pattern)
+		return nil, "", xerrors.Wrapf(err, "failed to glob pattern: %s", pattern)
 	}
 	if len(matches) == 0 {
 		err := xerrors.E3000(sheetSpecifier, pattern)
-		return nil, "", xerrors.WithMessageKV(err, xerrors.KeyPrimaryBookName, primaryBookName)
+		return nil, "", xerrors.WrapKV(err, xerrors.KeyPrimaryBookName, primaryBookName)
 	}
 	for _, match := range matches {
 		path := match

@@ -6,11 +6,11 @@ import (
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -28,12 +28,12 @@ func ParseProtos(protoPaths []string, protoFiles ...string) (*protoregistry.File
 
 	fileDescs, err := parser.ParseFiles(protoFiles...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to ParseFiles from proto files")
+		return nil, xerrors.Wrapf(err, "failed to ParseFiles from proto files")
 	}
 	fds := desc.ToFileDescriptorSet(fileDescs...)
 	files, err := protodesc.NewFiles(fds)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to creates a new protoregistry.Files from the provided FileDescriptorSet message")
+		return nil, xerrors.Wrapf(err, "failed to creates a new protoregistry.Files from the provided FileDescriptorSet message")
 	}
 	return files, nil
 }
@@ -44,7 +44,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 	for _, filename := range excludeProtoFiles {
 		matches, err := filepath.Glob(filename)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
 			cleanSlashPath := fs.CleanSlashPath(match)
@@ -55,7 +55,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 	for _, filename := range protoFiles {
 		matches, err := filepath.Glob(filename)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to glob files in %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
 			cleanSlashPath := fs.CleanSlashPath(match)
@@ -71,13 +71,13 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 		// for _, originMatch := range matches {
 		// 	match, err := filepath.Abs(originMatch)
 		// 	if err != nil {
-		// 		return nil, errors.Wrapf(err, "failed to get absolute path for %s", match)
+		// 		return nil, xerrors.Wrapf(err, "failed to get absolute path for %s", match)
 		// 	}
 		// 	cleanSlashPath := fs.CleanSlashPath(match)
 		// 	for _, importPath := range protoPaths {
 		// 		importPath, err := filepath.Abs(importPath)
 		// 		if err != nil {
-		// 			return nil, errors.Wrapf(err, "failed to get absolute path for %s", importPath)
+		// 			return nil, xerrors.Wrapf(err, "failed to get absolute path for %s", importPath)
 		// 		}
 		// 		importCleanSlashPath := fs.CleanSlashPath(importPath)
 		// 		if !strings.HasPrefix(cleanSlashPath, importCleanSlashPath) {

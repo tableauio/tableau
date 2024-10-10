@@ -31,7 +31,7 @@
 //            +----+-----+                           +------+------+
 //                 |                                        |
 
-package stackerr
+package xerrors
 
 import (
 	"fmt"
@@ -115,8 +115,6 @@ func (w *withCode) Format(s fmt.State, verb rune) {
 					content += ": " + cause
 				}
 			}
-			io.WriteString(s, content)
-			return
 		}
 		fallthrough
 	case 's':
@@ -135,11 +133,8 @@ type withMessage struct {
 func (w *withMessage) Error() string {
 	content := w.message
 	if w.cause != nil {
-		if content != "" {
-			content += ": "
-		}
 		// don't use %+v to avoid printing duplicated stack
-		content += w.cause.Error()
+		content += ": " + w.cause.Error()
 	}
 	return content
 }
@@ -160,38 +155,12 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 					content += ": " + cause
 				}
 			}
-			io.WriteString(s, content)
-			return
 		}
 		fallthrough
 	case 's':
 		io.WriteString(s, content)
 	case 'q':
 		fmt.Fprintf(s, "%q", content)
-	}
-}
-
-// New returns an error with the supplied code and message.
-// New also records the stack trace at the point it was called
-func New(code int) error {
-	return &withCode{cause: &base{stack: callers()}, code: code}
-}
-
-// NewStackless returns an error without caller stack.
-func NewStackless(code int) error {
-	return &withCode{cause: new(base), code: code}
-}
-
-// Errorf formats according to a format specifier and returns the string
-// as a value that satisfies error.
-// Errorf also records the code and stack trace at the point it was called.
-func Errorf(code int, format string, args ...interface{}) error {
-	return &withCode{
-		code: code,
-		cause: &withMessage{
-			message: fmt.Sprintf(format, args...),
-			cause:   &base{stack: callers()},
-		},
 	}
 }
 
@@ -228,6 +197,56 @@ func withStack(err error) error {
 	return err
 }
 
+func combineKV(keysAndValues ...any) string {
+	var msg string
+	for i := 0; i < len(keysAndValues); i += 2 {
+		if i == len(keysAndValues)-1 {
+			panic("invalid Key-Value pairs: odd number")
+		}
+		key, val := keysAndValues[i], keysAndValues[i+1]
+		msg += fmt.Sprintf("|%v: %v", key, val)
+	}
+	return msg
+}
+
+// New returns an error with the supplied code and message.
+// New also records the stack trace at the point it was called
+func New(code int) error {
+	return &withCode{cause: &base{stack: callers()}, code: code}
+}
+
+// NewStackless returns an error without caller stack.
+func NewStackless(code int) error {
+	return &withCode{cause: new(base), code: code}
+}
+
+// Errorf formats according to a format specifier and returns the string
+// as a value that satisfies error.
+// Errorf also records the code and stack trace at the point it was called.
+// func Errorf(code int, format string, args ...interface{}) error {
+func Errorf(format string, args ...interface{}) error {
+	return &withCode{
+		code: -1,
+		cause: &withMessage{
+			cause:   &base{stack: callers()},
+			message: combineKV(KeyReason, fmt.Sprintf(format, args...)),
+		},
+	}
+}
+
+// ErrorKV returns an error with the supplied message and the key-value pairs
+// as `[|key: value]...` string.
+// ErrorKV also records the stack trace at the point it was called.
+func ErrorKV(msg string, keysAndValues ...any) error {
+	return &withCode{
+		code: -1,
+		cause: &withMessage{
+			cause:   &base{stack: callers()},
+			message: combineKV(keysAndValues...) + combineKV(KeyReason, msg),
+		},
+	}
+}
+
 // Wrapf returns an error annotating err with a stack trace
 // at the point Wrapf is called, and the format specifier.
 // If err is nil, Wrapf returns nil.
@@ -236,8 +255,24 @@ func Wrapf(err error, format string, args ...interface{}) error {
 		return nil
 	}
 	err = withStack(err)
-	err = &withMessage{cause: err, message: fmt.Sprintf(format, args...)}
-	return err
+	return &withMessage{
+		cause:   err,
+		message: fmt.Sprintf(format, args...),
+	}
+}
+
+// WrapKV formats the key-value pairs as `[|key: value]...` string and
+// returns the string as a value that satisfies error.
+// WrapKV also records the stack trace at the point it was called.
+func WrapKV(err error, keysAndValues ...any) error {
+	if err == nil {
+		return nil
+	}
+	err = withStack(err)
+	return &withMessage{
+		cause:   err,
+		message: combineKV(keysAndValues...),
+	}
 }
 
 // Wrap annotates err with a stack trace at the point Wrap was called.
@@ -307,15 +342,10 @@ func Code(err error) int {
 		err = cause.Cause()
 	}
 
-	// check if this is a grpc error
-	// if s, ok := status.FromError(err); ok {
-	// 	return s.Code()
-	// }
-
-	return -2
+	return -1
 }
 
-// Is judges the error whether wrapped with the code
+// Is reports whether any error in err's tree matches code.
 func Is(err error, code int) bool {
 	return Code(err) == code
 }

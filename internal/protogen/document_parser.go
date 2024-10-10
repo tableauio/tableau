@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
@@ -24,7 +23,7 @@ func newDocumentBookParser(bookName, alias, relSlashPath string, gen *Generator)
 
 func errWithNodeKV(err error, node *book.Node, pairs ...any) error {
 	kvs := append(node.DebugKV(), pairs...)
-	return xerrors.WithMessageKV(err, kvs...)
+	return xerrors.WrapKV(err, kvs...)
 }
 
 func (p *documentBookParser) parseField(field *tableaupb.Field, node *book.Node) (parsed bool, err error) {
@@ -337,7 +336,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 			return err
 		}
 		if fieldPairs == nil {
-			err := errors.Errorf("no fields defined in inner cell struct")
+			err := xerrors.Errorf("no fields defined in inner cell struct")
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.StructType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text)
@@ -408,7 +407,7 @@ func (p *documentBookParser) parseStrictStructField(field *tableaupb.Field, name
 	// 		return err
 	// 	}
 	// 	if fieldPairs == nil {
-	// 		err := errors.Errorf("no fields defined in inner cell struct")
+	// 		err := xerrors.Errorf("no fields defined in inner cell struct")
 	// 		return errWithNodeKV(err, typeNode,
 	// 			xerrors.KeyPBFieldType, desc.StructType,
 	// 			xerrors.KeyPBFieldOpts, desc.Prop.Text)

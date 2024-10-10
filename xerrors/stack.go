@@ -1,4 +1,4 @@
-package stackerr
+package xerrors
 
 import (
 	"fmt"

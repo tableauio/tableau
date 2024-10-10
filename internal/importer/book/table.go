@@ -5,7 +5,6 @@ import (
 	"encoding/csv"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/tableauio/tableau/xerrors"
 	"github.com/xuri/excelize/v2"
 )
@@ -96,16 +95,16 @@ func (t *Table) ExportExcel(file *excelize.File, sheetName string) error {
 		for ncol, cell := range row {
 			colname, err := excelize.ColumnNumberToName(ncol + 1)
 			if err != nil {
-				return errors.Wrapf(err, "failed to convert column number %d to name", ncol+1)
+				return xerrors.Wrapf(err, "failed to convert column number %d to name", ncol+1)
 			}
 			file.SetColWidth(sheetName, colname, colname, 20)
 			axis, err := excelize.CoordinatesToCellName(ncol+1, nrow+1)
 			if err != nil {
-				return errors.Wrapf(err, "failed to convert coordinates (%d,%d) to cell name", ncol+1, nrow+1)
+				return xerrors.Wrapf(err, "failed to convert coordinates (%d,%d) to cell name", ncol+1, nrow+1)
 			}
 			err = file.SetCellValue(sheetName, axis, cell)
 			if err != nil {
-				return errors.Wrapf(err, "failed to set cell value %s", axis)
+				return xerrors.Wrapf(err, "failed to set cell value %s", axis)
 			}
 		}
 	}

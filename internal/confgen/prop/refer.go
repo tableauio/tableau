@@ -156,13 +156,13 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
 	primaryImporter, err := importer.New(absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
-		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
+		return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
 
 	// get merger importer infos
 	impInfos, err := importer.GetMergerImporters(input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
-		return nil, xerrors.WithMessageKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
+		return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
 
 	// append self
@@ -179,7 +179,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 		sheet := impInfo.GetSheet(specifiedSheetName)
 		if sheet == nil {
 			err := xerrors.E0001(sheetName, impInfo.Filename())
-			return nil, xerrors.WithMessageKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyBookName, impInfo.Filename())
+			return nil, xerrors.WrapKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyBookName, impInfo.Filename())
 		}
 
 		if sheetOpts.Transpose {

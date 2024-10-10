@@ -1,11 +1,10 @@
-package stackerr
+package xerrors
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 func TestNew(t *testing.T) {
@@ -58,7 +57,8 @@ func TestErrorf(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Errorf(tt.args.code, "add some msg %d", 111)
+			// err := Errorf(tt.args.code, "add some msg %d", 111)
+			err := Errorf("add some msg %d", 111)
 			t.Logf("err: %+v", err)
 			t.Logf("err: %s", err)
 		})
@@ -83,13 +83,7 @@ func TestWithStack(t *testing.T) {
 		{
 			name: "without stack in cause",
 			args: args{
-				err: New(-1),
-			},
-		},
-		{
-			name: "with duplicated stack",
-			args: args{
-				err: errors.New("stack already in error"),
+				err: NewStackless(-1),
 			},
 		},
 	}
@@ -114,7 +108,7 @@ func TestWrapf(t *testing.T) {
 		{
 			name: "with stack",
 			args: args{
-				err: Errorf(-1, "some error %d", 111),
+				err: Errorf("some error %d", 111),
 			},
 		},
 		{
@@ -130,15 +124,15 @@ func TestWrapf(t *testing.T) {
 			},
 		},
 		{
-			name: "errors.Errorf",
+			name: "Errorf",
 			args: args{
-				err: Wrapf(errors.Wrapf(errors.Errorf("errors.Errorf"), "errors.Wrapf"), "wrapf"),
+				err: Wrapf(Wrapf(Errorf("Errorf"), "Wrapf"), "wrapf"),
 			},
 		},
 		{
 			name: "with code",
 			args: args{
-				err: WithCode(Wrapf(Errorf(-1, "test code"), "wrap1"), -2),
+				err: WithCode(Wrapf(Errorf("test code"), "wrap1"), -2),
 			},
 		},
 	}
@@ -197,8 +191,8 @@ func TestIs(t *testing.T) {
 		{
 			name: "test 1",
 			args: args{
-				err:  Wrapf(WithCode(New(-2), -1), "wrapf"),
-				code: -1,
+				err:  Wrapf(WithCode(New(-2), -3), "wrapf"),
+				code: -3,
 			},
 			want: true,
 		},
@@ -213,8 +207,8 @@ func TestIs(t *testing.T) {
 		{
 			name: "test 3",
 			args: args{
-				err:  errors.Wrap(fmt.Errorf("test 3 error"), "add some message"),
-				code: -2,
+				err:  Wrap(fmt.Errorf("test 3 error")),
+				code: -1, // unknown
 			},
 			want: true,
 		},
@@ -240,7 +234,7 @@ func TestWithCode(t *testing.T) {
 		{
 			name: "no code",
 			args: args{
-				err:  errors.New("no code"),
+				err:  fmt.Errorf("no code"),
 				code: -1,
 			},
 		},
@@ -256,7 +250,7 @@ func TestWithCode(t *testing.T) {
 			args: args{
 				err: WithCode(
 					WithCode(
-						Errorf(-2, "base failed"),
+						Errorf("base failed"),
 						-3),
 					-3),
 				code: -1,
@@ -284,7 +278,7 @@ func TestWithCodef(t *testing.T) {
 		{
 			name: "no code",
 			args: args{
-				err:  errors.New("no code"),
+				err:  fmt.Errorf("no code"),
 				code: -1,
 			},
 		},
@@ -300,7 +294,7 @@ func TestWithCodef(t *testing.T) {
 			args: args{
 				err: WithCode(
 					WithCode(
-						Errorf(-2, "base failed"),
+						Errorf("base failed"),
 						-3),
 					-3),
 				code: -1,
