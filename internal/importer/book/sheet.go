@@ -117,7 +117,7 @@ func (s *Sheet) GetProtoName() string {
 	return s.GetDataName()
 }
 
-// ToWorkseet creates a new basic internalpb.Worksheet without fields popolated,
+// ToWorkseet creates a new basic internalpb.Worksheet without fields populated,
 // based on this sheet's info.
 func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 	return &internalpb.Worksheet{
