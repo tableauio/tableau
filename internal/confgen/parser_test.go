@@ -8,7 +8,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
@@ -515,8 +515,8 @@ func TestParser_parseDocumentMetasheet(t *testing.T) {
 			parser:  parser,
 			args:    args{sheet: sheet},
 			wantErr: false,
-			wantMsg: &tableaupb.Metabook{
-				MetasheetMap: map[string]*tableaupb.Metasheet{
+			wantMsg: &internalpb.Metabook{
+				MetasheetMap: map[string]*internalpb.Metasheet{
 					"HeroConf": {
 						Sheet: "HeroConf",
 					},
@@ -531,7 +531,7 @@ func TestParser_parseDocumentMetasheet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			msg := &tableaupb.Metabook{}
+			msg := &internalpb.Metabook{}
 			err := tt.parser.Parse(msg, tt.args.sheet)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %s, wantErr %v", xerrors.NewDesc(err), tt.wantErr)

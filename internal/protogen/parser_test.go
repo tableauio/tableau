@@ -7,6 +7,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 )
 
 func Test_parseField(t *testing.T) {
@@ -25,7 +26,7 @@ func Test_parseField(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *tableaupb.Field
+		want    *internalpb.Field
 		wantErr bool
 	}{
 		{
@@ -35,7 +36,7 @@ func Test_parseField(t *testing.T) {
 				name:      "ID",
 				typ:       "int32",
 			},
-			want: &tableaupb.Field{
+			want: &internalpb.Field{
 				Type:     "int32",
 				FullType: "int32",
 				Name:     "id",
@@ -51,7 +52,7 @@ func Test_parseField(t *testing.T) {
 				name: "Type",
 				typ:  "enum<.ItemType>",
 			},
-			want: &tableaupb.Field{
+			want: &internalpb.Field{
 				Type:       "ItemType",
 				FullType:   "protoconf.ItemType",
 				Name:       "type",

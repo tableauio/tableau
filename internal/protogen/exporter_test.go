@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -77,8 +78,8 @@ func Test_genFieldOptionsString(t *testing.T) {
 
 func Test_isSameFieldMessageType(t *testing.T) {
 	type args struct {
-		left  *tableaupb.Field
-		right *tableaupb.Field
+		left  *internalpb.Field
+		right *internalpb.Field
 	}
 	tests := []struct {
 		name string
@@ -96,7 +97,7 @@ func Test_isSameFieldMessageType(t *testing.T) {
 		{
 			name: "one-is-nil",
 			args: args{
-				left:  &tableaupb.Field{},
+				left:  &internalpb.Field{},
 				right: nil,
 			},
 			want: false,
@@ -104,11 +105,11 @@ func Test_isSameFieldMessageType(t *testing.T) {
 		{
 			name: "one-sub-fields-nil",
 			args: args{
-				left: &tableaupb.Field{
+				left: &internalpb.Field{
 					Fields: nil,
 				},
-				right: &tableaupb.Field{
-					Fields: []*tableaupb.Field{
+				right: &internalpb.Field{
+					Fields: []*internalpb.Field{
 						{
 							Number: 1,
 							Name:   "Item",
@@ -122,8 +123,8 @@ func Test_isSameFieldMessageType(t *testing.T) {
 		{
 			name: "not-equal-length-of-sub-fields",
 			args: args{
-				left: &tableaupb.Field{
-					Fields: []*tableaupb.Field{
+				left: &internalpb.Field{
+					Fields: []*internalpb.Field{
 						{
 							Number: 1,
 						},
@@ -132,8 +133,8 @@ func Test_isSameFieldMessageType(t *testing.T) {
 						},
 					},
 				},
-				right: &tableaupb.Field{
-					Fields: []*tableaupb.Field{
+				right: &internalpb.Field{
+					Fields: []*internalpb.Field{
 						{
 							Number: 1,
 						},
@@ -145,10 +146,10 @@ func Test_isSameFieldMessageType(t *testing.T) {
 		{
 			name: "not-same-type",
 			args: args{
-				left: &tableaupb.Field{
+				left: &internalpb.Field{
 					Type: "Item",
 				},
-				right: &tableaupb.Field{
+				right: &internalpb.Field{
 					Type: "Drop",
 				},
 			},
@@ -157,8 +158,8 @@ func Test_isSameFieldMessageType(t *testing.T) {
 		{
 			name: "same-sub-fields",
 			args: args{
-				left: &tableaupb.Field{
-					Fields: []*tableaupb.Field{
+				left: &internalpb.Field{
+					Fields: []*internalpb.Field{
 						{
 							Number: 1,
 							Name:   "Item",
@@ -166,8 +167,8 @@ func Test_isSameFieldMessageType(t *testing.T) {
 						},
 					},
 				},
-				right: &tableaupb.Field{
-					Fields: []*tableaupb.Field{
+				right: &internalpb.Field{
+					Fields: []*internalpb.Field{
 						{
 							Number: 1,
 							Name:   "Item",
@@ -231,7 +232,7 @@ func Test_bookExporter_GetProtoFilePath(t *testing.T) {
 		{
 			name: "name-and-prop",
 			x: &bookExporter{
-				wb: &tableaupb.Workbook{
+				wb: &internalpb.Workbook{
 					Name: "name",
 				},
 				FilenameSuffix: "_conf",
@@ -258,12 +259,12 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 		{
 			name: "export-enum",
 			x: &sheetExporter{
-				ws: &tableaupb.Worksheet{
+				ws: &internalpb.Worksheet{
 					Name: "ItemType",
 					Options: &tableaupb.WorksheetOptions{
 						Name: "ItemType",
 					},
-					Fields: []*tableaupb.Field{
+					Fields: []*internalpb.Field{
 						{Number: 1, Name: "ITEM_TYPE_FRUIT", Alias: "Fruit"},
 						{Number: 2, Name: "ITEM_TYPE_EQUIP", Alias: "Equip"},
 						{Number: 3, Name: "ITEM_TYPE_BOX", Alias: "Box"},
@@ -303,12 +304,12 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 		{
 			name: "export-struct",
 			x: &sheetExporter{
-				ws: &tableaupb.Worksheet{
+				ws: &internalpb.Worksheet{
 					Name: "TaskReward",
 					Options: &tableaupb.WorksheetOptions{
 						Name: "StructTaskReward",
 					},
-					Fields: []*tableaupb.Field{
+					Fields: []*internalpb.Field{
 						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
 						{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
 						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
@@ -316,7 +317,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 				},
 				g:              NewGeneratedBuf(),
 				typeInfos:      &xproto.TypeInfos{},
-				nestedMessages: make(map[string]*tableaupb.Field),
+				nestedMessages: make(map[string]*internalpb.Field),
 			},
 			want: `// Generated from sheet: StructTaskReward.
 message TaskReward {
@@ -349,18 +350,18 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		{
 			name: "export-union",
 			x: &sheetExporter{
-				ws: &tableaupb.Worksheet{
+				ws: &internalpb.Worksheet{
 					Name: "TaskTarget",
 					Options: &tableaupb.WorksheetOptions{
 						Name: "UnionTaskTarget",
 					},
-					Fields: []*tableaupb.Field{
+					Fields: []*internalpb.Field{
 						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
-							Fields: []*tableaupb.Field{
+							Fields: []*internalpb.Field{
 								{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
 								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
 								{Name: "type_list", Type: "repeated", FullType: "repeated protoconf.FruitType",
-									ListEntry:  &tableaupb.Field_ListEntry{ElemType: "FruitType", ElemFullType: "protoconf.FruitType"},
+									ListEntry:  &internalpb.Field_ListEntry{ElemType: "FruitType", ElemFullType: "protoconf.FruitType"},
 									Predefined: true,
 									Options:    &tableaupb.FieldOptions{Name: "Type", Layout: tableaupb.Layout_LAYOUT_INCELL}},
 							},
@@ -369,7 +370,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 				},
 				g:              NewGeneratedBuf(),
 				typeInfos:      &xproto.TypeInfos{},
-				nestedMessages: make(map[string]*tableaupb.Field),
+				nestedMessages: make(map[string]*internalpb.Field),
 			},
 			want: `// Generated from sheet: UnionTaskTarget.
 message TaskTarget {

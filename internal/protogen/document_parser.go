@@ -8,6 +8,7 @@ import (
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
@@ -26,7 +27,7 @@ func errWithNodeKV(err error, node *book.Node, pairs ...any) error {
 	return xerrors.WrapKV(err, kvs...)
 }
 
-func (p *documentBookParser) parseField(field *tableaupb.Field, node *book.Node) (parsed bool, err error) {
+func (p *documentBookParser) parseField(field *internalpb.Field, node *book.Node) (parsed bool, err error) {
 	nameCell := node.Name
 	if nameCell == book.SheetKey {
 		return false, nil
@@ -60,8 +61,8 @@ func (p *documentBookParser) parseField(field *tableaupb.Field, node *book.Node)
 	return true, nil
 }
 
-func (p *documentBookParser) parseSubField(field *tableaupb.Field, node *book.Node) error {
-	subField := &tableaupb.Field{}
+func (p *documentBookParser) parseSubField(field *internalpb.Field, node *book.Node) error {
+	subField := &internalpb.Field{}
 	parsed, err := p.parseField(subField, node)
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func (p *documentBookParser) parseSubField(field *tableaupb.Field, node *book.No
 	return nil
 }
 
-func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.Node) error {
+func (p *documentBookParser) parseMapField(field *internalpb.Field, node *book.Node) error {
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
 	variableCell := node.GetMetaVariable()
@@ -136,7 +137,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
 		field.Predefined = valuePredefined
-		field.MapEntry = &tableaupb.Field_MapEntry{
+		field.MapEntry = &internalpb.Field_MapEntry{
 			KeyType:       parsedKeyType,
 			ValueType:     parsedValueName,
 			ValueFullType: parsedValueFullName,
@@ -176,7 +177,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 	field.FullType = fullMapType
 	// For map type, Predefined indicates the ValueType of map has been defined.
 	field.Predefined = valuePredefined
-	field.MapEntry = &tableaupb.Field_MapEntry{
+	field.MapEntry = &internalpb.Field_MapEntry{
 		KeyType:       parsedKeyType,
 		ValueType:     parsedValueName,
 		ValueFullType: parsedValueFullName,
@@ -211,7 +212,7 @@ func (p *documentBookParser) parseMapField(field *tableaupb.Field, node *book.No
 	return nil
 }
 
-func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.Node) error {
+func (p *documentBookParser) parseListField(field *internalpb.Field, node *book.Node) error {
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
 	variableCell := node.GetMetaVariable()
@@ -241,7 +242,7 @@ func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.N
 
 	field.Type = "repeated " + scalarField.Type
 	field.FullType = "repeated " + scalarField.FullType
-	field.ListEntry = &tableaupb.Field_ListEntry{
+	field.ListEntry = &internalpb.Field_ListEntry{
 		ElemType:     scalarField.Type,
 		ElemFullType: scalarField.FullType,
 	}
@@ -267,7 +268,7 @@ func (p *documentBookParser) parseListField(field *tableaupb.Field, node *book.N
 	return nil
 }
 
-func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book.Node) error {
+func (p *documentBookParser) parseStructField(field *internalpb.Field, node *book.Node) error {
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
 	desc := types.MatchStruct(typeCell)
@@ -370,7 +371,7 @@ func (p *documentBookParser) parseStructField(field *tableaupb.Field, node *book
 	}
 }
 
-func (p *documentBookParser) parseStrictStructField(field *tableaupb.Field, name string, desc *types.StructDescriptor, span tableaupb.Span, children []*book.Node) error {
+func (p *documentBookParser) parseStrictStructField(field *internalpb.Field, name string, desc *types.StructDescriptor, span tableaupb.Span, children []*book.Node) error {
 	// typeNode := node.GetMetaTypeNode()
 	// typeCell := typeNode.GetValue()
 	// desc := types.MatchStruct(typeCell)

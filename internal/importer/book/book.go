@@ -8,7 +8,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 )
 
@@ -18,7 +18,7 @@ type Book struct {
 	sheets     map[string]*Sheet // sheet name -> sheet
 	sheetNames []string          // ordered sheet names
 
-	meta       *tableaupb.Metabook
+	meta       *internalpb.Metabook
 	metaParser SheetParser
 }
 
@@ -31,8 +31,8 @@ func NewBook(bookName, filename string, parser SheetParser) *Book {
 		name:     bookName,
 		filename: filename,
 		sheets:   make(map[string]*Sheet),
-		meta: &tableaupb.Metabook{
-			MetasheetMap: make(map[string]*tableaupb.Metasheet),
+		meta: &internalpb.Metabook{
+			MetasheetMap: make(map[string]*internalpb.Metasheet),
 		},
 		metaParser: parser,
 	}
@@ -54,7 +54,7 @@ func (b *Book) Format() format.Format {
 }
 
 // Metabook returns the metadata of this book.
-func (b *Book) Metabook() *tableaupb.Metabook {
+func (b *Book) Metabook() *internalpb.Metabook {
 	return b.meta
 }
 
@@ -142,18 +142,18 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 
 	if len(b.meta.MetasheetMap) == 0 {
 		// need all sheets except the MetasheetName and BookNameInMetasheet
-		b.meta.MetasheetMap = make(map[string]*tableaupb.Metasheet) // init
+		b.meta.MetasheetMap = make(map[string]*internalpb.Metasheet) // init
 		for _, sheet := range b.GetSheets() {
 			if sheet.Name != MetasheetName && sheet.Name != BookNameInMetasheet {
 				if sheet.Document != nil {
 					if sheet.Document.IsMeta() {
 						sheetName := sheet.Document.GetDataSheetName()
-						b.meta.MetasheetMap[sheetName] = &tableaupb.Metasheet{
+						b.meta.MetasheetMap[sheetName] = &internalpb.Metasheet{
 							Sheet: sheetName,
 						}
 					}
 				} else {
-					b.meta.MetasheetMap[sheet.Name] = &tableaupb.Metasheet{
+					b.meta.MetasheetMap[sheet.Name] = &internalpb.Metasheet{
 						Sheet: sheet.Name,
 					}
 				}

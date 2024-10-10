@@ -12,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 )
 
 var testgen *Generator
@@ -37,7 +38,7 @@ func TestMain(m *testing.M) {
 func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 	type args struct {
 		mode  tableaupb.Mode
-		ws    *tableaupb.Worksheet
+		ws    *internalpb.Worksheet
 		sheet *book.Sheet
 	}
 	tests := []struct {
@@ -51,7 +52,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
-				ws:   &tableaupb.Worksheet{},
+				ws:   &internalpb.Worksheet{},
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
@@ -74,7 +75,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
-				ws:   &tableaupb.Worksheet{},
+				ws:   &internalpb.Worksheet{},
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
@@ -96,7 +97,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
-				ws:   &tableaupb.Worksheet{},
+				ws:   &internalpb.Worksheet{},
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{

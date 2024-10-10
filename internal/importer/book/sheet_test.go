@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 )
 
 func Test_parseIndexes(t *testing.T) {
@@ -127,7 +128,7 @@ func TestSheet_GetDebugName(t *testing.T) {
 			name: "basic",
 			s: &Sheet{
 				Name: "Sheet",
-				Meta: &tableaupb.Metasheet{},
+				Meta: &internalpb.Metasheet{},
 			},
 			want: "Sheet",
 		},
@@ -135,7 +136,7 @@ func TestSheet_GetDebugName(t *testing.T) {
 			name: "with-alias",
 			s: &Sheet{
 				Name: "Sheet",
-				Meta: &tableaupb.Metasheet{Alias: "AliasSheet"},
+				Meta: &internalpb.Metasheet{Alias: "AliasSheet"},
 			},
 			want: "Sheet (alias: AliasSheet)",
 		},
@@ -159,7 +160,7 @@ func TestSheet_GetProtoName(t *testing.T) {
 			name: "basic",
 			s: &Sheet{
 				Name: "Sheet",
-				Meta: &tableaupb.Metasheet{},
+				Meta: &internalpb.Metasheet{},
 			},
 			want: "Sheet",
 		},
@@ -167,7 +168,7 @@ func TestSheet_GetProtoName(t *testing.T) {
 			name: "with-alias",
 			s: &Sheet{
 				Name: "Sheet",
-				Meta: &tableaupb.Metasheet{Alias: "AliasSheet"},
+				Meta: &internalpb.Metasheet{Alias: "AliasSheet"},
 			},
 			want: "AliasSheet",
 		},
@@ -176,7 +177,7 @@ func TestSheet_GetProtoName(t *testing.T) {
 			s: &Sheet{
 				Name:     "Sheet",
 				Document: &Node{Name: "@DocumentSheet"},
-				Meta:     &tableaupb.Metasheet{},
+				Meta:     &internalpb.Metasheet{},
 			},
 			want: "DocumentSheet",
 		},
@@ -185,7 +186,7 @@ func TestSheet_GetProtoName(t *testing.T) {
 			s: &Sheet{
 				Name:     "Sheet",
 				Document: &Node{Name: "@DocumentSheet"},
-				Meta:     &tableaupb.Metasheet{Alias: "AliasSheet"},
+				Meta:     &internalpb.Metasheet{Alias: "AliasSheet"},
 			},
 			want: "AliasSheet",
 		},
@@ -203,14 +204,14 @@ func TestSheet_ToWorkseet(t *testing.T) {
 	tests := []struct {
 		name string
 		s    *Sheet
-		want *tableaupb.Worksheet
+		want *internalpb.Worksheet
 	}{
 		{
 			name: "Sheet",
 			s: &Sheet{
 				Name:     "Sheet",
 				Document: &Node{Name: "Sheet"},
-				Meta: &tableaupb.Metasheet{
+				Meta: &internalpb.Metasheet{
 					Sheet: "Sheet",
 					Patch: tableaupb.Patch_PATCH_MERGE,
 					// Loader options:
@@ -218,7 +219,7 @@ func TestSheet_ToWorkseet(t *testing.T) {
 					Index:      "ID@Item",
 				},
 			},
-			want: &tableaupb.Worksheet{
+			want: &internalpb.Worksheet{
 				Name: "Sheet",
 				Options: &tableaupb.WorksheetOptions{
 					Name:  "Sheet",
