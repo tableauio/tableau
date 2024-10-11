@@ -3,22 +3,22 @@
 
 syntax = "proto3";
 
-package tableau;
+package internal;
 
-option go_package = "github.com/tableauio/tableau/proto/tableaupb";
+option go_package = "github.com/tableauio/tableau/proto/tableaupb/internalpb";
 
 import "tableau/protobuf/tableau.proto";
 
 message Workbook {
   string name = 1;  // book name without suffix
-  WorkbookOptions options = 2;
+  tableau.WorkbookOptions options = 2;
   repeated Worksheet worksheets = 3;
   map<string, int32> imports = 4;  // imported proto files
 }
 
 message Worksheet {
   string name = 1;
-  WorksheetOptions options = 2;
+  tableau.WorksheetOptions options = 2;
   repeated Field fields = 3;
 }
 
@@ -38,7 +38,7 @@ message Field {
   // - list: list's element type
   // - map: map's value type
   bool predefined = 8;
-  FieldOptions options = 9;
+  tableau.FieldOptions options = 9;
 
   // This field can be struct, list or map if sub fields's length is not 0.
   repeated Field fields = 10;

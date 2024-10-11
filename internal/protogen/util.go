@@ -83,7 +83,7 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 	return relSlashPath, nil
 }
 
-// mergeHeaderOptions merge from options.HeaderOption to tableaupb.Metasheet.
+// mergeHeaderOptions merge from options.HeaderOption to internalpb.Metasheet.
 func mergeHeaderOptions(sheetOpts *tableaupb.WorksheetOptions, headerOpt *options.HeaderOption) {
 	if headerOpt == nil {
 		return
