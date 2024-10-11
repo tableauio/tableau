@@ -35,8 +35,8 @@ type Options struct {
 	//
 	// Default: nil.
 	Paths map[string]string
-	// PatchPaths maps each messager name to its corresponding patch file paths.
-	// If specified, then main messager will patched.
+	// PatchPaths maps each messager name to one or multiple corresponding patch file paths.
+	// If specified, then main messager will be patched.
 	//
 	// NOTE: only JSON, Bin, and Text formats are supported.
 	//
@@ -116,8 +116,8 @@ func Paths(paths map[string]string) Option {
 	}
 }
 
-// PatchPaths maps each messager name to its corresponding patch file paths.
-// If specified, then main messager will patched.
+// PatchPaths maps each messager name to one or multiple corresponding patch file paths.
+// If specified, then main messager will be patched.
 //
 // NOTE: only JSON, Bin, and Text formats are supported.
 func PatchPaths(paths map[string][]string) Option {
