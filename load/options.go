@@ -35,17 +35,17 @@ type Options struct {
 	//
 	// Default: nil.
 	Paths map[string]string
-	// PatchPaths maps each messager name to a corresponding patch file path.
+	// PatchPaths maps each messager name to its corresponding patch file paths.
 	// If specified, then main messager will patched.
 	//
 	// NOTE: only JSON, Bin, and Text formats are supported.
 	//
 	// Default: nil.
-	PatchPaths map[string]string
-	// PatchDir specifies the directory path for config patching.
+	PatchPaths map[string][]string
+	// PatchDirs specifies the directory paths for config patching.
 	//
-	// Default: "".
-	PatchDir string
+	// Default: nil.
+	PatchDirs []string
 }
 
 // FilterFunc filter in messagers if returned value is true.
@@ -116,19 +116,19 @@ func Paths(paths map[string]string) Option {
 	}
 }
 
-// PatchPaths maps each messager name to a corresponding patch file path.
+// PatchPaths maps each messager name to its corresponding patch file paths.
 // If specified, then main messager will patched.
 //
 // NOTE: only JSON, Bin, and Text formats are supported.
-func PatchPaths(paths map[string]string) Option {
+func PatchPaths(paths map[string][]string) Option {
 	return func(opts *Options) {
 		opts.PatchPaths = paths
 	}
 }
 
-// PatchDir specifies the directory path for config patching.
-func PatchDir(dir string) Option {
+// PatchDirs specifies the directory paths for config patching.
+func PatchDirs(dirs []string) Option {
 	return func(opts *Options) {
-		opts.PatchDir = dir
+		opts.PatchDirs = dirs
 	}
 }
