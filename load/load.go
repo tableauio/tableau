@@ -87,9 +87,9 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		if err := load(msg, path, fmt, opts); err != nil {
 			return err
 		}
+		patchMsg := msg.ProtoReflect().New().Interface()
 		// load patchMsg from each "patch" file
 		for _, patchPath := range patchPaths {
-			patchMsg := proto.Clone(msg)
 			if err := load(patchMsg, patchPath, format.GetFormat(patchPath), opts); err != nil {
 				return err
 			}

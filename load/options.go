@@ -127,7 +127,7 @@ func PatchPaths(paths map[string][]string) Option {
 }
 
 // PatchDirs specifies the directory paths for config patching.
-func PatchDirs(dirs []string) Option {
+func PatchDirs(dirs ...string) Option {
 	return func(opts *Options) {
 		opts.PatchDirs = dirs
 	}
