@@ -332,7 +332,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}})},
+				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json", "some/path/that/does/not/exist"}})},
 			},
 		},
 	}
