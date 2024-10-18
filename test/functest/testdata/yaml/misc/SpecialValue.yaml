@@ -1,0 +1,12 @@
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlSpecialValueConf"
+NameWithSpace: string
+IntegerWithFractionalPart: int32
+
+---
+"@sheet": YamlSpecialValueConf
+NameWithSpace: "  This  is an apple. "
+IntegerWithFractionalPart: " 123.456 "
