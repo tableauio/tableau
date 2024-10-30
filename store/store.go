@@ -56,7 +56,7 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 
 	fpath := filepath.Join(dir, filename)
 	// prepare dir
-	if err := os.MkdirAll(filepath.Dir(fpath), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
 		return xerrors.WrapKV(err, `failed to create dir "%s"`, filepath.Dir(fpath))
 	}
 

@@ -16,12 +16,12 @@ import (
 func genProto(logLevel string) error {
 	// prepare output common dir
 	outdir := "./_proto"
-	err := os.MkdirAll(outdir, 0700)
+	err := os.MkdirAll(outdir, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create output dir: %v", err)
 	}
 	outCommDir := filepath.Join(outdir, "common")
-	err = os.MkdirAll(outCommDir, 0700)
+	err = os.MkdirAll(outCommDir, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create output common dir: %v", err)
 	}

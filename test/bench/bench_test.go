@@ -62,7 +62,7 @@ func genTestdata(maxID int) {
 		panic(err)
 	} else if !ok {
 		// create output dir
-		err = os.MkdirAll("testdata", 0700)
+		err = os.MkdirAll("testdata", 0755)
 		if err != nil {
 			panic(err)
 		}

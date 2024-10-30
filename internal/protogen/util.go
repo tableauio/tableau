@@ -53,7 +53,7 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 		}
 	} else {
 		// create output dir
-		err = os.MkdirAll(outdir, 0700)
+		err = os.MkdirAll(outdir, 0755)
 		if err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
 		}

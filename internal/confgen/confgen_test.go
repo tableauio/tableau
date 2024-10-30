@@ -13,7 +13,7 @@ import (
 func prepareOutput() error {
 	// prepare output common dir
 	outdir := "./testdata/_conf"
-	err := os.MkdirAll(outdir, 0700)
+	err := os.MkdirAll(outdir, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create output dir: %v", err)
 	}
