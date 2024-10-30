@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -100,7 +100,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		if err != nil {
 			return xerrors.Wrapf(err, "parse book specifier failed: %s", specifier)
 		}
-		relCleanSlashPath := fs.CleanSlashPath(bookName)
+		relCleanSlashPath := xfs.CleanSlashPath(bookName)
 		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
 		primaryBookIndexInfo, ok := bookIndexes[relCleanSlashPath]
 		if !ok {
@@ -137,12 +137,12 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	}
 
 	// filter subdir
-	if !fs.HasSubdirPrefix(workbook.Name, gen.InputOpt.Subdirs) {
+	if !xfs.HasSubdirPrefix(workbook.Name, gen.InputOpt.Subdirs) {
 		return nil
 	}
 
 	// rewrite subdir
-	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
+	rewrittenWorkbookName := xfs.RewriteSubdir(workbook.Name, gen.InputOpt.SubdirRewrites)
 	absWbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
 	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
 

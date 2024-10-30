@@ -26,8 +26,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/xerrors"
 )
 
@@ -46,7 +46,7 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 }
 
 func Test_Excel2CSV(t *testing.T) {
-	err := fs.RangeFilesByFormat("./testdata/excel", format.Excel, func(bookPath string) error {
+	err := xfs.RangeFilesByFormat("./testdata/excel", format.Excel, func(bookPath string) error {
 		// log.Printf("path: %s", bookPath)
 		imp, err := importer.NewExcelImporter(bookPath, nil, nil, 0, false)
 		if err != nil {
@@ -58,7 +58,7 @@ func Test_Excel2CSV(t *testing.T) {
 }
 
 func Test_CSV2Excel(t *testing.T) {
-	err := fs.RangeFilesByFormat("./testdata/excel", format.CSV, func(bookPath string) error {
+	err := xfs.RangeFilesByFormat("./testdata/excel", format.CSV, func(bookPath string) error {
 		// log.Printf("path: %s", bookPath)
 		imp, err := importer.NewCSVImporter(bookPath, nil, nil, 0, false)
 		if err != nil {

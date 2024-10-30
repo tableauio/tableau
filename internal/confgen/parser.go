@@ -10,11 +10,11 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/prop"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -57,7 +57,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 			filename = fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
 		}
 		if info.Opts.WithParentDir {
-			parentDirName := fs.GetDirectParentDirName(impInfo.Filename())
+			parentDirName := xfs.GetDirectParentDirName(impInfo.Filename())
 			return filepath.Join(parentDirName, filename)
 		}
 		return filename
@@ -113,7 +113,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 		// here filename has no ext suffix
 		filename := string(info.MD.Name())
 		if info.Opts.WithParentDir {
-			parentDirName := fs.GetDirectParentDirName(impInfo.Filename())
+			parentDirName := xfs.GetDirectParentDirName(impInfo.Filename())
 			return filepath.Join(parentDirName, filename)
 		}
 		return filename

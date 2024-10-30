@@ -157,7 +157,7 @@ func createFileWriter(filename string) (zapcore.WriteSyncer, error) {
 func createLumberjackLogger(filename string) (*lumberjack.Logger, error) {
 	// create output dir
 	// dir := filepath.Dir(filename)
-	// err := os.MkdirAll(dir, 0755)
+	// err := os.MkdirAll(dir, xfs.DefaultDirPerm)
 	// if err != nil {
 	// 	return nil, err
 	// }

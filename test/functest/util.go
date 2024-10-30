@@ -8,7 +8,7 @@ import (
 
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
@@ -16,12 +16,12 @@ import (
 func genProto(logLevel string) error {
 	// prepare output common dir
 	outdir := "./_proto"
-	err := os.MkdirAll(outdir, 0755)
+	err := os.MkdirAll(outdir, xfs.DefaultDirPerm)
 	if err != nil {
 		return fmt.Errorf("failed to create output dir: %v", err)
 	}
 	outCommDir := filepath.Join(outdir, "common")
-	err = os.MkdirAll(outCommDir, 0755)
+	err = os.MkdirAll(outCommDir, xfs.DefaultDirPerm)
 	if err != nil {
 		return fmt.Errorf("failed to create output common dir: %v", err)
 	}
@@ -35,7 +35,7 @@ func genProto(logLevel string) error {
 		if !entry.IsDir() {
 			src := filepath.Join(srcCommDir, entry.Name())
 			dst := filepath.Join(outCommDir, entry.Name())
-			if err := fs.CopyFile(src, dst); err != nil {
+			if err := xfs.CopyFile(src, dst); err != nil {
 				return fmt.Errorf("copy file failed: %+v", err)
 			}
 		}

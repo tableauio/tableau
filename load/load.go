@@ -10,8 +10,8 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -62,7 +62,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	// check existence of each patch path
 	var existedPatchPaths []string
 	for _, patchPath := range patchPaths {
-		existed, err := fs.Exists(patchPath)
+		existed, err := xfs.Exists(patchPath)
 		if err != nil {
 			return xerrors.Wrapf(err, "failed to check file existence: %s", patchPath)
 		}
@@ -145,7 +145,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 		return xerrors.Errorf("workbook options not found of protofile: %v", protofile)
 	}
 	// rewrite subdir
-	rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, opts.SubdirRewrites)
+	rewrittenWorkbookName := xfs.RewriteSubdir(workbook.Name, opts.SubdirRewrites)
 	wbPath := filepath.Join(dir, rewrittenWorkbookName)
 	log.Debugf("load origin file: %v", wbPath)
 	// get sheet name

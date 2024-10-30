@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
@@ -56,12 +57,12 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 
 	fpath := filepath.Join(dir, filename)
 	// prepare dir
-	if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(fpath), xfs.DefaultDirPerm); err != nil {
 		return xerrors.WrapKV(err, `failed to create dir "%s"`, filepath.Dir(fpath))
 	}
 
 	// write file
-	err = os.WriteFile(fpath, out, 0644)
+	err = os.WriteFile(fpath, out, xfs.DefaultFilePerm)
 	if err != nil {
 		return xerrors.Errorf(`write file "%s" failed: %s`, fpath, err)
 	}

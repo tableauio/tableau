@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
@@ -13,7 +14,7 @@ import (
 func prepareOutput() error {
 	// prepare output common dir
 	outdir := "./testdata/_conf"
-	err := os.MkdirAll(outdir, 0755)
+	err := os.MkdirAll(outdir, xfs.DefaultDirPerm)
 	if err != nil {
 		return fmt.Errorf("failed to create output dir: %v", err)
 	}

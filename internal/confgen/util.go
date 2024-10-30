@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -119,7 +119,7 @@ func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string
 	fmt := format.GetFormat(bookSpecifier)
 	if fmt == format.CSV {
 		// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-		bookName, err := fs.ParseCSVBooknamePatternFrom(bookSpecifier)
+		bookName, err := xfs.ParseCSVBooknamePatternFrom(bookSpecifier)
 		if err != nil {
 			return "", "", err
 		}
@@ -129,9 +129,9 @@ func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string
 	baseBookSpecifier := filepath.Base(bookSpecifier)
 	tokens := strings.SplitN(baseBookSpecifier, "#", 2)
 	if len(tokens) == 2 {
-		return fs.Join(dir, tokens[0]), tokens[1], nil
+		return xfs.Join(dir, tokens[0]), tokens[1], nil
 	}
-	return fs.Join(dir, tokens[0]), "", nil
+	return xfs.Join(dir, tokens[0]), "", nil
 }
 
 type bookIndexInfo struct {
@@ -149,11 +149,11 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 				return true
 			}
 			// filter subdir
-			if !fs.HasSubdirPrefix(workbook.Name, subdirs) {
+			if !xfs.HasSubdirPrefix(workbook.Name, subdirs) {
 				return true
 			}
 			// add self: rewrite subdir
-			rewrittenWorkbookName := fs.RewriteSubdir(workbook.Name, subdirRewrites)
+			rewrittenWorkbookName := xfs.RewriteSubdir(workbook.Name, subdirRewrites)
 			if bookIndexes[rewrittenWorkbookName] == nil {
 				bookIndexes[rewrittenWorkbookName] = &bookIndexInfo{
 					books: make(map[string]protoreflect.FileDescriptor),
@@ -213,7 +213,7 @@ func getRealSheetName(info *SheetInfo, impInfo importer.ImporterInfo) string {
 }
 
 func getRelBookName(basepath, filename string) string {
-	if relBookName, err := fs.Rel(basepath, filename); err != nil {
+	if relBookName, err := xfs.Rel(basepath, filename); err != nil {
 		log.Warnf("get relative path failed: %+v", err)
 		return filename
 	} else {

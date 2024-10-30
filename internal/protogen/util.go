@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/excel"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -24,7 +24,7 @@ const (
 )
 
 func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
-	existed, err := fs.Exists(outdir)
+	existed, err := xfs.Exists(outdir)
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
 	}
@@ -53,7 +53,7 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 		}
 	} else {
 		// create output dir
-		err = os.MkdirAll(outdir, 0755)
+		err = os.MkdirAll(outdir, xfs.DefaultDirPerm)
 		if err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
 		}

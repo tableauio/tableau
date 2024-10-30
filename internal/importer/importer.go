@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
@@ -73,7 +73,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 		for relBookPath := range relBookPaths {
 			log.Infof("%18s: %s#%s", "scatter sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
-			rewrittenWorkbookName := fs.RewriteSubdir(primaryBookName, subdirRewrites)
+			rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
@@ -102,7 +102,7 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 		for relBookPath := range relBookPaths {
 			log.Infof("%18s: %s#%s", "merge sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
-			rewrittenWorkbookName := fs.RewriteSubdir(primaryBookName, subdirRewrites)
+			rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
@@ -124,12 +124,12 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 	bookNameGlob, specifiedSheetName := ParseSheetSpecifier(sheetSpecifier)
 
 	// rewrite subdir
-	rewrittenWorkbookName := fs.RewriteSubdir(primaryBookName, subdirRewrites)
+	rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 
 	primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 	log.Debugf("rewrittenAbsWorkbookName: %s", primaryBookPath)
 	fmt := format.GetFormat(primaryBookPath)
-	pattern := fs.Join(filepath.Dir(primaryBookPath), bookNameGlob)
+	pattern := xfs.Join(filepath.Dir(primaryBookPath), bookNameGlob)
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, "", xerrors.Wrapf(err, "failed to glob pattern: %s", pattern)
@@ -142,16 +142,16 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 		path := match
 		if fmt == format.CSV {
 			// special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-			path, err = fs.ParseCSVBooknamePatternFrom(match)
+			path, err = xfs.ParseCSVBooknamePatternFrom(match)
 			if err != nil {
 				return nil, "", err
 			}
 		}
-		if specifiedSheetName == "" && fs.IsSamePath(path, primaryBookPath) {
+		if specifiedSheetName == "" && xfs.IsSamePath(path, primaryBookPath) {
 			// sheet name not specified, so exclude self
 			continue
 		}
-		secondaryBookName, err := fs.Rel(inputDir, path)
+		secondaryBookName, err := xfs.Rel(inputDir, path)
 		if err != nil {
 			return nil, "", err
 		}
