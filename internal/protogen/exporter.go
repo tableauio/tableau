@@ -6,10 +6,10 @@ import (
 
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/rogpeppe/go-internal/lockedfile"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -106,7 +106,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	// refer: https://go.googlesource.com/proposal/+/master/design/33974-add-public-lockedfile-pkg.md
 
 	if checkProtoFileConflicts {
-		if existed, err := fs.Exists(path); err != nil {
+		if existed, err := xfs.Exists(path); err != nil {
 			return xerrors.WrapKV(err)
 		} else {
 			if existed {

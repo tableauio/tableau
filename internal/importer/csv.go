@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -141,11 +141,11 @@ func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 }
 
 func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReaderOptions, error) {
-	bookName, _, err := fs.ParseCSVFilenamePattern(filename)
+	bookName, _, err := xfs.ParseCSVFilenamePattern(filename)
 	if err != nil {
 		return nil, xerrors.Errorf("cannot parse the book name from filename: %s", filename)
 	}
-	globFilename := fs.GenCSVBooknamePattern(filepath.Dir(filename), bookName)
+	globFilename := xfs.GenCSVBooknamePattern(filepath.Dir(filename), bookName)
 	matches, err := filepath.Glob(globFilename)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to glob %s", globFilename)
@@ -157,7 +157,7 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReade
 	// NOTE: keep the order of sheets
 	set := treeset.NewWithStringComparator()
 	for _, filename := range matches {
-		set.Add(fs.CleanSlashPath(filename))
+		set.Add(xfs.CleanSlashPath(filename))
 	}
 
 	brOpts := &bookReaderOptions{
@@ -166,7 +166,7 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReade
 	}
 	for _, val := range set.Values() {
 		filename := val.(string)
-		_, sheetName, err := fs.ParseCSVFilenamePattern(filename)
+		_, sheetName, err := xfs.ParseCSVFilenamePattern(filename)
 		if err != nil {
 			return nil, xerrors.Errorf("cannot parse the book name from filename: %s", filename)
 		}

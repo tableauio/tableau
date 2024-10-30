@@ -6,8 +6,8 @@ import (
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -47,7 +47,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 			return nil, xerrors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
-			cleanSlashPath := fs.CleanSlashPath(match)
+			cleanSlashPath := xfs.CleanSlashPath(match)
 			parsedExcludedProtoFiles[cleanSlashPath] = true
 		}
 	}
@@ -58,10 +58,10 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 			return nil, xerrors.Wrapf(err, "failed to glob files in %s", filename)
 		}
 		for _, match := range matches {
-			cleanSlashPath := fs.CleanSlashPath(match)
+			cleanSlashPath := xfs.CleanSlashPath(match)
 			if !parsedExcludedProtoFiles[cleanSlashPath] {
 				for _, protoPath := range protoPaths {
-					cleanProtoPath := fs.CleanSlashPath(protoPath) + "/"
+					cleanProtoPath := xfs.CleanSlashPath(protoPath) + "/"
 					cleanSlashPath = strings.TrimPrefix(cleanSlashPath, cleanProtoPath)
 				}
 				parsedProtoFiles = append(parsedProtoFiles, cleanSlashPath)
@@ -73,13 +73,13 @@ func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...str
 		// 	if err != nil {
 		// 		return nil, xerrors.Wrapf(err, "failed to get absolute path for %s", match)
 		// 	}
-		// 	cleanSlashPath := fs.CleanSlashPath(match)
+		// 	cleanSlashPath := xfs.CleanSlashPath(match)
 		// 	for _, importPath := range protoPaths {
 		// 		importPath, err := filepath.Abs(importPath)
 		// 		if err != nil {
 		// 			return nil, xerrors.Wrapf(err, "failed to get absolute path for %s", importPath)
 		// 		}
-		// 		importCleanSlashPath := fs.CleanSlashPath(importPath)
+		// 		importCleanSlashPath := xfs.CleanSlashPath(importPath)
 		// 		if !strings.HasPrefix(cleanSlashPath, importCleanSlashPath) {
 		// 			log.Debugf("add proto file: %s", originMatch)
 		// 			parsedProtoFiles = append(parsedProtoFiles, originMatch)

@@ -7,8 +7,8 @@ import (
 
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/xerrors"
@@ -58,11 +58,11 @@ func genConf(logLevel string) error {
 }
 
 func genTestdata(maxID int) {
-	if ok, err := fs.Exists("testdata"); err != nil {
+	if ok, err := xfs.Exists("testdata"); err != nil {
 		panic(err)
 	} else if !ok {
 		// create output dir
-		err = os.MkdirAll("testdata", 0700)
+		err = os.MkdirAll("testdata", xfs.DefaultDirPerm)
 		if err != nil {
 			panic(err)
 		}

@@ -10,12 +10,12 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/excel"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -212,7 +212,7 @@ func (gen *Generator) generate(dir string) (err error) {
 		}
 
 		if fmt == format.CSV {
-			bookName, _, err := fs.ParseCSVFilenamePattern(entry.Name())
+			bookName, _, err := xfs.ParseCSVFilenamePattern(entry.Name())
 			if err != nil {
 				return err
 			}
@@ -290,7 +290,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	}
 	debugBookName := relativePath
 	// rewrite subdir
-	rewrittenBookName := fs.RewriteSubdir(relativePath, gen.InputOpt.SubdirRewrites)
+	rewrittenBookName := xfs.RewriteSubdir(relativePath, gen.InputOpt.SubdirRewrites)
 	if rewrittenBookName != relativePath {
 		debugBookName += " (rewrite: " + rewrittenBookName + ")"
 	}
@@ -373,7 +373,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	}
 	debugBookName := relativePath
 	// rewrite subdir
-	rewrittenBookName := fs.RewriteSubdir(relativePath, gen.InputOpt.SubdirRewrites)
+	rewrittenBookName := xfs.RewriteSubdir(relativePath, gen.InputOpt.SubdirRewrites)
 	if rewrittenBookName != relativePath {
 		debugBookName += " (rewrite: " + rewrittenBookName + ")"
 	}

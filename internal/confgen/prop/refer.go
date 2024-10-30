@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/emirpasic/gods/sets/hashset"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
@@ -152,7 +152,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	sheetName := sheetOpts.Name
 
 	// rewrite subdir
-	rewrittenWorkbookName := fs.RewriteSubdir(bookName, input.SubdirRewrites)
+	rewrittenWorkbookName := xfs.RewriteSubdir(bookName, input.SubdirRewrites)
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
 	primaryImporter, err := importer.New(absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {

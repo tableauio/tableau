@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
@@ -217,12 +217,12 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 
 func prepareOutput() error {
 	// prepare output common dir
-	err := os.MkdirAll(outdir, 0700)
+	err := os.MkdirAll(outdir, xfs.DefaultDirPerm)
 	if err != nil {
 		return fmt.Errorf("failed to create output dir: %v", err)
 	}
 	outCommDir := filepath.Join(outdir, "common")
-	err = os.MkdirAll(outCommDir, 0700)
+	err = os.MkdirAll(outCommDir, xfs.DefaultDirPerm)
 	if err != nil {
 		return fmt.Errorf("failed to create output common dir: %v", err)
 	}
@@ -236,7 +236,7 @@ func prepareOutput() error {
 		if !entry.IsDir() {
 			src := filepath.Join(srcCommDir, entry.Name())
 			dst := filepath.Join(outCommDir, entry.Name())
-			if err := fs.CopyFile(src, dst); err != nil {
+			if err := xfs.CopyFile(src, dst); err != nil {
 				return fmt.Errorf("copy file failed: %+v", err)
 			}
 		}

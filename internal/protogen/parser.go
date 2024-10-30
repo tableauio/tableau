@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/tableauio/tableau/internal/fs"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/internal/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -42,7 +42,7 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	filename := strcase.ToSnake(protoBookName)
 	if gen.OutputOpt.FilenameWithSubdirPrefix {
 		bookPath := filepath.Join(filepath.Dir(relSlashPath), protoBookName)
-		snakePath := strcase.ToSnake(fs.CleanSlashPath(bookPath))
+		snakePath := strcase.ToSnake(xfs.CleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
 	bp := &bookParser{

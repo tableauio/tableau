@@ -1,14 +1,20 @@
-package fs
+package xfs
 
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/xerrors"
+)
+
+const (
+	DefaultDirPerm  fs.FileMode = 0755 // drwxr-xr-x
+	DefaultFilePerm fs.FileMode = 0644 // -rw-r--r--
 )
 
 // CopyFile copies a file from src to dst. If src and dst files exist, and are

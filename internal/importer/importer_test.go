@@ -7,11 +7,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/fs"
+	"github.com/tableauio/tableau/internal/xfs"
 )
 
 func init() {
-	err := fs.RangeFilesByFormat("./testdata", format.CSV, func(bookPath string) error {
+	err := xfs.RangeFilesByFormat("./testdata", format.CSV, func(bookPath string) error {
 		// log.Printf("path: %s", bookPath)
 		imp, err := NewCSVImporter(bookPath, nil, nil, 0, false)
 		if err != nil {
@@ -135,7 +135,7 @@ func TestGetMergerImporters(t *testing.T) {
 			}
 			filenames := []string{}
 			for _, imp := range got {
-				filenames = append(filenames, fs.CleanSlashPath(imp.Filename()))
+				filenames = append(filenames, xfs.CleanSlashPath(imp.Filename()))
 			}
 			assert.ElementsMatch(t, tt.want, filenames, "got book filenames not match")
 		})
@@ -175,7 +175,7 @@ func TestGetScatterImporters(t *testing.T) {
 			}
 			filenames := []string{}
 			for _, imp := range got {
-				filenames = append(filenames, fs.CleanSlashPath(imp.Filename()))
+				filenames = append(filenames, xfs.CleanSlashPath(imp.Filename()))
 			}
 			assert.ElementsMatch(t, tt.want, filenames, "got book filenames not match")
 		})

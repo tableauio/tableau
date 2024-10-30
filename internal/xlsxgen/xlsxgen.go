@@ -13,6 +13,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -185,7 +186,7 @@ func (gen *Generator) Generate() {
 		panic(err)
 	}
 	// create output dir
-	err = os.MkdirAll(gen.OutputDir, 0700)
+	err = os.MkdirAll(gen.OutputDir, xfs.DefaultDirPerm)
 	if err != nil {
 		panic(err)
 	}
@@ -232,7 +233,7 @@ func (gen *Generator) Generate() {
 // ExportSheet export a worksheet.
 func (gen *Generator) ExportSheet(metaSheet *MetaSheet) error {
 	// create output dir
-	if err := os.MkdirAll(gen.OutputDir, 0700); err != nil {
+	if err := os.MkdirAll(gen.OutputDir, xfs.DefaultDirPerm); err != nil {
 		return xerrors.Wrapf(err, "failed to create output dir: %s", gen.OutputDir)
 	}
 	filename := filepath.Join(gen.OutputDir, gen.Workbook)
