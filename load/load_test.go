@@ -344,6 +344,15 @@ func TestLoadWithPatch(t *testing.T) {
 				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), IgnoreMainFile()},
 			},
 		},
+		{
+			name: "IgnoreMainFile-but-no-valid-patch-file",
+			args: args{
+				msg:     &unittestpb.PatchMergeConf{},
+				dir:     "../testdata/unittest/conf/",
+				fmt:     format.JSON,
+				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"some/path/that/does/not/exist"}}), IgnoreMainFile()},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
