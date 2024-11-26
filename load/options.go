@@ -46,6 +46,13 @@ type Options struct {
 	//
 	// Default: nil.
 	PatchDirs []string
+	// IgnoreMainFile signifies whether to ignore the main file when
+	// parsing a sheet with patch.
+	//
+	// NOTE: only JSON, Bin, and Text formats are supported.
+	//
+	// Default: false.
+	IgnoreMainFile bool
 }
 
 // FilterFunc filter in messagers if returned value is true.
@@ -130,5 +137,15 @@ func PatchPaths(paths map[string][]string) Option {
 func PatchDirs(dirs ...string) Option {
 	return func(opts *Options) {
 		opts.PatchDirs = dirs
+	}
+}
+
+// IgnoreMainFile signifies whether to ignore the main file when
+// parsing a sheet with patch.
+//
+// NOTE: only JSON, Bin, and Text formats are supported.
+func IgnoreMainFile() Option {
+	return func(opts *Options) {
+		opts.IgnoreMainFile = true
 	}
 }

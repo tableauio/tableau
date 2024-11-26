@@ -71,6 +71,10 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		}
 	}
 	if len(existedPatchPaths) == 0 {
+		if opts.IgnoreMainFile {
+			// just returns empty message when main file ingored and no valid patch file provided.
+			return nil
+		}
 		// no valid patch path provided, then just load from the "main" file.
 		return load(msg, path, fmt, opts)
 	}
@@ -83,9 +87,11 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 			return err
 		}
 	case tableaupb.Patch_PATCH_MERGE:
-		// load msg from the "main" file
-		if err := load(msg, path, fmt, opts); err != nil {
-			return err
+		if !opts.IgnoreMainFile {
+			// load msg from the "main" file
+			if err := load(msg, path, fmt, opts); err != nil {
+				return err
+			}
 		}
 		patchMsg := msg.ProtoReflect().New().Interface()
 		// load patchMsg from each "patch" file
