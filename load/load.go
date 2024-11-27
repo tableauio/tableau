@@ -40,13 +40,17 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 		path = filepath.Join(dir, name+format.Format2Ext(fmt))
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
-	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE && opts.Mode != ModeOnlyMain {
+	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
 		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
 	}
 	return load(msg, path, fmt, opts)
 }
 
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
+	if opts.Mode == ModeOnlyMain {
+		// ignore patch files when ModeOnlyMain assigned
+		return load(msg, path, fmt, opts)
+	}
 	name := string(msg.ProtoReflect().Descriptor().Name())
 	var patchPaths []string
 	if p, ok := opts.PatchPaths[name]; ok {
@@ -72,7 +76,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	}
 	if len(existedPatchPaths) == 0 {
 		if opts.Mode == ModeOnlyPatch {
-			// just returns empty message when main file ingored and no valid patch file provided.
+			// just returns empty message when ModeOnlyPatch assigned but no valid patch file provided.
 			return nil
 		}
 		// no valid patch path provided, then just load from the "main" file.
