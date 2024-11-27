@@ -48,7 +48,7 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
 	if opts.Mode == ModeOnlyMain {
-		// ignore patch files when ModeOnlyMain assigned
+		// ignore patch files when ModeOnlyMain specified
 		return load(msg, path, fmt, opts)
 	}
 	name := string(msg.ProtoReflect().Descriptor().Name())
@@ -76,7 +76,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	}
 	if len(existedPatchPaths) == 0 {
 		if opts.Mode == ModeOnlyPatch {
-			// just returns empty message when ModeOnlyPatch assigned but no valid patch file provided.
+			// just returns empty message when ModeOnlyPatch specified but no valid patch file provided.
 			return nil
 		}
 		// no valid patch path provided, then just load from the "main" file.
