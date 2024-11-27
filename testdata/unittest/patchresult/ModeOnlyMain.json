@@ -1,0 +1,37 @@
+{
+    "name": "apple",
+    "name2": "apple2",
+    "name3": "apple3",
+    "time": {
+        "start": "2024-10-01T02:10:10Z",
+        "expiry": "3600s"
+    },
+    "priceList": [
+        10,
+        100
+    ],
+    "replacePriceList": [
+        10,
+        100
+    ],
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "num": 10
+        },
+        "2": {
+            "id": 2,
+            "num": 20
+        }
+    },
+    "replaceItemMap": {
+        "1": {
+            "id": 1,
+            "num": 10
+        },
+        "2": {
+            "id": 2,
+            "num": 20
+        }
+    }
+}

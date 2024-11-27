@@ -336,21 +336,30 @@ func TestLoadWithPatch(t *testing.T) {
 			},
 		},
 		{
-			name: "IgnoreMainFile",
+			name: "ModeOnlyMain",
 			args: args{
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), IgnoreMainFile()},
+				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), Mode(ModeOnlyMain)},
 			},
 		},
 		{
-			name: "IgnoreMainFile-but-no-valid-patch-file",
+			name: "ModeOnlyPatch",
 			args: args{
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"some/path/that/does/not/exist"}}), IgnoreMainFile()},
+				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), Mode(ModeOnlyPatch)},
+			},
+		},
+		{
+			name: "ModeOnlyPatch-but-no-valid-patch-file",
+			args: args{
+				msg:     &unittestpb.PatchMergeConf{},
+				dir:     "../testdata/unittest/conf/",
+				fmt:     format.JSON,
+				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"some/path/that/does/not/exist"}}), Mode(ModeOnlyPatch)},
 			},
 		},
 	}

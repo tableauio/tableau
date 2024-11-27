@@ -40,7 +40,7 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 		path = filepath.Join(dir, name+format.Format2Ext(fmt))
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
-	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
+	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE && opts.Mode != ModeOnlyMain {
 		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
 	}
 	return load(msg, path, fmt, opts)
@@ -71,7 +71,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		}
 	}
 	if len(existedPatchPaths) == 0 {
-		if opts.IgnoreMainFile {
+		if opts.Mode == ModeOnlyPatch {
 			// just returns empty message when main file ingored and no valid patch file provided.
 			return nil
 		}
@@ -87,7 +87,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 			return err
 		}
 	case tableaupb.Patch_PATCH_MERGE:
-		if !opts.IgnoreMainFile {
+		if opts.Mode != ModeOnlyPatch {
 			// load msg from the "main" file
 			if err := load(msg, path, fmt, opts); err != nil {
 				return err

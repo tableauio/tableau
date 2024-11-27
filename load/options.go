@@ -46,14 +46,19 @@ type Options struct {
 	//
 	// Default: nil.
 	PatchDirs []string
-	// IgnoreMainFile signifies whether to ignore the main file when
-	// parsing a sheet with patch.
+	// Mode specifies the loading mode for config patching.
 	//
-	// NOTE: only JSON, Bin, and Text formats are supported.
-	//
-	// Default: false.
-	IgnoreMainFile bool
+	// Default: ModeDefault.
+	Mode LoadMode
 }
+
+type LoadMode int
+
+const (
+	ModeDefault   LoadMode = iota // Load all related files
+	ModeOnlyMain                  // Only load the main file
+	ModeOnlyPatch                 // Only load the patch files
+)
 
 // FilterFunc filter in messagers if returned value is true.
 //
@@ -140,12 +145,11 @@ func PatchDirs(dirs ...string) Option {
 	}
 }
 
-// IgnoreMainFile signifies whether to ignore the main file when
-// parsing a sheet with patch.
+// Mode specifies the loading mode for config patching.
 //
 // NOTE: only JSON, Bin, and Text formats are supported.
-func IgnoreMainFile() Option {
+func Mode(mode LoadMode) Option {
 	return func(opts *Options) {
-		opts.IgnoreMainFile = true
+		opts.Mode = mode
 	}
 }
