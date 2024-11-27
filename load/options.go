@@ -46,7 +46,19 @@ type Options struct {
 	//
 	// Default: nil.
 	PatchDirs []string
+	// Mode specifies the loading mode for config patching.
+	//
+	// Default: ModeDefault.
+	Mode LoadMode
 }
+
+type LoadMode int
+
+const (
+	ModeDefault   LoadMode = iota // Load all related files
+	ModeOnlyMain                  // Only load the main file
+	ModeOnlyPatch                 // Only load the patch files
+)
 
 // FilterFunc filter in messagers if returned value is true.
 //
@@ -130,5 +142,14 @@ func PatchPaths(paths map[string][]string) Option {
 func PatchDirs(dirs ...string) Option {
 	return func(opts *Options) {
 		opts.PatchDirs = dirs
+	}
+}
+
+// Mode specifies the loading mode for config patching.
+//
+// NOTE: only JSON, Bin, and Text formats are supported.
+func Mode(mode LoadMode) Option {
+	return func(opts *Options) {
+		opts.Mode = mode
 	}
 }
