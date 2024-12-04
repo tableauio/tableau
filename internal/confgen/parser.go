@@ -123,8 +123,9 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 }
 
 type oneMsg struct {
-	protomsg proto.Message
-	bookName string
+	protomsg  proto.Message
+	bookName  string
+	sheetName string
 }
 
 // ParseMessage parses multiple importer infos into one protomsg. If an error
@@ -160,8 +161,9 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 			}
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
-				protomsg: protomsg,
-				bookName: getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()),
+				protomsg:  protomsg,
+				bookName:  getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()),
+				sheetName: getRealSheetName(info, impInfo),
 			})
 			mu.Unlock()
 			return nil
@@ -187,10 +189,11 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 					err := xproto.CheckMapDuplicateKey(prevMsg.protomsg, msg.protomsg)
 					if err != nil {
 						bookNames := prevMsg.bookName + ", " + msg.bookName
+						sheetNames := prevMsg.sheetName + ", " + msg.sheetName
 						return nil, xerrors.WrapKV(err,
 							xerrors.KeyModule, xerrors.ModuleConf,
 							xerrors.KeyBookName, bookNames,
-							xerrors.KeySheetName, info.Opts.Name,
+							xerrors.KeySheetName, sheetNames,
 							xerrors.KeyPBMessage, string(info.MD.Name()))
 					}
 				}
