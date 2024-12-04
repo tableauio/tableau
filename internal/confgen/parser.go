@@ -201,7 +201,7 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 			return nil, xerrors.WrapKV(err,
 				xerrors.KeyModule, xerrors.ModuleConf,
 				xerrors.KeyBookName, msg.bookName,
-				xerrors.KeySheetName, info.Opts.Name,
+				xerrors.KeySheetName, msg.sheetName,
 				xerrors.KeyPBMessage, string(info.MD.Name()))
 		}
 	}
