@@ -13,6 +13,30 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv"};
 
+// Generated from sheet: EnumType.
+enum CatType {
+  CAT_TYPE_INVALID = 0;
+  CAT_TYPE_RAGDOLL = 1 [(tableau.evalue).name = "Ragdoll"];
+  CAT_TYPE_PERSIAN = 2 [(tableau.evalue).name = "Persian"];
+  CAT_TYPE_SPHYNX = 3 [(tableau.evalue).name = "Sphynx"];
+}
+
+// Generated from sheet: EnumType.
+enum DogType {
+  DOG_TYPE_INVALID = 0;
+  DOG_TYPE_POODLE = 1 [(tableau.evalue).name = "Poodle"];
+  DOG_TYPE_BULLDOG = 2 [(tableau.evalue).name = "Bulldog"];
+  DOG_TYPE_DACHSHUND = 3 [(tableau.evalue).name = "Dachshund"];
+}
+
+// Generated from sheet: EnumType.
+enum BirdType {
+  BIRD_TYPE_INVALID = 0;
+  BIRD_TYPE_CANARY = 1 [(tableau.evalue).name = "Canary"];
+  BIRD_TYPE_WOODPECKER = 2 [(tableau.evalue).name = "Woodpecker"];
+  BIRD_TYPE_OWL = 3 [(tableau.evalue).name = "Owl"];
+}
+
 message EnumTypeReuseInBook {
   option (tableau.worksheet) = {name:"EnumTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4};
 

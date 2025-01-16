@@ -140,7 +140,7 @@ type sheetExporter struct {
 	isLastSheet bool
 	typeInfos   *xproto.TypeInfos
 
-	Imports        map[string]bool             // import name -> defined
+	Imports        map[string]bool              // import name -> defined
 	nestedMessages map[string]*internalpb.Field // top message scoped type name -> field
 }
 
@@ -149,14 +149,14 @@ func (x *sheetExporter) export() error {
 	switch x.ws.Options.Mode {
 	case tableaupb.Mode_MODE_DEFAULT:
 		return x.exportMessager()
-	case tableaupb.Mode_MODE_ENUM_TYPE:
+	case tableaupb.Mode_MODE_ENUM_TYPE, tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
 		return x.exportEnum()
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
 		return x.exportStruct()
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		return x.exportUnion()
 	default:
-		return xerrors.Errorf("unknown mode: %d", mode)
+		return xerrors.Errorf("unknown mode: %v", mode)
 	}
 }
 

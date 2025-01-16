@@ -36,12 +36,25 @@ func NewTable(rows [][]string) *Table {
 }
 
 // GetRow returns the row data by row index (started with 0). It will returns
-// nil if not found,
+// nil if not found.
 func (t *Table) GetRow(row int) []string {
 	if row >= len(t.Rows) {
 		return nil
 	}
 	return t.Rows[row]
+}
+
+// IsRowEmpty checks whether the whole row is empty.
+func (t *Table) IsRowEmpty(row int) bool {
+	if row >= len(t.Rows) {
+		return true
+	}
+	for _, cell := range t.Rows[row] {
+		if cell != "" {
+			return false
+		}
+	}
+	return true
 }
 
 // Cell returns the cell at (row, col).

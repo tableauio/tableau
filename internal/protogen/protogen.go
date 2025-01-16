@@ -23,6 +23,7 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
@@ -467,15 +468,16 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 						ws.Fields = append(ws.Fields, field)
 					}
 				}
+				// append parsed sheet to workbook
+				bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 			} else {
-				err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
+				wsList, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
 				if err != nil {
 					return err
 				}
+				// append parsed sheet list to workbook
+				bp.wb.Worksheets = append(bp.wb.Worksheets, wsList...)
 			}
-			// append parsed sheet to workbook
-			bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
-
 		}
 	}
 
@@ -514,6 +516,24 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 			Kind:           types.EnumKind,
 		}
 		gen.typeInfos.Put(info)
+	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
+		for row := 0; row <= sheet.Table.MaxRow; row++ {
+			r := sheet.Table.GetRow(row)
+			if len(r) >= 3 && (r[0] == "Number" && r[1] == "Name" && r[2] == "Alias") {
+				if row >= 1 {
+					typeRow := sheet.Table.GetRow(row - 1)
+					typ := typeRow[0]
+					// note := typeRow[1]
+					// add type info
+					info := &xproto.TypeInfo{
+						FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typ),
+						ParentFilename: parentFilename,
+						Kind:           types.EnumKind,
+					}
+					gen.typeInfos.Put(info)
+				}
+			}
+		}
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
 		desc := &internalpb.StructDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
@@ -575,7 +595,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 	return nil
 }
 
-func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.Worksheet, sheet *book.Sheet, debugBookName, debugSheetName string) error {
+func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.Worksheet, sheet *book.Sheet, debugBookName, debugSheetName string) ([]*internalpb.Worksheet, error) {
 	// create parser
 	sheetOpts := &tableaupb.WorksheetOptions{
 		Name:    sheet.Name,
@@ -589,7 +609,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 	case tableaupb.Mode_MODE_ENUM_TYPE:
 		desc := &internalpb.EnumDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return xerrors.Wrapf(err, "failed to parse enum type sheet: %s", sheet.Name)
+			return nil, xerrors.Wrapf(err, "failed to parse enum type sheet: %s", sheet.Name)
 		}
 		for i, value := range desc.Values {
 			number := int32(i + 1)
@@ -603,10 +623,51 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 			}
 			ws.Fields = append(ws.Fields, field)
 		}
+		return []*internalpb.Worksheet{ws}, nil
+	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
+		var wsList []*internalpb.Worksheet
+		for row := 0; row <= sheet.Table.MaxRow; row++ {
+			r := sheet.Table.GetRow(row)
+			if len(r) >= 3 && (r[0] == "Number" && r[1] == "Name" && r[2] == "Alias") {
+				subWs := proto.Clone(ws).(*internalpb.Worksheet)
+				beginRow := row
+				if row >= 1 {
+					typeRow := sheet.Table.GetRow(row - 1)
+					subWs.Name = typeRow[0]
+				}
+				for {
+					row++
+					if sheet.Table.IsRowEmpty(row) {
+						endRow := row
+						subSheet := book.NewTableSheet(sheet.Name, sheet.Table.Rows[beginRow:endRow])
+
+						desc := &internalpb.EnumDescriptor{}
+						if err := parser.Parse(desc, subSheet); err != nil {
+							return nil, xerrors.Wrapf(err, "failed to parse enum type sub sheet: %s", subSheet.Name)
+						}
+						for i, value := range desc.Values {
+							number := int32(i + 1)
+							if value.Number != nil {
+								number = *value.Number
+							}
+							field := &internalpb.Field{
+								Number: number,
+								Name:   value.Name,
+								Alias:  value.Alias,
+							}
+							subWs.Fields = append(subWs.Fields, field)
+						}
+						wsList = append(wsList, subWs)
+						break
+					}
+				}
+			}
+		}
+		return wsList, nil
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
 		desc := &internalpb.StructDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
+			return nil, xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
 		}
 		bp := newBookParser("struct", "", "", gen)
 		shHeader := &tableHeader{
@@ -627,17 +688,17 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 			subField := &internalpb.Field{}
 			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
 			if err != nil {
-				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
+				return nil, wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 			}
 			if parsed {
 				ws.Fields = append(ws.Fields, subField)
 			}
 		}
-
+		return []*internalpb.Worksheet{ws}, nil
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		desc := &internalpb.UnionDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {
-			return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
+			return nil, xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
 		}
 
 		for i, value := range desc.Values {
@@ -671,7 +732,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				subField := &internalpb.Field{}
 				cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
 				if err != nil {
-					return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
+					return nil, wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 				}
 				if parsed {
 					field.Fields = append(field.Fields, subField)
@@ -680,8 +741,8 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 
 			ws.Fields = append(ws.Fields, field)
 		}
+		return []*internalpb.Worksheet{ws}, nil
 	default:
-		return xerrors.Errorf("unknown mode: %v", mode)
+		return nil, xerrors.Errorf("unknown mode: %v", mode)
 	}
-	return nil
 }
