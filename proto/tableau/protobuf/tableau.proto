@@ -160,20 +160,24 @@ message WorksheetOptions {
 }
 
 message EnumOptions {
-  string name = 1;  // Alias.
+  string name = 1;  // NOT USED YET.
+  string note = 2;  // Enum type note, maybe in another language (Chinese).
 }
+
 message EnumValueOptions {
-  string name = 1;  // Alias.
+  string name = 1;  // NOT USED YET.
+  string note = 2;  // Enum value note, maybe in another language (Chinese).
 }
 
 message OneofOptions {
-  string name = 1;   // Alias. NOT USED currently.
-  string field = 2;  // Field name.
+  string name = 1;   // NOT USED YET.
+  string note = 2;   // Oneof note, maybe in another language (Chinese).
+  string field = 3;  // Field name.
 }
 
 message FieldOptions {
   string name = 1;    // Scalar type's variable name or composite type's variable name (prefix).
-  string note = 2;    // Field note, maybe in another language (Chinese) other than variable name (English).
+  string note = 2;    // Field note, maybe in another language (Chinese).
   string key = 3;     // Only set when this field type is map or keyed-list.
   Layout layout = 4;  // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
   Span span = 5;      // For list element or map value types. Default: SPAN_CROSS_CELL.
@@ -265,15 +269,19 @@ enum Span {
 
 // Sheet mode.
 enum Mode {
-  MODE_DEFAULT = 0;  // Default mode.
+  MODE_DEFAULT = 0;            // Default mode.
+  MODE_ENUM_TYPE = 1;          // Enum type definition in sheet.
+  MODE_ENUM_TYPE_MULTI = 2;    // Enum type multiple definitions in sheet.
+  MODE_STRUCT_TYPE = 3;        // TODO: Struct type definition in sheet.
+  MODE_STRUCT_TYPE_MULTI = 4;  // Struct type multiple definitions in sheet.
+  MODE_UNION_TYPE = 5;         // Union type definition in sheet.
+  MODE_UNION_TYPE_MULTI = 6;   // TODO: Union type multiple definitions in sheet.
+
   // UE DataTable references:
-  //  - https://docs.unrealengine.com/5.1/en-US/data-driven-gameplay-elements-in-unreal-engine/
-  //  - https://docs.unrealengine.com/5.1/en-US/BlueprintAPI/EditorScripting/DataTable/
-  MODE_UE_CSV = 1;       // CSV format of UE DataTable.
-  MODE_UE_JSON = 2;      // JSON format of UE DataTable.
-  MODE_ENUM_TYPE = 3;    // Enum type definition in sheet.
-  MODE_STRUCT_TYPE = 4;  // Struct type definition in sheet.
-  MODE_UNION_TYPE = 5;   // Union type definition in sheet.
+  //  - https://dev.epicgames.com/documentation/en-us/unreal-engine/data-driven-gameplay-elements-in-unreal-engine
+  //  - https://dev.epicgames.com/documentation/en-us/unreal-engine/BlueprintAPI/EditorScripting/DataTable
+  MODE_UE_CSV = 10;   // TODO: CSV format of UE DataTable.
+  MODE_UE_JSON = 11;  // TODO: JSON format of UE DataTable.
 }
 
 // Cell data form.
