@@ -1,5 +1,10 @@
 package load
 
+import (
+	"github.com/tableauio/tableau/format"
+	"google.golang.org/protobuf/proto"
+)
+
 type Options struct {
 	// Filter can only filter in certain specific messagers based on the
 	// condition that you provide.
@@ -8,7 +13,11 @@ type Options struct {
 	//
 	// Default: nil.
 	Filter FilterFunc
-
+	// LoadBy specifies a custom method to load configs, or just use
+	// load.load as default.
+	//
+	// Default: nil.
+	LoadBy LoadFunc
 	// Location represents the collection of time offsets in use in
 	// a geographical area.
 	//
@@ -65,6 +74,9 @@ const (
 // NOTE: name is the protobuf message name, e.g.: "message ItemConf{...}".
 type FilterFunc func(name string) bool
 
+// LoadFunc load messagers from given path.
+type LoadFunc func(msg proto.Message, path string, fmt format.Format) error
+
 // Option is the functional option type.
 type Option func(*Options)
 
@@ -92,6 +104,14 @@ func ParseOptions(setters ...Option) *Options {
 func Filter(filter FilterFunc) Option {
 	return func(opts *Options) {
 		opts.Filter = filter
+	}
+}
+
+// LoadBy specifies a custom method to load configs, or just use
+// load.load as default.
+func LoadBy(loadFunc LoadFunc) Option {
+	return func(opts *Options) {
+		opts.LoadBy = loadFunc
 	}
 }
 
