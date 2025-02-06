@@ -1,5 +1,7 @@
 package load
 
+import "os"
+
 type Options struct {
 	// Filter can only filter in certain specific messagers based on the
 	// condition that you provide.
@@ -8,11 +10,10 @@ type Options struct {
 	//
 	// Default: nil.
 	Filter FilterFunc
-	// LoadFunc specifies a custom method to read from config files, or
-	// just use os.ReadFile as default.
+	// ReadFunc reads the config file and returns the contents.
 	//
-	// Default: nil.
-	LoadFunc LoadFunc
+	// Default: os.ReadFile.
+	ReadFunc ReadFunc
 	// Location represents the collection of time offsets in use in
 	// a geographical area.
 	//
@@ -69,8 +70,8 @@ const (
 // NOTE: name is the protobuf message name, e.g.: "message ItemConf{...}".
 type FilterFunc func(name string) bool
 
-// LoadFunc specifies a custom method to read from config files.
-type LoadFunc func(name string) ([]byte, error)
+// ReadFunc reads the config file and returns the contents.
+type ReadFunc func(name string) ([]byte, error)
 
 // Option is the functional option type.
 type Option func(*Options)
@@ -79,6 +80,7 @@ type Option func(*Options)
 func newDefault() *Options {
 	return &Options{
 		LocationName: "Local",
+		ReadFunc:     os.ReadFile,
 	}
 }
 
@@ -102,11 +104,12 @@ func Filter(filter FilterFunc) Option {
 	}
 }
 
-// LoadFunc specifies a custom method to read from config files, or
-// just use os.ReadFile as default.
-func WithLoadFunc(loadFunc LoadFunc) Option {
+// ReadFunc reads the config file and returns the contents.
+func WithReadFunc(readFunc ReadFunc) Option {
 	return func(opts *Options) {
-		opts.LoadFunc = loadFunc
+		if readFunc != nil {
+			opts.ReadFunc = readFunc
+		}
 	}
 }
 
