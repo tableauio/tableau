@@ -5,7 +5,6 @@
 package load
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/tableauio/tableau/format"
@@ -117,7 +116,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 // load loads the generated config file (json/text/bin) from the given
 // directory.
 func load(msg proto.Message, path string, fmt format.Format, opts *Options) error {
-	content, err := os.ReadFile(path)
+	content, err := opts.ReadFunc(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
 	}
