@@ -169,6 +169,21 @@ func TestLoad(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "with-read-func",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					LocationName("Local"),
+					WithReadFunc(func(_ string) ([]byte, error) {
+						return []byte(`{"itemMap":{"1":{"id":1,"num":100},"2":{"id":2,"num":200},"3":{"id":3,"num":300}}}`), nil
+					}),
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
