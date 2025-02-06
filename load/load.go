@@ -117,10 +117,15 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 // load loads the generated config file (json/text/bin) from the given
 // directory.
 func load(msg proto.Message, path string, fmt format.Format, opts *Options) error {
-	if opts.LoadBy != nil {
-		return opts.LoadBy(msg, path, fmt)
+	var (
+		content []byte
+		err     error
+	)
+	if opts.LoadFunc != nil {
+		content, err = opts.LoadFunc(path)
+	} else {
+		content, err = os.ReadFile(path)
 	}
-	content, err := os.ReadFile(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
 	}
