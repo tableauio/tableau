@@ -10,7 +10,7 @@ type Options struct {
 	//
 	// Default: nil.
 	Filter FilterFunc
-	// ReadFunc reads the config file and returns the contents.
+	// ReadFunc reads the config file and returns its content.
 	//
 	// Default: os.ReadFile.
 	ReadFunc ReadFunc
@@ -70,7 +70,7 @@ const (
 // NOTE: name is the protobuf message name, e.g.: "message ItemConf{...}".
 type FilterFunc func(name string) bool
 
-// ReadFunc reads the config file and returns the contents.
+// ReadFunc reads the config file and returns its content.
 type ReadFunc func(name string) ([]byte, error)
 
 // Option is the functional option type.
@@ -104,7 +104,7 @@ func Filter(filter FilterFunc) Option {
 	}
 }
 
-// ReadFunc reads the config file and returns the contents.
+// ReadFunc reads the config file and returns its content.
 func WithReadFunc(readFunc ReadFunc) Option {
 	return func(opts *Options) {
 		if readFunc != nil {
