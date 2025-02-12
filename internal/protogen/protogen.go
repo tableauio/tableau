@@ -471,12 +471,12 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				// append parsed sheet to workbook
 				bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 			} else {
-				wsList, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
+				sheets, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
 				if err != nil {
 					return err
 				}
-				// append parsed sheet list to workbook
-				bp.wb.Worksheets = append(bp.wb.Worksheets, wsList...)
+				// append parsed sheets to workbook
+				bp.wb.Worksheets = append(bp.wb.Worksheets, sheets...)
 			}
 		}
 	}
@@ -518,15 +518,17 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		gen.typeInfos.Put(info)
 	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
 		for row := 0; row <= sheet.Table.MaxRow; row++ {
-			r := sheet.Table.GetRow(row)
-			if len(r) >= 3 && (r[0] == "Number" && r[1] == "Name" && r[2] == "Alias") {
+			cols := sheet.Table.GetRow(row)
+			if isEnumTypeDefinitionBlockHeader(cols) {
 				if row >= 1 {
 					typeRow := sheet.Table.GetRow(row - 1)
-					typ := typeRow[0]
-					// note := typeRow[1]
+					typeName, _, err := extractEnumTypeRow(typeRow)
+					if err != nil {
+						return xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
+					}
 					// add type info
 					info := &xproto.TypeInfo{
-						FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typ),
+						FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName),
 						ParentFilename: parentFilename,
 						Kind:           types.EnumKind,
 					}
@@ -607,63 +609,41 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
-		desc := &internalpb.EnumDescriptor{}
-		if err := parser.Parse(desc, sheet); err != nil {
-			return nil, xerrors.Wrapf(err, "failed to parse enum type sheet: %s", sheet.Name)
-		}
-		for i, value := range desc.Values {
-			number := int32(i + 1)
-			if value.Number != nil {
-				number = *value.Number
-			}
-			field := &internalpb.Field{
-				Number: number,
-				Name:   value.Name,
-				Alias:  value.Alias,
-			}
-			ws.Fields = append(ws.Fields, field)
+		if err := parseEnumTypeValues(ws, sheet, parser); err != nil {
+			return nil, err
 		}
 		return []*internalpb.Worksheet{ws}, nil
 	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
-		var wsList []*internalpb.Worksheet
+		var worksheets []*internalpb.Worksheet
 		for row := 0; row <= sheet.Table.MaxRow; row++ {
-			r := sheet.Table.GetRow(row)
-			if len(r) >= 3 && (r[0] == "Number" && r[1] == "Name" && r[2] == "Alias") {
+			cols := sheet.Table.GetRow(row)
+			if isEnumTypeDefinitionBlockHeader(cols) {
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
 				beginRow := row
 				if row >= 1 {
 					typeRow := sheet.Table.GetRow(row - 1)
-					subWs.Name = typeRow[0]
+					typeName, _, err := extractEnumTypeRow(typeRow)
+					if err != nil {
+						return nil, xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
+					}
+					subWs.Name = typeName
 				}
 				for {
 					row++
+					// find the first empty row as the end of this enum type definition block.
 					if sheet.Table.IsRowEmpty(row) {
 						endRow := row
 						subSheet := book.NewTableSheet(sheet.Name, sheet.Table.Rows[beginRow:endRow])
-
-						desc := &internalpb.EnumDescriptor{}
-						if err := parser.Parse(desc, subSheet); err != nil {
-							return nil, xerrors.Wrapf(err, "failed to parse enum type sub sheet: %s", subSheet.Name)
+						if err := parseEnumTypeValues(subWs, subSheet, parser); err != nil {
+							return nil, err
 						}
-						for i, value := range desc.Values {
-							number := int32(i + 1)
-							if value.Number != nil {
-								number = *value.Number
-							}
-							field := &internalpb.Field{
-								Number: number,
-								Name:   value.Name,
-								Alias:  value.Alias,
-							}
-							subWs.Fields = append(subWs.Fields, field)
-						}
-						wsList = append(wsList, subWs)
+						worksheets = append(worksheets, subWs)
 						break
 					}
 				}
 			}
 		}
-		return wsList, nil
+		return worksheets, nil
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
 		desc := &internalpb.StructDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {

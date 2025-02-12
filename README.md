@@ -38,7 +38,11 @@ import "github.com/tableauio/tableau"
 
 ### tableauc
 
-Install: `go install github.com/tableauio/tableau/cmd/tableauc@latest`
+Install: 
+
+```bash
+go install github.com/tableauio/tableau/cmd/tableauc@latest
+```
 
 ## Features
 
@@ -56,9 +60,9 @@ Install: `go install github.com/tableauio/tableau/cmd/tableauc@latest`
   - protogen: converts **Excel/CSV/XML/YAML** files to **Protoconf** files.
   - confgen: converts **Excel/CSV/XML/YAML** with **Protoconf** files to **JSON/Text/Bin** files.
 - Exporter:
-  - protogen: exports a [tableau.Workbook](https://github.com/tableauio/tableau/blob/master/proto/tableau/protobuf/workbook.proto) to a proto file.
+  - protogen: exports a [tableau.Workbook](proto/tableau/protobuf/internal/workbook.proto) to a proto file.
   - confgen: exports a protobuf message to a **JSON/Text/Bin** file.
-- Protoconf: a dialect of [Protocol Buffers (proto3)](https://developers.google.com/protocol-buffers/docs/proto3) extended with [tableau options](https://github.com/tableauio/tableau/blob/master/proto/tableau/protobuf/tableau.proto), aimed to define the structure of Excel/CSV/XML/YAML.
+- Protoconf: a dialect of [Protocol Buffers (proto3)](https://developers.google.com/protocol-buffers/docs/proto3) extended with [tableau options](proto/tableau/protobuf/tableau.proto), aimed to define the structure of Excel/CSV/XML/YAML.
 
 ## Design
 
@@ -74,4 +78,8 @@ Goto [Protocol Buffers v21.12](https://github.com/protocolbuffers/protobuf/relea
 
 #### protoc-gen-go
 
-Install: `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.33.0`
+Install: 
+
+```bash
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.33.0
+```

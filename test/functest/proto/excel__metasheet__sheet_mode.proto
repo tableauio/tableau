@@ -44,7 +44,7 @@ message EnumTypeReuseInBook {
   message Item {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
     protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}];
-    string name = 3 [(tableau.field) = {name:"Name"}];
+    protoconf.BirdType bird_type = 3 [(tableau.field) = {name:"BirdType"}];
     int32 price = 4 [(tableau.field) = {name:"Price"}];
   }
 }

@@ -1,18 +1,19 @@
-CatType,Cat type note,
-Number,Name,Alias
-1,CAT_TYPE_RAGDOLL,Ragdoll
-2,CAT_TYPE_PERSIAN,Persian
-3,CAT_TYPE_SPHYNX,Sphynx
-,,
-DogType,Dog type note,
-Number,Name,Alias
-1,DOG_TYPE_POODLE,Poodle
-2,DOG_TYPE_BULLDOG,Bulldog
-3,DOG_TYPE_DACHSHUND,Dachshund
-,,
-,,
-BirdType,Bird type note,
-Number,Name,Alias
-1,BIRD_TYPE_CANARY,Canary
-2,BIRD_TYPE_WOODPECKER,Woodpecker
-3,BIRD_TYPE_OWL,Owl
+CatType,CatTypeAlias,,
+Number,Name,Alias,
+1,CAT_TYPE_RAGDOLL,Ragdoll,
+2,CAT_TYPE_PERSIAN,Persian,
+3,CAT_TYPE_SPHYNX,Sphynx,
+,,,
+,DogType,DogTypeAlias,
+Number,Name,Alias,
+1,DOG_TYPE_POODLE,Poodle,
+2,DOG_TYPE_BULLDOG,Bulldog,
+3,DOG_TYPE_DACHSHUND,Dachshund,
+,,,
+,,,
+,,,
+,,BirdType,BirdTypeAlias
+Number,Name,Alias,
+1,BIRD_TYPE_CANARY,Canary,
+2,BIRD_TYPE_WOODPECKER,Woodpecker,
+3,BIRD_TYPE_OWL,Owl,
