@@ -1,6 +1,6 @@
-ID,Num,FruitType,Feature,Prop,Detail
-"map<uint32, .TaskReward>",int32,enum<.FruitType>,[]int32,"map<int32, string>","{enum<.ItemType> Type, string Name, string Desc}Detail"
-Reward’s ID,Reward’s num,Reward’s fruit type,Reward’s feature,Reward’s Prop,Reward’s Detail
-1,100,Apple,"1,2","1:Power,2:Skill","Equip,Sword,Sword's Desc"
-2,200,Banana,1,1:Power,
-3,300,,,,
+ID,PetKind,PetTip,TaskRewardID,TaskRewardNum,TaskRewardFruitType,TaskRewardFeature,TaskRewardProp,TaskRewardDetail
+"map<uint32, Reward>",{.Pet}int32,[]string,{.TaskReward}uint32,int32,enum<.FruitType>,[]int32,"map<int32, string>","{enum<.ItemType> Type, string Name, string Desc}Detail"
+Reward’s ID,Pet’s kind,Pet's tip,Reward’s ID,Reward’s num,Reward’s fruit type,Reward’s feature,Reward’s Prop,Reward’s Detail
+1,1,"lovely,small",1,100,Apple,"1,2","1:Power,2:Skill","Equip,Sword,Sword's Desc"
+2,2,"beautiful,big",2,200,Banana,1,1:Power,
+3,3,,3,300,,,,

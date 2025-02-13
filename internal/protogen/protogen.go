@@ -519,14 +519,14 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
 		for row := 0; row <= sheet.Table.MaxRow; row++ {
 			cols := sheet.Table.GetRow(row)
-			if isEnumTypeDefinitionBlockHeader(cols) {
+			if isEnumTypeBlockHeader(cols) {
 				if row < 1 {
 					continue
 				}
 				typeRow := sheet.Table.GetRow(row - 1)
 				typeName, _, _, err := extractEnumTypeRow(typeRow)
 				if err != nil {
-					return xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
+					return xerrors.Wrapf(err, "failed to parse enum type block, sheet: %s, row: %d", sheet.Name, row)
 				}
 				// add type info
 				info := &xproto.TypeInfo{
@@ -554,7 +554,40 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 			FirstFieldOptionName: firstFieldOptionName,
 		}
 		gen.typeInfos.Put(info)
-
+	case tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
+		for row := 0; row <= sheet.Table.MaxRow; row++ {
+			cols := sheet.Table.GetRow(row)
+			if isStructTypeBlockHeader(cols) {
+				if row < 1 {
+					continue
+				}
+				typeRow := sheet.Table.GetRow(row - 1)
+				typeName, _, _, err := extractStructTypeRow(typeRow)
+				if err != nil {
+					return xerrors.Wrapf(err, "failed to parse struct type block at row: %d, sheet: %s", row, sheet.Name)
+				}
+				blockBeginRow := row
+				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
+				row = blockEndRow // skip row to next block
+				subSheet := book.NewTableSheet(sheet.Name, block)
+				desc := &internalpb.StructDescriptor{}
+				if err := parser.Parse(desc, subSheet); err != nil {
+					return xerrors.Wrapf(err, "failed to parse struct type block, sheet: %s, row: %d", sheet.Name, row)
+				}
+				firstFieldOptionName := ""
+				if len(desc.Fields) != 0 {
+					firstFieldOptionName = desc.Fields[0].Name
+				}
+				// add type info
+				info := &xproto.TypeInfo{
+					FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName),
+					ParentFilename:       parentFilename,
+					Kind:                 types.MessageKind,
+					FirstFieldOptionName: firstFieldOptionName,
+				}
+				gen.typeInfos.Put(info)
+			}
+		}
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		// add union self type info
 		info := &xproto.TypeInfo{
@@ -618,7 +651,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		var worksheets []*internalpb.Worksheet
 		for row := 0; row <= sheet.Table.MaxRow; row++ {
 			cols := sheet.Table.GetRow(row)
-			if isEnumTypeDefinitionBlockHeader(cols) {
+			if isEnumTypeBlockHeader(cols) {
 				if row < 1 {
 					continue
 				}
@@ -628,11 +661,11 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
 				subWs.Name, subWs.Alias, subWs.Note, err = extractEnumTypeRow(typeRow)
 				if err != nil {
-					return nil, xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
+					return nil, xerrors.Wrapf(err, "failed to extract enum type block at row: %d, sheet: %s", row, sheet.Name)
 				}
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(sheet.Name, block)
+				subSheet := book.NewTableSheet(subWs.Name, block)
 				if err := parseEnumTypeValues(subWs, subSheet, parser); err != nil {
 					return nil, err
 				}
@@ -641,36 +674,36 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		}
 		return worksheets, nil
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
-		desc := &internalpb.StructDescriptor{}
-		if err := parser.Parse(desc, sheet); err != nil {
-			return nil, xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
-		}
-		bp := newBookParser("struct", "", "", gen)
-		shHeader := &tableHeader{
-			meta: &tableaupb.WorksheetOptions{
-				Namerow: 1,
-				Typerow: 2,
-			},
-			validNames: map[string]int{},
-		}
-		for _, field := range desc.Fields {
-			shHeader.namerow = append(shHeader.namerow, field.Name)
-			shHeader.typerow = append(shHeader.typerow, field.Type)
-			shHeader.noterow = append(shHeader.noterow, "")
-		}
-		var parsed bool
-		var err error
-		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
-			subField := &internalpb.Field{}
-			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
-			if err != nil {
-				return nil, wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
-			}
-			if parsed {
-				ws.Fields = append(ws.Fields, subField)
-			}
+		if err := parseStructTypeValues(ws, sheet, parser, gen, debugBookName, debugSheetName); err != nil {
+			return nil, err
 		}
 		return []*internalpb.Worksheet{ws}, nil
+	case tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
+		var worksheets []*internalpb.Worksheet
+		for row := 0; row <= sheet.Table.MaxRow; row++ {
+			cols := sheet.Table.GetRow(row)
+			if isStructTypeBlockHeader(cols) {
+				if row < 1 {
+					continue
+				}
+				blockBeginRow := row
+				typeRow := sheet.Table.GetRow(row - 1)
+				var err error
+				subWs := proto.Clone(ws).(*internalpb.Worksheet)
+				subWs.Name, subWs.Alias, subWs.Note, err = extractStructTypeRow(typeRow)
+				if err != nil {
+					return nil, xerrors.Wrapf(err, "failed to extract struct type block at row: %d, sheet: %s", row, sheet.Name)
+				}
+				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
+				row = blockEndRow // skip row to next block
+				subSheet := book.NewTableSheet(subWs.Name, block)
+				if err := parseStructTypeValues(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
+					return nil, err
+				}
+				worksheets = append(worksheets, subWs)
+			}
+		}
+		return worksheets, nil
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		desc := &internalpb.UnionDescriptor{}
 		if err := parser.Parse(desc, sheet); err != nil {

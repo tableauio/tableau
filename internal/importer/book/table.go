@@ -61,7 +61,8 @@ func (t *Table) IsRowEmpty(row int) bool {
 // it will just return the start row. Otherwise, it will return the last
 // none-empty row.
 //
-// NOTE: A block is a series of contiguous none-empty rows.
+// NOTE: A block is a series of contiguous none-empty rows. So different blocks
+// are seperated by one or more empty rows.
 func (t *Table) FindBlockEndRow(startRow int) int {
 	for row := startRow; row <= len(t.Rows); row++ {
 		if t.IsRowEmpty(row) {
@@ -76,7 +77,8 @@ func (t *Table) FindBlockEndRow(startRow int) int {
 
 // ExtractBlock extracts a block of rows.
 //
-// NOTE: A block is a series of contiguous none-empty rows.
+// NOTE: A block is a series of contiguous none-empty rows. So different blocks
+// are seperated by one or more empty rows.
 func (t *Table) ExtractBlock(startRow int) (rows [][]string, endRow int) {
 	endRow = t.FindBlockEndRow(startRow)
 	rows = t.Rows[startRow : endRow+1]
