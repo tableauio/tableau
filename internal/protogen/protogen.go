@@ -471,12 +471,12 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				// append parsed sheet to workbook
 				bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 			} else {
-				sheets, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
+				worksheets, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
 				if err != nil {
 					return err
 				}
 				// append parsed sheets to workbook
-				bp.wb.Worksheets = append(bp.wb.Worksheets, sheets...)
+				bp.wb.Worksheets = append(bp.wb.Worksheets, worksheets...)
 			}
 		}
 	}
@@ -522,7 +522,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 			if isEnumTypeDefinitionBlockHeader(cols) {
 				if row >= 1 {
 					typeRow := sheet.Table.GetRow(row - 1)
-					typeName, _, err := extractEnumTypeRow(typeRow)
+					typeName, _, _, err := extractEnumTypeRow(typeRow)
 					if err != nil {
 						return xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
 					}
@@ -618,15 +618,16 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		for row := 0; row <= sheet.Table.MaxRow; row++ {
 			cols := sheet.Table.GetRow(row)
 			if isEnumTypeDefinitionBlockHeader(cols) {
-				subWs := proto.Clone(ws).(*internalpb.Worksheet)
+				if row < 1 {
+					continue
+				}
 				beginRow := row
-				if row >= 1 {
-					typeRow := sheet.Table.GetRow(row - 1)
-					typeName, _, err := extractEnumTypeRow(typeRow)
-					if err != nil {
-						return nil, xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
-					}
-					subWs.Name = typeName
+				typeRow := sheet.Table.GetRow(row - 1)
+				var err error
+				subWs := proto.Clone(ws).(*internalpb.Worksheet)
+				subWs.Name, subWs.Alias, subWs.Note, err = extractEnumTypeRow(typeRow)
+				if err != nil {
+					return nil, xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
 				}
 				for {
 					row++

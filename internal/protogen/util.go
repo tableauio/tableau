@@ -38,19 +38,22 @@ func isEnumTypeDefinitionBlockHeader(cols []string) bool {
 }
 
 // extractEnumTypeRow find the first none-empty colunm as "name", and then
-// the subsequent column as "alias".
-func extractEnumTypeRow(cols []string) (name, alias string, err error) {
+// the two subsequent column as "alias" and "note".
+func extractEnumTypeRow(cols []string) (name, alias, note string, err error) {
 	for i, cell := range cols {
 		if cell != "" {
 			name = cell
 			if i+1 < len(cols) {
 				alias = cols[i+1]
 			}
+			if i+2 < len(cols) {
+				note = cols[i+2]
+			}
 			break
 		}
 	}
 	if name == "" {
-		return name, alias, fmt.Errorf("name cell not found in enum type row")
+		err = fmt.Errorf("name cell not found in enum type row")
 	}
 	return
 }

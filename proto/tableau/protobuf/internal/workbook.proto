@@ -18,8 +18,10 @@ message Workbook {
 
 message Worksheet {
   string name = 1;
-  tableau.WorksheetOptions options = 2;
-  repeated Field fields = 3;
+  string alias = 2;
+  string note = 3;
+  tableau.WorksheetOptions options = 4;
+  repeated Field fields = 5;
 }
 
 message Field {
@@ -32,7 +34,7 @@ message Field {
   string full_type = 5;
   ListEntry list_entry = 6;
   MapEntry map_entry = 7;
-  // Indicate this field's related type is predefined.
+  // Indicate whether this field's related type is predefined.
   // - enum: enum type
   // - struct: message type
   // - list: list's element type

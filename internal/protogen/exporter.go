@@ -163,6 +163,11 @@ func (x *sheetExporter) export() error {
 func (x *sheetExporter) exportEnum() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("enum ", x.ws.Name, " {")
+	if x.ws.Alias != "" || x.ws.Note != "" {
+		opts := &tableaupb.EnumOptions{Name: x.ws.Alias, Note: x.ws.Note}
+		x.g.P("  option (tableau.etype) = {", marshalToText(opts), "};")
+		x.g.P("")
+	}
 	// generate the enum value fields
 	for i, field := range x.ws.Fields {
 		if i == 0 && field.Number != 0 {

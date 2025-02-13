@@ -1,10 +1,10 @@
-CatType,CatTypeAlias,,
+CatType,CatTypeAlias,Cat type note,
 Number,Name,Alias,
 1,CAT_TYPE_RAGDOLL,Ragdoll,
 2,CAT_TYPE_PERSIAN,Persian,
 3,CAT_TYPE_SPHYNX,Sphynx,
 ,,,
-,DogType,DogTypeAlias,
+,DogType,DogTypeAlias,Dog type note
 Number,Name,Alias,
 1,DOG_TYPE_POODLE,Poodle,
 2,DOG_TYPE_BULLDOG,Bulldog,
