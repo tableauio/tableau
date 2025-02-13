@@ -6,6 +6,14 @@ type Map[K comparable, V any] struct {
 	m sync.Map
 }
 
+func NewMap[K comparable, V any](m map[K]V) *Map[K, V] {
+	m1 := &Map[K, V]{}
+	for k, v := range m {
+		m1.m.Store(k, v)
+	}
+	return m1
+}
+
 // Load returns the value stored in the map for a key, or nil if no value
 // is present. The ok result indicates whether value was found in the map.
 func (m *Map[K, V]) Load(key K) (value V, ok bool) {

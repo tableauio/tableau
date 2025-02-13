@@ -3,12 +3,12 @@ package xproto
 import (
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
-	"github.com/tableauio/tableau/internal/x/xsync"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -107,19 +107,22 @@ type TypeInfo struct {
 func NewTypeInfos(protoPackage string) *TypeInfos {
 	return &TypeInfos{
 		protoPackage: protoPackage,
-		infos:        xsync.Map[protoreflect.FullName, *TypeInfo]{},
+		infos:        map[protoreflect.FullName]*TypeInfo{},
 	}
 }
 
 type TypeInfos struct {
+	mu           sync.RWMutex
 	protoPackage string
-	infos        xsync.Map[protoreflect.FullName, *TypeInfo]
+	infos        map[protoreflect.FullName]*TypeInfo
 }
 
 // Put stores a new type info.
 func (x *TypeInfos) Put(info *TypeInfo) {
+	x.mu.Lock()
+	defer x.mu.Unlock()
 	log.Debugf("remember new generated predefined type: %v", info)
-	x.infos.Store(info.FullName, info)
+	x.infos[info.FullName] = info
 }
 
 // Get retrieves type info by name in proto package.
@@ -128,6 +131,8 @@ func (x *TypeInfos) Put(info *TypeInfo) {
 // prepended to generate full name. For example: ".ItemType" will be conveted to
 // "<ProtoPackage>.ItemType"
 func (x *TypeInfos) Get(name string) *TypeInfo {
+	x.mu.RLock()
+	defer x.mu.RUnlock()
 	var fullName string
 	if strings.HasPrefix(name, ".") {
 		// prepend default proto package
@@ -140,11 +145,9 @@ func (x *TypeInfos) Get(name string) *TypeInfo {
 
 // GetByFullName retrieves type info by type's full name.
 func (x *TypeInfos) GetByFullName(fullName protoreflect.FullName) *TypeInfo {
-	info, ok := x.infos.Load(fullName)
-	if ok {
-		return info
-	}
-	return nil
+	x.mu.RLock()
+	defer x.mu.RUnlock()
+	return x.infos[fullName]
 }
 
 func GetAllTypeInfo(files *protoregistry.Files, protoPackage string) *TypeInfos {
