@@ -7,7 +7,8 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/tableauio/tableau/internal/types"
-	"github.com/tableauio/tableau/internal/xfs"
+	"github.com/tableauio/tableau/internal/x/xfs"
+	"github.com/tableauio/tableau/internal/x/xsync"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -106,18 +107,19 @@ type TypeInfo struct {
 func NewTypeInfos(protoPackage string) *TypeInfos {
 	return &TypeInfos{
 		protoPackage: protoPackage,
-		infos:        map[protoreflect.FullName]*TypeInfo{},
+		infos:        xsync.Map[protoreflect.FullName, *TypeInfo]{},
 	}
 }
 
 type TypeInfos struct {
 	protoPackage string
-	infos        map[protoreflect.FullName]*TypeInfo // full name -> type info
+	infos        xsync.Map[protoreflect.FullName, *TypeInfo]
 }
 
+// Put stores a new type info.
 func (x *TypeInfos) Put(info *TypeInfo) {
 	log.Debugf("remember new generated predefined type: %v", info)
-	x.infos[info.FullName] = info
+	x.infos.Store(info.FullName, info)
 }
 
 // Get retrieves type info by name in proto package.
@@ -138,7 +140,11 @@ func (x *TypeInfos) Get(name string) *TypeInfo {
 
 // GetByFullName retrieves type info by type's full name.
 func (x *TypeInfos) GetByFullName(fullName protoreflect.FullName) *TypeInfo {
-	return x.infos[fullName]
+	info, ok := x.infos.Load(fullName)
+	if ok {
+		return info
+	}
+	return nil
 }
 
 func GetAllTypeInfo(files *protoregistry.Files, protoPackage string) *TypeInfos {

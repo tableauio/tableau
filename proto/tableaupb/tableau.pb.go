@@ -705,8 +705,8 @@ type EnumOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // NOT USED YET.
-	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"` // Enum type note, maybe in another language (Chinese).
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Enum type alias. Maybe in another language (Chinese).
+	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"` // Enum type note. Maybe in another language (Chinese).
 }
 
 func (x *EnumOptions) Reset() {
@@ -760,8 +760,8 @@ type EnumValueOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // NOT USED YET.
-	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"` // Enum value note, maybe in another language (Chinese).
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Enum value alias. Maybe in another language (Chinese).
+	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"` // Enum value note. Maybe in another language (Chinese).
 }
 
 func (x *EnumValueOptions) Reset() {
@@ -815,7 +815,7 @@ type OneofOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name  string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`   // NOT USED YET.
+	Name  string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`   // Oneof alias. NOT USED YET.
 	Note  string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`   // Oneof note, maybe in another language (Chinese).
 	Field string `protobuf:"bytes,3,opt,name=field,proto3" json:"field,omitempty"` // Field name.
 }
@@ -879,7 +879,7 @@ type FieldOptions struct {
 	unknownFields protoimpl.UnknownFields
 
 	Name   string     `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                          // Scalar type's variable name or composite type's variable name (prefix).
-	Note   string     `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`                          // Field note, maybe in another language (Chinese).
+	Note   string     `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`                          // Field note. Maybe in another language (Chinese).
 	Key    string     `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`                            // Only set when this field type is map or keyed-list.
 	Layout Layout     `protobuf:"varint,4,opt,name=layout,proto3,enum=tableau.Layout" json:"layout,omitempty"` // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
 	Span   Span       `protobuf:"varint,5,opt,name=span,proto3,enum=tableau.Span" json:"span,omitempty"`       // For list element or map value types. Default: SPAN_CROSS_CELL.
