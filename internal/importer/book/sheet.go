@@ -121,7 +121,9 @@ func (s *Sheet) GetProtoName() string {
 // based on this sheet's info.
 func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 	return &internalpb.Worksheet{
-		Name: s.GetProtoName(),
+		Name:  s.GetProtoName(),
+		Alias: s.Meta.Alias,
+		Note:  "", // NOTE: maybe will be used in the future
 		Options: &tableaupb.WorksheetOptions{
 			Name:                   s.GetDataName(),
 			Namerow:                s.Meta.Namerow,

@@ -35,7 +35,7 @@ func NewTable(rows [][]string) *Table {
 	}
 }
 
-// GetRow returns the row data by row index (started with 0). It will returns
+// GetRow returns the row data by row index (started with 0). It will return
 // nil if not found.
 func (t *Table) GetRow(row int) []string {
 	if row >= len(t.Rows) {
@@ -55,6 +55,32 @@ func (t *Table) IsRowEmpty(row int) bool {
 		}
 	}
 	return true
+}
+
+// FindBlockEndRow finds the end row of the block. If the start row is empty,
+// it will just return the start row. Otherwise, it will return the last
+// none-empty row.
+//
+// NOTE: A block is a series of contiguous none-empty rows.
+func (t *Table) FindBlockEndRow(startRow int) int {
+	for row := startRow; row <= len(t.Rows); row++ {
+		if t.IsRowEmpty(row) {
+			if row == startRow {
+				return row
+			}
+			return row - 1
+		}
+	}
+	return len(t.Rows)
+}
+
+// ExtractBlock extracts a block of rows.
+//
+// NOTE: A block is a series of contiguous none-empty rows.
+func (t *Table) ExtractBlock(startRow int) (rows [][]string, endRow int) {
+	endRow = t.FindBlockEndRow(startRow)
+	rows = t.Rows[startRow : endRow+1]
+	return
 }
 
 // Cell returns the cell at (row, col).

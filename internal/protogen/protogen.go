@@ -520,20 +520,21 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		for row := 0; row <= sheet.Table.MaxRow; row++ {
 			cols := sheet.Table.GetRow(row)
 			if isEnumTypeDefinitionBlockHeader(cols) {
-				if row >= 1 {
-					typeRow := sheet.Table.GetRow(row - 1)
-					typeName, _, _, err := extractEnumTypeRow(typeRow)
-					if err != nil {
-						return xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
-					}
-					// add type info
-					info := &xproto.TypeInfo{
-						FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName),
-						ParentFilename: parentFilename,
-						Kind:           types.EnumKind,
-					}
-					gen.typeInfos.Put(info)
+				if row < 1 {
+					continue
 				}
+				typeRow := sheet.Table.GetRow(row - 1)
+				typeName, _, _, err := extractEnumTypeRow(typeRow)
+				if err != nil {
+					return xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
+				}
+				// add type info
+				info := &xproto.TypeInfo{
+					FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName),
+					ParentFilename: parentFilename,
+					Kind:           types.EnumKind,
+				}
+				gen.typeInfos.Put(info)
 			}
 		}
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
@@ -621,7 +622,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				if row < 1 {
 					continue
 				}
-				beginRow := row
+				blockBeginRow := row
 				typeRow := sheet.Table.GetRow(row - 1)
 				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
@@ -629,19 +630,13 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				if err != nil {
 					return nil, xerrors.Wrapf(err, "failed to parse enum type block at row: %d, sheet: %s", row, sheet.Name)
 				}
-				for {
-					row++
-					// find the first empty row as the end of this enum type definition block.
-					if sheet.Table.IsRowEmpty(row) {
-						endRow := row
-						subSheet := book.NewTableSheet(sheet.Name, sheet.Table.Rows[beginRow:endRow])
-						if err := parseEnumTypeValues(subWs, subSheet, parser); err != nil {
-							return nil, err
-						}
-						worksheets = append(worksheets, subWs)
-						break
-					}
+				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
+				row = blockEndRow // skip row to next block
+				subSheet := book.NewTableSheet(sheet.Name, block)
+				if err := parseEnumTypeValues(subWs, subSheet, parser); err != nil {
+					return nil, err
 				}
+				worksheets = append(worksheets, subWs)
 			}
 		}
 		return worksheets, nil

@@ -37,8 +37,8 @@ func isEnumTypeDefinitionBlockHeader(cols []string) bool {
 	return cols[0] == colNumber && cols[1] == colName && cols[2] == colAlias
 }
 
-// extractEnumTypeRow find the first none-empty colunm as "name", and then
-// the two subsequent column as "alias" and "note".
+// extractEnumTypeRow find the first none-empty column as "name", and then
+// the two subsequent columns as "alias" and "note" if provided.
 func extractEnumTypeRow(cols []string) (name, alias, note string, err error) {
 	for i, cell := range cols {
 		if cell != "" {
