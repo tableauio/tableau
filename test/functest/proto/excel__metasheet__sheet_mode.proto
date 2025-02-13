@@ -65,7 +65,7 @@ enum ItemType {
 
 // Generated from sheet: StructTaskReward.
 message TaskReward {
-  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}];
   int32 num = 2 [(tableau.field) = {name:"Num"}];
   protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
   repeated int32 feature_list = 4 [(tableau.field) = {name:"Feature" layout:LAYOUT_INCELL}];
