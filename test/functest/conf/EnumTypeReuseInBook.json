@@ -3,19 +3,19 @@
         "1": {
             "id": 1,
             "type": "ITEM_TYPE_FRUIT",
-            "name": "Apple",
+            "birdType": "BIRD_TYPE_CANARY",
             "price": 40
         },
         "2": {
             "id": 2,
             "type": "ITEM_TYPE_FRUIT",
-            "name": "Orange",
+            "birdType": "BIRD_TYPE_WOODPECKER",
             "price": 20
         },
         "3": {
             "id": 3,
             "type": "ITEM_TYPE_EQUIP",
-            "name": "Sword",
+            "birdType": "BIRD_TYPE_OWL",
             "price": 10
         }
     }

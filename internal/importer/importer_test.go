@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/xfs"
+	"github.com/tableauio/tableau/internal/x/xfs"
 )
 
 func init() {

@@ -226,7 +226,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 
 			// NOTE(wenchy): should not use ts.ProtoReflect(), as descriptor not same.
-			// See more details at internal/xproto/build_test.go#TestCloneWellknownTypes
+			// See more details at internal/x/xproto/build_test.go#TestCloneWellknownTypes
 			// return pref.ValueOf(ts.ProtoReflect()), true, nil
 		case types.WellKnownMessageDuration:
 			if value == "" {
@@ -247,7 +247,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 
 			// NOTE(wenchy): should not use du.ProtoReflect(), as descriptor not same.
-			// See more details at internal/xproto/build_test.go#TestCloneWellknownTypes
+			// See more details at internal/x/xproto/build_test.go#TestCloneWellknownTypes
 			// return pref.ValueOf(du.ProtoReflect()), true, nil
 		case types.WellKnownMessageFraction:
 			if value == "" {

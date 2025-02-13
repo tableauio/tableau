@@ -9,8 +9,8 @@ import (
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
-	"github.com/tableauio/tableau/internal/xfs"
-	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/internal/x/xfs"
+	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
@@ -140,7 +140,7 @@ type sheetExporter struct {
 	isLastSheet bool
 	typeInfos   *xproto.TypeInfos
 
-	Imports        map[string]bool             // import name -> defined
+	Imports        map[string]bool              // import name -> defined
 	nestedMessages map[string]*internalpb.Field // top message scoped type name -> field
 }
 
@@ -149,20 +149,25 @@ func (x *sheetExporter) export() error {
 	switch x.ws.Options.Mode {
 	case tableaupb.Mode_MODE_DEFAULT:
 		return x.exportMessager()
-	case tableaupb.Mode_MODE_ENUM_TYPE:
+	case tableaupb.Mode_MODE_ENUM_TYPE, tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
 		return x.exportEnum()
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
 		return x.exportStruct()
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		return x.exportUnion()
 	default:
-		return xerrors.Errorf("unknown mode: %d", mode)
+		return xerrors.Errorf("unknown mode: %v", mode)
 	}
 }
 
 func (x *sheetExporter) exportEnum() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("enum ", x.ws.Name, " {")
+	if x.ws.Alias != "" || x.ws.Note != "" {
+		opts := &tableaupb.EnumOptions{Name: x.ws.Alias, Note: x.ws.Note}
+		x.g.P("  option (tableau.etype) = {", marshalToText(opts), "};")
+		x.g.P("")
+	}
 	// generate the enum value fields
 	for i, field := range x.ws.Fields {
 		if i == 0 && field.Number != 0 {

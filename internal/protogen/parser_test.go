@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/internal/types"
-	"github.com/tableauio/tableau/internal/xproto"
+	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 )
