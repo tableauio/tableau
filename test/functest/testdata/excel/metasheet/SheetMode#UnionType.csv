@@ -1,7 +1,7 @@
 WishTarget,WishTarget note,,,
 Name,Alias,Field1,Field2,Field3
 Higher,WishHigher,"Height
-nt32",,
+int32",,
 Richer,WishRicher,"ID
 uint32","Bank
 map<int32, string>",
