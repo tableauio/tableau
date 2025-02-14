@@ -161,13 +161,10 @@ func (x *sheetExporter) export() error {
 }
 
 func (x *sheetExporter) exportEnum() error {
-	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("enum ", x.ws.Name, " {")
-	if x.ws.Note != "" {
-		opts := &tableaupb.EnumOptions{Note: x.ws.Note}
-		x.g.P("  option (tableau.etype) = {", marshalToText(opts), "};")
-		x.g.P("")
-	}
+	opts := &tableaupb.EnumOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
+	x.g.P("  option (tableau.etype) = {", marshalToText(opts), "};")
+	x.g.P("")
 	// generate the enum value fields
 	for i, field := range x.ws.Fields {
 		if i == 0 && field.Number != 0 {
@@ -184,15 +181,10 @@ func (x *sheetExporter) exportEnum() error {
 }
 
 func (x *sheetExporter) exportStruct() error {
-	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("message ", x.ws.Name, " {")
-
-	if x.ws.Note != "" {
-		opts := &tableaupb.StructOptions{Note: x.ws.Note}
-		x.g.P("  option (tableau.struct) = {", marshalToText(opts), "};")
-		x.g.P("")
-	}
-
+	opts := &tableaupb.StructOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
+	x.g.P("  option (tableau.struct) = {", marshalToText(opts), "};")
+	x.g.P("")
 	// generate the fields
 	depth := 1
 	for i, field := range x.ws.Fields {
@@ -209,9 +201,8 @@ func (x *sheetExporter) exportStruct() error {
 }
 
 func (x *sheetExporter) exportUnion() error {
-	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("message ", x.ws.Name, " {")
-	opts := &tableaupb.UnionOptions{Name: x.ws.Name, Note: x.ws.Note}
+	opts := &tableaupb.UnionOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
 	x.g.P("  option (tableau.union) = {", marshalToText(opts), "};")
 	x.g.P()
 

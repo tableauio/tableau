@@ -44,22 +44,22 @@ extend google.protobuf.OneofOptions {
 }
 
 message EnumOptions {
-  string name = 1;  // Enum type alias. NOT USED yet.
+  string name = 1;  // Worksheet name.
   string note = 2;  // Enum type note. Maybe in another language (Chinese).
 }
 
 message EnumValueOptions {
-  string name = 1;  // Enum value alias. NOT USED yet.
+  string name = 1;  // Enum value alias.
   string note = 2;  // Enum value note. Maybe in another language (Chinese).
 }
 
 message StructOptions {
-  string name = 1;  // Struct alias. NOT USED yet.
+  string name = 1;  // Worksheet name.
   string note = 2;  // Struct type note. Maybe in another language (Chinese).
 }
 
 message UnionOptions {
-  string name = 1;   // Oneof alias. NOT USED yet.
+  string name = 1;   // Worksheet name.
   string note = 2;   // Oneof note, maybe in another language (Chinese).
 }
 

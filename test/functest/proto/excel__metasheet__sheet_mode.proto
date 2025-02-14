@@ -13,9 +13,8 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv"};
 
-// Generated from sheet: EnumType.
 enum CatType {
-  option (tableau.etype) = {note:"CatType note"};
+  option (tableau.etype) = {name:"EnumType" note:"CatType note"};
 
   CAT_TYPE_INVALID = 0;
   CAT_TYPE_RAGDOLL = 1 [(tableau.evalue).name = "Ragdoll"];
@@ -23,9 +22,8 @@ enum CatType {
   CAT_TYPE_SPHYNX = 3 [(tableau.evalue).name = "Sphynx"];
 }
 
-// Generated from sheet: EnumType.
 enum DogType {
-  option (tableau.etype) = {note:"DogType note"};
+  option (tableau.etype) = {name:"EnumType" note:"DogType note"};
 
   DOG_TYPE_INVALID = 0;
   DOG_TYPE_POODLE = 1 [(tableau.evalue).name = "Poodle"];
@@ -33,9 +31,8 @@ enum DogType {
   DOG_TYPE_DACHSHUND = 3 [(tableau.evalue).name = "Dachshund"];
 }
 
-// Generated from sheet: EnumType.
 enum BirdType {
-  option (tableau.etype) = {note:"BirdType note"};
+  option (tableau.etype) = {name:"EnumType" note:"BirdType note"};
 
   BIRD_TYPE_INVALID = 0;
   BIRD_TYPE_CANARY = 1 [(tableau.evalue).name = "Canary"];
@@ -55,16 +52,18 @@ message EnumTypeReuseInBook {
   }
 }
 
-// Generated from sheet: ItemType.
 enum ItemType {
+  option (tableau.etype) = {name:"ItemType"};
+
   ITEM_TYPE_INVALID = 0;
   ITEM_TYPE_FRUIT = 1 [(tableau.evalue).name = "Fruit"];
   ITEM_TYPE_EQUIP = 2 [(tableau.evalue).name = "Equip"];
   ITEM_TYPE_BOX = 3 [(tableau.evalue).name = "Box"];
 }
 
-// Generated from sheet: StructTaskReward.
 message TaskReward {
+  option (tableau.struct) = {name:"StructTaskReward"};
+
   uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}];
   int32 num = 2 [(tableau.field) = {name:"Num"}];
   protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
@@ -78,25 +77,22 @@ message TaskReward {
   }
 }
 
-// Generated from sheet: StructType.
 message Tree {
-  option (tableau.struct) = {note:"Tree note"};
+  option (tableau.struct) = {name:"StructType" note:"Tree note"};
 
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   int32 num = 2 [(tableau.field) = {name:"Num"}];
 }
 
-// Generated from sheet: StructType.
 message Pet {
-  option (tableau.struct) = {note:"Pet note"};
+  option (tableau.struct) = {name:"StructType" note:"Pet note"};
 
   int32 kind = 1 [(tableau.field) = {name:"Kind"}];
   repeated string tip_list = 2 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}];
 }
 
-// Generated from sheet: StructType.
 message FruitShop {
-  option (tableau.struct) = {note:"FruitShop note"};
+  option (tableau.struct) = {name:"StructType" note:"FruitShop note"};
 
   protoconf.FruitType fruit_type = 1 [(tableau.field) = {name:"FruitType"}];
   map<int32, string> prop_map = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}];
@@ -113,9 +109,8 @@ message StructTypeReuseInBook {
   }
 }
 
-// Generated from sheet: UnionSimpleTarget.
 message SimpleTarget {
-  option (tableau.union) = {name:"SimpleTarget"};
+  option (tableau.union) = {name:"UnionSimpleTarget"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -148,9 +143,8 @@ message SimpleTarget {
   }
 }
 
-// Generated from sheet: UnionTaskTarget.
 message TaskTarget {
-  option (tableau.union) = {name:"TaskTarget"};
+  option (tableau.union) = {name:"UnionTaskTarget"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -214,9 +208,8 @@ message TaskTarget {
   }
 }
 
-// Generated from sheet: UnionType.
 message WishTarget {
-  option (tableau.union) = {name:"WishTarget" note:"WishTarget note"};
+  option (tableau.union) = {name:"UnionType" note:"WishTarget note"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -243,9 +236,8 @@ message WishTarget {
   }
 }
 
-// Generated from sheet: UnionType.
 message HeroTarget {
-  option (tableau.union) = {name:"HeroTarget" note:"HeroTarget note"};
+  option (tableau.union) = {name:"UnionType" note:"HeroTarget note"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -272,9 +264,8 @@ message HeroTarget {
   }
 }
 
-// Generated from sheet: UnionType.
 message BattleTarget {
-  option (tableau.union) = {name:"BattleTarget" note:"BattleTarget note"};
+  option (tableau.union) = {name:"UnionType" note:"BattleTarget note"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {

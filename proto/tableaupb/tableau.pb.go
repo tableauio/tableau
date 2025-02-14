@@ -329,7 +329,7 @@ type EnumOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Enum type alias. NOT USED yet.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Worksheet name.
 	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"` // Enum type note. Maybe in another language (Chinese).
 }
 
@@ -384,7 +384,7 @@ type EnumValueOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Enum value alias. NOT USED yet.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Enum value alias.
 	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"` // Enum value note. Maybe in another language (Chinese).
 }
 
@@ -439,7 +439,7 @@ type StructOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Struct alias. NOT USED yet.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Worksheet name.
 	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"` // Struct type note. Maybe in another language (Chinese).
 }
 
@@ -494,7 +494,7 @@ type UnionOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Oneof alias. NOT USED yet.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // Worksheet name.
 	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"` // Oneof note, maybe in another language (Chinese).
 }
 

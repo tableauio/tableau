@@ -272,8 +272,9 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 				},
 				g: NewGeneratedBuf(),
 			},
-			want: `// Generated from sheet: ItemType.
-enum ItemType {
+			want: `enum ItemType {
+  option (tableau.etype) = {name:"ItemType"};
+
   ITEM_TYPE_INVALID = 0;
   ITEM_TYPE_FRUIT = 1 [(tableau.evalue).name = "Fruit"];
   ITEM_TYPE_EQUIP = 2 [(tableau.evalue).name = "Equip"];
@@ -319,8 +320,9 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),
 			},
-			want: `// Generated from sheet: StructTaskReward.
-message TaskReward {
+			want: `message TaskReward {
+  option (tableau.struct) = {name:"StructTaskReward"};
+
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   int32 num = 2 [(tableau.field) = {name:"Num"}];
   protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
@@ -372,9 +374,8 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),
 			},
-			want: `// Generated from sheet: UnionTaskTarget.
-message TaskTarget {
-  option (tableau.union) = {name:"TaskTarget"};
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
