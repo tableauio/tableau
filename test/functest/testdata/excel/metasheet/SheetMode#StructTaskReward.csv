@@ -1,5 +1,5 @@
 Name,Type
-ID,uint32
+ID,"uint32|{range: ""1,10""}"
 Num,int32
 FruitType,enum<.FruitType>
 Feature,[]int32

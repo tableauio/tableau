@@ -7,3 +7,4 @@ UnionSimpleTarget,SimpleTarget,MODE_UNION_TYPE
 EnumTypeReuseInBook,,
 StructTypeReuseInBook,,
 UnionTypeReuseInBook,,
+StructType,,MODE_STRUCT_TYPE_MULTI

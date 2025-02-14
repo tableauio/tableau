@@ -151,7 +151,7 @@ func (x *sheetExporter) export() error {
 		return x.exportMessager()
 	case tableaupb.Mode_MODE_ENUM_TYPE, tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
 		return x.exportEnum()
-	case tableaupb.Mode_MODE_STRUCT_TYPE:
+	case tableaupb.Mode_MODE_STRUCT_TYPE, tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
 		return x.exportStruct()
 	case tableaupb.Mode_MODE_UNION_TYPE:
 		return x.exportUnion()
@@ -186,6 +186,13 @@ func (x *sheetExporter) exportEnum() error {
 func (x *sheetExporter) exportStruct() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("message ", x.ws.Name, " {")
+	// 	TODO: support worksheet options, but should not be treated as a
+	//  standard config message, as this is a predefined message.
+	// if x.ws.Alias != "" {
+	// 	opts := &tableaupb.WorkbookOptions{Name: x.ws.Alias}
+	// 	x.g.P("  option (tableau.worksheet) = {", marshalToText(opts), "};")
+	// 	x.g.P("")
+	// }
 	// generate the fields
 	depth := 1
 	for i, field := range x.ws.Fields {

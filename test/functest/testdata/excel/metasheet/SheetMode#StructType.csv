@@ -1,0 +1,16 @@
+Tree,TreeAlias
+Name,Type
+ID,uint32
+Num,int32
+,
+Pet,PetAlias
+Name,Type
+Kind,int32
+Tip,[]string
+,
+,
+,
+FruitShop,FruitShopAlias
+Name,Type
+FruitType,enum<.FruitType>
+Prop,"map<int32, string>"

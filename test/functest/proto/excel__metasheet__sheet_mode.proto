@@ -65,7 +65,7 @@ enum ItemType {
 
 // Generated from sheet: StructTaskReward.
 message TaskReward {
-  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}];
   int32 num = 2 [(tableau.field) = {name:"Num"}];
   protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
   repeated int32 feature_list = 4 [(tableau.field) = {name:"Feature" layout:LAYOUT_INCELL}];
@@ -78,10 +78,33 @@ message TaskReward {
   }
 }
 
+// Generated from sheet: StructType.
+message Tree {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  int32 num = 2 [(tableau.field) = {name:"Num"}];
+}
+
+// Generated from sheet: StructType.
+message Pet {
+  int32 kind = 1 [(tableau.field) = {name:"Kind"}];
+  repeated string tip_list = 2 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}];
+}
+
+// Generated from sheet: StructType.
+message FruitShop {
+  protoconf.FruitType fruit_type = 1 [(tableau.field) = {name:"FruitType"}];
+  map<int32, string> prop_map = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}];
+}
+
 message StructTypeReuseInBook {
   option (tableau.worksheet) = {name:"StructTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, protoconf.TaskReward> task_reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Reward {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    protoconf.Pet pet = 2 [(tableau.field) = {name:"Pet"}];
+    protoconf.TaskReward task_reward = 3 [(tableau.field) = {name:"TaskReward"}];
+  }
 }
 
 // Generated from sheet: UnionSimpleTarget.
