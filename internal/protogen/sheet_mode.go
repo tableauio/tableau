@@ -42,7 +42,7 @@ func isEnumTypeBlockHeader(cols []string) bool {
 	return false
 }
 
-func parseEnumTypeValues(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser) error {
+func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser) error {
 	desc := &internalpb.EnumDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
 		return xerrors.Wrapf(err, "failed to parse enum type sheet (block): %s", sheet.Name)
@@ -69,7 +69,27 @@ func isStructTypeBlockHeader(cols []string) bool {
 	return false
 }
 
-func parseStructTypeValues(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
+func extractStructTypeInfo(sheet *book.Sheet, typeName, parentFilename string, parser book.SheetParser, gen *Generator) error {
+	desc := &internalpb.StructDescriptor{}
+	if err := parser.Parse(desc, sheet); err != nil {
+		return xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
+	}
+	firstFieldOptionName := ""
+	if len(desc.Fields) != 0 {
+		firstFieldOptionName = desc.Fields[0].Name
+	}
+	// add type info
+	info := &xproto.TypeInfo{
+		FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName),
+		ParentFilename:       parentFilename,
+		Kind:                 types.MessageKind,
+		FirstFieldOptionName: firstFieldOptionName,
+	}
+	gen.typeInfos.Put(info)
+	return nil
+}
+
+func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
 	desc := &internalpb.StructDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
 		return xerrors.Wrapf(err, "failed to parse struct type sheet (block): %s", sheet.Name)
@@ -109,7 +129,7 @@ func isUnionTypeBlockHeader(cols []string) bool {
 	return false
 }
 
-func extractUnionType(sheet *book.Sheet, typeName, parentFilename string, parser book.SheetParser, gen *Generator) error {
+func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, parser book.SheetParser, gen *Generator) error {
 	// add union self type info
 	info := &xproto.TypeInfo{
 		FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName),
@@ -149,7 +169,7 @@ func extractUnionType(sheet *book.Sheet, typeName, parentFilename string, parser
 	return nil
 }
 
-func parseUnionTypeValues(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
+func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
 	desc := &internalpb.UnionDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
 		return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
