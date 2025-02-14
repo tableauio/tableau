@@ -153,7 +153,7 @@ func (x *sheetExporter) export() error {
 		return x.exportEnum()
 	case tableaupb.Mode_MODE_STRUCT_TYPE, tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
 		return x.exportStruct()
-	case tableaupb.Mode_MODE_UNION_TYPE:
+	case tableaupb.Mode_MODE_UNION_TYPE, tableaupb.Mode_MODE_UNION_TYPE_MULTI:
 		return x.exportUnion()
 	default:
 		return xerrors.Errorf("unknown mode: %v", mode)
@@ -163,8 +163,8 @@ func (x *sheetExporter) export() error {
 func (x *sheetExporter) exportEnum() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("enum ", x.ws.Name, " {")
-	if x.ws.Alias != "" || x.ws.Note != "" {
-		opts := &tableaupb.EnumOptions{Name: x.ws.Alias, Note: x.ws.Note}
+	if x.ws.Note != "" {
+		opts := &tableaupb.EnumOptions{Note: x.ws.Note}
 		x.g.P("  option (tableau.etype) = {", marshalToText(opts), "};")
 		x.g.P("")
 	}
@@ -186,13 +186,13 @@ func (x *sheetExporter) exportEnum() error {
 func (x *sheetExporter) exportStruct() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("message ", x.ws.Name, " {")
-	// 	TODO: support worksheet options, but should not be treated as a
-	//  standard config message, as this is a predefined message.
-	// if x.ws.Alias != "" {
-	// 	opts := &tableaupb.WorkbookOptions{Name: x.ws.Alias}
-	// 	x.g.P("  option (tableau.worksheet) = {", marshalToText(opts), "};")
-	// 	x.g.P("")
-	// }
+
+	if x.ws.Note != "" {
+		opts := &tableaupb.StructOptions{Note: x.ws.Note}
+		x.g.P("  option (tableau.struct) = {", marshalToText(opts), "};")
+		x.g.P("")
+	}
+
 	// generate the fields
 	depth := 1
 	for i, field := range x.ws.Fields {
@@ -213,15 +213,21 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P("message ", x.ws.Name, " {")
 	x.g.P(`  option (tableau.union) = true;`)
 	x.g.P()
-	x.g.P(`  Type type = 9999 [(tableau.field) = { name: "Type" }];`)
+
+	typeOpts := &tableaupb.FieldOptions{Name: "Type"}
+	x.g.P("  Type type = 9999 [(tableau.field) = {", marshalToText(typeOpts), "}];")
 	x.g.P(`  oneof value {`)
-	x.g.P(`    option (tableau.oneof) = {field: "Field"};`)
+
+	oneOfOpts := &tableaupb.OneofOptions{Note: x.ws.Note, Field: "Field"}
+	x.g.P("    option (tableau.oneof) = {", marshalToText(oneOfOpts), "};")
 	x.g.P()
+
 	for _, field := range x.ws.Fields {
 		ename := "TYPE_" + strcase.ToScreamingSnake(field.Name)
 		x.g.P("    ", strings.TrimSpace(field.Name), " ", strcase.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 	}
 	x.g.P(`  }`)
+	x.g.P()
 
 	// generate enum type
 	x.g.P("  enum Type {")

@@ -1,9 +1,9 @@
-ID,TaskTargetType,TaskTargetField1,TaskTargetField2,TaskTargetField3," Progress"
-"map<int32, Task>",{.TaskTarget}enum<.TaskTarget.Type>,union,union,union," int32"
-ID,Target's type,Target's field1,Target's field2,Target's field3," Progress"
-1,AliasPVP,1,10,"Apple,Orange,Banana",3
-2,AliasPVE,"1,Equip","1,2,3","1:10,2:20,3:30",10
-3,AliasStory,"1001,10","1:Apple,2:Orange","Fragrant:Apple,Sour:Orange",10
-4,AliasHobby,"Fragrant:Apple,Sour:Orange",2023-06-01 10:00:00,22s,12
-5,AliasSkill,1,200,,8
-6,AliasEmpty,,,,
+ID," Progress",TaskTargetType,TaskTargetField1,TaskTargetField2,TaskTargetField3,HeroTargetType,HeroTargetField1,HeroTargetField2,HeroTargetField3
+"map<int32, Task>"," int32",{.TaskTarget}enum<.TaskTarget.Type>,union,union,union,{.HeroTarget}enum<.HeroTarget.Type>,union,union,union
+ID," Progress",Target's type,Target's field1,Target's field2,Target's field3,Hero target's type,Hero target's  field1,Hero target's  field2,
+1,3,AliasPVP,1,10,"Apple,Orange,Banana",HeroStarUp,1,5,
+2,10,AliasPVE,"1,Equip","1,2,3","1:10,2:20,3:30",HeroLevelUp,"1,2,3",10,TRUE
+3,10,AliasStory,"1001,10","1:Apple,2:Orange","Fragrant:Apple,Sour:Orange",,,,
+4,12,AliasHobby,"Fragrant:Apple,Sour:Orange",2023-06-01 10:00:00,22s,,,,
+5,8,AliasSkill,1,200,,,,,
+6,1,AliasEmpty,,,,,,,

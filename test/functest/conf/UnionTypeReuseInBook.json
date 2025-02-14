@@ -2,6 +2,7 @@
     "taskMap": {
         "1": {
             "id": 1,
+            "progress": 3,
             "taskTarget": {
                 "type": "TYPE_PVP",
                 "pvp": {
@@ -14,10 +15,17 @@
                     ]
                 }
             },
-            "progress": 3
+            "heroTarget": {
+                "type": "TYPE_STAR_UP",
+                "starUp": {
+                    "id": 1,
+                    "star": 5
+                }
+            }
         },
         "2": {
             "id": 2,
+            "progress": 10,
             "taskTarget": {
                 "type": "TYPE_PVE",
                 "pve": {
@@ -37,10 +45,22 @@
                     }
                 }
             },
-            "progress": 10
+            "heroTarget": {
+                "type": "TYPE_LEVEL_UP",
+                "levelUp": {
+                    "idList": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "level": 10,
+                    "super": true
+                }
+            }
         },
         "3": {
             "id": 3,
+            "progress": 10,
             "taskTarget": {
                 "type": "TYPE_STORY",
                 "story": {
@@ -64,10 +84,11 @@
                     }
                 }
             },
-            "progress": 10
+            "heroTarget": null
         },
         "4": {
             "id": 4,
+            "progress": 12,
             "taskTarget": {
                 "type": "TYPE_HOBBY",
                 "hobby": {
@@ -85,10 +106,11 @@
                     "duration": "22s"
                 }
             },
-            "progress": 12
+            "heroTarget": null
         },
         "5": {
             "id": 5,
+            "progress": 8,
             "taskTarget": {
                 "type": "TYPE_SKILL",
                 "skill": {
@@ -96,15 +118,16 @@
                     "damage": "200"
                 }
             },
-            "progress": 8
+            "heroTarget": null
         },
         "6": {
             "id": 6,
+            "progress": 1,
             "taskTarget": {
                 "type": "TYPE_EMPTY",
                 "empty": {}
             },
-            "progress": 0
+            "heroTarget": null
         }
     }
 }

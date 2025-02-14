@@ -15,7 +15,7 @@ option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv"};
 
 // Generated from sheet: EnumType.
 enum CatType {
-  option (tableau.etype) = {name:"CatTypeAlias" note:"Cat type note"};
+  option (tableau.etype) = {note:"CatType note"};
 
   CAT_TYPE_INVALID = 0;
   CAT_TYPE_RAGDOLL = 1 [(tableau.evalue).name = "Ragdoll"];
@@ -25,7 +25,7 @@ enum CatType {
 
 // Generated from sheet: EnumType.
 enum DogType {
-  option (tableau.etype) = {name:"DogTypeAlias" note:"Dog type note"};
+  option (tableau.etype) = {note:"DogType note"};
 
   DOG_TYPE_INVALID = 0;
   DOG_TYPE_POODLE = 1 [(tableau.evalue).name = "Poodle"];
@@ -35,7 +35,7 @@ enum DogType {
 
 // Generated from sheet: EnumType.
 enum BirdType {
-  option (tableau.etype) = {name:"BirdTypeAlias"};
+  option (tableau.etype) = {note:"BirdType note"};
 
   BIRD_TYPE_INVALID = 0;
   BIRD_TYPE_CANARY = 1 [(tableau.evalue).name = "Canary"];
@@ -80,18 +80,24 @@ message TaskReward {
 
 // Generated from sheet: StructType.
 message Tree {
+  option (tableau.struct) = {note:"Tree note"};
+
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   int32 num = 2 [(tableau.field) = {name:"Num"}];
 }
 
 // Generated from sheet: StructType.
 message Pet {
+  option (tableau.struct) = {note:"Pet note"};
+
   int32 kind = 1 [(tableau.field) = {name:"Kind"}];
   repeated string tip_list = 2 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}];
 }
 
 // Generated from sheet: StructType.
 message FruitShop {
+  option (tableau.struct) = {note:"FruitShop note"};
+
   protoconf.FruitType fruit_type = 1 [(tableau.field) = {name:"FruitType"}];
   map<int32, string> prop_map = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}];
 }
@@ -111,14 +117,15 @@ message StructTypeReuseInBook {
 message SimpleTarget {
   option (tableau.union) = true;
 
-  Type type = 9999 [(tableau.field) = { name: "Type" }];
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
-    option (tableau.oneof) = {field: "Field"};
+    option (tableau.oneof) = {field:"Field"};
 
     PVP pvp = 1; // Bound to enum value: TYPE_PVP.
     PVE pve = 2; // Bound to enum value: TYPE_PVE.
     Skill skill = 3; // Bound to enum value: TYPE_SKILL.
   }
+
   enum Type {
     TYPE_INVALID = 0;
     TYPE_PVP = 1 [(tableau.evalue).name = "AliasPVP"];
@@ -145,9 +152,9 @@ message SimpleTarget {
 message TaskTarget {
   option (tableau.union) = true;
 
-  Type type = 9999 [(tableau.field) = { name: "Type" }];
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
-    option (tableau.oneof) = {field: "Field"};
+    option (tableau.oneof) = {field:"Field"};
 
     PVP pvp = 1; // Bound to enum value: TYPE_PVP.
     PVE pve = 2; // Bound to enum value: TYPE_PVE.
@@ -156,6 +163,7 @@ message TaskTarget {
     Skill skill = 5; // Bound to enum value: TYPE_SKILL.
     Empty empty = 6; // Bound to enum value: TYPE_EMPTY.
   }
+
   enum Type {
     TYPE_INVALID = 0;
     TYPE_PVP = 1 [(tableau.evalue).name = "AliasPVP"];
@@ -206,13 +214,105 @@ message TaskTarget {
   }
 }
 
+// Generated from sheet: UnionType.
+message WishTarget {
+  option (tableau.union) = true;
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {note:"WishTarget note" field:"Field"};
+
+    Higher higher = 1; // Bound to enum value: TYPE_HIGHER.
+    Richer richer = 2; // Bound to enum value: TYPE_RICHER.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_HIGHER = 1 [(tableau.evalue).name = "WishHigher"];
+    TYPE_RICHER = 2 [(tableau.evalue).name = "WishRicher"];
+  }
+
+  message Higher {
+    nt32 height = 1 [(tableau.field) = {name:"Height"}];
+    message nt32 {
+    }
+  }
+  message Richer {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    map<int32, string> bank_map = 2 [(tableau.field) = {name:"Bank" layout:LAYOUT_INCELL}];
+  }
+}
+
+// Generated from sheet: UnionType.
+message HeroTarget {
+  option (tableau.union) = true;
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {note:"HeroTarget note" field:"Field"};
+
+    StarUp star_up = 1; // Bound to enum value: TYPE_STAR_UP.
+    LevelUp level_up = 2; // Bound to enum value: TYPE_LEVEL_UP.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_STAR_UP = 1 [(tableau.evalue).name = "HeroStarUp"];
+    TYPE_LEVEL_UP = 2 [(tableau.evalue).name = "HeroLevelUp"];
+  }
+
+  message StarUp {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 star = 2 [(tableau.field) = {name:"Star"}];
+  }
+  message LevelUp {
+    repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}];
+    int32 level = 2 [(tableau.field) = {name:"Level"}];
+    bool super = 3 [(tableau.field) = {name:"Super"}];
+  }
+}
+
+// Generated from sheet: UnionType.
+message BattleTarget {
+  option (tableau.union) = true;
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {note:"BattleTarget note" field:"Field"};
+
+    PVP pvp = 1; // Bound to enum value: TYPE_PVP.
+    PVE pve = 2; // Bound to enum value: TYPE_PVE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP = 1 [(tableau.evalue).name = "BattlePVP"];
+    TYPE_PVE = 2 [(tableau.evalue).name = "BattlePVE"];
+  }
+
+  message PVP {
+    int32 battle_id = 1 [(tableau.field) = {name:"BattleID"}];
+    int64 damage = 2 [(tableau.field) = {name:"Damage"}];
+  }
+  message PVE {
+    repeated int32 hero_id_list = 1 [(tableau.field) = {name:"HeroID" layout:LAYOUT_INCELL}];
+    map<int32, int64> dungeon_map = 2 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}];
+    Boss boss = 3 [(tableau.field) = {name:"Boss" span:SPAN_INNER_CELL}];
+    message Boss {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int64 damage = 2 [(tableau.field) = {name:"Damage"}];
+    }
+  }
+}
+
 message UnionTypeReuseInBook {
   option (tableau.worksheet) = {name:"UnionTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
-    protoconf.TaskTarget task_target = 2 [(tableau.field) = {name:"TaskTarget"}];
-    int32 progress = 3 [(tableau.field) = {name:"Progress"}];
+    int32 progress = 2 [(tableau.field) = {name:"Progress"}];
+    protoconf.TaskTarget task_target = 3 [(tableau.field) = {name:"TaskTarget"}];
+    protoconf.HeroTarget hero_target = 4 [(tableau.field) = {name:"HeroTarget"}];
   }
 }

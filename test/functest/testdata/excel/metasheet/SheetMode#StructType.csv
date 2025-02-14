@@ -1,16 +1,16 @@
-Tree,TreeAlias
+Tree,Tree note
 Name,Type
 ID,uint32
 Num,int32
 ,
-Pet,PetAlias
+Pet,Pet note
 Name,Type
 Kind,int32
 Tip,[]string
 ,
 ,
 ,
-FruitShop,FruitShopAlias
+FruitShop,FruitShop note
 Name,Type
 FruitType,enum<.FruitType>
 Prop,"map<int32, string>"
