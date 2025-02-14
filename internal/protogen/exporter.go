@@ -211,7 +211,8 @@ func (x *sheetExporter) exportStruct() error {
 func (x *sheetExporter) exportUnion() error {
 	x.g.P("// Generated from sheet: ", x.ws.GetOptions().GetName(), ".")
 	x.g.P("message ", x.ws.Name, " {")
-	x.g.P(`  option (tableau.union) = true;`)
+	opts := &tableaupb.UnionOptions{Name: x.ws.Name, Note: x.ws.Note}
+	x.g.P("  option (tableau.union) = {", marshalToText(opts), "};")
 	x.g.P()
 
 	typeOpts := &tableaupb.FieldOptions{Name: "Type"}

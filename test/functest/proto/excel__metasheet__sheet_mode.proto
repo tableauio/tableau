@@ -115,7 +115,7 @@ message StructTypeReuseInBook {
 
 // Generated from sheet: UnionSimpleTarget.
 message SimpleTarget {
-  option (tableau.union) = true;
+  option (tableau.union) = {name:"SimpleTarget"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -150,7 +150,7 @@ message SimpleTarget {
 
 // Generated from sheet: UnionTaskTarget.
 message TaskTarget {
-  option (tableau.union) = true;
+  option (tableau.union) = {name:"TaskTarget"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -216,7 +216,7 @@ message TaskTarget {
 
 // Generated from sheet: UnionType.
 message WishTarget {
-  option (tableau.union) = true;
+  option (tableau.union) = {name:"WishTarget" note:"WishTarget note"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -245,7 +245,7 @@ message WishTarget {
 
 // Generated from sheet: UnionType.
 message HeroTarget {
-  option (tableau.union) = true;
+  option (tableau.union) = {name:"HeroTarget" note:"HeroTarget note"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -274,7 +274,7 @@ message HeroTarget {
 
 // Generated from sheet: UnionType.
 message BattleTarget {
-  option (tableau.union) = true;
+  option (tableau.union) = {name:"BattleTarget" note:"BattleTarget note"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {

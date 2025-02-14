@@ -24,7 +24,7 @@ extend google.protobuf.FileOptions {
 extend google.protobuf.MessageOptions {
   WorksheetOptions worksheet = 50000;
   StructOptions struct = 50001;
-  bool union = 50002;
+  UnionOptions union = 50002;
 }
 
 extend google.protobuf.FieldOptions {
@@ -56,6 +56,11 @@ message EnumValueOptions {
 message StructOptions {
   string name = 1;  // Struct alias. NOT USED yet.
   string note = 2;  // Struct type note. Maybe in another language (Chinese).
+}
+
+message UnionOptions {
+  string name = 1;   // Oneof alias. NOT USED yet.
+  string note = 2;   // Oneof note, maybe in another language (Chinese).
 }
 
 message OneofOptions {

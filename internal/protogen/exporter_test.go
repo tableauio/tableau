@@ -374,14 +374,15 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			},
 			want: `// Generated from sheet: UnionTaskTarget.
 message TaskTarget {
-  option (tableau.union) = true;
+  option (tableau.union) = {name:"TaskTarget"};
 
-  Type type = 9999 [(tableau.field) = { name: "Type" }];
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
-    option (tableau.oneof) = {field: "Field"};
+    option (tableau.oneof) = {field:"Field"};
 
     PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
   }
+
   enum Type {
     TYPE_INVALID = 0;
     TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"];
