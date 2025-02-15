@@ -1,0 +1,29 @@
+WishTarget,WishTarget note,,,
+Name,Alias,Field1,Field2,Field3
+Higher,WishHigher,"Height
+int32",,
+Richer,WishRicher,"ID
+uint32","Bank
+map<int32, string>",
+,,,,
+HeroTarget,HeroTarget note,,,
+Name,Alias,Field1,Field2,Field3
+StarUp,HeroStarUp,"ID
+uint32","Star
+int32",
+LevelUp,HeroLevelUp,"ID
+[]uint32","Level
+int32","Super
+bool"
+,,,,
+,,,,
+,,,,
+BattleTarget,BattleTarget note,,,
+Name,Alias,Field1,Field2,Field3
+PVP,BattlePVP,"BattleID
+int32","Damage
+int64",
+PVE,BattlePVE,"HeroID
+[]int32","Dungeon
+map<int32, int64>","Boss
+{uint32 ID, int64 Damage}Boss"

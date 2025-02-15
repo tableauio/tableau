@@ -18,10 +18,9 @@ message Workbook {
 
 message Worksheet {
   string name = 1;
-  string alias = 2;
-  string note = 3;
-  tableau.WorksheetOptions options = 4;
-  repeated Field fields = 5;
+  string note = 2;
+  tableau.WorksheetOptions options = 3;
+  repeated Field fields = 4;
 }
 
 message Field {

@@ -1,0 +1,8 @@
+{
+    "editor.fontSize": 16,
+    "protoc": {
+        "options": [
+            "--proto_path=proto"
+        ]
+    }
+}

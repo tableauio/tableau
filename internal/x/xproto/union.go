@@ -9,7 +9,7 @@ import (
 )
 
 func IsUnion(md protoreflect.MessageDescriptor) bool {
-	return proto.GetExtension(md.Options(), tableaupb.E_Union).(bool)
+	return proto.GetExtension(md.Options(), tableaupb.E_Union).(*tableaupb.UnionOptions) != nil
 }
 
 func IsUnionField(fd protoreflect.FieldDescriptor) bool {

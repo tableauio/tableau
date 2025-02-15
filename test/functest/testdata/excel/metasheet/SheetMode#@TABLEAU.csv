@@ -1,10 +1,11 @@
 Sheet,Alias,Mode
 ItemType,,MODE_ENUM_TYPE
 StructTaskReward,TaskReward,MODE_STRUCT_TYPE
-EnumType,,MODE_ENUM_TYPE_MULTI
 UnionTaskTarget,TaskTarget,MODE_UNION_TYPE
 UnionSimpleTarget,SimpleTarget,MODE_UNION_TYPE
 EnumTypeReuseInBook,,
 StructTypeReuseInBook,,
 UnionTypeReuseInBook,,
+EnumType,,MODE_ENUM_TYPE_MULTI
 StructType,,MODE_STRUCT_TYPE_MULTI
+UnionType,,MODE_UNION_TYPE_MULTI

@@ -23,7 +23,8 @@ extend google.protobuf.FileOptions {
 
 extend google.protobuf.MessageOptions {
   WorksheetOptions worksheet = 50000;
-  bool union = 50001;
+  StructOptions struct = 50001;
+  UnionOptions union = 50002;
 }
 
 extend google.protobuf.FieldOptions {
@@ -40,6 +41,32 @@ extend google.protobuf.EnumValueOptions {
 
 extend google.protobuf.OneofOptions {
   optional OneofOptions oneof = 50000;
+}
+
+message EnumOptions {
+  string name = 1;  // Worksheet name.
+  string note = 2;  // Enum type note. Maybe in another language (Chinese).
+}
+
+message EnumValueOptions {
+  string name = 1;  // Enum value alias.
+  string note = 2;  // Enum value note. Maybe in another language (Chinese).
+}
+
+message StructOptions {
+  string name = 1;  // Worksheet name.
+  string note = 2;  // Struct type note. Maybe in another language (Chinese).
+}
+
+message UnionOptions {
+  string name = 1;   // Worksheet name.
+  string note = 2;   // Oneof note, maybe in another language (Chinese).
+}
+
+message OneofOptions {
+  string name = 1;   // Oneof alias. NOT USED yet.
+  string note = 2;   // Oneof note, maybe in another language (Chinese).
+  string field = 3;  // Field name.
 }
 
 message WorkbookOptions {
@@ -157,22 +184,6 @@ message WorksheetOptions {
   //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index supported in cpp and go
   //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all languages
   map<string, string> lang_options = 52;
-}
-
-message EnumOptions {
-  string name = 1;  // Enum type alias. Maybe in another language (Chinese).
-  string note = 2;  // Enum type note. Maybe in another language (Chinese).
-}
-
-message EnumValueOptions {
-  string name = 1;  // Enum value alias. Maybe in another language (Chinese).
-  string note = 2;  // Enum value note. Maybe in another language (Chinese).
-}
-
-message OneofOptions {
-  string name = 1;   // Oneof alias. NOT USED YET.
-  string note = 2;   // Oneof note, maybe in another language (Chinese).
-  string field = 3;  // Field name.
 }
 
 message FieldOptions {

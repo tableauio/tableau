@@ -524,7 +524,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 					continue
 				}
 				typeRow := sheet.Table.GetRow(row - 1)
-				typeName, _, _, err := extractEnumTypeRow(typeRow)
+				typeName, _, err := extractSheetBlockTypeRow(typeRow)
 				if err != nil {
 					return xerrors.Wrapf(err, "failed to parse enum type block, sheet: %s, row: %d", sheet.Name, row)
 				}
@@ -538,22 +538,9 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 			}
 		}
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
-		desc := &internalpb.StructDescriptor{}
-		if err := parser.Parse(desc, sheet); err != nil {
-			return xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
+		if err := extractStructTypeInfo(sheet, typeName, parentFilename, parser, gen); err != nil {
+			return err
 		}
-		firstFieldOptionName := ""
-		if len(desc.Fields) != 0 {
-			firstFieldOptionName = desc.Fields[0].Name
-		}
-		// add type info
-		info := &xproto.TypeInfo{
-			FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName),
-			ParentFilename:       parentFilename,
-			Kind:                 types.MessageKind,
-			FirstFieldOptionName: firstFieldOptionName,
-		}
-		gen.typeInfos.Put(info)
 	case tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
 		for row := 0; row <= sheet.Table.MaxRow; row++ {
 			cols := sheet.Table.GetRow(row)
@@ -562,7 +549,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 					continue
 				}
 				typeRow := sheet.Table.GetRow(row - 1)
-				typeName, _, _, err := extractStructTypeRow(typeRow)
+				typeName, _, err := extractSheetBlockTypeRow(typeRow)
 				if err != nil {
 					return xerrors.Wrapf(err, "failed to parse struct type block at row: %d, sheet: %s", row, sheet.Name)
 				}
@@ -570,60 +557,35 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := book.NewTableSheet(sheet.Name, block)
-				desc := &internalpb.StructDescriptor{}
-				if err := parser.Parse(desc, subSheet); err != nil {
-					return xerrors.Wrapf(err, "failed to parse struct type block, sheet: %s, row: %d", sheet.Name, row)
+				if err := extractStructTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
+					return err
 				}
-				firstFieldOptionName := ""
-				if len(desc.Fields) != 0 {
-					firstFieldOptionName = desc.Fields[0].Name
-				}
-				// add type info
-				info := &xproto.TypeInfo{
-					FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName),
-					ParentFilename:       parentFilename,
-					Kind:                 types.MessageKind,
-					FirstFieldOptionName: firstFieldOptionName,
-				}
-				gen.typeInfos.Put(info)
 			}
 		}
 	case tableaupb.Mode_MODE_UNION_TYPE:
-		// add union self type info
-		info := &xproto.TypeInfo{
-			FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName),
-			ParentFilename:       parentFilename,
-			Kind:                 types.MessageKind,
-			FirstFieldOptionName: "Type", // NOTE: union's first field name is special!
+		if err := extractUnionTypeInfo(sheet, typeName, parentFilename, parser, gen); err != nil {
+			return err
 		}
-		gen.typeInfos.Put(info)
-
-		// add union enum type info
-		enumInfo := &xproto.TypeInfo{
-			FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName + "." + "Type"),
-			ParentFilename: parentFilename,
-			Kind:           types.EnumKind,
-		}
-		gen.typeInfos.Put(enumInfo)
-
-		desc := &internalpb.UnionDescriptor{}
-		if err := parser.Parse(desc, sheet); err != nil {
-			return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
-		}
-		// add types nested in union type
-		for _, value := range desc.Values {
-			firstFieldOptionName := ""
-			if len(value.Fields) != 0 {
-				// name located at first line of cell
-				firstFieldOptionName = book.ExtractFromCell(value.Fields[0], 1)
+	case tableaupb.Mode_MODE_UNION_TYPE_MULTI:
+		for row := 0; row <= sheet.Table.MaxRow; row++ {
+			cols := sheet.Table.GetRow(row)
+			if isUnionTypeBlockHeader(cols) {
+				if row < 1 {
+					continue
+				}
+				typeRow := sheet.Table.GetRow(row - 1)
+				typeName, _, err := extractSheetBlockTypeRow(typeRow)
+				if err != nil {
+					return xerrors.Wrapf(err, "failed to parse union type block, sheet: %s, row: %d", sheet.Name, row)
+				}
+				blockBeginRow := row
+				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
+				row = blockEndRow // skip row to next block
+				subSheet := book.NewTableSheet(sheet.Name, block)
+				if err := extractUnionTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
+					return err
+				}
 			}
-			info := &xproto.TypeInfo{
-				FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName + "." + value.Name),
-				ParentFilename:       parentFilename,
-				Kind:                 types.MessageKind,
-				FirstFieldOptionName: firstFieldOptionName,
-			}
-			gen.typeInfos.Put(info)
 		}
 	default:
 		return xerrors.Errorf("unknown mode: %v", mode)
@@ -643,7 +605,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
-		if err := parseEnumTypeValues(ws, sheet, parser); err != nil {
+		if err := parseEnumType(ws, sheet, parser); err != nil {
 			return nil, err
 		}
 		return []*internalpb.Worksheet{ws}, nil
@@ -659,14 +621,14 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				typeRow := sheet.Table.GetRow(row - 1)
 				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
-				subWs.Name, subWs.Alias, subWs.Note, err = extractEnumTypeRow(typeRow)
+				subWs.Name, subWs.Note, err = extractSheetBlockTypeRow(typeRow)
 				if err != nil {
 					return nil, xerrors.Wrapf(err, "failed to extract enum type block at row: %d, sheet: %s", row, sheet.Name)
 				}
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := book.NewTableSheet(subWs.Name, block)
-				if err := parseEnumTypeValues(subWs, subSheet, parser); err != nil {
+				if err := parseEnumType(subWs, subSheet, parser); err != nil {
 					return nil, err
 				}
 				worksheets = append(worksheets, subWs)
@@ -674,7 +636,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		}
 		return worksheets, nil
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
-		if err := parseStructTypeValues(ws, sheet, parser, gen, debugBookName, debugSheetName); err != nil {
+		if err := parseStructType(ws, sheet, parser, gen, debugBookName, debugSheetName); err != nil {
 			return nil, err
 		}
 		return []*internalpb.Worksheet{ws}, nil
@@ -690,14 +652,14 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				typeRow := sheet.Table.GetRow(row - 1)
 				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
-				subWs.Name, subWs.Alias, subWs.Note, err = extractStructTypeRow(typeRow)
+				subWs.Name, subWs.Note, err = extractSheetBlockTypeRow(typeRow)
 				if err != nil {
 					return nil, xerrors.Wrapf(err, "failed to extract struct type block at row: %d, sheet: %s", row, sheet.Name)
 				}
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := book.NewTableSheet(subWs.Name, block)
-				if err := parseStructTypeValues(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
+				if err := parseStructType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}
 				worksheets = append(worksheets, subWs)
@@ -705,52 +667,36 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		}
 		return worksheets, nil
 	case tableaupb.Mode_MODE_UNION_TYPE:
-		desc := &internalpb.UnionDescriptor{}
-		if err := parser.Parse(desc, sheet); err != nil {
-			return nil, xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
-		}
-
-		for i, value := range desc.Values {
-			number := int32(i + 1)
-			if value.Number != nil {
-				number = *value.Number
-			}
-			field := &internalpb.Field{
-				Number: number,
-				Name:   value.Name,
-				Alias:  value.Alias,
-			}
-			// create a book parser
-			bp := newBookParser("union", "", "", gen)
-
-			shHeader := &tableHeader{
-				meta: &tableaupb.WorksheetOptions{
-					Namerow:  1,
-					Typerow:  1,
-					Nameline: 1,
-					Typeline: 2,
-				},
-				namerow:    value.Fields,
-				typerow:    value.Fields,
-				noterow:    value.Fields,
-				validNames: map[string]int{},
-			}
-			var parsed bool
-			var err error
-			for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
-				subField := &internalpb.Field{}
-				cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
-				if err != nil {
-					return nil, wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
-				}
-				if parsed {
-					field.Fields = append(field.Fields, subField)
-				}
-			}
-
-			ws.Fields = append(ws.Fields, field)
+		if err := parseUnionType(ws, sheet, parser, gen, debugBookName, debugSheetName); err != nil {
+			return nil, err
 		}
 		return []*internalpb.Worksheet{ws}, nil
+	case tableaupb.Mode_MODE_UNION_TYPE_MULTI:
+		var worksheets []*internalpb.Worksheet
+		for row := 0; row <= sheet.Table.MaxRow; row++ {
+			cols := sheet.Table.GetRow(row)
+			if isUnionTypeBlockHeader(cols) {
+				if row < 1 {
+					continue
+				}
+				blockBeginRow := row
+				typeRow := sheet.Table.GetRow(row - 1)
+				var err error
+				subWs := proto.Clone(ws).(*internalpb.Worksheet)
+				subWs.Name, subWs.Note, err = extractSheetBlockTypeRow(typeRow)
+				if err != nil {
+					return nil, xerrors.Wrapf(err, "failed to extract union type block at row: %d, sheet: %s", row, sheet.Name)
+				}
+				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
+				row = blockEndRow // skip row to next block
+				subSheet := book.NewTableSheet(subWs.Name, block)
+				if err := parseUnionType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
+					return nil, err
+				}
+				worksheets = append(worksheets, subWs)
+			}
+		}
+		return worksheets, nil
 	default:
 		return nil, xerrors.Errorf("unknown mode: %v", mode)
 	}
