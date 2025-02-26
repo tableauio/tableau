@@ -148,6 +148,17 @@ type ProtoOutputOption struct {
 	//
 	// Default: nil.
 	FileOptions map[string]string `yaml:"fileOptions"`
+
+	// EnumValueWithPrefix specifies whether to prepend prefix
+	// "UPPER_SNAKE_CASE of EnumType" to each enum value name.
+	//
+	// If set, the enum value name is prepended with "ENUM_TYPE_". For example:
+	// enum ItemType has a value "EQUIP", then converted to "ITEM_TYPE_EQUIP".
+	// If the enum value name is already prefixed with "ENUM_TYPE_", then it will
+	// not be prefixed again.
+	//
+	// Default: false.
+	EnumValueWithPrefix bool `yaml:"enumValueWithPrefix"`
 }
 
 // Options for generating conf files. Only for confgen.

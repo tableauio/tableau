@@ -605,7 +605,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
-		if err := parseEnumType(ws, sheet, parser); err != nil {
+		if err := parseEnumType(ws, sheet, parser, gen.OutputOpt.EnumValueWithPrefix); err != nil {
 			return nil, err
 		}
 		return []*internalpb.Worksheet{ws}, nil
@@ -628,7 +628,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := book.NewTableSheet(subWs.Name, block)
-				if err := parseEnumType(subWs, subSheet, parser); err != nil {
+				if err := parseEnumType(subWs, subSheet, parser, gen.OutputOpt.EnumValueWithPrefix); err != nil {
 					return nil, err
 				}
 				worksheets = append(worksheets, subWs)
