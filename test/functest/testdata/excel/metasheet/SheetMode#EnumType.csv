@@ -14,6 +14,6 @@ Number,Name,Alias
 ,,
 BirdType,BirdType note,
 Number,Name,Alias
-1,BIRD_TYPE_CANARY,Canary
-2,BIRD_TYPE_WOODPECKER,Woodpecker
-3,BIRD_TYPE_OWL,Owl
+1,CANARY,Canary
+2,WOODPECKER,Woodpecker
+3,OWL,Owl
