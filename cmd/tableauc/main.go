@@ -16,7 +16,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const version = "0.7.0"
+const version = "0.12.1"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"   // generate proto files only
