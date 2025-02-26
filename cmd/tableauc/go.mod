@@ -1,6 +1,6 @@
 module github.com/tableauio/tableau/cmd/tableauc
 
-go 1.21
+go 1.20
 
 replace github.com/tableauio/tableau => ../..
 
