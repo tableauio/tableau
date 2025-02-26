@@ -2,7 +2,7 @@ module github.com/tableauio/tableau/cmd/tableauc
 
 go 1.20
 
-replace github.com/tableauio/tableau => ../..
+replace github.com/tableauio/tableau => ../../
 
 require (
 	github.com/davecgh/go-spew v1.1.1
