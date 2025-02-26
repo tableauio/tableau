@@ -16,6 +16,7 @@ message Metabook {
 }
 
 message Metasheet {
+  // Sheet name. Specially, "#" represents the workbook but not worksheet.
   string sheet = 1 [(tableau.field) = {name:"Sheet"}];
   string alias = 2 [(tableau.field) = {name:"Alias" prop:{optional:true}}];
   int32 namerow = 3 [(tableau.field) = {name:"Namerow" prop:{optional:true}}];
@@ -79,6 +80,10 @@ message Metasheet {
   // This concept is much like it is in k8s, see
   // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/.
   map<string, string> labels = 23 [(tableau.field) = {name:"Labels" layout:LAYOUT_INCELL prop:{optional:true}}];
+  // Protobuf package name. Only used for workbook.
+  string proto_package = 24 [(tableau.field) = {name:"ProtoPackage" prop:{optional:true}}];
+  // Protobuf file options. Only used for workbook.
+  map<string, string> protofile_options = 25 [(tableau.field) = {name:"ProtoFileOptions" layout:LAYOUT_INCELL prop:{optional:true}}];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers

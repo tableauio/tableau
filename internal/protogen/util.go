@@ -13,6 +13,7 @@ import (
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 )
 
@@ -64,12 +65,12 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 
 // getWorkbookAlias gets the workbook alias from importer.
 func getWorkbookAlias(imp importer.Importer) string {
-	sheetMap := imp.Metabook().GetMetasheetMap()
-	if sheetMap == nil {
-		return ""
-	}
-	meta := sheetMap[book.BookNameInMetasheet]
-	return meta.GetAlias()
+	return getWorkbookMeta(imp).GetAlias()
+}
+
+// getWorkbookMeta gets the workbook meta from importer.
+func getWorkbookMeta(imp importer.Importer) *internalpb.Metasheet {
+	return imp.Metabook().GetMetasheetMap()[book.BookNameInMetasheet]
 }
 
 func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
