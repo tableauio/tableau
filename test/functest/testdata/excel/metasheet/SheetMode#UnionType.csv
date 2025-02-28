@@ -27,3 +27,6 @@ PVE,BattlePVE,"HeroID
 []int32|{extend:true}","Dungeon
 map<int32, int64>","Boss
 {uint32 ID, int64 Damage}Boss"
+Challenge,ChallengeMode,"ChallengeID
+int32","Enemy
+[]<uint32>|{extend:true}",

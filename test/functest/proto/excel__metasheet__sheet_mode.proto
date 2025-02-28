@@ -271,12 +271,14 @@ message BattleTarget {
 
     PVP pvp = 1; // Bound to enum value: TYPE_PVP.
     PVE pve = 2; // Bound to enum value: TYPE_PVE.
+    Challenge challenge = 3; // Bound to enum value: TYPE_CHALLENGE.
   }
 
   enum Type {
     TYPE_INVALID = 0;
     TYPE_PVP = 1 [(tableau.evalue).name = "BattlePVP"];
     TYPE_PVE = 2 [(tableau.evalue).name = "BattlePVE"];
+    TYPE_CHALLENGE = 3 [(tableau.evalue).name = "ChallengeMode"];
   }
 
   message PVP {
@@ -291,6 +293,10 @@ message BattleTarget {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];
       int64 damage = 2 [(tableau.field) = {name:"Damage"}];
     }
+  }
+  message Challenge {
+    int32 challenge_id = 1 [(tableau.field) = {name:"ChallengeID"}];
+    repeated uint32 enemy_list = 2 [(tableau.field) = {name:"Enemy" key:"Enemy" layout:LAYOUT_INCELL prop:{extend:true}}];
   }
 }
 

@@ -14,7 +14,23 @@
                     ]
                 }
             },
-            "progress": 3
+            "progress": 3,
+            "battleTarget": {
+                "type": "TYPE_PVP",
+                "pvp": {
+                    "battleId": 1,
+                    "itemList": [
+                        {
+                            "id": 1001,
+                            "num": 10
+                        },
+                        {
+                            "id": 1002,
+                            "num": 20
+                        }
+                    ]
+                }
+            }
         },
         "2": {
             "id": 2,
@@ -38,7 +54,25 @@
                     }
                 }
             },
-            "progress": 10
+            "progress": 10,
+            "battleTarget": {
+                "type": "TYPE_PVE",
+                "pve": {
+                    "heroIdList": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "dungeonMap": {
+                        "1": "10",
+                        "2": "20"
+                    },
+                    "boss": {
+                        "id": 101,
+                        "damage": "10000"
+                    }
+                }
+            }
         },
         "3": {
             "id": 3,
@@ -65,7 +99,17 @@
                     }
                 }
             },
-            "progress": 10
+            "progress": 10,
+            "battleTarget": {
+                "type": "TYPE_CHALLENGE",
+                "challenge": {
+                    "challengeId": 1,
+                    "enemyList": [
+                        101,
+                        102
+                    ]
+                }
+            }
         },
         "4": {
             "id": 4,
@@ -76,7 +120,8 @@
                     "damage": "2"
                 }
             },
-            "progress": 8
+            "progress": 8,
+            "battleTarget": null
         }
     }
 }
