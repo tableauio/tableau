@@ -2,7 +2,8 @@ package parseroptions
 
 // Options follow the design of Functional Options(https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md)
 type Options struct {
-	Nested bool
+	Nested      bool
+	LastOfUnion bool
 	// virtual type cell for supporting composite first field type of list element.
 	//
 	// NOTE: need to used with prefix.
@@ -28,6 +29,12 @@ type Option func(*Options)
 func Nested(nested bool) Option {
 	return func(opts *Options) {
 		opts.Nested = nested
+	}
+}
+
+func LastOfUnion(ok bool) Option {
+	return func(opts *Options) {
+		opts.LastOfUnion = ok
 	}
 }
 

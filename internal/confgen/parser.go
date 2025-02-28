@@ -1317,7 +1317,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 	return present, nil
 }
 
-func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cellData string) error {
+func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cellData string, cellDatas []string) error {
 	if field.fd.IsMap() {
 		// incell map
 		value := msg.NewField(field.fd)
@@ -1331,12 +1331,53 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 	} else if field.fd.IsList() {
 		// incell list
 		value := msg.NewField(field.fd)
-		present, err := sp.parseIncellListField(field, value.List(), cellData)
-		if err != nil {
-			return err
-		}
-		if present {
-			msg.Set(field.fd, value)
+		list := value.List()
+		if field.opts.Prop.GetExtend() && len(cellDatas) != 0 {
+			for _, data := range cellDatas {
+				fieldValue := list.NewElement()
+				var elemPresent bool
+				var err error
+				if field.fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(string(field.fd.Message().FullName())) {
+					elemPresent, err = sp.parseIncellStruct(fieldValue, data, field.opts.GetProp().GetForm(), field.opts.Sep)
+				} else {
+					fieldValue, elemPresent, err = sp.parseFieldValue(field.fd, data, field.opts.Prop)
+				}
+				if err != nil {
+					return err
+				}
+				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
+					// TODO: check the remaining keys all not present, otherwise report error!
+					break
+				}
+				if field.opts.Key != "" {
+					// keyed list
+					keyedListElemExisted := false
+					for i := 0; i < list.Len(); i++ {
+						elemVal := list.Get(i)
+						if elemVal.Equal(fieldValue) {
+							keyedListElemExisted = true
+							break
+						}
+					}
+					if !keyedListElemExisted {
+						list.Append(fieldValue)
+					}
+				} else {
+					// normal list
+					list.Append(fieldValue)
+				}
+			}
+			if list.Len() > 0 {
+				msg.Set(field.fd, value)
+			}
+		} else {
+			present, err := sp.parseIncellListField(field, list, cellData)
+			if err != nil {
+				return err
+			}
+			if present {
+				msg.Set(field.fd, value)
+			}
 		}
 
 	} else if field.fd.Kind() == protoreflect.MessageKind {
@@ -1432,7 +1473,7 @@ func (sp *sheetParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
 			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
-			err := func() error {
+			if err := func() error {
 				subField := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
 				defer subField.release()
 				// incell scalar
@@ -1440,13 +1481,24 @@ func (sp *sheetParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 				if err != nil {
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
-				err = sp.parseUnionMessageField(subField, msg, cell.Data)
+				var cellDatas []string
+				if i == md.Fields().Len()-1 {
+					cellDatas = []string{cell.Data}
+					for j := 1; ; j++ {
+						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
+						if err != nil {
+							break
+						}
+						cellDatas = append(cellDatas, c.Data)
+					}
+				}
+				err = sp.parseUnionMessageField(subField, msg, cell.Data, cellDatas)
 				if err != nil {
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
 				return nil
-			}()
-			if err != nil {
+			}(); err != nil {
 				return false, err
 			}
 		}

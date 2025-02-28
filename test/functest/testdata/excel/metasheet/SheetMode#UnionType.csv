@@ -21,9 +21,9 @@ bool"
 BattleTarget,BattleTarget note,,,
 Name,Alias,Field1,Field2,Field3
 PVP,BattlePVP,"BattleID
-int32","Damage
-int64",
+int32","Item
+[].Item|{extend:true}",
 PVE,BattlePVE,"HeroID
-[]int32","Dungeon
+[]int32|{extend:true}","Dungeon
 map<int32, int64>","Boss
 {uint32 ID, int64 Damage}Boss"

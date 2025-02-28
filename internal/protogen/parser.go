@@ -670,6 +670,9 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 		}
 		// for incell scalar list, need whole prop
 		field.Options.Prop = prop
+		if field.Options.Prop != nil && !opts.LastOfUnion {
+			field.Options.Prop.Extend = false
+		}
 
 		// auto add suffix "_list".
 		field.Name += listVarSuffix

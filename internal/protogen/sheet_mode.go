@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -210,7 +211,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		var err error
 		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
 			subField := &internalpb.Field{}
-			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
+			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.LastOfUnion(cursor == len(value.Fields)-1))
 			if err != nil {
 				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 			}

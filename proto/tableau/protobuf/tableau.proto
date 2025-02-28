@@ -253,6 +253,10 @@ message FieldProp {
   bool optional = 11;
   // Field patch type.
   Patch patch = 12;
+  // Entend the last field of a union if it's an incell list. This list now
+  // takes up the current cell and all following cells in the same union, each
+  // cell one element just like a horizontal list.
+  bool extend = 13;
 }
 
 // Layout of list and map.
