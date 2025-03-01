@@ -66,6 +66,6 @@ message Target {
   }
   message Item {
     bool available = 1;
-    repeated protoconf.Item item_list = 2 [(tableau.field) = {layout:LAYOUT_INCELL prop:{extend:true}}];
+    repeated protoconf.Item item_list = 2 [(tableau.field) = {layout:LAYOUT_INCELL prop:{extend:0}}];
   }
 }

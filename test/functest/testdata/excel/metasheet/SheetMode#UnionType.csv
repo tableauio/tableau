@@ -1,32 +1,32 @@
-WishTarget,WishTarget note,,,
-Name,Alias,Field1,Field2,Field3
+WishTarget,WishTarget note,,,,
+Name,Alias,Field1,Field2,Field3,
 Higher,WishHigher,"Height
-int32",,
+int32",,,
 Richer,WishRicher,"ID
 uint32","Bank
-map<int32, string>",
-,,,,
-HeroTarget,HeroTarget note,,,
-Name,Alias,Field1,Field2,Field3
+map<int32, string>",,
+,,,,,
+HeroTarget,HeroTarget note,,,,
+Name,Alias,Field1,Field2,Field3,
 StarUp,HeroStarUp,"ID
 uint32","Star
-int32",
+int32",,
 LevelUp,HeroLevelUp,"ID
 []uint32","Level
 int32","Super
-bool"
-,,,,
-,,,,
-,,,,
-BattleTarget,BattleTarget note,,,
-Name,Alias,Field1,Field2,Field3
+bool",
+,,,,,
+,,,,,
+,,,,,
+BattleTarget,BattleTarget note,,,,
+Name,Alias,Field1,Field2,Field3,Field4
 PVP,BattlePVP,"BattleID
 int32","Item
-[].Item|{extend:true}",
+[].Item|{extend:0}",,
 PVE,BattlePVE,"HeroID
-[]int32|{extend:true}","Dungeon
+[]int32","Dungeon
 map<int32, int64>","Boss
-{uint32 ID, int64 Damage}Boss"
-Challenge,ChallengeMode,"ChallengeID
-int32","Enemy
-[]<uint32>|{extend:true}",
+{uint32 ID, int64 Damage}Boss",
+Challenge,ChallengeMode,"Enemy
+[]<uint32>|{extend:2}",,,"ChallengeID
+int32"

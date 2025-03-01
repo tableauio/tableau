@@ -210,11 +210,13 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		var parsed bool
 		var err error
 		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+			fieldNumber := cursor + 1
 			subField := &internalpb.Field{}
-			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.LastOfUnion(cursor == len(value.Fields)-1))
+			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.IsUnion())
 			if err != nil {
 				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 			}
+			subField.Number = int32(fieldNumber)
 			if parsed {
 				field.Fields = append(field.Fields, subField)
 			}

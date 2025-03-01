@@ -528,10 +528,23 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 				}
 				var nodeDatas []string
-				if i == md.Fields().Len()-1 {
+				switch {
+				case subField.opts.Prop == nil || subField.opts.Prop.Extend == nil:
+					// do nothing
+				case subField.opts.Prop.GetExtend() == 0:
 					nodeDatas = []string{valNode.Value}
-					for j := 1; ; j++ {
-						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+					for j := 0; ; j++ {
+						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j+1)
+						node := node.FindChild(nodeName)
+						if node == nil {
+							break
+						}
+						nodeDatas = append(nodeDatas, node.Value)
+					}
+				default:
+					nodeDatas = []string{valNode.Value}
+					for j := 0; j < int(subField.opts.Prop.GetExtend()); j++ {
+						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j+1)
 						node := node.FindChild(nodeName)
 						if node == nil {
 							break

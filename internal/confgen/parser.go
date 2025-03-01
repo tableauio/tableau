@@ -1332,7 +1332,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		// incell list
 		value := msg.NewField(field.fd)
 		list := value.List()
-		if field.opts.Prop.GetExtend() && len(cellDatas) != 0 {
+		if len(cellDatas) != 0 {
 			for _, data := range cellDatas {
 				fieldValue := list.NewElement()
 				var elemPresent bool
@@ -1482,10 +1482,23 @@ func (sp *sheetParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
 				var cellDatas []string
-				if i == md.Fields().Len()-1 {
+				switch {
+				case subField.opts.Prop == nil || subField.opts.Prop.Extend == nil:
+					// do nothing
+				case subField.opts.Prop.GetExtend() == 0:
 					cellDatas = []string{cell.Data}
-					for j := 1; ; j++ {
-						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+					for j := 0; ; j++ {
+						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j+1)
+						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
+						if err != nil {
+							break
+						}
+						cellDatas = append(cellDatas, c.Data)
+					}
+				default:
+					cellDatas = []string{cell.Data}
+					for j := 0; j < int(subField.opts.Prop.GetExtend()); j++ {
+						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j+1)
 						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
 						if err != nil {
 							break

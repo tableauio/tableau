@@ -2,6 +2,7 @@ package protogen
 
 import (
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 
@@ -670,9 +671,12 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 		}
 		// for incell scalar list, need whole prop
 		field.Options.Prop = prop
-		if field.Options.Prop != nil && !opts.LastOfUnion {
-			// never set prop.Extend true unless it's the last field of union
-			field.Options.Prop.Extend = false
+		if opts.IsUnion && field.Options.Prop != nil && field.Options.Prop.Extend != nil {
+			if field.Options.Prop.GetExtend() == 0 {
+				cursor = math.MaxInt - 1 // end the loop
+			} else {
+				cursor += int(field.Options.Prop.GetExtend())
+			}
 		}
 
 		// auto add suffix "_list".

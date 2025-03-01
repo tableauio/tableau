@@ -360,9 +360,9 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 					Fields: []*internalpb.Field{
 						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
 							Fields: []*internalpb.Field{
-								{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
-								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
-								{Name: "type_list", Type: "repeated", FullType: "repeated protoconf.FruitType",
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+								{Number: 2, Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
+								{Number: 3, Name: "type_list", Type: "repeated", FullType: "repeated protoconf.FruitType",
 									ListEntry:  &internalpb.Field_ListEntry{ElemType: "FruitType", ElemFullType: "protoconf.FruitType"},
 									Predefined: true,
 									Options:    &tableaupb.FieldOptions{Name: "Type", Layout: tableaupb.Layout_LAYOUT_INCELL}},

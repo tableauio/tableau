@@ -103,11 +103,11 @@
             "battleTarget": {
                 "type": "TYPE_CHALLENGE",
                 "challenge": {
-                    "challengeId": 1,
                     "enemyList": [
                         101,
                         102
-                    ]
+                    ],
+                    "challengeId": 1
                 }
             }
         },
