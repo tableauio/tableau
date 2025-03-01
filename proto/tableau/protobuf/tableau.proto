@@ -253,10 +253,10 @@ message FieldProp {
   bool optional = 11;
   // Field patch type.
   Patch patch = 12;
-  // Modify the layout of a list field of a union's nested message 
-  // from incell to horizontal (one element for each field), and 
-  // specify the field num this horizontal list now takes up. 
-  // Zero value means this horizontal list takes up all following fields.
+  // Modify the layout of a list field of union's nested message 
+  // from incell to horizontal, and specify the field num 
+  // the list now occupies(one list element for each field). 
+  // Zero value means the list occupies all following fields.
   optional uint32 union_fields = 13;
 }
 
