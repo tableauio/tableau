@@ -283,7 +283,7 @@ message BattleTarget {
 
   message PVP {
     int32 battle_id = 1 [(tableau.field) = {name:"BattleID"}];
-    repeated protoconf.Item item_list = 2 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{extend:0}}];
+    repeated protoconf.Item item_list = 2 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{union_fields:0}}];
   }
   message PVE {
     repeated int32 hero_id_list = 1 [(tableau.field) = {name:"HeroID" layout:LAYOUT_INCELL}];
@@ -295,7 +295,7 @@ message BattleTarget {
     }
   }
   message Challenge {
-    repeated uint32 enemy_list = 1 [(tableau.field) = {name:"Enemy" key:"Enemy" layout:LAYOUT_HORIZONTAL prop:{extend:2}}];
+    repeated uint32 enemy_list = 1 [(tableau.field) = {name:"Enemy" key:"Enemy" layout:LAYOUT_HORIZONTAL prop:{union_fields:3}}];
     int32 challenge_id = 4 [(tableau.field) = {name:"ChallengeID"}];
   }
 }

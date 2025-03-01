@@ -1483,12 +1483,12 @@ func (sp *sheetParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 				}
 				var cellDatas []string
 				switch {
-				case subField.opts.Prop == nil || subField.opts.Prop.Extend == nil:
+				case subField.opts.Prop == nil || subField.opts.Prop.UnionFields == nil:
 					// do nothing
-				case subField.opts.Prop.GetExtend() == 0:
+				case subField.opts.Prop.GetUnionFields() == 0:
 					cellDatas = []string{cell.Data}
-					for j := 0; ; j++ {
-						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j+1)
+					for j := 1; ; j++ {
+						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
 						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
 						if err != nil {
 							break
@@ -1497,8 +1497,8 @@ func (sp *sheetParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 					}
 				default:
 					cellDatas = []string{cell.Data}
-					for j := 0; j < int(subField.opts.Prop.GetExtend()); j++ {
-						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j+1)
+					for j := 1; j < int(subField.opts.Prop.GetUnionFields()); j++ {
+						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
 						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
 						if err != nil {
 							break

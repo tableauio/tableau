@@ -253,10 +253,11 @@ message FieldProp {
   bool optional = 11;
   // Field patch type.
   Patch patch = 12;
-  // Entend the last field of a union if it's an incell list. This list now
-  // takes up the current cell and all following cells in the same union, each
-  // cell one element just like a horizontal list.
-  optional uint32 extend = 13;
+  // Modify the layout of a list field of a union's nested message 
+  // from incell to horizontal (one element for each field), and 
+  // specify the field num this horizontal list now takes up. 
+  // Zero value means this horizontal list takes up all following fields.
+  optional uint32 union_fields = 13;
 }
 
 // Layout of list and map.

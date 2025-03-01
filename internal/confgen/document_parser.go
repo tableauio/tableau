@@ -529,12 +529,12 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 				}
 				var nodeDatas []string
 				switch {
-				case subField.opts.Prop == nil || subField.opts.Prop.Extend == nil:
+				case subField.opts.Prop == nil || subField.opts.Prop.UnionFields == nil:
 					// do nothing
-				case subField.opts.Prop.GetExtend() == 0:
+				case subField.opts.Prop.GetUnionFields() == 0:
 					nodeDatas = []string{valNode.Value}
-					for j := 0; ; j++ {
-						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j+1)
+					for j := 1; ; j++ {
+						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
 						node := node.FindChild(nodeName)
 						if node == nil {
 							break
@@ -543,8 +543,8 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					}
 				default:
 					nodeDatas = []string{valNode.Value}
-					for j := 0; j < int(subField.opts.Prop.GetExtend()); j++ {
-						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j+1)
+					for j := 1; j < int(subField.opts.Prop.GetUnionFields()); j++ {
+						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
 						node := node.FindChild(nodeName)
 						if node == nil {
 							break

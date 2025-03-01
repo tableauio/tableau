@@ -2,8 +2,9 @@ package parseroptions
 
 // Options follow the design of Functional Options(https://github.com/tmrts/go-patterns/blob/master/idiom/functional-options.md)
 type Options struct {
-	Nested  bool
-	IsUnion bool
+	Nested bool
+	// This field belongs to a union's nested message so `union_fields` property is valid
+	UnionFieldsValid bool
 	// virtual type cell for supporting composite first field type of list element.
 	//
 	// NOTE: need to used with prefix.
@@ -32,9 +33,9 @@ func Nested(nested bool) Option {
 	}
 }
 
-func IsUnion() Option {
+func UnionFieldsValid() Option {
 	return func(opts *Options) {
-		opts.IsUnion = true
+		opts.UnionFieldsValid = true
 	}
 }
 

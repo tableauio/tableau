@@ -671,14 +671,14 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 		}
 		// for incell scalar list, need whole prop
 		field.Options.Prop = prop
-		if opts.IsUnion && field.Options.Prop != nil && field.Options.Prop.Extend != nil {
+		if opts.UnionFieldsValid && field.Options.Prop != nil && field.Options.Prop.UnionFields != nil {
 			// use horizontal layout for union's extended incell list
 			layout = tableaupb.Layout_LAYOUT_HORIZONTAL
 			// move cursor according to extended size
-			if field.Options.Prop.GetExtend() == 0 {
+			if field.Options.Prop.GetUnionFields() == 0 {
 				cursor = math.MaxInt - 1 // infinitely extension, so move to the end
 			} else {
-				cursor += int(field.Options.Prop.GetExtend())
+				cursor += int(field.Options.Prop.GetUnionFields() - 1)
 			}
 		}
 
