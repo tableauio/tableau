@@ -1,6 +1,9 @@
 package load
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 type Options struct {
 	// Filter can only filter in certain specific messagers based on the
@@ -55,6 +58,9 @@ type Options struct {
 	//
 	// Default: ModeDefault.
 	Mode LoadMode
+	// Validator enables the immutability validation of the loaded config, and
+	// specifies its interval and error handler.
+	Validator *Validator
 }
 
 type LoadMode int
@@ -72,6 +78,11 @@ type FilterFunc func(name string) bool
 
 // ReadFunc reads the config file and returns its content.
 type ReadFunc func(name string) ([]byte, error)
+
+type Validator struct {
+	Interval     time.Duration
+	ErrorHandler func(error)
+}
 
 // Option is the functional option type.
 type Option func(*Options)
@@ -169,5 +180,18 @@ func PatchDirs(dirs ...string) Option {
 func Mode(mode LoadMode) Option {
 	return func(opts *Options) {
 		opts.Mode = mode
+	}
+}
+
+// WithValidator enables the immutability validation of the loaded config, and
+// specifies its interval and error handler.
+func WithValidator(interval time.Duration, handler func(error)) Option {
+	return func(opts *Options) {
+		if interval != 0 && handler != nil {
+			opts.Validator = &Validator{
+				Interval:     interval,
+				ErrorHandler: handler,
+			}
+		}
 	}
 }
