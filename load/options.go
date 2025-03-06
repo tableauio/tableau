@@ -6,13 +6,6 @@ import (
 )
 
 type Options struct {
-	// Filter can only filter in certain specific messagers based on the
-	// condition that you provide.
-	//
-	// NOTE: only used in https://github.com/tableauio/loader.
-	//
-	// Default: nil.
-	Filter FilterFunc
 	// ReadFunc reads the config file and returns its content.
 	//
 	// Default: os.ReadFile.
@@ -58,9 +51,6 @@ type Options struct {
 	//
 	// Default: ModeDefault.
 	Mode LoadMode
-	// Validator enables the immutability validation of the loaded config, and
-	// specifies its interval and error handler.
-	Validator *Validator
 }
 
 type LoadMode int
@@ -70,11 +60,6 @@ const (
 	ModeOnlyMain                  // Only load the main file
 	ModeOnlyPatch                 // Only load the patch files
 )
-
-// FilterFunc filter in messagers if returned value is true.
-//
-// NOTE: name is the protobuf message name, e.g.: "message ItemConf{...}".
-type FilterFunc func(name string) bool
 
 // ReadFunc reads the config file and returns its content.
 type ReadFunc func(name string) ([]byte, error)
@@ -103,16 +88,6 @@ func ParseOptions(setters ...Option) *Options {
 		setter(opts)
 	}
 	return opts
-}
-
-// Filter can only filter in certain specific messagers based on the
-// condition that you provide.
-//
-// NOTE: only used in https://github.com/tableauio/loader.
-func Filter(filter FilterFunc) Option {
-	return func(opts *Options) {
-		opts.Filter = filter
-	}
 }
 
 // ReadFunc reads the config file and returns its content.
@@ -180,18 +155,5 @@ func PatchDirs(dirs ...string) Option {
 func Mode(mode LoadMode) Option {
 	return func(opts *Options) {
 		opts.Mode = mode
-	}
-}
-
-// WithValidator enables the immutability validation of the loaded config, and
-// specifies its interval and error handler.
-func WithValidator(interval time.Duration, handler func(error)) Option {
-	return func(opts *Options) {
-		if interval != 0 && handler != nil {
-			opts.Validator = &Validator{
-				Interval:     interval,
-				ErrorHandler: handler,
-			}
-		}
 	}
 }
