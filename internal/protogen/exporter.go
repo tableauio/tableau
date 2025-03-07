@@ -236,9 +236,8 @@ func (x *sheetExporter) exportUnion() error {
 		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
 		// generate the fields
 		depth := 2
-		for i, field := range msgField.Fields {
-			tagid := i + 1
-			if err := x.exportField(depth, tagid, field, msgField.Name); err != nil {
+		for _, field := range msgField.Fields {
+			if err := x.exportField(depth, int(field.Number), field, msgField.Name); err != nil {
 				return err
 			}
 		}

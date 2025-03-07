@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -503,7 +504,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
 			valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
-			err := func() error {
+			if err := func() error {
 				subField := parseFieldDescriptor(fd, sp.parser.opts.Sep, sp.parser.opts.Subsep)
 				defer subField.release()
 				valNode := node.FindChild(valNodeName)
@@ -527,13 +528,28 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					)
 					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 				}
-				err = sp.parser.parseUnionMessageField(subField, msg, valNode.Value)
+				var nodeValues []string
+				if subField.opts.Prop != nil && subField.opts.Prop.UnionFields != nil {
+					fieldCount := int(subField.opts.Prop.GetUnionFields())
+					if fieldCount == 0 {
+						fieldCount = math.MaxInt32
+					}
+					nodeValues = []string{valNode.Value}
+					for j := 1; j < fieldCount; j++ {
+						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+						node := node.FindChild(nodeName)
+						if node == nil {
+							break
+						}
+						nodeValues = append(nodeValues, node.Value)
+					}
+				}
+				err := sp.parser.parseUnionMessageField(subField, msg, valNode.Value, nodeValues)
 				if err != nil {
 					return xerrors.WrapKV(err, valNode.DebugNameKV()...)
 				}
 				return nil
-			}()
-			if err != nil {
+			}(); err != nil {
 				return false, err
 			}
 		}

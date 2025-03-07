@@ -331,7 +331,7 @@ func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 	}
 }
 
-func TestParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
+func TestParser_parseHorizontalMapWithDuplicateKey(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet
 	}
@@ -398,7 +398,7 @@ func TestParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
 	}
 }
 
-func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
+func TestParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet
 	}

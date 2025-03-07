@@ -1,0 +1,164 @@
+{
+    "taskMap": {
+        "1": {
+            "id": 1,
+            "target": {
+                "type": "TYPE_EXCHANGE",
+                "exchange": {
+                    "id": 9001,
+                    "costList": [
+                        {
+                            "id": 1001,
+                            "num": 10
+                        },
+                        {
+                            "id": 1002,
+                            "num": 20
+                        }
+                    ],
+                    "gainList": [
+                        {
+                            "id": 1003,
+                            "num": 30
+                        },
+                        {
+                            "id": 1004,
+                            "num": 40
+                        }
+                    ]
+                }
+            }
+        },
+        "2": {
+            "id": 2,
+            "target": {
+                "type": "TYPE_EXCHANGE",
+                "exchange": {
+                    "id": 9002,
+                    "costList": [
+                        {
+                            "id": 1001,
+                            "num": 100
+                        }
+                    ],
+                    "gainList": [
+                        {
+                            "id": 1003,
+                            "num": 300
+                        }
+                    ]
+                }
+            }
+        },
+        "3": {
+            "id": 3,
+            "target": {
+                "type": "TYPE_VOTE",
+                "vote": {
+                    "approvesList": [
+                        1,
+                        2
+                    ],
+                    "againstsList": [
+                        3,
+                        4
+                    ],
+                    "abstainsList": [
+                        5,
+                        6
+                    ]
+                }
+            }
+        },
+        "4": {
+            "id": 4,
+            "target": {
+                "type": "TYPE_VOTE",
+                "vote": {
+                    "approvesList": [
+                        1
+                    ],
+                    "againstsList": [
+                        2
+                    ],
+                    "abstainsList": [
+                        3
+                    ]
+                }
+            }
+        },
+        "5": {
+            "id": 5,
+            "target": {
+                "type": "TYPE_FRUIT",
+                "fruit": {
+                    "typeAList": [
+                        "FRUIT_TYPE_APPLE",
+                        "FRUIT_TYPE_ORANGE",
+                        "FRUIT_TYPE_APPLE"
+                    ],
+                    "typeBList": [
+                        "FRUIT_TYPE_ORANGE"
+                    ],
+                    "flavorList": [
+                        "FRUIT_FLAVOR_FRAGRANT",
+                        "FRUIT_FLAVOR_SOUR"
+                    ]
+                }
+            }
+        },
+        "6": {
+            "id": 6,
+            "target": {
+                "type": "TYPE_FRUIT",
+                "fruit": {
+                    "typeAList": [
+                        "FRUIT_TYPE_APPLE",
+                        "FRUIT_TYPE_ORANGE"
+                    ],
+                    "typeBList": [
+                        "FRUIT_TYPE_APPLE",
+                        "FRUIT_TYPE_ORANGE"
+                    ],
+                    "flavorList": [
+                        "FRUIT_FLAVOR_SWEET"
+                    ]
+                }
+            }
+        },
+        "7": {
+            "id": 7,
+            "target": {
+                "type": "TYPE_KEY",
+                "key": {
+                    "keysList": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "valuesList": [
+                        4,
+                        5,
+                        6
+                    ]
+                }
+            }
+        },
+        "8": {
+            "id": 8,
+            "target": {
+                "type": "TYPE_KEY",
+                "key": {
+                    "keysList": [
+                        1
+                    ],
+                    "valuesList": [
+                        2,
+                        2,
+                        2
+                    ]
+                }
+            }
+        }
+    }
+}
