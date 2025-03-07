@@ -1,8 +1,6 @@
 package load
 
-import (
-	"os"
-)
+import "os"
 
 type Options struct {
 	// ReadFunc reads the config file and returns its content.
