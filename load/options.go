@@ -2,7 +2,6 @@ package load
 
 import (
 	"os"
-	"time"
 )
 
 type Options struct {
@@ -63,11 +62,6 @@ const (
 
 // ReadFunc reads the config file and returns its content.
 type ReadFunc func(name string) ([]byte, error)
-
-type Validator struct {
-	Interval     time.Duration
-	ErrorHandler func(error)
-}
 
 // Option is the functional option type.
 type Option func(*Options)
