@@ -28,6 +28,16 @@ func TestLoad(t *testing.T) {
 		errcode string
 	}{
 		{
+			name: "load-origin",
+			args: args{
+				msg:     &unittestpb.ItemConf{},
+				dir:     "../testdata/",
+				fmt:     format.CSV,
+				options: []Option{},
+			},
+			wantErr: false,
+		},
+		{
 			name: "load-origin-path-failed",
 			args: args{
 				msg: &unittestpb.ItemConf{},
