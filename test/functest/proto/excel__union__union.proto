@@ -32,6 +32,15 @@ message PredefinedUnion {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
     union.Target target = 2 [(tableau.field) = {name:"Target"}];
     int32 progress = 3 [(tableau.field) = {name:"Progress"}];
-    protoconf.BattleTarget battle_target = 4 [(tableau.field) = {name:"BattleTarget"}];
+  }
+}
+
+message UnionFields {
+  option (tableau.worksheet) = {name:"UnionFields" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Task {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    protoconf.FieldsTarget target = 2 [(tableau.field) = {name:"Target"}];
   }
 }

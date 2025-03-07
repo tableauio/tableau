@@ -485,6 +485,9 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 			layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 		}
 	}
+	if opts.UnionFieldsValid {
+		layout = tableaupb.Layout_LAYOUT_INCELL // treat union's list field as incell
+	}
 
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:

@@ -3,6 +3,7 @@ package confgen
 import (
 	"errors"
 	"fmt"
+	"math"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -1317,7 +1318,7 @@ func (sp *sheetParser) parseUnionField(field *Field, msg protoreflect.Message, r
 	return present, nil
 }
 
-func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cellData string, cellDatas []string) error {
+func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cellData string, cellDataList []string) error {
 	if field.fd.IsMap() {
 		// incell map
 		value := msg.NewField(field.fd)
@@ -1332,8 +1333,8 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		// incell list
 		value := msg.NewField(field.fd)
 		list := value.List()
-		if len(cellDatas) != 0 {
-			for _, data := range cellDatas {
+		if len(cellDataList) != 0 {
+			for _, data := range cellDataList {
 				fieldValue := list.NewElement()
 				var elemPresent bool
 				var err error
@@ -1481,32 +1482,23 @@ func (sp *sheetParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 				if err != nil {
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
-				var cellDatas []string
-				switch {
-				case subField.opts.Prop == nil || subField.opts.Prop.UnionFields == nil:
-					// do nothing
-				case subField.opts.Prop.GetUnionFields() == 0:
-					cellDatas = []string{cell.Data}
-					for j := 1; ; j++ {
-						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
-						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
-						if err != nil {
-							break
-						}
-						cellDatas = append(cellDatas, c.Data)
+				var cellDataList []string
+				if subField.opts.Prop != nil && subField.opts.Prop.UnionFields != nil {
+					fieldCount := int(subField.opts.Prop.GetUnionFields())
+					if fieldCount == 0 {
+						fieldCount = math.MaxInt32
 					}
-				default:
-					cellDatas = []string{cell.Data}
-					for j := 1; j < int(subField.opts.Prop.GetUnionFields()); j++ {
+					cellDataList = []string{cell.Data}
+					for j := 1; j < fieldCount; j++ {
 						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
 						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
 						if err != nil {
 							break
 						}
-						cellDatas = append(cellDatas, c.Data)
+						cellDataList = append(cellDataList, c.Data)
 					}
 				}
-				err = sp.parseUnionMessageField(subField, msg, cell.Data, cellDatas)
+				err = sp.parseUnionMessageField(subField, msg, cell.Data, cellDataList)
 				if err != nil {
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
