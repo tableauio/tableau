@@ -3,13 +3,6 @@ package load
 import "os"
 
 type Options struct {
-	// Filter can only filter in certain specific messagers based on the
-	// condition that you provide.
-	//
-	// NOTE: only used in https://github.com/tableauio/loader.
-	//
-	// Default: nil.
-	Filter FilterFunc
 	// ReadFunc reads the config file and returns its content.
 	//
 	// Default: os.ReadFile.
@@ -65,11 +58,6 @@ const (
 	ModeOnlyPatch                 // Only load the patch files
 )
 
-// FilterFunc filter in messagers if returned value is true.
-//
-// NOTE: name is the protobuf message name, e.g.: "message ItemConf{...}".
-type FilterFunc func(name string) bool
-
 // ReadFunc reads the config file and returns its content.
 type ReadFunc func(name string) ([]byte, error)
 
@@ -92,16 +80,6 @@ func ParseOptions(setters ...Option) *Options {
 		setter(opts)
 	}
 	return opts
-}
-
-// Filter can only filter in certain specific messagers based on the
-// condition that you provide.
-//
-// NOTE: only used in https://github.com/tableauio/loader.
-func Filter(filter FilterFunc) Option {
-	return func(opts *Options) {
-		opts.Filter = filter
-	}
 }
 
 // ReadFunc reads the config file and returns its content.

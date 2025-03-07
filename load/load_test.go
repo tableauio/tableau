@@ -30,12 +30,10 @@ func TestLoad(t *testing.T) {
 		{
 			name: "load-origin",
 			args: args{
-				msg: &unittestpb.ItemConf{},
-				dir: "../testdata/",
-				fmt: format.CSV,
-				options: []Option{
-					Filter(nil), // just for test coverage
-				},
+				msg:     &unittestpb.ItemConf{},
+				dir:     "../testdata/",
+				fmt:     format.CSV,
+				options: []Option{},
 			},
 			wantErr: false,
 		},
