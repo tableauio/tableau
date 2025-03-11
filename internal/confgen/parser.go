@@ -1133,9 +1133,20 @@ func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List
 	}
 	for i := 0; i < size; i++ {
 		elem := splits[i]
-		fieldValue, elemPresent, err := sp.parseFieldValue(field.fd, elem, field.opts.Prop)
-		if err != nil {
-			return false, err
+		var (
+			fieldValue  protoreflect.Value
+			elemPresent bool
+		)
+		if field.fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(string(field.fd.Message().FullName())) {
+			fieldValue = protoreflect.ValueOfMessage(dynamicpb.NewMessage(field.fd.Message()).ProtoReflect())
+			if elemPresent, err = sp.parseIncellStruct(fieldValue, elem, field.opts.GetProp().GetForm(), field.opts.Subsep); err != nil {
+				return false, err
+			}
+		} else {
+			fieldValue, elemPresent, err = sp.parseFieldValue(field.fd, elem, field.opts.Prop)
+			if err != nil {
+				return false, err
+			}
 		}
 		if !elemPresent && !prop.IsFixed(field.opts.Prop) {
 			// TODO: check the remaining keys all not present, otherwise report error!

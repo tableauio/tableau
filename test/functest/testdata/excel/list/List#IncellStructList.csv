@@ -1,0 +1,4 @@
+ID,Item,Rank
+"map<uint32, Case>",[@]{.Item},"[@]{int32 Level, int32 Score}Rank"
+,,
+1000,"1001:10,1002:20,1003:30","1001:10,1002:20,1003:30"

@@ -415,10 +415,10 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 
 	listElemSpanInnerCell, isScalarElement := false, false
 	elemType := desc.ElemType
-	pureElemTypeName := desc.ElemType
-	if elemType == "" {
+	var pureElemTypeName string
+	if elemType == "" || elemType == "@" {
 		listElemSpanInnerCell = true
-		isScalarElement = true
+		isScalarElement = elemType == ""
 		elemType = desc.ColumnType
 		pureElemTypeName = desc.ColumnType
 		if structDesc := types.MatchStruct(desc.ColumnType); structDesc != nil {
@@ -483,6 +483,9 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 		if isScalarElement {
 			layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 		}
+	}
+	if desc.ElemType == "@" {
+		layout = tableaupb.Layout_LAYOUT_INCELL // incell list of incell struct
 	}
 
 	switch layout {
@@ -652,6 +655,9 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 			colType = keyedListDesc.ColumnType
 			key = trimmedNameCell
 		}
+		if !isScalarElement {
+			colType = elemType
+		}
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, colType+desc.Prop.RawProp())
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
@@ -660,6 +666,28 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
+		if !isScalarElement {
+			if structDesc := types.MatchStruct(desc.ColumnType); structDesc != nil && structDesc.ColumnType != "" {
+				fieldPairs, err := parseIncellStruct(structDesc.StructType)
+				if err != nil {
+					return cursor, err
+				}
+				if fieldPairs != nil {
+					for i := 0; i < len(fieldPairs); i += 2 {
+						fieldType := fieldPairs[i]
+						fieldName := fieldPairs[i+1]
+						scalarField, err := parseField(p.gen.typeInfos, fieldName, fieldType)
+						if err != nil {
+							return cursor, xerrors.WrapKV(err,
+								xerrors.KeyPBFieldType, fieldType,
+								xerrors.KeyPBFieldOpts, desc.Prop.Text,
+								xerrors.KeyTrimmedNameCell, trimmedNameCell)
+						}
+						field.Fields = append(field.Fields, scalarField)
+					}
+				}
+			}
+		}
 
 		prop, err := desc.Prop.FieldProp()
 		if err != nil {
@@ -681,6 +709,9 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 		}
 		field.Options.Layout = layout
 		field.Options.Key = key
+		if !isScalarElement {
+			field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
+		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		return cursor, xerrors.Errorf("should not reach default layout: %s", layout)
 	}
