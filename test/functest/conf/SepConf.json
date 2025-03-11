@@ -1,0 +1,56 @@
+{
+    "caseMap": {
+        "1000": {
+            "id": 1000,
+            "numberList": [
+                1,
+                2,
+                3
+            ],
+            "valueList": [
+                1,
+                2,
+                3
+            ],
+            "messageMap": {
+                "To b": ", or not to be, th",
+                "t is th": " question:"
+            }
+        },
+        "1001": {
+            "id": 1001,
+            "numberList": [
+                2,
+                3,
+                4
+            ],
+            "valueList": [
+                2,
+                3,
+                4
+            ],
+            "messageMap": {
+                "Wh": "ther 'tis nobler in the mind to suffer"
+            }
+        },
+        "1002": {
+            "id": 1002,
+            "numberList": [
+                300,
+                400,
+                500
+            ],
+            "valueList": [
+                300,
+                400,
+                500
+            ],
+            "messageMap": {
+                "Th": " slings ",
+                "g": "ous fortune",
+                "nd ": "",
+                "rrows of outr": ""
+            }
+        }
+    }
+}

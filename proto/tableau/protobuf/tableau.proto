@@ -59,8 +59,8 @@ message StructOptions {
 }
 
 message UnionOptions {
-  string name = 1;   // Worksheet name.
-  string note = 2;   // Oneof note, maybe in another language (Chinese).
+  string name = 1;  // Worksheet name.
+  string note = 2;  // Oneof note, maybe in another language (Chinese).
 }
 
 message OneofOptions {
@@ -117,12 +117,13 @@ message WorksheetOptions {
   // Nested naming of the namerow.
   bool nested = 10;
   // Separator for:
-  //    1. separating in-cell list elements.
-  //    2. separating in-cell map items.
+  //    1. separating incell list elements.
+  //    2. separating incell map items.
+  //    3. separating incell struct fields.
   //
   // Default: ",".
   string sep = 11;
-  // Subseparator for separating in-cell map Key-Value pair.
+  // Subseparator for separating incell map Key-Value pair.
   //
   // Default: ":".
   string subsep = 12;
@@ -192,8 +193,8 @@ message FieldOptions {
   string key = 3;     // Only set when this field type is map or keyed-list.
   Layout layout = 4;  // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
   Span span = 5;      // For list element or map value types. Default: SPAN_CROSS_CELL.
-  string sep = 6;     // NOT USED yet. Default: ",".
-  string subsep = 7;  // NOT USED yet. Default: ":".
+  string sep = 6;     // For internal usage only.
+  string subsep = 7;  // For internal usage only.
 
   FieldProp prop = 15;  // Property of field.
 }
@@ -253,6 +254,16 @@ message FieldProp {
   bool optional = 11;
   // Field patch type.
   Patch patch = 12;
+  // Separator for incell list elements, incell map items and incell struct fields.
+  // This overwrites sep in WorksheetOptions.
+  //
+  // Default: ",".
+  string sep = 13;
+  // Subseparator for separating incell map Key-Value pair.
+  // This overwrites subsep in WorksheetOptions.
+  //
+  // Default: ":".
+  string subsep = 14;
 }
 
 // Layout of list and map.

@@ -1,0 +1,6 @@
+ID,Number,Value,Message
+"map<uint32, Case>","[]int32|{sep:""!""}","[]int32|{sep:""abc""}","map<string,string>|{sep:""a"" subsep:""e""}"
+,,,
+1000,1!2!3,1abc2abc3,"To be, or not to be, that is the question:"
+1001,2!3!4,2abc3abc4,Whether 'tis nobler in the mind to suffer
+1002,300!400!500,300abc400abc500,The slings and arrows of outrageous fortune
