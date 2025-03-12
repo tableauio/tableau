@@ -116,14 +116,15 @@ message WorksheetOptions {
   int32 typeline = 9;
   // Nested naming of the namerow.
   bool nested = 10;
-  // Separator for:
-  //    1. separating incell list elements.
-  //    2. separating incell map items.
-  //    3. separating incell struct fields.
+  // Separator for separating:
+  //    1. incell list elements (scalar or struct).
+  //    2. incell map items.
   //
   // Default: ",".
   string sep = 11;
-  // Subseparator for separating incell map Key-Value pair.
+  // Subseparator for separating:
+  //    1. key-value pair of each incell map item.
+  //    2. struct fields of each incell struct list element.
   //
   // Default: ":".
   string subsep = 12;
@@ -193,8 +194,18 @@ message FieldOptions {
   string key = 3;     // Only set when this field type is map or keyed-list.
   Layout layout = 4;  // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
   Span span = 5;      // For list element or map value types. Default: SPAN_CROSS_CELL.
-  string sep = 6;     // For internal usage only.
-  string subsep = 7;  // For internal usage only.
+  // This seq's value is dynamically merged at different priority levels:
+  //  1. field-level: FieldProp.seq
+  //  2. sheet-level: WorksheetOptions.seq
+  //
+  // NOTE: Only for internal use.
+  string sep = 6;
+  // This subseq's value is dynamically merged at different priority levels:
+  //  1. field-level: FieldProp.subseq
+  //  2. sheet-level: WorksheetOptions.subseq
+  //
+  // NOTE: Only for internal use.
+  string subsep = 7; 
 
   FieldProp prop = 15;  // Property of field.
 }
@@ -254,13 +265,19 @@ message FieldProp {
   bool optional = 11;
   // Field patch type.
   Patch patch = 12;
-  // Separator for incell list elements, incell map items and incell struct fields.
-  // This overwrites sep in WorksheetOptions.
+  // Field-level separator for separating:
+  //    1. incell list elements (scalar or struct).
+  //    2. incell map items.
+  //
+  // If set, it will overwrite sheet-level seq in WorksheetOptions.
   //
   // Default: ",".
   string sep = 13;
-  // Subseparator for separating incell map Key-Value pair.
-  // This overwrites subsep in WorksheetOptions.
+  // Field-level subseparator for separating:
+  //    1. key-value pair of each incell map item.
+  //    2. struct fields of each incell struct list element.
+  //
+  // If set, it will overwrite sheet-level subseq in WorksheetOptions.
   //
   // Default: ":".
   string subsep = 14;

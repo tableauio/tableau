@@ -708,14 +708,15 @@ type WorksheetOptions struct {
 	Typeline int32 `protobuf:"varint,9,opt,name=typeline,proto3" json:"typeline,omitempty"`
 	// Nested naming of the namerow.
 	Nested bool `protobuf:"varint,10,opt,name=nested,proto3" json:"nested,omitempty"`
-	// Separator for:
-	//  1. separating incell list elements.
-	//  2. separating incell map items.
-	//  3. separating incell struct fields.
+	// Separator for separating:
+	//  1. incell list elements (scalar or struct).
+	//  2. incell map items.
 	//
 	// Default: ",".
 	Sep string `protobuf:"bytes,11,opt,name=sep,proto3" json:"sep,omitempty"`
-	// Subseparator for separating incell map Key-Value pair.
+	// Subseparator for separating:
+	//  1. key-value pair of each incell map item.
+	//  2. struct fields of each incell struct list element.
 	//
 	// Default: ":".
 	Subsep string `protobuf:"bytes,12,opt,name=subsep,proto3" json:"subsep,omitempty"`
@@ -989,14 +990,24 @@ type FieldOptions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name   string     `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                          // Scalar type's variable name or composite type's variable name (prefix).
-	Note   string     `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`                          // Field note. Maybe in another language (Chinese).
-	Key    string     `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`                            // Only set when this field type is map or keyed-list.
-	Layout Layout     `protobuf:"varint,4,opt,name=layout,proto3,enum=tableau.Layout" json:"layout,omitempty"` // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
-	Span   Span       `protobuf:"varint,5,opt,name=span,proto3,enum=tableau.Span" json:"span,omitempty"`       // For list element or map value types. Default: SPAN_CROSS_CELL.
-	Sep    string     `protobuf:"bytes,6,opt,name=sep,proto3" json:"sep,omitempty"`                            // For internal usage only.
-	Subsep string     `protobuf:"bytes,7,opt,name=subsep,proto3" json:"subsep,omitempty"`                      // For internal usage only.
-	Prop   *FieldProp `protobuf:"bytes,15,opt,name=prop,proto3" json:"prop,omitempty"`                         // Property of field.
+	Name   string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                          // Scalar type's variable name or composite type's variable name (prefix).
+	Note   string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`                          // Field note. Maybe in another language (Chinese).
+	Key    string `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`                            // Only set when this field type is map or keyed-list.
+	Layout Layout `protobuf:"varint,4,opt,name=layout,proto3,enum=tableau.Layout" json:"layout,omitempty"` // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
+	Span   Span   `protobuf:"varint,5,opt,name=span,proto3,enum=tableau.Span" json:"span,omitempty"`       // For list element or map value types. Default: SPAN_CROSS_CELL.
+	// This seq's value is dynamically merged at different priority levels:
+	//  1. field-level: FieldProp.seq
+	//  2. sheet-level: WorksheetOptions.seq
+	//
+	// NOTE: Only for internal use.
+	Sep string `protobuf:"bytes,6,opt,name=sep,proto3" json:"sep,omitempty"`
+	// This subseq's value is dynamically merged at different priority levels:
+	//  1. field-level: FieldProp.subseq
+	//  2. sheet-level: WorksheetOptions.subseq
+	//
+	// NOTE: Only for internal use.
+	Subsep string     `protobuf:"bytes,7,opt,name=subsep,proto3" json:"subsep,omitempty"`
+	Prop   *FieldProp `protobuf:"bytes,15,opt,name=prop,proto3" json:"prop,omitempty"` // Property of field.
 }
 
 func (x *FieldOptions) Reset() {
@@ -1144,13 +1155,19 @@ type FieldProp struct {
 	Optional bool `protobuf:"varint,11,opt,name=optional,proto3" json:"optional,omitempty"`
 	// Field patch type.
 	Patch Patch `protobuf:"varint,12,opt,name=patch,proto3,enum=tableau.Patch" json:"patch,omitempty"`
-	// Separator for incell list elements, incell map items and incell struct fields.
-	// This overwrites sep in WorksheetOptions.
+	// Field-level separator for separating:
+	//  1. incell list elements (scalar or struct).
+	//  2. incell map items.
+	//
+	// If set, it will overwrite sheet-level seq in WorksheetOptions.
 	//
 	// Default: ",".
 	Sep string `protobuf:"bytes,13,opt,name=sep,proto3" json:"sep,omitempty"`
-	// Subseparator for separating incell map Key-Value pair.
-	// This overwrites subsep in WorksheetOptions.
+	// Field-level subseparator for separating:
+	//  1. key-value pair of each incell map item.
+	//  2. struct fields of each incell struct list element.
+	//
+	// If set, it will overwrite sheet-level subseq in WorksheetOptions.
 	//
 	// Default: ":".
 	Subsep string `protobuf:"bytes,14,opt,name=subsep,proto3" json:"subsep,omitempty"`
