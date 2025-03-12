@@ -1,6 +1,5 @@
-ID,Number,Value,Message
-"map<uint32, Case>","[]int32|{sep:""!""}","[]int32|{sep:""abc""}","map<string,string>|{sep:""a"" subsep:""e""}"
-,,,
-1000,1!2!3,1abc2abc3,"To be, or not to be, that is the question:"
-1001,2!3!4,2abc3abc4,Whether 'tis nobler in the mind to suffer
-1002,300!400!500,300abc400abc500,The slings and arrows of outrageous fortune
+ID,Number,Value,Tip,Item,Prop
+"map<uint32, Case>","[]int32|{sep:""!""}","[]int32|{sep:""!!""}","map<string,string>|{sep:"";"" subsep:""=""}","{uint32 ID, int32 Num}Item|{sep:"":""}","[]{uint32 ID, int32 Value}Prop|{sep:"";"" subsep:""=""}"
+ID,Numbers,Values,Tips,Item,Props
+1,1!2!3,1!!2!!3,dog=cute;bird=noisy,1:100,1=100;2=200;3=300
+2,300!400!500,300!!400!!500,apple=sweet;banana=long;orange=jucy,2:200,4=400;5=500

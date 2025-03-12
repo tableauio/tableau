@@ -1,7 +1,7 @@
 {
     "caseMap": {
-        "1000": {
-            "id": 1000,
+        "1": {
+            "id": 1,
             "numberList": [
                 1,
                 2,
@@ -12,29 +12,31 @@
                 2,
                 3
             ],
-            "messageMap": {
-                "To b": ", or not to be, th",
-                "t is th": " question:"
-            }
+            "tipMap": {
+                "bird": "noisy",
+                "dog": "cute"
+            },
+            "item": {
+                "id": 1,
+                "num": 100
+            },
+            "propList": [
+                {
+                    "id": 1,
+                    "value": 100
+                },
+                {
+                    "id": 2,
+                    "value": 200
+                },
+                {
+                    "id": 3,
+                    "value": 300
+                }
+            ]
         },
-        "1001": {
-            "id": 1001,
-            "numberList": [
-                2,
-                3,
-                4
-            ],
-            "valueList": [
-                2,
-                3,
-                4
-            ],
-            "messageMap": {
-                "Wh": "ther 'tis nobler in the mind to suffer"
-            }
-        },
-        "1002": {
-            "id": 1002,
+        "2": {
+            "id": 2,
             "numberList": [
                 300,
                 400,
@@ -45,12 +47,25 @@
                 400,
                 500
             ],
-            "messageMap": {
-                "Th": " slings ",
-                "g": "ous fortune",
-                "nd ": "",
-                "rrows of outr": ""
-            }
+            "tipMap": {
+                "apple": "sweet",
+                "banana": "long",
+                "orange": "jucy"
+            },
+            "item": {
+                "id": 2,
+                "num": 200
+            },
+            "propList": [
+                {
+                    "id": 4,
+                    "value": 400
+                },
+                {
+                    "id": 5,
+                    "value": 500
+                }
+            ]
         }
     }
 }

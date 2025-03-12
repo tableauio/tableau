@@ -45,8 +45,8 @@ message IncellStructListInVMap {
     repeated protoconf.Item item_list = 2 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
     repeated Ticket ticket_list = 3 [(tableau.field) = {name:"Ticket" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
     message Ticket {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int32 score = 2 [(tableau.field) = {name:"Score"}];
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 num = 2 [(tableau.field) = {name:"Num"}];
     }
   }
 }

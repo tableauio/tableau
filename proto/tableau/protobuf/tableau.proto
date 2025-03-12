@@ -116,15 +116,15 @@ message WorksheetOptions {
   int32 typeline = 9;
   // Nested naming of the namerow.
   bool nested = 10;
-  // Separator for separating:
-  //    1. incell list elements (scalar or struct).
-  //    2. incell map items.
+  // Sheet-level separator for separating:
+  //  - incell list elements (scalar or struct).
+  //  - incell map items.
   //
   // Default: ",".
   string sep = 11;
-  // Subseparator for separating:
-  //    1. key-value pair of each incell map item.
-  //    2. struct fields of each incell struct list element.
+  // Sheet-level subseparator for separating:
+  //  - key-value pair of each incell map item.
+  //  - struct fields of each incell struct list element.
   //
   // Default: ":".
   string subsep = 12;
@@ -266,16 +266,16 @@ message FieldProp {
   // Field patch type.
   Patch patch = 12;
   // Field-level separator for separating:
-  //    1. incell list elements (scalar or struct).
-  //    2. incell map items.
+  //  - incell list elements (scalar or struct).
+  //  - incell map items.
   //
   // If set, it will overwrite sheet-level seq in WorksheetOptions.
   //
   // Default: ",".
   string sep = 13;
   // Field-level subseparator for separating:
-  //    1. key-value pair of each incell map item.
-  //    2. struct fields of each incell struct list element.
+  //  - key-value pair of each incell map item.
+  //  - struct fields of each incell struct list element.
   //
   // If set, it will overwrite sheet-level subseq in WorksheetOptions.
   //

@@ -25,6 +25,8 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Present:  prop.Present,
 		Optional: prop.Optional,
 		Patch:    prop.Patch,
+		Sep:      prop.Sep,
+		Subsep:   prop.Subsep,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
@@ -47,6 +49,8 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableau
 		Optional: prop.Optional,
 		Patch:    prop.Patch,
 		Form:     prop.Form, // for vertical incell union list
+		Sep:      prop.Sep,
+		Subsep:   prop.Subsep,
 	}
 	if isScalarList {
 		p.Range = prop.Range
@@ -69,6 +73,8 @@ func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Present:  prop.Present,
 		Optional: prop.Optional,
 		Patch:    prop.Patch,
+		Sep:      prop.Sep,
+		Subsep:   prop.Subsep,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

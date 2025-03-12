@@ -708,15 +708,15 @@ type WorksheetOptions struct {
 	Typeline int32 `protobuf:"varint,9,opt,name=typeline,proto3" json:"typeline,omitempty"`
 	// Nested naming of the namerow.
 	Nested bool `protobuf:"varint,10,opt,name=nested,proto3" json:"nested,omitempty"`
-	// Separator for separating:
-	//  1. incell list elements (scalar or struct).
-	//  2. incell map items.
+	// Sheet-level separator for separating:
+	//   - incell list elements (scalar or struct).
+	//   - incell map items.
 	//
 	// Default: ",".
 	Sep string `protobuf:"bytes,11,opt,name=sep,proto3" json:"sep,omitempty"`
-	// Subseparator for separating:
-	//  1. key-value pair of each incell map item.
-	//  2. struct fields of each incell struct list element.
+	// Sheet-level subseparator for separating:
+	//   - key-value pair of each incell map item.
+	//   - struct fields of each incell struct list element.
 	//
 	// Default: ":".
 	Subsep string `protobuf:"bytes,12,opt,name=subsep,proto3" json:"subsep,omitempty"`
@@ -1156,16 +1156,16 @@ type FieldProp struct {
 	// Field patch type.
 	Patch Patch `protobuf:"varint,12,opt,name=patch,proto3,enum=tableau.Patch" json:"patch,omitempty"`
 	// Field-level separator for separating:
-	//  1. incell list elements (scalar or struct).
-	//  2. incell map items.
+	//   - incell list elements (scalar or struct).
+	//   - incell map items.
 	//
 	// If set, it will overwrite sheet-level seq in WorksheetOptions.
 	//
 	// Default: ",".
 	Sep string `protobuf:"bytes,13,opt,name=sep,proto3" json:"sep,omitempty"`
 	// Field-level subseparator for separating:
-	//  1. key-value pair of each incell map item.
-	//  2. struct fields of each incell struct list element.
+	//   - key-value pair of each incell map item.
+	//   - struct fields of each incell struct list element.
 	//
 	// If set, it will overwrite sheet-level subseq in WorksheetOptions.
 	//

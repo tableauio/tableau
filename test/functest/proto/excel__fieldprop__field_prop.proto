@@ -67,8 +67,18 @@ message SepConf {
   message Case {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     repeated int32 number_list = 2 [(tableau.field) = {name:"Number" layout:LAYOUT_INCELL prop:{sep:"!"}}];
-    repeated int32 value_list = 3 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL prop:{sep:"abc"}}];
-    map<string, string> message_map = 4 [(tableau.field) = {name:"Message" layout:LAYOUT_INCELL prop:{sep:"a" subsep:"e"}}];
+    repeated int32 value_list = 3 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL prop:{sep:"!!"}}];
+    map<string, string> tip_map = 4 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL prop:{sep:";" subsep:"="}}];
+    Item item = 5 [(tableau.field) = {name:"Item" span:SPAN_INNER_CELL prop:{sep:":"}}];
+    message Item {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 num = 2 [(tableau.field) = {name:"Num"}];
+    }
+    repeated Prop prop_list = 6 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{sep:";" subsep:"="}}];
+    message Prop {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 value = 2 [(tableau.field) = {name:"Value"}];
+    }
   }
 }
 
