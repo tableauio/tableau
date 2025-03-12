@@ -40,14 +40,10 @@ message IncellScalarList {
 message IncellStructList {
   option (tableau.worksheet) = {name:"IncellStructList" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, Case> case_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message Case {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    repeated protoconf.Item item_list = 2 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
-    repeated Rank rank_list = 3 [(tableau.field) = {name:"Rank" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
-    message Rank {
-      int32 level = 1 [(tableau.field) = {name:"Level"}];
-      int32 score = 2 [(tableau.field) = {name:"Score"}];
-    }
+  repeated Ticket ticket_list = 1 [(tableau.field) = {name:"Ticket" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  message Ticket {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 score = 2 [(tableau.field) = {name:"Score"}];
   }
+  repeated protoconf.Item item_list = 2 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
 }
