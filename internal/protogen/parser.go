@@ -415,10 +415,10 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 
 	listElemSpanInnerCell, isScalarElement := false, false
 	elemType := desc.ElemType
-	var pureElemTypeName string
-	if elemType == "" || elemType == "@" {
+	pureElemTypeName := desc.ElemType
+	if elemType == "" {
 		listElemSpanInnerCell = true
-		isScalarElement = elemType == ""
+		isScalarElement = true
 		elemType = desc.ColumnType
 		pureElemTypeName = desc.ColumnType
 		if structDesc := types.MatchStruct(desc.ColumnType); structDesc != nil {
@@ -480,12 +480,9 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 			}
 		}
 	} else {
-		if isScalarElement {
+		if listElemSpanInnerCell {
 			layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 		}
-	}
-	if desc.ElemType == "@" {
-		layout = tableaupb.Layout_LAYOUT_INCELL // incell list of incell struct
 	}
 
 	switch layout {

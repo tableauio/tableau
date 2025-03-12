@@ -36,7 +36,7 @@ var mapRegexp = regexp.MustCompile(`^map<` + `(?P<KeyType>` + nestedTypeCharClas
 //   - [ElemType]
 //   - [ElemType]ColumnType
 //   - [.PredefinedElemType]ColumnType
-var listRegexp = regexp.MustCompile(`^\[` + `(?P<ElemType>` + nestedTypeCharClass + `*?|@)` + `\]` + `(?P<ColumnType>` + nestedTypeCharClass + `+)?` + rawPropGroup)
+var listRegexp = regexp.MustCompile(`^\[` + `(?P<ElemType>` + nestedTypeCharClass + `*?)` + `\]` + `(?P<ColumnType>` + nestedTypeCharClass + `+)?` + rawPropGroup)
 
 // Keyed list definition patterns:
 //   - [ElemType]<ColumnType>
