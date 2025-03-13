@@ -184,6 +184,18 @@ message WorksheetOptions {
   //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index supported in cpp and go
   //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all languages
   map<string, string> lang_options = 52;
+
+  // Generate ordered index accessers, and multiple index columns are comma-separated.
+  // Ordered index column types must be ordered types, including interger, float and string.
+  // Format: <ColumnName>[@IndexName], if IndexName is not set, it will be this
+  // column’s parent struct type name.
+  //
+  // Composite indexes are not supported.
+  //
+  // Examples:
+  //  - ID
+  //  - ID@Item
+  repeated string ordered_index = 53;
 }
 
 message FieldOptions {
