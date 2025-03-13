@@ -100,7 +100,7 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 	if err := parser.Parse(desc, sheet); err != nil {
 		return xerrors.Wrapf(err, "failed to parse struct type sheet (block): %s", sheet.Name)
 	}
-	bp := newBookParser("struct", "", "", gen)
+	bp := newTableParser("struct", "", "", gen)
 	shHeader := &tableHeader{
 		meta: &tableaupb.WorksheetOptions{
 			Namerow: 1,
@@ -192,7 +192,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 			Alias:  value.Alias,
 		}
 		// create a book parser
-		bp := newBookParser("union", "", "", gen)
+		bp := newTableParser("union", "", "", gen)
 
 		shHeader := &tableHeader{
 			meta: &tableaupb.WorksheetOptions{

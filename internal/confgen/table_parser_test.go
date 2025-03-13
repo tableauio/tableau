@@ -27,7 +27,7 @@ func init() {
 		})
 }
 
-func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
+func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet
 	}
@@ -136,7 +136,7 @@ func TestParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 	}
 }
 
-func TestParser_parseVerticalMapWithEmptyKey(t *testing.T) {
+func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet
 	}
@@ -225,7 +225,7 @@ func TestParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 	}
 }
 
-func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
+func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet
 	}
@@ -333,7 +333,7 @@ func TestParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 	}
 }
 
-func TestParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
+func TestTableParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet
 	}
@@ -400,7 +400,7 @@ func TestParser_parseHorizonalMapWithDuplicateKey(t *testing.T) {
 	}
 }
 
-func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
+func TestTableParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet
 	}
@@ -486,7 +486,7 @@ func TestParser_parseHorizonalMapWithEmptyKey(t *testing.T) {
 	}
 }
 
-func TestParser_parseDocumentMetasheet(t *testing.T) {
+func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 	path := "./testdata/Metasheet.yaml"
 	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai", book.MetasheetOptions(),
 		&SheetParserExtInfo{

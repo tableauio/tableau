@@ -13,13 +13,12 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type documentBookParser struct {
-	parser *bookParser
+type documentParser struct {
+	*sheetParser
 }
 
-func newDocumentBookParser(bookName, alias, relSlashPath string, gen *Generator) *documentBookParser {
-	parser := newBookParser(bookName, alias, relSlashPath, gen)
-	return &documentBookParser{parser: parser}
+func newDocumentParser(bookName, alias, relSlashPath string, gen *Generator) *documentParser {
+	return &documentParser{sheetParser: newSheetParser(bookName, alias, relSlashPath, gen)}
 }
 
 func errWithNodeKV(err error, node *book.Node, pairs ...any) error {
@@ -27,7 +26,7 @@ func errWithNodeKV(err error, node *book.Node, pairs ...any) error {
 	return xerrors.WrapKV(err, kvs...)
 }
 
-func (p *documentBookParser) parseField(field *internalpb.Field, node *book.Node) (parsed bool, err error) {
+func (p *documentParser) parseField(field *internalpb.Field, node *book.Node) (parsed bool, err error) {
 	nameCell := node.Name
 	if nameCell == book.SheetKey {
 		return false, nil
@@ -51,7 +50,7 @@ func (p *documentBookParser) parseField(field *internalpb.Field, node *book.Node
 		}
 	} else {
 		// scalar or enum type
-		scalarField, err := parseField(p.parser.gen.typeInfos, nameCell, typeCell)
+		scalarField, err := parseField(p.gen.typeInfos, nameCell, typeCell)
 		if err != nil {
 			return false, errWithNodeKV(err, node, xerrors.KeyPBFieldType, "scalar/enum")
 		}
@@ -61,7 +60,7 @@ func (p *documentBookParser) parseField(field *internalpb.Field, node *book.Node
 	return true, nil
 }
 
-func (p *documentBookParser) parseSubField(field *internalpb.Field, node *book.Node) error {
+func (p *documentParser) parseSubField(field *internalpb.Field, node *book.Node) error {
 	subField := &internalpb.Field{}
 	parsed, err := p.parseField(subField, node)
 	if err != nil {
@@ -73,7 +72,7 @@ func (p *documentBookParser) parseSubField(field *internalpb.Field, node *book.N
 	return nil
 }
 
-func (p *documentBookParser) parseMapField(field *internalpb.Field, node *book.Node) error {
+func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node) error {
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
 	variableCell := node.GetMetaVariable()
@@ -84,7 +83,7 @@ func (p *documentBookParser) parseMapField(field *internalpb.Field, node *book.N
 		// NOTE: support enum as map key, convert key type as `int32`.
 		parsedKeyType = "int32"
 	}
-	valueTypeDesc, err := parseTypeDescriptor(p.parser.gen.typeInfos, desc.ValueType)
+	valueTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.ValueType)
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
@@ -111,7 +110,7 @@ func (p *documentBookParser) parseMapField(field *internalpb.Field, node *book.N
 
 	// scalar map
 	if mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind {
-		keyTypeDesc, err := parseTypeDescriptor(p.parser.gen.typeInfos, desc.KeyType)
+		keyTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.KeyType)
 		if err != nil {
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -152,7 +151,7 @@ func (p *documentBookParser) parseMapField(field *internalpb.Field, node *book.N
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = keynameCell
 			// 1. append key to the first value struct field
-			scalarField, err := parseField(p.parser.gen.typeInfos, keynameCell, desc.KeyType+desc.Prop.RawProp())
+			scalarField, err := parseField(p.gen.typeInfos, keynameCell, desc.KeyType+desc.Prop.RawProp())
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -160,7 +159,7 @@ func (p *documentBookParser) parseMapField(field *internalpb.Field, node *book.N
 			}
 			field.Fields = append(field.Fields, scalarField)
 			// 2. append value to the second value struct field
-			scalarField, err = parseField(p.parser.gen.typeInfos, book.KeywordValue, desc.ValueType)
+			scalarField, err = parseField(p.gen.typeInfos, book.KeywordValue, desc.ValueType)
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
@@ -189,7 +188,7 @@ func (p *documentBookParser) parseMapField(field *internalpb.Field, node *book.N
 	field.Options.Key = keynameCell
 	// struct map
 	// auto append key to the first value struct field
-	scalarField, err := parseField(p.parser.gen.typeInfos, keynameCell, desc.KeyType+desc.Prop.RawProp())
+	scalarField, err := parseField(p.gen.typeInfos, keynameCell, desc.KeyType+desc.Prop.RawProp())
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -212,7 +211,7 @@ func (p *documentBookParser) parseMapField(field *internalpb.Field, node *book.N
 	return nil
 }
 
-func (p *documentBookParser) parseListField(field *internalpb.Field, node *book.Node) error {
+func (p *documentParser) parseListField(field *internalpb.Field, node *book.Node) error {
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
 	variableCell := node.GetMetaVariable()
@@ -232,7 +231,7 @@ func (p *documentBookParser) parseListField(field *internalpb.Field, node *book.
 	if desc.ElemType == "" {
 		elemType = desc.ColumnType
 	}
-	scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, elemType)
+	scalarField, err := parseField(p.gen.typeInfos, node.Name, elemType)
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.ElemType,
@@ -268,7 +267,7 @@ func (p *documentBookParser) parseListField(field *internalpb.Field, node *book.
 	return nil
 }
 
-func (p *documentBookParser) parseStructField(field *internalpb.Field, node *book.Node) error {
+func (p *documentParser) parseStructField(field *internalpb.Field, node *book.Node) error {
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
 	desc := types.MatchStruct(typeCell)
@@ -284,7 +283,7 @@ func (p *documentBookParser) parseStructField(field *internalpb.Field, node *boo
 		span = tableaupb.Span_SPAN_INNER_CELL
 	}
 	parseStrictStructField := func(fieldNodes []*book.Node) error {
-		scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
+		scalarField, err := parseField(p.gen.typeInfos, node.Name, desc.StructType)
 		if err != nil {
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.StructType,
@@ -319,7 +318,7 @@ func (p *documentBookParser) parseStructField(field *internalpb.Field, node *boo
 
 		// predefined struct
 		if desc.ColumnType == "" {
-			structField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.StructType)
+			structField, err := parseField(p.gen.typeInfos, node.Name, desc.StructType)
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.StructType,
@@ -342,7 +341,7 @@ func (p *documentBookParser) parseStructField(field *internalpb.Field, node *boo
 				xerrors.KeyPBFieldType, desc.StructType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text)
 		}
-		scalarField, err := parseField(p.parser.gen.typeInfos, node.Name, desc.ColumnType)
+		scalarField, err := parseField(p.gen.typeInfos, node.Name, desc.ColumnType)
 		if err != nil {
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldName, node.Name,
@@ -356,7 +355,7 @@ func (p *documentBookParser) parseStructField(field *internalpb.Field, node *boo
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
-			scalarField, err := parseField(p.parser.gen.typeInfos, fieldName, fieldType)
+			scalarField, err := parseField(p.gen.typeInfos, fieldName, fieldType)
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldName, fieldName,
@@ -371,7 +370,7 @@ func (p *documentBookParser) parseStructField(field *internalpb.Field, node *boo
 	}
 }
 
-func (p *documentBookParser) parseStrictStructField(field *internalpb.Field, name string, desc *types.StructDescriptor, span tableaupb.Span, children []*book.Node) error {
+func (p *documentParser) parseStrictStructField(field *internalpb.Field, name string, desc *types.StructDescriptor, span tableaupb.Span, children []*book.Node) error {
 	// typeNode := node.GetMetaTypeNode()
 	// typeCell := typeNode.GetValue()
 	// desc := types.MatchStruct(typeCell)
