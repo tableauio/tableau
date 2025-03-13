@@ -7,7 +7,6 @@ import (
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/x/xproto"
-	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/xerrors"
@@ -75,17 +74,6 @@ func NewConfGeneratorWithOptions(protoPackage, indir, outdir string, options *op
 // E.g: en, zh.
 func SetLang(lang string) error {
 	return localizer.SetLang(lang)
-}
-
-// Proto2Excel converts protoconf files to excel files (with tableau header).
-// TODO: fully usable generation of excel templates.
-func Proto2Excel(protoPackage, indir, outdir string) {
-	g := xlsxgen.Generator{
-		ProtoPackage: protoPackage,
-		InputDir:     indir,
-		OutputDir:    outdir,
-	}
-	g.Generate()
 }
 
 // NewImporter creates a new importer of the specified workbook.

@@ -39,7 +39,7 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		err := func() error {
-			field := parseFieldDescriptor(fd, sp.parser.opts.Sep, sp.parser.opts.Subsep)
+			field := parseFieldDescriptor(fd, sp.parser.GetSep(), sp.parser.GetSubsep())
 			defer field.release()
 			var fieldNode *book.Node
 			if md.FullName() == xproto.MetabookFullName {
@@ -280,13 +280,13 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 	// slice of length 1 whose only element is s.
 	for _, elemNode := range node.Children {
 		key, value := elemNode.Name, elemNode.Value
-		mapItemData := strings.Join([]string{key, value}, field.opts.Subsep)
+		mapItemData := strings.Join([]string{key, value}, field.subsep)
 		newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, key)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
 		newMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parser.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.opts.Subsep)
+		valuePresent, err := sp.parser.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugKV()...)
 		}
@@ -394,7 +394,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 	}
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		if present, err = sp.parser.parseIncellStruct(structValue, node.Value, field.opts.GetProp().GetForm(), field.opts.Sep); err != nil {
+		if present, err = sp.parser.parseIncellStruct(structValue, node.Value, field.opts.GetProp().GetForm(), field.sep); err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
 		if present {
@@ -504,7 +504,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 			fd := md.Fields().Get(i)
 			valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
 			err := func() error {
-				subField := parseFieldDescriptor(fd, sp.parser.opts.Sep, sp.parser.opts.Subsep)
+				subField := parseFieldDescriptor(fd, sp.parser.GetSep(), sp.parser.GetSubsep())
 				defer subField.release()
 				valNode := node.FindChild(valNodeName)
 				if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {

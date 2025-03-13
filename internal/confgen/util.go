@@ -33,8 +33,18 @@ func init() {
 }
 
 type Field struct {
-	fd   protoreflect.FieldDescriptor
-	opts *tableaupb.FieldOptions
+	fd protoreflect.FieldDescriptor
+	// seq's value is dynamically merged at different priority levels:
+	//  1. field-level: FieldProp.seq
+	//  2. sheet-level: WorksheetOptions.seq
+	//  3. global-level: options.ConfInputOption.Seq
+	sep string
+	// subseq's value is dynamically merged at different priority levels:
+	//  1. field-level: FieldProp.seq
+	//  2. sheet-level: WorksheetOptions.seq
+	//  3. global-level: options.ConfInputOption.Subseq
+	subsep string
+	opts   *tableaupb.FieldOptions
 }
 
 // release returns back `opts` field to pool.
@@ -50,8 +60,7 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 	span := tableaupb.Span_SPAN_DEFAULT
 	key := ""
 	layout := tableaupb.Layout_LAYOUT_DEFAULT
-	sep := ""
-	subsep := ""
+	var sep, subsep string
 	var prop *tableaupb.FieldProp
 
 	// opts := fd.Options().(*descriptorpb.FieldOptions)
@@ -77,32 +86,26 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 		}
 	}
 	if sep == "" {
-		sep = strings.TrimSpace(sheetSep)
-		if sep == "" {
-			sep = ","
-		}
+		sep = sheetSep
 	}
 	if subsep == "" {
-		subsep = strings.TrimSpace(sheetSubsep)
-		if subsep == "" {
-			subsep = ":"
-		}
+		subsep = sheetSubsep
 	}
 
 	// get from pool
 	pooledOpts := fieldOptionsPool.Get().(*tableaupb.FieldOptions)
 	pooledOpts.Name = name
 	pooledOpts.Note = note
-	pooledOpts.Span = span
 	pooledOpts.Key = key
 	pooledOpts.Layout = layout
-	pooledOpts.Sep = sep
-	pooledOpts.Subsep = subsep
+	pooledOpts.Span = span
 	pooledOpts.Prop = prop
 
 	return &Field{
-		fd:   fd,
-		opts: pooledOpts,
+		fd:     fd,
+		sep:    sep,
+		subsep: subsep,
+		opts:   pooledOpts,
 	}
 }
 
