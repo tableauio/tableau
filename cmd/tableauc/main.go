@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const version = "0.12.1"
+const version = "0.12.2"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"   // generate proto files only
@@ -77,7 +77,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 }
 
-func runE(cmd *cobra.Command, args []string) error {
+func runE(_ *cobra.Command, args []string) error {
 	if showConfigSample {
 		return ShowConfigSample()
 	}
