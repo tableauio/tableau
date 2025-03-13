@@ -1,21 +1,19 @@
 package tableau
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/x/xproto"
-	"github.com/tableauio/tableau/internal/xlsxgen"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/xerrors"
 )
 
-// Generate can convert Excel/CSV/XML/YAML files to protoconf files and
-// different configuration files: JSON, Text, and Bin at the same time.
+// Generate converts Excel/CSV/XML/YAML files to protoconf files and
+// different configuration files: JSON, Text, and Bin.
 func Generate(protoPackage, indir, outdir string, setters ...options.Option) error {
 	if err := GenProto(protoPackage, indir, outdir, setters...); err != nil {
 		return xerrors.Wrapf(err, "failed to generate proto files")
@@ -26,7 +24,7 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) err
 	return nil
 }
 
-// GenProto can convert Excel/CSV/XML/YAML files to protoconf files.
+// GenProto converts Excel/CSV/XML/YAML files to protoconf files.
 func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {
@@ -36,11 +34,10 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (er
 		return err
 	}
 	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
-	log.Debugf("options inited: %+v", spew.Sdump(opts))
 	return g.Generate()
 }
 
-// GenConf can convert Excel/CSV/XML/YAML files to different configuration files: JSON, Text, and Bin.
+// GenConf converts Excel/CSV/XML/YAML files to different configuration files: JSON, Text, and Bin.
 func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {
@@ -50,7 +47,6 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) erro
 		return err
 	}
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
-	log.Debugf("options inited: %+v", spew.Sdump(opts))
 	return g.Generate()
 }
 
@@ -78,17 +74,6 @@ func NewConfGeneratorWithOptions(protoPackage, indir, outdir string, options *op
 // E.g: en, zh.
 func SetLang(lang string) error {
 	return localizer.SetLang(lang)
-}
-
-// Proto2Excel converts protoconf files to excel files (with tableau header).
-// TODO: fully usable generation of excel templates.
-func Proto2Excel(protoPackage, indir, outdir string) {
-	g := xlsxgen.Generator{
-		ProtoPackage: protoPackage,
-		InputDir:     indir,
-		OutputDir:    outdir,
-	}
-	g.Generate()
 }
 
 // NewImporter creates a new importer of the specified workbook.

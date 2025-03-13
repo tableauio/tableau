@@ -219,6 +219,20 @@ type ConfInputOption struct {
 	//
 	// Default: false.
 	IgnoreUnknownWorkbook bool `yaml:"-"`
+
+	// Separator for separating:
+	//  - incell list elements (scalar or struct).
+	//  - incell map items.
+	//
+	// Default: ",".
+	Sep string
+
+	// Subseparator for separating:
+	//  - key-value pair of each incell map item.
+	//  - struct fields of each incell struct list element.
+	//
+	// Default: ":".
+	Subsep string
 }
 
 // Output options for generating conf files.
@@ -279,6 +293,11 @@ type DryRun = string
 
 const (
 	DryRunPatch DryRun = "patch"
+)
+
+const (
+	DefaultSep    = ","
+	DefaultSubsep = ":"
 )
 
 // Option is the functional option type.
@@ -352,6 +371,8 @@ func NewDefault() *Options {
 			Input: &ConfInputOption{
 				ProtoPaths: []string{"."},
 				ProtoFiles: []string{"*.proto"},
+				Sep:        DefaultSep,
+				Subsep:     DefaultSubsep,
 			},
 			Output: &ConfOutputOption{
 				Formats: []format.Format{format.JSON},

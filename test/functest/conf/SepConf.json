@@ -1,0 +1,71 @@
+{
+    "caseMap": {
+        "1": {
+            "id": 1,
+            "numberList": [
+                1,
+                2,
+                3
+            ],
+            "valueList": [
+                1,
+                2,
+                3
+            ],
+            "tipMap": {
+                "bird": "noisy",
+                "dog": "cute"
+            },
+            "item": {
+                "id": 1,
+                "num": 100
+            },
+            "propList": [
+                {
+                    "id": 1,
+                    "value": 100
+                },
+                {
+                    "id": 2,
+                    "value": 200
+                },
+                {
+                    "id": 3,
+                    "value": 300
+                }
+            ]
+        },
+        "2": {
+            "id": 2,
+            "numberList": [
+                300,
+                400,
+                500
+            ],
+            "valueList": [
+                300,
+                400,
+                500
+            ],
+            "tipMap": {
+                "apple": "sweet",
+                "banana": "long",
+                "orange": "jucy"
+            },
+            "item": {
+                "id": 2,
+                "num": 200
+            },
+            "propList": [
+                {
+                    "id": 4,
+                    "value": 400
+                },
+                {
+                    "id": 5,
+                    "value": 500
+                }
+            ]
+        }
+    }
+}

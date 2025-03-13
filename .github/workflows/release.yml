@@ -36,7 +36,8 @@ jobs:
 
       - name: Prepare build directory
         run: |
-          mkdir -p build/
+          mkdir -p build/tableau/protobuf/
+          cp proto/tableau/protobuf/*.proto build/tableau/protobuf/
           cp README.md build/
           cp LICENSE build/
 

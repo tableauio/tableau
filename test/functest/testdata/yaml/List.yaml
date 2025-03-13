@@ -9,6 +9,9 @@ IncellScalarList:
   "@type": "[int32]"
   "@incell": true
 IncellEnumList: "[]enum<.FruitType>"
+IncellPredefinedStructList:
+  "@type": "[.Item]"
+  "@incell": true
 StructList:
   "@type": "[Hero]"
   "@struct":
@@ -18,7 +21,7 @@ PredefinedStructList: "[.Item]"
 ListInList:
   "@type": "[Country1]"
   "@struct":
-    Country: string 
+    Country: string
     Desc: string
     Items:
       "@type": "[Item]"
@@ -28,7 +31,7 @@ ListInList:
 MapInList:
   "@type": "[Country2]"
   "@struct":
-    Country: string 
+    Country: string
     Desc: string
     Items:
       "@type": "map<uint32, Item>"
@@ -41,6 +44,7 @@ ScalarList: [1, 2, 3]
 EnumList: [FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA]
 IncellScalarList: "1, 2, 3"
 IncellEnumList: "FRUIT_TYPE_APPLE, FRUIT_TYPE_ORANGE, FRUIT_TYPE_BANANA"
+IncellPredefinedStructList: "1001:10,1002:20,1003:30"
 StructList:
   - ID: 1
     Name: dog

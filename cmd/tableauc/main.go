@@ -6,7 +6,6 @@ import (
 
 	_ "time/tzdata"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
@@ -16,7 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const version = "0.12.1"
+const version = "0.12.2"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"   // generate proto files only
@@ -78,7 +77,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 }
 
-func runE(cmd *cobra.Command, args []string) error {
+func runE(_ *cobra.Command, args []string) error {
 	if showConfigSample {
 		return ShowConfigSample()
 	}
@@ -108,8 +107,8 @@ func runE(cmd *cobra.Command, args []string) error {
 		// use command argument if provided
 		config.Conf.Output.DryRun = dryRun
 	}
-
-	log.Debugf("load config success: %+v", spew.Sdump(config))
+	yamlOut, _ := yaml.Marshal(config)
+	log.Debugf("loaded config:\n%s", string(yamlOut))
 
 	switch mode {
 	case ModeDefault:

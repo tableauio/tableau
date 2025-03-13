@@ -1,0 +1,4 @@
+Ticket,Item
+"[]{int32 ID, int32 Score}Ticket",[]{.Item}
+Tickets,Items
+"1001:10,1002:20,1003:30","1001:10,1002:20,1003:30"

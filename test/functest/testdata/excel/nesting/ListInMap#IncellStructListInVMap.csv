@@ -1,0 +1,5 @@
+ID,Item,Ticket
+"map<uint32, Reward>",[]{.Item},"[]{uint32 ID, int32 Num}Ticket"
+ID,Reward's items,Reward's tickets
+1,"1001:10,1002:20,1003:30","1001:10,1002:20,1003:30"
+2,"2001:10,2002:20","2001:10,2002:20"

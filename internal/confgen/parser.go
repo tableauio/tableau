@@ -258,6 +258,8 @@ type sheetParser struct {
 type SheetParserExtInfo struct {
 	InputDir       string
 	SubdirRewrites map[string]string
+	Sep            string // global-level separator, generally set by options.ConfInputOption.Sep
+	Subsep         string // global-level subseparator, generally set by options.ConfInputOption.Subsep
 	PRFiles        *protoregistry.Files
 	BookFormat     format.Format // workbook format
 	DryRun         options.DryRun
@@ -277,6 +279,34 @@ func NewExtendedSheetParser(protoPackage, locationName string, opts *tableaupb.W
 		extInfo:      extInfo,
 		lookupTable:  map[string]uint32{},
 	}
+}
+
+// GetSep returns sheet-level separator.
+func (sp *sheetParser) GetSep() string {
+	// sheet-level
+	if sp.opts.Sep != "" {
+		return sp.opts.Sep
+	}
+	// global-level
+	if sp.extInfo != nil && sp.extInfo.Sep != "" {
+		return sp.extInfo.Sep
+	}
+	// default
+	return options.DefaultSep
+}
+
+// GetSubsep returns sheet-level subseparator.
+func (sp *sheetParser) GetSubsep() string {
+	// sheet-level
+	if sp.opts.Subsep != "" {
+		return sp.opts.Subsep
+	}
+	// global-level
+	if sp.extInfo != nil && sp.extInfo.Subsep != "" {
+		return sp.extInfo.Subsep
+	}
+	// default
+	return options.DefaultSubsep
 }
 
 // GetBookFormat returns workbook format related to this sheet.
@@ -412,7 +442,7 @@ func (sp *sheetParser) parseMessage(msg protoreflect.Message, rc *book.RowCells,
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		err := func() error {
-			field := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
+			field := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 			defer field.release()
 			fieldPresent, err := sp.parseField(field, msg, rc, prefix)
 			if err != nil {
@@ -678,10 +708,10 @@ func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap proto
 	// slice of length 1 whose only element is s.
 	keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
-	splits := strings.Split(cellData, field.opts.Sep)
+	splits := strings.Split(cellData, field.sep)
 	size := len(splits)
 	for i := 0; i < size; i++ {
-		kv := strings.SplitN(splits[i], field.opts.Subsep, 2)
+		kv := strings.SplitN(splits[i], field.subsep, 2)
 		if len(kv) == 1 {
 			// If value is not set, then treated it as default empty string.
 			kv = append(kv, "")
@@ -744,11 +774,11 @@ func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, re
 	}
 	// If s does not contain sep and sep is not empty, Split returns a
 	// slice of length 1 whose only element is s.
-	splits := strings.Split(cellData, field.opts.Sep)
+	splits := strings.Split(cellData, field.sep)
 	size := len(splits)
 	for i := 0; i < size; i++ {
 		mapItemData := splits[i]
-		kv := strings.SplitN(mapItemData, field.opts.Subsep, 2)
+		kv := strings.SplitN(mapItemData, field.subsep, 2)
 		if len(kv) == 1 {
 			// If value is not set, then treated it as default empty string.
 			kv = append(kv, "")
@@ -761,7 +791,7 @@ func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, re
 		}
 
 		newMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.opts.Subsep)
+		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
 		if err != nil {
 			return err
 		}
@@ -842,7 +872,7 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		if fd.IsMap() {
-			childField := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
+			childField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 			defer childField.release()
 			childLayout := childField.opts.Layout
 			if childLayout == tableaupb.Layout_LAYOUT_DEFAULT {
@@ -859,7 +889,7 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 				return false
 			}
 		} else if fd.IsList() {
-			childField := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
+			childField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 			defer childField.release()
 			childLayout := childField.opts.Layout
 			if childLayout == tableaupb.Layout_LAYOUT_DEFAULT {
@@ -967,7 +997,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 					if err != nil {
 						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 					}
-					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.opts.Sep); err != nil {
+					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
 						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 					}
 				} else {
@@ -1023,7 +1053,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 							return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 						}
 					} else {
-						if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.opts.Sep); err != nil {
+						if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
 							return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 						}
 					}
@@ -1123,7 +1153,7 @@ func (sp *sheetParser) parseListField(field *Field, msg protoreflect.Message, rc
 func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List, cellData string) (present bool, err error) {
 	// If s does not contain sep and sep is not empty, Split returns a
 	// slice of length 1 whose only element is s.
-	splits := strings.Split(cellData, field.opts.Sep)
+	splits := strings.Split(cellData, field.sep)
 	detectedSize := len(splits)
 	fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
 	size := detectedSize
@@ -1133,7 +1163,16 @@ func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List
 	}
 	for i := 0; i < size; i++ {
 		elem := splits[i]
-		fieldValue, elemPresent, err := sp.parseFieldValue(field.fd, elem, field.opts.Prop)
+		var (
+			fieldValue  protoreflect.Value
+			elemPresent bool
+		)
+		if field.fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(string(field.fd.Message().FullName())) {
+			fieldValue = list.NewElement()
+			elemPresent, err = sp.parseIncellStruct(fieldValue, elem, field.opts.GetProp().GetForm(), field.subsep)
+		} else {
+			fieldValue, elemPresent, err = sp.parseFieldValue(field.fd, elem, field.opts.Prop)
+		}
 		if err != nil {
 			return false, err
 		}
@@ -1206,7 +1245,7 @@ func (sp *sheetParser) parseStructField(field *Field, msg protoreflect.Message, 
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 		}
 
-		if present, err = sp.parseIncellStruct(structValue, cell.Data, field.opts.GetProp().GetForm(), field.opts.Sep); err != nil {
+		if present, err = sp.parseIncellStruct(structValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 		}
 		if present {
@@ -1354,7 +1393,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		}
 		// incell struct
 		value := msg.NewField(field.fd)
-		present, err := sp.parseIncellStruct(value, cellData, field.opts.GetProp().GetForm(), field.opts.Sep)
+		present, err := sp.parseIncellStruct(value, cellData, field.opts.GetProp().GetForm(), field.sep)
 		if err != nil {
 			return err
 		}
@@ -1433,7 +1472,7 @@ func (sp *sheetParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 			fd := md.Fields().Get(i)
 			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
 			err := func() error {
-				subField := parseFieldDescriptor(fd, sp.opts.Sep, sp.opts.Subsep)
+				subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 				defer subField.release()
 				// incell scalar
 				cell, err := rc.Cell(valColName, sp.IsFieldOptional(subField))

@@ -367,7 +367,7 @@ func (p *bookParser) parseMapField(field *internalpb.Field, header *tableHeader,
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,
-			Prop:   prop, // for incell scalar map, need whole prop
+			Prop:   ExtractMapFieldProp(prop),
 		}
 
 		// special process for key as enum type: create a new simple KV message as map value type.
@@ -417,8 +417,8 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 	elemType := desc.ElemType
 	pureElemTypeName := desc.ElemType
 	if elemType == "" {
+		// if elemType is empty, it means the list elem's span is inner cell.
 		listElemSpanInnerCell = true
-		isScalarElement = true
 		elemType = desc.ColumnType
 		pureElemTypeName = desc.ColumnType
 		if structDesc := types.MatchStruct(desc.ColumnType); structDesc != nil {
@@ -426,7 +426,6 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 			pureElemTypeName = structDesc.ColumnType
 			if structDesc.ColumnType == "" {
 				// incell predefined struct
-				listElemSpanInnerCell = true
 				elemType = structDesc.StructType
 				typeDesc, err := parseTypeDescriptor(p.gen.typeInfos, structDesc.StructType)
 				if err != nil {
@@ -436,7 +435,8 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 				}
 				pureElemTypeName = typeDesc.Name
 			}
-			isScalarElement = false
+		} else {
+			isScalarElement = true
 		}
 	} else {
 		typeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.ElemType)
@@ -480,7 +480,9 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 			}
 		}
 	} else {
-		if isScalarElement {
+		// if name has no digit suffix "1" found in the horizontal direction,
+		// and list elem's span is inner cell, then treat it as incell list.
+		if listElemSpanInnerCell {
 			layout = tableaupb.Layout_LAYOUT_INCELL // incell list
 		}
 	}
@@ -652,6 +654,29 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 			colType = keyedListDesc.ColumnType
 			key = trimmedNameCell
 		}
+		if !isScalarElement {
+			colType = elemType
+			if structDesc := types.MatchStruct(desc.ColumnType); structDesc != nil && structDesc.ColumnType != "" {
+				fieldPairs, err := parseIncellStruct(structDesc.StructType)
+				if err != nil {
+					return cursor, err
+				}
+				if fieldPairs != nil {
+					for i := 0; i < len(fieldPairs); i += 2 {
+						fieldType := fieldPairs[i]
+						fieldName := fieldPairs[i+1]
+						scalarField, err := parseField(p.gen.typeInfos, fieldName, fieldType)
+						if err != nil {
+							return cursor, xerrors.WrapKV(err,
+								xerrors.KeyPBFieldType, fieldType,
+								xerrors.KeyPBFieldOpts, desc.Prop.Text,
+								xerrors.KeyTrimmedNameCell, trimmedNameCell)
+						}
+						field.Fields = append(field.Fields, scalarField)
+					}
+				}
+			}
+		}
 		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, colType+desc.Prop.RawProp())
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
@@ -660,16 +685,6 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		proto.Merge(field, scalarField)
-
-		prop, err := desc.Prop.FieldProp()
-		if err != nil {
-			return cursor, xerrors.WrapKV(err,
-				xerrors.KeyPBFieldType, field.Type+" (incell list)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
-				xerrors.KeyTrimmedNameCell, trimmedNameCell)
-		}
-		// for incell scalar list, need whole prop
-		field.Options.Prop = prop
 
 		// auto add suffix "_list".
 		field.Name += listVarSuffix
@@ -681,6 +696,20 @@ func (p *bookParser) parseListField(field *internalpb.Field, header *tableHeader
 		}
 		field.Options.Layout = layout
 		field.Options.Key = key
+
+		prop, err := desc.Prop.FieldProp()
+		if err != nil {
+			return cursor, xerrors.WrapKV(err,
+				xerrors.KeyPBFieldType, field.Type+" (incell list)",
+				xerrors.KeyPBFieldOpts, desc.Prop.Text,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
+		// for incell scalar list, need whole prop
+		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))
+
+		if !isScalarElement {
+			field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
+		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		return cursor, xerrors.Errorf("should not reach default layout: %s", layout)
 	}

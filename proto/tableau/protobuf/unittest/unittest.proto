@@ -12,6 +12,12 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 import "tableau/protobuf/unittest/common.proto";
 
+message SimpleIncellMap {
+  option (tableau.worksheet) = {name:"SimpleIncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
+  
+  map<int32, int32> item_map = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+}
+
 message IncellMap {
   option (tableau.worksheet) = {name:"IncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
 
@@ -26,6 +32,12 @@ message IncellMap {
     unittest.FruitType key = 1 [(tableau.field) = {name:"Key"}];
     unittest.FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
   }
+}
+
+message IncellStructList {
+  option (tableau.worksheet) = {name:"IncellStructList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated unittest.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
 }
 
 message IncellList {
