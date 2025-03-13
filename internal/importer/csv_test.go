@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,9 +74,7 @@ func Test_parseCSVBookReaderOptions(t *testing.T) {
 				t.Errorf("parseCSVBookReaderOptions() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !assert.Equal(t, tt.want, got) {
-				t.Errorf("parseCSVBookReaderOptions() = %v, want %v", spew.Sdump(got), tt.want)
-			}
+			assert.Equalf(t, tt.want, got, "bookReaderOptions should equal")
 		})
 	}
 }

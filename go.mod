@@ -3,7 +3,6 @@ module github.com/tableauio/tableau
 go 1.20
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/jhump/protoreflect v1.16.0
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240820135758-21b1d9897dc7
@@ -24,6 +23,7 @@ require (
 require (
 	github.com/antchfx/xpath v1.2.3 // indirect
 	github.com/bufbuild/protocompile v0.10.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect

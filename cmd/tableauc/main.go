@@ -6,7 +6,6 @@ import (
 
 	_ "time/tzdata"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
@@ -108,8 +107,8 @@ func runE(cmd *cobra.Command, args []string) error {
 		// use command argument if provided
 		config.Conf.Output.DryRun = dryRun
 	}
-
-	log.Debugf("load config success: %+v", spew.Sdump(config))
+	yamlOut, _ := yaml.Marshal(config)
+	log.Debugf("loaded config:\n%s", string(yamlOut))
 
 	switch mode {
 	case ModeDefault:
