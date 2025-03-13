@@ -48,12 +48,6 @@ type Options struct {
 	//
 	// Default: ModeDefault.
 	Mode LoadMode
-	// Backup specifies whether to backup an original in-memory config.
-	//
-	// NOTE: only used in loader.
-	//
-	// Default: false.
-	Backup bool
 }
 
 type LoadMode int
@@ -153,14 +147,5 @@ func PatchDirs(dirs ...string) Option {
 func Mode(mode LoadMode) Option {
 	return func(opts *Options) {
 		opts.Mode = mode
-	}
-}
-
-// Backup specifies whether to backup an original in-memory config.
-//
-// NOTE: only used in loader.
-func Backup(backup bool) Option {
-	return func(opts *Options) {
-		opts.Backup = backup
 	}
 }
