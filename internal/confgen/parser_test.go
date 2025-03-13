@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"github.com/tableauio/tableau/xerrors"
@@ -540,6 +542,171 @@ func TestParser_parseDocumentMetasheet(t *testing.T) {
 			fmt.Println("metabook:", msg)
 			if !proto.Equal(msg, tt.wantMsg) {
 				t.Errorf("\ngotMsg: %v\nwantMsg: %v", msg, tt.wantMsg)
+			}
+		})
+	}
+}
+
+func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
+	parserWithGlobalSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		&tableaupb.WorksheetOptions{
+			Name:    book.MetasheetName,
+			Namerow: 1,
+			Datarow: 2,
+		},
+		&SheetParserExtInfo{
+			InputDir:       "",
+			SubdirRewrites: map[string]string{},
+			Sep:            ";",
+			Subsep:         "=",
+			BookFormat:     format.YAML,
+		})
+
+	parserWithSheetAndGlobalSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		&tableaupb.WorksheetOptions{
+			Name:    book.MetasheetName,
+			Namerow: 1,
+			Datarow: 2,
+			Sep:     ";",
+			Subsep:  "=",
+		},
+		&SheetParserExtInfo{
+			InputDir:       "",
+			SubdirRewrites: map[string]string{},
+			Sep:            "#",
+			Subsep:         "|",
+			BookFormat:     format.YAML,
+		})
+
+	type args struct {
+		sheet *book.Sheet
+		msg   proto.Message
+	}
+	tests := []struct {
+		name   string
+		parser *sheetParser
+		args   args
+		want   proto.Message
+	}{
+		{
+			name:   "incell map: custom global separator and subseparator",
+			parser: parserWithGlobalSep,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "SimpleIncellMap",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 1,
+						Rows: [][]string{
+							{"Item"},
+							{"1=10;2=20;3=30"},
+							{"4=40;5=50"},
+						},
+					},
+				},
+				msg: &unittestpb.SimpleIncellMap{},
+			},
+			want: &unittestpb.SimpleIncellMap{
+				ItemMap: map[int32]int32{
+					1: 10,
+					2: 20,
+					3: 30,
+					4: 40,
+					5: 50,
+				},
+			},
+		},
+		{
+			name:   "incell map: custom sheet and global separator and subseparator",
+			parser: parserWithSheetAndGlobalSep,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "SimpleIncellMap",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 1,
+						Rows: [][]string{
+							{"Item"},
+							{"1=10;2=20;3=30"},
+							{"4=40;5=50"},
+						},
+					},
+				},
+				msg: &unittestpb.SimpleIncellMap{},
+			},
+			want: &unittestpb.SimpleIncellMap{
+				ItemMap: map[int32]int32{
+					1: 10,
+					2: 20,
+					3: 30,
+					4: 40,
+					5: 50,
+				},
+			},
+		},
+		{
+			name:   "incell struct list: custom global separator and subseparator",
+			parser: parserWithGlobalSep,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "IncellStructList",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 1,
+						Rows: [][]string{
+							{"Item"},
+							{"1=10;2=20;3=30"},
+							{"4=40;5=50"},
+						},
+					},
+				},
+				msg: &unittestpb.IncellStructList{},
+			},
+			want: &unittestpb.IncellStructList{
+				ItemList: []*unittestpb.Item{
+					{Id: 1, Num: 10},
+					{Id: 2, Num: 20},
+					{Id: 3, Num: 30},
+					{Id: 4, Num: 40},
+					{Id: 5, Num: 50},
+				},
+			},
+		},
+		{
+			name:   "incell struct list: custom sheet and global separator and subseparator",
+			parser: parserWithSheetAndGlobalSep,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "IncellStructList",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 1,
+						Rows: [][]string{
+							{"Item"},
+							{"1=10;2=20;3=30"},
+							{"4=40;5=50"},
+						},
+					},
+				},
+				msg: &unittestpb.IncellStructList{},
+			},
+			want: &unittestpb.IncellStructList{
+				ItemList: []*unittestpb.Item{
+					{Id: 1, Num: 10},
+					{Id: 2, Num: 20},
+					{Id: 3, Num: 30},
+					{Id: 4, Num: 40},
+					{Id: 5, Num: 50},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(tt.args.msg, tt.args.sheet)
+			assert.NoError(t, err)
+			if !proto.Equal(tt.want, tt.args.msg) {
+				t.Errorf("parser.parseSimpleIncellMapWithGlobalSep() = %v, want %v", tt.args.msg, tt.want)
 			}
 		})
 	}
