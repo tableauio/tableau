@@ -172,7 +172,7 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	newValue := msg.Mutable(field.fd)
 	reflectMap := newValue.Map()
 	// reflectMap := msg.Mutable(field.fd).Map()
-	keyFd := field.fd.MapKey()
+	// keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
 
 	layout := field.opts.Layout
@@ -228,48 +228,7 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			}
 			reflectMap.Set(newMapKey, newMapValue)
 		} else {
-			// value is scalar type
-			key := types.DefaultMapKeyOptName     // default key name
-			value := types.DefaultMapValueOptName // default value name
-			// key cell
-			keyColName := prefix + field.opts.Name + key
-			cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
-			}
-
-			fieldValue, keyPresent, err := sp.parseFieldValue(keyFd, cell.Data, field.opts.Prop)
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
-			}
-			newMapKey := fieldValue.MapKey()
-			// value cell
-			valueColName := prefix + field.opts.Name + value
-			cell, err = rc.Cell(valueColName, sp.IsFieldOptional(field))
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(valueColName)...)
-			}
-			// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
-			newMapValue, valuePresent, err := sp.parseFieldValue(field.fd, cell.Data, nil)
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(valueColName)...)
-			}
-			// value must be empty if key not present
-			if !keyPresent && reflectMap.Has(newMapKey) {
-				if valuePresent {
-					return false, xerrors.WrapKV(xerrors.E2017(xproto.GetFieldTypeName(field.fd)), rc.CellDebugKV(keyColName)...)
-				}
-				break
-			}
-			if !keyPresent && !valuePresent {
-				// key and value are both not present.
-				break
-			}
-			// scalar map key must be unique
-			if reflectMap.Has(newMapKey) {
-				return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
-			}
-			reflectMap.Set(newMapKey, newMapValue)
+			return false, xerrors.Errorf("vertical map value scalar type is not supported")
 		}
 
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
@@ -347,6 +306,8 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 				}
 				reflectMap.Set(newMapKey, newMapValue)
 			}
+		} else {
+			return false, xerrors.Errorf("horizontal map value scalar type is not supported")
 		}
 
 	case tableaupb.Layout_LAYOUT_INCELL:
@@ -361,10 +322,7 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 		}
 	}
 
-	if !msg.Has(field.fd) && reflectMap.Len() != 0 {
-		msg.Set(field.fd, newValue)
-	}
-	if msg.Has(field.fd) || reflectMap.Len() != 0 {
+	if msg.Has(field.fd) {
 		present = true
 	}
 	return present, nil
@@ -441,51 +399,54 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 				elemPresent := false
 				newListValue := list.NewElement()
 				colName := prefix + field.opts.Name
-				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-					// incell union
-					cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-					if err != nil {
-						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-					}
-					if elemPresent, err = sp.parseIncellUnion(newListValue, cell.Data, field.opts.GetProp().GetForm()); err != nil {
-						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-					}
-				} else {
-					elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, colName)
-					if err != nil {
-						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-					}
+				// DEPRECATED: vertical list elem cannot be incell now
+				//
+				// if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+				// 	// incell union
+				// 	cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
+				// 	if err != nil {
+				// 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+				// 	}
+				// 	if elemPresent, err = sp.parseIncellUnion(newListValue, cell.Data, field.opts.GetProp().GetForm()); err != nil {
+				// 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+				// 	}
+				// } else {
+				elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, colName)
+				if err != nil {
+					return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 				}
+				// }
 				if elemPresent {
 					list.Append(newListValue)
 				}
 			} else {
 				elemPresent := false
 				newListValue := list.NewElement()
-				if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-					// incell-struct list
-					colName := prefix + field.opts.Name
-					cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-					if err != nil {
-						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-					}
-					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
-						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-					}
-				} else {
-					// cross-cell struct list
-					elemPresent, err = sp.parseMessage(newListValue.Message(), rc, prefix+field.opts.Name)
-					if err != nil {
-						return false, xerrors.WrapKV(err, "cross-cell struct list", "failed to parse struct")
-					}
+				// DEPRECATED: vertical list elem cannot be incell now
+				//
+				// if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+				// 	// incell-struct list
+				// 	colName := prefix + field.opts.Name
+				// 	cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
+				// 	if err != nil {
+				// 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+				// 	}
+				// 	if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
+				// 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+				// 	}
+				// } else {
+				// cross-cell struct list
+				elemPresent, err = sp.parseMessage(newListValue.Message(), rc, prefix+field.opts.Name)
+				if err != nil {
+					return false, xerrors.WrapKV(err, "cross-cell struct list", "failed to parse struct")
 				}
+				// }
 				if elemPresent {
 					list.Append(newListValue)
 				}
 			}
 		} else {
-			// TODO: support list of scalar type when layout is vertical?
-			// NOTE(wenchy): we don't support list of scalar type when layout is vertical
+			return false, xerrors.Errorf("vertical list value scalar type is not supported")
 		}
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		// horizontal list
@@ -613,10 +574,7 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 		}
 	}
-	if !msg.Has(field.fd) && list.Len() != 0 {
-		msg.Set(field.fd, newValue)
-	}
-	if msg.Has(field.fd) || list.Len() != 0 {
+	if msg.Has(field.fd) {
 		present = true
 	}
 	return present, nil

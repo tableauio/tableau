@@ -488,27 +488,29 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 		}
 		// Parse first field
 		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colType+desc.Prop.RawProp()))
-		if listElemSpanInnerCell {
-			// inner cell element
-			tempField := &internalpb.Field{}
-			_, parsed, err := p.parseField(tempField, header, cursor, prefix, firstFieldOptions...)
-			if err != nil {
-				return cursor, err
-			}
-			if parsed {
-				field.Fields = tempField.Fields
-				field.Predefined = tempField.Predefined
-				field.Options.Span = tempField.Options.Span
-				field.Options.Name = tempField.Options.Name
-			} else {
-				return cursor, xerrors.Errorf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
-			}
-		} else {
-			cursor, err = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
-			if err != nil {
-				return cursor, err
-			}
+		// DEPRECATED: vertical list elem cannot be incell now
+		//
+		// if listElemSpanInnerCell {
+		// 	// inner cell element
+		// 	tempField := &internalpb.Field{}
+		// 	_, parsed, err := p.parseField(tempField, header, cursor, prefix, firstFieldOptions...)
+		// 	if err != nil {
+		// 		return cursor, err
+		// 	}
+		// 	if parsed {
+		// 		field.Fields = tempField.Fields
+		// 		field.Predefined = tempField.Predefined
+		// 		field.Options.Span = tempField.Options.Span
+		// 		field.Options.Name = tempField.Options.Name
+		// 	} else {
+		// 		return cursor, xerrors.Errorf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
+		// 	}
+		// } else {
+		cursor, err = p.parseSubField(field, header, cursor, prefix, firstFieldOptions...)
+		if err != nil {
+			return cursor, err
 		}
+		// }
 		// Parse other fields
 		for cursor++; cursor < len(header.namerow); cursor++ {
 			if opts.Nested {
