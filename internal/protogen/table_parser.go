@@ -16,11 +16,11 @@ import (
 )
 
 type tableParser struct {
-	*sheetParser
+	*bookParser
 }
 
 func newTableParser(bookName, alias, relSlashPath string, gen *Generator) *tableParser {
-	return &tableParser{sheetParser: newSheetParser(bookName, alias, relSlashPath, gen)}
+	return &tableParser{bookParser: newBookParser(bookName, alias, relSlashPath, gen)}
 }
 
 func (p *tableParser) GetProtoFilePath() string {

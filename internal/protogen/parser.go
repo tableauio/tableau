@@ -23,12 +23,12 @@ const (
 	listVarSuffix = "_list" // list variable name suffix
 )
 
-type sheetParser struct {
+type bookParser struct {
 	gen *Generator
 	wb  *internalpb.Workbook
 }
 
-func newSheetParser(bookName, alias, relSlashPath string, gen *Generator) *sheetParser {
+func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookParser {
 	// log.Debugf("filenameWithSubdirPrefix: %v", filenameWithSubdirPrefix)
 	protoBookName := bookName // generated proto book file name
 	if alias != "" {
@@ -40,7 +40,7 @@ func newSheetParser(bookName, alias, relSlashPath string, gen *Generator) *sheet
 		snakePath := strcase.ToSnake(xfs.CleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
-	bp := &sheetParser{
+	bp := &bookParser{
 		gen: gen,
 		wb: &internalpb.Workbook{
 			Options: &tableaupb.WorkbookOptions{

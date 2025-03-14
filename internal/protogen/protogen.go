@@ -41,9 +41,9 @@ type Generator struct {
 	protofiles *protoregistry.Files // all parsed imported proto file descriptors.
 	typeInfos  *xproto.TypeInfos    // predefined type infos
 
-	cacheMu         sync.RWMutex                 // guard fields below
-	cachedImporters map[string]importer.Importer // absolute file path -> importer
-	cachedParsers   map[string]*tableParser      // absolute file path -> parser (only for tables currently)
+	cacheMu           sync.RWMutex                 // guard fields below
+	cachedImporters   map[string]importer.Importer // absolute file path -> importer
+	cachedBookParsers map[string]*tableParser      // absolute file path -> bookParser (only for tables currently)
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -60,8 +60,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
 
-		cachedImporters: make(map[string]importer.Importer),
-		cachedParsers:   make(map[string]*tableParser),
+		cachedImporters:   make(map[string]importer.Importer),
+		cachedBookParsers: make(map[string]*tableParser),
 	}
 
 	if opts.Proto.Input.MetasheetName != "" {
@@ -244,16 +244,16 @@ func (gen *Generator) getImporter(absPath string) importer.Importer {
 	return gen.cachedImporters[absPath]
 }
 
-func (gen *Generator) addParser(absPath string, parser *tableParser) {
+func (gen *Generator) addBookParser(absPath string, parser *tableParser) {
 	gen.cacheMu.Lock()
 	defer gen.cacheMu.Unlock()
-	gen.cachedParsers[absPath] = parser
+	gen.cachedBookParsers[absPath] = parser
 }
 
-func (gen *Generator) getParser(absPath string) *tableParser {
+func (gen *Generator) getBookParser(absPath string) *tableParser {
 	gen.cacheMu.RLock()
 	defer gen.cacheMu.RUnlock()
-	return gen.cachedParsers[absPath]
+	return gen.cachedBookParsers[absPath]
 }
 
 func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFileConflicts bool, pass parsePass) error {
@@ -393,9 +393,9 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		}
 		bp = newTableParser(bookName, alias, rewrittenBookName, gen)
 		// cache this new tableParser
-		gen.addParser(absPath, bp)
+		gen.addBookParser(absPath, bp)
 	} else {
-		bp = gen.getParser(absPath)
+		bp = gen.getBookParser(absPath)
 	}
 
 	for _, sheet := range imp.GetSheets() {

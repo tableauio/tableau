@@ -14,11 +14,11 @@ import (
 )
 
 type documentParser struct {
-	*sheetParser
+	*bookParser
 }
 
 func newDocumentParser(bookName, alias, relSlashPath string, gen *Generator) *documentParser {
-	return &documentParser{sheetParser: newSheetParser(bookName, alias, relSlashPath, gen)}
+	return &documentParser{bookParser: newBookParser(bookName, alias, relSlashPath, gen)}
 }
 
 func errWithNodeKV(err error, node *book.Node, pairs ...any) error {
