@@ -399,48 +399,22 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 				elemPresent := false
 				newListValue := list.NewElement()
 				colName := prefix + field.opts.Name
-				// DEPRECATED: vertical list elem cannot be incell now
-				//
-				// if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-				// 	// incell union
-				// 	cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-				// 	if err != nil {
-				// 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-				// 	}
-				// 	if elemPresent, err = sp.parseIncellUnion(newListValue, cell.Data, field.opts.GetProp().GetForm()); err != nil {
-				// 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-				// 	}
-				// } else {
+				// cross-cell union list
 				elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, colName)
 				if err != nil {
 					return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 				}
-				// }
 				if elemPresent {
 					list.Append(newListValue)
 				}
 			} else {
 				elemPresent := false
 				newListValue := list.NewElement()
-				// DEPRECATED: vertical list elem cannot be incell now
-				//
-				// if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-				// 	// incell-struct list
-				// 	colName := prefix + field.opts.Name
-				// 	cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-				// 	if err != nil {
-				// 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-				// 	}
-				// 	if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
-				// 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-				// 	}
-				// } else {
 				// cross-cell struct list
 				elemPresent, err = sp.parseMessage(newListValue.Message(), rc, prefix+field.opts.Name)
 				if err != nil {
 					return false, xerrors.WrapKV(err, "cross-cell struct list", "failed to parse struct")
 				}
-				// }
 				if elemPresent {
 					list.Append(newListValue)
 				}
