@@ -61,6 +61,30 @@
                 "id": 1,
                 "damage": "2"
             }
+        },
+        {
+            "type": "TYPE_ITEM",
+            "item": {
+                "available": false,
+                "itemList": [
+                    {
+                        "id": 1001,
+                        "num": 1
+                    },
+                    {
+                        "id": 1002,
+                        "num": 2
+                    },
+                    {
+                        "id": 1003,
+                        "num": 3
+                    },
+                    {
+                        "id": 1004,
+                        "num": 0
+                    }
+                ]
+            }
         }
     ]
 }

@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -527,7 +528,23 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					)
 					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 				}
-				err = sp.parseUnionMessageField(subField, msg, valNode.Value)
+				var nodeValues []string
+				if subField.opts.Prop != nil && subField.opts.Prop.UnionFields != nil {
+					fieldCount := int(subField.opts.Prop.GetUnionFields())
+					if fieldCount == 0 {
+						fieldCount = math.MaxInt32
+					}
+					nodeValues = []string{valNode.Value}
+					for j := 1; j < fieldCount; j++ {
+						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+						node := node.FindChild(nodeName)
+						if node == nil {
+							break
+						}
+						nodeValues = append(nodeValues, node.Value)
+					}
+				}
+				err := sp.parseUnionMessageField(subField, msg, valNode.Value, nodeValues)
 				if err != nil {
 					return xerrors.WrapKV(err, valNode.DebugNameKV()...)
 				}

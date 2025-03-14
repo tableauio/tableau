@@ -655,7 +655,7 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 	}
 }
 
-func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cellData string) error {
+func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cellData string, cellDataList []string) error {
 	if field.fd.IsMap() {
 		// incell map
 		value := msg.NewField(field.fd)
@@ -669,14 +669,54 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 	} else if field.fd.IsList() {
 		// incell list
 		value := msg.NewField(field.fd)
-		present, err := sp.parseIncellListField(field, value.List(), cellData)
-		if err != nil {
-			return err
+		list := value.List()
+		if len(cellDataList) != 0 {
+			for _, data := range cellDataList {
+				fieldValue := list.NewElement()
+				var elemPresent bool
+				var err error
+				if field.fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(string(field.fd.Message().FullName())) {
+					elemPresent, err = sp.parseIncellStruct(fieldValue, data, field.opts.GetProp().GetForm(), field.sep)
+				} else {
+					fieldValue, elemPresent, err = sp.parseFieldValue(field.fd, data, field.opts.Prop)
+				}
+				if err != nil {
+					return err
+				}
+				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
+					// TODO: check the remaining keys all not present, otherwise report error!
+					break
+				}
+				if field.opts.Key != "" {
+					// keyed list
+					keyedListElemExisted := false
+					for i := 0; i < list.Len(); i++ {
+						elemVal := list.Get(i)
+						if elemVal.Equal(fieldValue) {
+							keyedListElemExisted = true
+							break
+						}
+					}
+					if !keyedListElemExisted {
+						list.Append(fieldValue)
+					}
+				} else {
+					// normal list
+					list.Append(fieldValue)
+				}
+			}
+			if list.Len() > 0 {
+				msg.Set(field.fd, value)
+			}
+		} else {
+			present, err := sp.parseIncellListField(field, list, cellData)
+			if err != nil {
+				return err
+			}
+			if present {
+				msg.Set(field.fd, value)
+			}
 		}
-		if present {
-			msg.Set(field.fd, value)
-		}
-
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		subMsgName := string(field.fd.Message().FullName())
 		if types.IsWellKnownMessage(subMsgName) {

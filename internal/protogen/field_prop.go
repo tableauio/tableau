@@ -40,17 +40,18 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableau
 		return nil
 	}
 	p := &tableaupb.FieldProp{
-		JsonName: prop.JsonName,
-		Unique:   prop.Unique, // only for keyed list?
-		Sequence: prop.Sequence,
-		Fixed:    prop.Fixed,
-		Size:     prop.Size,
-		Present:  prop.Present,
-		Optional: prop.Optional,
-		Patch:    prop.Patch,
-		Form:     prop.Form, // for vertical incell union list
-		Sep:      prop.Sep,
-		Subsep:   prop.Subsep,
+		JsonName:    prop.JsonName,
+		Unique:      prop.Unique, // only for keyed list?
+		Sequence:    prop.Sequence,
+		Fixed:       prop.Fixed,
+		Size:        prop.Size,
+		Present:     prop.Present,
+		Optional:    prop.Optional,
+		Patch:       prop.Patch,
+		Form:        prop.Form, // for vertical incell union list
+		Sep:         prop.Sep,
+		Subsep:      prop.Subsep,
+		UnionFields: prop.UnionFields,
 	}
 	if isScalarList {
 		p.Range = prop.Range

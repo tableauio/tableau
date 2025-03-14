@@ -9,3 +9,4 @@ UnionTypeReuseInBook,,
 EnumType,,MODE_ENUM_TYPE_MULTI
 StructType,,MODE_STRUCT_TYPE_MULTI
 UnionType,,MODE_UNION_TYPE_MULTI
+UnionFieldsTarget,FieldsTarget,MODE_UNION_TYPE

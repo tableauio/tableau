@@ -2,6 +2,7 @@ package confgen
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/tableauio/tableau/internal/confgen/prop"
@@ -711,7 +712,23 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 				if err != nil {
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
-				err = sp.parseUnionMessageField(subField, msg, cell.Data)
+				var cellDataList []string
+				if subField.opts.Prop != nil && subField.opts.Prop.UnionFields != nil {
+					fieldCount := int(subField.opts.Prop.GetUnionFields())
+					if fieldCount == 0 {
+						fieldCount = math.MaxInt32
+					}
+					cellDataList = []string{cell.Data}
+					for j := 1; j < fieldCount; j++ {
+						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
+						if err != nil {
+							break
+						}
+						cellDataList = append(cellDataList, c.Data)
+					}
+				}
+				err = sp.parseUnionMessageField(subField, msg, cell.Data, cellDataList)
 				if err != nil {
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}

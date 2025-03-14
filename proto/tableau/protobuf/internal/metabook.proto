@@ -158,6 +158,6 @@ message UnionDescriptor {
     // is generated as: "TYPE_" + strcase.ToScreamingSnake(name).
     string name = 2 [(tableau.field) = {name:"Name"}];
     string alias = 3 [(tableau.field) = {name:"Alias"}];
-    repeated string fields = 4 [(tableau.field) = {name:"Field" layout:LAYOUT_HORIZONTAL}];
+    repeated string fields = 4 [(tableau.field) = {name:"Field" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
   }
 }

@@ -23,6 +23,7 @@ message Target {
     Pve pve = 2;      // Bound to enum value 2: TYPE_PVE.
     Story story = 3;  // Bound to enum value 3: TYPE_STORY.
     Skill skill = 4;  // Bound to enum value 4: TYPE_SKILL.
+    Item item = 5;    // Bound to enum value 5: TYPE_ITEM.
   }
 
   enum Type {
@@ -31,6 +32,7 @@ message Target {
     TYPE_PVE = 2 [(tableau.evalue) = { name: "PVE" }];
     TYPE_STORY = 3 [(tableau.evalue) = { name: "Story" }];
     TYPE_SKILL = 4 [(tableau.evalue) = { name: "Skill" }];
+    TYPE_ITEM = 5 [(tableau.evalue) = { name: "Item" }];
   }
   message Pvp {
     int32 type = 1;                          // scalar
@@ -61,5 +63,9 @@ message Target {
     int32 id = 1;      // scalar
     int64 damage = 2;  // scalar
     // no field tag 3
+  }
+  message Item {
+    bool available = 1;
+    repeated protoconf.Item item_list = 2 [(tableau.field) = {layout:LAYOUT_INCELL prop:{union_fields:0}}];
   }
 }
