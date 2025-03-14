@@ -1,0 +1,6 @@
+ID,Desc,Kind,Group,Property1ID,Property1Value,Property2ID,Property2Value,AwardItemID,AwardItemNum
+"map<uint32, Hero>",string,int32,int32,"map<int32, Prop>",int64,int32,int64,{.Item}int32,int32
+Hero's ID.,Hero's description.,Hero's kind.,Hero's group.,Hero's prop ID.,Hero's prop value.,Hero's prop ID.,Hero's prop value.,Hero's award ID.,Hero's award num.
+100,hero100,1,10,1,10,2,20,1,10
+200,hero200,1,11,3,30,4,40,2,11
+300,hero300,2,22,5,50,,,3,12

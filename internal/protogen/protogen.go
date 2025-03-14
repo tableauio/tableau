@@ -43,7 +43,7 @@ type Generator struct {
 
 	cacheMu           sync.RWMutex                 // guard fields below
 	cachedImporters   map[string]importer.Importer // absolute file path -> importer
-	cachedBookParsers map[string]*bookParser       // absolute file path -> bookParser
+	cachedBookParsers map[string]*tableParser      // absolute file path -> bookParser (only for tables currently)
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -61,7 +61,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		OutputOpt:    opts.Proto.Output,
 
 		cachedImporters:   make(map[string]importer.Importer),
-		cachedBookParsers: make(map[string]*bookParser),
+		cachedBookParsers: make(map[string]*tableParser),
 	}
 
 	if opts.Proto.Input.MetasheetName != "" {
@@ -141,7 +141,7 @@ func (gen *Generator) processSecondPass() error {
 	// second pass
 	gen.cacheMu.RLock()
 	absPaths := []string{}
-	for absPath, _ := range gen.cachedImporters {
+	for absPath := range gen.cachedImporters {
 		absPaths = append(absPaths, absPath)
 	}
 	gen.cacheMu.RUnlock()
@@ -244,13 +244,13 @@ func (gen *Generator) getImporter(absPath string) importer.Importer {
 	return gen.cachedImporters[absPath]
 }
 
-func (gen *Generator) addBookParser(absPath string, parser *bookParser) {
+func (gen *Generator) addBookParser(absPath string, parser *tableParser) {
 	gen.cacheMu.Lock()
 	defer gen.cacheMu.Unlock()
 	gen.cachedBookParsers[absPath] = parser
 }
 
-func (gen *Generator) getBookParser(absPath string) *bookParser {
+func (gen *Generator) getBookParser(absPath string) *tableParser {
 	gen.cacheMu.RLock()
 	defer gen.cacheMu.RUnlock()
 	return gen.cachedBookParsers[absPath]
@@ -304,7 +304,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	if alias != "" {
 		debugBookName += " (alias: " + alias + ")"
 	}
-	bp := newDocumentBookParser(bookName, alias, rewrittenBookName, gen)
+	bp := newDocumentParser(bookName, alias, rewrittenBookName, gen)
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet options
 		ws := sheet.ToWorkseet()
@@ -332,7 +332,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 			}
 		}
 		// append parsed sheet to workbook
-		bp.parser.wb.Worksheets = append(bp.parser.wb.Worksheets, ws)
+		bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 	}
 	// export book
 	be := newBookExporter(
@@ -340,8 +340,8 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		gen.OutputOpt.FileOptions,
 		filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir),
 		gen.OutputOpt.FilenameSuffix,
-		bp.parser.wb,
-		bp.parser.gen,
+		bp.wb,
+		bp.gen,
 	)
 	if err := be.export(checkProtoFileConflicts); err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)
@@ -383,7 +383,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugBookName, len(imp.GetSheets()))
 	}
 
-	var bp *bookParser
+	var bp *tableParser
 	if pass == firstPass {
 		// create a book parser
 		bookName := imp.BookName()
@@ -391,8 +391,8 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		if alias != "" {
 			debugBookName += " (alias: " + alias + ")"
 		}
-		bp = newBookParser(bookName, alias, rewrittenBookName, gen)
-		// cache this new bookParser
+		bp = newTableParser(bookName, alias, rewrittenBookName, gen)
+		// cache this new tableParser
 		gen.addBookParser(absPath, bp)
 	} else {
 		bp = gen.getBookParser(absPath)

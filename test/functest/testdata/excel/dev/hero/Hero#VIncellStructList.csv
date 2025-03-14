@@ -1,5 +1,5 @@
 Hero,AwardItemId,AwardItemNum,AwardDesc
-"[]{int32 Id, int32 Num}Hero",{Award}{Item}int32,int32,string
+"[Elem]{int32 Id, int32 Num}Hero",{Award}{Item}int32,int32,string
 Hero info.,Award item id,Award item num,Award desc
 "1,100",100,1,apple
 "2,200",200,2,cherry

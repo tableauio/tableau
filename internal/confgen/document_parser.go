@@ -15,7 +15,7 @@ import (
 )
 
 type documentParser struct {
-	parser *sheetParser
+	*sheetParser
 }
 
 func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
@@ -39,7 +39,7 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		err := func() error {
-			field := parseFieldDescriptor(fd, sp.parser.GetSep(), sp.parser.GetSubsep())
+			field := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 			defer field.release()
 			var fieldNode *book.Node
 			if md.FullName() == xproto.MetabookFullName {
@@ -65,7 +65,7 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 					}
 				}
 				if fieldNode == nil {
-					if sp.parser.IsFieldOptional(field) {
+					if sp.IsFieldOptional(field) {
 						// field not found and is optional, just return nil.
 						return nil
 					}
@@ -123,7 +123,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 
 	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
 		// incell map
-		err = sp.parser.parseIncellMap(field, reflectMap, node.Value)
+		err = sp.parseIncellMap(field, reflectMap, node.Value)
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -160,7 +160,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				default:
 					return false, xerrors.ErrorKV("should not reach here", node.DebugKV()...)
 				}
-				newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, keyData)
+				newMapKey, keyPresent, err := sp.parseMapKey(field, reflectMap, keyData)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
@@ -178,7 +178,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				// check key uniqueness
 				if reflectMap.Has(newMapKey) {
 					if prop.RequireUnique(field.opts.Prop) ||
-						(!prop.HasUnique(field.opts.Prop) && sp.parser.deduceMapKeyUnique(field, reflectMap)) {
+						(!prop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
 						return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
 					}
 				}
@@ -227,14 +227,14 @@ func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap pr
 	for _, elemNode := range node.Children {
 		key, value := elemNode.Name, elemNode.Value
 
-		fieldValue, keyPresent, err := sp.parser.parseFieldValue(keyFd, key, field.opts.Prop)
+		fieldValue, keyPresent, err := sp.parseFieldValue(keyFd, key, field.opts.Prop)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
 
 		newMapKey := fieldValue.MapKey()
 		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
-		fieldValue, valuePresent, err := sp.parser.parseFieldValue(valueFd, value, nil)
+		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value, nil)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugKV()...)
 		}
@@ -281,12 +281,12 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 	for _, elemNode := range node.Children {
 		key, value := elemNode.Name, elemNode.Value
 		mapItemData := strings.Join([]string{key, value}, field.subsep)
-		newMapKey, keyPresent, err := sp.parser.parseMapKey(field, reflectMap, key)
+		newMapKey, keyPresent, err := sp.parseMapKey(field, reflectMap, key)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
 		newMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parser.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
+		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugKV()...)
 		}
@@ -307,7 +307,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
 		// node of XML scalar list with only 1 element is just like an incell list
 		node.Kind == book.ScalarNode:
-		present, err = sp.parser.parseIncellListField(field, list, node.Value)
+		present, err = sp.parseIncellListField(field, list, node.Value)
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -329,7 +329,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 				}
 			} else {
 				// cross-cell scalar list
-				newListValue, elemPresent, err = sp.parser.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
+				newListValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
@@ -359,7 +359,7 @@ func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message
 	}
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		if present, err = sp.parser.parseIncellUnion(structValue, node.Value, field.opts.GetProp().GetForm()); err != nil {
+		if present, err = sp.parseIncellUnion(structValue, node.Value, field.opts.GetProp().GetForm()); err != nil {
 			return false, xerrors.WrapKV(err, node.DebugNameKV()...)
 		}
 		if present {
@@ -394,7 +394,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 	}
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		if present, err = sp.parser.parseIncellStruct(structValue, node.Value, field.opts.GetProp().GetForm(), field.sep); err != nil {
+		if present, err = sp.parseIncellStruct(structValue, node.Value, field.opts.GetProp().GetForm(), field.sep); err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
 		if present {
@@ -406,7 +406,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 	subMsgName := string(field.fd.Message().FullName())
 	if types.IsWellKnownMessage(subMsgName) {
 		// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
-		value, present, err := sp.parser.parseFieldValue(field.fd, node.Value, field.opts.Prop)
+		value, present, err := sp.parseFieldValue(field.fd, node.Value, field.opts.Prop)
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -436,7 +436,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
 	var newValue protoreflect.Value
 	// FIXME(wenchy): treat any scalar field's present as true if this field's key exists?
-	newValue, present, err = sp.parser.parseFieldValue(field.fd, node.Value, field.opts.Prop)
+	newValue, present, err = sp.parseFieldValue(field.fd, node.Value, field.opts.Prop)
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
@@ -464,7 +464,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 		}
 	}
 	if typeNode == nil {
-		if sp.parser.IsFieldOptional(field) {
+		if sp.IsFieldOptional(field) {
 			// field not found and is optional, just return nil.
 			return false, nil
 		}
@@ -478,7 +478,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	}
 
 	var typeVal protoreflect.Value
-	typeVal, present, err = sp.parser.parseFieldValue(unionDesc.Type, typeNode.Value, nil)
+	typeVal, present, err = sp.parseFieldValue(unionDesc.Type, typeNode.Value, nil)
 	if err != nil {
 		return false, xerrors.WrapKV(err, typeNode.DebugNameKV()...)
 	}
@@ -504,7 +504,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 			fd := md.Fields().Get(i)
 			valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
 			err := func() error {
-				subField := parseFieldDescriptor(fd, sp.parser.GetSep(), sp.parser.GetSubsep())
+				subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 				defer subField.release()
 				valNode := node.FindChild(valNodeName)
 				if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
@@ -515,7 +515,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					}
 				}
 				if valNode == nil {
-					if sp.parser.IsFieldOptional(subField) {
+					if sp.IsFieldOptional(subField) {
 						// field not found and is optional, just return nil.
 						return nil
 					}
@@ -527,7 +527,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					)
 					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 				}
-				err = sp.parser.parseUnionMessageField(subField, msg, valNode.Value)
+				err = sp.parseUnionMessageField(subField, msg, valNode.Value)
 				if err != nil {
 					return xerrors.WrapKV(err, valNode.DebugNameKV()...)
 				}

@@ -5,6 +5,7 @@ package protoconf;
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf/common";
 
 import "tableau/protobuf/tableau.proto";
+import "google/protobuf/timestamp.proto";
 
 enum FruitType {
   FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
@@ -43,4 +44,38 @@ message FruitInfo {
     string name = 1 [(tableau.field) = { name: "Name" }];
     repeated FruitFlavor flavor_list = 2 [(tableau.field) = { name: "Flavor" layout: LAYOUT_INCELL }];
   }
+}
+
+enum ConfType {
+  CONF_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "未知"];
+  CONF_TYPE_CLOUD = 1 [(tableau.evalue).name = "云上"];
+  CONF_TYPE_LOCAL = 2 [(tableau.evalue).name = "本地"];
+  CONF_TYPE_REMOTE = 3 [(tableau.evalue).name = "远程"];
+}
+
+enum ServerType {
+  SERVER_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "未知"];
+  SERVER_TYPE_GAME = 1 [(tableau.evalue).name = "游戏服"];
+  SERVER_TYPE_ACTIVITY = 2 [(tableau.evalue).name = "活动服"];
+  SERVER_TYPE_MATCH = 3 [(tableau.evalue).name = "匹配服"];
+}
+
+message CloudStrategy {
+  ConfType type = 1 [(tableau.field).name = "Type"];
+  int32 num = 2 [(tableau.field).name = "Num"];
+}
+
+message Duration {
+  DurationType type = 1 [(tableau.field) = { name: "Type" }];
+  google.protobuf.Timestamp begin = 2 [(tableau.field) = { name: "Begin" }];
+  google.protobuf.Timestamp end = 3 [(tableau.field) = { name: "End" }];
+  int32 delayed_days = 4 [(tableau.field) = { name: "DelayedDays" }];
+  repeated int32 params = 5 [(tableau.field) = {name:"Params" layout:LAYOUT_INCELL}];
+}
+
+enum DurationType {
+  DURATION_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "未知"];
+  DURATION_TYPE_ABSOLUTE = 1 [(tableau.evalue).name = "绝对区间"];
+  DURATION_TYPE_REGISTER = 2 [(tableau.evalue).name = "注册时间"];
+  DURATION_TYPE_OPEN_SERVER = 3 [(tableau.evalue).name = "开服时间"];
 }

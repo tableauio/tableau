@@ -1,5 +1,5 @@
 Sheet,Alias,Nameline,Typeline,Namerow,Typerow,Noterow,Datarow,Merger,Index
-Hero,,1,1,1,2,3,4,"Her*.csv","Kind,Group@Hero"
+Hero,,1,1,1,2,3,4,Her*.csv,"Kind,Group@Hero"
 FirstVListField,,1,1,1,2,3,4,,
 FirstHListField,,1,1,1,2,3,4,,
 VIncellStructList,,1,1,1,2,3,4,,

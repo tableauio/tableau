@@ -42,15 +42,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup
-        run: ./test/setup.sh
-
       - name: Vet
         run: go vet ./...
 
       - name: Unittest
         run: go test -v -timeout 30m -race ./... -coverprofile=coverage.txt -covermode=atomic
-      
+
       - name: Functest
         run: ./test/functest/run.sh
 
