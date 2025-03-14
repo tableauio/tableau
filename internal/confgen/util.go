@@ -71,8 +71,8 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 		span = fieldOpts.Span
 		key = fieldOpts.Key
 		layout = fieldOpts.Layout
-		sep = strings.TrimSpace(fieldOpts.Prop.GetSep())
-		subsep = strings.TrimSpace(fieldOpts.Prop.GetSubsep())
+		sep = fieldOpts.Prop.GetSep()
+		subsep = fieldOpts.Prop.GetSubsep()
 		prop = fieldOpts.Prop
 	} else {
 		// default processing

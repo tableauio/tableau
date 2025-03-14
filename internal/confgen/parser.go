@@ -560,36 +560,45 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 }
 
 func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List, cellData string) (present bool, err error) {
-	// If s does not contain sep and sep is not empty, Split returns a
-	// slice of length 1 whose only element is s.
 	splits := strings.Split(cellData, field.sep)
-	detectedSize := len(splits)
-	fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
+	err = sp.parseListFieldElems(field.fd, field.opts, list, field.subsep, splits)
+	if err != nil {
+		return false, err
+	}
+	return list.Len() != 0, nil
+}
+
+func (sp *sheetParser) parseListFieldElems(
+	fd protoreflect.FieldDescriptor,
+	fdopts *tableaupb.FieldOptions,
+	list protoreflect.List, sep string, elems []string) (err error) {
+	detectedSize := len(elems)
+	fixedSize := prop.GetSize(fdopts.Prop, detectedSize)
 	size := detectedSize
 	if fixedSize > 0 && fixedSize < detectedSize {
 		// squeeze to specified fixed size
 		size = fixedSize
 	}
 	for i := 0; i < size; i++ {
-		elem := splits[i]
+		elem := elems[i]
 		var (
 			fieldValue  protoreflect.Value
 			elemPresent bool
 		)
-		if field.fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(string(field.fd.Message().FullName())) {
+		if fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(string(fd.Message().FullName())) {
 			fieldValue = list.NewElement()
-			elemPresent, err = sp.parseIncellStruct(fieldValue, elem, field.opts.GetProp().GetForm(), field.subsep)
+			elemPresent, err = sp.parseIncellStruct(fieldValue, elem, fdopts.GetProp().GetForm(), sep)
 		} else {
-			fieldValue, elemPresent, err = sp.parseFieldValue(field.fd, elem, field.opts.Prop)
+			fieldValue, elemPresent, err = sp.parseFieldValue(fd, elem, fdopts.Prop)
 		}
 		if err != nil {
-			return false, err
+			return err
 		}
-		if !elemPresent && !prop.IsFixed(field.opts.Prop) {
+		if !elemPresent && !prop.IsFixed(fdopts.Prop) {
 			// TODO: check the remaining keys all not present, otherwise report error!
 			break
 		}
-		if field.opts.Key != "" {
+		if fdopts.Key != "" {
 			// keyed list
 			keyedListElemExisted := false
 			for i := 0; i < list.Len(); i++ {
@@ -607,13 +616,13 @@ func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List
 			list.Append(fieldValue)
 		}
 	}
-	if prop.IsFixed(field.opts.Prop) {
+	if prop.IsFixed(fdopts.Prop) {
 		for list.Len() < fixedSize {
 			// append empty elements to the specified length.
 			list.Append(list.NewElement())
 		}
 	}
-	return list.Len() != 0, nil
+	return nil
 }
 
 func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellData string, form tableaupb.Form, sep string) (present bool, err error) {
@@ -655,7 +664,7 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 	}
 }
 
-func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, data string, crossDataList []string) error {
+func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, data string, dataList []string) error {
 	if field.fd.IsMap() {
 		// incell map
 		value := msg.NewField(field.fd)
@@ -670,53 +679,17 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		// incell list
 		value := msg.NewField(field.fd)
 		list := value.List()
-		if len(crossDataList) != 0 {
-			for _, data := range crossDataList {
-				fieldValue := list.NewElement()
-				var elemPresent bool
-				var err error
-				if field.fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(string(field.fd.Message().FullName())) {
-					elemPresent, err = sp.parseIncellStruct(fieldValue, data, field.opts.GetProp().GetForm(), field.sep)
-				} else {
-					fieldValue, elemPresent, err = sp.parseFieldValue(field.fd, data, field.opts.Prop)
-				}
-				if err != nil {
-					return err
-				}
-				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
-					// TODO: check the remaining keys all not present, otherwise report error!
-					break
-				}
-				if field.opts.Key != "" {
-					// keyed list
-					keyedListElemExisted := false
-					for i := 0; i < list.Len(); i++ {
-						elemVal := list.Get(i)
-						if elemVal.Equal(fieldValue) {
-							keyedListElemExisted = true
-							break
-						}
-					}
-					if !keyedListElemExisted {
-						list.Append(fieldValue)
-					}
-				} else {
-					// normal list
-					list.Append(fieldValue)
-				}
-			}
-			if list.Len() > 0 {
-				msg.Set(field.fd, value)
-			}
-		} else {
-			present, err := sp.parseIncellListField(field, list, data)
-			if err != nil {
-				return err
-			}
-			if present {
-				msg.Set(field.fd, value)
-			}
+		if len(dataList) == 0 {
+			dataList = strings.Split(data, field.sep)
 		}
+		err := sp.parseListFieldElems(field.fd, field.opts, list, field.sep, dataList)
+		if err != nil {
+			return err
+		}
+		if list.Len() != 0 {
+			msg.Set(field.fd, value)
+		}
+
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		subMsgName := string(field.fd.Message().FullName())
 		if types.IsWellKnownMessage(subMsgName) {
