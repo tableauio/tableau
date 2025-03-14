@@ -46,7 +46,7 @@ message Activity {
           repeated int32 incell_param_2_list = 6 [(tableau.field) = {name:"IncellParam2" layout:LAYOUT_INCELL}];
           repeated int32 incell_param_3_list = 7 [(tableau.field) = {name:"IncellParam3" layout:LAYOUT_INCELL}];
           map<int32, int32> incell_param_4_map = 8 [(tableau.field) = {name:"IncellParam4" layout:LAYOUT_INCELL}];
-          map<int32, int32> incell_param_5_map = 9 [(tableau.field) = {name:"IncellParam5" layout:LAYOUT_INCELL}];
+          map<int32, int32> incell_param_5_map = 9 [(tableau.field) = {name:"IncellParam5" layout:LAYOUT_INCELL prop:{range:"1,100"}}];
           int32 target = 10 [(tableau.field) = {name:"Target" prop:{range:"~,10"}}];
         }
         Info warn_info = 7 [(tableau.field) = {name:"WarnInfo" span:SPAN_INNER_CELL}];

@@ -323,7 +323,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,
-			Prop:   ExtractMapFieldProp(prop),
+			Prop:   prop, // for incell scalar map, need whole prop
 		}
 
 		// special process for key as enum type: create a new simple KV message as map value type.
@@ -371,7 +371,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 
 	listElemSpanInnerCell, isScalarElement := false, false
 	elemType := desc.ElemType
-	pureElemTypeName := desc.ElemType
+	var pureElemTypeName string
 	if elemType == "" {
 		// if elemType is empty, it means the list elem's span is inner cell.
 		listElemSpanInnerCell = true
