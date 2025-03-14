@@ -107,18 +107,21 @@ message Hero {
 message VIncellStructList {
   option (tableau.worksheet) = {name:"VIncellStructList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
 
-  repeated Hero hero_list = 1 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
-  message Hero {
-    int32 id = 1 [(tableau.field) = {name:"Id"}];
-    int32 num = 2 [(tableau.field) = {name:"Num"}];
-  }
-  Award award = 2 [(tableau.field) = {name:"Award"}];
-  message Award {
-    Item item = 1 [(tableau.field) = {name:"Item"}];
-    message Item {
+  repeated Elem elem_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  message Elem {
+    Hero hero = 1 [(tableau.field) = {name:"Hero" span:SPAN_INNER_CELL}];
+    message Hero {
       int32 id = 1 [(tableau.field) = {name:"Id"}];
       int32 num = 2 [(tableau.field) = {name:"Num"}];
     }
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    Award award = 2 [(tableau.field) = {name:"Award"}];
+    message Award {
+      Item item = 1 [(tableau.field) = {name:"Item"}];
+      message Item {
+        int32 id = 1 [(tableau.field) = {name:"Id"}];
+        int32 num = 2 [(tableau.field) = {name:"Num"}];
+      }
+      string desc = 2 [(tableau.field) = {name:"Desc"}];
+    }
   }
 }
