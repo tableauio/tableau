@@ -60,6 +60,9 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
 
+		protofiles: &protoregistry.Files{},
+		typeInfos:  xproto.NewTypeInfos(protoPackage),
+
 		cachedImporters:   make(map[string]importer.Importer),
 		cachedBookParsers: make(map[string]*tableParser),
 	}
