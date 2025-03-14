@@ -8,8 +8,8 @@ package protoconf;
 import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
-option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-option (tableau.workbook) = {name:"excel/list/List#*.csv"};
+option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
+option (tableau.workbook) = {name:"excel/dev/list/List#*.csv"};
 
 message EmptyElemList {
   option (tableau.worksheet) = {name:"EmptyElemList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
@@ -18,7 +18,7 @@ message EmptyElemList {
   message Reward {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
-    map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"Id" layout:LAYOUT_HORIZONTAL}];
+    map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"ID" layout:LAYOUT_HORIZONTAL}];
     repeated Section section_list = 4 [(tableau.field) = {name:"Section" layout:LAYOUT_HORIZONTAL}];
     message Section {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];

@@ -6,13 +6,12 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
-import "common/time.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
-option go_package = "github.com/tableauio/tableau/test/dev/protoconf";
-option (tableau.workbook) = {name:"excel/Test#*.csv"};
+option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
+option (tableau.workbook) = {name:"excel/dev/Test#*.csv"};
 
 message Activity {
   option (tableau.worksheet) = {name:"Activity" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," ordered_map:true};
@@ -162,13 +161,13 @@ message Reward {
   message Reward {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
-    map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"Id" layout:LAYOUT_HORIZONTAL}];
+    map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"ID" layout:LAYOUT_HORIZONTAL}];
     repeated Exchange exchange_list = 4 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
     message Exchange {
-      uint32 exchange_id = 1 [(tableau.field) = {name:"ExchangeId"}];
+      uint32 exchange_id = 1 [(tableau.field) = {name:"ExchangeID"}];
       repeated ExchangeItem input_item_list = 2 [(tableau.field) = {name:"InputItem" layout:LAYOUT_HORIZONTAL}];
       message ExchangeItem {
-        int32 id = 1 [(tableau.field) = {name:"Id"}];
+        int32 id = 1 [(tableau.field) = {name:"ID"}];
         int32 num = 2 [(tableau.field) = {name:"Num"}];
       }
       repeated ExchangeItem output_item_list = 3 [(tableau.field) = {name:"OutputItem" layout:LAYOUT_HORIZONTAL}];
