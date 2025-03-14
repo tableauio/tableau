@@ -712,23 +712,23 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 				if err != nil {
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
-				var cellDataList []string
-				if subField.opts.Prop != nil && subField.opts.Prop.UnionFields != nil {
-					fieldCount := int(subField.opts.Prop.GetUnionFields())
-					if fieldCount == 0 {
+				var crossCellDataList []string
+				if subField.opts.Prop != nil && subField.opts.Prop.Cap != 0 && subField.opts.Prop.Cap != 1 {
+					fieldCount := int(subField.opts.Prop.Cap)
+					if fieldCount == -1 {
 						fieldCount = math.MaxInt32
 					}
-					cellDataList = []string{cell.Data}
+					crossCellDataList = []string{cell.Data}
 					for j := 1; j < fieldCount; j++ {
 						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
 						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
 						if err != nil {
 							break
 						}
-						cellDataList = append(cellDataList, c.Data)
+						crossCellDataList = append(crossCellDataList, c.Data)
 					}
 				}
-				err = sp.parseUnionMessageField(subField, msg, cell.Data, cellDataList)
+				err = sp.parseUnionMessageField(subField, msg, cell.Data, crossCellDataList)
 				if err != nil {
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}

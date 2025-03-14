@@ -52,7 +52,7 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 }
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
-	g := &Generator{
+	gen := &Generator{
 		ProtoPackage: protoPackage,
 		InputDir:     indir,
 		OutputDir:    outdir,
@@ -72,17 +72,25 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		strcase.ConfigureAcronym(key, val)
 	}
 
+	return gen
+}
+
+func (gen *Generator) preprocess(delExisted bool) error {
 	// parse custom imported proto files
 	protofiles, err := xproto.ParseProtos(
-		g.InputOpt.ProtoPaths,
-		g.InputOpt.ProtoFiles...)
+		gen.InputOpt.ProtoPaths,
+		gen.InputOpt.ProtoFiles...)
 	if err != nil {
-		log.Panic(err)
+		return err
 	}
-	g.protofiles = protofiles
-	g.typeInfos = xproto.GetAllTypeInfo(protofiles, g.ProtoPackage)
+	gen.protofiles = protofiles
+	gen.typeInfos = xproto.GetAllTypeInfo(protofiles, gen.ProtoPackage)
 
-	return g
+	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
+	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ProtoFiles, delExisted); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (gen *Generator) Generate(relWorkbookPaths ...string) error {
@@ -93,11 +101,9 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 }
 
 func (gen *Generator) GenAll() error {
-	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ProtoFiles, true); err != nil {
+	if err := gen.preprocess(true); err != nil {
 		return err
 	}
-
 	// first pass
 	if len(gen.InputOpt.Subdirs) != 0 {
 		for _, subdir := range gen.InputOpt.Subdirs {
@@ -116,11 +122,9 @@ func (gen *Generator) GenAll() error {
 }
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
-	outputProtoDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	if err := prepareOutdir(outputProtoDir, gen.InputOpt.ProtoFiles, false); err != nil {
+	if err := gen.preprocess(false); err != nil {
 		return err
 	}
-
 	// first pass
 	var eg1 errgroup.Group
 	for _, relWorkbookPath := range relWorkbookPaths {
@@ -132,7 +136,6 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	if err := eg1.Wait(); err != nil {
 		return err
 	}
-
 	// second pass
 	return gen.processSecondPass()
 }

@@ -655,11 +655,11 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 	}
 }
 
-func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cellData string, cellDataList []string) error {
+func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, data string, crossDataList []string) error {
 	if field.fd.IsMap() {
 		// incell map
 		value := msg.NewField(field.fd)
-		err := sp.parseIncellMap(field, value.Map(), cellData)
+		err := sp.parseIncellMap(field, value.Map(), data)
 		if err != nil {
 			return err
 		}
@@ -670,8 +670,8 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		// incell list
 		value := msg.NewField(field.fd)
 		list := value.List()
-		if len(cellDataList) != 0 {
-			for _, data := range cellDataList {
+		if len(crossDataList) != 0 {
+			for _, data := range crossDataList {
 				fieldValue := list.NewElement()
 				var elemPresent bool
 				var err error
@@ -709,7 +709,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 				msg.Set(field.fd, value)
 			}
 		} else {
-			present, err := sp.parseIncellListField(field, list, cellData)
+			present, err := sp.parseIncellListField(field, list, data)
 			if err != nil {
 				return err
 			}
@@ -721,7 +721,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		subMsgName := string(field.fd.Message().FullName())
 		if types.IsWellKnownMessage(subMsgName) {
 			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
-			value, present, err := sp.parseFieldValue(field.fd, cellData, field.opts.Prop)
+			value, present, err := sp.parseFieldValue(field.fd, data, field.opts.Prop)
 			if err != nil {
 				return err
 			}
@@ -732,7 +732,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		}
 		// incell struct
 		value := msg.NewField(field.fd)
-		present, err := sp.parseIncellStruct(value, cellData, field.opts.GetProp().GetForm(), field.sep)
+		present, err := sp.parseIncellStruct(value, data, field.opts.GetProp().GetForm(), field.sep)
 		if err != nil {
 			return err
 		}
@@ -740,7 +740,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 			msg.Set(field.fd, value)
 		}
 	} else {
-		val, present, err := sp.parseFieldValue(field.fd, cellData, field.opts.Prop)
+		val, present, err := sp.parseFieldValue(field.fd, data, field.opts.Prop)
 		if err != nil {
 			return err
 		}

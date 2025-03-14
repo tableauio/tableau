@@ -212,7 +212,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
 			fieldNumber := cursor + 1
 			subField := &internalpb.Field{}
-			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.UnionFieldsValid())
+			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.Mode(tableaupb.Mode_MODE_UNION_TYPE))
 			if err != nil {
 				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 			}

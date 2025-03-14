@@ -1,5 +1,5 @@
 ID,TargetType,TargetField1,TargetField2,TargetField3,TargetField4,TargetField5,TargetField6
-"map<int32, Task>",{.FieldsTarget}enum<.FieldsTarget.Type>,union,union,union,union,union,union
+"map<int32, Task>",{.FieldCapTarget}enum<.FieldsTarget.Type>,union,union,union,union,union,union
 ID,Target's type,Target's field1,Target's field2,Target's field3,Target's field4,Target's field5,Target's field6
 1,Exchange,9001,"1001,10","1002,20",,"1003,30","1004,40"
 2,Exchange,9002,"1001,100",,,"1003,300",

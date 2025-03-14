@@ -269,11 +269,20 @@ message FieldProp {
   //
   // Default: ":".
   string subsep = 14;
-  // Specify the count of union fields the list will occupy (one list element
-  // for each field). It will also the change this list field's layout from
-  // incell to horizontal.
-  // Zero value means the list will occupy all following fields.
-  optional uint32 union_fields = 15;
+  // Capacity of composite type with cardinality, such as list and map.
+  //
+  // For union list field:
+  //
+  //    Specify the count of union fields the list will occupy
+  //    (one list element for each field). It will also the change this list
+  //    field's layout from incell to horizontal.
+  //
+  //    - Value 0 or 1 means the list will occupy a single field.
+  //    - Value > 1 means the list will occupy the following N fields.
+  //    - Value -1 means the list will occupy all following fields.
+  //
+  // TODO: use cases for more composite types.
+  int32 cap = 15;
 }
 
 // Layout of list and map.

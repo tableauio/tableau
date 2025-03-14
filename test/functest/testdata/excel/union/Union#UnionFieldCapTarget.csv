@@ -1,0 +1,16 @@
+Name,Alias,Field1,Field2,Field3,Field4,Field5,Field6
+Exchange,Exchange,"ID
+uint32","Cost
+[].Item|{cap:3}",,,"Gain
+[].Item|{cap:-1}",
+Vote,Vote,"Approves
+[]uint32|{cap:2}",,"Againsts
+[]uint32|{cap:2}",,"Abstains
+[]uint32|{cap:2}",
+Fruit,Fruit,"TypeA
+[]enum<.FruitType>|{cap:3}",,,"TypeB
+[]enum<.FruitType>","Flavor
+[]enum<.FruitFlavor>|{cap:-1}",
+Key,Key,"Keys
+[]<int32>|{cap:3}",,,"Values
+[]int32|{cap:-1}",,

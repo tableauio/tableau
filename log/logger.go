@@ -75,18 +75,18 @@ func (l *Logger) Error(args ...any) {
 }
 
 func (l *Logger) DPanic(args ...any) {
-	l.log(core.DPanicLevel, "", args, nil)
+	l.log(core.DPanicLevel, "%+v", args, nil)
 	// TODO: panic only in development
-	panic("log panic")
+	os.Exit(-1)
 }
 
 func (l *Logger) Panic(args ...any) {
-	l.log(core.PanicLevel, "", args, nil)
-	panic("log panic")
+	l.log(core.PanicLevel, "%+v", args, nil)
+	os.Exit(-1)
 }
 
 func (l *Logger) Fatal(args ...any) {
-	l.log(core.FatalLevel, "", args, nil)
+	l.log(core.FatalLevel, "%+v", args, nil)
 	os.Exit(-1)
 }
 
