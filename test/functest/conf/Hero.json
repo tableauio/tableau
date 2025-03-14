@@ -1,0 +1,172 @@
+{
+    "heroMap": {
+        "1": {
+            "id": 1,
+            "desc": "hero1",
+            "kind": 1,
+            "group": 10,
+            "propertyMap": {
+                "1": {
+                    "id": 1,
+                    "value": "10"
+                },
+                "2": {
+                    "id": 2,
+                    "value": "20"
+                }
+            },
+            "awardItem": {
+                "id": 1,
+                "num": 10
+            }
+        },
+        "2": {
+            "id": 2,
+            "desc": "hero2",
+            "kind": 1,
+            "group": 11,
+            "propertyMap": {
+                "3": {
+                    "id": 3,
+                    "value": "30"
+                },
+                "4": {
+                    "id": 4,
+                    "value": "40"
+                }
+            },
+            "awardItem": {
+                "id": 2,
+                "num": 11
+            }
+        },
+        "3": {
+            "id": 3,
+            "desc": "hero3",
+            "kind": 2,
+            "group": 22,
+            "propertyMap": {
+                "5": {
+                    "id": 5,
+                    "value": "50"
+                }
+            },
+            "awardItem": {
+                "id": 3,
+                "num": 12
+            }
+        },
+        "10": {
+            "id": 10,
+            "desc": "hero10",
+            "kind": 1,
+            "group": 10,
+            "propertyMap": {
+                "1": {
+                    "id": 1,
+                    "value": "10"
+                },
+                "2": {
+                    "id": 2,
+                    "value": "20"
+                }
+            },
+            "awardItem": {
+                "id": 1,
+                "num": 10
+            }
+        },
+        "20": {
+            "id": 20,
+            "desc": "hero20",
+            "kind": 1,
+            "group": 11,
+            "propertyMap": {
+                "3": {
+                    "id": 3,
+                    "value": "30"
+                },
+                "4": {
+                    "id": 4,
+                    "value": "40"
+                }
+            },
+            "awardItem": {
+                "id": 2,
+                "num": 11
+            }
+        },
+        "30": {
+            "id": 30,
+            "desc": "hero30",
+            "kind": 2,
+            "group": 22,
+            "propertyMap": {
+                "5": {
+                    "id": 5,
+                    "value": "50"
+                }
+            },
+            "awardItem": {
+                "id": 3,
+                "num": 12
+            }
+        },
+        "100": {
+            "id": 100,
+            "desc": "hero100",
+            "kind": 1,
+            "group": 10,
+            "propertyMap": {
+                "1": {
+                    "id": 1,
+                    "value": "10"
+                },
+                "2": {
+                    "id": 2,
+                    "value": "20"
+                }
+            },
+            "awardItem": {
+                "id": 1,
+                "num": 10
+            }
+        },
+        "200": {
+            "id": 200,
+            "desc": "hero200",
+            "kind": 1,
+            "group": 11,
+            "propertyMap": {
+                "3": {
+                    "id": 3,
+                    "value": "30"
+                },
+                "4": {
+                    "id": 4,
+                    "value": "40"
+                }
+            },
+            "awardItem": {
+                "id": 2,
+                "num": 11
+            }
+        },
+        "300": {
+            "id": 300,
+            "desc": "hero300",
+            "kind": 2,
+            "group": 22,
+            "propertyMap": {
+                "5": {
+                    "id": 5,
+                    "value": "50"
+                }
+            },
+            "awardItem": {
+                "id": 3,
+                "num": 12
+            }
+        }
+    }
+}

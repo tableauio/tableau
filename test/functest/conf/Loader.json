@@ -1,0 +1,90 @@
+{
+    "serverMap": {
+        "1": {
+            "type": "SERVER_TYPE_GAME",
+            "confList": [
+                {
+                    "type": "CONF_TYPE_CLOUD",
+                    "conditionList": [
+                        {
+                            "type": 0,
+                            "value": 113
+                        }
+                    ],
+                    "deployList": [
+                        {
+                            "type": "CONF_TYPE_CLOUD",
+                            "weight": 2
+                        },
+                        {
+                            "type": "CONF_TYPE_LOCAL",
+                            "weight": 10
+                        }
+                    ],
+                    "extTypeList": [
+                        "CONF_TYPE_CLOUD",
+                        "CONF_TYPE_LOCAL"
+                    ],
+                    "strategyMap": {
+                        "1": {
+                            "type": "CONF_TYPE_CLOUD",
+                            "num": 1
+                        },
+                        "2": {
+                            "type": "CONF_TYPE_LOCAL",
+                            "num": 22
+                        }
+                    }
+                }
+            ]
+        },
+        "2": {
+            "type": "SERVER_TYPE_ACTIVITY",
+            "confList": [
+                {
+                    "type": "CONF_TYPE_CLOUD",
+                    "conditionList": [
+                        {
+                            "type": 0,
+                            "value": 0
+                        }
+                    ],
+                    "deployList": [],
+                    "extTypeList": [],
+                    "strategyMap": {}
+                },
+                {
+                    "type": "CONF_TYPE_LOCAL",
+                    "conditionList": [
+                        {
+                            "type": 9,
+                            "value": 34
+                        }
+                    ],
+                    "deployList": [],
+                    "extTypeList": [],
+                    "strategyMap": {}
+                },
+                {
+                    "type": "CONF_TYPE_REMOTE",
+                    "conditionList": [],
+                    "deployList": [],
+                    "extTypeList": [],
+                    "strategyMap": {}
+                }
+            ]
+        },
+        "3": {
+            "type": "SERVER_TYPE_MATCH",
+            "confList": [
+                {
+                    "type": "CONF_TYPE_UNKNOWN",
+                    "conditionList": [],
+                    "deployList": [],
+                    "extTypeList": [],
+                    "strategyMap": {}
+                }
+            ]
+        }
+    }
+}

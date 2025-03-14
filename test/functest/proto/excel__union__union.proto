@@ -6,10 +6,44 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "common/union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/union/Union#*.csv"};
+
+message FieldCapUnion {
+  option (tableau.worksheet) = {name:"FieldCapUnion" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Task {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    protoconf.FieldCapTarget target = 2 [(tableau.field) = {name:"Target"}];
+  }
+}
+
+message PredefinedIncellUnion {
+  option (tableau.worksheet) = {name:"PredefinedIncellUnion" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Task {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    union.Target target_1 = 2 [(tableau.field) = {name:"Target1" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}];
+    union.Target target_2 = 3 [(tableau.field) = {name:"Target2" span:SPAN_INNER_CELL prop:{form:FORM_JSON}}];
+    int32 progress = 4 [(tableau.field) = {name:"Progress"}];
+  }
+}
+
+message PredefinedUnion {
+  option (tableau.worksheet) = {name:"PredefinedUnion" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Task {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    union.Target target = 2 [(tableau.field) = {name:"Target"}];
+    int32 progress = 3 [(tableau.field) = {name:"Progress"}];
+  }
+}
 
 message FieldCapTarget {
   option (tableau.union) = {name:"UnionFieldCapTarget"};
