@@ -1,6 +1,7 @@
 package prop
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -177,4 +178,14 @@ func CheckPresence(prop *tableaupb.FieldProp, present bool) error {
 		}
 	}
 	return nil
+}
+
+func GetUnionCrossFieldCount(prop *tableaupb.FieldProp) int {
+	if prop != nil {
+		if prop.Cap == -1 {
+			return math.MaxInt32
+		}
+		return int(prop.Cap)
+	}
+	return 0
 }

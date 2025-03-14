@@ -66,6 +66,6 @@ message Target {
   }
   message Item {
     bool available = 1;
-    repeated protoconf.Item item_list = 2 [(tableau.field) = {layout:LAYOUT_INCELL prop:{cap:-1}}];
+    repeated protoconf.Item item_list = 2 [(tableau.field) = {layout:LAYOUT_HORIZONTAL prop:{cap:-1}}];
   }
 }

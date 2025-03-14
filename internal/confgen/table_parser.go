@@ -2,7 +2,6 @@ package confgen
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 
 	"github.com/tableauio/tableau/internal/confgen/prop"
@@ -713,11 +712,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
 				var crossCellDataList []string
-				if subField.opts.Prop != nil && subField.opts.Prop.Cap != 0 && subField.opts.Prop.Cap != 1 {
-					fieldCount := int(subField.opts.Prop.Cap)
-					if fieldCount == -1 {
-						fieldCount = math.MaxInt32
-					}
+				if fieldCount := prop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 1 {
 					crossCellDataList = []string{cell.Data}
 					for j := 1; j < fieldCount; j++ {
 						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
@@ -729,10 +724,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 					}
 				}
 				err = sp.parseUnionMessageField(subField, msg, cell.Data, crossCellDataList)
-				if err != nil {
-					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
-				}
-				return nil
+				return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 			}()
 			if err != nil {
 				return false, err

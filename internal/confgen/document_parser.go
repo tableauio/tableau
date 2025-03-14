@@ -1,7 +1,6 @@
 package confgen
 
 import (
-	"math"
 	"strconv"
 	"strings"
 
@@ -529,11 +528,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 				}
 				var crossNodeValues []string
-				if subField.opts.Prop != nil && subField.opts.Prop.Cap != 0 && subField.opts.Prop.Cap != 1{
-					fieldCount := int(subField.opts.Prop.Cap)
-					if fieldCount == -1 {
-						fieldCount = math.MaxInt32
-					}
+				if fieldCount := prop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 1 {
 					crossNodeValues = []string{valNode.Value}
 					for j := 1; j < fieldCount; j++ {
 						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
@@ -545,10 +540,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					}
 				}
 				err := sp.parseUnionMessageField(subField, msg, valNode.Value, crossNodeValues)
-				if err != nil {
-					return xerrors.WrapKV(err, valNode.DebugNameKV()...)
-				}
-				return nil
+				return xerrors.WrapKV(err, valNode.DebugNameKV()...)
 			}()
 			if err != nil {
 				return false, err
