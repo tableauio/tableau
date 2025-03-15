@@ -1,0 +1,150 @@
+{
+    "interval": 1,
+    "timeout": 11,
+    "factorMap": {
+        "10": {
+            "type": 10,
+            "value": 11
+        },
+        "100": {
+            "type": 100,
+            "value": 11
+        }
+    },
+    "modeMap": {
+        "1": {
+            "id": 1,
+            "difficulty": 11,
+            "desc": "mode1",
+            "aiList": [
+                {
+                    "type": 1,
+                    "ability": 1
+                }
+            ]
+        },
+        "2": {
+            "id": 2,
+            "difficulty": 12,
+            "desc": "mode2",
+            "aiList": [
+                {
+                    "type": 2,
+                    "ability": 4
+                }
+            ]
+        },
+        "3": {
+            "id": 3,
+            "difficulty": 13,
+            "desc": "mode3",
+            "aiList": [
+                {
+                    "type": 3,
+                    "ability": 7
+                },
+                {
+                    "type": 4,
+                    "ability": 7
+                }
+            ]
+        }
+    },
+    "task": {
+        "type": 1,
+        "paramList": [
+            1,
+            2
+        ],
+        "filterMap": {
+            "1": {
+                "type": 1,
+                "jobList": [
+                    {
+                        "type": 1
+                    }
+                ],
+                "sectionList": [
+                    {
+                        "id": 1,
+                        "name": "签到活动节1",
+                        "itemList": [
+                            {
+                                "id": 2001,
+                                "num": 1
+                            }
+                        ]
+                    }
+                ]
+            },
+            "2": {
+                "type": 2,
+                "jobList": [
+                    {
+                        "type": 2,
+                        "count": 2
+                    }
+                ],
+                "sectionList": [
+                    {
+                        "id": 2,
+                        "name": "签到活动节2",
+                        "itemList": [
+                            {
+                                "id": 2002,
+                                "num": 2
+                            }
+                        ]
+                    }
+                ]
+            },
+            "3": {
+                "type": 3,
+                "open": true,
+                "jobList": [
+                    {
+                        "type": 3,
+                        "count": 3
+                    },
+                    {
+                        "type": 4
+                    }
+                ],
+                "sectionList": [
+                    {
+                        "id": 3,
+                        "name": "签到活动节3",
+                        "itemList": [
+                            {
+                                "id": 2003,
+                                "num": 3
+                            },
+                            {
+                                "id": 2005,
+                                "num": 13
+                            }
+                        ]
+                    },
+                    {
+                        "id": 4,
+                        "name": "签到活动节4",
+                        "itemList": [
+                            {
+                                "id": 2004,
+                                "num": 4
+                            },
+                            {
+                                "id": 2005,
+                                "num": 14
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    },
+    "robot": {
+        "type": 1,
+        "ability": 1
+    }
+}

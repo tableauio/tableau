@@ -120,11 +120,15 @@ message WorksheetOptions {
   //  - incell list elements (scalar or struct).
   //  - incell map items.
   //
+  // If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
+  //
   // Default: ",".
   string sep = 11;
   // Sheet-level subseparator for separating:
   //  - key-value pair of each incell map item.
   //  - struct fields of each incell struct list element.
+  //
+  // If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
   //
   // Default: ":".
   string subsep = 12;
@@ -166,7 +170,8 @@ message WorksheetOptions {
   // Format: <ColumnName>[@IndexName], if IndexName is not set, it will be this
   // column’s parent struct type name.
   //
-  // Composite indexes (or multicolumn indexes) are in the form: ([column1, column2, column3,...])[@IndexName]
+  // Composite indexes (or multicolumn indexes) are in the form:
+  // ([column1, column2, column3,...])[@IndexName]
   //
   // Examples:
   //  - ID
@@ -178,13 +183,16 @@ message WorksheetOptions {
 
   // Specify loader language options.
   // Valid keys are: OrderedMap, Index.
-  // Different kvs must be seperated by ',' and one key value must be seperated by ':'.
-  // If one key doesn't exist in map, it means that this loader option is supported in all languages.
-  // Valid values are all combinations of "cpp", "go" with ' ' as seperator.
+  // Different kvs must be seperated by ',' and one key value must be seperated
+  // by ':'. If one key doesn't exist in map, it means that this loader option
+  // is supported in all languages. Valid values are all combinations of "cpp",
+  // "go" with ' ' as seperator.
   //
   // Examples:
-  //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index supported in cpp and go
-  //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all languages
+  //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index
+  //    supported in cpp and go
+  //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all
+  //    languages
   map<string, string> lang_options = 52;
 }
 
@@ -269,6 +277,21 @@ message FieldProp {
   //
   // Default: ":".
   string subsep = 14;
+  // Specify count of crossed nodes/cells/fields of composite types with
+  // cardinality, such as list and map.
+  //
+  // For union list field:
+  //
+  //    Specify the count of union fields the list will cross and occupy
+  //    (one list element for each field). It will also change this list
+  //    field's layout from incell to horizontal.
+  //
+  //    - Value 0 means it is an incell list.
+  //    - Value > 0 means it is a horizontal list occupying N fields.
+  //    - Value < 0 means it is a horizontal list occupying all following fields.
+  //
+  // TODO: use cases for more composite types.
+  int32 cross = 15;
 }
 
 // Layout of list and map.
@@ -297,12 +320,12 @@ enum Span {
 // Sheet mode.
 enum Mode {
   MODE_DEFAULT = 0;            // Default mode.
-  MODE_ENUM_TYPE = 1;          // Enum type definition in sheet.
-  MODE_ENUM_TYPE_MULTI = 2;    // Enum type multiple definitions in sheet.
-  MODE_STRUCT_TYPE = 3;        // TODO: Struct type definition in sheet.
-  MODE_STRUCT_TYPE_MULTI = 4;  // Struct type multiple definitions in sheet.
-  MODE_UNION_TYPE = 5;         // Union type definition in sheet.
-  MODE_UNION_TYPE_MULTI = 6;   // TODO: Union type multiple definitions in sheet.
+  MODE_ENUM_TYPE = 1;          // Enum type: single definition in a sheet.
+  MODE_ENUM_TYPE_MULTI = 2;    // Enum type: multiple definitions in a sheet.
+  MODE_STRUCT_TYPE = 3;        // Struct type: single definition in a sheet.
+  MODE_STRUCT_TYPE_MULTI = 4;  // Struct type: multiple definitions in a sheet.
+  MODE_UNION_TYPE = 5;         // Union type: single definition in a sheet.
+  MODE_UNION_TYPE_MULTI = 6;   // Union type: multiple definitions in a sheet.
 
   // UE DataTable references:
   //  - https://dev.epicgames.com/documentation/en-us/unreal-engine/data-driven-gameplay-elements-in-unreal-engine
@@ -313,7 +336,7 @@ enum Mode {
 
 // Cell data form.
 enum Form {
-  FORM_DEFAULT = 0;  // Default form which confgen parser defines.
+  FORM_DEFAULT = 0;  // Default form which confgen parser will parse.
   FORM_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec
   FORM_JSON = 2;     // Refer: https://developers.google.com/protocol-buffers/docs/proto3#json
 }

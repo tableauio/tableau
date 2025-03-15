@@ -45,18 +45,6 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func Test_Excel2CSV(t *testing.T) {
-	err := xfs.RangeFilesByFormat("./testdata/excel", format.Excel, func(bookPath string) error {
-		// log.Printf("path: %s", bookPath)
-		imp, err := importer.NewExcelImporter(bookPath, nil, nil, 0, false)
-		if err != nil {
-			return err
-		}
-		return imp.ExportCSV()
-	})
-	require.NoError(t, err)
-}
-
 func Test_CSV2Excel(t *testing.T) {
 	err := xfs.RangeFilesByFormat("./testdata/excel", format.CSV, func(bookPath string) error {
 		// log.Printf("path: %s", bookPath)
@@ -65,6 +53,18 @@ func Test_CSV2Excel(t *testing.T) {
 			return err
 		}
 		return imp.ExportExcel()
+	})
+	require.NoError(t, err)
+}
+
+func Test_Excel2CSV(t *testing.T) {
+	err := xfs.RangeFilesByFormat("./testdata/excel", format.Excel, func(bookPath string) error {
+		// log.Printf("path: %s", bookPath)
+		imp, err := importer.NewExcelImporter(bookPath, nil, nil, 0, false)
+		if err != nil {
+			return err
+		}
+		return imp.ExportCSV()
 	})
 	require.NoError(t, err)
 }

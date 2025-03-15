@@ -1,0 +1,25 @@
+{
+    "heroList": [
+        {
+            "prop": {
+                "id": 1,
+                "val": 1
+            },
+            "itemDesc": "hero1"
+        },
+        {
+            "prop": {
+                "id": 2,
+                "val": 3
+            },
+            "itemDesc": "hero2"
+        },
+        {
+            "prop": {
+                "id": 3,
+                "val": 5
+            },
+            "itemDesc": "hero3"
+        }
+    ]
+}

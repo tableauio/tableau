@@ -1,6 +1,7 @@
-package prop
+package fieldprop
 
 import (
+	"math"
 	"strconv"
 	"strings"
 
@@ -177,4 +178,17 @@ func CheckPresence(prop *tableaupb.FieldProp, present bool) error {
 		}
 	}
 	return nil
+}
+
+// GetUnionCrossFieldCount returns the cross field count of a union
+// list (TODO: map) field. If cross is < 0, means occupying all following
+// fields, so it will return [math.MaxInt].
+func GetUnionCrossFieldCount(prop *tableaupb.FieldProp) int {
+	if prop != nil {
+		if prop.Cross < 0 {
+			return math.MaxInt
+		}
+		return int(prop.Cross)
+	}
+	return 0
 }

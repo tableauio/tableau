@@ -1,0 +1,397 @@
+{
+    "activityMap": {
+        "100001": {
+            "activityId": 100001,
+            "activityName": "活动1",
+            "chapterMap": {
+                "1": {
+                    "chapterId": 1,
+                    "chapterName": "签到活动章1",
+                    "sectionList": [
+                        {
+                            "sectionId": 1,
+                            "sectionName": "签到活动节1",
+                            "sectionItemList": [
+                                {
+                                    "id": 2001,
+                                    "num": 1
+                                }
+                            ],
+                            "duration": {
+                                "type": "DURATION_TYPE_UNKNOWN",
+                                "begin": "2019-12-31T21:00:00Z",
+                                "end": "2020-03-04T21:00:00Z",
+                                "delayedDays": 1,
+                                "params": [
+                                    1
+                                ]
+                            },
+                            "timespan": "60.500s",
+                            "task": {
+                                "type": 8,
+                                "param1": 1,
+                                "param2": 0,
+                                "param3": 0,
+                                "incellParam1List": [],
+                                "incellParam2List": [],
+                                "incellParam3List": [],
+                                "incellParam4Map": {},
+                                "incellParam5Map": {},
+                                "target": 10
+                            },
+                            "warnInfo": {
+                                "id": 1,
+                                "desc": "desc1",
+                                "value": 100
+                            },
+                            "incellStruct": {
+                                "id": 1,
+                                "desc": "desc",
+                                "value": 0
+                            },
+                            "intParamList": [
+                                1
+                            ],
+                            "tipMap": {},
+                            "clientParamList": []
+                        },
+                        {
+                            "sectionId": 2,
+                            "sectionName": "签到活动节1",
+                            "sectionItemList": [
+                                {
+                                    "id": 2001,
+                                    "num": 1
+                                }
+                            ],
+                            "duration": {
+                                "type": "DURATION_TYPE_ABSOLUTE",
+                                "begin": "2019-12-31T21:00:00Z",
+                                "end": "2020-03-04T21:00:00Z",
+                                "delayedDays": 1,
+                                "params": [
+                                    1
+                                ]
+                            },
+                            "timespan": "60.500s",
+                            "task": {
+                                "type": 9,
+                                "param1": 0,
+                                "param2": 0,
+                                "param3": 0,
+                                "incellParam1List": [
+                                    1,
+                                    2,
+                                    3
+                                ],
+                                "incellParam2List": [
+                                    4,
+                                    5,
+                                    6
+                                ],
+                                "incellParam3List": [
+                                    40,
+                                    50,
+                                    60
+                                ],
+                                "incellParam4Map": {
+                                    "1": 2,
+                                    "3": 4
+                                },
+                                "incellParam5Map": {
+                                    "10": 20,
+                                    "30": 40
+                                },
+                                "target": 10
+                            },
+                            "warnInfo": {
+                                "id": 1,
+                                "desc": "desc1",
+                                "value": 100
+                            },
+                            "incellStruct": {
+                                "id": 1,
+                                "desc": "desc",
+                                "value": 0
+                            },
+                            "intParamList": [
+                                1
+                            ],
+                            "tipMap": {},
+                            "clientParamList": []
+                        },
+                        {
+                            "sectionId": 3,
+                            "sectionName": "签到活动节2",
+                            "sectionItemList": [],
+                            "duration": {
+                                "type": "DURATION_TYPE_REGISTER",
+                                "begin": "2020-03-04T21:00:00Z",
+                                "end": "2020-07-09T21:00:00Z",
+                                "delayedDays": 2,
+                                "params": [
+                                    1,
+                                    2
+                                ]
+                            },
+                            "timespan": "3601s",
+                            "task": {
+                                "type": 10,
+                                "param1": 2,
+                                "param2": 0,
+                                "param3": 0,
+                                "incellParam1List": [
+                                    10,
+                                    11,
+                                    12
+                                ],
+                                "incellParam2List": [
+                                    13,
+                                    14,
+                                    15
+                                ],
+                                "incellParam3List": [
+                                    130140150
+                                ],
+                                "incellParam4Map": {
+                                    "5": 6,
+                                    "7": 8
+                                },
+                                "incellParam5Map": {
+                                    "50": 60,
+                                    "70": 80
+                                },
+                                "target": 1
+                            },
+                            "warnInfo": {
+                                "id": 2,
+                                "desc": "desc2",
+                                "value": 500
+                            },
+                            "incellStruct": {
+                                "id": 1,
+                                "desc": "desc2",
+                                "value": 0
+                            },
+                            "intParamList": [
+                                1
+                            ],
+                            "tipMap": {
+                                "10": "hot"
+                            },
+                            "clientParamList": []
+                        },
+                        {
+                            "sectionId": 4,
+                            "sectionName": "签到活动节3",
+                            "sectionItemList": [],
+                            "duration": {
+                                "type": "DURATION_TYPE_OPEN_SERVER",
+                                "begin": "2020-03-04T21:00:00Z",
+                                "end": "2020-07-09T21:00:00Z",
+                                "delayedDays": 3,
+                                "params": [
+                                    1,
+                                    2,
+                                    3
+                                ]
+                            },
+                            "timespan": "3601s",
+                            "task": {
+                                "type": 11,
+                                "param1": 3,
+                                "param2": 0,
+                                "param3": 0,
+                                "incellParam1List": [],
+                                "incellParam2List": [],
+                                "incellParam3List": [],
+                                "incellParam4Map": {},
+                                "incellParam5Map": {},
+                                "target": 1
+                            },
+                            "warnInfo": {
+                                "id": 3,
+                                "desc": "desc3",
+                                "value": 1000
+                            },
+                            "incellStruct": {
+                                "id": 1,
+                                "desc": "desc3",
+                                "value": 0
+                            },
+                            "intParamList": [
+                                1,
+                                2,
+                                3
+                            ],
+                            "tipMap": {
+                                "1": "good",
+                                "2": "bad"
+                            },
+                            "clientParamList": []
+                        }
+                    ]
+                },
+                "2": {
+                    "chapterId": 2,
+                    "chapterName": "签到活动章2",
+                    "sectionList": [
+                        {
+                            "sectionId": 1,
+                            "sectionName": "签到活动节1",
+                            "sectionItemList": [
+                                {
+                                    "id": 2002,
+                                    "num": 2
+                                },
+                                {
+                                    "id": 2002,
+                                    "num": 3
+                                },
+                                {
+                                    "id": 2002,
+                                    "num": 3
+                                }
+                            ],
+                            "duration": {
+                                "type": "DURATION_TYPE_REGISTER",
+                                "begin": "2020-07-09T21:00:00Z",
+                                "end": "2020-08-09T21:00:00Z",
+                                "delayedDays": 1,
+                                "params": []
+                            },
+                            "timespan": "259380.500s",
+                            "task": {
+                                "type": 2,
+                                "param1": 1,
+                                "param2": 0,
+                                "param3": 0,
+                                "incellParam1List": [],
+                                "incellParam2List": [],
+                                "incellParam3List": [],
+                                "incellParam4Map": {},
+                                "incellParam5Map": {},
+                                "target": 0
+                            },
+                            "warnInfo": null,
+                            "incellStruct": null,
+                            "intParamList": [],
+                            "tipMap": {},
+                            "clientParamList": []
+                        }
+                    ]
+                }
+            }
+        },
+        "100002": {
+            "activityId": 100002,
+            "activityName": "活动2",
+            "chapterMap": {
+                "1": {
+                    "chapterId": 1,
+                    "chapterName": "抽奖活动章1",
+                    "sectionList": [
+                        {
+                            "sectionId": 2,
+                            "sectionName": "抽奖活动节1",
+                            "sectionItemList": [
+                                {
+                                    "id": 2001,
+                                    "num": 1
+                                },
+                                {
+                                    "id": 2002,
+                                    "num": 2
+                                },
+                                {
+                                    "id": 2002,
+                                    "num": 2
+                                }
+                            ],
+                            "duration": {
+                                "type": "DURATION_TYPE_REGISTER",
+                                "begin": "2020-08-09T21:00:00Z",
+                                "end": "2020-09-09T21:00:00Z",
+                                "delayedDays": 2,
+                                "params": []
+                            },
+                            "timespan": "3661s",
+                            "task": {
+                                "type": 2,
+                                "param1": 2,
+                                "param2": 0,
+                                "param3": 0,
+                                "incellParam1List": [],
+                                "incellParam2List": [],
+                                "incellParam3List": [],
+                                "incellParam4Map": {},
+                                "incellParam5Map": {},
+                                "target": 0
+                            },
+                            "warnInfo": null,
+                            "incellStruct": null,
+                            "intParamList": [],
+                            "tipMap": {},
+                            "clientParamList": []
+                        }
+                    ]
+                }
+            }
+        },
+        "100003": {
+            "activityId": 100003,
+            "activityName": "",
+            "chapterMap": {
+                "1": {
+                    "chapterId": 1,
+                    "chapterName": "月卡活动章1",
+                    "sectionList": [
+                        {
+                            "sectionId": 3,
+                            "sectionName": "月卡活动节1",
+                            "sectionItemList": [
+                                {
+                                    "id": 2001,
+                                    "num": 1
+                                },
+                                {
+                                    "id": 2002,
+                                    "num": 2
+                                },
+                                {
+                                    "id": 2002,
+                                    "num": 2
+                                }
+                            ],
+                            "duration": {
+                                "type": "DURATION_TYPE_REGISTER",
+                                "begin": "2020-09-09T21:00:00Z",
+                                "end": "2020-09-30T21:00:00Z",
+                                "delayedDays": 3,
+                                "params": []
+                            },
+                            "timespan": "3660s",
+                            "task": {
+                                "type": 2,
+                                "param1": 3,
+                                "param2": 0,
+                                "param3": 0,
+                                "incellParam1List": [],
+                                "incellParam2List": [],
+                                "incellParam3List": [],
+                                "incellParam4Map": {},
+                                "incellParam5Map": {},
+                                "target": 0
+                            },
+                            "warnInfo": null,
+                            "incellStruct": null,
+                            "intParamList": [],
+                            "tipMap": {},
+                            "clientParamList": []
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

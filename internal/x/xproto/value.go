@@ -58,16 +58,17 @@ func init() {
 // basic types:
 //
 // # Scalar types
+//
 //   - Numbers: int32, uint32, int64, uint64, float, double
 //   - Booleans: bool
 //   - Strings: string
 //   - Bytes: bytes
 //
-// # Enum type
+// # Enum types
 //
 // # Well-known types
-//   - "google.protobuf.Timestamp": datetime, date, time
-//   - "google.protobuf.Duration": duration
+//
+// Well-known types are message types defined by [types.IsWellKnownMessage].
 func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string) (v pref.Value, present bool, err error) {
 	purifyInteger := func(s string) string {
 		// trim integer boring suffix matched by regexp `.0*$`

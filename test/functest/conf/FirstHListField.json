@@ -1,0 +1,194 @@
+{
+    "heroMap": {
+        "1": {
+            "id": 1,
+            "desc": "hero1",
+            "rewardList": [
+                {
+                    "icon": {
+                        "id": 1001,
+                        "num": 7
+                    },
+                    "desc": "desc1 "
+                }
+            ],
+            "costList": [
+                {
+                    "item": {
+                        "id": 6001,
+                        "num": 333
+                    },
+                    "desc": "desc1 "
+                }
+            ],
+            "powerList": [
+                {
+                    "abilityList": [
+                        {
+                            "id": 7001,
+                            "num": 444
+                        }
+                    ],
+                    "desc": "desc1 "
+                }
+            ],
+            "superpowerList": [
+                {
+                    "abilityMap": {
+                        "8001": {
+                            "id": 8001,
+                            "num": 555
+                        }
+                    },
+                    "desc": "desc1 "
+                }
+            ],
+            "magicList": [
+                {
+                    "ability": {
+                        "id": 1,
+                        "num": 100
+                    }
+                },
+                {
+                    "ability": {
+                        "id": 2,
+                        "num": 200
+                    }
+                }
+            ],
+            "abilityList": [
+                {
+                    "id": 10,
+                    "num": 1000
+                },
+                {
+                    "id": 20,
+                    "num": 2000
+                }
+            ],
+            "paramList": [
+                1,
+                2
+            ],
+            "incellParam1List": [
+                1,
+                2
+            ],
+            "incellParam2List": [
+                11200
+            ],
+            "incellStructTipList": [
+                {
+                    "id": 1,
+                    "desc": "Hot"
+                },
+                {
+                    "id": 2,
+                    "desc": "New"
+                }
+            ],
+            "specialAward": {
+                "id": 20,
+                "num": 2000
+            },
+            "bobusItemList": [
+                {
+                    "id": 10,
+                    "num": 1000
+                },
+                {
+                    "id": 20,
+                    "num": 2000
+                }
+            ]
+        },
+        "2": {
+            "id": 2,
+            "desc": "hero2",
+            "rewardList": [
+                {
+                    "icon": {
+                        "id": 2001,
+                        "num": 8
+                    },
+                    "desc": "desc2"
+                }
+            ],
+            "costList": [
+                {
+                    "item": {
+                        "id": 9001,
+                        "num": 1
+                    },
+                    "desc": "desc2"
+                }
+            ],
+            "powerList": [
+                {
+                    "abilityList": [],
+                    "desc": "desc2"
+                }
+            ],
+            "superpowerList": [
+                {
+                    "abilityMap": {},
+                    "desc": "desc2"
+                }
+            ],
+            "magicList": [],
+            "abilityList": [],
+            "paramList": [
+                10,
+                22
+            ],
+            "incellParam1List": [],
+            "incellParam2List": [],
+            "incellStructTipList": [],
+            "specialAward": null,
+            "bobusItemList": []
+        },
+        "3": {
+            "id": 3,
+            "desc": "hero3",
+            "rewardList": [
+                {
+                    "icon": {
+                        "id": 3003,
+                        "num": 9
+                    },
+                    "desc": "desc3"
+                }
+            ],
+            "costList": [
+                {
+                    "item": {
+                        "id": 9003,
+                        "num": 2
+                    },
+                    "desc": "desc3"
+                }
+            ],
+            "powerList": [
+                {
+                    "abilityList": [],
+                    "desc": "desc3"
+                }
+            ],
+            "superpowerList": [
+                {
+                    "abilityMap": {},
+                    "desc": "desc3"
+                }
+            ],
+            "magicList": [],
+            "abilityList": [],
+            "paramList": [],
+            "incellParam1List": [],
+            "incellParam2List": [],
+            "incellStructTipList": [],
+            "specialAward": null,
+            "bobusItemList": []
+        }
+    }
+}

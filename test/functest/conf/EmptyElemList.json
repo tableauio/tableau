@@ -1,0 +1,111 @@
+{
+    "rewardMap": {
+        "1": {
+            "id": 1,
+            "desc": "奖励1",
+            "rewardItemMap": {
+                "1001": {
+                    "id": 1001,
+                    "num": 1
+                },
+                "1002": {
+                    "id": 1002,
+                    "num": 2
+                },
+                "1003": {
+                    "id": 1003,
+                    "num": 3
+                }
+            },
+            "sectionList": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                },
+                {
+                    "id": 3
+                }
+            ],
+            "valueList": [
+                1,
+                2,
+                3
+            ],
+            "bonusList": [
+                {
+                    "id": 1001,
+                    "num": 1
+                },
+                {
+                    "id": 1002,
+                    "num": 2
+                }
+            ]
+        },
+        "2": {
+            "id": 2,
+            "desc": "奖励2",
+            "rewardItemMap": {
+                "2001": {
+                    "id": 2001,
+                    "num": 1
+                },
+                "2002": {
+                    "id": 2002,
+                    "num": 2
+                }
+            },
+            "sectionList": [
+                {
+                    "id": 0
+                },
+                {
+                    "id": 2
+                }
+            ],
+            "valueList": [
+                0,
+                2
+            ],
+            "bonusList": []
+        },
+        "3": {
+            "id": 3,
+            "desc": "奖励3",
+            "rewardItemMap": {
+                "0": {
+                    "id": 0,
+                    "num": 0
+                },
+                "3001": {
+                    "id": 3001,
+                    "num": 1
+                }
+            },
+            "sectionList": [
+                {
+                    "id": 1
+                }
+            ],
+            "valueList": [
+                1
+            ],
+            "bonusList": []
+        },
+        "4": {
+            "id": 4,
+            "desc": "奖励4",
+            "rewardItemMap": {
+                "4001": {
+                    "id": 4001,
+                    "num": 1
+                }
+            },
+            "sectionList": [],
+            "valueList": [],
+            "bonusList": []
+        }
+    }
+}
