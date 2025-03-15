@@ -5,8 +5,8 @@ uint32","Cost
 [].Item|{cross:-1}",
 Vote,Vote,"Approves
 []uint32|{cross:2}",,"Againsts
-[]uint32|{cross:2}",,"Abstains
-[]uint32|{cross:2}",
+[]uint32|{cross:1}","Abstains
+[]uint32|{cross:2}",,
 Fruit,Fruit,"TypeA
 []enum<.FruitType>|{cross:3}",,,"TypeB
 []enum<.FruitType>","Flavor

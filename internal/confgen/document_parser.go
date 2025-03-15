@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tableauio/tableau/internal/confgen/prop"
+	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -177,8 +177,8 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				// TODO: auto remove added virtual key node?
 				// check key uniqueness
 				if reflectMap.Has(newMapKey) {
-					if prop.RequireUnique(field.opts.Prop) ||
-						(!prop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
+					if fieldprop.RequireUnique(field.opts.Prop) ||
+						(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
 						return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
 					}
 				}
@@ -528,7 +528,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 				}
 				var crossNodeValues []string
-				if fieldCount := prop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
+				if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
 					crossNodeValues = []string{valNode.Value}
 					for j := 1; j < fieldCount; j++ {
 						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)

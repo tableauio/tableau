@@ -1,4 +1,4 @@
-package prop
+package fieldprop
 
 import (
 	"testing"

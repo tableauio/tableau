@@ -712,11 +712,15 @@ type WorksheetOptions struct {
 	//   - incell list elements (scalar or struct).
 	//   - incell map items.
 	//
+	// If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
+	//
 	// Default: ",".
 	Sep string `protobuf:"bytes,11,opt,name=sep,proto3" json:"sep,omitempty"`
 	// Sheet-level subseparator for separating:
 	//   - key-value pair of each incell map item.
 	//   - struct fields of each incell struct list element.
+	//
+	// If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
 	//
 	// Default: ":".
 	Subsep string `protobuf:"bytes,12,opt,name=subsep,proto3" json:"subsep,omitempty"`
@@ -757,7 +761,8 @@ type WorksheetOptions struct {
 	// Format: <ColumnName>[@IndexName], if IndexName is not set, it will be this
 	// column’s parent struct type name.
 	//
-	// Composite indexes (or multicolumn indexes) are in the form: ([column1, column2, column3,...])[@IndexName]
+	// Composite indexes (or multicolumn indexes) are in the form:
+	// ([column1, column2, column3,...])[@IndexName]
 	//
 	// Examples:
 	//   - ID
@@ -768,13 +773,16 @@ type WorksheetOptions struct {
 	Index []string `protobuf:"bytes,51,rep,name=index,proto3" json:"index,omitempty"`
 	// Specify loader language options.
 	// Valid keys are: OrderedMap, Index.
-	// Different kvs must be seperated by ',' and one key value must be seperated by ':'.
-	// If one key doesn't exist in map, it means that this loader option is supported in all languages.
-	// Valid values are all combinations of "cpp", "go" with ' ' as seperator.
+	// Different kvs must be seperated by ',' and one key value must be seperated
+	// by ':'. If one key doesn't exist in map, it means that this loader option
+	// is supported in all languages. Valid values are all combinations of "cpp",
+	// "go" with ' ' as seperator.
 	//
 	// Examples:
-	//   - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index supported in cpp and go
-	//   - OrderedMap:cpp // ordered map supported in cpp, index supported in all languages
+	//   - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index
+	//     supported in cpp and go
+	//   - OrderedMap:cpp // ordered map supported in cpp, index supported in all
+	//     languages
 	LangOptions map[string]string `protobuf:"bytes,52,rep,name=lang_options,json=langOptions,proto3" json:"lang_options,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 

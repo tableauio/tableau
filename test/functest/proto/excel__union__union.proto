@@ -73,8 +73,8 @@ message FieldCapTarget {
   }
   message Vote {
     repeated uint32 approves_list = 1 [(tableau.field) = {name:"Approves" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
-    repeated uint32 againsts_list = 3 [(tableau.field) = {name:"Againsts" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
-    repeated uint32 abstains_list = 5 [(tableau.field) = {name:"Abstains" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
+    repeated uint32 againsts_list = 3 [(tableau.field) = {name:"Againsts" layout:LAYOUT_HORIZONTAL prop:{cross:1}}];
+    repeated uint32 abstains_list = 4 [(tableau.field) = {name:"Abstains" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
   }
   message Fruit {
     repeated protoconf.FruitType type_a_list = 1 [(tableau.field) = {name:"TypeA" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];

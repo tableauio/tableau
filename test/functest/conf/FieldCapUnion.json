@@ -60,12 +60,11 @@
                         2
                     ],
                     "againstsList": [
-                        3,
-                        4
+                        3
                     ],
                     "abstainsList": [
-                        5,
-                        6
+                        4,
+                        5
                     ]
                 }
             }
@@ -79,10 +78,10 @@
                         1
                     ],
                     "againstsList": [
-                        2
+                        3
                     ],
                     "abstainsList": [
-                        3
+                        4
                     ]
                 }
             }

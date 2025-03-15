@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/tableauio/tableau/internal/confgen/prop"
+	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
@@ -217,8 +217,8 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			}
 			// check key uniqueness
 			if reflectMap.Has(newMapKey) {
-				if prop.RequireUnique(field.opts.Prop) ||
-					(!prop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
+				if fieldprop.RequireUnique(field.opts.Prop) ||
+					(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
 					return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
 				}
 			}
@@ -243,7 +243,7 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 			if detectedSize <= 0 {
 				return false, xerrors.Errorf("no cell found with digit suffix")
 			}
-			fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
+			fixedSize := fieldprop.GetSize(field.opts.Prop, detectedSize)
 			size := detectedSize
 			if fixedSize > 0 && fixedSize < detectedSize {
 				// squeeze to specified fixed size
@@ -293,14 +293,14 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 					}
 					continue
 				}
-				if !keyPresent && !valuePresent && !prop.IsFixed(field.opts.Prop) {
+				if !keyPresent && !valuePresent && !fieldprop.IsFixed(field.opts.Prop) {
 					checkRemainFlag = true
 					continue
 				}
 				// check key uniqueness
 				if reflectMap.Has(newMapKey) {
-					if prop.RequireUnique(field.opts.Prop) ||
-						(!prop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
+					if fieldprop.RequireUnique(field.opts.Prop) ||
+						(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
 						return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
 					}
 				}
@@ -434,7 +434,7 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 		if detectedSize <= 0 {
 			return false, xerrors.Errorf("no cell found with digit suffix")
 		}
-		fixedSize := prop.GetSize(field.opts.Prop, detectedSize)
+		fixedSize := fieldprop.GetSize(field.opts.Prop, detectedSize)
 		size := detectedSize
 		if fixedSize > 0 && fixedSize < detectedSize {
 			// squeeze to specified fixed size
@@ -454,7 +454,6 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 					subMsgName := string(field.fd.Message().FullName())
 					if types.IsWellKnownMessage(subMsgName) {
-						// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
 						newListValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 						if err != nil {
 							return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
@@ -493,14 +492,15 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 				}
 				if firstNonePresentIndex != 0 {
-					// Check that no empty element is existed in between, so we should guarantee
-					// that all the remaining elements are not present, otherwise report error!
+					// Check that no empty elements are existed in begin or middle.
+					// Guarantee all the remaining elements are not present,
+					// otherwise report error!
 					if elemPresent {
 						return false, xerrors.WrapKV(xerrors.E2016(firstNonePresentIndex, i), rc.CellDebugKV(colName)...)
 					}
 					continue
 				}
-				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
+				if !elemPresent && !fieldprop.IsFixed(field.opts.Prop) {
 					firstNonePresentIndex = i
 					continue
 				}
@@ -522,7 +522,7 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 					}
 					continue
 				}
-				if !elemPresent && !prop.IsFixed(field.opts.Prop) {
+				if !elemPresent && !fieldprop.IsFixed(field.opts.Prop) {
 					firstNonePresentIndex = i
 					continue
 				}
@@ -530,7 +530,7 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 			}
 		}
 
-		if prop.IsFixed(field.opts.Prop) {
+		if fieldprop.IsFixed(field.opts.Prop) {
 			for list.Len() < fixedSize {
 				// append empty elements to the specified length.
 				list.Append(list.NewElement())
@@ -712,7 +712,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
 				}
 				var crossCellDataList []string
-				if fieldCount := prop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
+				if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
 					crossCellDataList = []string{cell.Data}
 					for j := 1; j < fieldCount; j++ {
 						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)

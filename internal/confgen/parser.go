@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/confgen/prop"
+	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
@@ -487,7 +487,7 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 		}
 		mapKey = fieldValue.MapKey()
 	}
-	if !prop.CheckMapKeySequence(field.opts.Prop, keyFd.Kind(), mapKey, reflectMap) {
+	if !fieldprop.CheckMapKeySequence(field.opts.Prop, keyFd.Kind(), mapKey, reflectMap) {
 		return mapKey, false, xerrors.E2003(cellData, field.opts.Prop.GetSequence())
 	}
 	return mapKey, present, nil
@@ -569,14 +569,15 @@ func (sp *sheetParser) parseHorizontalListElems(
 	fdopts *tableaupb.FieldOptions,
 	list protoreflect.List, sep string, elems []string) (present bool, err error) {
 	detectedSize := len(elems)
-	fixedSize := prop.GetSize(fdopts.Prop, detectedSize)
+	fixedSize := fieldprop.GetSize(fdopts.Prop, detectedSize)
 	size := detectedSize
 	if fixedSize > 0 && fixedSize < detectedSize {
 		// squeeze to specified fixed size
 		size = fixedSize
 	}
-	for i := 0; i < size; i++ {
-		elem := elems[i]
+	var firstNonePresentIndex int
+	for i := 1; i <= size; i++ {
+		elem := elems[i-1]
 		var (
 			fieldValue  protoreflect.Value
 			elemPresent bool
@@ -590,15 +591,24 @@ func (sp *sheetParser) parseHorizontalListElems(
 		if err != nil {
 			return false, err
 		}
-		if !elemPresent && !prop.IsFixed(fdopts.Prop) {
-			// TODO: check the remaining keys all not present, otherwise report error!
-			break
+		if firstNonePresentIndex != 0 {
+			// Check that no empty elements are existed in begin or middle.
+			// Guarantee all the remaining elements are not present,
+			// otherwise report error!
+			if elemPresent {
+				return false, xerrors.Wrap(xerrors.E2016(firstNonePresentIndex, i))
+			}
+			continue
 		}
-		if fdopts.Key != "" {
+		if !elemPresent && !fieldprop.IsFixed(fdopts.Prop) {
+			firstNonePresentIndex = i
+			continue
+		}
+		if fdopts.GetKey() != "" {
 			// keyed list
 			keyedListElemExisted := false
-			for i := 0; i < list.Len(); i++ {
-				elemVal := list.Get(i)
+			for j := 0; j < list.Len(); j++ {
+				elemVal := list.Get(j)
 				if elemVal.Equal(fieldValue) {
 					keyedListElemExisted = true
 					break
@@ -612,7 +622,7 @@ func (sp *sheetParser) parseHorizontalListElems(
 			list.Append(fieldValue)
 		}
 	}
-	if prop.IsFixed(fdopts.Prop) {
+	if fieldprop.IsFixed(fdopts.Prop) {
 		for list.Len() < fixedSize {
 			// append empty elements to the specified length.
 			list.Append(list.NewElement())
@@ -758,24 +768,24 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 
 	if fprop != nil {
 		// check presence
-		if err := prop.CheckPresence(fprop, present); err != nil {
+		if err := fieldprop.CheckPresence(fprop, present); err != nil {
 			return v, present, err
 		}
 		// check range
-		if err := prop.CheckInRange(fprop, fd, v, present); err != nil {
+		if err := fieldprop.CheckInRange(fprop, fd, v, present); err != nil {
 			return v, present, err
 		}
 		// check refer
 		// NOTE: if use NewSheetParser, sp.extInfo is nil, which means SheetParserExtInfo is not provided.
 		if fprop.Refer != "" && sp.extInfo != nil {
-			input := &prop.Input{
+			input := &fieldprop.Input{
 				ProtoPackage:   sp.ProtoPackage,
 				InputDir:       sp.extInfo.InputDir,
 				SubdirRewrites: sp.extInfo.SubdirRewrites,
 				PRFiles:        sp.extInfo.PRFiles,
 				Present:        present,
 			}
-			ok, err := prop.InReferredSpace(fprop, rawValue, input)
+			ok, err := fieldprop.InReferredSpace(fprop, rawValue, input)
 			if err != nil {
 				return v, present, err
 			}
