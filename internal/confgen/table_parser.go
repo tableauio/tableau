@@ -364,13 +364,14 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		return false, xerrors.Errorf("vertical list element as scalar type is not supported")
 	}
 	list := msg.Mutable(field.fd).List()
+	elemPresent := false
+	elemValue := list.NewElement()
 	// struct list
 	if field.opts.Key != "" {
 		// KeyedList means the list is keyed by the specified Key option.
-		listElemValue := list.NewElement()
 		keyedListElemExisted := false
 		keyColName := prefix + field.opts.Name + field.opts.Key
-		md := listElemValue.Message().Descriptor()
+		md := elemValue.Message().Descriptor()
 		keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
 
 		fd := md.Fields().ByName(keyProtoName)
@@ -388,51 +389,42 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		for i := 0; i < list.Len(); i++ {
 			elemVal := list.Get(i)
 			if elemVal.Message().Get(fd).Equal(key) {
-				listElemValue = elemVal
+				elemValue = elemVal
 				keyedListElemExisted = true
 				break
 			}
 		}
-		elemPresent, err := sp.parseMessage(listElemValue.Message(), rc, prefix+field.opts.Name)
+		elemPresent, err = sp.parseMessage(elemValue.Message(), rc, prefix+field.opts.Name)
 		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			return false, err
 		}
 		if !keyPresent && !elemPresent {
 			return false, nil
 		}
-		if !keyedListElemExisted {
-			list.Append(listElemValue)
-		}
+		elemPresent = !keyedListElemExisted
 	} else if xproto.IsUnionField(field.fd) {
 		// cross-cell union list
-		elemPresent := false
-		newListValue := list.NewElement()
 		colName := prefix + field.opts.Name
-		elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, colName)
+		elemPresent, err = sp.parseUnionMessage(elemValue.Message(), field, rc, colName)
 		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-		}
-		if elemPresent {
-			list.Append(newListValue)
+			return false, xerrors.Wrapf(err, "failed to parse cross-cell union list")
 		}
 	} else {
 		// cross-cell struct list
-		elemPresent := false
-		newListValue := list.NewElement()
-		elemPresent, err = sp.parseMessage(newListValue.Message(), rc, prefix+field.opts.Name)
+		elemPresent, err = sp.parseMessage(elemValue.Message(), rc, prefix+field.opts.Name)
 		if err != nil {
-			return false, xerrors.WrapKV(err, "cross-cell struct list", "failed to parse struct")
-		}
-		if elemPresent {
-			list.Append(newListValue)
+			return false, xerrors.Wrapf(err, "failed to parse cross-cell struct list")
 		}
 	}
-	return msg.Has(field.fd), nil
+	if elemPresent {
+		list.Append(elemValue)
+		present = true
+	}
+	return
 }
 
 func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
 	list := msg.Mutable(field.fd).List()
-	// horizontal list
 	if msg.Has(field.fd) {
 		// When the list's layout is horizontal, skip if it was already populated.
 		// It means the previous continuous present cells has been parsed.
@@ -450,9 +442,9 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 	}
 	var firstNonePresentIndex int
 	for i := 1; i <= size; i++ {
-		newListValue := list.NewElement()
-		colName := prefix + field.opts.Name + strconv.Itoa(i)
 		elemPresent := false
+		elemValue := list.NewElement()
+		colName := prefix + field.opts.Name + strconv.Itoa(i)
 		if field.fd.Kind() == protoreflect.MessageKind {
 			if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 				// horizontal incell-struct list
@@ -460,39 +452,37 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 				if err != nil {
 					return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 				}
-				subMsgName := string(field.fd.Message().FullName())
-				if types.IsWellKnownMessage(subMsgName) {
-					newListValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
+				if types.IsWellKnownMessage(field.fd.Message().FullName()) {
+					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 					if err != nil {
 						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 					}
 				} else {
-					if elemPresent, err = sp.parseIncellStruct(newListValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
+					if elemPresent, err = sp.parseIncellStruct(elemValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
 						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 					}
 				}
 			} else if xproto.IsUnionField(field.fd) {
 				// horizontal union list
-				elemPresent, err = sp.parseUnionMessage(newListValue.Message(), field, rc, colName)
+				elemPresent, err = sp.parseUnionMessage(elemValue.Message(), field, rc, colName)
 				if err != nil {
 					return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 				}
 			} else {
 				// horizontal struct list
-				subMsgName := string(field.fd.Message().FullName())
-				if types.IsWellKnownMessage(subMsgName) {
+				if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 					cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 					if err != nil {
 						kvs := rc.CellDebugKV(colName)
 						return false, xerrors.WrapKV(err, kvs...)
 					}
-					newListValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
+					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 					if err != nil {
 						kvs := rc.CellDebugKV(colName)
 						return false, xerrors.WrapKV(err, kvs...)
 					}
 				} else {
-					elemPresent, err = sp.parseMessage(newListValue.Message(), rc, colName)
+					elemPresent, err = sp.parseMessage(elemValue.Message(), rc, colName)
 					if err != nil {
 						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 					}
@@ -511,14 +501,14 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 				firstNonePresentIndex = i
 				continue
 			}
-			list.Append(newListValue)
+			list.Append(elemValue)
 		} else {
 			// scalar list
 			cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 			if err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 			}
-			newListValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
+			elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 			if err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 			}
@@ -533,7 +523,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 				firstNonePresentIndex = i
 				continue
 			}
-			list.Append(newListValue)
+			list.Append(elemValue)
 		}
 	}
 	if fieldprop.IsFixed(field.opts.Prop) {
@@ -590,9 +580,7 @@ func (sp *tableParser) parseStructField(field *Field, msg protoreflect.Message, 
 		}
 		return present, nil
 	} else {
-		subMsgName := string(field.fd.Message().FullName())
-		if types.IsWellKnownMessage(subMsgName) {
-			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
+		if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 			cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
 			if err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)

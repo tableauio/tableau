@@ -561,10 +561,12 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 
 func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List, cellData string) (present bool, err error) {
 	splits := strings.Split(cellData, field.sep)
-	return sp.parseHorizontalListElems(field.fd, field.opts, list, field.subsep, splits)
+	return sp.parseListElems(field.fd, field.opts, list, field.subsep, splits)
 }
 
-func (sp *sheetParser) parseHorizontalListElems(
+// parseListElems parses the given string slice to a list. Each elem's
+// coressponding type can be: scalar, enum, well-known, and struct.
+func (sp *sheetParser) parseListElems(
 	fd protoreflect.FieldDescriptor,
 	fdopts *tableaupb.FieldOptions,
 	list protoreflect.List, sep string, elems []string) (present bool, err error) {
@@ -578,15 +580,13 @@ func (sp *sheetParser) parseHorizontalListElems(
 	var firstNonePresentIndex int
 	for i := 1; i <= size; i++ {
 		elem := elems[i-1]
-		var (
-			fieldValue  protoreflect.Value
-			elemPresent bool
-		)
-		if fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(string(fd.Message().FullName())) {
-			fieldValue = list.NewElement()
-			elemPresent, err = sp.parseIncellStruct(fieldValue, elem, fdopts.GetProp().GetForm(), sep)
+		var elemValue protoreflect.Value
+		var elemPresent bool
+		if fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(fd.Message().FullName()) {
+			elemValue = list.NewElement()
+			elemPresent, err = sp.parseIncellStruct(elemValue, elem, fdopts.GetProp().GetForm(), sep)
 		} else {
-			fieldValue, elemPresent, err = sp.parseFieldValue(fd, elem, fdopts.Prop)
+			elemValue, elemPresent, err = sp.parseFieldValue(fd, elem, fdopts.Prop)
 		}
 		if err != nil {
 			return false, err
@@ -609,17 +609,17 @@ func (sp *sheetParser) parseHorizontalListElems(
 			keyedListElemExisted := false
 			for j := 0; j < list.Len(); j++ {
 				elemVal := list.Get(j)
-				if elemVal.Equal(fieldValue) {
+				if elemVal.Equal(elemValue) {
 					keyedListElemExisted = true
 					break
 				}
 			}
 			if !keyedListElemExisted {
-				list.Append(fieldValue)
+				list.Append(elemValue)
 			}
 		} else {
 			// normal list
-			list.Append(fieldValue)
+			list.Append(elemValue)
 		}
 	}
 	if fieldprop.IsFixed(fdopts.Prop) {
@@ -647,8 +647,6 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 		}
 		return true, nil
 	default:
-		// If s does not contain sep and sep is not empty, Split returns a
-		// slice of length 1 whose only element is s.
 		splits := strings.Split(cellData, sep)
 		md := structValue.Message().Descriptor()
 		for i := 0; i < md.Fields().Len() && i < len(splits); i++ {
@@ -691,7 +689,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		case tableaupb.Layout_LAYOUT_INCELL, tableaupb.Layout_LAYOUT_DEFAULT:
 			present, err = sp.parseIncellListField(field, list, data)
 		case tableaupb.Layout_LAYOUT_HORIZONTAL:
-			present, err = sp.parseHorizontalListElems(field.fd, field.opts, list, field.sep, dataList)
+			present, err = sp.parseListElems(field.fd, field.opts, list, field.sep, dataList)
 		default:
 			return xerrors.Errorf("union list field has illegal layout: %s", field.opts.GetLayout())
 		}
@@ -702,9 +700,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 			msg.Set(field.fd, value)
 		}
 	} else if field.fd.Kind() == protoreflect.MessageKind {
-		subMsgName := string(field.fd.Message().FullName())
-		if types.IsWellKnownMessage(subMsgName) {
-			// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
+		if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 			value, present, err := sp.parseFieldValue(field.fd, data, field.opts.Prop)
 			if err != nil {
 				return err
@@ -755,7 +751,7 @@ func (sp *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData
 	}
 }
 
-// parseIncellUnion parses field value by [protoreflect.FieldDescriptor] and
+// parseFieldValue parses field value by [protoreflect.FieldDescriptor] and
 // [tableaupb.FieldProp]. It can parse following basic types:
 //   - Scalar types
 //   - Enum types

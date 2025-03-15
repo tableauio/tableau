@@ -314,28 +314,22 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	default:
 		for _, elemNode := range node.Children {
 			elemPresent := false
-			newListValue := list.NewElement()
+			elemValue := list.NewElement()
 			if xproto.IsUnionField(field.fd) {
 				// cross-cell union list
-				elemPresent, err = sp.parseUnionMessage(field, newListValue.Message(), elemNode)
-				if err != nil {
-					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
-				}
+				elemPresent, err = sp.parseUnionMessage(field, elemValue.Message(), elemNode)
 			} else if field.fd.Kind() == protoreflect.MessageKind {
 				// cross-cell struct list
-				elemPresent, err = sp.parseMessage(newListValue.Message(), elemNode)
-				if err != nil {
-					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
-				}
+				elemPresent, err = sp.parseMessage(elemValue.Message(), elemNode)
 			} else {
 				// cross-cell scalar list
-				newListValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
-				if err != nil {
-					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
-				}
+				elemValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
+			}
+			if err != nil {
+				return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 			}
 			if elemPresent {
-				list.Append(newListValue)
+				list.Append(elemValue)
 			}
 		}
 	}
@@ -359,29 +353,23 @@ func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message
 	}
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		if present, err = sp.parseIncellUnion(structValue, node.Value, field.opts.GetProp().GetForm()); err != nil {
-			return false, xerrors.WrapKV(err, node.DebugNameKV()...)
+		present, err = sp.parseIncellUnion(structValue, node.Value, field.opts.GetProp().GetForm())
+	} else {
+		if node.Kind == book.ListNode {
+			if len(node.Children) != 1 {
+				return false, xerrors.ErrorKV("list node of union must have and only have one child", node.DebugKV()...)
+			}
+			node = node.Children[0]
 		}
-		if present {
-			msg.Set(field.fd, structValue)
-		}
-		return present, nil
+		present, err = sp.parseUnionMessage(field, structValue.Message(), node)
 	}
-
-	if node.Kind == book.ListNode {
-		if len(node.Children) != 1 {
-			return false, xerrors.ErrorKV("list node of union must have and only have one child", node.DebugKV()...)
-		}
-		node = node.Children[0]
-	}
-	present, err = sp.parseUnionMessage(field, structValue.Message(), node)
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
 	if present {
 		msg.Set(field.fd, structValue)
 	}
-	return present, nil
+	return
 }
 
 func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
@@ -392,45 +380,29 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 	} else {
 		structValue = msg.NewField(field.fd)
 	}
+
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		if present, err = sp.parseIncellStruct(structValue, node.Value, field.opts.GetProp().GetForm(), field.sep); err != nil {
-			return false, xerrors.WrapKV(err, node.DebugKV()...)
-		}
-		if present {
-			msg.Set(field.fd, structValue)
-		}
-		return present, nil
-	}
-	// cross cell struct
-	subMsgName := string(field.fd.Message().FullName())
-	if types.IsWellKnownMessage(subMsgName) {
-		// built-in message type: google.protobuf.Timestamp, google.protobuf.Duration
-		value, present, err := sp.parseFieldValue(field.fd, node.Value, field.opts.Prop)
-		if err != nil {
-			return false, xerrors.WrapKV(err, node.DebugKV()...)
-		}
-		if present {
-			msg.Set(field.fd, value)
-		}
-		return present, nil
+		present, err = sp.parseIncellStruct(structValue, node.Value, field.opts.GetProp().GetForm(), field.sep)
+	} else if types.IsWellKnownMessage(field.fd.Message().FullName()) {
+		structValue, present, err = sp.parseFieldValue(field.fd, node.Value, field.opts.Prop)
 	} else {
+		// cross-cell struct
 		if node.Kind == book.ListNode {
 			if len(node.Children) != 1 {
 				return false, xerrors.ErrorKV("list node of struct must have and only have one child", node.DebugKV()...)
 			}
 			node = node.Children[0]
 		}
-		present, err := sp.parseMessage(structValue.Message(), node)
-		if err != nil {
-			return false, xerrors.WrapKV(err, node.DebugKV()...)
-		}
-		if present {
-			// only set field if it is present.
-			msg.Set(field.fd, structValue)
-		}
-		return present, nil
+		present, err = sp.parseMessage(structValue.Message(), node)
 	}
+	if err != nil {
+		return false, xerrors.WrapKV(err, node.DebugKV()...)
+	}
+	if present {
+		msg.Set(field.fd, structValue)
+	}
+	return
 }
 
 func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
@@ -440,11 +412,10 @@ func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Messag
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
-	if !present {
-		return false, nil
+	if present {
+		msg.Set(field.fd, newValue)
 	}
-	msg.Set(field.fd, newValue)
-	return true, nil
+	return
 }
 
 func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {

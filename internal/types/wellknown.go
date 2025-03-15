@@ -1,5 +1,7 @@
 package types
 
+import "google.golang.org/protobuf/reflect/protoreflect"
+
 const (
 	WellKnownMessageTimestamp  = "google.protobuf.Timestamp"
 	WellKnownMessageDuration   = "google.protobuf.Duration"
@@ -18,8 +20,17 @@ func init() {
 	}
 }
 
-func IsWellKnownMessage(fullTypeName string) bool {
-	return wellKnownMessages[fullTypeName] != ""
+// IsWellKnownMessage checks if the given message full name is a well-known
+// message.
+//
+// # Well-known messages
+//
+//   - google.protobuf.Timestamp
+//   - google.protobuf.Duration
+//   - tableau.Fraction
+//   - tableau.Comparator
+func IsWellKnownMessage[T protoreflect.FullName | string](fullTypeName T) bool {
+	return wellKnownMessages[string(fullTypeName)] != ""
 }
 
 func GetWellKnownMessageImport(fullTypeName string) string {
