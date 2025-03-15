@@ -446,85 +446,46 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 		elemValue := list.NewElement()
 		colName := prefix + field.opts.Name + strconv.Itoa(i)
 		if field.fd.Kind() == protoreflect.MessageKind {
-			if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-				// horizontal incell-struct list
-				cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-				if err != nil {
-					return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-				}
-				if types.IsWellKnownMessage(field.fd.Message().FullName()) {
+			if types.IsWellKnownMessage(field.fd.Message().FullName()) {
+				// horizontal well-known list
+				if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
 					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
-					if err != nil {
-						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-					}
-				} else {
-					if elemPresent, err = sp.parseIncellStruct(elemValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
-						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-					}
 				}
 			} else if xproto.IsUnionField(field.fd) {
 				// horizontal union list
 				elemPresent, err = sp.parseUnionMessage(elemValue.Message(), field, rc, colName)
-				if err != nil {
-					return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+			} else if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+				// horizontal incell-struct list
+				if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+					elemPresent, err = sp.parseIncellStruct(elemValue, cell.Data, field.opts.GetProp().GetForm(), field.sep)
 				}
 			} else {
 				// horizontal struct list
-				if types.IsWellKnownMessage(field.fd.Message().FullName()) {
-					cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-					if err != nil {
-						kvs := rc.CellDebugKV(colName)
-						return false, xerrors.WrapKV(err, kvs...)
-					}
-					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
-					if err != nil {
-						kvs := rc.CellDebugKV(colName)
-						return false, xerrors.WrapKV(err, kvs...)
-					}
-				} else {
-					elemPresent, err = sp.parseMessage(elemValue.Message(), rc, colName)
-					if err != nil {
-						return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-					}
-				}
+				elemPresent, err = sp.parseMessage(elemValue.Message(), rc, colName)
 			}
-			if firstNonePresentIndex != 0 {
-				// Check that no empty elements are existed in begin or middle.
-				// Guarantee all the remaining elements are not present,
-				// otherwise report error!
-				if elemPresent {
-					return false, xerrors.WrapKV(xerrors.E2016(firstNonePresentIndex, i), rc.CellDebugKV(colName)...)
-				}
-				continue
-			}
-			if !elemPresent && !fieldprop.IsFixed(field.opts.Prop) {
-				firstNonePresentIndex = i
-				continue
-			}
-			list.Append(elemValue)
 		} else {
 			// scalar list
-			cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+			if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+				elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 			}
-			elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-			}
-			if firstNonePresentIndex != 0 {
-				// check the remaining scalar elements are not present, otherwise report error!
-				if elemPresent {
-					return false, xerrors.WrapKV(xerrors.E2016(firstNonePresentIndex, i), rc.CellDebugKV(colName)...)
-				}
-				continue
-			}
-			if !elemPresent && !fieldprop.IsFixed(field.opts.Prop) {
-				firstNonePresentIndex = i
-				continue
-			}
-			list.Append(elemValue)
 		}
+		if err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+		}
+		if firstNonePresentIndex != 0 {
+			// Check that no empty elements are existed in begin or middle.
+			// Guarantee all the remaining elements are not present,
+			// otherwise report error!
+			if elemPresent {
+				return false, xerrors.WrapKV(xerrors.E2016(firstNonePresentIndex, i), rc.CellDebugKV(colName)...)
+			}
+			continue
+		}
+		if !elemPresent && !fieldprop.IsFixed(field.opts.Prop) {
+			firstNonePresentIndex = i
+			continue
+		}
+		list.Append(elemValue)
 	}
 	if fieldprop.IsFixed(field.opts.Prop) {
 		for list.Len() < fixedSize {
@@ -565,46 +526,28 @@ func (sp *tableParser) parseStructField(field *Field, msg protoreflect.Message, 
 	}
 
 	colName := prefix + field.opts.Name
-	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
+	if types.IsWellKnownMessage(field.fd.Message().FullName()) {
+		// well-known struct
+		if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+			structValue, present, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
+		}
+	} else if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+		if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+			present, err = sp.parseIncellStruct(structValue, cell.Data, field.opts.GetProp().GetForm(), field.sep)
 		}
-
-		if present, err = sp.parseIncellStruct(structValue, cell.Data, field.opts.GetProp().GetForm(), field.sep); err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-		}
-		if present {
-			msg.Set(field.fd, structValue)
-		}
-		return present, nil
 	} else {
-		if types.IsWellKnownMessage(field.fd.Message().FullName()) {
-			cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-			}
-			value, present, err := sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-			}
-			if present {
-				msg.Set(field.fd, value)
-			}
-			return present, nil
-		} else {
-			present, err := sp.parseMessage(structValue.Message(), rc, prefix+field.opts.Name)
-			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-			}
-			if present {
-				// only set field if it is present.
-				msg.Set(field.fd, structValue)
-			}
-			return present, nil
-		}
+		// cross-cell struct
+		present, err = sp.parseMessage(structValue.Message(), rc, prefix+field.opts.Name)
 	}
+
+	if err != nil {
+		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+	}
+	if present {
+		msg.Set(field.fd, structValue)
+	}
+	return
 }
 
 func (sp *tableParser) parseUnionField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
@@ -616,30 +559,24 @@ func (sp *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		structValue = msg.NewField(field.fd)
 	}
 
+	colName := prefix + field.opts.Name
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		colName := prefix + field.opts.Name
 		// incell union
-		cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+		if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+			present, err = sp.parseIncellUnion(structValue, cell.Data, field.opts.GetProp().GetForm())
 		}
-		if present, err = sp.parseIncellUnion(structValue, cell.Data, field.opts.GetProp().GetForm()); err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-		}
-		if present {
-			msg.Set(field.fd, structValue)
-		}
-		return present, nil
+	} else {
+		// cross-cell union
+		present, err = sp.parseUnionMessage(structValue.Message(), field, rc, colName)
 	}
 
-	present, err = sp.parseUnionMessage(structValue.Message(), field, rc, prefix+field.opts.Name)
 	if err != nil {
-		return false, xerrors.WrapKV(err, rc.CellDebugKV(prefix+field.opts.Name)...)
+		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 	}
 	if present {
 		msg.Set(field.fd, structValue)
 	}
-	return present, nil
+	return
 }
 
 func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, rc *book.RowCells, prefix string) (present bool, err error) {
@@ -674,49 +611,43 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 		return false, xerrors.WrapKV(xerrors.E2010(typeValue, fieldNumber), rc.CellDebugKV(prefix)...)
 	}
 	fieldValue := msg.NewField(valueFD)
-	if valueFD.Kind() == protoreflect.MessageKind {
-		// MUST be message type.
-		md := valueFD.Message()
-		msg := fieldValue.Message()
-		for i := 0; i < md.Fields().Len(); i++ {
-			fd := md.Fields().Get(i)
-			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
-			err := func() error {
-				subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
-				defer subField.release()
-				// incell scalar
-				cell, err := rc.Cell(valColName, sp.IsFieldOptional(subField))
-				if err != nil {
-					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
-				}
-				var crossCellDataList []string
-				if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
-					crossCellDataList = []string{cell.Data}
-					for j := 1; j < fieldCount; j++ {
-						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
-						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
-						if err != nil {
-							break
-						}
-						crossCellDataList = append(crossCellDataList, c.Data)
-					}
-				}
-				err = sp.parseUnionMessageField(subField, msg, cell.Data, crossCellDataList)
-				if err != nil {
-					return xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
-				}
-				return nil
-			}()
-			if err != nil {
-				return false, err
-			}
-		}
-	} else {
-		// scalar: not supported yet.
+	if valueFD.Kind() != protoreflect.MessageKind {
 		return false, xerrors.Errorf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
 	}
+	// MUST be message type.
+	md := valueFD.Message()
+	fieldMsg := fieldValue.Message()
+	for i := 0; i < md.Fields().Len(); i++ {
+		fd := md.Fields().Get(i)
+		valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+		err := func() error {
+			subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			defer subField.release()
+			// incell scalar
+			cell, err := rc.Cell(valColName, sp.IsFieldOptional(subField))
+			if err != nil {
+				return err
+			}
+			var crossCellDataList []string
+			if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
+				crossCellDataList = []string{cell.Data}
+				for j := 1; j < fieldCount; j++ {
+					colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+					c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
+					if err != nil {
+						break
+					}
+					crossCellDataList = append(crossCellDataList, c.Data)
+				}
+			}
+			return sp.parseUnionMessageField(subField, fieldMsg, cell.Data, crossCellDataList)
+		}()
+		if err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
+		}
+	}
 	msg.Set(valueFD, fieldValue)
-	return present, nil
+	return
 }
 
 func (sp *tableParser) parseScalarField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
@@ -727,18 +658,14 @@ func (sp *tableParser) parseScalarField(field *Field, msg protoreflect.Message, 
 	}
 	var newValue protoreflect.Value
 	colName := prefix + field.opts.Name
-	cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
+	if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+		newValue, present, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
+	}
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 	}
-
-	newValue, present, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
-	if err != nil {
-		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+	if present {
+		msg.Set(field.fd, newValue)
 	}
-	if !present {
-		return false, nil
-	}
-	msg.Set(field.fd, newValue)
-	return true, nil
+	return
 }

@@ -467,63 +467,57 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 		return false, xerrors.WrapKV(xerrors.E2010(typeValue, fieldNumber), node.DebugKV()...)
 	}
 	fieldValue := msg.NewField(valueFD)
-	if valueFD.Kind() == protoreflect.MessageKind {
-		// MUST be message type.
-		md := valueFD.Message()
-		msg := fieldValue.Message()
-		for i := 0; i < md.Fields().Len(); i++ {
-			fd := md.Fields().Get(i)
-			valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
-			err := func() error {
-				subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
-				defer subField.release()
-				valNode := node.FindChild(valNodeName)
-				if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
-					// if this field has a default value, use virtual node
-					valNode = &book.Node{
-						Name:  node.Name,
-						Value: node.Value,
-					}
-				}
-				if valNode == nil {
-					if sp.IsFieldOptional(subField) {
-						// field not found and is optional, just return nil.
-						return nil
-					}
-					kvs := node.DebugNameKV()
-					kvs = append(kvs,
-						xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
-						xerrors.KeyPBFieldName, fd.FullName(),
-						xerrors.KeyPBFieldOpts, subField.opts,
-					)
-					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
-				}
-				var crossNodeValues []string
-				if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
-					crossNodeValues = []string{valNode.Value}
-					for j := 1; j < fieldCount; j++ {
-						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
-						node := node.FindChild(nodeName)
-						if node == nil {
-							break
-						}
-						crossNodeValues = append(crossNodeValues, node.Value)
-					}
-				}
-				err := sp.parseUnionMessageField(subField, msg, valNode.Value, crossNodeValues)
-				if err != nil {
-					return xerrors.WrapKV(err, valNode.DebugNameKV()...)
-				}
-				return nil
-			}()
-			if err != nil {
-				return false, err
-			}
-		}
-	} else {
-		// scalar: not supported yet.
+	if valueFD.Kind() != protoreflect.MessageKind {
 		return false, xerrors.Errorf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
 	}
+	// MUST be message type.
+	md := valueFD.Message()
+	fieldMsg := fieldValue.Message()
+	for i := 0; i < md.Fields().Len(); i++ {
+		fd := md.Fields().Get(i)
+		valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+		valNode := node.FindChild(valNodeName)
+		err := func() error {
+			subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			defer subField.release()
+			if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
+				// if this field has a default value, use virtual node
+				valNode = &book.Node{
+					Name:  node.Name,
+					Value: node.Value,
+				}
+			}
+			if valNode == nil {
+				if sp.IsFieldOptional(subField) {
+					// field not found and is optional, just return nil.
+					return nil
+				}
+				kvs := node.DebugNameKV()
+				kvs = append(kvs,
+					xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
+					xerrors.KeyPBFieldName, fd.FullName(),
+					xerrors.KeyPBFieldOpts, subField.opts,
+				)
+				return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
+			}
+			var crossNodeValues []string
+			if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
+				crossNodeValues = []string{valNode.Value}
+				for j := 1; j < fieldCount; j++ {
+					nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+					node := node.FindChild(nodeName)
+					if node == nil {
+						break
+					}
+					crossNodeValues = append(crossNodeValues, node.Value)
+				}
+			}
+			return sp.parseUnionMessageField(subField, fieldMsg, valNode.Value, crossNodeValues)
+		}()
+		if err != nil {
+			return false, xerrors.WrapKV(err, valNode.DebugNameKV()...)
+		}
+	}
 	msg.Set(valueFD, fieldValue)
-	return present, nil
+	return
 }
