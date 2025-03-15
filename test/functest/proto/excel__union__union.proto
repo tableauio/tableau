@@ -52,18 +52,18 @@ message FieldCapTarget {
   oneof value {
     option (tableau.oneof) = {field:"Field"};
 
-    Exchange exchange = 1; // Bound to enum value: TYPE_EXCHANGE.
-    Vote vote = 2; // Bound to enum value: TYPE_VOTE.
-    Fruit fruit = 3; // Bound to enum value: TYPE_FRUIT.
-    Key key = 4; // Bound to enum value: TYPE_KEY.
+    Exchange exchange = 101; // Bound to enum value: TYPE_EXCHANGE.
+    Vote vote = 102; // Bound to enum value: TYPE_VOTE.
+    Fruit fruit = 103; // Bound to enum value: TYPE_FRUIT.
+    Key key = 104; // Bound to enum value: TYPE_KEY.
   }
 
   enum Type {
     TYPE_INVALID = 0;
-    TYPE_EXCHANGE = 1 [(tableau.evalue).name = "Exchange"];
-    TYPE_VOTE = 2 [(tableau.evalue).name = "Vote"];
-    TYPE_FRUIT = 3 [(tableau.evalue).name = "Fruit"];
-    TYPE_KEY = 4 [(tableau.evalue).name = "Key"];
+    TYPE_EXCHANGE = 101 [(tableau.evalue).name = "Exchange"];
+    TYPE_VOTE = 102 [(tableau.evalue).name = "Vote"];
+    TYPE_FRUIT = 103 [(tableau.evalue).name = "Fruit"];
+    TYPE_KEY = 104 [(tableau.evalue).name = "Key"];
   }
 
   message Exchange {

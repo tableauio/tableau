@@ -1162,9 +1162,9 @@ type FieldProp struct {
 	//	(one list element for each field). It will also change this list
 	//	field's layout from incell to horizontal.
 	//
-	//	- Value 0 or 1 means the list will occupy a single field.
-	//	- Value > 1 means the list will occupy the following N fields.
-	//	- Value -1 means the list will occupy all following fields.
+	//	- Value 0 means it is an incell list.
+	//	- Value > 0 means it is a horizontal list occupying N fields.
+	//	- Value < 0 means it is a horizontal list occupying all following fields.
 	//
 	// TODO: use cases for more composite types.
 	Cross int32 `protobuf:"varint,15,opt,name=cross,proto3" json:"cross,omitempty"`
