@@ -68,21 +68,21 @@ message FieldCapTarget {
 
   message Exchange {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    repeated protoconf.Item cost_list = 2 [(tableau.field) = {name:"Cost" layout:LAYOUT_HORIZONTAL prop:{cap:3}}];
-    repeated protoconf.Item gain_list = 5 [(tableau.field) = {name:"Gain" layout:LAYOUT_HORIZONTAL prop:{cap:-1}}];
+    repeated protoconf.Item cost_list = 2 [(tableau.field) = {name:"Cost" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];
+    repeated protoconf.Item gain_list = 5 [(tableau.field) = {name:"Gain" layout:LAYOUT_HORIZONTAL prop:{cross:-1}}];
   }
   message Vote {
-    repeated uint32 approves_list = 1 [(tableau.field) = {name:"Approves" layout:LAYOUT_HORIZONTAL prop:{cap:2}}];
-    repeated uint32 againsts_list = 3 [(tableau.field) = {name:"Againsts" layout:LAYOUT_HORIZONTAL prop:{cap:2}}];
-    repeated uint32 abstains_list = 5 [(tableau.field) = {name:"Abstains" layout:LAYOUT_HORIZONTAL prop:{cap:2}}];
+    repeated uint32 approves_list = 1 [(tableau.field) = {name:"Approves" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
+    repeated uint32 againsts_list = 3 [(tableau.field) = {name:"Againsts" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
+    repeated uint32 abstains_list = 5 [(tableau.field) = {name:"Abstains" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
   }
   message Fruit {
-    repeated protoconf.FruitType type_a_list = 1 [(tableau.field) = {name:"TypeA" layout:LAYOUT_HORIZONTAL prop:{cap:3}}];
+    repeated protoconf.FruitType type_a_list = 1 [(tableau.field) = {name:"TypeA" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];
     repeated protoconf.FruitType type_b_list = 4 [(tableau.field) = {name:"TypeB" layout:LAYOUT_INCELL}];
-    repeated protoconf.FruitFlavor flavor_list = 5 [(tableau.field) = {name:"Flavor" layout:LAYOUT_HORIZONTAL prop:{cap:-1}}];
+    repeated protoconf.FruitFlavor flavor_list = 5 [(tableau.field) = {name:"Flavor" layout:LAYOUT_HORIZONTAL prop:{cross:-1}}];
   }
   message Key {
-    repeated int32 keys_list = 1 [(tableau.field) = {name:"Keys" key:"Keys" layout:LAYOUT_HORIZONTAL prop:{cap:3}}];
-    repeated int32 values_list = 4 [(tableau.field) = {name:"Values" layout:LAYOUT_HORIZONTAL prop:{cap:-1}}];
+    repeated int32 keys_list = 1 [(tableau.field) = {name:"Keys" key:"Keys" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];
+    repeated int32 values_list = 4 [(tableau.field) = {name:"Values" layout:LAYOUT_HORIZONTAL prop:{cross:-1}}];
   }
 }

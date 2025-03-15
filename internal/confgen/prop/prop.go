@@ -182,10 +182,10 @@ func CheckPresence(prop *tableaupb.FieldProp, present bool) error {
 
 func GetUnionCrossFieldCount(prop *tableaupb.FieldProp) int {
 	if prop != nil {
-		if prop.Cap == -1 {
+		if prop.Cross == -1 {
 			return math.MaxInt32
 		}
-		return int(prop.Cap)
+		return int(prop.Cross)
 	}
 	return 0
 }

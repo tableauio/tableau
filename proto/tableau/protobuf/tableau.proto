@@ -269,12 +269,13 @@ message FieldProp {
   //
   // Default: ":".
   string subsep = 14;
-  // Capacity of composite type with cardinality, such as list and map.
+  // Specify count of crossed nodes/cells/fields of composite types with
+  // cardinality, such as list and map.
   //
   // For union list field:
   //
-  //    Specify the count of union fields the list will occupy
-  //    (one list element for each field). It will also the change this list
+  //    Specify the count of union fields the list will cross and occupy
+  //    (one list element for each field). It will also change this list
   //    field's layout from incell to horizontal.
   //
   //    - Value 0 or 1 means the list will occupy a single field.
@@ -282,7 +283,7 @@ message FieldProp {
   //    - Value -1 means the list will occupy all following fields.
   //
   // TODO: use cases for more composite types.
-  int32 cap = 15;
+  int32 cross = 15;
 }
 
 // Layout of list and map.
@@ -311,12 +312,12 @@ enum Span {
 // Sheet mode.
 enum Mode {
   MODE_DEFAULT = 0;            // Default mode.
-  MODE_ENUM_TYPE = 1;          // Enum type definition in sheet.
-  MODE_ENUM_TYPE_MULTI = 2;    // Enum type multiple definitions in sheet.
-  MODE_STRUCT_TYPE = 3;        // TODO: Struct type definition in sheet.
-  MODE_STRUCT_TYPE_MULTI = 4;  // Struct type multiple definitions in sheet.
-  MODE_UNION_TYPE = 5;         // Union type definition in sheet.
-  MODE_UNION_TYPE_MULTI = 6;   // TODO: Union type multiple definitions in sheet.
+  MODE_ENUM_TYPE = 1;          // Enum type: single definition in a sheet.
+  MODE_ENUM_TYPE_MULTI = 2;    // Enum type: multiple definitions in a sheet.
+  MODE_STRUCT_TYPE = 3;        // Struct type: single definition in a sheet.
+  MODE_STRUCT_TYPE_MULTI = 4;  // Struct type: multiple definitions in a sheet.
+  MODE_UNION_TYPE = 5;         // Union type: single definition in a sheet.
+  MODE_UNION_TYPE_MULTI = 6;   // Union type: multiple definitions in a sheet.
 
   // UE DataTable references:
   //  - https://dev.epicgames.com/documentation/en-us/unreal-engine/data-driven-gameplay-elements-in-unreal-engine
@@ -327,7 +328,7 @@ enum Mode {
 
 // Cell data form.
 enum Form {
-  FORM_DEFAULT = 0;  // Default form which confgen parser defines.
+  FORM_DEFAULT = 0;  // Default form which confgen parser will parse.
   FORM_TEXT = 1;     // Refer: https://developers.google.com/protocol-buffers/docs/text-format-spec
   FORM_JSON = 2;     // Refer: https://developers.google.com/protocol-buffers/docs/proto3#json
 }

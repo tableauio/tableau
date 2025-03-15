@@ -644,14 +644,14 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		// union mode
-		if opts.IsUnionMode() && prop != nil && prop.Cap != 0 && prop.Cap != 1 {
-			// change layout to horizontal if cap is not 0 or 1
+		if opts.IsUnionMode() && prop != nil && prop.Cross != 0 && prop.Cross != 1 {
+			// change layout to horizontal if cross is not 0 or 1
 			layout = tableaupb.Layout_LAYOUT_HORIZONTAL
-			// move cursor to next according to cap
-			if prop.Cap == -1 {
+			// move cursor to next according to cross
+			if prop.Cross == -1 {
 				cursor = math.MaxInt - 1 // occupy all following fields, so move to the end
 			} else {
-				cursor += int(prop.Cap - 1)
+				cursor += int(prop.Cross - 1)
 			}
 		}
 		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))

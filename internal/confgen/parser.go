@@ -745,6 +745,11 @@ func (sp *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData
 	}
 }
 
+// parseIncellUnion parses field value by [protoreflect.FieldDescriptor] and
+// [tableaupb.FieldProp]. It can parse following basic types:
+//   - Scalar types
+//   - Enum types
+//   - Well-known types
 func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, fprop *tableaupb.FieldProp) (v protoreflect.Value, present bool, err error) {
 	v, present, err = xproto.ParseFieldValue(fd, rawValue, sp.LocationName)
 	if err != nil {
