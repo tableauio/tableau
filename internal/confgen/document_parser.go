@@ -307,7 +307,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
 		// node of XML scalar list with only 1 element is just like an incell list
 		node.Kind == book.ScalarNode:
-		present, err = sp.parseIncellListField(field, list, node.Value)
+		present, err = sp.parseIncellList(field, list, node.Value)
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -453,6 +453,9 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	if err != nil {
 		return false, xerrors.WrapKV(err, typeNode.DebugNameKV()...)
 	}
+	if !present {
+		return false, nil
+	}
 	msg.Set(unionDesc.Type, typeVal)
 
 	// parse value
@@ -500,9 +503,8 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 				)
 				return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 			}
-			var crossNodeValues []string
+			crossNodeValues := []string{valNode.Value}
 			if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
-				crossNodeValues = []string{valNode.Value}
 				for j := 1; j < fieldCount; j++ {
 					nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
 					node := node.FindChild(nodeName)
@@ -512,7 +514,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					crossNodeValues = append(crossNodeValues, node.Value)
 				}
 			}
-			return sp.parseUnionMessageField(subField, fieldMsg, valNode.Value, crossNodeValues)
+			return sp.parseUnionMessageField(subField, fieldMsg, crossNodeValues)
 		}()
 		if err != nil {
 			return false, xerrors.WrapKV(err, valNode.DebugNameKV()...)

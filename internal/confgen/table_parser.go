@@ -175,17 +175,11 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		return sp.parseHorizontalMapField(field, msg, rc, prefix)
 	case tableaupb.Layout_LAYOUT_INCELL:
-		colName := prefix + field.opts.Name
-		cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-		}
-		reflectMap := msg.Mutable(field.fd).Map()
-		err = sp.parseIncellMap(field, reflectMap, cell.Data)
-		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-		}
-		return msg.Has(field.fd), nil
+		// NOTE(Wenchy): Even though named as incell, it still can merge
+		// multiple vertical/horizontal cells if provided, as map is a
+		// composite type with cardinality. In practical use cases, this
+		// is a very useful feature.
+		return sp.parseIncellMapField(field, msg, rc, prefix)
 	default:
 		return false, xerrors.Errorf("unknown layout: %v", field.opts.GetLayout())
 	}
@@ -322,17 +316,26 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 	return true, nil
 }
 
-func (sp *tableParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
-	// keyFd := field.fd.MapKey()
-	valueFd := field.fd.MapValue()
-	if valueFd.Kind() != protoreflect.MessageKind {
-		return sp.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
+func (sp *tableParser) parseIncellMapField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
+	var cell *book.RowCell
+	colName := prefix + field.opts.Name
+	if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
+		reflectMap := msg.Mutable(field.fd).Map()
+		valueFd := field.fd.MapValue()
+		if valueFd.Kind() != protoreflect.MessageKind {
+			err = sp.parseIncellMapWithSimpleKV(field, reflectMap, cell.Data)
+		} else {
+			if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
+				err = xerrors.Errorf("map value type is not KV struct, and is not supported")
+			} else {
+				err = sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cell.Data)
+			}
+		}
 	}
-
-	if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
-		return xerrors.Errorf("map value type is not KV struct, and is not supported")
+	if err != nil {
+		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
 	}
-	return sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
+	return msg.Has(field.fd), nil
 }
 
 func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
@@ -343,17 +346,11 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 		// list default layout treated as horizontal
 		return sp.parseHorizontalListField(field, msg, rc, prefix)
 	case tableaupb.Layout_LAYOUT_INCELL:
-		colName := prefix + field.opts.Name
-		cell, err := rc.Cell(colName, sp.IsFieldOptional(field))
-		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-		}
-		list := msg.Mutable(field.fd).List()
-		present, err = sp.parseIncellListField(field, list, cell.Data)
-		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
-		}
-		return present, nil
+		// NOTE(Wenchy): Even though named as incell, it still can merge
+		// multiple vertical/horizontal cells if provided, as list is a
+		// composite type with cardinality. In practical use cases, this
+		// is a very useful feature.
+		return sp.parseIncellListField(field, msg, rc, prefix)
 	default:
 		return false, xerrors.Errorf("unknown layout: %v", field.opts.GetLayout())
 	}
@@ -445,10 +442,11 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 		elemPresent := false
 		elemValue := list.NewElement()
 		colName := prefix + field.opts.Name + strconv.Itoa(i)
+		var cell *book.RowCell
 		if field.fd.Kind() == protoreflect.MessageKind {
 			if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 				// horizontal well-known list
-				if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+				if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
 					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 				}
 			} else if xproto.IsUnionField(field.fd) {
@@ -456,7 +454,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 				elemPresent, err = sp.parseUnionMessage(elemValue.Message(), field, rc, colName)
 			} else if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 				// horizontal incell-struct list
-				if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+				if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
 					elemPresent, err = sp.parseIncellStruct(elemValue, cell.Data, field.opts.GetProp().GetForm(), field.sep)
 				}
 			} else {
@@ -465,7 +463,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 			}
 		} else {
 			// scalar list
-			if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+			if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
 				elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 			}
 		}
@@ -494,6 +492,19 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 		}
 	}
 	return msg.Has(field.fd), nil
+}
+
+func (sp *tableParser) parseIncellListField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
+	var cell *book.RowCell
+	colName := prefix + field.opts.Name
+	if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
+		list := msg.Mutable(field.fd).List()
+		present, err = sp.parseIncellList(field, list, cell.Data)
+	}
+	if err != nil {
+		return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+	}
+	return
 }
 
 func (sp *tableParser) parseStructField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
@@ -525,15 +536,16 @@ func (sp *tableParser) parseStructField(field *Field, msg protoreflect.Message, 
 		structValue = msg.NewField(field.fd)
 	}
 
+	var cell *book.RowCell
 	colName := prefix + field.opts.Name
 	if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 		// well-known struct
-		if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+		if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
 			structValue, present, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 		}
 	} else if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+		if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
 			present, err = sp.parseIncellStruct(structValue, cell.Data, field.opts.GetProp().GetForm(), field.sep)
 		}
 	} else {
@@ -559,10 +571,11 @@ func (sp *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r
 		structValue = msg.NewField(field.fd)
 	}
 
+	var cell *book.RowCell
 	colName := prefix + field.opts.Name
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell union
-		if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+		if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
 			present, err = sp.parseIncellUnion(structValue, cell.Data, field.opts.GetProp().GetForm())
 		}
 	} else {
@@ -597,6 +610,9 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(typeColName)...)
 	}
+	if !present {
+		return false, nil
+	}
 	msg.Set(unionDesc.Type, typeVal)
 
 	// parse value
@@ -628,9 +644,8 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 			if err != nil {
 				return err
 			}
-			var crossCellDataList []string
+			crossCellDataList := []string{cell.Data}
 			if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
-				crossCellDataList = []string{cell.Data}
 				for j := 1; j < fieldCount; j++ {
 					colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
 					c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
@@ -640,7 +655,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 					crossCellDataList = append(crossCellDataList, c.Data)
 				}
 			}
-			return sp.parseUnionMessageField(subField, fieldMsg, cell.Data, crossCellDataList)
+			return sp.parseUnionMessageField(subField, fieldMsg, crossCellDataList)
 		}()
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
@@ -657,8 +672,9 @@ func (sp *tableParser) parseScalarField(field *Field, msg protoreflect.Message, 
 		return true, nil
 	}
 	var newValue protoreflect.Value
+	var cell *book.RowCell
 	colName := prefix + field.opts.Name
-	if cell, cerr := rc.Cell(colName, sp.IsFieldOptional(field)); cerr == nil {
+	if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
 		newValue, present, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 	}
 	if err != nil {

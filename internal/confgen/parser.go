@@ -559,8 +559,8 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 	return true
 }
 
-func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List, cellData string) (present bool, err error) {
-	splits := strings.Split(cellData, field.sep)
+func (sp *sheetParser) parseIncellList(field *Field, list protoreflect.List, elemData string) (present bool, err error) {
+	splits := strings.Split(elemData, field.sep)
 	return sp.parseListElems(field.fd, field.opts, list, field.subsep, splits)
 }
 
@@ -569,8 +569,8 @@ func (sp *sheetParser) parseIncellListField(field *Field, list protoreflect.List
 func (sp *sheetParser) parseListElems(
 	fd protoreflect.FieldDescriptor,
 	fdopts *tableaupb.FieldOptions,
-	list protoreflect.List, sep string, elems []string) (present bool, err error) {
-	detectedSize := len(elems)
+	list protoreflect.List, sep string, elemDataList []string) (present bool, err error) {
+	detectedSize := len(elemDataList)
 	fixedSize := fieldprop.GetSize(fdopts.Prop, detectedSize)
 	size := detectedSize
 	if fixedSize > 0 && fixedSize < detectedSize {
@@ -579,7 +579,7 @@ func (sp *sheetParser) parseListElems(
 	}
 	var firstNonePresentIndex int
 	for i := 1; i <= size; i++ {
-		elem := elems[i-1]
+		elem := elemDataList[i-1]
 		var elemValue protoreflect.Value
 		var elemPresent bool
 		if fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(fd.Message().FullName()) {
@@ -668,65 +668,51 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 	}
 }
 
-func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, data string, dataList []string) error {
+func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, dataList []string) (err error) {
+	if len(dataList) == 0 {
+		return xerrors.Errorf("union field data not provided")
+	}
+	var present bool
+	var fieldValue protoreflect.Value
 	if field.fd.IsMap() {
 		// incell map
-		value := msg.NewField(field.fd)
-		err := sp.parseIncellMap(field, value.Map(), data)
+		fieldValue = msg.NewField(field.fd)
+		err := sp.parseIncellMap(field, fieldValue.Map(), dataList[0])
 		if err != nil {
 			return err
 		}
-		if !msg.Has(field.fd) && value.Map().Len() != 0 {
-			msg.Set(field.fd, value)
+		if !msg.Has(field.fd) && fieldValue.Map().Len() != 0 {
+			present = true
 		}
 	} else if field.fd.IsList() {
 		// incell list
-		value := msg.NewField(field.fd)
-		list := value.List()
-		var present bool
-		var err error
+		fieldValue = msg.NewField(field.fd)
+		list := fieldValue.List()
 		switch field.opts.GetLayout() {
 		case tableaupb.Layout_LAYOUT_INCELL, tableaupb.Layout_LAYOUT_DEFAULT:
-			present, err = sp.parseIncellListField(field, list, data)
+			present, err = sp.parseIncellList(field, list, dataList[0])
 		case tableaupb.Layout_LAYOUT_HORIZONTAL:
 			present, err = sp.parseListElems(field.fd, field.opts, list, field.sep, dataList)
 		default:
 			return xerrors.Errorf("union list field has illegal layout: %s", field.opts.GetLayout())
 		}
-		if err != nil {
-			return err
-		}
-		if present {
-			msg.Set(field.fd, value)
-		}
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		if types.IsWellKnownMessage(field.fd.Message().FullName()) {
-			value, present, err := sp.parseFieldValue(field.fd, data, field.opts.Prop)
-			if err != nil {
-				return err
-			}
-			if present {
-				msg.Set(field.fd, value)
-			}
-			return nil
-		}
-		// incell struct
-		value := msg.NewField(field.fd)
-		present, err := sp.parseIncellStruct(value, data, field.opts.GetProp().GetForm(), field.sep)
-		if err != nil {
-			return err
-		}
-		if present {
-			msg.Set(field.fd, value)
+			// well-known message
+			fieldValue, present, err = sp.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
+		} else {
+			// incell struct
+			fieldValue = msg.NewField(field.fd)
+			present, err = sp.parseIncellStruct(fieldValue, dataList[0], field.opts.GetProp().GetForm(), field.sep)
 		}
 	} else {
-		val, present, err := sp.parseFieldValue(field.fd, data, field.opts.Prop)
-		if err != nil {
-			return err
-		}
-		if present {
-			msg.Set(field.fd, val)
-		}
+		fieldValue, present, err = sp.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
+	}
+	if err != nil {
+		return err
+	}
+	if present {
+		msg.Set(field.fd, fieldValue)
 	}
 	return nil
 }
