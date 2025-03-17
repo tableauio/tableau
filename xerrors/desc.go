@@ -119,8 +119,12 @@ func (d *Desc) ErrCode() string {
 	return ""
 }
 
-// String render description in specified language.
 func (d *Desc) String() string {
+	return d.ErrString(true)
+}
+
+// ErrString renders description in specified language.
+func (d *Desc) ErrString(withDebug bool) string {
 	if d.err == nil {
 		return ""
 	}
@@ -130,7 +134,6 @@ func (d *Desc) String() string {
 	if d.fields[KeyModule] == nil && d.fields[keyErrCode] != nil {
 		d.fields[KeyModule] = ModuleDefault
 	}
-	debugging := fmt.Sprintf("Debugging: \n%s\n", d.DebugString())
 	var module string
 	val := d.GetValue(KeyModule)
 	if val != nil {
@@ -138,7 +141,11 @@ func (d *Desc) String() string {
 	}
 	switch module {
 	case ModuleDefault, ModuleProto, ModuleConf:
-		return debugging + renderSummary(module, d.fields)
+		errmsg := renderSummary(module, d.fields)
+		if withDebug {
+			errmsg = fmt.Sprintf("Debugging: \n%s\n", d.DebugString()) + errmsg
+		}
+		return errmsg
 	default:
 		return d.err.Error()
 	}
