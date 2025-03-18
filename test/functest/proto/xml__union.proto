@@ -9,10 +9,10 @@ import "common/union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"xml/Union.xml"};
+option (tableau.workbook) = {name:"xml/Union.xml" sep:"," subsep:":"};
 
 message XMLUnionConf {
-  option (tableau.worksheet) = {name:"XMLUnionConf" sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"XMLUnionConf"};
 
   union.Target predefined_union = 1 [(tableau.field) = {name:"PredefinedUnion"}];
   union.Target predefined_incell_union = 2 [(tableau.field) = {name:"PredefinedIncellUnion" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}];

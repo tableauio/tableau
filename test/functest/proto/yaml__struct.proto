@@ -11,10 +11,10 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/Struct.yaml"};
+option (tableau.workbook) = {name:"yaml/Struct.yaml" sep:"," subsep:":"};
 
 message YamlStructConf {
-  option (tableau.worksheet) = {name:"YamlStructConf" sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"YamlStructConf"};
 
   Fruit strict_struct = 1 [(tableau.field) = {name:"StrictStruct"}];
   message Fruit {

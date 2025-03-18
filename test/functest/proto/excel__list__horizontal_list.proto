@@ -11,10 +11,10 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/list/HorizontalList#*.csv"};
+option (tableau.workbook) = {name:"excel/list/HorizontalList#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message HorizontalColumnSkippedList {
-  option (tableau.worksheet) = {name:"HorizontalColumnSkippedList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalColumnSkippedList"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -28,13 +28,13 @@ message HorizontalColumnSkippedList {
 }
 
 message HorizontalEnumList {
-  option (tableau.worksheet) = {name:"HorizontalEnumList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalEnumList"};
 
   repeated protoconf.FruitType param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}];
 }
 
 message HorizontalIncellInStructList {
-  option (tableau.worksheet) = {name:"HorizontalIncellInStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalIncellInStructList"};
 
   repeated Task task_list = 1 [(tableau.field) = {name:"Task" layout:LAYOUT_HORIZONTAL}];
   message Task {
@@ -43,21 +43,21 @@ message HorizontalIncellInStructList {
 }
 
 message HorizontalIncellPdefStructList {
-  option (tableau.worksheet) = {name:"HorizontalIncellPdefStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalIncellPdefStructList"};
 
   repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
   int32 value = 2 [(tableau.field) = {name:"Value"}];
 }
 
 message HorizontalIncellPdefStructList2 {
-  option (tableau.worksheet) = {name:"HorizontalIncellPdefStructList2" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalIncellPdefStructList2"};
 
   repeated protoconf.Item reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
   int32 value = 2 [(tableau.field) = {name:"Value"}];
 }
 
 message HorizontalIncellStructList {
-  option (tableau.worksheet) = {name:"HorizontalIncellStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalIncellStructList"};
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
   message Item {
@@ -67,20 +67,20 @@ message HorizontalIncellStructList {
 }
 
 message HorizontalPredefinedStructList {
-  option (tableau.worksheet) = {name:"HorizontalPredefinedStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalPredefinedStructList"};
 
   repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
 }
 
 message HorizontalScalarList {
-  option (tableau.worksheet) = {name:"HorizontalScalarList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalScalarList"};
 
   repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL prop:{range:"1,~" refer:"ItemConf.ID,EquipConf.ID"}}];
   repeated google.protobuf.Timestamp time_list = 2 [(tableau.field) = {name:"Time" layout:LAYOUT_HORIZONTAL}];
 }
 
 message HorizontalStructList {
-  option (tableau.worksheet) = {name:"HorizontalStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalStructList"};
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
   message Item {
@@ -90,7 +90,7 @@ message HorizontalStructList {
 }
 
 message HorizontalUnionList {
-  option (tableau.worksheet) = {name:"HorizontalUnionList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalUnionList"};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {

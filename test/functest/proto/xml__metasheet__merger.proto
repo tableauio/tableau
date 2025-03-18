@@ -8,10 +8,10 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"xml/metasheet/Merger.xml"};
+option (tableau.workbook) = {name:"xml/metasheet/Merger.xml" sep:"," subsep:":"};
 
 message MergerConf {
-  option (tableau.worksheet) = {name:"MergerConf" sep:"," subsep:":" merger:"Merger*.xml" optional:true};
+  option (tableau.worksheet) = {name:"MergerConf" merger:"Merger*.xml" optional:true};
 
   map<int32, Fuben> fuben_map = 1 [(tableau.field) = {name:"Fuben" key:"Id"}];
   message Fuben {

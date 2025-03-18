@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/fieldprop/Optional.yaml"};
+option (tableau.workbook) = {name:"yaml/fieldprop/Optional.yaml" sep:"," subsep:":"};
 
 message YamlFieldPropOptionalConf {
-  option (tableau.worksheet) = {name:"YamlFieldPropOptionalConf" sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"YamlFieldPropOptionalConf"};
 
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   int32 num = 2 [(tableau.field) = {name:"Num" prop:{optional:true}}];

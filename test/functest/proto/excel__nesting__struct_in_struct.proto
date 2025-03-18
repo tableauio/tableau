@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/nesting/StructInStruct#*.csv"};
+option (tableau.workbook) = {name:"excel/nesting/StructInStruct#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message IncellStructInStruct {
-  option (tableau.worksheet) = {name:"IncellStructInStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellStructInStruct"};
 
   Reward reward = 1 [(tableau.field) = {name:"Reward"}];
   message Reward {
@@ -26,7 +26,7 @@ message IncellStructInStruct {
 }
 
 message PredefinedStructInStruct {
-  option (tableau.worksheet) = {name:"PredefinedStructInStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"PredefinedStructInStruct"};
 
   Reward reward = 1 [(tableau.field) = {name:"Reward"}];
   message Reward {
@@ -36,7 +36,7 @@ message PredefinedStructInStruct {
 }
 
 message StructInStruct {
-  option (tableau.worksheet) = {name:"StructInStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"StructInStruct"};
 
   Reward reward = 1 [(tableau.field) = {name:"Reward"}];
   message Reward {

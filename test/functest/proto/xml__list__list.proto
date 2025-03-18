@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"xml/list/List.xml"};
+option (tableau.workbook) = {name:"xml/list/List.xml" sep:"," subsep:":"};
 
 message ListConf {
-  option (tableau.worksheet) = {name:"ListConf" sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"ListConf"};
 
   Parent parent = 1 [(tableau.field) = {name:"Parent"}];
   message Parent {
@@ -31,7 +31,7 @@ message ListConf {
 }
 
 message ListConf2 {
-  option (tableau.worksheet) = {name:"ListConf2" sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"ListConf2"};
 
   Parent parent = 1 [(tableau.field) = {name:"Parent"}];
   message Parent {

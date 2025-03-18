@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/nesting/ListInList#*.csv"};
+option (tableau.workbook) = {name:"excel/nesting/ListInList#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message HPredefStructListInHListFF {
-  option (tableau.worksheet) = {name:"HPredefStructListInHListFF" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HPredefStructListInHListFF"};
 
   repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
   message Reward {
@@ -22,7 +22,7 @@ message HPredefStructListInHListFF {
 }
 
 message HorizontalListInHorizontaListFF {
-  option (tableau.worksheet) = {name:"HorizontalListInHorizontaListFF" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalListInHorizontaListFF"};
 
   repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
   message Reward {
@@ -36,7 +36,7 @@ message HorizontalListInHorizontaListFF {
 }
 
 message HorizontalListInVerticalList {
-  option (tableau.worksheet) = {name:"HorizontalListInVerticalList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalListInVerticalList"};
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
@@ -51,7 +51,7 @@ message HorizontalListInVerticalList {
 }
 
 message IncellListInVerticalList {
-  option (tableau.worksheet) = {name:"IncellListInVerticalList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellListInVerticalList"};
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
@@ -61,7 +61,7 @@ message IncellListInVerticalList {
 }
 
 message VerticalListInVerticalKeyedList {
-  option (tableau.worksheet) = {name:"VerticalListInVerticalKeyedList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalListInVerticalKeyedList"};
 
   repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {

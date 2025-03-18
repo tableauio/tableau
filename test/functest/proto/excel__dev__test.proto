@@ -11,10 +11,10 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/dev/Test#*.csv"};
+option (tableau.workbook) = {name:"excel/dev/Test#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message Activity {
-  option (tableau.worksheet) = {name:"Activity" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":" ordered_map:true};
+  option (tableau.worksheet) = {name:"Activity" datarow:4 nameline:1 typeline:1 sep:"," ordered_map:true};
 
   map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL}];
   message Activity {
@@ -64,7 +64,7 @@ message Activity {
 }
 
 message ExchangeInfo {
-  option (tableau.worksheet) = {name:"Exchange" namerow:1 typerow:2 noterow:3 datarow:4 nameline:2 typeline:2 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"Exchange" datarow:4 nameline:2 typeline:2};
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
@@ -77,7 +77,7 @@ message ExchangeInfo {
 }
 
 message Loader {
-  option (tableau.worksheet) = {name:"Loader" namerow:1 typerow:2 noterow:3 datarow:5 nameline:1 typeline:1 sep:"," subsep:":" nested:true adjacent_key:true};
+  option (tableau.worksheet) = {name:"Loader" datarow:5 nameline:1 typeline:1 nested:true adjacent_key:true};
 
   map<int32, Server> server_map = 1 [(tableau.field) = {name:"Server" key:"Type" layout:LAYOUT_VERTICAL}];
   message Server {
@@ -102,7 +102,7 @@ message Loader {
 }
 
 message MatchConf {
-  option (tableau.worksheet) = {name:"Match" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":" nested:true field_presence:true};
+  option (tableau.worksheet) = {name:"Match" datarow:4 nameline:1 typeline:1 nested:true field_presence:true};
 
   optional int32 interval = 1 [(tableau.field) = {name:"Interval"}];
   optional int32 timeout = 2 [(tableau.field) = {name:"Timeout"}];
@@ -155,7 +155,7 @@ message MatchConf {
 }
 
 message Reward {
-  option (tableau.worksheet) = {name:"Reward" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"Reward" datarow:4 nameline:1 typeline:1};
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true sequence:1}}];
   message Reward {

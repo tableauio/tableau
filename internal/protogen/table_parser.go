@@ -32,6 +32,7 @@ func newTableParser(bookName, alias, relSlashPath string, gen *Generator) *table
 		opts.Namerow = header.Namerow
 		opts.Typerow = header.Typerow
 		opts.Noterow = header.Noterow
+		opts.Datarow = header.Datarow
 		opts.Nameline = header.Nameline
 		opts.Typeline = header.Typeline
 	}
@@ -43,6 +44,9 @@ func newTableParser(bookName, alias, relSlashPath string, gen *Generator) *table
 	}
 	if opts.Noterow == 0 {
 		opts.Noterow = options.DefaultNoteRow
+	}
+	if opts.Datarow == 0 {
+		opts.Datarow = options.DefaultDataRow
 	}
 	return p
 }

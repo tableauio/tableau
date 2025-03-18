@@ -9,10 +9,10 @@ import "excel__metasheet__sheet_mode.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/metasheet/Metasheet#*.csv"};
+option (tableau.workbook) = {name:"excel/metasheet/Metasheet#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message Index {
-  option (tableau.worksheet) = {name:"Index" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":" index:"ID" index:"(ID,Name)@SpecialItem" lang_options:{key:"Index" value:"cpp go"} lang_options:{key:"OrderedMap" value:"cpp"}};
+  option (tableau.worksheet) = {name:"Index" index:"ID" index:"(ID,Name)@SpecialItem" lang_options:{key:"Index" value:"cpp go"} lang_options:{key:"OrderedMap" value:"cpp"}};
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -24,7 +24,7 @@ message Index {
 }
 
 message Transpose {
-  option (tableau.worksheet) = {name:"Transpose" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":" transpose:true};
+  option (tableau.worksheet) = {name:"Transpose" transpose:true};
 
   int32 id = 1 [(tableau.field) = {name:"ID"}];
   string name = 2 [(tableau.field) = {name:"Name"}];

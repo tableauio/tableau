@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/nesting/ListInMap#*.csv"};
+option (tableau.workbook) = {name:"excel/nesting/ListInMap#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message HorizontalListInVerticalMap {
-  option (tableau.worksheet) = {name:"HorizontalListInVerticalMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalListInVerticalMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -27,7 +27,7 @@ message HorizontalListInVerticalMap {
 }
 
 message IncellListInVerticalMap {
-  option (tableau.worksheet) = {name:"IncellListInVerticalMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellListInVerticalMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -37,7 +37,7 @@ message IncellListInVerticalMap {
 }
 
 message IncellStructListInVMap {
-  option (tableau.worksheet) = {name:"IncellStructListInVMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellStructListInVMap"};
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
@@ -52,7 +52,7 @@ message IncellStructListInVMap {
 }
 
 message VerticalListInVerticalMap {
-  option (tableau.worksheet) = {name:"VerticalListInVerticalMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalListInVerticalMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {

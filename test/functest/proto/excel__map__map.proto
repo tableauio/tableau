@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/map/Map#*.csv"};
+option (tableau.workbook) = {name:"excel/map/Map#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message EmptyKeyMap {
-  option (tableau.worksheet) = {name:"EmptyKeyMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"EmptyKeyMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -22,7 +22,7 @@ message EmptyKeyMap {
 }
 
 message EnumKeyMap {
-  option (tableau.worksheet) = {name:"EnumKeyMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"EnumKeyMap"};
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"Type" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -32,7 +32,7 @@ message EnumKeyMap {
 }
 
 message HorizontalExplicitFixedSizeMap {
-  option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{size:2}}];
   message Item {
@@ -42,7 +42,7 @@ message HorizontalExplicitFixedSizeMap {
 }
 
 message HorizontalImplicitFixedSizeMap {
-  option (tableau.worksheet) = {name:"HorizontalImplicitFixedSizeMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalImplicitFixedSizeMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
   message Item {
@@ -52,7 +52,7 @@ message HorizontalImplicitFixedSizeMap {
 }
 
 message IncellEnumMap {
-  option (tableau.worksheet) = {name:"IncellEnumMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellEnumMap"};
 
   map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
   message Fruit {
@@ -68,7 +68,7 @@ message IncellEnumMap {
 }
 
 message IncellMap {
-  option (tableau.worksheet) = {name:"IncellMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellMap"};
 
   map<uint32, string> items_map = 1 [(tableau.field) = {name:"Items" layout:LAYOUT_INCELL}];
 }

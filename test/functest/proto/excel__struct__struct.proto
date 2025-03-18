@@ -10,10 +10,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/struct/Struct#*.csv"};
+option (tableau.workbook) = {name:"excel/struct/Struct#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message CrossCellNamedStruct {
-  option (tableau.worksheet) = {name:"CrossCellNamedStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"CrossCellNamedStruct"};
 
   Item reward_item = 1 [(tableau.field) = {name:"RewardItem"}];
   message Item {
@@ -25,7 +25,7 @@ message CrossCellNamedStruct {
 }
 
 message CrossCellStruct {
-  option (tableau.worksheet) = {name:"CrossCellStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"CrossCellStruct"};
 
   Property property = 1 [(tableau.field) = {name:"Property"}];
   message Property {
@@ -36,7 +36,7 @@ message CrossCellStruct {
 }
 
 message InCellStruct {
-  option (tableau.worksheet) = {name:"InCellStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"InCellStruct"};
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -51,7 +51,7 @@ message InCellStruct {
 }
 
 message PredefinedCrossCellStruct {
-  option (tableau.worksheet) = {name:"PredefinedCrossCellStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"PredefinedCrossCellStruct"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -61,7 +61,7 @@ message PredefinedCrossCellStruct {
 }
 
 message PredefinedInCellStruct {
-  option (tableau.worksheet) = {name:"PredefinedInCellStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"PredefinedInCellStruct"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {

@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"xml/Struct.xml"};
+option (tableau.workbook) = {name:"xml/Struct.xml" sep:"," subsep:":"};
 
 message XMLStructConf {
-  option (tableau.worksheet) = {name:"XMLStructConf" sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"XMLStructConf"};
 
   Item item = 1 [(tableau.field) = {name:"Item"}];
   message Item {
@@ -37,7 +37,7 @@ message XMLStructConf {
 }
 
 message XMLStructConf2 {
-  option (tableau.worksheet) = {name:"XMLStructConf2" sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"XMLStructConf2"};
 
   Node node = 1 [(tableau.field) = {name:"Node"}];
   message Node {
