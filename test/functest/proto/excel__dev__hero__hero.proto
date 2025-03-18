@@ -12,7 +12,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/dev/hero/Hero#*.csv"};
 
 message FirstHListField {
-  option (tableau.worksheet) = {name:"FirstHListField" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+  option (tableau.worksheet) = {name:"FirstHListField" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":"};
 
   map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Hero {
@@ -73,7 +73,7 @@ message FirstHListField {
 }
 
 message FirstVListField {
-  option (tableau.worksheet) = {name:"FirstVListField" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+  option (tableau.worksheet) = {name:"FirstVListField" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":"};
 
   repeated Hero hero_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Hero {
@@ -87,7 +87,7 @@ message FirstVListField {
 }
 
 message Hero {
-  option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 merger:"Her*.csv" index:"Kind" index:"Group@Hero"};
+  option (tableau.worksheet) = {name:"Hero" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":" merger:"Her*.csv" index:"Kind" index:"Group@Hero"};
 
   map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Hero {
@@ -105,7 +105,7 @@ message Hero {
 }
 
 message VIncellStructList {
-  option (tableau.worksheet) = {name:"VIncellStructList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+  option (tableau.worksheet) = {name:"VIncellStructList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":"};
 
   repeated Elem elem_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Elem {

@@ -314,6 +314,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet options
 		ws := sheet.ToWorkseet()
+		mergeDocumentHeaderOptions(ws.Options, gen.InputOpt.Header)
 		debugSheetName := sheet.GetDebugName()
 		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 
@@ -407,7 +408,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet header
 		ws := sheet.ToWorkseet()
-		mergeHeaderOptions(ws.Options, gen.InputOpt.Header)
+		mergeTableHeaderOptions(ws.Options, gen.InputOpt.Header)
 		debugSheetName := sheet.GetDebugName()
 		if pass == firstPass {
 			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
