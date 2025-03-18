@@ -40,34 +40,33 @@ type HeaderOption struct {
 	// Exact row number of column name definition at a worksheet.
 	//
 	// Default: 1.
-	Namerow int32
+	NameRow int32 `yaml:"namerow"`
 
 	// Exact row number of column type definition at a worksheet.
 	//
 	// Default: 2.
-	Typerow int32
-
+	TypeRow int32 `yaml:"typerow"`
 	// Exact row number of column note at a worksheet.
 	//
 	// Default: 3.
-	Noterow int32
+	NoteRow int32 `yaml:"noterow"`
 
 	// Start row number of data at a worksheet.
 	//
 	// Default: 4.
-	Datarow int32
+	DataRow int32 `yaml:"datarow"`
 
 	// The line number of column name definition in a cell.
 	// Value 0 means the whole cell.
 	//
 	// Default: 0.
-	Nameline int32
+	NameLine int32 `yaml:"nameline"`
 
 	// The line number of column type definition in a cell.
 	// Value 0 means the whole cell.
 	//
 	// Default: 0.
-	Typeline int32
+	TypeLine int32 `yaml:"typeline"`
 
 	// Separator for separating:
 	//  - incell list elements (scalar or struct).
@@ -365,10 +364,10 @@ func NewDefault() *Options {
 		Proto: &ProtoOption{
 			Input: &ProtoInputOption{
 				Header: &HeaderOption{
-					Namerow: DefaultNameRow,
-					Typerow: DefaultTypeRow,
-					Noterow: DefaultNoteRow,
-					Datarow: DefaultDataRow,
+					NameRow: DefaultNameRow,
+					TypeRow: DefaultTypeRow,
+					NoteRow: DefaultNoteRow,
+					DataRow: DefaultDataRow,
 					Sep:     DefaultSep,
 					Subsep:  DefaultSubsep,
 				},

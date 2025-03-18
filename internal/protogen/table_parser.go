@@ -29,12 +29,12 @@ func newTableParser(bookName, alias, relSlashPath string, gen *Generator) *table
 	opts := p.wb.Options
 	header := gen.InputOpt.Header
 	if header != nil {
-		opts.Namerow = header.Namerow
-		opts.Typerow = header.Typerow
-		opts.Noterow = header.Noterow
-		opts.Datarow = header.Datarow
-		opts.Nameline = header.Nameline
-		opts.Typeline = header.Typeline
+		opts.Namerow = header.NameRow
+		opts.Typerow = header.TypeRow
+		opts.Noterow = header.NoteRow
+		opts.Datarow = header.DataRow
+		opts.Nameline = header.NameLine
+		opts.Typeline = header.TypeLine
 	}
 	if opts.Namerow == 0 {
 		opts.Namerow = options.DefaultNameRow
