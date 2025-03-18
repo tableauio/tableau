@@ -121,16 +121,12 @@ message WorksheetOptions {
   //  - incell map items.
   //
   // If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
-  //
-  // Default: ",".
   string sep = 11;
   // Sheet-level subseparator for separating:
   //  - key-value pair of each incell map item.
   //  - struct fields of each incell struct list element.
   //
   // If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
-  //
-  // Default: ":".
   string subsep = 12;
   // Merger merge multiple workbook sheets (comma-separated) into one
   // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
@@ -266,16 +262,12 @@ message FieldProp {
   //  - incell map items.
   //
   // If set, it will overwrite sheet-level seq in WorksheetOptions.
-  //
-  // Default: ",".
   string sep = 13;
   // Field-level subseparator for separating:
   //  - key-value pair of each incell map item.
   //  - struct fields of each incell struct list element.
   //
   // If set, it will overwrite sheet-level subseq in WorksheetOptions.
-  //
-  // Default: ":".
   string subsep = 14;
   // Specify count of crossed nodes/cells/fields of composite types with
   // cardinality, such as list and map.

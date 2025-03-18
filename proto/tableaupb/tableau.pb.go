@@ -713,16 +713,12 @@ type WorksheetOptions struct {
 	//   - incell map items.
 	//
 	// If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
-	//
-	// Default: ",".
 	Sep string `protobuf:"bytes,11,opt,name=sep,proto3" json:"sep,omitempty"`
 	// Sheet-level subseparator for separating:
 	//   - key-value pair of each incell map item.
 	//   - struct fields of each incell struct list element.
 	//
 	// If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
-	//
-	// Default: ":".
 	Subsep string `protobuf:"bytes,12,opt,name=subsep,proto3" json:"subsep,omitempty"`
 	// Merger merge multiple workbook sheets (comma-separated) into one
 	// with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
@@ -1142,16 +1138,12 @@ type FieldProp struct {
 	//   - incell map items.
 	//
 	// If set, it will overwrite sheet-level seq in WorksheetOptions.
-	//
-	// Default: ",".
 	Sep string `protobuf:"bytes,13,opt,name=sep,proto3" json:"sep,omitempty"`
 	// Field-level subseparator for separating:
 	//   - key-value pair of each incell map item.
 	//   - struct fields of each incell struct list element.
 	//
 	// If set, it will overwrite sheet-level subseq in WorksheetOptions.
-	//
-	// Default: ":".
 	Subsep string `protobuf:"bytes,14,opt,name=subsep,proto3" json:"subsep,omitempty"`
 	// Specify count of crossed nodes/cells/fields of composite types with
 	// cardinality, such as list and map.
