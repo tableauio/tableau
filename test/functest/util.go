@@ -65,6 +65,8 @@ func genProto(logLevel string) error {
 						Typerow: 2,
 						Noterow: 3,
 						Datarow: 4,
+						Sep:     ",",
+						Subsep:  ":",
 					},
 				},
 				Output: &options.ProtoOutputOption{

@@ -164,8 +164,6 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				ExtInfo: &SheetParserExtInfo{
 					InputDir:       gen.InputDir,
 					SubdirRewrites: gen.InputOpt.SubdirRewrites,
-					Sep:            gen.InputOpt.Sep,
-					Subsep:         gen.InputOpt.Subsep,
 					PRFiles:        prFiles,
 					BookFormat:     workbookFormat,
 					DryRun:         gen.OutputOpt.DryRun,

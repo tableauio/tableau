@@ -13,7 +13,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/union/Union#*.csv"};
 
 message FieldCapUnion {
-  option (tableau.worksheet) = {name:"FieldCapUnion" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {name:"FieldCapUnion" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {
@@ -23,7 +23,7 @@ message FieldCapUnion {
 }
 
 message PredefinedIncellUnion {
-  option (tableau.worksheet) = {name:"PredefinedIncellUnion" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {name:"PredefinedIncellUnion" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {
@@ -35,7 +35,7 @@ message PredefinedIncellUnion {
 }
 
 message PredefinedUnion {
-  option (tableau.worksheet) = {name:"PredefinedUnion" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {name:"PredefinedUnion" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {

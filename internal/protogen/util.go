@@ -83,8 +83,9 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 	return relSlashPath, nil
 }
 
-// mergeHeaderOptions merge from options.HeaderOption to internalpb.Metasheet.
-func mergeHeaderOptions(sheetOpts *tableaupb.WorksheetOptions, headerOpt *options.HeaderOption) {
+// mergeTableHeaderOptions merge from options.HeaderOption to internalpb.Metasheet.
+// Only support table formats: Excel, CSV
+func mergeTableHeaderOptions(sheetOpts *tableaupb.WorksheetOptions, headerOpt *options.HeaderOption) {
 	if headerOpt == nil {
 		return
 	}
@@ -106,6 +107,27 @@ func mergeHeaderOptions(sheetOpts *tableaupb.WorksheetOptions, headerOpt *option
 	}
 	if sheetOpts.Typeline == 0 {
 		sheetOpts.Typeline = headerOpt.Typeline
+	}
+	if sheetOpts.Sep == "" {
+		sheetOpts.Sep = headerOpt.Sep
+	}
+	if sheetOpts.Subsep == "" {
+		sheetOpts.Subsep = headerOpt.Subsep
+	}
+}
+
+// mergeDocumentHeaderOptions merge from options.HeaderOption to internalpb.Metasheet.
+// Only support document formats: YAML, XML
+func mergeDocumentHeaderOptions(sheetOpts *tableaupb.WorksheetOptions, headerOpt *options.HeaderOption) {
+	if headerOpt == nil {
+		return
+	}
+
+	if sheetOpts.Sep == "" {
+		sheetOpts.Sep = headerOpt.Sep
+	}
+	if sheetOpts.Subsep == "" {
+		sheetOpts.Subsep = headerOpt.Subsep
 	}
 }
 

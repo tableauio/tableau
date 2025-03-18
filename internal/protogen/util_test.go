@@ -86,7 +86,7 @@ func Test_getRelCleanSlashPath(t *testing.T) {
 	}
 }
 
-func Test_mergeHeaderOptions(t *testing.T) {
+func Test_mergeTableHeaderOptions(t *testing.T) {
 	type args struct {
 		sheetOptions *tableaupb.WorksheetOptions
 		headerOpt    *options.HeaderOption
@@ -109,6 +109,8 @@ func Test_mergeHeaderOptions(t *testing.T) {
 					Datarow:  4,
 					Nameline: 1,
 					Typeline: 2,
+					Sep:      "?",
+					Subsep:   "!",
 				},
 				want: &tableaupb.WorksheetOptions{
 					Namerow:  2,
@@ -117,13 +119,56 @@ func Test_mergeHeaderOptions(t *testing.T) {
 					Datarow:  4,
 					Nameline: 1,
 					Typeline: 2,
+					Sep:      "?",
+					Subsep:   "!",
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mergeHeaderOptions(tt.args.sheetOptions, tt.args.headerOpt)
+			mergeTableHeaderOptions(tt.args.sheetOptions, tt.args.headerOpt)
+			if !proto.Equal(tt.args.want, tt.args.sheetOptions) {
+				t.Errorf("mergeHeaderOptions() output %v, want %v", tt.args.sheetOptions, tt.args.want)
+			}
+		})
+	}
+}
+
+func Test_mergeDocumentHeaderOptions(t *testing.T) {
+	type args struct {
+		sheetOptions *tableaupb.WorksheetOptions
+		headerOpt    *options.HeaderOption
+		want         *tableaupb.WorksheetOptions
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "merge-header-options",
+			args: args{
+				sheetOptions: &tableaupb.WorksheetOptions{},
+				headerOpt: &options.HeaderOption{
+					Namerow:  1,
+					Typerow:  2,
+					Noterow:  3,
+					Datarow:  4,
+					Nameline: 1,
+					Typeline: 2,
+					Sep:      "?",
+					Subsep:   "!",
+				},
+				want: &tableaupb.WorksheetOptions{
+					Sep:    "?",
+					Subsep: "!",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mergeDocumentHeaderOptions(tt.args.sheetOptions, tt.args.headerOpt)
 			if !proto.Equal(tt.args.want, tt.args.sheetOptions) {
 				t.Errorf("mergeHeaderOptions() output %v, want %v", tt.args.sheetOptions, tt.args.want)
 			}

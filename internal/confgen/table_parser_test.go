@@ -557,8 +557,6 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 		&SheetParserExtInfo{
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},
-			Sep:            ";",
-			Subsep:         "=",
 			BookFormat:     format.YAML,
 		})
 
@@ -573,8 +571,6 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 		&SheetParserExtInfo{
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},
-			Sep:            "#",
-			Subsep:         "|",
 			BookFormat:     format.YAML,
 		})
 
@@ -599,8 +595,8 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 						MaxCol: 1,
 						Rows: [][]string{
 							{"Item"},
-							{"1=10;2=20;3=30"},
-							{"4=40;5=50"},
+							{"1:10,2:20,3:30"},
+							{"4:40,5:50"},
 						},
 					},
 				},
@@ -655,8 +651,8 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 						MaxCol: 1,
 						Rows: [][]string{
 							{"Item"},
-							{"1=10;2=20;3=30"},
-							{"4=40;5=50"},
+							{"1:10,2:20,3:30"},
+							{"4:40,5:50"},
 						},
 					},
 				},

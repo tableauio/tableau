@@ -256,8 +256,6 @@ type sheetParser struct {
 type SheetParserExtInfo struct {
 	InputDir       string
 	SubdirRewrites map[string]string
-	Sep            string // global-level separator, generally set by options.ConfInputOption.Sep
-	Subsep         string // global-level subseparator, generally set by options.ConfInputOption.Subsep
 	PRFiles        *protoregistry.Files
 	BookFormat     format.Format // workbook format
 	DryRun         options.DryRun
@@ -285,10 +283,6 @@ func (sp *sheetParser) GetSep() string {
 	if sp.opts.Sep != "" {
 		return sp.opts.Sep
 	}
-	// global-level
-	if sp.extInfo != nil && sp.extInfo.Sep != "" {
-		return sp.extInfo.Sep
-	}
 	// default
 	return options.DefaultSep
 }
@@ -298,10 +292,6 @@ func (sp *sheetParser) GetSubsep() string {
 	// sheet-level
 	if sp.opts.Subsep != "" {
 		return sp.opts.Subsep
-	}
-	// global-level
-	if sp.extInfo != nil && sp.extInfo.Subsep != "" {
-		return sp.extInfo.Subsep
 	}
 	// default
 	return options.DefaultSubsep

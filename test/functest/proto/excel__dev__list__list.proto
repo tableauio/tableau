@@ -12,7 +12,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/dev/list/List#*.csv"};
 
 message EmptyElemList {
-  option (tableau.worksheet) = {name:"EmptyElemList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+  option (tableau.worksheet) = {name:"EmptyElemList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":"};
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true sequence:1}}];
   message Reward {
@@ -29,7 +29,7 @@ message EmptyElemList {
 }
 
 message FixedList {
-  option (tableau.worksheet) = {name:"FixedList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+  option (tableau.worksheet) = {name:"FixedList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":"};
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
@@ -45,7 +45,7 @@ message FixedList {
 }
 
 message ScalarKeyedList {
-  option (tableau.worksheet) = {name:"ScalarKeyedList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+  option (tableau.worksheet) = {name:"ScalarKeyedList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":"};
 
   repeated KeyedReward keyed_reward_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message KeyedReward {
@@ -56,7 +56,7 @@ message ScalarKeyedList {
 }
 
 message StructKeyedList {
-  option (tableau.worksheet) = {name:"StructKeyedList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1};
+  option (tableau.worksheet) = {name:"StructKeyedList" namerow:1 typerow:2 noterow:3 datarow:4 nameline:1 typeline:1 sep:"," subsep:":"};
 
   repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
