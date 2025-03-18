@@ -149,17 +149,17 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	opts := ParseOptions(options...)
 
 	md := msg.ProtoReflect().Descriptor()
-	protofile, workbook := confgen.ParseFileOptions(md.ParentFile())
-	if workbook == nil {
+	protofile, bookOpts := confgen.ParseFileOptions(md.ParentFile())
+	if bookOpts == nil {
 		return xerrors.Errorf("workbook options not found of protofile: %v", protofile)
 	}
 	// rewrite subdir
-	rewrittenWorkbookName := xfs.RewriteSubdir(workbook.Name, opts.SubdirRewrites)
+	rewrittenWorkbookName := xfs.RewriteSubdir(bookOpts.Name, opts.SubdirRewrites)
 	wbPath := filepath.Join(dir, rewrittenWorkbookName)
 	log.Debugf("load origin file: %v", wbPath)
 	// get sheet name
-	_, wsOpts := confgen.ParseMessageOptions(md)
-	sheets := []string{wsOpts.Name}
+	_, sheetOpts := confgen.ParseMessageOptions(md)
+	sheets := []string{sheetOpts.Name}
 
 	self, err := importer.New(
 		wbPath,
@@ -170,7 +170,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	}
 
 	// get merger importer infos
-	impInfos, err := importer.GetMergerImporters(dir, workbook.Name, wsOpts.Name, wsOpts.Merger, opts.SubdirRewrites)
+	impInfos, err := importer.GetMergerImporters(dir, bookOpts.Name, sheetOpts.Name, sheetOpts.Merger, opts.SubdirRewrites)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to get merger importer infos for %s", wbPath)
 	}
@@ -180,9 +180,10 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	sheetInfo := &confgen.SheetInfo{
 		ProtoPackage:    string(md.ParentFile().Package()),
 		LocationName:    opts.LocationName,
-		PrimaryBookName: workbook.Name,
+		PrimaryBookName: bookOpts.Name,
 		MD:              md,
-		Opts:            wsOpts,
+		BookOpts:        bookOpts,
+		SheetOpts:       sheetOpts,
 		ExtInfo: &confgen.SheetParserExtInfo{
 			InputDir:       dir,
 			SubdirRewrites: opts.SubdirRewrites,

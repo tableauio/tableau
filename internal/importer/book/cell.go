@@ -25,14 +25,14 @@ func clearNewline(s string) string {
 	return newlineRegex.ReplaceAllString(s, "")
 }
 
-func ExtractFromCell(cell string, line int32) string {
+func ExtractFromCell(cell string, line int) string {
 	if line == 0 {
 		// line 0 means the whole cell.
 		return clearNewline(strings.TrimSpace(cell))
 	}
 
 	lines := strings.Split(cell, "\n")
-	if int32(len(lines)) >= line {
+	if len(lines) >= line {
 		return strings.TrimSpace(lines[line-1])
 	}
 	// log.Debugf("No enough lines in cell: %s, want at least %d lines", cell, line)

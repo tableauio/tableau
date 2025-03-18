@@ -9,6 +9,7 @@ import (
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -167,7 +168,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})
-
+	header := parseroptions.MergeHeader(bookOpts, sheetOpts)
 	// new empty referred value space set
 	valueSpace := NewValueSpace()
 	for _, impInfo := range impInfos {
@@ -186,13 +187,13 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 			// TODO: transpose
 		} else {
 			foundColumn := -1
-			nameRow := int(sheetOpts.Namerow) - 1
+			nameRow := header.NameRow - 1
 			for col := 0; col < sheet.Table.MaxRow; col++ {
 				nameCell, err := sheet.Table.Cell(nameRow, col)
 				if err != nil {
 					return nil, xerrors.WrapKV(err)
 				}
-				name := book.ExtractFromCell(nameCell, sheetOpts.Nameline)
+				name := book.ExtractFromCell(nameCell, header.NameLine)
 				if name == referInfo.Column {
 					foundColumn = col
 					break
@@ -201,7 +202,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 			if foundColumn < 0 {
 				return nil, xerrors.E2015(referInfo.Column, bookName, sheetName)
 			}
-			for row := int(sheetOpts.Datarow) - 1; row < sheet.Table.MaxRow; row++ {
+			for row := header.DataRow - 1; row < sheet.Table.MaxRow; row++ {
 				data, err := sheet.Table.Cell(row, foundColumn)
 				if err != nil {
 					return nil, xerrors.WrapKV(err)

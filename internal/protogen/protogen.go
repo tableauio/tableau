@@ -306,7 +306,8 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 
 	// create a book parser
 	bookName := imp.BookName()
-	alias := getWorkbookAlias(imp)
+	bookOpts := imp.GetBookOptions()
+	alias := bookOpts.GetAlias()
 	if alias != "" {
 		debugBookName += " (alias: " + alias + ")"
 	}
@@ -314,7 +315,6 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet options
 		ws := sheet.ToWorkseet()
-		mergeDocumentHeaderOptions(ws.Options, gen.InputOpt.Header)
 		debugSheetName := sheet.GetDebugName()
 		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 
@@ -389,12 +389,12 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	if pass == firstPass {
 		log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugBookName, len(imp.GetSheets()))
 	}
-
+	bookOpts := imp.GetBookOptions()
 	var bp *tableParser
 	if pass == firstPass {
 		// create a book parser
 		bookName := imp.BookName()
-		alias := getWorkbookAlias(imp)
+		alias := bookOpts.GetAlias()
 		if alias != "" {
 			debugBookName += " (alias: " + alias + ")"
 		}
@@ -408,44 +408,40 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet header
 		ws := sheet.ToWorkseet()
-		mergeTableHeaderOptions(ws.Options, gen.InputOpt.Header)
 		debugSheetName := sheet.GetDebugName()
 		if pass == firstPass {
 			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
 		}
 
-		shHeader := &tableHeader{
-			meta:       ws.Options,
-			validNames: map[string]int{},
-		}
+		tableHeader := newTableHeader(bookOpts, ws.Options)
 		// transpose or not
 		if ws.Options.Transpose {
 			for row := 0; row < sheet.Table.MaxRow; row++ {
-				nameCol := int(ws.Options.Namerow) - 1
+				nameCol := tableHeader.NameRow - 1
 				nameCell, err := sheet.Table.Cell(row, nameCol)
 				if err != nil {
 					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, nameCol))
 				}
-				shHeader.namerow = append(shHeader.namerow, nameCell)
+				tableHeader.nameRowData = append(tableHeader.nameRowData, nameCell)
 
-				typeCol := int(ws.Options.Typerow) - 1
+				typeCol := tableHeader.TypeRow - 1
 				typeCell, err := sheet.Table.Cell(row, typeCol)
 				if err != nil {
 					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, typeCol))
 				}
-				shHeader.typerow = append(shHeader.typerow, typeCell)
+				tableHeader.typeRowData = append(tableHeader.typeRowData, typeCell)
 
-				noteCol := int(ws.Options.Noterow) - 1
+				noteCol := tableHeader.NoteRow - 1
 				noteCell, err := sheet.Table.Cell(row, noteCol)
 				if err != nil {
 					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, noteCol))
 				}
-				shHeader.noterow = append(shHeader.noterow, noteCell)
+				tableHeader.noteRowData = append(tableHeader.noteRowData, noteCell)
 			}
 		} else {
-			shHeader.namerow = sheet.Table.GetRow(int(ws.Options.Namerow - 1))
-			shHeader.typerow = sheet.Table.GetRow(int(ws.Options.Typerow - 1))
-			shHeader.noterow = sheet.Table.GetRow(int(ws.Options.Noterow - 1))
+			tableHeader.nameRowData = sheet.Table.GetRow(tableHeader.NameRow - 1)
+			tableHeader.typeRowData = sheet.Table.GetRow(tableHeader.TypeRow - 1)
+			tableHeader.noteRowData = sheet.Table.GetRow(tableHeader.NoteRow - 1)
 		}
 
 		// Two-pass flow:
@@ -465,11 +461,11 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			log.Debugf("second pass: parse sheet schema from %s", debugSheetName)
 			if ws.Options.Mode == tableaupb.Mode_MODE_DEFAULT {
 				var parsed bool
-				for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+				for cursor := 0; cursor < len(tableHeader.nameRowData); cursor++ {
 					field := &internalpb.Field{}
-					cursor, parsed, err = bp.parseField(field, shHeader, cursor, "", parseroptions.Nested(ws.Options.Nested))
+					cursor, parsed, err = bp.parseField(field, tableHeader, cursor, "", parseroptions.Nested(ws.Options.Nested))
 					if err != nil {
-						return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
+						return wrapDebugErr(err, debugBookName, debugSheetName, tableHeader, cursor)
 					}
 					if parsed {
 						ws.Fields = append(ws.Fields, field)

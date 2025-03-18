@@ -149,6 +149,8 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	var sheets []string
 	// sheet name -> message name
 	sheetMap := map[string]*SheetInfo{}
+	fileOpts := fd.Options().(*descriptorpb.FileOptions)
+	bookOpts := proto.GetExtension(fileOpts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
 	msgs := fd.Messages()
 	for i := 0; i < msgs.Len(); i++ {
 		md := msgs.Get(i)
@@ -160,7 +162,8 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				LocationName:    gen.LocationName,
 				PrimaryBookName: rewrittenWorkbookName,
 				MD:              md,
-				Opts:            sheetOpts,
+				BookOpts:        bookOpts,
+				SheetOpts:            sheetOpts,
 				ExtInfo: &SheetParserExtInfo{
 					InputDir:       gen.InputDir,
 					SubdirRewrites: gen.InputOpt.SubdirRewrites,
@@ -219,7 +222,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 }
 
 func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, workbookName, sheetName string) error {
-	importers, err := importer.GetScatterImporters(gen.InputDir, workbookName, sheetName, sheetInfo.Opts.Scatter, gen.InputOpt.SubdirRewrites)
+	importers, err := importer.GetScatterImporters(gen.InputDir, workbookName, sheetName, sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
@@ -232,7 +235,7 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 }
 
 func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, workbookName, sheetName string) error {
-	importers, err := importer.GetMergerImporters(gen.InputDir, workbookName, sheetName, sheetInfo.Opts.Merger, gen.InputOpt.SubdirRewrites)
+	importers, err := importer.GetMergerImporters(gen.InputDir, workbookName, sheetName, sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}

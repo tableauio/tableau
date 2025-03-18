@@ -49,12 +49,12 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		sheetName := getRealSheetName(info, impInfo)
 		// here filename has no ext suffix
 		var filename string
-		if info.Opts.ScatterWithoutBookName {
+		if info.SheetOpts.ScatterWithoutBookName {
 			filename = sheetName
 		} else {
 			filename = fmt.Sprintf("%s_%s", impInfo.BookName(), sheetName)
 		}
-		if info.Opts.WithParentDir {
+		if info.SheetOpts.WithParentDir {
 			parentDirName := xfs.GetDirectParentDirName(impInfo.Filename())
 			return filepath.Join(parentDirName, filename)
 		}
@@ -81,7 +81,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 				return err
 			}
 			name := getExportedConfName(info, impInfo)
-			if info.Opts.Patch == tableaupb.Patch_PATCH_MERGE {
+			if info.SheetOpts.Patch == tableaupb.Patch_PATCH_MERGE {
 				if info.ExtInfo.DryRun == options.DryRunPatch {
 					clonedMainMsg := proto.Clone(mainMsg)
 					xproto.PatchMessage(clonedMainMsg, msg)
@@ -110,7 +110,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
 		// here filename has no ext suffix
 		filename := string(info.MD.Name())
-		if info.Opts.WithParentDir {
+		if info.SheetOpts.WithParentDir {
 			parentDirName := xfs.GetDirectParentDirName(impInfo.Filename())
 			return filepath.Join(parentDirName, filename)
 		}
@@ -134,7 +134,7 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 		return nil, xerrors.ErrorKV("no importer to be parsed",
 			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
-			xerrors.KeySheetName, info.Opts.Name,
+			xerrors.KeySheetName, info.SheetOpts.Name,
 			xerrors.KeyPBMessage, string(info.MD.Name()))
 	} else if len(impInfos) == 1 {
 		protomsg, err := parseMessageFromOneImporter(info, impInfos[0])
@@ -171,7 +171,7 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 		return nil, xerrors.WrapKV(err,
 			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
-			xerrors.KeyPrimarySheetName, info.Opts.Name)
+			xerrors.KeyPrimarySheetName, info.SheetOpts.Name)
 	}
 
 	// map-reduce: reduce results to one
@@ -214,7 +214,7 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 		err := xerrors.E0001(sheetName, bookName)
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
-	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, info.Opts, info.ExtInfo)
+	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -227,23 +227,25 @@ type SheetInfo struct {
 	LocationName    string
 	PrimaryBookName string
 	MD              protoreflect.MessageDescriptor
-	Opts            *tableaupb.WorksheetOptions
+	BookOpts        *tableaupb.WorkbookOptions
+	SheetOpts       *tableaupb.WorksheetOptions
 
 	ExtInfo *SheetParserExtInfo
 }
 
 func (si *SheetInfo) HasScatter() bool {
-	return si.Opts != nil && len(si.Opts.Scatter) != 0
+	return si.SheetOpts != nil && len(si.SheetOpts.Scatter) != 0
 }
 
 func (si *SheetInfo) HasMerger() bool {
-	return si.Opts != nil && len(si.Opts.Merger) != 0
+	return si.SheetOpts != nil && len(si.SheetOpts.Merger) != 0
 }
 
 type sheetParser struct {
 	ProtoPackage string
 	LocationName string
-	opts         *tableaupb.WorksheetOptions
+	bookOpts     *tableaupb.WorkbookOptions
+	sheetOpts    *tableaupb.WorksheetOptions
 	extInfo      *SheetParserExtInfo
 
 	// cached name and type
@@ -263,15 +265,16 @@ type SheetParserExtInfo struct {
 
 // NewSheetParser creates a new sheet parser.
 func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
-	return NewExtendedSheetParser(protoPackage, locationName, opts, nil)
+	return NewExtendedSheetParser(protoPackage, locationName, &tableaupb.WorkbookOptions{}, opts, nil)
 }
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
-func NewExtendedSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
+func NewExtendedSheetParser(protoPackage, locationName string, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
 	return &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
-		opts:         opts,
+		bookOpts:     bookOpts,
+		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
 		lookupTable:  map[string]uint32{},
 	}
@@ -280,8 +283,12 @@ func NewExtendedSheetParser(protoPackage, locationName string, opts *tableaupb.W
 // GetSep returns sheet-level separator.
 func (sp *sheetParser) GetSep() string {
 	// sheet-level
-	if sp.opts.Sep != "" {
-		return sp.opts.Sep
+	if sp.sheetOpts.Sep != "" {
+		return sp.sheetOpts.Sep
+	}
+	// book-level
+	if sp.bookOpts.Sep != "" {
+		return sp.bookOpts.Sep
 	}
 	// default
 	return options.DefaultSep
@@ -290,8 +297,12 @@ func (sp *sheetParser) GetSep() string {
 // GetSubsep returns sheet-level subseparator.
 func (sp *sheetParser) GetSubsep() string {
 	// sheet-level
-	if sp.opts.Subsep != "" {
-		return sp.opts.Subsep
+	if sp.sheetOpts.Subsep != "" {
+		return sp.sheetOpts.Subsep
+	}
+	// book-level
+	if sp.bookOpts.Subsep != "" {
+		return sp.bookOpts.Subsep
 	}
 	// default
 	return options.DefaultSubsep
@@ -309,7 +320,7 @@ func (sp *sheetParser) GetBookFormat() format.Format {
 //   - table formats (Excel/CSV): field's column can be absent.
 //   - document formats (XML/YAML): field's name can be absent.
 func (sp *sheetParser) IsFieldOptional(field *Field) bool {
-	return sp.opts.GetOptional() || field.opts.GetProp().GetOptional()
+	return sp.sheetOpts.GetOptional() || field.opts.GetProp().GetOptional()
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
@@ -781,22 +792,7 @@ func ParseFileOptions(fd protoreflect.FileDescriptor) (string, *tableaupb.Workbo
 // ParseMessageOptions parse the options of a protobuf message.
 func ParseMessageOptions(md protoreflect.MessageDescriptor) (string, *tableaupb.WorksheetOptions) {
 	opts := md.Options().(*descriptorpb.MessageOptions)
-	msgName := string(md.Name())
 	wsOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
-	if wsOpts.Namerow == 0 {
-		wsOpts.Namerow = 1 // default
-	}
-	if wsOpts.Typerow == 0 {
-		wsOpts.Typerow = 2 // default
-	}
-
-	if wsOpts.Noterow == 0 {
-		wsOpts.Noterow = 3 // default
-	}
-
-	if wsOpts.Datarow == 0 {
-		wsOpts.Datarow = 4 // default
-	}
-	// log.Debugf("msg: %v, wsOpts: %+v", msgName, wsOpts)
-	return msgName, wsOpts
+	// log.Debugf("msg: %v, wsOpts: %+v", md.Name(), wsOpts)
+	return string(md.Name()), wsOpts
 }

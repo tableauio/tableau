@@ -9,6 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
@@ -40,14 +41,28 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 		snakePath := strcase.ToSnake(xfs.CleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
+	// sep and subsep
+	var sep, subsep string
+	if gen.InputOpt.Header != nil {
+		sep = gen.InputOpt.Header.Sep
+		subsep = gen.InputOpt.Header.Subsep
+	}
+	if sep == "" {
+		sep = options.DefaultSep
+	}
+	if subsep == "" {
+		subsep = options.DefaultSubsep
+	}
 	bp := &bookParser{
 		gen: gen,
 		wb: &internalpb.Workbook{
 			Options: &tableaupb.WorkbookOptions{
 				// NOTE(wenchy): all OS platforms use path slash separator `/`
 				// see: https://stackoverflow.com/questions/9371031/how-do-i-create-crossplatform-file-paths-in-go
-				Name:  relSlashPath,
-				Alias: alias,
+				Name:   relSlashPath,
+				Alias:  alias,
+				Sep:    sep,
+				Subsep: subsep,
 			},
 			Worksheets: []*internalpb.Worksheet{},
 			Name:       filename,

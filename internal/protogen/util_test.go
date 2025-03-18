@@ -4,10 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/xerrors"
-	"google.golang.org/protobuf/proto"
 )
 
 func Test_prepareOutdir(t *testing.T) {
@@ -86,96 +84,6 @@ func Test_getRelCleanSlashPath(t *testing.T) {
 	}
 }
 
-func Test_mergeTableHeaderOptions(t *testing.T) {
-	type args struct {
-		sheetOptions *tableaupb.WorksheetOptions
-		headerOpt    *options.HeaderOption
-		want         *tableaupb.WorksheetOptions
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{
-			name: "merge-header-options",
-			args: args{
-				sheetOptions: &tableaupb.WorksheetOptions{
-					Namerow: 2,
-				},
-				headerOpt: &options.HeaderOption{
-					Namerow:  1,
-					Typerow:  2,
-					Noterow:  3,
-					Datarow:  4,
-					Nameline: 1,
-					Typeline: 2,
-					Sep:      "?",
-					Subsep:   "!",
-				},
-				want: &tableaupb.WorksheetOptions{
-					Namerow:  2,
-					Typerow:  2,
-					Noterow:  3,
-					Datarow:  4,
-					Nameline: 1,
-					Typeline: 2,
-					Sep:      "?",
-					Subsep:   "!",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mergeTableHeaderOptions(tt.args.sheetOptions, tt.args.headerOpt)
-			if !proto.Equal(tt.args.want, tt.args.sheetOptions) {
-				t.Errorf("mergeHeaderOptions() output %v, want %v", tt.args.sheetOptions, tt.args.want)
-			}
-		})
-	}
-}
-
-func Test_mergeDocumentHeaderOptions(t *testing.T) {
-	type args struct {
-		sheetOptions *tableaupb.WorksheetOptions
-		headerOpt    *options.HeaderOption
-		want         *tableaupb.WorksheetOptions
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{
-			name: "merge-header-options",
-			args: args{
-				sheetOptions: &tableaupb.WorksheetOptions{},
-				headerOpt: &options.HeaderOption{
-					Namerow:  1,
-					Typerow:  2,
-					Noterow:  3,
-					Datarow:  4,
-					Nameline: 1,
-					Typeline: 2,
-					Sep:      "?",
-					Subsep:   "!",
-				},
-				want: &tableaupb.WorksheetOptions{
-					Sep:    "?",
-					Subsep: "!",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mergeDocumentHeaderOptions(tt.args.sheetOptions, tt.args.headerOpt)
-			if !proto.Equal(tt.args.want, tt.args.sheetOptions) {
-				t.Errorf("mergeHeaderOptions() output %v, want %v", tt.args.sheetOptions, tt.args.want)
-			}
-		})
-	}
-}
-
 func Test_genProtoFilePath(t *testing.T) {
 	type args struct {
 		bookName string
@@ -206,16 +114,16 @@ func Test_genProtoFilePath(t *testing.T) {
 
 func Test_wrapDebugErr(t *testing.T) {
 	testTransposeSheetHeader := &tableHeader{
-		meta: &tableaupb.WorksheetOptions{
-			Namerow:   1,
-			Typerow:   2,
-			Noterow:   3,
-			Transpose: true,
+		Header: &parseroptions.Header{
+			NameRow:  1,
+			TypeRow:  2,
+			NoteRow:  3,
 		},
-		namerow:    []string{"ID", "Value", "", "Kind"},
-		typerow:    []string{"map<int32, Item>", "int32", "", "int32"},
-		noterow:    []string{"Item's ID", "Item's value", "", "Item's kind"},
-		validNames: map[string]int{},
+		transpose: true,
+		nameRowData: []string{"ID", "Value", "", "Kind"},
+		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
+		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
+		validNames:  map[string]int{},
 	}
 
 	type args struct {

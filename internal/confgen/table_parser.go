@@ -6,6 +6,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -22,33 +23,34 @@ type tableParser struct {
 func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	// log.Debugf("parse sheet: %s", sheet.Name)
 	msg := protomsg.ProtoReflect()
-	if sp.opts.Transpose {
+	header := parseroptions.MergeHeader(sp.bookOpts, sp.sheetOpts)
+	if sp.sheetOpts.Transpose {
 		// interchange the rows and columns
 		// namerow: name column
 		// [datarow, MaxCol]: data column
 		// kvRow := make(map[string]string)
 		sp.names = make([]string, sheet.Table.MaxRow)
 		sp.types = make([]string, sheet.Table.MaxRow)
-		nameCol := int(sp.opts.Namerow) - 1
-		typeCol := int(sp.opts.Typerow) - 1
+		nameCol := header.NameRow - 1
+		typeCol := header.TypeRow - 1
 		var prev *book.RowCells
-		for col := int(sp.opts.Datarow) - 1; col < sheet.Table.MaxCol; col++ {
+		for col := header.DataRow - 1; col < sheet.Table.MaxCol; col++ {
 			curr := book.NewRowCells(col, prev, sheet.Name)
 			for row := 0; row < sheet.Table.MaxRow; row++ {
-				if col == int(sp.opts.Datarow)-1 {
+				if col == header.DataRow-1 {
 					nameCell, err := sheet.Table.Cell(row, nameCol)
 					if err != nil {
 						return xerrors.WrapKV(err)
 					}
-					sp.names[row] = book.ExtractFromCell(nameCell, sp.opts.Nameline)
+					sp.names[row] = book.ExtractFromCell(nameCell, header.NameLine)
 
-					if sp.opts.Typerow > 0 {
+					if header.TypeRow > 0 {
 						// if typerow is set!
 						typeCell, err := sheet.Table.Cell(row, typeCol)
 						if err != nil {
 							return xerrors.WrapKV(err)
 						}
-						sp.types[row] = book.ExtractFromCell(typeCell, sp.opts.Typeline)
+						sp.types[row] = book.ExtractFromCell(typeCell, header.TypeLine)
 					}
 				}
 
@@ -56,7 +58,7 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
-				curr.NewCell(row, &sp.names[row], &sp.types[row], data, sp.opts.AdjacentKey)
+				curr.NewCell(row, &sp.names[row], &sp.types[row], data, sp.sheetOpts.AdjacentKey)
 				sp.lookupTable[sp.names[row]] = uint32(row)
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
@@ -76,26 +78,26 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 		// [datarow, MaxRow]: data row
 		sp.names = make([]string, sheet.Table.MaxCol)
 		sp.types = make([]string, sheet.Table.MaxCol)
-		nameRow := int(sp.opts.Namerow) - 1
-		typeRow := int(sp.opts.Typerow) - 1
+		nameRow := header.NameRow - 1
+		typeRow := header.TypeRow - 1
 		var prev *book.RowCells
-		for row := int(sp.opts.Datarow) - 1; row < sheet.Table.MaxRow; row++ {
+		for row := header.DataRow - 1; row < sheet.Table.MaxRow; row++ {
 			curr := book.NewRowCells(row, prev, sheet.Name)
 			for col := 0; col < sheet.Table.MaxCol; col++ {
-				if row == int(sp.opts.Datarow)-1 {
+				if row == header.DataRow-1 {
 					nameCell, err := sheet.Table.Cell(nameRow, col)
 					if err != nil {
 						return xerrors.WrapKV(err)
 					}
-					sp.names[col] = book.ExtractFromCell(nameCell, sp.opts.Nameline)
+					sp.names[col] = book.ExtractFromCell(nameCell, header.NameLine)
 
-					if sp.opts.Typerow > 0 {
+					if header.TypeRow > 0 {
 						// if typerow is set!
 						typeCell, err := sheet.Table.Cell(typeRow, col)
 						if err != nil {
 							return xerrors.WrapKV(err)
 						}
-						sp.types[col] = book.ExtractFromCell(typeCell, sp.opts.Typeline)
+						sp.types[col] = book.ExtractFromCell(typeCell, header.TypeLine)
 					}
 				}
 
@@ -103,7 +105,7 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
-				curr.NewCell(col, &sp.names[col], &sp.types[col], data, sp.opts.AdjacentKey)
+				curr.NewCell(col, &sp.names[col], &sp.types[col], data, sp.sheetOpts.AdjacentKey)
 				sp.lookupTable[sp.names[col]] = uint32(col)
 			}
 

@@ -19,7 +19,9 @@ import (
 var testParser *sheetParser
 
 func init() {
-	testParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", book.MetasheetOptions(),
+	testParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		book.MetabookOptions(),
+		book.MetasheetOptions(),
 		&SheetParserExtInfo{
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},
@@ -488,7 +490,9 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 
 func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 	path := "./testdata/Metasheet.yaml"
-	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai", book.MetasheetOptions(),
+	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		book.MetabookOptions(),
+		book.MetasheetOptions(),
 		&SheetParserExtInfo{
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},
@@ -549,6 +553,7 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 
 func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 	parserWithGlobalSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		&tableaupb.WorkbookOptions{},
 		&tableaupb.WorksheetOptions{
 			Name:    book.MetasheetName,
 			Namerow: 1,
@@ -561,6 +566,7 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 		})
 
 	parserWithSheetAndGlobalSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		&tableaupb.WorkbookOptions{},
 		&tableaupb.WorksheetOptions{
 			Name:    book.MetasheetName,
 			Namerow: 1,

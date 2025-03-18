@@ -3,22 +3,22 @@ package protogen
 import (
 	"testing"
 
-	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 )
 
 var testSheetHeader *tableHeader
 
 func init() {
 	testSheetHeader = &tableHeader{
-		meta: &tableaupb.WorksheetOptions{
-			Namerow: 1,
-			Typerow: 2,
-			Noterow: 3,
+		Header: &parseroptions.Header{
+			NameRow: 1,
+			TypeRow: 2,
+			NoteRow: 3,
 		},
-		namerow:    []string{"ID", "Value", "", "Kind"},
-		typerow:    []string{"map<int32, Item>", "int32", "", "int32"},
-		noterow:    []string{"Item's ID", "Item's value", "", "Item's kind"},
-		validNames: map[string]int{},
+		nameRowData: []string{"ID", "Value", "", "Kind"},
+		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
+		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
+		validNames:  map[string]int{},
 	}
 }
 
@@ -148,7 +148,7 @@ func Test_getCell(t *testing.T) {
 	type args struct {
 		row    []string
 		cursor int
-		line   int32
+		line   int
 	}
 	tests := []struct {
 		name string
@@ -194,29 +194,29 @@ func Test_getCell(t *testing.T) {
 
 func Test_tableHeader_checkNameConflicts(t *testing.T) {
 	testSheetHeader := &tableHeader{
-		meta: &tableaupb.WorksheetOptions{
-			Namerow: 1,
-			Typerow: 2,
-			Noterow: 3,
+		Header: &parseroptions.Header{
+			NameRow: 1,
+			TypeRow: 2,
+			NoteRow: 3,
 		},
-		namerow: []string{"ID", "ID", "", "Kind"},
-		typerow: []string{"map<int32, Item>", "int32", "", "int32"},
-		noterow: []string{"Item's ID", "Item's value", "", "Item's kind"},
+		nameRowData: []string{"ID", "ID", "", "Kind"},
+		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
+		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
 		validNames: map[string]int{
 			"ID": 0,
 		},
 	}
 
 	testTransposeSheetHeader := &tableHeader{
-		meta: &tableaupb.WorksheetOptions{
-			Namerow:   1,
-			Typerow:   2,
-			Noterow:   3,
-			Transpose: true,
+		Header: &parseroptions.Header{
+			NameRow: 1,
+			TypeRow: 2,
+			NoteRow: 3,
 		},
-		namerow: []string{"ID", "ID", "", "Kind"},
-		typerow: []string{"map<int32, Item>", "int32", "", "int32"},
-		noterow: []string{"Item's ID", "Item's value", "", "Item's kind"},
+		transpose:   true,
+		nameRowData: []string{"ID", "ID", "", "Kind"},
+		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
+		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
 		validNames: map[string]int{
 			"ID": 0,
 		},
