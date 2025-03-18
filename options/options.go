@@ -296,6 +296,13 @@ const (
 )
 
 const (
+	DefaultNameRow = 1 // Exact row number of column name definition at a worksheet.
+	DefaultTypeRow = 2 // Exact row number of column type definition at a worksheet.
+	DefaultNoteRow = 3 // Exact row number of column note definition at a worksheet.
+	DefaultDataRow = 4 // Start row number of data at a worksheet.
+)
+
+const (
 	DefaultSep    = ","
 	DefaultSubsep = ":"
 )
@@ -358,10 +365,12 @@ func NewDefault() *Options {
 		Proto: &ProtoOption{
 			Input: &ProtoInputOption{
 				Header: &HeaderOption{
-					Namerow: 1,
-					Typerow: 2,
-					Noterow: 3,
-					Datarow: 4,
+					Namerow: DefaultNameRow,
+					Typerow: DefaultTypeRow,
+					Noterow: DefaultNoteRow,
+					Datarow: DefaultDataRow,
+					Sep:     DefaultSep,
+					Subsep:  DefaultSubsep,
 				},
 				ProtoPaths: []string{"."},
 			},

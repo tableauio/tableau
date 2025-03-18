@@ -70,8 +70,48 @@ message OneofOptions {
 }
 
 message WorkbookOptions {
-  string name = 1;   // filename with path, e.g.: "relative/path/BookName.suffix" (slash path)
-  string alias = 2;  // book alias without suffix, e.g.: "BookAlias"
+  // filename with path, e.g.: "relative/path/BookName.suffix" (slash path)
+  string name = 1;   
+  // book alias without suffix, e.g.: "BookAlias"
+  string alias = 2;  
+  // Exact row number of column name definition at a worksheet.
+  //
+  // Default: 1.
+  int32 namerow = 3;
+  // Exact row number of column type definition at a worksheet.
+  //
+  // Default: 2.
+  int32 typerow = 4;
+  // Exact row number of column note definition at a worksheet.
+  //
+  // Default: 3.
+  int32 noterow = 5;
+  // Start row number of data at a worksheet.
+  //
+  // Default: 4.
+  int32 datarow = 6;
+  // The line number of column name definition in a cell. 0 means
+  // the whole cell.
+  //
+  // Default: 0.
+  int32 nameline = 7;
+  // The line number of column type definition in a cell. 0 means
+  // the whole cell.
+  //
+  // Default: 0.
+  int32 typeline = 8;
+  // Sheet-level separator for separating:
+  //  - incell list elements (scalar or struct).
+  //  - incell map items.
+  //
+  // If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
+  string sep = 9;
+  // Sheet-level subseparator for separating:
+  //  - key-value pair of each incell map item.
+  //  - struct fields of each incell struct list element.
+  //
+  // If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
+  string subsep = 10;
 }
 
 message WorksheetOptions {
@@ -93,8 +133,32 @@ message WorksheetOptions {
   //
   // Default: 4.
   int32 datarow = 5;
+  // The line number of column name definition in a cell. 0 means
+  // the whole cell.
+  //
+  // Default: 0.
+  int32 nameline = 6;
+  // The line number of column type definition in a cell. 0 means
+  // the whole cell.
+  //
+  // Default: 0.
+  int32 typeline = 7;
+  // Sheet-level separator for separating:
+  //  - incell list elements (scalar or struct).
+  //  - incell map items.
+  //
+  // If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
+  string sep = 8;
+  // Sheet-level subseparator for separating:
+  //  - key-value pair of each incell map item.
+  //  - struct fields of each incell struct list element.
+  //
+  // If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
+  string subsep = 9;
+  // Nested naming of the namerow.
+  bool nested = 10;
   // Interchange the rows and columns of worksheet.
-  bool transpose = 6;
+  bool transpose = 11;
   // Labels are key/value pairs that are attached to sheet.
   // Labels can be used to organize and to select subsets of sheets.
   // For example:
@@ -103,31 +167,7 @@ message WorksheetOptions {
   //
   // This concept is much like it is in k8s, see
   // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/.
-  map<string, string> labels = 7;
-  // The line number of column name definition in a cell. 0 means
-  // the whole cell.
-  //
-  // Default: 0.
-  int32 nameline = 8;
-  // The line number of column type definition in a cell. 0 means
-  // the whole cell.
-  //
-  // Default: 0.
-  int32 typeline = 9;
-  // Nested naming of the namerow.
-  bool nested = 10;
-  // Sheet-level separator for separating:
-  //  - incell list elements (scalar or struct).
-  //  - incell map items.
-  //
-  // If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
-  string sep = 11;
-  // Sheet-level subseparator for separating:
-  //  - key-value pair of each incell map item.
-  //  - struct fields of each incell struct list element.
-  //
-  // If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
-  string subsep = 12;
+  map<string, string> labels = 12;
   // Merger merge multiple workbook sheets (comma-separated) into one
   // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
   repeated string merger = 13;
