@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/list/List#*.csv"};
+option (tableau.workbook) = {name:"excel/list/List#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message HorizontalExplicitFixedSizeList {
-  option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeList"};
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{size:2}}];
   message Item {
@@ -22,7 +22,7 @@ message HorizontalExplicitFixedSizeList {
 }
 
 message HorizontalImplicitFixedSizeList {
-  option (tableau.worksheet) = {name:"HorizontalImplicitFixedSizeList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalImplicitFixedSizeList"};
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
   message Item {
@@ -32,13 +32,13 @@ message HorizontalImplicitFixedSizeList {
 }
 
 message IncellScalarList {
-  option (tableau.worksheet) = {name:"IncellScalarList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellScalarList"};
 
   repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}];
 }
 
 message IncellStructList {
-  option (tableau.worksheet) = {name:"IncellStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellStructList"};
 
   repeated Ticket ticket_list = 1 [(tableau.field) = {name:"Ticket" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
   message Ticket {

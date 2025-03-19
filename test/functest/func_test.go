@@ -32,14 +32,14 @@ import (
 )
 
 func Test_CompareGeneratedProto(t *testing.T) {
-	err := genProto("DEBUG")
+	err := genProto("DEBUG", "FULL")
 	require.NoErrorf(t, err, "%+v\n%+v", err, xerrors.NewDesc(err))
 	err = EqualTextFile(".proto", "proto", "_proto", 2)
 	require.NoError(t, err)
 }
 
 func Test_CompareGeneratedJSON(t *testing.T) {
-	err := genConf("DEBUG")
+	err := genConf("DEBUG", "FULL")
 	require.NoErrorf(t, err, "%+v\n%+v", err, xerrors.NewDesc(err))
 	err = EqualTextFile(".json", "conf", "_conf", 1)
 	require.NoError(t, err)

@@ -8,10 +8,10 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"xml/metasheet/Metasheet.xml"};
+option (tableau.workbook) = {name:"xml/metasheet/Metasheet.xml" sep:"," subsep:":"};
 
 message MetasheetConf {
-  option (tableau.worksheet) = {name:"MetasheetConf" sep:";" subsep:":"};
+  option (tableau.worksheet) = {name:"MetasheetConf" sep:";"};
 
   SepConf sep_conf = 1 [(tableau.field) = {name:"SepConf"}];
   message SepConf {
@@ -21,7 +21,7 @@ message MetasheetConf {
 }
 
 message TemplateConf {
-  option (tableau.worksheet) = {name:"TemplateConf" sep:"," subsep:":" template:true};
+  option (tableau.worksheet) = {name:"TemplateConf" template:true};
 
   OutputType output_type = 1 [(tableau.field) = {name:"OutputType"}];
   message OutputType {

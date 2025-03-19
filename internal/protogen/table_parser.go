@@ -10,6 +10,7 @@ import (
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
@@ -22,7 +23,32 @@ type tableParser struct {
 }
 
 func newTableParser(bookName, alias, relSlashPath string, gen *Generator) *tableParser {
-	return &tableParser{bookParser: newBookParser(bookName, alias, relSlashPath, gen)}
+	p := &tableParser{bookParser: newBookParser(bookName, alias, relSlashPath, gen)}
+
+	// assign book-level header
+	opts := p.wb.Options
+	header := gen.InputOpt.Header
+	if header != nil {
+		opts.Namerow = header.NameRow
+		opts.Typerow = header.TypeRow
+		opts.Noterow = header.NoteRow
+		opts.Datarow = header.DataRow
+		opts.Nameline = header.NameLine
+		opts.Typeline = header.TypeLine
+	}
+	if opts.Namerow == 0 {
+		opts.Namerow = options.DefaultNameRow
+	}
+	if opts.Typerow == 0 {
+		opts.Typerow = options.DefaultTypeRow
+	}
+	if opts.Noterow == 0 {
+		opts.Noterow = options.DefaultNoteRow
+	}
+	if opts.Datarow == 0 {
+		opts.Datarow = options.DefaultDataRow
+	}
+	return p
 }
 
 func (p *tableParser) GetProtoFilePath() string {
@@ -131,7 +157,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		firstElemIndex = index1
 		layout = tableaupb.Layout_LAYOUT_HORIZONTAL
 		nextCursor := cursor + 1
-		if nextCursor < len(header.namerow) {
+		if nextCursor < len(header.nameRowData) {
 			// Header:
 			//
 			// TaskParamMap1		TaskParamMap2		TaskParamMap3
@@ -207,7 +233,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		}
 
 		field.Fields = append(field.Fields, scalarField)
-		for cursor++; cursor < len(header.namerow); cursor++ {
+		for cursor++; cursor < len(header.nameRowData); cursor++ {
 			if opts.Nested {
 				nameCell := header.getValidNameCell(&cursor)
 				if !strings.HasPrefix(nameCell, prefix) {
@@ -261,7 +287,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		field.Fields = append(field.Fields, scalarField)
 
 		// Parse other fields or skip continuous N columns of the same element type.
-		for cursor++; cursor < len(header.namerow); cursor++ {
+		for cursor++; cursor < len(header.nameRowData); cursor++ {
 			typeCell := header.getTypeCell(cursor)
 			if typeCell == "" {
 				continue // continue to skip this column if type cell is empty
@@ -413,7 +439,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 		firstElemIndex = index1
 		layout = tableaupb.Layout_LAYOUT_HORIZONTAL
 		nextCursor := cursor + 1
-		if nextCursor < len(header.namerow) {
+		if nextCursor < len(header.nameRowData) {
 			// Header:
 			//
 			// TaskParamList1	TaskParamList2	TaskParamList3
@@ -495,7 +521,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 			return cursor, err
 		}
 		// Parse other fields
-		for cursor++; cursor < len(header.namerow); cursor++ {
+		for cursor++; cursor < len(header.nameRowData); cursor++ {
 			if opts.Nested {
 				nameCell := header.getValidNameCell(&cursor)
 				if !strings.HasPrefix(nameCell, prefix) {
@@ -567,7 +593,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 			}
 		}
 		// Parse other fields or skip continuous N columns of the same element type.
-		for cursor++; cursor < len(header.namerow); cursor++ {
+		for cursor++; cursor < len(header.nameRowData); cursor++ {
 			typeCell := header.getTypeCell(cursor)
 			if typeCell == "" {
 				continue // continue to skip this column if type cell is empty
@@ -781,7 +807,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 		if err != nil {
 			return cursor, err
 		}
-		for cursor++; cursor < len(header.namerow); cursor++ {
+		for cursor++; cursor < len(header.nameRowData); cursor++ {
 			nameCell := header.getValidNameCell(&cursor)
 			if !strings.HasPrefix(nameCell, prefix) {
 				cursor--

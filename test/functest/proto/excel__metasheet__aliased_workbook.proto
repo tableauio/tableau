@@ -8,10 +8,10 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/metasheet/BookAlias#*.csv" alias:"AliasedWorkbook"};
+option (tableau.workbook) = {name:"excel/metasheet/BookAlias#*.csv" alias:"AliasedWorkbook" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message AliasedSheetScalar {
-  option (tableau.worksheet) = {name:"Scalar" namerow:1 typerow:2 noterow:3 datarow:4 labels:{key:"app" value:"gamesvr"} labels:{key:"patch" value:"merge"} sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"Scalar" labels:{key:"app" value:"gamesvr"} labels:{key:"patch" value:"merge"}};
 
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   string name = 2 [(tableau.field) = {name:"Name"}];

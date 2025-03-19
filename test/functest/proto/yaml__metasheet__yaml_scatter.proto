@@ -8,10 +8,10 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/metasheet/YamlScatter.yaml"};
+option (tableau.workbook) = {name:"yaml/metasheet/YamlScatter.yaml" sep:"," subsep:":"};
 
 message YamlScatterConf {
-  option (tableau.worksheet) = {name:"YamlScatterConf" sep:"," subsep:":" scatter:"YamlScatter*.yaml"};
+  option (tableau.worksheet) = {name:"YamlScatterConf" scatter:"YamlScatter*.yaml"};
 
   Fruit strict_struct = 1 [(tableau.field) = {name:"StrictStruct"}];
   message Fruit {

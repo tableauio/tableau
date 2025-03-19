@@ -8,7 +8,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 )
 
@@ -25,8 +25,9 @@ type Importer interface {
 	BookName() string
 	// Format returns workboot format.
 	Format() format.Format
-	// Metabook returns the metadata of the book.
-	Metabook() *internalpb.Metabook
+	// GetBookOptions creates a new tableaupb.WorkbookOptions
+	// based on this special sheet(#)'s info.
+	GetBookOptions() *tableaupb.WorkbookOptions
 	// GetSheets returns all sheets in order of the book.
 	GetSheets() []*book.Sheet
 	// GetSheet returns a Sheet of the specified sheet name.
@@ -71,7 +72,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 			specifiedSheetName = sheetName
 		}
 		for relBookPath := range relBookPaths {
-			log.Infof("%18s: %s#%s", "scatter sheet", relBookPath, specifiedSheetName)
+			log.Infof("%15s: %s#%s", "scatter sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
 			rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
@@ -100,7 +101,7 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 			specifiedSheetName = sheetName
 		}
 		for relBookPath := range relBookPaths {
-			log.Infof("%18s: %s#%s", "merge sheet", relBookPath, specifiedSheetName)
+			log.Infof("%15s: %s#%s", "merging sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
 			rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)

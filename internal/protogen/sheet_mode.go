@@ -103,20 +103,19 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 	}
 	bp := newTableParser("struct", "", "", gen)
 	shHeader := &tableHeader{
-		meta: &tableaupb.WorksheetOptions{
-			Namerow: 1,
-			Typerow: 2,
+		Header: &parseroptions.Header{
+			NameRow: 1,
+			TypeRow: 2,
 		},
-		validNames: map[string]int{},
 	}
 	for _, field := range desc.Fields {
-		shHeader.namerow = append(shHeader.namerow, field.Name)
-		shHeader.typerow = append(shHeader.typerow, field.Type)
-		shHeader.noterow = append(shHeader.noterow, "")
+		shHeader.nameRowData = append(shHeader.nameRowData, field.Name)
+		shHeader.typeRowData = append(shHeader.typeRowData, field.Type)
+		shHeader.noteRowData = append(shHeader.noteRowData, "")
 	}
 	var parsed bool
 	var err error
-	for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+	for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
 		subField := &internalpb.Field{}
 		cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
 		if err != nil {
@@ -196,20 +195,19 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		bp := newTableParser("union", "", "", gen)
 
 		shHeader := &tableHeader{
-			meta: &tableaupb.WorksheetOptions{
-				Namerow:  1,
-				Typerow:  1,
-				Nameline: 1,
-				Typeline: 2,
+			Header: &parseroptions.Header{
+				NameRow:  1,
+				TypeRow:  1,
+				NameLine: 1,
+				TypeLine: 2,
 			},
-			namerow:    value.Fields,
-			typerow:    value.Fields,
-			noterow:    value.Fields,
-			validNames: map[string]int{},
+			nameRowData: value.Fields,
+			typeRowData: value.Fields,
+			noteRowData: value.Fields,
 		}
 		var parsed bool
 		var err error
-		for cursor := 0; cursor < len(shHeader.namerow); cursor++ {
+		for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
 			fieldNumber := cursor + 1
 			subField := &internalpb.Field{}
 			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.Mode(tableaupb.Mode_MODE_UNION_TYPE))

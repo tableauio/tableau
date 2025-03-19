@@ -269,10 +269,10 @@ func TestGenerator_GenAll(t *testing.T) {
 								format.YAML,
 							},
 							Header: &options.HeaderOption{
-								Namerow: 1,
-								Typerow: 2,
-								Noterow: 3,
-								Datarow: 4,
+								NameRow: 1,
+								TypeRow: 2,
+								NoteRow: 3,
+								DataRow: 4,
 							},
 						},
 						Output: &options.ProtoOutputOption{

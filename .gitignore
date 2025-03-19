@@ -18,6 +18,8 @@
 .idea/
 _*
 cmd/tableauc/tableauc
+cmd/tableauc/*.json
+cmd/tableauc/*.proto
 *.xlsx
 *.pb.go
 test/dev/testpb/

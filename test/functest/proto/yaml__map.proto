@@ -9,10 +9,10 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/Map.yaml"};
+option (tableau.workbook) = {name:"yaml/Map.yaml" sep:"," subsep:":"};
 
 message YamlMapConf {
-  option (tableau.worksheet) = {name:"YamlMapConf" sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"YamlMapConf"};
 
   map<uint32, string> scalar_map = 1 [(tableau.field) = {name:"ScalarMap"}];
   map<int32, EnumKeyScalarMapValue> enum_key_scalar_map = 2 [(tableau.field) = {name:"EnumKeyScalarMap" key:"@key" span:SPAN_INNER_CELL}];

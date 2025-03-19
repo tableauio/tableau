@@ -10,16 +10,16 @@ import "common/union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/list/VerticalList#*.csv"};
+option (tableau.workbook) = {name:"excel/list/VerticalList#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message VerticalIncellPredefStructList {
-  option (tableau.worksheet) = {name:"VerticalIncellPredefStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalIncellPredefStructList"};
 
   repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
 }
 
 message VerticalIncellStructList {
-  option (tableau.worksheet) = {name:"VerticalIncellStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalIncellStructList"};
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
   message Item {
@@ -29,19 +29,19 @@ message VerticalIncellStructList {
 }
 
 message VerticalIncellUnionList {
-  option (tableau.worksheet) = {name:"VerticalIncellUnionList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalIncellUnionList"};
 
   repeated union.Target target_list = 1 [(tableau.field) = {name:"Target" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}];
 }
 
 message VerticalPredefinedStructList {
-  option (tableau.worksheet) = {name:"VerticalPredefinedStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalPredefinedStructList"};
 
   repeated protoconf.Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
 }
 
 message VerticalStructList {
-  option (tableau.worksheet) = {name:"VerticalStructList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalStructList"};
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
@@ -52,7 +52,7 @@ message VerticalStructList {
 }
 
 message VerticalUnionList {
-  option (tableau.worksheet) = {name:"VerticalUnionList" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalUnionList"};
 
   repeated union.Target target_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
 }

@@ -10,10 +10,10 @@ import "common/union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/union/Union#*.csv"};
+option (tableau.workbook) = {name:"excel/union/Union#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message FieldCapUnion {
-  option (tableau.worksheet) = {name:"FieldCapUnion" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"FieldCapUnion"};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {
@@ -23,7 +23,7 @@ message FieldCapUnion {
 }
 
 message PredefinedIncellUnion {
-  option (tableau.worksheet) = {name:"PredefinedIncellUnion" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"PredefinedIncellUnion"};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {
@@ -35,7 +35,7 @@ message PredefinedIncellUnion {
 }
 
 message PredefinedUnion {
-  option (tableau.worksheet) = {name:"PredefinedUnion" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"PredefinedUnion"};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {

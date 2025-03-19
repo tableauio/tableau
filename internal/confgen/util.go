@@ -207,7 +207,7 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 }
 
 func getRealSheetName(info *SheetInfo, impInfo importer.ImporterInfo) string {
-	sheetName := info.Opts.GetName()
+	sheetName := info.SheetOpts.GetName()
 	if impInfo.SpecifiedSheetName != "" {
 		// sheet name is specified
 		sheetName = impInfo.SpecifiedSheetName

@@ -13,7 +13,9 @@ import (
 var docTestParser *sheetParser
 
 func init() {
-	docTestParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", book.MetasheetOptions(),
+	docTestParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		book.MetabookOptions(),
+		book.MetasheetOptions(),
 		&SheetParserExtInfo{
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},

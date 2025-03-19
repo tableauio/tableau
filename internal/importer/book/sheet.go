@@ -193,6 +193,13 @@ func appendIndex(indexes []string, str string, start, end int) []string {
 	return indexes
 }
 
+func MetabookOptions() *tableaupb.WorkbookOptions {
+	return &tableaupb.WorkbookOptions{
+		Namerow: 1,
+		Datarow: 2,
+	}
+}
+
 func MetasheetOptions() *tableaupb.WorksheetOptions {
 	return &tableaupb.WorksheetOptions{
 		Name:    MetasheetName,

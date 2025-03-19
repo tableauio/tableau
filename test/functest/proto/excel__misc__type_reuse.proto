@@ -8,10 +8,10 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/misc/TypeReuse#*.csv"};
+option (tableau.workbook) = {name:"excel/misc/TypeReuse#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message ScopedTypeReuseListElem {
-  option (tableau.worksheet) = {name:"ScopedTypeReuseListElem" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"ScopedTypeReuseListElem"};
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
   message Item {
@@ -22,7 +22,7 @@ message ScopedTypeReuseListElem {
 }
 
 message ScopedTypeReuseMapValue {
-  option (tableau.worksheet) = {name:"ScopedTypeReuseMapValue" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"ScopedTypeReuseMapValue"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
   message Item {
@@ -33,7 +33,7 @@ message ScopedTypeReuseMapValue {
 }
 
 message ScopedTypeReuseStruct {
-  option (tableau.worksheet) = {name:"ScopedTypeReuseStruct" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"ScopedTypeReuseStruct"};
 
   Item item = 1 [(tableau.field) = {name:"Item"}];
   message Item {

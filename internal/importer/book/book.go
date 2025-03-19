@@ -8,6 +8,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 )
@@ -53,9 +54,25 @@ func (b *Book) Format() format.Format {
 	return format.GetFormat(b.filename)
 }
 
-// Metabook returns the metadata of this book.
-func (b *Book) Metabook() *internalpb.Metabook {
-	return b.meta
+// GetBookOptions creates a new tableaupb.WorkbookOptions
+// based on this special sheet(#)'s info.
+func (b *Book) GetBookOptions() *tableaupb.WorkbookOptions {
+	meta := b.meta.GetMetasheetMap()[BookNameInMetasheet]
+	if meta == nil {
+		return nil
+	}
+	return &tableaupb.WorkbookOptions{
+		Name:     "", // To be filled by protogen
+		Alias:    meta.Alias,
+		Namerow:  meta.Namerow,
+		Typerow:  meta.Typerow,
+		Noterow:  meta.Noterow,
+		Datarow:  meta.Datarow,
+		Nameline: meta.Nameline,
+		Typeline: meta.Typeline,
+		Sep:      meta.Sep,
+		Subsep:   meta.Subsep,
+	}
 }
 
 // GetSheets returns all sheets in order in the book.

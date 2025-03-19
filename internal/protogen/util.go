@@ -8,11 +8,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/excel"
-	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/x/xfs"
-	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 )
 
@@ -62,16 +58,6 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 	return nil
 }
 
-// getWorkbookAlias gets the workbook alias from importer.
-func getWorkbookAlias(imp importer.Importer) string {
-	sheetMap := imp.Metabook().GetMetasheetMap()
-	if sheetMap == nil {
-		return ""
-	}
-	meta := sheetMap[book.BookNameInMetasheet]
-	return meta.GetAlias()
-}
-
 func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 	relativeDir, err := filepath.Rel(rootdir, dir)
 	if err != nil {
@@ -81,54 +67,6 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 	relativePath := filepath.Join(relativeDir, filename)
 	relSlashPath := filepath.ToSlash(filepath.Clean(relativePath))
 	return relSlashPath, nil
-}
-
-// mergeTableHeaderOptions merge from options.HeaderOption to internalpb.Metasheet.
-// Only support table formats: Excel, CSV
-func mergeTableHeaderOptions(sheetOpts *tableaupb.WorksheetOptions, headerOpt *options.HeaderOption) {
-	if headerOpt == nil {
-		return
-	}
-
-	if sheetOpts.Namerow == 0 {
-		sheetOpts.Namerow = headerOpt.Namerow
-	}
-	if sheetOpts.Typerow == 0 {
-		sheetOpts.Typerow = headerOpt.Typerow
-	}
-	if sheetOpts.Noterow == 0 {
-		sheetOpts.Noterow = headerOpt.Noterow
-	}
-	if sheetOpts.Datarow == 0 {
-		sheetOpts.Datarow = headerOpt.Datarow
-	}
-	if sheetOpts.Nameline == 0 {
-		sheetOpts.Nameline = headerOpt.Nameline
-	}
-	if sheetOpts.Typeline == 0 {
-		sheetOpts.Typeline = headerOpt.Typeline
-	}
-	if sheetOpts.Sep == "" {
-		sheetOpts.Sep = headerOpt.Sep
-	}
-	if sheetOpts.Subsep == "" {
-		sheetOpts.Subsep = headerOpt.Subsep
-	}
-}
-
-// mergeDocumentHeaderOptions merge from options.HeaderOption to internalpb.Metasheet.
-// Only support document formats: YAML, XML
-func mergeDocumentHeaderOptions(sheetOpts *tableaupb.WorksheetOptions, headerOpt *options.HeaderOption) {
-	if headerOpt == nil {
-		return
-	}
-
-	if sheetOpts.Sep == "" {
-		sheetOpts.Sep = headerOpt.Sep
-	}
-	if sheetOpts.Subsep == "" {
-		sheetOpts.Subsep = headerOpt.Subsep
-	}
 }
 
 func genProtoFilePath(bookName, suffix string) string {
@@ -164,18 +102,18 @@ func (g *GeneratedBuf) String() string {
 	return g.buf.String()
 }
 
-func wrapDebugErr(err error, bookName, sheetName string, sh *tableHeader, cursor int) error {
-	nameCellPos := excel.Postion(int(sh.meta.Namerow-1), cursor)
-	typeCellPos := excel.Postion(int(sh.meta.Typerow-1), cursor)
-	if sh.meta.Transpose {
-		nameCellPos = excel.Postion(cursor, int(sh.meta.Namerow-1))
-		typeCellPos = excel.Postion(cursor, int(sh.meta.Typerow-1))
+func wrapDebugErr(err error, bookName, sheetName string, header *tableHeader, cursor int) error {
+	nameCellPos := excel.Postion(header.NameRow-1, cursor)
+	typeCellPos := excel.Postion(header.TypeRow-1, cursor)
+	if header.transpose {
+		nameCellPos = excel.Postion(cursor, header.NameRow-1)
+		typeCellPos = excel.Postion(cursor, header.TypeRow-1)
 	}
 	return xerrors.WrapKV(err,
 		xerrors.KeyBookName, bookName,
 		xerrors.KeySheetName, sheetName,
 		xerrors.KeyNameCellPos, nameCellPos,
 		xerrors.KeyTypeCellPos, typeCellPos,
-		xerrors.KeyNameCell, sh.getNameCell(cursor),
-		xerrors.KeyTypeCell, sh.getTypeCell(cursor))
+		xerrors.KeyNameCell, header.getNameCell(cursor),
+		xerrors.KeyTypeCell, header.getTypeCell(cursor))
 }

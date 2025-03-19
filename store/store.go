@@ -67,6 +67,6 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 		return xerrors.Errorf(`write file "%s" failed: %s`, fpath, err)
 	}
 	// out.WriteTo(os.Stdout)
-	log.Infof("%18s: %s", "generated conf", filename)
+	log.Infof("%15s: %s", "generated conf", filename)
 	return nil
 }

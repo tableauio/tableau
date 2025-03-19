@@ -12,7 +12,7 @@ func main() {
 }
 
 func CompareGeneratedProto() {
-	err := genProto("DEBUG")
+	err := genProto("DEBUG", "FULL")
 	if err != nil {
 		log.Fatalf("%+v", err)
 		log.Fatalf("%s", xerrors.NewDesc(err))
@@ -24,7 +24,7 @@ func CompareGeneratedProto() {
 }
 
 func CompareGeneratedJSON() {
-	err := genConf("DEBUG")
+	err := genConf("DEBUG", "FULL")
 	if err != nil {
 		log.Fatalf("%+v", err)
 		log.Fatalf("%s", xerrors.NewDesc(err))

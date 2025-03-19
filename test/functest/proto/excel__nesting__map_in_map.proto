@@ -8,10 +8,10 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/nesting/MapInMap#*.csv"};
+option (tableau.workbook) = {name:"excel/nesting/MapInMap#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message HorizontalMapInVerticalMap {
-  option (tableau.worksheet) = {name:"HorizontalMapInVerticalMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"HorizontalMapInVerticalMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -26,7 +26,7 @@ message HorizontalMapInVerticalMap {
 }
 
 message IncellMapInVerticalMap {
-  option (tableau.worksheet) = {name:"IncellMapInVerticalMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"IncellMapInVerticalMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -36,7 +36,7 @@ message IncellMapInVerticalMap {
 }
 
 message VerticalMapInVerticalMap {
-  option (tableau.worksheet) = {name:"VerticalMapInVerticalMap" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"VerticalMapInVerticalMap"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {

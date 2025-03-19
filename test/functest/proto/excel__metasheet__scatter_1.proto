@@ -8,10 +8,10 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/metasheet/Scatter1#*.csv"};
+option (tableau.workbook) = {name:"excel/metasheet/Scatter1#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message MetasheetOptionScatter {
-  option (tableau.worksheet) = {name:"MetasheetOptionScatter" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":" scatter:"Scatter*.csv" scatter:"Scatter1#*.csv#MetasheetOptionScatter1"};
+  option (tableau.worksheet) = {name:"MetasheetOptionScatter" scatter:"Scatter*.csv" scatter:"Scatter1#*.csv#MetasheetOptionScatter1"};
 
   map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Zone {

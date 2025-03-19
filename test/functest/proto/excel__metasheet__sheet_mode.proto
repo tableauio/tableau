@@ -11,7 +11,7 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv"};
+option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 enum CatType {
   option (tableau.etype) = {name:"EnumType" note:"CatType note"};
@@ -41,7 +41,7 @@ enum BirdType {
 }
 
 message EnumTypeReuseInBook {
-  option (tableau.worksheet) = {name:"EnumTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"EnumTypeReuseInBook"};
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -99,7 +99,7 @@ message FruitShop {
 }
 
 message StructTypeReuseInBook {
-  option (tableau.worksheet) = {name:"StructTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"StructTypeReuseInBook"};
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
@@ -295,7 +295,7 @@ message BattleTarget {
 }
 
 message UnionTypeReuseInBook {
-  option (tableau.worksheet) = {name:"UnionTypeReuseInBook" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"UnionTypeReuseInBook"};
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {

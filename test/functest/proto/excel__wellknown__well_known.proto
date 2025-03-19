@@ -11,17 +11,17 @@ import "tableau/protobuf/tableau.proto";
 import "tableau/protobuf/wellknown.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/wellknown/WellKnown#*.csv"};
+option (tableau.workbook) = {name:"excel/wellknown/WellKnown#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message WellKnownTypeComparator {
-  option (tableau.worksheet) = {name:"WellKnownTypeComparator" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"WellKnownTypeComparator"};
 
   tableau.Comparator min_ratio = 1 [(tableau.field) = {name:"MinRatio"}];
   repeated tableau.Comparator ratio_list = 2 [(tableau.field) = {name:"Ratio" layout:LAYOUT_HORIZONTAL}];
 }
 
 message WellKnownTypeDate {
-  option (tableau.worksheet) = {name:"WellKnownTypeDate" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"WellKnownTypeDate"};
 
   google.protobuf.Timestamp begin_date = 1 [(tableau.field) = {name:"BeginDate"}];
   google.protobuf.Timestamp end_date = 2 [(tableau.field) = {name:"EndDate"}];
@@ -29,7 +29,7 @@ message WellKnownTypeDate {
 }
 
 message WellKnownTypeDatetime {
-  option (tableau.worksheet) = {name:"WellKnownTypeDatetime" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"WellKnownTypeDatetime"};
 
   google.protobuf.Timestamp begin_datetime = 1 [(tableau.field) = {name:"BeginDatetime"}];
   google.protobuf.Timestamp end_datetime = 2 [(tableau.field) = {name:"EndDatetime"}];
@@ -37,7 +37,7 @@ message WellKnownTypeDatetime {
 }
 
 message WellKnownTypeDuration {
-  option (tableau.worksheet) = {name:"WellKnownTypeDuration" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"WellKnownTypeDuration"};
 
   google.protobuf.Duration duration_1 = 1 [(tableau.field) = {name:"Duration1"}];
   google.protobuf.Duration duration_2 = 2 [(tableau.field) = {name:"Duration2"}];
@@ -45,14 +45,14 @@ message WellKnownTypeDuration {
 }
 
 message WellKnownTypeFraction {
-  option (tableau.worksheet) = {name:"WellKnownTypeFraction" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"WellKnownTypeFraction"};
 
   tableau.Fraction min_ratio = 1 [(tableau.field) = {name:"MinRatio"}];
   repeated tableau.Fraction ratio_list = 2 [(tableau.field) = {name:"Ratio" layout:LAYOUT_HORIZONTAL}];
 }
 
 message WellKnownTypeTime {
-  option (tableau.worksheet) = {name:"WellKnownTypeTime" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+  option (tableau.worksheet) = {name:"WellKnownTypeTime"};
 
   google.protobuf.Duration begin_time = 1 [(tableau.field) = {name:"BeginTime"}];
   google.protobuf.Duration end_time = 2 [(tableau.field) = {name:"EndTime"}];

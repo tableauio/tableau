@@ -8,10 +8,10 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/metasheet/Merger.yaml"};
+option (tableau.workbook) = {name:"yaml/metasheet/Merger.yaml" sep:"," subsep:":"};
 
 message YamlMergerConf {
-  option (tableau.worksheet) = {name:"YamlMergerConf" sep:"," subsep:":" merger:"Merger*.yaml"};
+  option (tableau.worksheet) = {name:"YamlMergerConf" merger:"Merger*.yaml"};
 
   map<uint32, Item> struct_map = 1 [(tableau.field) = {name:"StructMap" key:"@key"}];
   message Item {
