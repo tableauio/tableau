@@ -1,0 +1,6 @@
+"IDNote
+ID
+int32","PropNote
+Prop
+[]int32|{sep:"";""}"
+1,10;20;30

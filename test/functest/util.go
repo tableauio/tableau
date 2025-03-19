@@ -15,18 +15,18 @@ import (
 
 func genProto(logLevel, logMode string) error {
 	// prepare output common dir
-	outdir := "./_proto"
-	err := os.MkdirAll(outdir, xfs.DefaultDirPerm)
+	defaultOutdir := "./_proto/default"
+	err := os.MkdirAll(defaultOutdir, xfs.DefaultDirPerm)
 	if err != nil {
 		return fmt.Errorf("failed to create output dir: %v", err)
 	}
-	outCommDir := filepath.Join(outdir, "common")
+	outCommDir := filepath.Join(defaultOutdir, "common")
 	err = os.MkdirAll(outCommDir, xfs.DefaultDirPerm)
 	if err != nil {
 		return fmt.Errorf("failed to create output common dir: %v", err)
 	}
 
-	srcCommDir := "./proto/common"
+	srcCommDir := "./proto/default/common"
 	dirEntries, err := os.ReadDir(srcCommDir)
 	if err != nil {
 		return fmt.Errorf("read dir failed: %+v", err)
@@ -41,14 +41,14 @@ func genProto(logLevel, logMode string) error {
 		}
 	}
 
-	return tableau.GenProto(
+	err = tableau.GenProto(
 		"protoconf",
-		"./testdata",
-		outdir,
+		"./testdata/default",
+		defaultOutdir,
 		options.Proto(
 			&options.ProtoOption{
 				Input: &options.ProtoInputOption{
-					ProtoPaths: []string{outdir},
+					ProtoPaths: []string{defaultOutdir},
 					ProtoFiles: []string{
 						"common/base.proto",
 						"common/common.proto",
@@ -68,6 +68,7 @@ func genProto(logLevel, logMode string) error {
 						Sep:     ",",
 						Subsep:  ":",
 					},
+					Subdirs: []string{"excel", "xml", "yaml"},
 				},
 				Output: &options.ProtoOutputOption{
 					FilenameWithSubdirPrefix: true,
@@ -90,19 +91,62 @@ func genProto(logLevel, logMode string) error {
 		}),
 		// options.Lang("zh"),
 	)
+	if err != nil {
+		return err
+	}
+
+	customOutdir := "./_proto/custom"
+	return tableau.GenProto(
+		"protoconf",
+		"./testdata/custom",
+		customOutdir,
+		options.Proto(
+			&options.ProtoOption{
+				Input: &options.ProtoInputOption{
+					ProtoPaths: []string{defaultOutdir},
+					Formats: []format.Format{
+						format.CSV,
+					},
+					Header: &options.HeaderOption{
+						NameRow:  1,
+						TypeRow:  1,
+						NoteRow:  1,
+						DataRow:  2,
+						NameLine: 2,
+						TypeLine: 3,
+						Sep:      ",",
+						Subsep:   ":",
+					},
+					Subdirs: []string{"excel"},
+				},
+				Output: &options.ProtoOutputOption{
+					FilenameWithSubdirPrefix: true,
+					FileOptions: map[string]string{
+						"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+					},
+				},
+			},
+		),
+		options.Log(
+			&log.Options{
+				Level: logLevel,
+				Mode:  logMode,
+			},
+		),
+	)
 }
 
 func genConf(logLevel, logMode string) error {
-	return tableau.GenConf(
+	err := tableau.GenConf(
 		"protoconf",
-		"./testdata",
-		"./_conf",
+		"./testdata/default",
+		"./_conf/default",
 		options.LocationName("Asia/Shanghai"),
 		options.Conf(
 			&options.ConfOption{
 				Input: &options.ConfInputOption{
-					ProtoPaths: []string{"./_proto"},
-					ProtoFiles: []string{"./_proto/*.proto"},
+					ProtoPaths: []string{"./_proto/default/"},
+					ProtoFiles: []string{"./_proto/default/*.proto"},
 					Formats: []format.Format{
 						// format.Excel,
 						format.CSV,
@@ -110,7 +154,44 @@ func genConf(logLevel, logMode string) error {
 						format.YAML,
 					},
 					ExcludedProtoFiles: []string{
-						"./_proto/xml__metasheet__metasheet.proto",
+						"./_proto/default/xml__metasheet__metasheet.proto",
+					},
+				},
+				Output: &options.ConfOutputOption{
+					Pretty:          true,
+					Formats:         []format.Format{format.JSON},
+					EmitUnpopulated: true,
+					// DryRun:          options.DryRunPatch,
+				},
+			},
+		),
+		options.Log(
+			&log.Options{
+				Level: logLevel,
+				Mode:  logMode,
+			},
+		),
+		options.Lang("zh"),
+	)
+	if err != nil {
+		return err
+	}
+
+	return tableau.GenConf(
+		"protoconf",
+		"./testdata/custom",
+		"./_conf/custom",
+		options.LocationName("Asia/Shanghai"),
+		options.Conf(
+			&options.ConfOption{
+				Input: &options.ConfInputOption{
+					ProtoPaths: []string{"./_proto/custom/"},
+					ProtoFiles: []string{"./_proto/custom/*.proto"},
+					Formats: []format.Format{
+						// format.Excel,
+						format.CSV,
+						format.XML,
+						format.YAML,
 					},
 				},
 				Output: &options.ConfOutputOption{
