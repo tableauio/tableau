@@ -46,25 +46,38 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 }
 
 func Test_CSV2Excel(t *testing.T) {
-	err := xfs.RangeFilesByFormat("./testdata/excel", format.CSV, func(bookPath string) error {
-		// log.Printf("path: %s", bookPath)
-		imp, err := importer.NewCSVImporter(bookPath, nil, nil, 0, false)
-		if err != nil {
-			return err
-		}
-		return imp.ExportExcel()
-	})
-	require.NoError(t, err)
+	for _, dir := range excelDirs {
+		err := xfs.RangeFilesByFormat(dir, format.CSV, func(bookPath string) error {
+			// log.Printf("path: %s", bookPath)
+			imp, err := importer.NewCSVImporter(bookPath, nil, nil, 0, false)
+			if err != nil {
+				return err
+			}
+			return imp.ExportExcel()
+		})
+		require.NoError(t, err)
+	}
 }
 
 func Test_Excel2CSV(t *testing.T) {
-	err := xfs.RangeFilesByFormat("./testdata/excel", format.Excel, func(bookPath string) error {
-		// log.Printf("path: %s", bookPath)
-		imp, err := importer.NewExcelImporter(bookPath, nil, nil, 0, false)
-		if err != nil {
-			return err
-		}
-		return imp.ExportCSV()
-	})
-	require.NoError(t, err)
+	for _, dir := range excelDirs {
+		err := xfs.RangeFilesByFormat(dir, format.Excel, func(bookPath string) error {
+			// log.Printf("path: %s", bookPath)
+			imp, err := importer.NewExcelImporter(bookPath, nil, nil, 0, false)
+			if err != nil {
+				return err
+			}
+			return imp.ExportCSV()
+		})
+		require.NoError(t, err)
+	}
+}
+
+var excelDirs []string
+
+func init() {
+	excelDirs = []string{
+		"./testdata/default/excel",
+		"./testdata/custom/excel",
+	}
 }
