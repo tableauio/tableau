@@ -140,7 +140,7 @@ func genConf(logLevel, logMode string) error {
 	err := tableau.GenConf(
 		"protoconf",
 		"./testdata/default",
-		"./_conf",
+		"./_conf/default",
 		options.LocationName("Asia/Shanghai"),
 		options.Conf(
 			&options.ConfOption{
@@ -180,7 +180,7 @@ func genConf(logLevel, logMode string) error {
 	return tableau.GenConf(
 		"protoconf",
 		"./testdata/custom",
-		"./_conf",
+		"./_conf/custom",
 		options.LocationName("Asia/Shanghai"),
 		options.Conf(
 			&options.ConfOption{
