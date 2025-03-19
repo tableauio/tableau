@@ -4,6 +4,7 @@ import (
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 )
@@ -20,9 +21,9 @@ type tableHeader struct {
 	validNames map[string]int // none-empty valid names: name -> cursor
 }
 
-func newTableHeader(bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions) *tableHeader {
+func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption) *tableHeader {
 	return &tableHeader{
-		Header:    parseroptions.MergeHeader(bookOpts, sheetOpts),
+		Header:    parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts),
 		transpose: sheetOpts.Transpose,
 	}
 }

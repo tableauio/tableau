@@ -23,7 +23,7 @@ type tableParser struct {
 func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	// log.Debugf("parse sheet: %s", sheet.Name)
 	msg := protomsg.ProtoReflect()
-	header := parseroptions.MergeHeader(sp.bookOpts, sp.sheetOpts)
+	header := parseroptions.MergeHeader(sp.sheetOpts, sp.bookOpts, nil)
 	if sp.sheetOpts.Transpose {
 		// interchange the rows and columns
 		// namerow: name column
