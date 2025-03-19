@@ -72,7 +72,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 			specifiedSheetName = sheetName
 		}
 		for relBookPath := range relBookPaths {
-			log.Infof("%18s: %s#%s", "scatter sheet", relBookPath, specifiedSheetName)
+			log.Infof("%15s: %s#%s", "scatter sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
 			rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
@@ -101,7 +101,7 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 			specifiedSheetName = sheetName
 		}
 		for relBookPath := range relBookPaths {
-			log.Infof("%18s: %s#%s", "merge sheet", relBookPath, specifiedSheetName)
+			log.Infof("%15s: %s#%s", "merging sheet", relBookPath, specifiedSheetName)
 			fpath := filepath.Join(inputDir, relBookPath)
 			rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)

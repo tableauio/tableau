@@ -13,7 +13,7 @@ import (
 	"github.com/tableauio/tableau/options"
 )
 
-func genProto(logLevel string) error {
+func genProto(logLevel, logMode string) error {
 	// prepare output common dir
 	outdir := "./_proto"
 	err := os.MkdirAll(outdir, xfs.DefaultDirPerm)
@@ -81,7 +81,7 @@ func genProto(logLevel string) error {
 		options.Log(
 			&log.Options{
 				Level: logLevel,
-				Mode:  "FULL",
+				Mode:  logMode,
 			},
 		),
 		options.Acronyms(map[string]string{
@@ -92,7 +92,7 @@ func genProto(logLevel string) error {
 	)
 }
 
-func genConf(logLevel string) error {
+func genConf(logLevel, logMode string) error {
 	return tableau.GenConf(
 		"protoconf",
 		"./testdata",
@@ -124,7 +124,7 @@ func genConf(logLevel string) error {
 		options.Log(
 			&log.Options{
 				Level: logLevel,
-				Mode:  "FULL",
+				Mode:  logMode,
 			},
 		),
 		options.Lang("zh"),

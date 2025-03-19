@@ -191,7 +191,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 			worksheetFound = true
 		}
 		// log.Debugf("%s", md.FullName())
-		log.Infof("%18s: %s#%s (%s#%s)", "parsing worksheet", fd.Path(), sheetInfo.MD.Name(), workbook.Name, sheetName)
+		log.Infof("%15s: %s#%s (%s#%s)", "parsing sheet", fd.Path(), sheetInfo.MD.Name(), workbook.Name, sheetName)
 
 		if sheetInfo.HasScatter() {
 			if sheetInfo.HasMerger() {

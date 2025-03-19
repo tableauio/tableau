@@ -92,7 +92,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 
 	relPath := x.GetProtoFilePath()
 	path := filepath.Join(x.OutputDir, relPath)
-	log.Infof("%18s: %s", "generated proto", relPath)
+	log.Infof("%15s: %s", "generated proto", relPath)
 
 	// mu := lockedfile.MutexAt(path)
 	// unlock, err := mu.Lock()

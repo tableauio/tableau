@@ -302,7 +302,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		debugBookName += " (rewrite: " + rewrittenBookName + ")"
 	}
 
-	log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugBookName, len(imp.GetSheets()))
+	log.Infof("%15s: %s, %d worksheet(s) will be parsed", "analyzing book", debugBookName, len(imp.GetSheets()))
 
 	// create a book parser
 	bookName := imp.BookName()
@@ -316,7 +316,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		// parse sheet options
 		ws := sheet.ToWorkseet()
 		debugSheetName := sheet.GetDebugName()
-		log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+		log.Infof("%15s: %s", "parsing sheet", debugSheetName)
 
 		// log.Debugf("dump document:\n%s", sheet.String())
 		if len(sheet.Document.Children) != 1 {
@@ -387,7 +387,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	}
 
 	if pass == firstPass {
-		log.Infof("%18s: %s, %d worksheet(s) will be parsed", "analyzing workbook", debugBookName, len(imp.GetSheets()))
+		log.Infof("%15s: %s, %d worksheet(s) will be parsed", "analyzing book", debugBookName, len(imp.GetSheets()))
 	}
 	bookOpts := imp.GetBookOptions()
 	var bp *tableParser
@@ -410,7 +410,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		ws := sheet.ToWorkseet()
 		debugSheetName := sheet.GetDebugName()
 		if pass == firstPass {
-			log.Infof("%18s: %s", "parsing worksheet", debugSheetName)
+			log.Infof("%15s: %s", "parsing sheet", debugSheetName)
 		}
 
 		tableHeader := newTableHeader(bookOpts, ws.Options)
