@@ -413,7 +413,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			log.Infof("%15s: %s", "parsing sheet", debugSheetName)
 		}
 
-		tableHeader := newTableHeader(bookOpts, ws.Options)
+		tableHeader := newTableHeader(ws.Options, bookOpts, gen.InputOpt.Header)
 		// transpose or not
 		if ws.Options.Transpose {
 			for row := 0; row < sheet.Table.MaxRow; row++ {

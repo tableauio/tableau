@@ -168,7 +168,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})
-	header := parseroptions.MergeHeader(bookOpts, sheetOpts)
+	header := parseroptions.MergeHeader(sheetOpts, bookOpts, nil)
 	// new empty referred value space set
 	valueSpace := NewValueSpace()
 	for _, impInfo := range impInfos {

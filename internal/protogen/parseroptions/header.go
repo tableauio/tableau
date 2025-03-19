@@ -16,14 +16,16 @@ type Header struct {
 	Subsep   string
 }
 
-// MergeHeader merges workbook options and worksheet options into final header options.
-func MergeHeader(bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions) *Header {
+// MergeHeader merges sheet-level, book-level, and global-level header options into the final header options.
+func MergeHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption) *Header {
 	hdr := &Header{}
 	// name row
 	if sheetOpts.GetNamerow() != 0 {
 		hdr.NameRow = int(sheetOpts.GetNamerow())
 	} else if bookOpts.GetNamerow() != 0 {
 		hdr.NameRow = int(bookOpts.GetNamerow())
+	} else if globalOpts != nil && globalOpts.NameRow != 0 {
+		hdr.NameRow = int(globalOpts.NameRow)
 	} else {
 		hdr.NameRow = options.DefaultNameRow
 	}
@@ -32,6 +34,8 @@ func MergeHeader(bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.Works
 		hdr.TypeRow = int(sheetOpts.GetTyperow())
 	} else if bookOpts.GetTyperow() != 0 {
 		hdr.TypeRow = int(bookOpts.GetTyperow())
+	} else if globalOpts != nil && globalOpts.TypeRow != 0 {
+		hdr.TypeRow = int(globalOpts.TypeRow)
 	} else {
 		hdr.TypeRow = options.DefaultTypeRow
 	}
@@ -40,6 +44,8 @@ func MergeHeader(bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.Works
 		hdr.NoteRow = int(sheetOpts.GetNoterow())
 	} else if bookOpts.GetNoterow() != 0 {
 		hdr.NoteRow = int(bookOpts.GetNoterow())
+	} else if globalOpts != nil && globalOpts.NoteRow != 0 {
+		hdr.NoteRow = int(globalOpts.NoteRow)
 	} else {
 		hdr.NoteRow = options.DefaultNoteRow
 	}
@@ -48,6 +54,8 @@ func MergeHeader(bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.Works
 		hdr.DataRow = int(sheetOpts.GetDatarow())
 	} else if bookOpts.GetDatarow() != 0 {
 		hdr.DataRow = int(bookOpts.GetDatarow())
+	} else if globalOpts != nil && globalOpts.DataRow != 0 {
+		hdr.DataRow = int(globalOpts.DataRow)
 	} else {
 		hdr.DataRow = options.DefaultDataRow
 	}
@@ -56,6 +64,8 @@ func MergeHeader(bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.Works
 		hdr.NameLine = int(sheetOpts.GetNameline())
 	} else if bookOpts.GetNameline() != 0 {
 		hdr.NameLine = int(bookOpts.GetNameline())
+	} else if globalOpts != nil && globalOpts.NameLine != 0 {
+		hdr.NameLine = int(globalOpts.NameLine)
 	} else {
 		hdr.NameLine = 0
 	}
@@ -64,8 +74,30 @@ func MergeHeader(bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.Works
 		hdr.TypeLine = int(sheetOpts.GetTypeline())
 	} else if bookOpts.GetTypeline() != 0 {
 		hdr.TypeLine = int(bookOpts.GetTypeline())
+	} else if globalOpts != nil && globalOpts.TypeLine != 0 {
+		hdr.TypeLine = int(globalOpts.TypeLine)
 	} else {
 		hdr.TypeLine = 0
+	}
+	// sep
+	if sheetOpts.GetSep() != "" {
+		hdr.Sep = sheetOpts.GetSep()
+	} else if bookOpts.GetSep() != "" {
+		hdr.Sep = bookOpts.GetSep()
+	} else if globalOpts != nil && globalOpts.Sep != "" {
+		hdr.Sep = globalOpts.Sep
+	} else {
+		hdr.Sep = options.DefaultSep
+	}
+	// subsep
+	if sheetOpts.GetSubsep() != "" {
+		hdr.Subsep = sheetOpts.GetSubsep()
+	} else if bookOpts.GetSubsep() != "" {
+		hdr.Subsep = bookOpts.GetSubsep()
+	} else if globalOpts != nil && globalOpts.Subsep != "" {
+		hdr.Subsep = globalOpts.Subsep
+	} else {
+		hdr.Subsep = options.DefaultSubsep
 	}
 	return hdr
 }
