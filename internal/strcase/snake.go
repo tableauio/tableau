@@ -50,7 +50,11 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 		uppercaseAcronym.Range(func(key, value any) bool {
 			remain := string(bytes[i:])
 			if strings.HasPrefix(remain, key.(string)) {
-				n.WriteString(value.(string))
+				if screaming {
+					n.WriteString(strings.ToUpper(value.(string)))
+				} else {
+					n.WriteString(value.(string))
+				}
 				i += len(key.(string)) - 1
 				if i+1 < len(bytes) {
 					next := bytes[i+1]

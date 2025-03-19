@@ -89,8 +89,8 @@
         "5": {
             "id": 5,
             "target": {
-                "type": "TYPE_FRUIT",
-                "fruit": {
+                "type": "TYPE_FRUIT_2V2",
+                "fruit2v2": {
                     "typeAList": [
                         "FRUIT_TYPE_APPLE",
                         "FRUIT_TYPE_ORANGE",
@@ -109,8 +109,8 @@
         "6": {
             "id": 6,
             "target": {
-                "type": "TYPE_FRUIT",
-                "fruit": {
+                "type": "TYPE_FRUIT_2V2",
+                "fruit2v2": {
                     "typeAList": [
                         "FRUIT_TYPE_APPLE",
                         "FRUIT_TYPE_ORANGE"
@@ -128,8 +128,8 @@
         "7": {
             "id": 7,
             "target": {
-                "type": "TYPE_KEY",
-                "key": {
+                "type": "TYPE_KEY_3V3",
+                "key3v3": {
                     "keysList": [
                         1,
                         2,
@@ -146,8 +146,8 @@
         "8": {
             "id": 8,
             "target": {
-                "type": "TYPE_KEY",
-                "key": {
+                "type": "TYPE_KEY_3V3",
+                "key3v3": {
                     "keysList": [
                         1
                     ],
