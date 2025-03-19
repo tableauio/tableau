@@ -7,10 +7,10 @@ uint32","Cost
 []uint32|{cross:2}",,"Againsts
 []uint32|{cross:1}","Abstains
 []uint32|{cross:2}",,
-103,Fruit,Fruit,"TypeA
+103,Fruit2V2,Fruit,"TypeA
 []enum<.FruitType>|{cross:3}",,,"TypeB
 []enum<.FruitType>","Flavor
 []enum<.FruitFlavor>|{cross:-1}",
-104,Key,Key,"Keys
+104,Key3V3,Key,"Keys
 []<int32>|{cross:3}",,,"Values
 []int32|{cross:-1}",,

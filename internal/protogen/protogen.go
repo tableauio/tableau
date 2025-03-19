@@ -302,7 +302,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		debugBookName += " (rewrite: " + rewrittenBookName + ")"
 	}
 
-	log.Infof("%15s: %s, %d worksheet(s) will be parsed", "analyzing book", debugBookName, len(imp.GetSheets()))
+	log.Infof("%15s: %s, %d sheet(s) will be parsed", "analyzing book", debugBookName, len(imp.GetSheets()))
 
 	// create a book parser
 	bookName := imp.BookName()
@@ -387,7 +387,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	}
 
 	if pass == firstPass {
-		log.Infof("%15s: %s, %d worksheet(s) will be parsed", "analyzing book", debugBookName, len(imp.GetSheets()))
+		log.Infof("%15s: %s, %d sheet(s) will be parsed", "analyzing book", debugBookName, len(imp.GetSheets()))
 	}
 	bookOpts := imp.GetBookOptions()
 	var bp *tableParser

@@ -147,6 +147,46 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 	}
 }
 
+func TestCustomAcronymsToToScreamingSnake(t *testing.T) {
+	tests := []struct {
+		name         string
+		acronymKey   string
+		acronymValue string
+		value        string
+		expected     string
+	}{
+		{
+			name:         "APIV3 Custom Acronym",
+			acronymKey:   "APIV3",
+			acronymValue: "apiv3",
+			value:        "WebAPIV3Spec",
+			expected:     "WEB_APIV3_SPEC",
+		},
+		{
+			name:         "K8s Custom Acroynm",
+			acronymKey:   "K8s",
+			acronymValue: "k8s",
+			value:        "InK8s",
+			expected:     "IN_K8S",
+		},
+		{
+			name:         "3V3 Custom Acroynm",
+			acronymKey:   "3V3",
+			acronymValue: "3v3",
+			value:        "Mode3V3Game",
+			expected:     "MODE_3V3_GAME",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ConfigureAcronym(test.acronymKey, test.acronymValue)
+			if result := ToScreamingSnake(test.value); result != test.expected {
+				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
+			}
+		})
+	}
+}
+
 func toDelimited(tb testing.TB) {
 	cases := [][]string{
 		{"testCase", "test@case"},
