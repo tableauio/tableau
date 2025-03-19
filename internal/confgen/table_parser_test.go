@@ -551,31 +551,33 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 	}
 }
 
-func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
-	parserWithGlobalSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
-		&tableaupb.WorkbookOptions{},
+func TestParser_parseWithSheetAndBookSep(t *testing.T) {
+	parserWithBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		&tableaupb.WorkbookOptions{
+			Sep:    ",",
+			Subsep: ":",
+		},
 		&tableaupb.WorksheetOptions{
-			Name:    book.MetasheetName,
 			Namerow: 1,
 			Datarow: 2,
 		},
 		&SheetParserExtInfo{
-			InputDir:       "",
 			SubdirRewrites: map[string]string{},
 			BookFormat:     format.YAML,
 		})
 
-	parserWithSheetAndGlobalSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
-		&tableaupb.WorkbookOptions{},
+	parserWithSheetAndBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+		&tableaupb.WorkbookOptions{
+			Sep:    ",",
+			Subsep: ":",
+		},
 		&tableaupb.WorksheetOptions{
-			Name:    book.MetasheetName,
 			Namerow: 1,
 			Datarow: 2,
 			Sep:     ";",
 			Subsep:  "=",
 		},
 		&SheetParserExtInfo{
-			InputDir:       "",
 			SubdirRewrites: map[string]string{},
 			BookFormat:     format.YAML,
 		})
@@ -591,8 +593,8 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 		want   proto.Message
 	}{
 		{
-			name:   "incell map: custom global separator and subseparator",
-			parser: parserWithGlobalSep,
+			name:   "incell map: book-level sep and subsep",
+			parser: parserWithBookSep,
 			args: args{
 				sheet: &book.Sheet{
 					Name: "SimpleIncellMap",
@@ -619,8 +621,8 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 			},
 		},
 		{
-			name:   "incell map: custom sheet and global separator and subseparator",
-			parser: parserWithSheetAndGlobalSep,
+			name:   "incell map: sheet-level and book-level sep and subsep",
+			parser: parserWithSheetAndBookSep,
 			args: args{
 				sheet: &book.Sheet{
 					Name: "SimpleIncellMap",
@@ -647,8 +649,8 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 			},
 		},
 		{
-			name:   "incell struct list: custom global separator and subseparator",
-			parser: parserWithGlobalSep,
+			name:   "incell struct list: book-level sep and subsep",
+			parser: parserWithBookSep,
 			args: args{
 				sheet: &book.Sheet{
 					Name: "IncellStructList",
@@ -675,8 +677,8 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 			},
 		},
 		{
-			name:   "incell struct list: custom sheet and global separator and subseparator",
-			parser: parserWithSheetAndGlobalSep,
+			name:   "incell struct list: sheet-level and book-level sep and subsep",
+			parser: parserWithSheetAndBookSep,
 			args: args{
 				sheet: &book.Sheet{
 					Name: "IncellStructList",
@@ -708,7 +710,7 @@ func TestParser_parseSimpleIncellMapWithGlobalSep(t *testing.T) {
 			err := tt.parser.Parse(tt.args.msg, tt.args.sheet)
 			assert.NoError(t, err)
 			if !proto.Equal(tt.want, tt.args.msg) {
-				t.Errorf("parser.parseSimpleIncellMapWithGlobalSep() = %v, want %v", tt.args.msg, tt.want)
+				t.Errorf("parser.parseWithSheetAndBookSep() = %v, want %v", tt.args.msg, tt.want)
 			}
 		})
 	}
