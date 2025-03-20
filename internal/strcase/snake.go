@@ -46,28 +46,21 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 	bytes := []byte(s)
 	for i := 0; i < len(bytes); i++ {
 		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
-		acronymFound := false
-		uppercaseAcronym.Range(func(key, value any) bool {
-			remain := string(bytes[i:])
-			if strings.HasPrefix(remain, key.(string)) {
-				if screaming {
-					n.WriteString(strings.ToUpper(value.(string)))
-				} else {
-					n.WriteString(value.(string))
-				}
-				i += len(key.(string)) - 1
-				if i+1 < len(bytes) {
-					next := bytes[i+1]
-					if belong(next, Upper, Lower, Digit) && !strings.ContainsAny(string(next), ignore) {
-						n.WriteByte(delimiter)
-					}
-				}
-				acronymFound = true
-				return false
+		acronym, prefix := rangeAcronym(s, i)
+		if acronym != nil {
+			val := acronym.Regexp.ReplaceAllString(prefix, acronym.Replacement)
+			if screaming {
+				n.WriteString(strings.ToUpper(val))
+			} else {
+				n.WriteString(val)
 			}
-			return true
-		})
-		if acronymFound {
+			i += len(prefix) - 1
+			if i+1 < len(bytes) {
+				next := bytes[i+1]
+				if belong(next, Upper, Lower, Digit) && !strings.ContainsAny(string(next), ignore) {
+					n.WriteByte(delimiter)
+				}
+			}
 			continue
 		}
 

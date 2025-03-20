@@ -24,7 +24,7 @@ type Options struct {
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
 
-	// Configure your custom acronyms. Out of the box, "ID" -> "id" is auto configured.
+	// Configure your custom acronyms(regexp supported). Out of the box, "ID" -> "id" is auto configured.
 	//
 	// For example, if you configure K8s -> k8s, then the field name in PascalCase "InK8s"
 	// will be converted to snake_case "in_k8s" but not "in_k_8_s".
