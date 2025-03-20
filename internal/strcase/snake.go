@@ -1,6 +1,7 @@
 package strcase
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -46,56 +47,39 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 	bytes := []byte(s)
 	for i := 0; i < len(bytes); i++ {
 		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
-		acronymFound := false
-		uppercaseAcronym.Range(func(key, value any) bool {
-			remain := string(bytes[i:])
-			if !strings.HasPrefix(remain, key.(string)) {
-				return true
-			}
-			if screaming {
-				n.WriteString(strings.ToUpper(value.(string)))
-			} else {
-				n.WriteString(value.(string))
-			}
-			i += len(key.(string)) - 1
-			if i+1 < len(bytes) {
-				next := bytes[i+1]
-				if belong(next, Upper, Lower, Digit) && !strings.ContainsAny(string(next), ignore) {
-					n.WriteByte(delimiter)
-				}
-			}
-			acronymFound = true
-			return false
-		})
-		if acronymFound {
-			continue
-		}
-
-		uppercaseAcronymRegexes.Range(func(_, re any) bool {
-			remain := string(bytes[i:])
-			regex := re.(*AcronymRegex)
+		remain := string(bytes[i:])
+		var (
+			acronym *acronymRegex
+			prefix  string
+		)
+		uppercaseAcronym.Range(func(_, re any) bool {
+			regex := re.(*acronymRegex)
 			matches := regex.Regexp.FindStringSubmatch(remain)
 			if len(matches) == 0 {
 				return true
 			}
-			key := matches[0]
-			value := regex.Regexp.ReplaceAllString(key, regex.Replacement)
-			if screaming {
-				n.WriteString(strings.ToUpper(value))
-			} else {
-				n.WriteString(value)
+			if acronym != nil {
+				panic(fmt.Sprintf("name %s (current remain %s) match multiple patterns: %s and %s",
+					s, remain, acronym.Pattern, regex.Pattern))
 			}
-			i += len(key) - 1
+			acronym = regex
+			prefix = matches[0]
+			return true
+		})
+		if acronym != nil {
+			val := acronym.Regexp.ReplaceAllString(prefix, acronym.Replacement)
+			if screaming {
+				n.WriteString(strings.ToUpper(val))
+			} else {
+				n.WriteString(val)
+			}
+			i += len(prefix) - 1
 			if i+1 < len(bytes) {
 				next := bytes[i+1]
 				if belong(next, Upper, Lower, Digit) && !strings.ContainsAny(string(next), ignore) {
 					n.WriteByte(delimiter)
 				}
 			}
-			acronymFound = true
-			return false
-		})
-		if acronymFound {
 			continue
 		}
 

@@ -95,100 +95,6 @@ func BenchmarkToSnakeWithIgnore(b *testing.B) {
 
 func TestCustomAcronymsToSnake(t *testing.T) {
 	tests := []struct {
-		name         string
-		acronymKey   string
-		acronymValue string
-		value        string
-		expected     string
-	}{
-		// TODO: API and APIV3, find the longest acronym
-		// {
-		// 	name:         "API Custom Acronym",
-		// 	acronymKey:   "API",
-		// 	acronymValue: "api",
-		// 	expected:     "Api",
-		// },
-		{
-			name:         "APIV3 Custom Acronym",
-			acronymKey:   "APIV3",
-			acronymValue: "apiv3",
-			value:        "WebAPIV3Spec",
-			expected:     "web_apiv3_spec",
-		},
-		{
-			name:         "APIV3 Custom Acronym with spaces",
-			acronymKey:   "APIV3",
-			acronymValue: "apiv3",
-			value:        "APIV3 Spec ",
-			expected:     "apiv3_spec",
-		},
-		{
-			name:         "K8s Custom Acroynm",
-			acronymKey:   "K8s",
-			acronymValue: "k8s",
-			value:        "InK8s",
-			expected:     "in_k8s",
-		},
-		{
-			name:         "K8s Custom Acroynm with spaces",
-			acronymKey:   "K8s",
-			acronymValue: "k8s",
-			value:        " InK8s  XX",
-			expected:     "in_k8s__xx",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronym(test.acronymKey, test.acronymValue)
-			if result := ToSnake(test.value); result != test.expected {
-				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
-			}
-		})
-	}
-}
-
-func TestCustomAcronymsToScreamingSnake(t *testing.T) {
-	tests := []struct {
-		name         string
-		acronymKey   string
-		acronymValue string
-		value        string
-		expected     string
-	}{
-		{
-			name:         "APIV3 Custom Acronym",
-			acronymKey:   "APIV3",
-			acronymValue: "apiv3",
-			value:        "WebAPIV3Spec",
-			expected:     "WEB_APIV3_SPEC",
-		},
-		{
-			name:         "K8s Custom Acroynm",
-			acronymKey:   "K8s",
-			acronymValue: "k8s",
-			value:        "InK8s",
-			expected:     "IN_K8S",
-		},
-		{
-			name:         "3V3 Custom Acroynm",
-			acronymKey:   "3V3",
-			acronymValue: "3v3",
-			value:        "Mode3V3Game",
-			expected:     "MODE_3V3_GAME",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronym(test.acronymKey, test.acronymValue)
-			if result := ToScreamingSnake(test.value); result != test.expected {
-				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
-			}
-		})
-	}
-}
-
-func TestAcronymRegexesToSnake(t *testing.T) {
-	tests := []struct {
 		name               string
 		acronymPattern     string
 		acronymReplacement string
@@ -209,6 +115,28 @@ func TestAcronymRegexesToSnake(t *testing.T) {
 			},
 		},
 		{
+			name:               "K8s Custom Acroynm",
+			acronymPattern:     "K8s",
+			acronymReplacement: "k8s",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"InK8s", "in_k8s"},
+			},
+		},
+		{
+			name:               "K8s Custom Acroynm with spaces",
+			acronymPattern:     "K8s",
+			acronymReplacement: "k8s",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{" InK8s  XX", "in_k8s__xx"},
+			},
+		},
+		{
 			name:               "HandleA1000Req Custom Acronym",
 			acronymPattern:     `A(1\d{3})`,
 			acronymReplacement: "a${1}",
@@ -217,7 +145,7 @@ func TestAcronymRegexesToSnake(t *testing.T) {
 				expected string
 			}{
 				{"HandleA1000Req", "handle_a1000_req"},
-				{"HandleA1001Reply", "handle_a1001_reply"},
+				{"HandleA1001AndA1002Reply", "handle_a1001_and_a1002_reply"},
 				{"HandleA2000Msg", "handle_a_2000_msg"},
 			},
 		},
@@ -231,13 +159,13 @@ func TestAcronymRegexesToSnake(t *testing.T) {
 			}{
 				{"Mode1V1", "mode_1v1"},
 				{"Mode1v3", "mode_1v3"},
-				{"Mode2v2", "mode_2v2"},
+				{"Mode2v2v2", "mode_2v2_v_2"},
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronymRegex(test.acronymPattern, test.acronymReplacement)
+			ConfigureAcronym(test.acronymPattern, test.acronymReplacement)
 			for _, arg := range test.args {
 				if result := ToSnake(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
@@ -247,7 +175,7 @@ func TestAcronymRegexesToSnake(t *testing.T) {
 	}
 }
 
-func TestAcronymRegexesToScreamingSnake(t *testing.T) {
+func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 	tests := []struct {
 		name               string
 		acronymPattern     string
@@ -269,6 +197,17 @@ func TestAcronymRegexesToScreamingSnake(t *testing.T) {
 			},
 		},
 		{
+			name:               "K8s Custom Acroynm",
+			acronymPattern:     "K8s",
+			acronymReplacement: "k8s",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"InK8s", "IN_K8S"},
+			},
+		},
+		{
 			name:               "HandleA1000Req Custom Acronym",
 			acronymPattern:     `A(1\d{3})`,
 			acronymReplacement: "a${1}",
@@ -277,7 +216,7 @@ func TestAcronymRegexesToScreamingSnake(t *testing.T) {
 				expected string
 			}{
 				{"HandleA1000Req", "HANDLE_A1000_REQ"},
-				{"HandleA1001Reply", "HANDLE_A1001_REPLY"},
+				{"HandleA1001AndA1002Reply", "HANDLE_A1001_AND_A1002_REPLY"},
 				{"HandleA2000Msg", "HANDLE_A_2000_MSG"},
 			},
 		},
@@ -291,13 +230,13 @@ func TestAcronymRegexesToScreamingSnake(t *testing.T) {
 			}{
 				{"Mode1V1", "MODE_1V1"},
 				{"Mode1v3", "MODE_1V3"},
-				{"Mode2v2", "MODE_2V2"},
+				{"Mode2v2v2", "MODE_2V2_V_2"},
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronymRegex(test.acronymPattern, test.acronymReplacement)
+			ConfigureAcronym(test.acronymPattern, test.acronymReplacement)
 			for _, arg := range test.args {
 				if result := ToScreamingSnake(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)

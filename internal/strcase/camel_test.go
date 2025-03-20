@@ -63,100 +63,6 @@ func TestToLowerCamel(t *testing.T) {
 
 func TestCustomAcronymToCamel(t *testing.T) {
 	tests := []struct {
-		name         string
-		acronymKey   string
-		acronymValue string
-		value        string
-		expected     string
-	}{
-		{
-			name:         "CCTV Custom Acronym",
-			acronymKey:   "CCTV",
-			acronymValue: "cctv",
-			value:        "CCTVChannel",
-			expected:     "CctvChannel",
-		},
-		{
-			name:         "ABCDACME Custom Acroynm",
-			acronymKey:   "ABCDACME",
-			acronymValue: "AbcdAcme",
-			value:        "ABCDACMEAlias",
-			expected:     "AbcdAcmeAlias",
-		},
-		{
-			name:         "PostgreSQL Custom Acronym",
-			acronymKey:   "PostgreSQL",
-			acronymValue: "postgreSQL",
-			value:        "powerfulPostgreSQLDatabase",
-			expected:     "PowerfulPostgreSQLDatabase",
-		},
-		{
-			name:         "APIV3 Custom Acronym",
-			acronymKey:   "APIV3",
-			acronymValue: "apiv3",
-			value:        "WebAPIV3Spec",
-			expected:     "WebApiv3Spec",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronym(test.acronymKey, test.acronymValue)
-			if result := ToCamel(test.value); result != test.expected {
-				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
-			}
-		})
-	}
-}
-
-func TestCustomAcronymToLowerCamel(t *testing.T) {
-	tests := []struct {
-		name         string
-		acronymKey   string
-		acronymValue string
-		value        string
-		expected     string
-	}{
-		{
-			name:         "CCTV Custom Acronym",
-			acronymKey:   "CCTV",
-			acronymValue: "cctv",
-			value:        "CCTVChannel",
-			expected:     "cctvChannel",
-		},
-		{
-			name:         "ABCDACME Custom Acroynm",
-			acronymKey:   "ABCDACME",
-			acronymValue: "AbcdAcme",
-			value:        "ABCDACMEAlias",
-			expected:     "abcdAcmeAlias",
-		},
-		{
-			name:         "PostgreSQL Custom Acronym",
-			acronymKey:   "PostgreSQL",
-			acronymValue: "postgreSQL",
-			value:        "PowerfulPostgreSQLDatabase",
-			expected:     "powerfulPostgreSQLDatabase",
-		},
-		{
-			name:         "APIV3 Custom Acronym",
-			acronymKey:   "APIV3",
-			acronymValue: "apiv3",
-			value:        "WebAPIV3Spec",
-			expected:     "webApiv3Spec",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronym(test.acronymKey, test.acronymValue)
-			if result := ToLowerCamel(test.value); result != test.expected {
-				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
-			}
-		})
-	}
-}
-
-func TestAcronymRegexesToCamel(t *testing.T) {
-	tests := []struct {
 		name               string
 		acronymPattern     string
 		acronymReplacement string
@@ -177,6 +83,17 @@ func TestAcronymRegexesToCamel(t *testing.T) {
 			},
 		},
 		{
+			name:               "K8s Custom Acroynm",
+			acronymPattern:     "K8s",
+			acronymReplacement: "k8s",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"InK8s", "InK8s"},
+			},
+		},
+		{
 			name:               "HandleA1000Req Custom Acronym",
 			acronymPattern:     `A(1\d{3})`,
 			acronymReplacement: "a${1}",
@@ -185,7 +102,7 @@ func TestAcronymRegexesToCamel(t *testing.T) {
 				expected string
 			}{
 				{"HandleA1000Req", "HandleA1000Req"},
-				{"HandleA1001Reply", "HandleA1001Reply"},
+				{"HandleA1001AndA1002Reply", "HandleA1001AndA1002Reply"},
 				{"HandleA2000Msg", "HandleA2000Msg"},
 			},
 		},
@@ -199,13 +116,13 @@ func TestAcronymRegexesToCamel(t *testing.T) {
 			}{
 				{"Mode1V1", "Mode1v1"},
 				{"Mode1v3", "Mode1v3"},
-				{"Mode2v2", "Mode2v2"},
+				{"Mode2v2v2", "Mode2v2V2"},
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronymRegex(test.acronymPattern, test.acronymReplacement)
+			ConfigureAcronym(test.acronymPattern, test.acronymReplacement)
 			for _, arg := range test.args {
 				if result := ToCamel(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
@@ -215,7 +132,7 @@ func TestAcronymRegexesToCamel(t *testing.T) {
 	}
 }
 
-func TestAcronymRegexesToLowerCamel(t *testing.T) {
+func TestCustomAcronymToLowerCamel(t *testing.T) {
 	tests := []struct {
 		name               string
 		acronymPattern     string
@@ -237,6 +154,17 @@ func TestAcronymRegexesToLowerCamel(t *testing.T) {
 			},
 		},
 		{
+			name:               "K8s Custom Acroynm",
+			acronymPattern:     "K8s",
+			acronymReplacement: "k8s",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"InK8s", "inK8s"},
+			},
+		},
+		{
 			name:               "HandleA1000Req Custom Acronym",
 			acronymPattern:     `A(1\d{3})`,
 			acronymReplacement: "a${1}",
@@ -245,7 +173,7 @@ func TestAcronymRegexesToLowerCamel(t *testing.T) {
 				expected string
 			}{
 				{"HandleA1000Req", "handleA1000Req"},
-				{"HandleA1001Reply", "handleA1001Reply"},
+				{"HandleA1001AndA1002Reply", "handleA1001AndA1002Reply"},
 				{"HandleA2000Msg", "handleA2000Msg"},
 			},
 		},
@@ -259,13 +187,13 @@ func TestAcronymRegexesToLowerCamel(t *testing.T) {
 			}{
 				{"Mode1V1", "mode1v1"},
 				{"Mode1v3", "mode1v3"},
-				{"Mode2v2", "mode2v2"},
+				{"Mode2v2v2", "mode2v2V2"},
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronymRegex(test.acronymPattern, test.acronymReplacement)
+			ConfigureAcronym(test.acronymPattern, test.acronymReplacement)
 			for _, arg := range test.args {
 				if result := ToLowerCamel(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)

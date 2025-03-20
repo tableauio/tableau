@@ -24,17 +24,11 @@ type Options struct {
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
 
-	// Configure your custom acronyms. Out of the box, "ID" -> "id" is auto configured.
+	// Configure your custom acronyms(regexp supported). Out of the box, "ID" -> "id" is auto configured.
 	//
 	// For example, if you configure K8s -> k8s, then the field name in PascalCase "InK8s"
 	// will be converted to snake_case "in_k8s" but not "in_k_8_s".
 	Acronyms map[string]string `yaml:"acronyms"`
-
-	// Configure your custom acronym regexes.
-	//
-	// For example, if you configure A(1[0-9]{3}) -> a$1, then the field name in PascalCase "HandleA1000"
-	// will be converted to snake_case "handle_a1000" but not "handle_a_1000".
-	AcronymRegexes map[string]string `yaml:"acronym_regexes"`
 
 	Log *log.Options // Log options.
 
@@ -333,13 +327,6 @@ func Lang(o string) Option {
 func Acronyms(o map[string]string) Option {
 	return func(opts *Options) {
 		opts.Acronyms = o
-	}
-}
-
-// AcronymRegexes configures your custom acronym regexes globally in protogen.
-func AcronymRegexes(o map[string]string) Option {
-	return func(opts *Options) {
-		opts.AcronymRegexes = o
 	}
 }
 

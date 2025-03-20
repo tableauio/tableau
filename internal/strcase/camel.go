@@ -1,6 +1,7 @@
 package strcase
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -20,49 +21,35 @@ func toCamelInitCase(s string, initUppercase bool) string {
 	bytes := []byte(s)
 	for i := 0; i < len(bytes); i++ {
 		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
-		acronymFound := false
-		uppercaseAcronym.Range(func(key, value any) bool {
-			remain := string(bytes[i:])
-			if !strings.HasPrefix(remain, key.(string)) {
-				return true
-			}
-			val := value.(string)
-			if i > 0 || upperNext {
-				val = upperFirst(val)
-			} else {
-				val = lowerFirst(val)
-			}
-			n.WriteString(val)
-			i += len(key.(string)) - 1
-			upperNext = true
-			acronymFound = true
-			return false
-		})
-		if acronymFound {
-			continue
-		}
-
-		uppercaseAcronymRegexes.Range(func(_, re any) bool {
-			remain := string(bytes[i:])
-			regex := re.(*AcronymRegex)
+		remain := string(bytes[i:])
+		var (
+			acronym *acronymRegex
+			prefix  string
+		)
+		uppercaseAcronym.Range(func(_, re any) bool {
+			regex := re.(*acronymRegex)
 			matches := regex.Regexp.FindStringSubmatch(remain)
 			if len(matches) == 0 {
 				return true
 			}
-			key := matches[0]
-			val := regex.Regexp.ReplaceAllString(key, regex.Replacement)
+			if acronym != nil {
+				panic(fmt.Sprintf("name %s (current remain %s) match multiple patterns: %s and %s",
+					s, remain, acronym.Pattern, regex.Pattern))
+			}
+			acronym = regex
+			prefix = matches[0]
+			return true
+		})
+		if acronym != nil {
+			val := acronym.Regexp.ReplaceAllString(prefix, acronym.Replacement)
 			if i > 0 || upperNext {
 				val = upperFirst(val)
 			} else {
 				val = lowerFirst(val)
 			}
 			n.WriteString(val)
-			i += len(key) - 1
+			i += len(prefix) - 1
 			upperNext = true
-			acronymFound = true
-			return false
-		})
-		if acronymFound {
 			continue
 		}
 
