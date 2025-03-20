@@ -8,8 +8,7 @@ import (
 )
 
 var (
-	uppercaseAcronym = sync.Map{} // map[string]*acronymRegex
-	prefixAcronym    = sync.Map{} // map[string]*acronymRegex
+	acronyms = sync.Map{} // map[string]*acronymRegex
 )
 
 type acronymRegex struct {
@@ -29,26 +28,27 @@ type acronymRegex struct {
 //	ConfigureAcronym(`A(1\d{3})`, "a${1}")
 //	ConfigureAcronym(`(\d)[vV](\d)`, "${1}v${2}")
 func ConfigureAcronym(pattern, replacement string) {
-	if !strings.HasPrefix(pattern, "^") {
-		uppercaseAcronym.Store(pattern, &acronymRegex{
-			Regexp:      regexp.MustCompile("^" + pattern),
-			Pattern:     pattern,
-			Replacement: replacement,
-		})
-	} else {
-		prefixAcronym.Store(pattern, &acronymRegex{
-			Regexp:      regexp.MustCompile(pattern),
-			Pattern:     pattern,
-			Replacement: replacement,
-		})
-	}
+	acronyms.Store(pattern, &acronymRegex{
+		Regexp:      regexp.MustCompile(pattern),
+		Pattern:     pattern,
+		Replacement: replacement,
+	})
 }
 
-func rangeAcronym(full, remain string, acronym **acronymRegex, prefix *string) func(any, any) bool {
+func rangeAcronym(full string, pos int, acronym **acronymRegex, prefix *string) func(any, any) bool {
 	return func(_, re any) bool {
 		regex := re.(*acronymRegex)
+		if strings.HasPrefix(regex.Pattern, "^") && pos != 0 {
+			// no need to match if current position is not the start of the string
+			return true
+		}
+		remain := full[pos:]
 		matches := regex.Regexp.FindStringSubmatch(remain)
 		if len(matches) == 0 {
+			return true
+		}
+		if !strings.HasPrefix(remain, matches[0]) {
+			// not current position
 			return true
 		}
 		if *acronym != nil {

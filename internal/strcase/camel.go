@@ -20,15 +20,11 @@ func toCamelInitCase(s string, initUppercase bool) string {
 	bytes := []byte(s)
 	for i := 0; i < len(bytes); i++ {
 		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
-		remain := string(bytes[i:])
 		var (
 			acronym *acronymRegex
 			prefix  string
 		)
-		uppercaseAcronym.Range(rangeAcronym(s, remain, &acronym, &prefix))
-		if i == 0 {
-			prefixAcronym.Range(rangeAcronym(s, remain, &acronym, &prefix))
-		}
+		acronyms.Range(rangeAcronym(s, i, &acronym, &prefix))
 		if acronym != nil {
 			val := acronym.Regexp.ReplaceAllString(prefix, acronym.Replacement)
 			if i > 0 || upperNext {
