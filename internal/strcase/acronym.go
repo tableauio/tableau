@@ -56,7 +56,7 @@ func rangeAcronym(full string, pos int) (*acronymRegex, string) {
 			return true
 		}
 		if acronym != nil {
-			panic(fmt.Sprintf("name %s (current remain %s) match multiple patterns: %s and %s",
+			panic(fmt.Sprintf(`"%s" (remain: "%s") match multiple patterns: "%s" and "%s"`,
 				full, remain, (*acronym).Pattern, regex.Pattern))
 		}
 		acronym = regex
