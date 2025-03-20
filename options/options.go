@@ -34,17 +34,12 @@ type Options struct {
 	//
 	// For example, if you configure A(1[0-9]{3}) -> a$1, then the field name in PascalCase "HandleA1000"
 	// will be converted to snake_case "handle_a1000" but not "handle_a_1000".
-	AcronymRegexes []*AcronymRegex `yaml:"acronym_regexes"`
+	AcronymRegexes map[string]string `yaml:"acronym_regexes"`
 
 	Log *log.Options // Log options.
 
 	Proto *ProtoOption `yaml:"proto"` // Proto generation options.
 	Conf  *ConfOption  `yaml:"conf"`  // Conf generation options.
-}
-
-type AcronymRegex struct {
-	Pattern     string `yaml:"pattern"`
-	Replacement string `yaml:"replacement"`
 }
 
 type HeaderOption struct {
@@ -342,7 +337,7 @@ func Acronyms(o map[string]string) Option {
 }
 
 // AcronymRegexes configures your custom acronym regexes globally in protogen.
-func AcronymRegexes(o []*AcronymRegex) Option {
+func AcronymRegexes(o map[string]string) Option {
 	return func(opts *Options) {
 		opts.AcronymRegexes = o
 	}

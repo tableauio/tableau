@@ -49,33 +49,34 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 		acronymFound := false
 		uppercaseAcronym.Range(func(key, value any) bool {
 			remain := string(bytes[i:])
-			if strings.HasPrefix(remain, key.(string)) {
-				if screaming {
-					n.WriteString(strings.ToUpper(value.(string)))
-				} else {
-					n.WriteString(value.(string))
-				}
-				i += len(key.(string)) - 1
-				if i+1 < len(bytes) {
-					next := bytes[i+1]
-					if belong(next, Upper, Lower, Digit) && !strings.ContainsAny(string(next), ignore) {
-						n.WriteByte(delimiter)
-					}
-				}
-				acronymFound = true
-				return false
+			if !strings.HasPrefix(remain, key.(string)) {
+				return true
 			}
-			return true
+			if screaming {
+				n.WriteString(strings.ToUpper(value.(string)))
+			} else {
+				n.WriteString(value.(string))
+			}
+			i += len(key.(string)) - 1
+			if i+1 < len(bytes) {
+				next := bytes[i+1]
+				if belong(next, Upper, Lower, Digit) && !strings.ContainsAny(string(next), ignore) {
+					n.WriteByte(delimiter)
+				}
+			}
+			acronymFound = true
+			return false
 		})
 		if acronymFound {
 			continue
 		}
 
-		for _, regex := range uppercaseAcronymRegexes {
+		uppercaseAcronymRegexes.Range(func(_, re any) bool {
 			remain := string(bytes[i:])
+			regex := re.(*AcronymRegex)
 			matches := regex.Regexp.FindStringSubmatch(remain)
 			if len(matches) == 0 {
-				continue
+				return true
 			}
 			key := matches[0]
 			value := regex.Regexp.ReplaceAllString(key, regex.Replacement)
@@ -92,8 +93,8 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 				}
 			}
 			acronymFound = true
-			break
-		}
+			return false
+		})
 		if acronymFound {
 			continue
 		}

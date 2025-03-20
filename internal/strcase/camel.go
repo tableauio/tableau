@@ -23,30 +23,31 @@ func toCamelInitCase(s string, initUppercase bool) string {
 		acronymFound := false
 		uppercaseAcronym.Range(func(key, value any) bool {
 			remain := string(bytes[i:])
-			if strings.HasPrefix(remain, key.(string)) {
-				val := value.(string)
-				if i > 0 || upperNext {
-					val = upperFirst(val)
-				} else {
-					val = lowerFirst(val)
-				}
-				n.WriteString(val)
-				i += len(key.(string)) - 1
-				upperNext = true
-				acronymFound = true
-				return false
+			if !strings.HasPrefix(remain, key.(string)) {
+				return true
 			}
-			return true
+			val := value.(string)
+			if i > 0 || upperNext {
+				val = upperFirst(val)
+			} else {
+				val = lowerFirst(val)
+			}
+			n.WriteString(val)
+			i += len(key.(string)) - 1
+			upperNext = true
+			acronymFound = true
+			return false
 		})
 		if acronymFound {
 			continue
 		}
 
-		for _, regex := range uppercaseAcronymRegexes {
+		uppercaseAcronymRegexes.Range(func(_, re any) bool {
 			remain := string(bytes[i:])
+			regex := re.(*AcronymRegex)
 			matches := regex.Regexp.FindStringSubmatch(remain)
 			if len(matches) == 0 {
-				continue
+				return true
 			}
 			key := matches[0]
 			val := regex.Regexp.ReplaceAllString(key, regex.Replacement)
@@ -59,8 +60,8 @@ func toCamelInitCase(s string, initUppercase bool) string {
 			i += len(key) - 1
 			upperNext = true
 			acronymFound = true
-			break
-		}
+			return false
+		})
 		if acronymFound {
 			continue
 		}

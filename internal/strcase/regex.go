@@ -1,8 +1,11 @@
 package strcase
 
-import "regexp"
+import (
+	"regexp"
+	"sync"
+)
 
-var uppercaseAcronymRegexes = []*AcronymRegex{}
+var uppercaseAcronymRegexes = sync.Map{}
 
 type AcronymRegex struct {
 	Regexp      *regexp.Regexp
@@ -16,7 +19,7 @@ type AcronymRegex struct {
 //
 //	ConfigureAcronymRegex("A(1[0-9]{3})", "a${1}")
 func ConfigureAcronymRegex(pattern, replacement string) {
-	uppercaseAcronymRegexes = append(uppercaseAcronymRegexes, &AcronymRegex{
+	uppercaseAcronymRegexes.Store(pattern, &AcronymRegex{
 		Regexp:      regexp.MustCompile("^" + pattern),
 		Replacement: replacement,
 	})
