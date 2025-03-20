@@ -162,6 +162,30 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 				{"Mode2v2v2", "mode_2v2_v_2"},
 			},
 		},
+		{
+			name:               "Prefix Custom Acronym",
+			acronymPattern:     `^Tom`,
+			acronymReplacement: "tommy",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"TomJerry", "tommy_jerry"},
+				{"JerryTom", "jerry_tom"},
+			},
+		},
+		{
+			name:               "Suffix Custom Acronym",
+			acronymPattern:     `Cat$`,
+			acronymReplacement: "kitty",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"CatMouse", "cat_mouse"},
+				{"MouseCat", "mouse_kitty"},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -231,6 +255,30 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 				{"Mode1V1", "MODE_1V1"},
 				{"Mode1v3", "MODE_1V3"},
 				{"Mode2v2v2", "MODE_2V2_V_2"},
+			},
+		},
+		{
+			name:               "Prefix Custom Acronym",
+			acronymPattern:     `^Tom`,
+			acronymReplacement: "tommy",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"TomJerry", "TOMMY_JERRY"},
+				{"JerryTom", "JERRY_TOM"},
+			},
+		},
+		{
+			name:               "Suffix Custom Acronym",
+			acronymPattern:     `Cat$`,
+			acronymReplacement: "kitty",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"CatMouse", "CAT_MOUSE"},
+				{"MouseCat", "MOUSE_KITTY"},
 			},
 		},
 	}

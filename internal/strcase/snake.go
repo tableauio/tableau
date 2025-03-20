@@ -1,7 +1,6 @@
 package strcase
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -52,20 +51,10 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 			acronym *acronymRegex
 			prefix  string
 		)
-		uppercaseAcronym.Range(func(_, re any) bool {
-			regex := re.(*acronymRegex)
-			matches := regex.Regexp.FindStringSubmatch(remain)
-			if len(matches) == 0 {
-				return true
-			}
-			if acronym != nil {
-				panic(fmt.Sprintf("name %s (current remain %s) match multiple patterns: %s and %s",
-					s, remain, acronym.Pattern, regex.Pattern))
-			}
-			acronym = regex
-			prefix = matches[0]
-			return true
-		})
+		uppercaseAcronym.Range(rangeAcronym(s, remain, &acronym, &prefix))
+		if i == 0 {
+			prefixAcronym.Range(rangeAcronym(s, remain, &acronym, &prefix))
+		}
 		if acronym != nil {
 			val := acronym.Regexp.ReplaceAllString(prefix, acronym.Replacement)
 			if screaming {
