@@ -42,6 +42,29 @@ func toCamelInitCase(s string, initUppercase bool) string {
 			continue
 		}
 
+		for _, regex := range uppercaseAcronymRegexes {
+			remain := string(bytes[i:])
+			matches := regex.Regexp.FindStringSubmatch(remain)
+			if len(matches) == 0 {
+				continue
+			}
+			key := matches[0]
+			val := regex.Regexp.ReplaceAllString(key, regex.Replacement)
+			if i > 0 || upperNext {
+				val = upperFirst(val)
+			} else {
+				val = lowerFirst(val)
+			}
+			n.WriteString(val)
+			i += len(key) - 1
+			upperNext = true
+			acronymFound = true
+			break
+		}
+		if acronymFound {
+			continue
+		}
+
 		v := bytes[i]
 		vIsUpper := isUpper(v)
 		vIsLower := isLower(v)

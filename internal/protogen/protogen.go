@@ -74,6 +74,9 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	for key, val := range opts.Acronyms {
 		strcase.ConfigureAcronym(key, val)
 	}
+	for _, regex := range opts.AcronymRegexes {
+		strcase.ConfigureAcronymRegex(regex.Pattern, regex.Replacement)
+	}
 
 	return gen
 }

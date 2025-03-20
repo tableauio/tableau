@@ -147,7 +147,7 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 	}
 }
 
-func TestCustomAcronymsToToScreamingSnake(t *testing.T) {
+func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 	tests := []struct {
 		name         string
 		acronymKey   string
@@ -182,6 +182,126 @@ func TestCustomAcronymsToToScreamingSnake(t *testing.T) {
 			ConfigureAcronym(test.acronymKey, test.acronymValue)
 			if result := ToScreamingSnake(test.value); result != test.expected {
 				t.Errorf("expected custom acronym result %s, got %s", test.expected, result)
+			}
+		})
+	}
+}
+
+func TestAcronymRegexesToSnake(t *testing.T) {
+	tests := []struct {
+		name               string
+		acronymPattern     string
+		acronymReplacement string
+		args               []struct {
+			value    string
+			expected string
+		}
+	}{
+		{
+			name:               "APIV3 Custom Acronym",
+			acronymPattern:     "APIV3",
+			acronymReplacement: "apiv3",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"WebAPIV3Spec", "web_apiv3_spec"},
+			},
+		},
+		{
+			name:               "HandleA1000Req Custom Acronym",
+			acronymPattern:     `A(1\d{3})`,
+			acronymReplacement: "a${1}",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"HandleA1000Req", "handle_a1000_req"},
+				{"HandleA1001Reply", "handle_a1001_reply"},
+				{"HandleA2000Msg", "handle_a_2000_msg"},
+			},
+		},
+		{
+			name:               "Mode1V1 Custom Acronym",
+			acronymPattern:     `(\d)[vV](\d)`,
+			acronymReplacement: "${1}v${2}",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"Mode1V1", "mode_1v1"},
+				{"Mode1v3", "mode_1v3"},
+				{"Mode2v2", "mode_2v2"},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ConfigureAcronymRegex(test.acronymPattern, test.acronymReplacement)
+			for _, arg := range test.args {
+				if result := ToSnake(arg.value); result != arg.expected {
+					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
+				}
+			}
+		})
+	}
+}
+
+func TestAcronymRegexesToScreamingSnake(t *testing.T) {
+	tests := []struct {
+		name               string
+		acronymPattern     string
+		acronymReplacement string
+		args               []struct {
+			value    string
+			expected string
+		}
+	}{
+		{
+			name:               "APIV3 Custom Acronym",
+			acronymPattern:     "APIV3",
+			acronymReplacement: "apiv3",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"WebAPIV3Spec", "WEB_APIV3_SPEC"},
+			},
+		},
+		{
+			name:               "HandleA1000Req Custom Acronym",
+			acronymPattern:     `A(1\d{3})`,
+			acronymReplacement: "a${1}",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"HandleA1000Req", "HANDLE_A1000_REQ"},
+				{"HandleA1001Reply", "HANDLE_A1001_REPLY"},
+				{"HandleA2000Msg", "HANDLE_A_2000_MSG"},
+			},
+		},
+		{
+			name:               "Mode1V1 Custom Acronym",
+			acronymPattern:     `(\d)[vV](\d)`,
+			acronymReplacement: "${1}v${2}",
+			args: []struct {
+				value    string
+				expected string
+			}{
+				{"Mode1V1", "MODE_1V1"},
+				{"Mode1v3", "MODE_1V3"},
+				{"Mode2v2", "MODE_2V2"},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ConfigureAcronymRegex(test.acronymPattern, test.acronymReplacement)
+			for _, arg := range test.args {
+				if result := ToScreamingSnake(arg.value); result != arg.expected {
+					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
+				}
 			}
 		})
 	}

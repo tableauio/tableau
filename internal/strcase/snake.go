@@ -71,6 +71,33 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 			continue
 		}
 
+		for _, regex := range uppercaseAcronymRegexes {
+			remain := string(bytes[i:])
+			matches := regex.Regexp.FindStringSubmatch(remain)
+			if len(matches) == 0 {
+				continue
+			}
+			key := matches[0]
+			value := regex.Regexp.ReplaceAllString(key, regex.Replacement)
+			if screaming {
+				n.WriteString(strings.ToUpper(value))
+			} else {
+				n.WriteString(value)
+			}
+			i += len(key) - 1
+			if i+1 < len(bytes) {
+				next := bytes[i+1]
+				if belong(next, Upper, Lower, Digit) && !strings.ContainsAny(string(next), ignore) {
+					n.WriteByte(delimiter)
+				}
+			}
+			acronymFound = true
+			break
+		}
+		if acronymFound {
+			continue
+		}
+
 		v := bytes[i]
 		vIsUpper := isUpper(v)
 		vIsLow := isLower(v)

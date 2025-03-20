@@ -88,8 +88,12 @@ func genProto(logLevel, logMode string) error {
 		options.Acronyms(map[string]string{
 			"K8s":   "k8s",
 			"APIV3": "apiv3",
-			"2V2":   "2v2",
-			"3V3":   "3v3",
+		}),
+		options.AcronymRegexes([]*options.AcronymRegex{
+			{
+				Pattern:     `(\d)[vV](\d)`,
+				Replacement: "${1}v${2}",
+			},
 		}),
 		// options.Lang("zh"),
 	)
