@@ -46,11 +46,7 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 	bytes := []byte(s)
 	for i := 0; i < len(bytes); i++ {
 		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
-		var (
-			acronym *acronymRegex
-			prefix  string
-		)
-		acronyms.Range(rangeAcronym(s, i, &acronym, &prefix))
+		acronym, prefix := rangeAcronym(s, i)
 		if acronym != nil {
 			val := acronym.Regexp.ReplaceAllString(prefix, acronym.Replacement)
 			if screaming {

@@ -35,8 +35,12 @@ func ConfigureAcronym(pattern, replacement string) {
 	})
 }
 
-func rangeAcronym(full string, pos int, acronym **acronymRegex, prefix *string) func(any, any) bool {
-	return func(_, re any) bool {
+func rangeAcronym(full string, pos int) (*acronymRegex, string) {
+	var (
+		acronym *acronymRegex
+		prefix  string
+	)
+	acronyms.Range(func(_, re any) bool {
 		regex := re.(*acronymRegex)
 		if strings.HasPrefix(regex.Pattern, "^") && pos != 0 {
 			// no need to match if current position is not the start of the string
@@ -51,12 +55,13 @@ func rangeAcronym(full string, pos int, acronym **acronymRegex, prefix *string) 
 			// not current position
 			return true
 		}
-		if *acronym != nil {
+		if acronym != nil {
 			panic(fmt.Sprintf("name %s (current remain %s) match multiple patterns: %s and %s",
 				full, remain, (*acronym).Pattern, regex.Pattern))
 		}
-		*acronym = regex
-		*prefix = matches[0]
+		acronym = regex
+		prefix = matches[0]
 		return true
-	}
+	})
+	return acronym, prefix
 }
