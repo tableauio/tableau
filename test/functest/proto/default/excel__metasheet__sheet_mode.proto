@@ -155,7 +155,7 @@ message TaskTarget {
     Story story = 3; // Bound to enum value: TYPE_STORY.
     Hobby hobby = 4; // Bound to enum value: TYPE_HOBBY.
     Skill skill = 5; // Bound to enum value: TYPE_SKILL.
-    Empty empty = 6; // Bound to enum value: TYPE_EMPTY.
+    // No field bound to enum value: TYPE_EMPTY.
   }
 
   enum Type {
@@ -203,8 +203,6 @@ message TaskTarget {
   message Skill {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int64 damage = 2 [(tableau.field) = {name:"Damage"}];
-  }
-  message Empty {
   }
 }
 

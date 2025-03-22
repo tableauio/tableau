@@ -271,6 +271,9 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 					},
 				},
 				g: NewGeneratedBuf(),
+				be: &bookExporter{
+					gen: &Generator{},
+				},
 			},
 			want: `enum ItemType {
   option (tableau.etype) = {name:"ItemType"};
@@ -370,7 +373,10 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 						},
 					},
 				},
-				g:              NewGeneratedBuf(),
+				g: NewGeneratedBuf(),
+				be: &bookExporter{
+					gen: &Generator{},
+				},
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),
 			},

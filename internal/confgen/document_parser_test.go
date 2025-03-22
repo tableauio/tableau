@@ -13,7 +13,7 @@ import (
 var docTestParser *sheetParser
 
 func init() {
-	docTestParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+	docTestParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
 		book.MetabookOptions(),
 		book.MetasheetOptions(),
 		&SheetParserExtInfo{

@@ -49,8 +49,8 @@ func Test_parseField(t *testing.T) {
 			name: "predefined enum type: ItemType",
 			args: args{
 				typeInfos: typeInfos1,
-				name: "Type",
-				typ:  "enum<.ItemType>",
+				name:      "Type",
+				typ:       "enum<.ItemType>",
 			},
 			want: &internalpb.Field{
 				Type:       "ItemType",
@@ -65,7 +65,7 @@ func Test_parseField(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseField(tt.args.typeInfos, tt.args.name, tt.args.typ)
+			got, err := parseField(tt.args.typeInfos, nil, tt.args.name, tt.args.typ)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseField() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -129,7 +129,7 @@ func Test_parseTypeDescriptor(t *testing.T) {
 			name: "predefined enum: ItemType",
 			args: args{
 				typeInfos: typeInfos1,
-				rawType: "enum<.ItemType>",
+				rawType:   "enum<.ItemType>",
 			},
 			want: &types.Descriptor{
 				Name:       "ItemType",
@@ -142,7 +142,7 @@ func Test_parseTypeDescriptor(t *testing.T) {
 			name: "predefined message: Item",
 			args: args{
 				typeInfos: typeInfos2,
-				rawType: ".Item",
+				rawType:   ".Item",
 			},
 			want: &types.Descriptor{
 				Name:       "Item",

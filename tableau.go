@@ -78,6 +78,6 @@ func SetLang(lang string) error {
 
 // NewImporter creates a new importer of the specified workbook.
 func NewImporter(workbookPath string) (importer.Importer, error) {
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, "", book.MetasheetOptions())
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, "", nil, book.MetasheetOptions())
 	return importer.New(workbookPath, importer.Parser(parser))
 }

@@ -124,8 +124,7 @@
             "id": 6,
             "progress": 1,
             "taskTarget": {
-                "type": "TYPE_EMPTY",
-                "empty": {}
+                "type": "TYPE_EMPTY"
             },
             "heroTarget": null
         }

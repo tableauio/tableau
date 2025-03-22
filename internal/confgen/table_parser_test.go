@@ -19,7 +19,7 @@ import (
 var testParser *sheetParser
 
 func init() {
-	testParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+	testParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
 		book.MetabookOptions(),
 		book.MetasheetOptions(),
 		&SheetParserExtInfo{
@@ -490,7 +490,7 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 
 func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 	path := "./testdata/Metasheet.yaml"
-	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
 		book.MetabookOptions(),
 		book.MetasheetOptions(),
 		&SheetParserExtInfo{
@@ -552,7 +552,7 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 }
 
 func TestParser_parseWithSheetAndBookSep(t *testing.T) {
-	parserWithBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+	parserWithBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
 		&tableaupb.WorkbookOptions{
 			Sep:    ",",
 			Subsep: ":",
@@ -566,7 +566,7 @@ func TestParser_parseWithSheetAndBookSep(t *testing.T) {
 			BookFormat:     format.YAML,
 		})
 
-	parserWithSheetAndBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+	parserWithSheetAndBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
 		&tableaupb.WorkbookOptions{
 			Sep:    ",",
 			Subsep: ":",
