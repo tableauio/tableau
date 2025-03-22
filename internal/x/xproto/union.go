@@ -1,7 +1,6 @@
 package xproto
 
 import (
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
@@ -56,7 +55,7 @@ func (u UnionDescriptor) TypeName() string {
 		return opts.Name
 	}
 	// default
-	return strcase.ToCamel(string(u.Type.Name()))
+	return string(u.Type.Name())
 }
 
 // ValueFieldName returns the value field name.

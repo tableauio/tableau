@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -214,7 +215,7 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 		err := xerrors.E0001(sheetName, bookName)
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
-	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
+	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, nil, info.BookOpts, info.SheetOpts, info.ExtInfo)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -244,6 +245,7 @@ func (si *SheetInfo) HasMerger() bool {
 type sheetParser struct {
 	ProtoPackage string
 	LocationName string
+	acronyms     strcase.Acronyms
 	bookOpts     *tableaupb.WorkbookOptions
 	sheetOpts    *tableaupb.WorksheetOptions
 	extInfo      *SheetParserExtInfo
@@ -264,15 +266,16 @@ type SheetParserExtInfo struct {
 }
 
 // NewSheetParser creates a new sheet parser.
-func NewSheetParser(protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
-	return NewExtendedSheetParser(protoPackage, locationName, &tableaupb.WorkbookOptions{}, opts, nil)
+func NewSheetParser(protoPackage, locationName string, acronyms strcase.Acronyms, opts *tableaupb.WorksheetOptions) *sheetParser {
+	return NewExtendedSheetParser(protoPackage, locationName, acronyms, &tableaupb.WorkbookOptions{}, opts, nil)
 }
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
-func NewExtendedSheetParser(protoPackage, locationName string, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
+func NewExtendedSheetParser(protoPackage, locationName string, acronyms strcase.Acronyms, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
 	return &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
+		acronyms:     acronyms,
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
@@ -521,7 +524,7 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		if fd.IsMap() {
-			childField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			childField := sp.parseFieldDescriptor(fd)
 			defer childField.release()
 			childLayout := childField.opts.Layout
 			if childLayout == tableaupb.Layout_LAYOUT_DEFAULT {
@@ -538,7 +541,7 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 				return false
 			}
 		} else if fd.IsList() {
-			childField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			childField := sp.parseFieldDescriptor(fd)
 			defer childField.release()
 			childLayout := childField.opts.Layout
 			if childLayout == tableaupb.Layout_LAYOUT_DEFAULT {

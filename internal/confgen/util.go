@@ -7,7 +7,6 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -53,9 +52,9 @@ func (f *Field) release() {
 	fieldOptionsPool.Put(f.opts)
 }
 
-func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep string) *Field {
+func (sp *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
 	// default value
-	name := strcase.ToCamel(string(fd.FullName().Name()))
+	name := sp.acronyms.ToCamel(string(fd.FullName().Name()))
 	note := ""
 	span := tableaupb.Span_SPAN_DEFAULT
 	key := ""
@@ -86,10 +85,10 @@ func parseFieldDescriptor(fd protoreflect.FieldDescriptor, sheetSep, sheetSubsep
 		}
 	}
 	if sep == "" {
-		sep = sheetSep
+		sep = sp.GetSep()
 	}
 	if subsep == "" {
-		subsep = sheetSubsep
+		subsep = sp.GetSubsep()
 	}
 
 	// get from pool

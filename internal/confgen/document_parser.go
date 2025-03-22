@@ -39,7 +39,7 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		err := func() error {
-			field := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			field := sp.parseFieldDescriptor(fd)
 			defer field.release()
 			var fieldNode *book.Node
 			if md.FullName() == xproto.MetabookFullName {
@@ -425,7 +425,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	}
 
 	// parse union type
-	typeNodeName := unionDesc.TypeName()
+	typeNodeName := sp.acronyms.ToCamel(unionDesc.TypeName())
 	typeNode := node.FindChild(typeNodeName)
 	if typeNode == nil && xproto.GetFieldDefaultValue(unionDesc.Type) != "" {
 		// if this field has a default value, use virtual node
@@ -481,7 +481,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 		valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
 		valNode := node.FindChild(valNodeName)
 		err := func() error {
-			subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			subField := sp.parseFieldDescriptor(fd)
 			defer subField.release()
 			if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
 				// if this field has a default value, use virtual node

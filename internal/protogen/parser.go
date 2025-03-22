@@ -35,10 +35,10 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	if alias != "" {
 		protoBookName = alias
 	}
-	filename := strcase.ToSnake(protoBookName)
+	filename := gen.Acronyms.ToSnake(protoBookName)
 	if gen.OutputOpt.FilenameWithSubdirPrefix {
 		bookPath := filepath.Join(filepath.Dir(relSlashPath), protoBookName)
-		snakePath := strcase.ToSnake(xfs.CleanSlashPath(bookPath))
+		snakePath := gen.Acronyms.ToSnake(xfs.CleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
 	// sep and subsep
@@ -77,7 +77,11 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	return bp
 }
 
-func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*internalpb.Field, error) {
+func (p *bookParser) parseField(name, typ string) (*internalpb.Field, error) {
+	return parseField(p.gen.typeInfos, p.gen.Acronyms, name, typ)
+}
+
+func parseField(typeInfos *xproto.TypeInfos, acronyms strcase.Acronyms, name, typ string) (*internalpb.Field, error) {
 	var prop types.PropDescriptor
 	// enum syntax pattern
 	if desc := types.MatchEnum(typ); desc != nil {
@@ -105,7 +109,7 @@ func parseField(typeInfos *xproto.TypeInfos, name, typ string) (*internalpb.Fiel
 	}
 	pureName := strings.TrimPrefix(name, book.MetaSign) // remove leading meta sign "@""
 	return &internalpb.Field{
-		Name:       strcase.ToSnake(pureName),
+		Name:       acronyms.ToSnake(pureName),
 		Type:       typeDesc.Name,
 		FullType:   typeDesc.FullName,
 		Predefined: typeDesc.Predefined,

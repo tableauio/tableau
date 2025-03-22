@@ -37,6 +37,8 @@ type Generator struct {
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
 
+	Acronyms strcase.Acronyms
+
 	// internal
 	protofiles *protoregistry.Files // all parsed imported proto file descriptors.
 	typeInfos  *xproto.TypeInfos    // predefined type infos
@@ -60,6 +62,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
 
+		Acronyms: strcase.ParseAcronyms(opts.Acronyms),
+
 		protofiles: &protoregistry.Files{},
 		typeInfos:  xproto.NewTypeInfos(protoPackage),
 
@@ -69,10 +73,6 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 
 	if opts.Proto.Input.MetasheetName != "" {
 		book.SetMetasheetName(opts.Proto.Input.MetasheetName)
-	}
-
-	for key, val := range opts.Acronyms {
-		strcase.ConfigureAcronym(key, val)
 	}
 
 	return gen
@@ -282,7 +282,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		return nil
 	}
 	absPath := filepath.Join(dir, filename)
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, book.MetasheetOptions())
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.Acronyms, book.MetasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
@@ -360,7 +360,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	absPath := filepath.Join(dir, filename)
 	var imp importer.Importer
 	if pass == firstPass {
-		parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, book.MetasheetOptions())
+		parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.Acronyms, book.MetasheetOptions())
 		imp, err = importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
 		if err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
@@ -508,7 +508,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		Namerow: 1,
 		Datarow: 2,
 	}
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, sheetOpts)
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.Acronyms, sheetOpts)
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
@@ -603,12 +603,12 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		Namerow: 1,
 		Datarow: 2,
 	}
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, sheetOpts)
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.Acronyms, sheetOpts)
 
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
-		if err := parseEnumType(ws, sheet, parser, gen.OutputOpt.EnumValueWithPrefix); err != nil {
+		if err := parseEnumType(ws, sheet, parser, gen); err != nil {
 			return nil, err
 		}
 		return []*internalpb.Worksheet{ws}, nil
@@ -631,7 +631,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := book.NewTableSheet(subWs.Name, block)
-				if err := parseEnumType(subWs, subSheet, parser, gen.OutputOpt.EnumValueWithPrefix); err != nil {
+				if err := parseEnumType(subWs, subSheet, parser, gen); err != nil {
 					return nil, err
 				}
 				worksheets = append(worksheets, subWs)
