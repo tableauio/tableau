@@ -1,6 +1,10 @@
 package strcase
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func toSnake(tb testing.TB) {
 	var acronyms Acronyms
@@ -303,6 +307,37 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
 				}
 			}
+		})
+	}
+}
+
+func TestPanicOnMultipleAcronymMatches(t *testing.T) {
+	tests := []struct {
+		name     string
+		acronyms map[string]string
+		arg      string
+	}{
+		{
+			name: "APIV3 Custom Acronym",
+			acronyms: map[string]string{
+				"API":   "api",
+				"APIV3": "apiv3",
+			},
+			arg: "WebAPIV3Spec",
+		},
+		{
+			name: "HandleA1000Req Custom Acronym",
+			acronyms: map[string]string{
+				`A(1\d{3})`: "a${1}",
+				`A(\d{4})`:  "a${1}",
+			},
+			arg: "HandleA1000Req",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			acronyms := ParseAcronyms(test.acronyms)
+			assert.Panics(t, func() { acronyms.ToScreamingSnake(test.arg) })
 		})
 	}
 }
