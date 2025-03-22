@@ -624,8 +624,8 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 	}
 	valueFD := unionDesc.GetValueByNumber(fieldNumber)
 	if valueFD == nil {
-		typeValue := unionDesc.Type.Enum().Values().ByNumber(protoreflect.EnumNumber(fieldNumber)).Name()
-		return false, xerrors.WrapKV(xerrors.E2010(typeValue, fieldNumber), rc.CellDebugKV(prefix)...)
+		// This enum value does not correspond to any field.
+		return true, nil
 	}
 	fieldValue := msg.NewField(valueFD)
 	if valueFD.Kind() != protoreflect.MessageKind {

@@ -215,7 +215,11 @@ func (x *sheetExporter) exportUnion() error {
 
 	for _, field := range x.ws.Fields {
 		ename := "TYPE_" + x.be.gen.Acronyms.ToScreamingSnake(field.Name)
-		x.g.P("    ", strings.TrimSpace(field.Name), " ", x.be.gen.Acronyms.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+		if len(field.Fields) == 0 {
+			x.g.P("    // No field bound to enum value: ", ename, ".")
+		} else {
+			x.g.P("    ", strings.TrimSpace(field.Name), " ", x.be.gen.Acronyms.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+		}
 	}
 	x.g.P(`  }`)
 	x.g.P()
@@ -232,6 +236,9 @@ func (x *sheetExporter) exportUnion() error {
 
 	// generate message type
 	for _, msgField := range x.ws.Fields {
+		if len(msgField.Fields) == 0 {
+			continue
+		}
 		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
 		// generate the fields
 		depth := 2
