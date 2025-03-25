@@ -186,10 +186,21 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		if value.Number != nil {
 			number = *value.Number
 		}
+		name := value.Name
+		var prop *tableaupb.FieldProp
+		if desc := types.MatchScalar(name); desc != nil {
+			name = desc.ScalarType
+			prop, _ = desc.Prop.FieldProp()
+		}
 		field := &internalpb.Field{
 			Number: number,
-			Name:   value.Name,
+			Name:   name,
 			Alias:  value.Alias,
+		}
+		if prop != nil {
+			field.Options = &tableaupb.FieldOptions{
+				Prop: prop,
+			}
 		}
 		// create a book parser
 		bp := newTableParser("union", "", "", gen)

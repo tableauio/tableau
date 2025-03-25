@@ -1,5 +1,5 @@
 Name,Alias,Field1,Field2,Field3
-PVP,AliasPVP,"ID
+PVP|{integrated:true},AliasPVP,"ID
 uint32
 Note","Damage
 int64

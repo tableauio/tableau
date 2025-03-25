@@ -473,51 +473,80 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	if valueFD.Kind() != protoreflect.MessageKind {
 		return false, xerrors.Errorf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
 	}
-	// MUST be message type.
-	md := valueFD.Message()
-	fieldMsg := fieldValue.Message()
-	for i := 0; i < md.Fields().Len(); i++ {
-		fd := md.Fields().Get(i)
-		valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
-		valNode := node.FindChild(valNodeName)
-		err := func() error {
-			subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
-			defer subField.release()
-			if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
-				// if this field has a default value, use virtual node
-				valNode = &book.Node{
-					Name:  node.Name,
-					Value: node.Value,
-				}
+	valueField := parseFieldDescriptor(valueFD, sp.GetSep(), sp.GetSubsep())
+	if valueField.opts.GetProp().GetIntegrated() {
+		valNode := node.FindChild(unionDesc.ValueFieldName() + "1")
+		if valNode == nil && xproto.GetFieldDefaultValue(field.fd) != "" {
+			// if this field has a default value, use virtual node
+			valNode = &book.Node{
+				Name:  node.Name,
+				Value: node.Value,
 			}
-			if valNode == nil {
-				if sp.IsFieldOptional(subField) {
-					// field not found and is optional, just return nil.
-					return nil
-				}
-				kvs := node.DebugNameKV()
-				kvs = append(kvs,
-					xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
-					xerrors.KeyPBFieldName, fd.FullName(),
-					xerrors.KeyPBFieldOpts, subField.opts,
-				)
-				return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
+		}
+		if valNode == nil {
+			if sp.IsFieldOptional(field) {
+				// field not found and is optional, just return nil.
+				return false, nil
 			}
-			crossNodeValues := []string{valNode.Value}
-			if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
-				for j := 1; j < fieldCount; j++ {
-					nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
-					node := node.FindChild(nodeName)
-					if node == nil {
-						break
-					}
-					crossNodeValues = append(crossNodeValues, node.Value)
-				}
-			}
-			return sp.parseUnionMessageField(subField, fieldMsg, crossNodeValues)
-		}()
+			kvs := node.DebugNameKV()
+			kvs = append(kvs,
+				xerrors.KeyPBFieldType, xproto.GetFieldTypeName(field.fd),
+				xerrors.KeyPBFieldName, field.fd.FullName(),
+				xerrors.KeyPBFieldOpts, field.opts,
+			)
+			return false, xerrors.WrapKV(xerrors.E2014(field.opts.Name), kvs...)
+		}
+		present, err = sp.parseIncellStruct(fieldValue, valNode.Value, field.opts.GetProp().GetForm(), field.sep)
 		if err != nil {
-			return false, xerrors.WrapKV(err, valNode.DebugNameKV()...)
+			return false, err
+		}
+	} else {
+		// MUST be message type.
+		md := valueFD.Message()
+		fieldMsg := fieldValue.Message()
+		for i := 0; i < md.Fields().Len(); i++ {
+			fd := md.Fields().Get(i)
+			valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+			valNode := node.FindChild(valNodeName)
+			err := func() error {
+				subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+				defer subField.release()
+				if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
+					// if this field has a default value, use virtual node
+					valNode = &book.Node{
+						Name:  node.Name,
+						Value: node.Value,
+					}
+				}
+				if valNode == nil {
+					if sp.IsFieldOptional(subField) {
+						// field not found and is optional, just return nil.
+						return nil
+					}
+					kvs := node.DebugNameKV()
+					kvs = append(kvs,
+						xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
+						xerrors.KeyPBFieldName, fd.FullName(),
+						xerrors.KeyPBFieldOpts, subField.opts,
+					)
+					return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
+				}
+				crossNodeValues := []string{valNode.Value}
+				if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
+					for j := 1; j < fieldCount; j++ {
+						nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+						node := node.FindChild(nodeName)
+						if node == nil {
+							break
+						}
+						crossNodeValues = append(crossNodeValues, node.Value)
+					}
+				}
+				return sp.parseUnionMessageField(subField, fieldMsg, crossNodeValues)
+			}()
+			if err != nil {
+				return false, xerrors.WrapKV(err, valNode.DebugNameKV()...)
+			}
 		}
 	}
 	msg.Set(valueFD, fieldValue)

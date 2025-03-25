@@ -22,7 +22,7 @@ message Target {
     Pvp pvp = 1;      // Bound to enum value 1: TYPE_PVP.
     Pve pve = 2;      // Bound to enum value 2: TYPE_PVE.
     Story story = 3;  // Bound to enum value 3: TYPE_STORY.
-    Skill skill = 4;  // Bound to enum value 4: TYPE_SKILL.
+    Skill skill = 4 [(tableau.field) = {prop:{integrated:true}}];  // Bound to enum value 4: TYPE_SKILL.
     Item item = 5;    // Bound to enum value 5: TYPE_ITEM.
   }
 
