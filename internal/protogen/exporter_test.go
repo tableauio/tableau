@@ -27,7 +27,7 @@ func Test_genFieldOptionsString(t *testing.T) {
 					Name: "ItemID",
 				},
 			},
-			want: `[(tableau.field) = {name:"ItemID"}]`,
+			want: ` [(tableau.field) = {name:"ItemID"}]`,
 		},
 		{
 			name: "name-and-prop",
@@ -39,7 +39,7 @@ func Test_genFieldOptionsString(t *testing.T) {
 					},
 				},
 			},
-			want: `[(tableau.field) = {name:"ItemID" prop:{unique:true}}]`,
+			want: ` [(tableau.field) = {name:"ItemID" prop:{unique:true}}]`,
 		},
 		{
 			name: "name-prop-and-json-name",
@@ -52,7 +52,7 @@ func Test_genFieldOptionsString(t *testing.T) {
 					},
 				},
 			},
-			want: `[(tableau.field) = {name:"ItemID" prop:{unique:true}}, json_name="item_id_1"]`,
+			want: ` [(tableau.field) = {name:"ItemID" prop:{unique:true}}, json_name="item_id_1"]`,
 		},
 		{
 			name: "name-and-prop-json_name",
@@ -64,7 +64,14 @@ func Test_genFieldOptionsString(t *testing.T) {
 					},
 				},
 			},
-			want: `[(tableau.field) = {name:"ItemID"}, json_name="item_id_1"]`,
+			want: ` [(tableau.field) = {name:"ItemID"}, json_name="item_id_1"]`,
+		},
+		{
+			name: "nil",
+			args: args{
+				opts: nil,
+			},
+			want: ``,
 		},
 	}
 	for _, tt := range tests {

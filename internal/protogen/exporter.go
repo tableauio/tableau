@@ -216,7 +216,7 @@ func (x *sheetExporter) exportUnion() error {
 
 	for _, field := range x.ws.Fields {
 		ename := "TYPE_" + strcase.ToScreamingSnake(field.Name)
-		x.g.P("    ", strings.TrimSpace(field.Name), " ", strcase.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+		x.g.P("    ", strings.TrimSpace(field.Name), " ", strcase.ToSnake(field.Name), " = ", field.Number, genFieldOptionsString(field.Options), `; // Bound to enum value: `, ename, ".")
 	}
 	x.g.P(`  }`)
 	x.g.P()
@@ -279,7 +279,7 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 		label = "optional "
 	}
 
-	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " ", genFieldOptionsString(field.Options), ";")
+	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, genFieldOptionsString(field.Options), ";")
 
 	typeName := field.Type
 	fullTypeName := field.FullType
@@ -340,6 +340,9 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 }
 
 func genFieldOptionsString(opts *tableaupb.FieldOptions) string {
+	if opts == nil {
+		return ""
+	}
 	jsonName := ""
 	// remember and then clear protobuf built-in options
 	if opts.Prop != nil {
@@ -353,7 +356,7 @@ func genFieldOptionsString(opts *tableaupb.FieldOptions) string {
 	}
 
 	// compose this field options
-	fieldOpts := "[(tableau.field) = {" + marshalToText(opts) + "}"
+	fieldOpts := " [(tableau.field) = {" + marshalToText(opts) + "}"
 	if jsonName != "" {
 		fieldOpts += `, json_name="` + jsonName + `"`
 	}

@@ -324,6 +324,9 @@ message FieldProp {
   //
   // TODO: use cases for more composite types.
   int32 cross = 15;
+  // Whether this union field data is integrated in its Field1
+  // as an incell struct.
+  bool integrated = 16;
 }
 
 // Layout of list and map.

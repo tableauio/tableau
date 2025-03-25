@@ -116,7 +116,7 @@ message SimpleTarget {
   oneof value {
     option (tableau.oneof) = {field:"Field"};
 
-    PVP pvp = 1; // Bound to enum value: TYPE_PVP.
+    PVP pvp = 1 [(tableau.field) = {prop:{integrated:true}}]; // Bound to enum value: TYPE_PVP.
     PVE pve = 2; // Bound to enum value: TYPE_PVE.
     Skill skill = 3; // Bound to enum value: TYPE_SKILL.
   }

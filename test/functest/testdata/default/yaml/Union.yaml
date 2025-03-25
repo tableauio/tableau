@@ -21,8 +21,7 @@ UnionList:
     Field2: 1:Apple,2:Orange
     Field3: Fragrant:1,Sour:2
   - Type: Skill
-    Field1: 1
-    Field2: 2
+    Field1: 1,2
   - Type: Item
     Field1: false
     Field2: 1001,1

@@ -84,23 +84,38 @@ message Metasheet {
   // Generate ordered map accessers
   bool ordered_map = 50 [(tableau.field) = {name:"OrderedMap" prop:{optional:true}}];
   // Generate index accessers, and multiple index columns are comma-separated.
-  // Format: <ColumnName>[@IndexName], if IndexName is not set, it will be this
+  // Format: ColumnName<KeyName>[@IndexName]. If IndexName is not set, it will be this
   // column’s parent struct type name.
   //
-  // Composite indexes (or multicolumn indexes) are in the form: ([column1, column2, column3,...])[@IndexName]
+  // Examples:
+	//  - ID
+	//  - ID@Item
+	//  - ID<Key>@Item
+	//  - ID<Key, Key2>@Item
+  //
+  // Composite indexes (or multicolumn indexes) are in the form: 
+  // ([column1, column2, column3,...])<[key1, key2, key3,...]>[@IndexName]
   //
   // Examples:
-  //  - ID
-  //  - ID@Item
-  //  - (ID,Type)
-  //  - (ID,Type)@Item
-  //  - ID, (ID,Type)@Item
+	//  - (ID, Name)
+	//  - (ID, Name)@Item
+	//  - (ID, Name)<Key>@Item
+	//  - (ID, Name)<Key1, Key2>@Item
   //
   // Generated APIs are:
   //
   // C++:
-  // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
+  // - using Index_<IndexName>Vector = std::vector<const STRUCT_TYPE*>;
+  // - using Index_<IndexName>Map = std::unordered_map<INDEX_TYPE, Index_<IndexName>Vector>;
+  // - const Index_<IndexName>Map& Find<IndexName>() const;
+  // - const Index_<IndexName>Vector* Find<IndexName>(INDEX_TYPE index) const;
   // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
+  //
+  // Go:
+  // - type <MessageName>_Index_<IndexName>Map = map[INDEX_TYPE][]*STRUCT_TYPE
+  // - func (x *<MessageName>) Find<IndexName>Map() <MessageName>_Index_<IndexName>Map
+  // - func (x *<MessageName>) Find<IndexName>(index INDEX_TYPE) []*STRUCT_TYPE
+  // - func (x *<MessageName>) FindFirst<IndexName>(index INDEX_TYPE) *STRUCT_TYPE
   string index = 51 [(tableau.field) = {name:"Index" prop:{optional:true}}];
 
   // Specify loader language options.
