@@ -510,8 +510,10 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 // By default, map key should be unique. The only exception is a vertical map
 // containing a sub-field with the same layout.
 func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.Map) bool {
-	if field.opts.Layout != tableaupb.Layout_LAYOUT_VERTICAL {
-		// non-vertical map must be unique
+	layout := field.opts.Layout
+	if layout != tableaupb.Layout_LAYOUT_VERTICAL &&
+		layout != tableaupb.Layout_LAYOUT_HORIZONTAL {
+		// incell and default maps must be unique
 		return true
 	}
 	md := reflectMap.NewValue().Message().Descriptor()
@@ -521,14 +523,14 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 			childField := sp.parseFieldDescriptor(fd)
 			defer childField.release()
 			childLayout := childField.opts.Layout
-			if childLayout == tableaupb.Layout_LAYOUT_VERTICAL {
+			if childLayout == layout {
 				return false
 			}
 		} else if fd.IsList() {
 			childField := sp.parseFieldDescriptor(fd)
 			defer childField.release()
 			childLayout := childField.opts.Layout
-			if childLayout == tableaupb.Layout_LAYOUT_VERTICAL {
+			if childLayout == layout {
 				return false
 			}
 		}
@@ -537,8 +539,9 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 }
 
 // checkValueUniqueInMap checks if the mapValue is unique in map.
-// If error occured, also return the field that has the duplicated value.
-func (sp *sheetParser) checkValueUniqueInMap(field *Field, reflectMap protoreflect.Map, elemValue protoreflect.Value) (dupName string, err error) {
+// If error occured, also return the field name that has the duplicated value.
+// Keys in ignoreKeys are not checked.
+func (sp *sheetParser) checkValueUniqueInMap(field *Field, reflectMap protoreflect.Map, elemValue protoreflect.Value, ignoreKeys ...protoreflect.MapKey) (dupName string, err error) {
 	if field.fd.MapValue().Message() == nil {
 		// no need to check if map value not message
 		return "", nil
@@ -557,6 +560,11 @@ func (sp *sheetParser) checkValueUniqueInMap(field *Field, reflectMap protorefle
 		}
 		key := elemValue.Message().Get(fd)
 		reflectMap.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
+			for _, ignoreKey := range ignoreKeys {
+				if k.Interface() == ignoreKey.Interface() {
+					return true
+				}
+			}
 			if v.Message().Get(fd).Equal(key) {
 				dupName, err = subField.opts.GetName(), xerrors.E2022(key)
 				return false
@@ -571,9 +579,9 @@ func (sp *sheetParser) checkValueUniqueInMap(field *Field, reflectMap protorefle
 }
 
 // checkValueUniqueInList checks if the elemValue is unique in list.
-// If error occured, also return the field that has the duplicated value.
-// The ignoreIdx elem is not checked. It's just elemValue itself.
-func (sp *sheetParser) checkValueUniqueInList(field *Field, list protoreflect.List, elemValue protoreflect.Value, ignoreIdx int) (dupName string, err error) {
+// If error occured, also return the field name that has the duplicated value.
+// Elems in ignoreIdxs are not checked.
+func (sp *sheetParser) checkValueUniqueInList(field *Field, list protoreflect.List, elemValue protoreflect.Value, ignoreIdxs ...int) (dupName string, err error) {
 	if field.fd.Message() == nil {
 		// no need to check if list element not message
 		return "", nil
@@ -592,7 +600,14 @@ func (sp *sheetParser) checkValueUniqueInList(field *Field, list protoreflect.Li
 		}
 		key := elemValue.Message().Get(fd)
 		for j := 0; j < list.Len(); j++ {
-			if j == ignoreIdx {
+			if func() bool {
+				for _, ignoreIdx := range ignoreIdxs {
+					if j == ignoreIdx {
+						return true
+					}
+				}
+				return false
+			}() {
 				continue
 			}
 			elemVal := list.Get(j)
@@ -824,6 +839,18 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 	}
 
 	return v, present, err
+}
+
+func (sp *sheetParser) findFieldByName(md protoreflect.MessageDescriptor, name string) protoreflect.FieldDescriptor {
+	for i := 0; i < md.Fields().Len(); i++ {
+		fd := md.Fields().Get(i)
+		field := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+		defer field.release()
+		if field.opts.Name == name {
+			return fd
+		}
+	}
+	return nil
 }
 
 // ParseFileOptions parse the options of a protobuf definition file.

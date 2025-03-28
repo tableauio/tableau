@@ -50,7 +50,14 @@ MapInMap:
       "@struct":
         Name: string
         Num: int32
-
+Chapter:
+  "@type": "map<string, Chapt>"
+  "@struct":
+    Name: string|{unique:true}
+    Section:
+      "@type": "map<uint32, Sect>"
+      "@struct":
+        Name: string|{unique:true}
 ---
 "@sheet": YamlMapConf
 ScalarMap:
@@ -135,3 +142,20 @@ MapInMap:
       2:
         Name: orange
         Num: 200
+Chapter:
+  1001:
+    Name: ChaptOne
+    Section:
+      1:
+        Name: SectOne
+      2:
+        Name: SectTwo
+      3:
+        Name: SectThree
+  1002:
+    Name: ChaptTwo
+    Section:
+      1:
+        Name: SectOne
+      2:
+        Name: SectTwo

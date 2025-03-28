@@ -7,7 +7,6 @@ import (
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -169,11 +168,9 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
 					md := reflectMap.NewValue().Message().Descriptor()
-					keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
-
-					fd := md.Fields().ByName(keyProtoName)
+					fd := sp.findFieldByName(md, field.opts.Key)
 					if fd == nil {
-						return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", keyProtoName), node.DebugKV()...)
+						return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), node.DebugKV()...)
 					}
 					keyField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 					defer keyField.release()
@@ -182,7 +179,6 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 						return false, xerrors.WrapKV(xerrors.E2005(keyData), node.DebugKV()...)
 					}
 					newMapValue = reflectMap.Mutable(newMapKey)
-					reflectMap.Clear(newMapKey)
 				} else {
 					newMapValue = reflectMap.NewValue()
 				}
@@ -203,7 +199,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					continue
 				}
 				// check uniqueness
-				dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue)
+				dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue, newMapKey)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
 				}
@@ -359,7 +355,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 			}
 			if elemPresent {
 				// check uniqueness
-				_, err := sp.checkValueUniqueInList(field, list, elemValue, -1)
+				_, err := sp.checkValueUniqueInList(field, list, elemValue)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}

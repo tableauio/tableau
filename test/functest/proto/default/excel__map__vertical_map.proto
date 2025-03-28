@@ -34,10 +34,11 @@ message VerticalUniqueFieldStructMap {
   map<uint32, Main> main_map = 1 [(tableau.field) = {key:"MainID" layout:LAYOUT_VERTICAL}];
   message Main {
     uint32 main_id = 1 [(tableau.field) = {name:"MainID"}];
-    map<uint32, Sub> sub_map = 2 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
+    string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}];
+    map<uint32, Sub> sub_map = 3 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
     message Sub {
       uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}];
-      string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+      string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}];
     }
   }
 }

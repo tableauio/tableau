@@ -22,6 +22,10 @@
             <Fruit Name="map<string, Fruit>" Desc="string|{optional:true}" />
         </FruitInfo>
     </Meal>
+
+    <Chapter ID="map<int32, Chapt>" Name="string|{unique:true}">
+        <Section ID="map<int32, Sect>" Name="string|{unique:true}" />
+    </Chapter>
 </MapConf>
 -->
 
@@ -64,4 +68,13 @@
             <Fruit Name="Banana" />
         </FruitInfo>
     </Meal>
+    <Chapter ID="1001" Name="ChaptOne">
+        <Section ID="1" Name="SectOne" />
+        <Section ID="2" Name="SectTwo" />
+        <Section ID="3" Name="SectThree" />
+    </Chapter>
+    <Chapter ID="1002" Name="ChaptTwo">
+        <Section ID="1" Name="SectOne" />
+        <Section ID="2" Name="SectTwo" />
+    </Chapter>
 </MapConf>

@@ -2,35 +2,37 @@
     "mainMap": {
         "1001": {
             "mainId": 1001,
+            "mainName": "BackPack",
             "subMap": {
                 "1": {
                     "subId": 1,
-                    "name": "Gold"
+                    "subName": "Gold"
                 },
                 "2": {
                     "subId": 2,
-                    "name": "Diamond"
+                    "subName": "Diamond"
                 },
                 "3": {
                     "subId": 3,
-                    "name": "Ticket"
+                    "subName": "Ticket"
                 },
                 "4": {
                     "subId": 4,
-                    "name": "Point"
+                    "subName": "Point"
                 }
             }
         },
         "1002": {
             "mainId": 1002,
+            "mainName": "Equip",
             "subMap": {
                 "1": {
                     "subId": 1,
-                    "name": "Weapon"
+                    "subName": "Weapon"
                 },
                 "2": {
                     "subId": 2,
-                    "name": "Gold"
+                    "subName": "Gold"
                 }
             }
         }

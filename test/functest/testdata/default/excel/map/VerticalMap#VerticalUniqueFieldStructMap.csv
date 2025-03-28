@@ -1,9 +1,9 @@
-MainID,SubID,Name
-"map<uint32, Main>","map<uint32, Sub>",string|{unique:true}
-Item's MainID,Item's SubID,Item's name
-1001,1,Gold
-1001,2,Diamond
-1001,3,Ticket
-1001,4,Point
-1002,1,Weapon
-1002,2,Gold
+MainID,MainName,SubID,SubName
+"map<uint32, Main>",string|{unique:true},"map<uint32, Sub>",string|{unique:true}
+Item's MainID,Item's MainName,Item's SubID,Item's SubName
+1001,BackPack,1,Gold
+1001,,2,Diamond
+1001,,3,Ticket
+1001,,4,Point
+1002,Equip,1,Weapon
+1002,,2,Gold
