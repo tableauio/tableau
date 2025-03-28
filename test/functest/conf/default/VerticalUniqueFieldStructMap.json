@@ -1,0 +1,38 @@
+{
+    "mainMap": {
+        "1001": {
+            "mainId": 1001,
+            "subMap": {
+                "1": {
+                    "subId": 1,
+                    "name": "Gold"
+                },
+                "2": {
+                    "subId": 2,
+                    "name": "Diamond"
+                },
+                "3": {
+                    "subId": 3,
+                    "name": "Ticket"
+                },
+                "4": {
+                    "subId": 4,
+                    "name": "Point"
+                }
+            }
+        },
+        "1002": {
+            "mainId": 1002,
+            "subMap": {
+                "1": {
+                    "subId": 1,
+                    "name": "Weapon"
+                },
+                "2": {
+                    "subId": 2,
+                    "name": "Gold"
+                }
+            }
+        }
+    }
+}
