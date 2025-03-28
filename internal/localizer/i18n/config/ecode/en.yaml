@@ -33,9 +33,9 @@ E2004:
   text: 'value "{{.Value}}" is out of range [{{.Range}}]'
   help: change value and make sure it's in range
 E2005:
-  desc: map key not unique
-  text: map key "{{.Key}}" already exists
-  help: fix duplicate keys and ensure map key is unique
+  desc: map or keyed list key not unique
+  text: map or keyed list key "{{.Key}}" already exists
+  help: fix duplicate keys and ensure map or keyed list key is unique
 E2006:
   desc: enum value not defined in enum type
   text: enum value "{{.Value}}" not defined in enum "{{.EnumName}}"
@@ -100,6 +100,10 @@ E2021:
   desc: duplicate enum value alias
   text: 'in enum {{.EnumType}} definition, {{.EnumValue1}} and {{.EnumValue2}} have duplicate value alias "{{.Alias}}"'
   help: ensure the enum value alias is unique
+E2022:
+  desc: map or list element field value not unique
+  text: map or list element field value "{{.Key}}" already exists
+  help: fix duplicate values and ensure map or list element field value is unique
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
