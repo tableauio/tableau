@@ -69,4 +69,14 @@ message MapConf {
       }
     }
   }
+  map<int32, Chapt> chapter_map = 10 [(tableau.field) = {name:"Chapter" key:"ID"}];
+  message Chapt {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+    map<int32, Sect> section_map = 3 [(tableau.field) = {name:"Section" key:"ID"}];
+    message Sect {
+      int32 id = 1 [(tableau.field) = {name:"ID"}];
+      string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+    }
+  }
 }

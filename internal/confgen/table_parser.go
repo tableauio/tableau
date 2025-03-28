@@ -224,11 +224,9 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	var newMapValue protoreflect.Value
 	if reflectMap.Has(newMapKey) {
 		md := reflectMap.NewValue().Message().Descriptor()
-		keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
-
-		fd := md.Fields().ByName(keyProtoName)
+		fd := sp.findFieldByName(md, field.opts.Key)
 		if fd == nil {
-			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", keyProtoName), rc.CellDebugKV(keyColName)...)
+			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), rc.CellDebugKV(keyColName)...)
 		}
 		keyField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 		defer keyField.release()
@@ -237,7 +235,6 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 			return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
 		}
 		newMapValue = reflectMap.Mutable(newMapKey)
-		reflectMap.Clear(newMapKey)
 	} else {
 		newMapValue = reflectMap.NewValue()
 	}
@@ -250,7 +247,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 		return false, nil
 	}
 	// check uniqueness
-	dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue)
+	dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue, newMapKey)
 	if err != nil {
 		keyColName := prefix + field.opts.Name + dupName
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -307,11 +304,9 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 		var newMapValue protoreflect.Value
 		if reflectMap.Has(newMapKey) {
 			md := reflectMap.NewValue().Message().Descriptor()
-			keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
-
-			fd := md.Fields().ByName(keyProtoName)
+			fd := sp.findFieldByName(md, field.opts.Key)
 			if fd == nil {
-				return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", keyProtoName), rc.CellDebugKV(keyColName)...)
+				return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), rc.CellDebugKV(keyColName)...)
 			}
 			keyField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
 			defer keyField.release()
@@ -320,7 +315,6 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 				return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
 			}
 			newMapValue = reflectMap.Mutable(newMapKey)
-			reflectMap.Clear(newMapKey)
 		} else {
 			newMapValue = reflectMap.NewValue()
 		}
@@ -342,7 +336,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			continue
 		}
 		// check uniqueness
-		dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue)
+		dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue, newMapKey)
 		if err != nil {
 			keyColName := prefix + field.opts.Name + strconv.Itoa(i) + dupName
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -405,11 +399,9 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		keyedListElemExisted := false
 		keyColName := prefix + field.opts.Name + field.opts.Key
 		md := elemValue.Message().Descriptor()
-		keyProtoName := protoreflect.Name(sp.sheetParser.strcaseCtx.ToSnake(field.opts.Key))
-
-		fd := md.Fields().ByName(keyProtoName)
+		fd := sp.findFieldByName(md, field.opts.Key)
 		if fd == nil {
-			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", keyProtoName), rc.CellDebugKV(keyColName)...)
+			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), rc.CellDebugKV(keyColName)...)
 		}
 		cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
 		if err != nil {
@@ -466,7 +458,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 	}
 	if elemPresent {
 		// check uniqueness
-		dupName, err := sp.checkValueUniqueInList(field, list, elemValue, -1)
+		dupName, err := sp.checkValueUniqueInList(field, list, elemValue)
 		if err != nil {
 			keyColName := prefix + field.opts.Name + dupName
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -541,7 +533,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 			continue
 		}
 		// check uniqueness
-		dupName, err := sp.checkValueUniqueInList(field, list, elemValue, -1)
+		dupName, err := sp.checkValueUniqueInList(field, list, elemValue)
 		if err != nil {
 			keyColName := colName + dupName
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)

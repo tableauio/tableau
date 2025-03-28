@@ -166,5 +166,39 @@
                 }
             }
         }
+    },
+    "chapter": {
+        "1001": {
+            "key": "1001",
+            "name": "ChaptOne",
+            "section": {
+                "1": {
+                    "key": 1,
+                    "name": "SectOne"
+                },
+                "2": {
+                    "key": 2,
+                    "name": "SectTwo"
+                },
+                "3": {
+                    "key": 3,
+                    "name": "SectThree"
+                }
+            }
+        },
+        "1002": {
+            "key": "1002",
+            "name": "ChaptTwo",
+            "section": {
+                "1": {
+                    "key": 1,
+                    "name": "SectOne"
+                },
+                "2": {
+                    "key": 2,
+                    "name": "SectTwo"
+                }
+            }
+        }
     }
 }
