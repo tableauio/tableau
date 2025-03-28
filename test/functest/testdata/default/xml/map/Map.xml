@@ -23,8 +23,8 @@
         </FruitInfo>
     </Meal>
 
-    <Chapter ID="map<int32, Chapt>" Name="string|{unique:true}">
-        <Section ID="map<int32, Sect>" Name="string|{unique:true}" />
+    <Chapter ID="map<int32, Chapt>|{unique:true}" Name="string|{unique:true}">
+        <Section ID="map<int32, Sect>|{unique:true}" Name="string|{unique:true}" />
     </Chapter>
 </MapConf>
 -->

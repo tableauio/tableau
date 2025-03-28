@@ -38,6 +38,12 @@ MapInList:
       "@struct":
         Name: string
         Num: int32
+Items:
+  "@type": "[Item]"
+  "@struct":
+    ID: uint32|{unique:true}
+    Name: string|{unique:true}
+    Num: int32
 ---
 "@sheet": YamlListConf
 ScalarList: [1, 2, 3]
@@ -89,3 +95,13 @@ MapInList:
       2:
         Name: orange
         Num: 200
+Items:
+  - ID: 1001
+    Name: Apple
+    Num: 10
+  - ID: 1002
+    Name: Banana
+    Num: 10
+  - ID: 1003
+    Name: Orange
+    Num: 20

@@ -69,11 +69,11 @@ message YamlMapConf {
   }
   map<string, Chapt> chapter = 12 [(tableau.field) = {name:"Chapter" key:"@key"}];
   message Chapt {
-    string key = 1 [(tableau.field) = {name:"@key"}];
+    string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
     string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     map<uint32, Sect> section = 3 [(tableau.field) = {name:"Section" key:"@key"}];
     message Sect {
-      uint32 key = 1 [(tableau.field) = {name:"@key"}];
+      uint32 key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
       string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     }
   }
