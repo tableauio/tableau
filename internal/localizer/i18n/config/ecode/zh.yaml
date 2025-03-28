@@ -33,9 +33,9 @@ E2004:
   text: '值 "{{.Value}}" 超出限制的区间 [{{.Range}}]'
   help: 修改值使其在限制的区间内
 E2005:
-  desc: map key not unique
-  text: map的key "{{.Key}}" 已存在
-  help: 此处map的key要保证唯一性, 不允许重复配置相同key
+  desc: map or keyed list key not unique
+  text: map或keyed list的key "{{.Key}}" 已存在
+  help: 此处map或keyed list的key要保证唯一性, 不允许重复配置相同key
 E2006:
   desc: enum value not defined in enum type
   text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
@@ -100,6 +100,10 @@ E2021:
   desc: duplicate enum value alias
   text: '在枚举类型 {{.EnumType}} 定义中, {{.EnumValue1}} 和 {{.EnumValue2}} 定义了重复的枚举值别名 "{{.Alias}}"'
   help: 请确保枚举值别名唯一性
+E2022:
+  desc: map or list element field value not unique
+  text: map或list的元素字段唯一值 "{{.Key}}" 已存在
+  help: 此处map或list的元素字段值要保证唯一性, 不允许重复配置相同值
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

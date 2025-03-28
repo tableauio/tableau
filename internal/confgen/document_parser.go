@@ -1,11 +1,13 @@
 package confgen
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -166,7 +168,21 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				}
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
+					md := reflectMap.NewValue().Message().Descriptor()
+					keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
+
+					fd := md.Fields().ByName(keyProtoName)
+					if fd == nil {
+						return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", keyProtoName), node.DebugKV()...)
+					}
+					keyField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+					defer keyField.release()
+					if fieldprop.RequireUnique(keyField.opts.Prop) ||
+						(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
+						return false, xerrors.WrapKV(xerrors.E2005(keyData), node.DebugKV()...)
+					}
 					newMapValue = reflectMap.Mutable(newMapKey)
+					reflectMap.Clear(newMapKey)
 				} else {
 					newMapValue = reflectMap.NewValue()
 				}
@@ -185,6 +201,11 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				if !keyPresent && !valuePresent {
 					// key and value are both not present.
 					continue
+				}
+				// check uniqueness
+				dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue)
+				if err != nil {
+					return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
 				}
 				reflectMap.Set(newMapKey, newMapValue)
 			}
@@ -233,6 +254,10 @@ func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap pr
 		}
 
 		newMapKey := fieldValue.MapKey()
+		if reflectMap.Has(newMapKey) {
+			// scalar map key must be unique
+			xerrors.WrapKV(xerrors.E2005(key))
+		}
 		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
 		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value, nil)
 		if err != nil {
@@ -285,6 +310,10 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
+		if reflectMap.Has(newMapKey) {
+			// scalar map key must be unique
+			xerrors.WrapKV(xerrors.E2005(key))
+		}
 		newMapValue := reflectMap.NewValue()
 		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
 		if err != nil {
@@ -329,6 +358,11 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 				return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 			}
 			if elemPresent {
+				// check uniqueness
+				_, err := sp.checkValueUniqueInList(field, list, elemValue, -1)
+				if err != nil {
+					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
+				}
 				list.Append(elemValue)
 			}
 		}
