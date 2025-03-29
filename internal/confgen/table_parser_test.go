@@ -9,6 +9,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
@@ -19,7 +20,7 @@ import (
 var testParser *sheetParser
 
 func init() {
-	testParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
+	testParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
 		book.MetabookOptions(),
 		book.MetasheetOptions(),
 		&SheetParserExtInfo{
@@ -490,7 +491,7 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 
 func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 	path := "./testdata/Metasheet.yaml"
-	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
+	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
 		book.MetabookOptions(),
 		book.MetasheetOptions(),
 		&SheetParserExtInfo{
@@ -552,7 +553,7 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 }
 
 func TestParser_parseWithSheetAndBookSep(t *testing.T) {
-	parserWithBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
+	parserWithBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
 		&tableaupb.WorkbookOptions{
 			Sep:    ",",
 			Subsep: ":",
@@ -566,7 +567,7 @@ func TestParser_parseWithSheetAndBookSep(t *testing.T) {
 			BookFormat:     format.YAML,
 		})
 
-	parserWithSheetAndBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai", nil,
+	parserWithSheetAndBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
 		&tableaupb.WorkbookOptions{
 			Sep:    ",",
 			Subsep: ":",
