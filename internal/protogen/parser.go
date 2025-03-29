@@ -35,10 +35,10 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	if alias != "" {
 		protoBookName = alias
 	}
-	filename := gen.Acronyms.ToSnake(protoBookName)
+	filename := gen.strcaseCtx.ToSnake(protoBookName)
 	if gen.OutputOpt.FilenameWithSubdirPrefix {
 		bookPath := filepath.Join(filepath.Dir(relSlashPath), protoBookName)
-		snakePath := gen.Acronyms.ToSnake(xfs.CleanSlashPath(bookPath))
+		snakePath := gen.strcaseCtx.ToSnake(xfs.CleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
 	// sep and subsep
@@ -77,11 +77,13 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	return bp
 }
 
-func (p *bookParser) parseField(name, typ string) (*internalpb.Field, error) {
-	return parseField(p.gen.typeInfos, p.gen.Acronyms, name, typ)
+// parseBasicField parses scalar or enum type.
+func (p *bookParser) parseBasicField(name, typ string) (*internalpb.Field, error) {
+	return parseBasicField(p.gen.typeInfos, p.gen.strcaseCtx, name, typ)
 }
 
-func parseField(typeInfos *xproto.TypeInfos, acronyms strcase.Acronyms, name, typ string) (*internalpb.Field, error) {
+// parseBasicField parses scalar or enum type.
+func parseBasicField(typeInfos *xproto.TypeInfos, strcaseCtx strcase.Context, name, typ string) (*internalpb.Field, error) {
 	var prop types.PropDescriptor
 	// enum syntax pattern
 	if desc := types.MatchEnum(typ); desc != nil {
@@ -109,7 +111,7 @@ func parseField(typeInfos *xproto.TypeInfos, acronyms strcase.Acronyms, name, ty
 	}
 	pureName := strings.TrimPrefix(name, book.MetaSign) // remove leading meta sign "@""
 	return &internalpb.Field{
-		Name:       acronyms.ToSnake(pureName),
+		Name:       strcaseCtx.ToSnake(pureName),
 		Type:       typeDesc.Name,
 		FullType:   typeDesc.FullName,
 		Predefined: typeDesc.Predefined,

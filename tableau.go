@@ -6,6 +6,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -78,6 +79,6 @@ func SetLang(lang string) error {
 
 // NewImporter creates a new importer of the specified workbook.
 func NewImporter(workbookPath string) (importer.Importer, error) {
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, "", nil, book.MetasheetOptions())
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, "", strcase.Context{}, book.MetasheetOptions())
 	return importer.New(workbookPath, importer.Parser(parser))
 }

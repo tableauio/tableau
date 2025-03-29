@@ -37,7 +37,7 @@ type Generator struct {
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
 
-	Acronyms strcase.Acronyms
+	strcaseCtx strcase.Context
 
 	// internal
 	protofiles *protoregistry.Files // all parsed imported proto file descriptors.
@@ -62,7 +62,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
 
-		Acronyms: strcase.ParseAcronyms(opts.Acronyms),
+		strcaseCtx: strcase.New(opts.Acronyms),
 
 		protofiles: &protoregistry.Files{},
 		typeInfos:  xproto.NewTypeInfos(protoPackage),
@@ -282,7 +282,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		return nil
 	}
 	absPath := filepath.Join(dir, filename)
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.Acronyms, book.MetasheetOptions())
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, book.MetasheetOptions())
 	imp, err := importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
@@ -360,7 +360,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	absPath := filepath.Join(dir, filename)
 	var imp importer.Importer
 	if pass == firstPass {
-		parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.Acronyms, book.MetasheetOptions())
+		parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, book.MetasheetOptions())
 		imp, err = importer.New(absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
 		if err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
@@ -508,7 +508,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		Namerow: 1,
 		Datarow: 2,
 	}
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.Acronyms, sheetOpts)
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
@@ -603,7 +603,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		Namerow: 1,
 		Datarow: 2,
 	}
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.Acronyms, sheetOpts)
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 
 	// parse each special sheet mode
 	switch mode {

@@ -3,7 +3,7 @@ package strcase
 import "testing"
 
 func toCamel(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"test_case", "TestCase"},
 		{"test.case", "TestCase"},
@@ -21,7 +21,7 @@ func toCamel(tb testing.TB) {
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := acronyms.ToCamel(in)
+		result := ctx.ToCamel(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -37,7 +37,7 @@ func BenchmarkToCamel(b *testing.B) {
 }
 
 func toLowerCamel(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"foo-bar", "fooBar"},
 		{"TestCase", "testCase"},
@@ -52,7 +52,7 @@ func toLowerCamel(tb testing.TB) {
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := acronyms.ToLowerCamel(in)
+		result := ctx.ToLowerCamel(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -153,9 +153,9 @@ func TestCustomAcronymToCamel(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			acronyms := ParseAcronyms(test.acronyms)
+			ctx := New(test.acronyms)
 			for _, arg := range test.args {
-				if result := acronyms.ToCamel(arg.value); result != arg.expected {
+				if result := ctx.ToCamel(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
 				}
 			}
@@ -253,9 +253,9 @@ func TestCustomAcronymToLowerCamel(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			acronyms := ParseAcronyms(test.acronyms)
+			ctx := New(test.acronyms)
 			for _, arg := range test.args {
-				if result := acronyms.ToLowerCamel(arg.value); result != arg.expected {
+				if result := ctx.ToLowerCamel(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
 				}
 			}

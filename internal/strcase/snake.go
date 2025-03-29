@@ -5,40 +5,40 @@ import (
 )
 
 // ToSnake converts a string to snake_case
-func (a Acronyms) ToSnake(s string) string {
-	return a.ToDelimited(s, '_')
+func (ctx Context) ToSnake(s string) string {
+	return ctx.ToDelimited(s, '_')
 }
 
-func (a Acronyms) ToSnakeWithIgnore(s string, ignore string) string {
-	return a.ToScreamingDelimited(s, '_', ignore, false)
+func (ctx Context) ToSnakeWithIgnore(s string, ignore string) string {
+	return ctx.ToScreamingDelimited(s, '_', ignore, false)
 }
 
 // ToScreamingSnake converts a string to SCREAMING_SNAKE_CASE
-func (a Acronyms) ToScreamingSnake(s string) string {
-	return a.ToScreamingDelimited(s, '_', "", true)
+func (ctx Context) ToScreamingSnake(s string) string {
+	return ctx.ToScreamingDelimited(s, '_', "", true)
 }
 
 // ToKebab converts a string to kebab-case
-func (a Acronyms) ToKebab(s string) string {
-	return a.ToDelimited(s, '-')
+func (ctx Context) ToKebab(s string) string {
+	return ctx.ToDelimited(s, '-')
 }
 
 // ToScreamingKebab converts a string to SCREAMING-KEBAB-CASE
-func (a Acronyms) ToScreamingKebab(s string) string {
-	return a.ToScreamingDelimited(s, '-', "", true)
+func (ctx Context) ToScreamingKebab(s string) string {
+	return ctx.ToScreamingDelimited(s, '-', "", true)
 }
 
 // ToDelimited converts a string to delimited.snake.case
 // (in this case `delimiter = '.'`)
-func (a Acronyms) ToDelimited(s string, delimiter uint8) string {
-	return a.ToScreamingDelimited(s, delimiter, "", false)
+func (ctx Context) ToDelimited(s string, delimiter uint8) string {
+	return ctx.ToScreamingDelimited(s, delimiter, "", false)
 }
 
 // ToScreamingDelimited converts a string to SCREAMING.DELIMITED.SNAKE.CASE
 // (in this case `delimiter = '.'; screaming = true`)
 // or delimited.snake.case
 // (in this case `delimiter = '.'; screaming = false`)
-func (a Acronyms) ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bool) string {
+func (ctx Context) ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bool) string {
 	n := strings.Builder{}
 	n.Grow(len(s) + 2) // nominal 2 bytes of extra space for inserted delimiters
 
@@ -46,7 +46,7 @@ func (a Acronyms) ToScreamingDelimited(s string, delimiter uint8, ignore string,
 	bytes := []byte(s)
 	for i := 0; i < len(bytes); i++ {
 		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
-		acronym, prefix := a.rangeAcronym(s, i)
+		acronym, prefix := ctx.rangeAcronym(s, i)
 		if acronym != nil {
 			val := acronym.Regexp.ReplaceAllString(prefix, acronym.Replacement)
 			if screaming {

@@ -370,7 +370,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		keyedListElemExisted := false
 		keyColName := prefix + field.opts.Name + field.opts.Key
 		md := elemValue.Message().Descriptor()
-		keyProtoName := protoreflect.Name(sp.sheetParser.acronyms.ToSnake(field.opts.Key))
+		keyProtoName := protoreflect.Name(sp.sheetParser.strcaseCtx.ToSnake(field.opts.Key))
 
 		fd := md.Fields().ByName(keyProtoName)
 		if fd == nil {
@@ -600,7 +600,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 	}
 
 	// parse union type
-	typeColName := prefix + sp.acronyms.ToCamel(unionDesc.TypeName())
+	typeColName := prefix + sp.strcaseCtx.ToCamel(unionDesc.TypeName())
 	cell, err := rc.Cell(typeColName, sp.IsFieldOptional(field))
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(typeColName)...)
@@ -624,7 +624,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 	}
 	valueFD := unionDesc.GetValueByNumber(fieldNumber)
 	if valueFD == nil {
-		// This enum value does not correspond to any field.
+		// This enum value has not bound to a oneof field.
 		return true, nil
 	}
 	fieldValue := msg.NewField(valueFD)

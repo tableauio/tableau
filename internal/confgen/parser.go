@@ -215,7 +215,7 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 		err := xerrors.E0001(sheetName, bookName)
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
-	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, nil, info.BookOpts, info.SheetOpts, info.ExtInfo)
+	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, strcase.Context{}, info.BookOpts, info.SheetOpts, info.ExtInfo)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -245,7 +245,7 @@ func (si *SheetInfo) HasMerger() bool {
 type sheetParser struct {
 	ProtoPackage string
 	LocationName string
-	acronyms     strcase.Acronyms
+	strcaseCtx   strcase.Context
 	bookOpts     *tableaupb.WorkbookOptions
 	sheetOpts    *tableaupb.WorksheetOptions
 	extInfo      *SheetParserExtInfo
@@ -266,16 +266,16 @@ type SheetParserExtInfo struct {
 }
 
 // NewSheetParser creates a new sheet parser.
-func NewSheetParser(protoPackage, locationName string, acronyms strcase.Acronyms, opts *tableaupb.WorksheetOptions) *sheetParser {
-	return NewExtendedSheetParser(protoPackage, locationName, acronyms, &tableaupb.WorkbookOptions{}, opts, nil)
+func NewSheetParser(protoPackage, locationName string, strcaseCtx strcase.Context, opts *tableaupb.WorksheetOptions) *sheetParser {
+	return NewExtendedSheetParser(protoPackage, locationName, strcaseCtx, &tableaupb.WorkbookOptions{}, opts, nil)
 }
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
-func NewExtendedSheetParser(protoPackage, locationName string, acronyms strcase.Acronyms, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
+func NewExtendedSheetParser(protoPackage, locationName string, strcaseCtx strcase.Context, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
 	return &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
-		acronyms:     acronyms,
+		strcaseCtx:   strcaseCtx,
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,

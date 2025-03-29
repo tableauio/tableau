@@ -54,7 +54,7 @@ func (f *Field) release() {
 
 func (sp *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
 	// default value
-	name := sp.acronyms.ToCamel(string(fd.FullName().Name()))
+	name := sp.strcaseCtx.ToCamel(string(fd.FullName().Name()))
 	note := ""
 	span := tableaupb.Span_SPAN_DEFAULT
 	key := ""

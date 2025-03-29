@@ -48,7 +48,7 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 	if err := parser.Parse(desc, sheet); err != nil {
 		return xerrors.Wrapf(err, "failed to parse enum type sheet (block): %s", sheet.Name)
 	}
-	prefix := gen.Acronyms.ToScreamingSnake(ws.Name) + "_"
+	prefix := gen.strcaseCtx.ToScreamingSnake(ws.Name) + "_"
 	for i, value := range desc.Values {
 		number := int32(i + 1)
 		if value.Number != nil {

@@ -6,7 +6,7 @@ import (
 
 // Converts a string to camelCase/CamelCase. The first word starting with
 // initial uppercase or lowercase letter.
-func (a Acronyms) toCamelInitCase(s string, initUppercase bool) string {
+func (ctx Context) toCamelInitCase(s string, initUppercase bool) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return s
@@ -20,7 +20,7 @@ func (a Acronyms) toCamelInitCase(s string, initUppercase bool) string {
 	bytes := []byte(s)
 	for i := 0; i < len(bytes); i++ {
 		// treat acronyms as words, e.g.: for JSONData -> JSON is a whole word
-		acronym, prefix := a.rangeAcronym(s, i)
+		acronym, prefix := ctx.rangeAcronym(s, i)
 		if acronym != nil {
 			val := acronym.Regexp.ReplaceAllString(prefix, acronym.Replacement)
 			if i > 0 || upperNext {
@@ -64,11 +64,11 @@ func (a Acronyms) toCamelInitCase(s string, initUppercase bool) string {
 }
 
 // ToCamel converts a string to CamelCase
-func (a Acronyms) ToCamel(s string) string {
+func (a Context) ToCamel(s string) string {
 	return a.toCamelInitCase(s, true)
 }
 
 // ToLowerCamel converts a string to lowerCamelCase
-func (a Acronyms) ToLowerCamel(s string) string {
+func (a Context) ToLowerCamel(s string) string {
 	return a.toCamelInitCase(s, false)
 }

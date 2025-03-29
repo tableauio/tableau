@@ -141,8 +141,9 @@ func E2009(key, fieldName any) error {
 	})
 }
 
-// Deprecated: do not raise errors now.
 // E2010: union type and value field mismatch.
+//
+// Deprecated: not raise errors now, just treat it as not bound to oneof field.
 func E2010(typeValue, fieldNumber any) error {
 	return renderEcode("E2010", map[string]any{
 		"TypeValue":   typeValue,

@@ -7,7 +7,7 @@ import (
 )
 
 func toSnake(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "test_case"},
 		{"TestCase", "test_case"},
@@ -38,7 +38,7 @@ func toSnake(tb testing.TB) {
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := acronyms.ToSnake(in)
+		result := ctx.ToSnake(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -52,7 +52,7 @@ func BenchmarkToSnake(b *testing.B) {
 }
 
 func toSnakeWithIgnore(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "test_case"},
 		{"TestCase", "test_case"},
@@ -82,7 +82,7 @@ func toSnakeWithIgnore(tb testing.TB) {
 		if len(i) == 3 {
 			ignore = i[2]
 		}
-		result := acronyms.ToSnakeWithIgnore(in, ignore)
+		result := ctx.ToSnakeWithIgnore(in, ignore)
 		if result != out {
 			istr := ""
 			if len(i) == 3 {
@@ -201,9 +201,9 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			acronyms := ParseAcronyms(test.acronyms)
+			ctx := New(test.acronyms)
 			for _, arg := range test.args {
-				if result := acronyms.ToSnake(arg.value); result != arg.expected {
+				if result := ctx.ToSnake(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
 				}
 			}
@@ -301,9 +301,9 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			acronyms := ParseAcronyms(test.acronyms)
+			ctx := New(test.acronyms)
 			for _, arg := range test.args {
-				if result := acronyms.ToScreamingSnake(arg.value); result != arg.expected {
+				if result := ctx.ToScreamingSnake(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
 				}
 			}
@@ -336,14 +336,14 @@ func TestPanicOnMultipleAcronymMatches(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			acronyms := ParseAcronyms(test.acronyms)
-			assert.Panics(t, func() { acronyms.ToScreamingSnake(test.arg) })
+			ctx := New(test.acronyms)
+			assert.Panics(t, func() { ctx.ToScreamingSnake(test.arg) })
 		})
 	}
 }
 
 func toDelimited(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "test@case"},
 		{"TestCase", "test@case"},
@@ -367,7 +367,7 @@ func toDelimited(tb testing.TB) {
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := acronyms.ToDelimited(in, '@')
+		result := ctx.ToDelimited(in, '@')
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -381,14 +381,14 @@ func BenchmarkToDelimited(b *testing.B) {
 }
 
 func toScreamingSnake(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "TEST_CASE"},
 	}
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := acronyms.ToScreamingSnake(in)
+		result := ctx.ToScreamingSnake(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -402,14 +402,14 @@ func BenchmarkToScreamingSnake(b *testing.B) {
 }
 
 func toKebab(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "test-case"},
 	}
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := acronyms.ToKebab(in)
+		result := ctx.ToKebab(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -423,14 +423,14 @@ func BenchmarkToKebab(b *testing.B) {
 }
 
 func toScreamingKebab(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "TEST-CASE"},
 	}
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := acronyms.ToScreamingKebab(in)
+		result := ctx.ToScreamingKebab(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -444,14 +444,14 @@ func BenchmarkToScreamingKebab(b *testing.B) {
 }
 
 func toScreamingDelimited(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "TEST.CASE"},
 	}
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := acronyms.ToScreamingDelimited(in, '.', "", true)
+		result := ctx.ToScreamingDelimited(in, '.', "", true)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -465,7 +465,7 @@ func BenchmarkToScreamingDelimited(b *testing.B) {
 }
 
 func toScreamingDelimitedWithIgnore(tb testing.TB) {
-	var acronyms Acronyms
+	var ctx Context
 	cases := [][]string{
 		{"AnyKind of_string", "ANY.KIND OF.STRING", ".", " "},
 	}
@@ -474,7 +474,7 @@ func toScreamingDelimitedWithIgnore(tb testing.TB) {
 		out := i[1]
 		delimiter := i[2][0]
 		ignore := i[3][0]
-		result := acronyms.ToScreamingDelimited(in, delimiter, string(ignore), true)
+		result := ctx.ToScreamingDelimited(in, delimiter, string(ignore), true)
 		if result != out {
 			istr := ""
 			if len(i) == 4 {

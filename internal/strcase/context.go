@@ -6,43 +6,45 @@ import (
 	"strings"
 )
 
-type AcronymRegex struct {
+type acronymRegex struct {
 	Regexp      *regexp.Regexp
 	Pattern     string
 	Replacement string
 }
 
-type Acronyms map[string]*AcronymRegex
+type Context struct {
+	acronyms map[string]*acronymRegex
+}
 
-func ParseAcronyms(acronyms map[string]string) Acronyms {
-	acronymsParsed := make(map[string]*AcronymRegex, len(acronyms))
+// New creates a new context with the given acronyms.
+//
+// Examples:
+//
+//   - "API": "api"
+//   - "K8s": "k8s"
+//   - "3D": "3d"
+//   - `A(1\d{3})`: "a$l1}"
+//   - `(\d)[vV](\d)`: "${1}v${2}"
+func New(acronyms map[string]string) Context {
+	parsedAcronyms := make(map[string]*acronymRegex, len(acronyms))
 	for pattern, replacement := range acronyms {
-		acronymsParsed[pattern] = &AcronymRegex{
+		parsedAcronyms[pattern] = &acronymRegex{
 			Regexp:      regexp.MustCompile(pattern),
 			Pattern:     pattern,
 			Replacement: replacement,
 		}
 	}
-	return acronymsParsed
+	return Context{
+		acronyms: parsedAcronyms,
+	}
 }
 
-// ConfigureAcronym allows you to add additional patterns which will be considered
-// as acronyms.
-//
-// Examples:
-//
-//	ConfigureAcronym("API", "api")
-//	ConfigureAcronym("K8s", "k8s")
-//	ConfigureAcronym("3D", "3d")
-//	ConfigureAcronym(`A(1\d{3})`, "a${1}")
-//	ConfigureAcronym(`(\d)[vV](\d)`, "${1}v${2}")
-
-func (a Acronyms) rangeAcronym(full string, pos int) (*AcronymRegex, string) {
+func (ctx Context) rangeAcronym(full string, pos int) (*acronymRegex, string) {
 	var (
-		acronym *AcronymRegex
+		acronym *acronymRegex
 		prefix  string
 	)
-	for _, regex := range a {
+	for _, regex := range ctx.acronyms {
 		if strings.HasPrefix(regex.Pattern, "^") && pos != 0 {
 			// no need to match if current position is not the start of the string
 			continue

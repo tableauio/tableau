@@ -425,7 +425,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	}
 
 	// parse union type
-	typeNodeName := sp.acronyms.ToCamel(unionDesc.TypeName())
+	typeNodeName := sp.strcaseCtx.ToCamel(unionDesc.TypeName())
 	typeNode := node.FindChild(typeNodeName)
 	if typeNode == nil && xproto.GetFieldDefaultValue(unionDesc.Type) != "" {
 		// if this field has a default value, use virtual node
@@ -466,7 +466,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	}
 	valueFD := unionDesc.GetValueByNumber(fieldNumber)
 	if valueFD == nil {
-		// This enum value does not correspond to any field.
+		// This enum value has not bound to a oneof field.
 		return true, nil
 	}
 	fieldValue := msg.NewField(valueFD)

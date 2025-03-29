@@ -48,14 +48,14 @@ type UnionDescriptor struct {
 }
 
 // TypeName returns the type field name.
-// It returns CameCase style of proto field name if not set explicitly in field extension.
+// It returns "Type" if not set explicitly in field extension.
 func (u UnionDescriptor) TypeName() string {
 	opts := proto.GetExtension(u.Type.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
 	if opts != nil {
 		return opts.Name
 	}
 	// default
-	return string(u.Type.Name())
+	return "Type"
 }
 
 // ValueFieldName returns the value field name.

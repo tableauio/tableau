@@ -167,7 +167,7 @@ func (x *sheetExporter) exportEnum() error {
 	// generate the enum value fields
 	for i, field := range x.ws.Fields {
 		if i == 0 && field.Number != 0 {
-			ename := x.be.gen.Acronyms.ToScreamingSnake(x.ws.Name) + "_INVALID"
+			ename := x.be.gen.strcaseCtx.ToScreamingSnake(x.ws.Name) + "_INVALID"
 			x.g.P("  ", ename, " = 0;")
 		}
 		x.g.P("  ", strings.TrimSpace(field.Name), " = ", field.Number, ` [(tableau.evalue).name = "`, strings.TrimSpace(field.Alias), `"];`)
@@ -214,11 +214,11 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P()
 
 	for _, field := range x.ws.Fields {
-		ename := "TYPE_" + x.be.gen.Acronyms.ToScreamingSnake(field.Name)
+		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(field.Name)
 		if len(field.Fields) == 0 {
 			x.g.P("    // No field bound to enum value: ", ename, ".")
 		} else {
-			x.g.P("    ", strings.TrimSpace(field.Name), " ", x.be.gen.Acronyms.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+			x.g.P("    ", strings.TrimSpace(field.Name), " ", x.be.gen.strcaseCtx.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 		}
 	}
 	x.g.P(`  }`)
@@ -228,7 +228,7 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P("  enum Type {")
 	x.g.P("    TYPE_INVALID = 0;")
 	for _, field := range x.ws.Fields {
-		ename := "TYPE_" + x.be.gen.Acronyms.ToScreamingSnake(field.Name)
+		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(field.Name)
 		x.g.P("    ", ename, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
 	}
 	x.g.P("  }")
