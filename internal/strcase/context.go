@@ -4,11 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
-)
-
-var (
-	acronyms = sync.Map{} // map[string]*acronymRegex
 )
 
 type acronymRegex struct {
@@ -17,43 +12,51 @@ type acronymRegex struct {
 	Replacement string
 }
 
-// ConfigureAcronym allows you to add additional patterns which will be considered
-// as acronyms.
+type Context struct {
+	acronyms map[string]*acronymRegex
+}
+
+// New creates a new context with the given acronyms.
 //
 // Examples:
 //
-//	ConfigureAcronym("API", "api")
-//	ConfigureAcronym("K8s", "k8s")
-//	ConfigureAcronym("3D", "3d")
-//	ConfigureAcronym(`A(1\d{3})`, "a${1}")
-//	ConfigureAcronym(`(\d)[vV](\d)`, "${1}v${2}")
-func ConfigureAcronym(pattern, replacement string) {
-	acronyms.Store(pattern, &acronymRegex{
-		Regexp:      regexp.MustCompile(pattern),
-		Pattern:     pattern,
-		Replacement: replacement,
-	})
+//   - "API": "api"
+//   - "K8s": "k8s"
+//   - "3D": "3d"
+//   - `A(1\d{3})`: "a$l1}"
+//   - `(\d)[vV](\d)`: "${1}v${2}"
+func New(acronyms map[string]string) Context {
+	parsedAcronyms := make(map[string]*acronymRegex, len(acronyms))
+	for pattern, replacement := range acronyms {
+		parsedAcronyms[pattern] = &acronymRegex{
+			Regexp:      regexp.MustCompile(pattern),
+			Pattern:     pattern,
+			Replacement: replacement,
+		}
+	}
+	return Context{
+		acronyms: parsedAcronyms,
+	}
 }
 
-func rangeAcronym(full string, pos int) (*acronymRegex, string) {
+func (ctx Context) rangeAcronym(full string, pos int) (*acronymRegex, string) {
 	var (
 		acronym *acronymRegex
 		prefix  string
 	)
-	acronyms.Range(func(_, re any) bool {
-		regex := re.(*acronymRegex)
+	for _, regex := range ctx.acronyms {
 		if strings.HasPrefix(regex.Pattern, "^") && pos != 0 {
 			// no need to match if current position is not the start of the string
-			return true
+			continue
 		}
 		remain := full[pos:]
 		matches := regex.Regexp.FindStringSubmatch(remain)
 		if len(matches) == 0 {
-			return true
+			continue
 		}
 		if !strings.HasPrefix(remain, matches[0]) {
 			// not current position
-			return true
+			continue
 		}
 		if acronym != nil {
 			panic(fmt.Sprintf(`"%s" (remain: "%s") match multiple patterns: "%s" and "%s"`,
@@ -61,7 +64,6 @@ func rangeAcronym(full string, pos int) (*acronymRegex, string) {
 		}
 		acronym = regex
 		prefix = matches[0]
-		return true
-	})
+	}
 	return acronym, prefix
 }

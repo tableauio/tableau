@@ -1,8 +1,13 @@
 package strcase
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func toSnake(tb testing.TB) {
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "test_case"},
 		{"TestCase", "test_case"},
@@ -33,7 +38,7 @@ func toSnake(tb testing.TB) {
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := ToSnake(in)
+		result := ctx.ToSnake(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -47,6 +52,7 @@ func BenchmarkToSnake(b *testing.B) {
 }
 
 func toSnakeWithIgnore(tb testing.TB) {
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "test_case"},
 		{"TestCase", "test_case"},
@@ -76,7 +82,7 @@ func toSnakeWithIgnore(tb testing.TB) {
 		if len(i) == 3 {
 			ignore = i[2]
 		}
-		result := ToSnakeWithIgnore(in, ignore)
+		result := ctx.ToSnakeWithIgnore(in, ignore)
 		if result != out {
 			istr := ""
 			if len(i) == 3 {
@@ -95,18 +101,18 @@ func BenchmarkToSnakeWithIgnore(b *testing.B) {
 
 func TestCustomAcronymsToSnake(t *testing.T) {
 	tests := []struct {
-		name               string
-		acronymPattern     string
-		acronymReplacement string
-		args               []struct {
+		name     string
+		acronyms map[string]string
+		args     []struct {
 			value    string
 			expected string
 		}
 	}{
 		{
-			name:               "APIV3 Custom Acronym",
-			acronymPattern:     "APIV3",
-			acronymReplacement: "apiv3",
+			name: "APIV3 Custom Acronym",
+			acronyms: map[string]string{
+				"APIV3": "apiv3",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -115,9 +121,10 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "K8s Custom Acroynm",
-			acronymPattern:     "K8s",
-			acronymReplacement: "k8s",
+			name: "K8s Custom Acroynm",
+			acronyms: map[string]string{
+				"K8s": "k8s",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -126,9 +133,10 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "K8s Custom Acroynm with spaces",
-			acronymPattern:     "K8s",
-			acronymReplacement: "k8s",
+			name: "K8s Custom Acroynm with spaces",
+			acronyms: map[string]string{
+				"K8s": "k8s",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -137,9 +145,10 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "HandleA1000Req Custom Acronym",
-			acronymPattern:     `A(1\d{3})`,
-			acronymReplacement: "a${1}",
+			name: "HandleA1000Req Custom Acronym",
+			acronyms: map[string]string{
+				`A(1\d{3})`: "a${1}",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -150,9 +159,10 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "Mode1V1 Custom Acronym",
-			acronymPattern:     `(\d)[vV](\d)`,
-			acronymReplacement: "${1}v${2}",
+			name: "Mode1V1 Custom Acronym",
+			acronyms: map[string]string{
+				`(\d)[vV](\d)`: "${1}v${2}",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -163,9 +173,10 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "Prefix Custom Acronym",
-			acronymPattern:     `^Tom`,
-			acronymReplacement: "tommy",
+			name: "Prefix Custom Acronym",
+			acronyms: map[string]string{
+				`^Tom`: "tommy",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -175,9 +186,10 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "Suffix Custom Acronym",
-			acronymPattern:     `Cat$`,
-			acronymReplacement: "kitty",
+			name: "Suffix Custom Acronym",
+			acronyms: map[string]string{
+				`Cat$`: "kitty",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -189,9 +201,9 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronym(test.acronymPattern, test.acronymReplacement)
+			ctx := New(test.acronyms)
 			for _, arg := range test.args {
-				if result := ToSnake(arg.value); result != arg.expected {
+				if result := ctx.ToSnake(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
 				}
 			}
@@ -201,18 +213,18 @@ func TestCustomAcronymsToSnake(t *testing.T) {
 
 func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 	tests := []struct {
-		name               string
-		acronymPattern     string
-		acronymReplacement string
-		args               []struct {
+		name     string
+		acronyms map[string]string
+		args     []struct {
 			value    string
 			expected string
 		}
 	}{
 		{
-			name:               "APIV3 Custom Acronym",
-			acronymPattern:     "APIV3",
-			acronymReplacement: "apiv3",
+			name: "APIV3 Custom Acronym",
+			acronyms: map[string]string{
+				"APIV3": "apiv3",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -221,9 +233,10 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "K8s Custom Acroynm",
-			acronymPattern:     "K8s",
-			acronymReplacement: "k8s",
+			name: "K8s Custom Acroynm",
+			acronyms: map[string]string{
+				"K8s": "k8s",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -232,9 +245,10 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "HandleA1000Req Custom Acronym",
-			acronymPattern:     `A(1\d{3})`,
-			acronymReplacement: "a${1}",
+			name: "HandleA1000Req Custom Acronym",
+			acronyms: map[string]string{
+				`A(1\d{3})`: "a${1}",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -245,9 +259,10 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "Mode1V1 Custom Acronym",
-			acronymPattern:     `(\d)[vV](\d)`,
-			acronymReplacement: "${1}v${2}",
+			name: "Mode1V1 Custom Acronym",
+			acronyms: map[string]string{
+				`(\d)[vV](\d)`: "${1}v${2}",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -258,9 +273,10 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "Prefix Custom Acronym",
-			acronymPattern:     `^Tom`,
-			acronymReplacement: "tommy",
+			name: "Prefix Custom Acronym",
+			acronyms: map[string]string{
+				`^Tom`: "tommy",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -270,9 +286,10 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 			},
 		},
 		{
-			name:               "Suffix Custom Acronym",
-			acronymPattern:     `Cat$`,
-			acronymReplacement: "kitty",
+			name: "Suffix Custom Acronym",
+			acronyms: map[string]string{
+				`Cat$`: "kitty",
+			},
 			args: []struct {
 				value    string
 				expected string
@@ -284,9 +301,9 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ConfigureAcronym(test.acronymPattern, test.acronymReplacement)
+			ctx := New(test.acronyms)
 			for _, arg := range test.args {
-				if result := ToScreamingSnake(arg.value); result != arg.expected {
+				if result := ctx.ToScreamingSnake(arg.value); result != arg.expected {
 					t.Errorf("expected custom acronym result %s, got %s", arg.expected, result)
 				}
 			}
@@ -294,7 +311,39 @@ func TestCustomAcronymsToScreamingSnake(t *testing.T) {
 	}
 }
 
+func TestPanicOnMultipleAcronymMatches(t *testing.T) {
+	tests := []struct {
+		name     string
+		acronyms map[string]string
+		arg      string
+	}{
+		{
+			name: "APIV3 Custom Acronym",
+			acronyms: map[string]string{
+				"API":   "api",
+				"APIV3": "apiv3",
+			},
+			arg: "WebAPIV3Spec",
+		},
+		{
+			name: "HandleA1000Req Custom Acronym",
+			acronyms: map[string]string{
+				`A(1\d{3})`: "a${1}",
+				`A(\d{4})`:  "a${1}",
+			},
+			arg: "HandleA1000Req",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := New(test.acronyms)
+			assert.Panics(t, func() { ctx.ToScreamingSnake(test.arg) })
+		})
+	}
+}
+
 func toDelimited(tb testing.TB) {
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "test@case"},
 		{"TestCase", "test@case"},
@@ -318,7 +367,7 @@ func toDelimited(tb testing.TB) {
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := ToDelimited(in, '@')
+		result := ctx.ToDelimited(in, '@')
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -332,13 +381,14 @@ func BenchmarkToDelimited(b *testing.B) {
 }
 
 func toScreamingSnake(tb testing.TB) {
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "TEST_CASE"},
 	}
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := ToScreamingSnake(in)
+		result := ctx.ToScreamingSnake(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -352,13 +402,14 @@ func BenchmarkToScreamingSnake(b *testing.B) {
 }
 
 func toKebab(tb testing.TB) {
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "test-case"},
 	}
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := ToKebab(in)
+		result := ctx.ToKebab(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -372,13 +423,14 @@ func BenchmarkToKebab(b *testing.B) {
 }
 
 func toScreamingKebab(tb testing.TB) {
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "TEST-CASE"},
 	}
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := ToScreamingKebab(in)
+		result := ctx.ToScreamingKebab(in)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -392,13 +444,14 @@ func BenchmarkToScreamingKebab(b *testing.B) {
 }
 
 func toScreamingDelimited(tb testing.TB) {
+	var ctx Context
 	cases := [][]string{
 		{"testCase", "TEST.CASE"},
 	}
 	for _, i := range cases {
 		in := i[0]
 		out := i[1]
-		result := ToScreamingDelimited(in, '.', "", true)
+		result := ctx.ToScreamingDelimited(in, '.', "", true)
 		if result != out {
 			tb.Errorf("%q (%q != %q)", in, result, out)
 		}
@@ -412,6 +465,7 @@ func BenchmarkToScreamingDelimited(b *testing.B) {
 }
 
 func toScreamingDelimitedWithIgnore(tb testing.TB) {
+	var ctx Context
 	cases := [][]string{
 		{"AnyKind of_string", "ANY.KIND OF.STRING", ".", " "},
 	}
@@ -420,7 +474,7 @@ func toScreamingDelimitedWithIgnore(tb testing.TB) {
 		out := i[1]
 		delimiter := i[2][0]
 		ignore := i[3][0]
-		result := ToScreamingDelimited(in, delimiter, string(ignore), true)
+		result := ctx.ToScreamingDelimited(in, delimiter, string(ignore), true)
 		if result != out {
 			istr := ""
 			if len(i) == 4 {

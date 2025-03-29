@@ -27,12 +27,10 @@ s := "AnyKind of_string"
 
 Sometimes, text may contain specific acronyms which need to be handled in a certain way.
 
-To configure your custom acronyms globally you can use the following before running any conversion.
-
 ```go
 // For "WebAPIV3Spec":
 //  - ToCamel: WebApiv3Spec
 //  - ToLowerCamel: webApiv3Spec
 //  - ToSnake: web_apiv3_spec
-strcase.ConfigureAcronym("APIV3", "apiv3")
+strcase.New(map[string]string{"APIV3": "apiv3"})
 ```

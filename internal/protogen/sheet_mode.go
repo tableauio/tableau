@@ -6,7 +6,6 @@ import (
 
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -44,19 +43,19 @@ func isEnumTypeBlockHeader(cols []string) bool {
 	return false
 }
 
-func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, withPrefix bool) error {
+func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator) error {
 	desc := &internalpb.EnumDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
 		return xerrors.Wrapf(err, "failed to parse enum type sheet (block): %s", sheet.Name)
 	}
-	prefix := strcase.ToScreamingSnake(ws.Name) + "_"
+	prefix := gen.strcaseCtx.ToScreamingSnake(ws.Name) + "_"
 	for i, value := range desc.Values {
 		number := int32(i + 1)
 		if value.Number != nil {
 			number = *value.Number
 		}
 		name := value.Name
-		if withPrefix && !strings.HasPrefix(name, prefix) {
+		if gen.OutputOpt.EnumValueWithPrefix && !strings.HasPrefix(name, prefix) {
 			name = prefix + name
 		}
 		field := &internalpb.Field{

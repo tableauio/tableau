@@ -3,7 +3,7 @@ package xerrors
 import "fmt"
 
 type Error struct {
-    Code int
+	Code int
 	Desc string
 }
 
@@ -15,11 +15,11 @@ func (e *Error) Error() string {
 }
 
 func (e *Error) Is(target error) bool {
-    t, ok := target.(*Error)
-    if !ok {
-        return false
-    }
-    return e.Code == t.Code
+	t, ok := target.(*Error)
+	if !ok {
+		return false
+	}
+	return e.Code == t.Code
 }
 
 // if errors.Is(err, &Error{Code: 1001}) {
@@ -142,6 +142,8 @@ func E2009(key, fieldName any) error {
 }
 
 // E2010: union type and value field mismatch.
+//
+// Deprecated: not raise errors now, just treat it as not bound to oneof field.
 func E2010(typeValue, fieldNumber any) error {
 	return renderEcode("E2010", map[string]any{
 		"TypeValue":   typeValue,

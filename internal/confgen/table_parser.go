@@ -7,7 +7,6 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -131,7 +130,7 @@ func (sp *tableParser) parseMessage(msg protoreflect.Message, rc *book.RowCells,
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		err := func() error {
-			field := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			field := sp.parseFieldDescriptor(fd)
 			defer field.release()
 			fieldPresent, err := sp.parseField(field, msg, rc, prefix)
 			if err != nil {
@@ -371,7 +370,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		keyedListElemExisted := false
 		keyColName := prefix + field.opts.Name + field.opts.Key
 		md := elemValue.Message().Descriptor()
-		keyProtoName := protoreflect.Name(strcase.ToSnake(field.opts.Key))
+		keyProtoName := protoreflect.Name(sp.sheetParser.strcaseCtx.ToSnake(field.opts.Key))
 
 		fd := md.Fields().ByName(keyProtoName)
 		if fd == nil {
@@ -601,7 +600,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 	}
 
 	// parse union type
-	typeColName := prefix + unionDesc.TypeName()
+	typeColName := prefix + sp.strcaseCtx.ToCamel(unionDesc.TypeName())
 	cell, err := rc.Cell(typeColName, sp.IsFieldOptional(field))
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(typeColName)...)
@@ -625,8 +624,8 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 	}
 	valueFD := unionDesc.GetValueByNumber(fieldNumber)
 	if valueFD == nil {
-		typeValue := unionDesc.Type.Enum().Values().ByNumber(protoreflect.EnumNumber(fieldNumber)).Name()
-		return false, xerrors.WrapKV(xerrors.E2010(typeValue, fieldNumber), rc.CellDebugKV(prefix)...)
+		// This enum value has not bound to a oneof field.
+		return true, nil
 	}
 	fieldValue := msg.NewField(valueFD)
 	if valueFD.Kind() != protoreflect.MessageKind {
@@ -639,7 +638,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 		fd := md.Fields().Get(i)
 		valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
 		err := func() error {
-			subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			subField := sp.parseFieldDescriptor(fd)
 			defer subField.release()
 			// incell scalar
 			cell, err := rc.Cell(valColName, sp.IsFieldOptional(subField))

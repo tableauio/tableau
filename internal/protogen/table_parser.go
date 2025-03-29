@@ -7,7 +7,6 @@ import (
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -90,7 +89,7 @@ func (p *tableParser) parseField(field *internalpb.Field, header *tableHeader, c
 	} else {
 		// scalar or enum type
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
-		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, typeCell)
+		scalarField, err := p.parseBasicField(trimmedNameCell, typeCell)
 		if err != nil {
 			return cursor, false, xerrors.WrapKV(err, xerrors.KeyPBFieldType, "scalar/enum")
 		}
@@ -193,7 +192,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			prefix += valueTypeDesc.Name // add prefix with value type
 		}
 		// auto add suffix "_map".
-		field.Name = strcase.ToSnake(valueTypeDesc.Name) + mapVarSuffix
+		field.Name = p.gen.strcaseCtx.ToSnake(valueTypeDesc.Name) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
@@ -224,7 +223,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
 		}
-		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.KeyType+desc.Prop.RawProp())
+		scalarField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp())
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -251,7 +250,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		mapName := trimmedNameCell[:firstElemIndex]
 		prefix += mapName
 		// auto add suffix "_map".
-		field.Name = strcase.ToSnake(mapName) + mapVarSuffix
+		field.Name = p.gen.strcaseCtx.ToSnake(mapName) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
@@ -277,7 +276,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			Layout: layout,
 			Prop:   ExtractMapFieldProp(prop),
 		}
-		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.KeyType+desc.Prop.RawProp())
+		scalarField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp())
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -330,7 +329,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		}
 
 		// auto add suffix "_map".
-		field.Name = strcase.ToSnake(trimmedNameCell) + mapVarSuffix
+		field.Name = p.gen.strcaseCtx.ToSnake(trimmedNameCell) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has already
@@ -358,7 +357,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = types.DefaultMapKeyOptName
 
-			scalarField, err := parseField(p.gen.typeInfos, types.DefaultMapKeyOptName, desc.KeyType+desc.Prop.RawProp())
+			scalarField, err := p.parseBasicField(types.DefaultMapKeyOptName, desc.KeyType+desc.Prop.RawProp())
 			if err != nil {
 				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -367,7 +366,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			}
 			field.Fields = append(field.Fields, scalarField)
 
-			scalarField, err = parseField(p.gen.typeInfos, types.DefaultMapValueOptName, desc.ValueType)
+			scalarField, err = p.parseBasicField(types.DefaultMapValueOptName, desc.ValueType)
 			if err != nil {
 				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
@@ -474,7 +473,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		// vertical list: all columns belong to this list after this cursor.
-		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, elemType)
+		scalarField, err := p.parseBasicField(trimmedNameCell, elemType)
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, elemType+" (list element)",
@@ -489,7 +488,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 			ElemFullType: scalarField.FullType,
 		}
 		// auto add suffix "_list".
-		field.Name = strcase.ToSnake(pureElemTypeName) + listVarSuffix
+		field.Name = p.gen.strcaseCtx.ToSnake(pureElemTypeName) + listVarSuffix
 		field.Options.Name = "" // Default, name is empty for vertical list
 		field.Options.Layout = layout
 
@@ -540,7 +539,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 		listName := trimmedNameCell[:firstElemIndex]
 		prefix += listName
 
-		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, elemType)
+		scalarField, err := p.parseBasicField(trimmedNameCell, elemType)
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, elemType+" (list element)",
@@ -555,7 +554,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 			ElemFullType: scalarField.FullType,
 		}
 		// auto add suffix "_list".
-		field.Name = strcase.ToSnake(listName) + listVarSuffix
+		field.Name = p.gen.strcaseCtx.ToSnake(listName) + listVarSuffix
 		field.Options.Name = listName
 		field.Options.Layout = layout
 
@@ -632,7 +631,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 					for i := 0; i < len(fieldPairs); i += 2 {
 						fieldType := fieldPairs[i]
 						fieldName := fieldPairs[i+1]
-						scalarField, err := parseField(p.gen.typeInfos, fieldName, fieldType)
+						scalarField, err := p.parseBasicField(fieldName, fieldType)
 						if err != nil {
 							return cursor, xerrors.WrapKV(err,
 								xerrors.KeyPBFieldType, fieldType,
@@ -644,7 +643,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				}
 			}
 		}
-		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, colType+desc.Prop.RawProp())
+		scalarField, err := p.parseBasicField(trimmedNameCell, colType+desc.Prop.RawProp())
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, colType,
@@ -718,7 +717,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 
 	if desc.ColumnType == "" {
 		// incell predefined struct
-		structField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.StructType)
+		structField, err := p.parseBasicField(trimmedNameCell, desc.StructType)
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.StructType,
@@ -736,7 +735,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 		return cursor, err
 	}
 	if fieldPairs != nil {
-		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.ColumnType)
+		scalarField, err := p.parseBasicField(trimmedNameCell, desc.ColumnType)
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.ColumnType,
@@ -750,7 +749,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
-			scalarField, err := parseField(p.gen.typeInfos, fieldName, fieldType)
+			scalarField, err := p.parseBasicField(fieldName, fieldType)
 			if err != nil {
 				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, fieldType,
@@ -762,7 +761,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 	} else {
 		// cross cell struct
 		// NOTE(wenchy): each column name should be prefixed with the same struct variable name.
-		scalarField, err := parseField(p.gen.typeInfos, trimmedNameCell, desc.StructType)
+		scalarField, err := p.parseBasicField(trimmedNameCell, desc.StructType)
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.StructType,
@@ -796,7 +795,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 			}
 		}
 
-		field.Name = strcase.ToSnake(structName)
+		field.Name = p.gen.strcaseCtx.ToSnake(structName)
 		field.Options = &tableaupb.FieldOptions{
 			Name: structName,
 			Prop: ExtractStructFieldProp(prop),

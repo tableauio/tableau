@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"github.com/tableauio/tableau/xerrors"
 )
@@ -13,7 +14,7 @@ import (
 var docTestParser *sheetParser
 
 func init() {
-	docTestParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai",
+	docTestParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
 		book.MetabookOptions(),
 		book.MetasheetOptions(),
 		&SheetParserExtInfo{
