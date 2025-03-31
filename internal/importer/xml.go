@@ -421,14 +421,14 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 				Children: []*book.Node{
 					{
 						Name:  attrName,
-						Value: desc.ColumnType,
+						Value: desc.ColumnType + desc.Prop.RawProp(),
 					},
 				},
 			}
 			if isFirstAttr {
 				bnode.Children = append(bnode.Children, &book.Node{
 					Name:  book.KeywordType,
-					Value: fmt.Sprintf("[%s]", desc.ElemType),
+					Value: fmt.Sprintf("[%s]", desc.ElemType) + desc.Prop.RawProp(),
 				}, &book.Node{
 					Name:  book.KeywordVariable,
 					Value: fmt.Sprintf("%sList", bnode.Name),

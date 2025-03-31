@@ -1,0 +1,6 @@
+ID,Name,Desc
+[Item]uint32|{unique:true},string|{unique:true},string
+Item's ID,Item's name,Item's desc
+1,Apple,A kind of delicious fruit.
+2,Orange,A kind of sour fruit.
+3,Banana,A kind of calorie-rich fruit.
