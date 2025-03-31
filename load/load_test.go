@@ -414,12 +414,51 @@ func TestLoadEmptyText(t *testing.T) {
 	require.NoError(t, err, "should return no error")
 }
 
-func TestLoadCSV_E0003(t *testing.T) {
-	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.CSV,
+func TestLoadCSV_E2005(t *testing.T) {
+	err := Load(&unittestpb.VerticalUniqueFieldStructMap{}, "../testdata/", format.CSV,
+		SubdirRewrites(map[string]string{"unittest/Unittest": "unittest/Unittest"}),
+	)
+	require.Error(t, err, "should return an error")
+	desc := xerrors.NewDesc(err)
+	require.Equal(t, "E2005", desc.ErrCode())
+	t.Logf("error: %s", desc.String())
+
+	err = Load(&unittestpb.SimpleIncellMap{}, "../testdata/", format.CSV,
+		SubdirRewrites(map[string]string{"unittest/Unittest": "unittest/Unittest"}),
+	)
+	require.Error(t, err, "should return an error")
+	desc = xerrors.NewDesc(err)
+	require.Equal(t, "E2005", desc.ErrCode())
+	t.Logf("error: %s", desc.String())
+}
+
+func TestLoadCSV_E2022(t *testing.T) {
+	err := Load(&unittestpb.VerticalUniqueFieldStructMap{}, "../testdata/", format.CSV,
 		SubdirRewrites(map[string]string{"unittest/Unittest": "unittest/Unittest2"}),
 	)
 	require.Error(t, err, "should return an error")
 	desc := xerrors.NewDesc(err)
-	require.Equal(t, "E0003", desc.ErrCode())
+	require.Equal(t, "E2022", desc.ErrCode())
+	t.Logf("error: %s", desc.String())
+
+	err = Load(&unittestpb.VerticalUniqueFieldStructMap{}, "../testdata/", format.CSV,
+		SubdirRewrites(map[string]string{"unittest/Unittest": "unittest/Unittest3"}),
+	)
+	require.NoError(t, err, "should return an error")
+
+	err = Load(&unittestpb.VerticalUniqueFieldStructList{}, "../testdata/", format.CSV,
+		SubdirRewrites(map[string]string{"unittest/Unittest": "unittest/Unittest"}),
+	)
+	require.Error(t, err, "should return an error")
+	desc = xerrors.NewDesc(err)
+	require.Equal(t, "E2022", desc.ErrCode())
+	t.Logf("error: %s", desc.String())
+
+	err = Load(&unittestpb.VerticalUniqueFieldStructList{}, "../testdata/", format.CSV,
+		SubdirRewrites(map[string]string{"unittest/Unittest": "unittest/Unittest2"}),
+	)
+	require.Error(t, err, "should return an error")
+	desc = xerrors.NewDesc(err)
+	require.Equal(t, "E2022", desc.ErrCode())
 	t.Logf("error: %s", desc.String())
 }

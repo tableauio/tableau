@@ -378,7 +378,7 @@ func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap proto
 		newMapKey := fieldValue.MapKey()
 		if reflectMap.Has(newMapKey) {
 			// incell map key must be unique
-			xerrors.WrapKV(xerrors.E2005(cellData))
+			return xerrors.WrapKV(xerrors.E2005(key))
 		}
 		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
 		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value, nil)
@@ -447,7 +447,7 @@ func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, re
 		}
 		if reflectMap.Has(newMapKey) {
 			// incell map key must be unique
-			xerrors.WrapKV(xerrors.E2005(cellData))
+			return xerrors.WrapKV(xerrors.E2005(keyData))
 		}
 
 		newMapValue := reflectMap.NewValue()

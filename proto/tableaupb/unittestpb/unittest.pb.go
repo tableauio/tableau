@@ -765,6 +765,100 @@ func (x *JsonUtilTestData) GetMapField() map[int32]*PatchMergeConf {
 	return nil
 }
 
+type VerticalUniqueFieldStructList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ItemList []*VerticalUniqueFieldStructList_Item `protobuf:"bytes,1,rep,name=item_list,json=itemList,proto3" json:"item_list,omitempty"`
+}
+
+func (x *VerticalUniqueFieldStructList) Reset() {
+	*x = VerticalUniqueFieldStructList{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *VerticalUniqueFieldStructList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerticalUniqueFieldStructList) ProtoMessage() {}
+
+func (x *VerticalUniqueFieldStructList) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerticalUniqueFieldStructList.ProtoReflect.Descriptor instead.
+func (*VerticalUniqueFieldStructList) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *VerticalUniqueFieldStructList) GetItemList() []*VerticalUniqueFieldStructList_Item {
+	if x != nil {
+		return x.ItemList
+	}
+	return nil
+}
+
+type VerticalUniqueFieldStructMap struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MainMap map[uint32]*VerticalUniqueFieldStructMap_Main `protobuf:"bytes,1,rep,name=main_map,json=mainMap,proto3" json:"main_map,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *VerticalUniqueFieldStructMap) Reset() {
+	*x = VerticalUniqueFieldStructMap{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *VerticalUniqueFieldStructMap) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerticalUniqueFieldStructMap) ProtoMessage() {}
+
+func (x *VerticalUniqueFieldStructMap) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerticalUniqueFieldStructMap.ProtoReflect.Descriptor instead.
+func (*VerticalUniqueFieldStructMap) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *VerticalUniqueFieldStructMap) GetMainMap() map[uint32]*VerticalUniqueFieldStructMap_Main {
+	if x != nil {
+		return x.MainMap
+	}
+	return nil
+}
+
 type IncellMap_Fruit struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -777,7 +871,7 @@ type IncellMap_Fruit struct {
 func (x *IncellMap_Fruit) Reset() {
 	*x = IncellMap_Fruit{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[14]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -790,7 +884,7 @@ func (x *IncellMap_Fruit) String() string {
 func (*IncellMap_Fruit) ProtoMessage() {}
 
 func (x *IncellMap_Fruit) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[14]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -832,7 +926,7 @@ type IncellMap_Item struct {
 func (x *IncellMap_Item) Reset() {
 	*x = IncellMap_Item{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[17]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -845,7 +939,7 @@ func (x *IncellMap_Item) String() string {
 func (*IncellMap_Item) ProtoMessage() {}
 
 func (x *IncellMap_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[17]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -887,7 +981,7 @@ type MallConf_Shop struct {
 func (x *MallConf_Shop) Reset() {
 	*x = MallConf_Shop{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[20]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -900,7 +994,7 @@ func (x *MallConf_Shop) String() string {
 func (*MallConf_Shop) ProtoMessage() {}
 
 func (x *MallConf_Shop) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[20]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -942,7 +1036,7 @@ type MallConf_Shop_Goods struct {
 func (x *MallConf_Shop_Goods) Reset() {
 	*x = MallConf_Shop_Goods{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[22]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -955,7 +1049,7 @@ func (x *MallConf_Shop_Goods) String() string {
 func (*MallConf_Shop_Goods) ProtoMessage() {}
 
 func (x *MallConf_Shop_Goods) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[22]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -997,7 +1091,7 @@ type RewardConf_Reward struct {
 func (x *RewardConf_Reward) Reset() {
 	*x = RewardConf_Reward{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[24]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1010,7 +1104,7 @@ func (x *RewardConf_Reward) String() string {
 func (*RewardConf_Reward) ProtoMessage() {}
 
 func (x *RewardConf_Reward) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[24]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1052,7 +1146,7 @@ type PatchMergeConf_Time struct {
 func (x *PatchMergeConf_Time) Reset() {
 	*x = PatchMergeConf_Time{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[26]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1065,7 +1159,7 @@ func (x *PatchMergeConf_Time) String() string {
 func (*PatchMergeConf_Time) ProtoMessage() {}
 
 func (x *PatchMergeConf_Time) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[26]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1107,7 +1201,7 @@ type RecursivePatchConf_Shop struct {
 func (x *RecursivePatchConf_Shop) Reset() {
 	*x = RecursivePatchConf_Shop{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[30]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1120,7 +1214,7 @@ func (x *RecursivePatchConf_Shop) String() string {
 func (*RecursivePatchConf_Shop) ProtoMessage() {}
 
 func (x *RecursivePatchConf_Shop) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[30]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1165,7 +1259,7 @@ type RecursivePatchConf_Shop_Goods struct {
 func (x *RecursivePatchConf_Shop_Goods) Reset() {
 	*x = RecursivePatchConf_Shop_Goods{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[32]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[34]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1178,7 +1272,7 @@ func (x *RecursivePatchConf_Shop_Goods) String() string {
 func (*RecursivePatchConf_Shop_Goods) ProtoMessage() {}
 
 func (x *RecursivePatchConf_Shop_Goods) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[32]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[34]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1243,7 +1337,7 @@ type RecursivePatchConf_Shop_Goods_Currency struct {
 func (x *RecursivePatchConf_Shop_Goods_Currency) Reset() {
 	*x = RecursivePatchConf_Shop_Goods_Currency{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[34]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[36]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1256,7 +1350,7 @@ func (x *RecursivePatchConf_Shop_Goods_Currency) String() string {
 func (*RecursivePatchConf_Shop_Goods_Currency) ProtoMessage() {}
 
 func (x *RecursivePatchConf_Shop_Goods_Currency) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[34]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[36]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1312,7 +1406,7 @@ type RecursivePatchConf_Shop_Goods_Award struct {
 func (x *RecursivePatchConf_Shop_Goods_Award) Reset() {
 	*x = RecursivePatchConf_Shop_Goods_Award{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[35]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[37]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1325,7 +1419,7 @@ func (x *RecursivePatchConf_Shop_Goods_Award) String() string {
 func (*RecursivePatchConf_Shop_Goods_Award) ProtoMessage() {}
 
 func (x *RecursivePatchConf_Shop_Goods_Award) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[35]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[37]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1353,6 +1447,187 @@ func (x *RecursivePatchConf_Shop_Goods_Award) GetNum() int32 {
 		return x.Num
 	}
 	return 0
+}
+
+type VerticalUniqueFieldStructList_Item struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id   uint32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Desc string `protobuf:"bytes,3,opt,name=desc,proto3" json:"desc,omitempty"`
+}
+
+func (x *VerticalUniqueFieldStructList_Item) Reset() {
+	*x = VerticalUniqueFieldStructList_Item{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[41]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *VerticalUniqueFieldStructList_Item) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerticalUniqueFieldStructList_Item) ProtoMessage() {}
+
+func (x *VerticalUniqueFieldStructList_Item) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[41]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerticalUniqueFieldStructList_Item.ProtoReflect.Descriptor instead.
+func (*VerticalUniqueFieldStructList_Item) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{12, 0}
+}
+
+func (x *VerticalUniqueFieldStructList_Item) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *VerticalUniqueFieldStructList_Item) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *VerticalUniqueFieldStructList_Item) GetDesc() string {
+	if x != nil {
+		return x.Desc
+	}
+	return ""
+}
+
+type VerticalUniqueFieldStructMap_Main struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MainId   uint32                                            `protobuf:"varint,1,opt,name=main_id,json=mainId,proto3" json:"main_id,omitempty"`
+	MainName string                                            `protobuf:"bytes,2,opt,name=main_name,json=mainName,proto3" json:"main_name,omitempty"`
+	SubMap   map[uint32]*VerticalUniqueFieldStructMap_Main_Sub `protobuf:"bytes,3,rep,name=sub_map,json=subMap,proto3" json:"sub_map,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *VerticalUniqueFieldStructMap_Main) Reset() {
+	*x = VerticalUniqueFieldStructMap_Main{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[43]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *VerticalUniqueFieldStructMap_Main) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerticalUniqueFieldStructMap_Main) ProtoMessage() {}
+
+func (x *VerticalUniqueFieldStructMap_Main) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[43]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerticalUniqueFieldStructMap_Main.ProtoReflect.Descriptor instead.
+func (*VerticalUniqueFieldStructMap_Main) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{13, 1}
+}
+
+func (x *VerticalUniqueFieldStructMap_Main) GetMainId() uint32 {
+	if x != nil {
+		return x.MainId
+	}
+	return 0
+}
+
+func (x *VerticalUniqueFieldStructMap_Main) GetMainName() string {
+	if x != nil {
+		return x.MainName
+	}
+	return ""
+}
+
+func (x *VerticalUniqueFieldStructMap_Main) GetSubMap() map[uint32]*VerticalUniqueFieldStructMap_Main_Sub {
+	if x != nil {
+		return x.SubMap
+	}
+	return nil
+}
+
+type VerticalUniqueFieldStructMap_Main_Sub struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SubId   uint32 `protobuf:"varint,1,opt,name=sub_id,json=subId,proto3" json:"sub_id,omitempty"`
+	SubName string `protobuf:"bytes,2,opt,name=sub_name,json=subName,proto3" json:"sub_name,omitempty"`
+}
+
+func (x *VerticalUniqueFieldStructMap_Main_Sub) Reset() {
+	*x = VerticalUniqueFieldStructMap_Main_Sub{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[45]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *VerticalUniqueFieldStructMap_Main_Sub) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerticalUniqueFieldStructMap_Main_Sub) ProtoMessage() {}
+
+func (x *VerticalUniqueFieldStructMap_Main_Sub) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[45]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerticalUniqueFieldStructMap_Main_Sub.ProtoReflect.Descriptor instead.
+func (*VerticalUniqueFieldStructMap_Main_Sub) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{13, 1, 1}
+}
+
+func (x *VerticalUniqueFieldStructMap_Main_Sub) GetSubId() uint32 {
+	if x != nil {
+		return x.SubId
+	}
+	return 0
+}
+
+func (x *VerticalUniqueFieldStructMap_Main_Sub) GetSubName() string {
+	if x != nil {
+		return x.SubName
+	}
+	return ""
 }
 
 var File_tableau_protobuf_unittest_unittest_proto protoreflect.FileDescriptor
@@ -1712,13 +1987,71 @@ var file_tableau_protobuf_unittest_unittest_proto_rawDesc = []byte{
 	0x28, 0x05, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x2e, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
 	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73,
 	0x74, 0x2e, 0x50, 0x61, 0x74, 0x63, 0x68, 0x4d, 0x65, 0x72, 0x67, 0x65, 0x43, 0x6f, 0x6e, 0x66,
-	0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x42, 0x56, 0x82, 0xb5, 0x18,
-	0x19, 0x0a, 0x17, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2f, 0x55, 0x6e, 0x69, 0x74,
-	0x74, 0x65, 0x73, 0x74, 0x23, 0x2a, 0x2e, 0x63, 0x73, 0x76, 0x5a, 0x37, 0x67, 0x69, 0x74, 0x68,
-	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x69, 0x6f,
-	0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x74,
-	0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x70, 0x62, 0x2f, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73,
-	0x74, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x81, 0x02, 0x0a, 0x1d,
+	0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x55, 0x6e, 0x69, 0x71, 0x75, 0x65, 0x46, 0x69,
+	0x65, 0x6c, 0x64, 0x53, 0x74, 0x72, 0x75, 0x63, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x51, 0x0a,
+	0x09, 0x69, 0x74, 0x65, 0x6d, 0x5f, 0x6c, 0x69, 0x73, 0x74, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x2c, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x56, 0x65, 0x72, 0x74,
+	0x69, 0x63, 0x61, 0x6c, 0x55, 0x6e, 0x69, 0x71, 0x75, 0x65, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x53,
+	0x74, 0x72, 0x75, 0x63, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x2e, 0x49, 0x74, 0x65, 0x6d, 0x42, 0x06,
+	0x82, 0xb5, 0x18, 0x02, 0x20, 0x01, 0x52, 0x08, 0x69, 0x74, 0x65, 0x6d, 0x4c, 0x69, 0x73, 0x74,
+	0x1a, 0x68, 0x0a, 0x04, 0x49, 0x74, 0x65, 0x6d, 0x12, 0x1c, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0d, 0x42, 0x0c, 0x82, 0xb5, 0x18, 0x08, 0x0a, 0x02, 0x49, 0x44, 0x7a, 0x02,
+	0x10, 0x01, 0x52, 0x02, 0x69, 0x64, 0x12, 0x22, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x42, 0x0e, 0x82, 0xb5, 0x18, 0x0a, 0x0a, 0x04, 0x4e, 0x61, 0x6d, 0x65,
+	0x7a, 0x02, 0x10, 0x01, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x1e, 0x0a, 0x04, 0x64, 0x65,
+	0x73, 0x63, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0a, 0x82, 0xb5, 0x18, 0x06, 0x0a, 0x04,
+	0x44, 0x65, 0x73, 0x63, 0x52, 0x04, 0x64, 0x65, 0x73, 0x63, 0x3a, 0x23, 0x82, 0xb5, 0x18, 0x1f,
+	0x0a, 0x1d, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x55, 0x6e, 0x69, 0x71, 0x75, 0x65,
+	0x46, 0x69, 0x65, 0x6c, 0x64, 0x53, 0x74, 0x72, 0x75, 0x63, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x22,
+	0x92, 0x05, 0x0a, 0x1c, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x55, 0x6e, 0x69, 0x71,
+	0x75, 0x65, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x53, 0x74, 0x72, 0x75, 0x63, 0x74, 0x4d, 0x61, 0x70,
+	0x12, 0x5e, 0x0a, 0x08, 0x6d, 0x61, 0x69, 0x6e, 0x5f, 0x6d, 0x61, 0x70, 0x18, 0x01, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x33, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x56, 0x65,
+	0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x55, 0x6e, 0x69, 0x71, 0x75, 0x65, 0x46, 0x69, 0x65, 0x6c,
+	0x64, 0x53, 0x74, 0x72, 0x75, 0x63, 0x74, 0x4d, 0x61, 0x70, 0x2e, 0x4d, 0x61, 0x69, 0x6e, 0x4d,
+	0x61, 0x70, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x42, 0x0e, 0x82, 0xb5, 0x18, 0x0a, 0x1a, 0x06, 0x4d,
+	0x61, 0x69, 0x6e, 0x49, 0x44, 0x20, 0x01, 0x52, 0x07, 0x6d, 0x61, 0x69, 0x6e, 0x4d, 0x61, 0x70,
+	0x1a, 0x67, 0x0a, 0x0c, 0x4d, 0x61, 0x69, 0x6e, 0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74, 0x72, 0x79,
+	0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03, 0x6b,
+	0x65, 0x79, 0x12, 0x41, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x2b, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x56, 0x65, 0x72,
+	0x74, 0x69, 0x63, 0x61, 0x6c, 0x55, 0x6e, 0x69, 0x71, 0x75, 0x65, 0x46, 0x69, 0x65, 0x6c, 0x64,
+	0x53, 0x74, 0x72, 0x75, 0x63, 0x74, 0x4d, 0x61, 0x70, 0x2e, 0x4d, 0x61, 0x69, 0x6e, 0x52, 0x05,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x84, 0x03, 0x0a, 0x04, 0x4d, 0x61,
+	0x69, 0x6e, 0x12, 0x25, 0x0a, 0x07, 0x6d, 0x61, 0x69, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0d, 0x42, 0x0c, 0x82, 0xb5, 0x18, 0x08, 0x0a, 0x06, 0x4d, 0x61, 0x69, 0x6e, 0x49,
+	0x44, 0x52, 0x06, 0x6d, 0x61, 0x69, 0x6e, 0x49, 0x64, 0x12, 0x2f, 0x0a, 0x09, 0x6d, 0x61, 0x69,
+	0x6e, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x12, 0x82, 0xb5,
+	0x18, 0x0e, 0x0a, 0x08, 0x4d, 0x61, 0x69, 0x6e, 0x4e, 0x61, 0x6d, 0x65, 0x7a, 0x02, 0x10, 0x01,
+	0x52, 0x08, 0x6d, 0x61, 0x69, 0x6e, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x5f, 0x0a, 0x07, 0x73, 0x75,
+	0x62, 0x5f, 0x6d, 0x61, 0x70, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x37, 0x2e, 0x75, 0x6e,
+	0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x55,
+	0x6e, 0x69, 0x71, 0x75, 0x65, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x53, 0x74, 0x72, 0x75, 0x63, 0x74,
+	0x4d, 0x61, 0x70, 0x2e, 0x4d, 0x61, 0x69, 0x6e, 0x2e, 0x53, 0x75, 0x62, 0x4d, 0x61, 0x70, 0x45,
+	0x6e, 0x74, 0x72, 0x79, 0x42, 0x0d, 0x82, 0xb5, 0x18, 0x09, 0x1a, 0x05, 0x53, 0x75, 0x62, 0x49,
+	0x44, 0x20, 0x01, 0x52, 0x06, 0x73, 0x75, 0x62, 0x4d, 0x61, 0x70, 0x1a, 0x6a, 0x0a, 0x0b, 0x53,
+	0x75, 0x62, 0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65,
+	0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x45, 0x0a, 0x05,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2f, 0x2e, 0x75, 0x6e,
+	0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x55,
+	0x6e, 0x69, 0x71, 0x75, 0x65, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x53, 0x74, 0x72, 0x75, 0x63, 0x74,
+	0x4d, 0x61, 0x70, 0x2e, 0x4d, 0x61, 0x69, 0x6e, 0x2e, 0x53, 0x75, 0x62, 0x52, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x57, 0x0a, 0x03, 0x53, 0x75, 0x62, 0x12, 0x22,
+	0x0a, 0x06, 0x73, 0x75, 0x62, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x42, 0x0b,
+	0x82, 0xb5, 0x18, 0x07, 0x0a, 0x05, 0x53, 0x75, 0x62, 0x49, 0x44, 0x52, 0x05, 0x73, 0x75, 0x62,
+	0x49, 0x64, 0x12, 0x2c, 0x0a, 0x08, 0x73, 0x75, 0x62, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x42, 0x11, 0x82, 0xb5, 0x18, 0x0d, 0x0a, 0x07, 0x53, 0x75, 0x62, 0x4e,
+	0x61, 0x6d, 0x65, 0x7a, 0x02, 0x10, 0x01, 0x52, 0x07, 0x73, 0x75, 0x62, 0x4e, 0x61, 0x6d, 0x65,
+	0x3a, 0x22, 0x82, 0xb5, 0x18, 0x1e, 0x0a, 0x1c, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c,
+	0x55, 0x6e, 0x69, 0x71, 0x75, 0x65, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x53, 0x74, 0x72, 0x75, 0x63,
+	0x74, 0x4d, 0x61, 0x70, 0x42, 0x56, 0x82, 0xb5, 0x18, 0x19, 0x0a, 0x17, 0x75, 0x6e, 0x69, 0x74,
+	0x74, 0x65, 0x73, 0x74, 0x2f, 0x55, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x23, 0x2a, 0x2e,
+	0x63, 0x73, 0x76, 0x5a, 0x37, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f,
+	0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x69, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61,
+	0x75, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x70,
+	0x62, 0x2f, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1733,7 +2066,7 @@ func file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP() []byte {
 	return file_tableau_protobuf_unittest_unittest_proto_rawDescData
 }
 
-var file_tableau_protobuf_unittest_unittest_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_tableau_protobuf_unittest_unittest_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_tableau_protobuf_unittest_unittest_proto_goTypes = []interface{}{
 	(*SimpleIncellMap)(nil),               // 0: unittest.SimpleIncellMap
 	(*IncellMap)(nil),                     // 1: unittest.IncellMap
@@ -1747,88 +2080,100 @@ var file_tableau_protobuf_unittest_unittest_proto_goTypes = []interface{}{
 	(*PatchMergeConf)(nil),                // 9: unittest.PatchMergeConf
 	(*RecursivePatchConf)(nil),            // 10: unittest.RecursivePatchConf
 	(*JsonUtilTestData)(nil),              // 11: unittest.JsonUtilTestData
-	nil,                                   // 12: unittest.SimpleIncellMap.ItemMapEntry
-	nil,                                   // 13: unittest.IncellMap.FruitMapEntry
-	(*IncellMap_Fruit)(nil),               // 14: unittest.IncellMap.Fruit
-	nil,                                   // 15: unittest.IncellMap.FlavorMapEntry
-	nil,                                   // 16: unittest.IncellMap.ItemMapEntry
-	(*IncellMap_Item)(nil),                // 17: unittest.IncellMap.Item
-	nil,                                   // 18: unittest.ItemConf.ItemMapEntry
-	nil,                                   // 19: unittest.MallConf.ShopMapEntry
-	(*MallConf_Shop)(nil),                 // 20: unittest.MallConf.Shop
-	nil,                                   // 21: unittest.MallConf.Shop.GoodsMapEntry
-	(*MallConf_Shop_Goods)(nil),           // 22: unittest.MallConf.Shop.Goods
-	nil,                                   // 23: unittest.RewardConf.RewardMapEntry
-	(*RewardConf_Reward)(nil),             // 24: unittest.RewardConf.Reward
-	nil,                                   // 25: unittest.RewardConf.Reward.ItemMapEntry
-	(*PatchMergeConf_Time)(nil),           // 26: unittest.PatchMergeConf.Time
-	nil,                                   // 27: unittest.PatchMergeConf.ItemMapEntry
-	nil,                                   // 28: unittest.PatchMergeConf.ReplaceItemMapEntry
-	nil,                                   // 29: unittest.RecursivePatchConf.ShopMapEntry
-	(*RecursivePatchConf_Shop)(nil),       // 30: unittest.RecursivePatchConf.Shop
-	nil,                                   // 31: unittest.RecursivePatchConf.Shop.GoodsMapEntry
-	(*RecursivePatchConf_Shop_Goods)(nil), // 32: unittest.RecursivePatchConf.Shop.Goods
-	nil,                                   // 33: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
-	(*RecursivePatchConf_Shop_Goods_Currency)(nil), // 34: unittest.RecursivePatchConf.Shop.Goods.Currency
-	(*RecursivePatchConf_Shop_Goods_Award)(nil),    // 35: unittest.RecursivePatchConf.Shop.Goods.Award
-	nil,                           // 36: unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
-	nil,                           // 37: unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
-	nil,                           // 38: unittest.JsonUtilTestData.MapFieldEntry
-	(*Item)(nil),                  // 39: unittest.Item
-	(FruitFlavor)(0),              // 40: unittest.FruitFlavor
-	(FruitType)(0),                // 41: unittest.FruitType
-	(*timestamppb.Timestamp)(nil), // 42: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),   // 43: google.protobuf.Duration
+	(*VerticalUniqueFieldStructList)(nil), // 12: unittest.VerticalUniqueFieldStructList
+	(*VerticalUniqueFieldStructMap)(nil),  // 13: unittest.VerticalUniqueFieldStructMap
+	nil,                                   // 14: unittest.SimpleIncellMap.ItemMapEntry
+	nil,                                   // 15: unittest.IncellMap.FruitMapEntry
+	(*IncellMap_Fruit)(nil),               // 16: unittest.IncellMap.Fruit
+	nil,                                   // 17: unittest.IncellMap.FlavorMapEntry
+	nil,                                   // 18: unittest.IncellMap.ItemMapEntry
+	(*IncellMap_Item)(nil),                // 19: unittest.IncellMap.Item
+	nil,                                   // 20: unittest.ItemConf.ItemMapEntry
+	nil,                                   // 21: unittest.MallConf.ShopMapEntry
+	(*MallConf_Shop)(nil),                 // 22: unittest.MallConf.Shop
+	nil,                                   // 23: unittest.MallConf.Shop.GoodsMapEntry
+	(*MallConf_Shop_Goods)(nil),           // 24: unittest.MallConf.Shop.Goods
+	nil,                                   // 25: unittest.RewardConf.RewardMapEntry
+	(*RewardConf_Reward)(nil),             // 26: unittest.RewardConf.Reward
+	nil,                                   // 27: unittest.RewardConf.Reward.ItemMapEntry
+	(*PatchMergeConf_Time)(nil),           // 28: unittest.PatchMergeConf.Time
+	nil,                                   // 29: unittest.PatchMergeConf.ItemMapEntry
+	nil,                                   // 30: unittest.PatchMergeConf.ReplaceItemMapEntry
+	nil,                                   // 31: unittest.RecursivePatchConf.ShopMapEntry
+	(*RecursivePatchConf_Shop)(nil),       // 32: unittest.RecursivePatchConf.Shop
+	nil,                                   // 33: unittest.RecursivePatchConf.Shop.GoodsMapEntry
+	(*RecursivePatchConf_Shop_Goods)(nil), // 34: unittest.RecursivePatchConf.Shop.Goods
+	nil,                                   // 35: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
+	(*RecursivePatchConf_Shop_Goods_Currency)(nil), // 36: unittest.RecursivePatchConf.Shop.Goods.Currency
+	(*RecursivePatchConf_Shop_Goods_Award)(nil),    // 37: unittest.RecursivePatchConf.Shop.Goods.Award
+	nil, // 38: unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
+	nil, // 39: unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
+	nil, // 40: unittest.JsonUtilTestData.MapFieldEntry
+	(*VerticalUniqueFieldStructList_Item)(nil), // 41: unittest.VerticalUniqueFieldStructList.Item
+	nil, // 42: unittest.VerticalUniqueFieldStructMap.MainMapEntry
+	(*VerticalUniqueFieldStructMap_Main)(nil), // 43: unittest.VerticalUniqueFieldStructMap.Main
+	nil, // 44: unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry
+	(*VerticalUniqueFieldStructMap_Main_Sub)(nil), // 45: unittest.VerticalUniqueFieldStructMap.Main.Sub
+	(*Item)(nil),                  // 46: unittest.Item
+	(FruitFlavor)(0),              // 47: unittest.FruitFlavor
+	(FruitType)(0),                // 48: unittest.FruitType
+	(*timestamppb.Timestamp)(nil), // 49: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),   // 50: google.protobuf.Duration
 }
 var file_tableau_protobuf_unittest_unittest_proto_depIdxs = []int32{
-	12, // 0: unittest.SimpleIncellMap.item_map:type_name -> unittest.SimpleIncellMap.ItemMapEntry
-	13, // 1: unittest.IncellMap.fruit_map:type_name -> unittest.IncellMap.FruitMapEntry
-	15, // 2: unittest.IncellMap.flavor_map:type_name -> unittest.IncellMap.FlavorMapEntry
-	16, // 3: unittest.IncellMap.item_map:type_name -> unittest.IncellMap.ItemMapEntry
-	39, // 4: unittest.IncellStructList.item_list:type_name -> unittest.Item
-	40, // 5: unittest.IncellList.flavor_list:type_name -> unittest.FruitFlavor
-	39, // 6: unittest.IncellList.item_list:type_name -> unittest.Item
-	18, // 7: unittest.ItemConf.item_map:type_name -> unittest.ItemConf.ItemMapEntry
-	19, // 8: unittest.MallConf.shop_map:type_name -> unittest.MallConf.ShopMapEntry
-	23, // 9: unittest.RewardConf.reward_map:type_name -> unittest.RewardConf.RewardMapEntry
-	26, // 10: unittest.PatchMergeConf.time:type_name -> unittest.PatchMergeConf.Time
-	27, // 11: unittest.PatchMergeConf.item_map:type_name -> unittest.PatchMergeConf.ItemMapEntry
-	28, // 12: unittest.PatchMergeConf.replace_item_map:type_name -> unittest.PatchMergeConf.ReplaceItemMapEntry
-	29, // 13: unittest.RecursivePatchConf.shop_map:type_name -> unittest.RecursivePatchConf.ShopMapEntry
+	14, // 0: unittest.SimpleIncellMap.item_map:type_name -> unittest.SimpleIncellMap.ItemMapEntry
+	15, // 1: unittest.IncellMap.fruit_map:type_name -> unittest.IncellMap.FruitMapEntry
+	17, // 2: unittest.IncellMap.flavor_map:type_name -> unittest.IncellMap.FlavorMapEntry
+	18, // 3: unittest.IncellMap.item_map:type_name -> unittest.IncellMap.ItemMapEntry
+	46, // 4: unittest.IncellStructList.item_list:type_name -> unittest.Item
+	47, // 5: unittest.IncellList.flavor_list:type_name -> unittest.FruitFlavor
+	46, // 6: unittest.IncellList.item_list:type_name -> unittest.Item
+	20, // 7: unittest.ItemConf.item_map:type_name -> unittest.ItemConf.ItemMapEntry
+	21, // 8: unittest.MallConf.shop_map:type_name -> unittest.MallConf.ShopMapEntry
+	25, // 9: unittest.RewardConf.reward_map:type_name -> unittest.RewardConf.RewardMapEntry
+	28, // 10: unittest.PatchMergeConf.time:type_name -> unittest.PatchMergeConf.Time
+	29, // 11: unittest.PatchMergeConf.item_map:type_name -> unittest.PatchMergeConf.ItemMapEntry
+	30, // 12: unittest.PatchMergeConf.replace_item_map:type_name -> unittest.PatchMergeConf.ReplaceItemMapEntry
+	31, // 13: unittest.RecursivePatchConf.shop_map:type_name -> unittest.RecursivePatchConf.ShopMapEntry
 	9,  // 14: unittest.JsonUtilTestData.normal_field:type_name -> unittest.PatchMergeConf
 	9,  // 15: unittest.JsonUtilTestData.list_field:type_name -> unittest.PatchMergeConf
-	38, // 16: unittest.JsonUtilTestData.map_field:type_name -> unittest.JsonUtilTestData.MapFieldEntry
-	14, // 17: unittest.IncellMap.FruitMapEntry.value:type_name -> unittest.IncellMap.Fruit
-	41, // 18: unittest.IncellMap.Fruit.key:type_name -> unittest.FruitType
-	40, // 19: unittest.IncellMap.FlavorMapEntry.value:type_name -> unittest.FruitFlavor
-	17, // 20: unittest.IncellMap.ItemMapEntry.value:type_name -> unittest.IncellMap.Item
-	41, // 21: unittest.IncellMap.Item.key:type_name -> unittest.FruitType
-	40, // 22: unittest.IncellMap.Item.value:type_name -> unittest.FruitFlavor
-	39, // 23: unittest.ItemConf.ItemMapEntry.value:type_name -> unittest.Item
-	20, // 24: unittest.MallConf.ShopMapEntry.value:type_name -> unittest.MallConf.Shop
-	21, // 25: unittest.MallConf.Shop.goods_map:type_name -> unittest.MallConf.Shop.GoodsMapEntry
-	22, // 26: unittest.MallConf.Shop.GoodsMapEntry.value:type_name -> unittest.MallConf.Shop.Goods
-	24, // 27: unittest.RewardConf.RewardMapEntry.value:type_name -> unittest.RewardConf.Reward
-	25, // 28: unittest.RewardConf.Reward.item_map:type_name -> unittest.RewardConf.Reward.ItemMapEntry
-	39, // 29: unittest.RewardConf.Reward.ItemMapEntry.value:type_name -> unittest.Item
-	42, // 30: unittest.PatchMergeConf.Time.start:type_name -> google.protobuf.Timestamp
-	43, // 31: unittest.PatchMergeConf.Time.expiry:type_name -> google.protobuf.Duration
-	39, // 32: unittest.PatchMergeConf.ItemMapEntry.value:type_name -> unittest.Item
-	39, // 33: unittest.PatchMergeConf.ReplaceItemMapEntry.value:type_name -> unittest.Item
-	30, // 34: unittest.RecursivePatchConf.ShopMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop
-	31, // 35: unittest.RecursivePatchConf.Shop.goods_map:type_name -> unittest.RecursivePatchConf.Shop.GoodsMapEntry
-	32, // 36: unittest.RecursivePatchConf.Shop.GoodsMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods
-	33, // 37: unittest.RecursivePatchConf.Shop.Goods.currency_map:type_name -> unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
-	35, // 38: unittest.RecursivePatchConf.Shop.Goods.award_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Award
-	34, // 39: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency
-	36, // 40: unittest.RecursivePatchConf.Shop.Goods.Currency.value_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
-	37, // 41: unittest.RecursivePatchConf.Shop.Goods.Currency.message_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
-	9,  // 42: unittest.JsonUtilTestData.MapFieldEntry.value:type_name -> unittest.PatchMergeConf
-	43, // [43:43] is the sub-list for method output_type
-	43, // [43:43] is the sub-list for method input_type
-	43, // [43:43] is the sub-list for extension type_name
-	43, // [43:43] is the sub-list for extension extendee
-	0,  // [0:43] is the sub-list for field type_name
+	40, // 16: unittest.JsonUtilTestData.map_field:type_name -> unittest.JsonUtilTestData.MapFieldEntry
+	41, // 17: unittest.VerticalUniqueFieldStructList.item_list:type_name -> unittest.VerticalUniqueFieldStructList.Item
+	42, // 18: unittest.VerticalUniqueFieldStructMap.main_map:type_name -> unittest.VerticalUniqueFieldStructMap.MainMapEntry
+	16, // 19: unittest.IncellMap.FruitMapEntry.value:type_name -> unittest.IncellMap.Fruit
+	48, // 20: unittest.IncellMap.Fruit.key:type_name -> unittest.FruitType
+	47, // 21: unittest.IncellMap.FlavorMapEntry.value:type_name -> unittest.FruitFlavor
+	19, // 22: unittest.IncellMap.ItemMapEntry.value:type_name -> unittest.IncellMap.Item
+	48, // 23: unittest.IncellMap.Item.key:type_name -> unittest.FruitType
+	47, // 24: unittest.IncellMap.Item.value:type_name -> unittest.FruitFlavor
+	46, // 25: unittest.ItemConf.ItemMapEntry.value:type_name -> unittest.Item
+	22, // 26: unittest.MallConf.ShopMapEntry.value:type_name -> unittest.MallConf.Shop
+	23, // 27: unittest.MallConf.Shop.goods_map:type_name -> unittest.MallConf.Shop.GoodsMapEntry
+	24, // 28: unittest.MallConf.Shop.GoodsMapEntry.value:type_name -> unittest.MallConf.Shop.Goods
+	26, // 29: unittest.RewardConf.RewardMapEntry.value:type_name -> unittest.RewardConf.Reward
+	27, // 30: unittest.RewardConf.Reward.item_map:type_name -> unittest.RewardConf.Reward.ItemMapEntry
+	46, // 31: unittest.RewardConf.Reward.ItemMapEntry.value:type_name -> unittest.Item
+	49, // 32: unittest.PatchMergeConf.Time.start:type_name -> google.protobuf.Timestamp
+	50, // 33: unittest.PatchMergeConf.Time.expiry:type_name -> google.protobuf.Duration
+	46, // 34: unittest.PatchMergeConf.ItemMapEntry.value:type_name -> unittest.Item
+	46, // 35: unittest.PatchMergeConf.ReplaceItemMapEntry.value:type_name -> unittest.Item
+	32, // 36: unittest.RecursivePatchConf.ShopMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop
+	33, // 37: unittest.RecursivePatchConf.Shop.goods_map:type_name -> unittest.RecursivePatchConf.Shop.GoodsMapEntry
+	34, // 38: unittest.RecursivePatchConf.Shop.GoodsMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods
+	35, // 39: unittest.RecursivePatchConf.Shop.Goods.currency_map:type_name -> unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
+	37, // 40: unittest.RecursivePatchConf.Shop.Goods.award_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Award
+	36, // 41: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency
+	38, // 42: unittest.RecursivePatchConf.Shop.Goods.Currency.value_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
+	39, // 43: unittest.RecursivePatchConf.Shop.Goods.Currency.message_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
+	9,  // 44: unittest.JsonUtilTestData.MapFieldEntry.value:type_name -> unittest.PatchMergeConf
+	43, // 45: unittest.VerticalUniqueFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main
+	44, // 46: unittest.VerticalUniqueFieldStructMap.Main.sub_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry
+	45, // 47: unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main.Sub
+	48, // [48:48] is the sub-list for method output_type
+	48, // [48:48] is the sub-list for method input_type
+	48, // [48:48] is the sub-list for extension type_name
+	48, // [48:48] is the sub-list for extension extendee
+	0,  // [0:48] is the sub-list for field type_name
 }
 
 func init() { file_tableau_protobuf_unittest_unittest_proto_init() }
@@ -1982,7 +2327,31 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*VerticalUniqueFieldStructList); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*VerticalUniqueFieldStructMap); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*IncellMap_Fruit); i {
 			case 0:
 				return &v.state
@@ -1994,7 +2363,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*IncellMap_Item); i {
 			case 0:
 				return &v.state
@@ -2006,7 +2375,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MallConf_Shop); i {
 			case 0:
 				return &v.state
@@ -2018,7 +2387,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MallConf_Shop_Goods); i {
 			case 0:
 				return &v.state
@@ -2030,7 +2399,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RewardConf_Reward); i {
 			case 0:
 				return &v.state
@@ -2042,7 +2411,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PatchMergeConf_Time); i {
 			case 0:
 				return &v.state
@@ -2054,7 +2423,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RecursivePatchConf_Shop); i {
 			case 0:
 				return &v.state
@@ -2066,7 +2435,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RecursivePatchConf_Shop_Goods); i {
 			case 0:
 				return &v.state
@@ -2078,7 +2447,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RecursivePatchConf_Shop_Goods_Currency); i {
 			case 0:
 				return &v.state
@@ -2090,8 +2459,44 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RecursivePatchConf_Shop_Goods_Award); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*VerticalUniqueFieldStructList_Item); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[43].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*VerticalUniqueFieldStructMap_Main); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[45].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*VerticalUniqueFieldStructMap_Main_Sub); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2110,7 +2515,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tableau_protobuf_unittest_unittest_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   39,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

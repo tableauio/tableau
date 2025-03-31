@@ -148,3 +148,29 @@ message JsonUtilTestData {
   repeated PatchMergeConf list_field = 2;
   map<int32, PatchMergeConf> map_field = 3;
 }
+
+message VerticalUniqueFieldStructList {
+  option (tableau.worksheet) = {name:"VerticalUniqueFieldStructList"};
+
+  repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
+    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+    string desc = 3 [(tableau.field) = {name:"Desc"}];
+  }
+}
+
+message VerticalUniqueFieldStructMap {
+  option (tableau.worksheet) = {name:"VerticalUniqueFieldStructMap"};
+
+  map<uint32, Main> main_map = 1 [(tableau.field) = {key:"MainID" layout:LAYOUT_VERTICAL}];
+  message Main {
+    uint32 main_id = 1 [(tableau.field) = {name:"MainID"}];
+    string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}];
+    map<uint32, Sub> sub_map = 3 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
+    message Sub {
+      uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}];
+      string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}];
+    }
+  }
+}

@@ -33,9 +33,9 @@ E2004:
   text: '值 "{{.Value}}" 超出限制的区间 [{{.Range}}]'
   help: 修改值使其在限制的区间内
 E2005:
-  desc: map or keyed list key not unique
-  text: map或keyed list的key "{{.Key}}" 已存在
-  help: 此处map或keyed list的key要保证唯一性, 不允许重复配置相同key
+  desc: map key not unique
+  text: map的key "{{.Key}}" 已存在
+  help: 此处map的key要保证唯一性, 不允许重复配置相同key
 E2006:
   desc: enum value not defined in enum type
   text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
