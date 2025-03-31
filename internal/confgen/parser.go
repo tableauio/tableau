@@ -549,7 +549,7 @@ func (sp *sheetParser) checkValueUniqueInMap(field *Field, reflectMap protorefle
 	md := elemValue.Message().Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
-		subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+		subField := sp.parseFieldDescriptor(fd)
 		defer subField.release()
 		if subField.opts.GetName() == field.opts.GetKey() {
 			// key field not checked
@@ -589,7 +589,7 @@ func (sp *sheetParser) checkValueUniqueInList(field *Field, list protoreflect.Li
 	md := elemValue.Message().Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
-		subField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+		subField := sp.parseFieldDescriptor(fd)
 		defer subField.release()
 		if subField.opts.GetName() == field.opts.GetKey() {
 			// key field not checked
@@ -844,7 +844,7 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 func (sp *sheetParser) findFieldByName(md protoreflect.MessageDescriptor, name string) protoreflect.FieldDescriptor {
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
-		field := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+		field := sp.parseFieldDescriptor(fd)
 		defer field.release()
 		if field.opts.Name == name {
 			return fd

@@ -228,7 +228,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 		if fd == nil {
 			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), rc.CellDebugKV(keyColName)...)
 		}
-		keyField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+		keyField := sp.parseFieldDescriptor(fd)
 		defer keyField.release()
 		if fieldprop.RequireUnique(keyField.opts.Prop) ||
 			(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
@@ -308,7 +308,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			if fd == nil {
 				return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), rc.CellDebugKV(keyColName)...)
 			}
-			keyField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+			keyField := sp.parseFieldDescriptor(fd)
 			defer keyField.release()
 			if fieldprop.RequireUnique(field.opts.Prop) ||
 				(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
@@ -421,7 +421,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 				break
 			}
 		}
-		keyField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+		keyField := sp.parseFieldDescriptor(fd)
 		defer keyField.release()
 		if fieldprop.RequireUnique(keyField.opts.Prop) && keyedListElemExisted {
 			return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)

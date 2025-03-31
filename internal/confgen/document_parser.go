@@ -172,7 +172,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					if fd == nil {
 						return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), node.DebugKV()...)
 					}
-					keyField := parseFieldDescriptor(fd, sp.GetSep(), sp.GetSubsep())
+					keyField := sp.parseFieldDescriptor(fd)
 					defer keyField.release()
 					if fieldprop.RequireUnique(keyField.opts.Prop) ||
 						(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
