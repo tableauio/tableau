@@ -252,7 +252,7 @@ func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap pr
 		newMapKey := fieldValue.MapKey()
 		if reflectMap.Has(newMapKey) {
 			// scalar map key must be unique
-			xerrors.WrapKV(xerrors.E2005(key))
+			return xerrors.WrapKV(xerrors.E2005(key))
 		}
 		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
 		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value, nil)
@@ -308,7 +308,7 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 		}
 		if reflectMap.Has(newMapKey) {
 			// scalar map key must be unique
-			xerrors.WrapKV(xerrors.E2005(key))
+			return xerrors.WrapKV(xerrors.E2005(key))
 		}
 		newMapValue := reflectMap.NewValue()
 		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)

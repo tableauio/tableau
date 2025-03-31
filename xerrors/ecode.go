@@ -102,7 +102,7 @@ func E2004(value any, vrange string) error {
 	})
 }
 
-// E2005: map or keyed list key not unique.
+// E2005: map key not unique.
 func E2005(key any) error {
 	return renderEcode("E2005", map[string]any{
 		"Key": key,
