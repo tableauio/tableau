@@ -243,6 +243,15 @@ func E2021(enumType, enumValue1, enumValue2, alias any) error {
 	})
 }
 
+// E2023: duplicate column name.
+func E2023(col1, col2, name any) error {
+	return renderEcode("E2023", map[string]any{
+		"Col1": col1,
+		"Col2": col2,
+		"Name": name,
+	})
+}
+
 // E3000: no workbook file found about sheet specifier.
 func E3000(sheetSpecifier, pattern string) error {
 	return renderEcode("E3000", map[string]any{
