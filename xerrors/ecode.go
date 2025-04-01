@@ -51,9 +51,9 @@ func E0002(filename, messageName, errstr string, lines string) error {
 	})
 }
 
-// E1000: column name conflicts in name row.
-func E1000(name, positon1, positon2 string) error {
-	return renderEcode("E1000", map[string]any{
+// E0003: column name conflicts in name row.
+func E0003(name, positon1, positon2 string) error {
+	return renderEcode("E0003", map[string]any{
 		"Name":      name,
 		"Position1": positon1,
 		"Position2": positon2,
@@ -240,15 +240,6 @@ func E2021(enumType, enumValue1, enumValue2, alias any) error {
 		"EnumValue1": enumValue1,
 		"EnumValue2": enumValue2,
 		"Alias":      alias,
-	})
-}
-
-// E2023: duplicate column name.
-func E2023(col1, col2, name any) error {
-	return renderEcode("E2023", map[string]any{
-		"Col1": col1,
-		"Col2": col2,
-		"Name": name,
 	})
 }
 
