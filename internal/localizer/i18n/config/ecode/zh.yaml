@@ -6,11 +6,11 @@ E0002:
   desc: cannot unmarshal file content to given proto.Message
   text: '无法将"{{.Filename}}"的文件内容反序列化到Protobuf消息"{{.MessageName}}": {{.Error}}{{.Lines}}'
   help: 检查文件内容格式是否正确
-# [1000, 1999]: protogen error
-E1000:
+E0003:
   desc: column name conflicts in name row
   text: '"{{.Position1}}" 和 "{{.Position2}}" 存在相同的列名 "{{.Name}}"'
   help: 修改冲突的列名，以确保唯一性
+# [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2000:
   desc: integer overflow

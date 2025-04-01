@@ -60,10 +60,10 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 				curr.NewCell(row, &sp.names[row], &sp.types[row], data, sp.sheetOpts.AdjacentKey)
 				name := sp.names[row]
-				if existingRow, ok := sp.lookupTable[name]; ok && existingRow != uint32(row) {
-					return xerrors.E2023(excel.LetterAxis(int(existingRow)), excel.LetterAxis(row), name)
+				if foundCursor, ok := sp.lookupTable[name]; ok && foundCursor != row {
+					return xerrors.E0003(name, excel.Postion(foundCursor, nameCol), excel.Postion(row, nameCol))
 				}
-				sp.lookupTable[name] = uint32(row)
+				sp.lookupTable[name] = row
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
 
@@ -111,10 +111,10 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 				curr.NewCell(col, &sp.names[col], &sp.types[col], data, sp.sheetOpts.AdjacentKey)
 				name := sp.names[col]
-				if existingCol, ok := sp.lookupTable[name]; ok && existingCol != uint32(col) {
-					return xerrors.E2023(excel.LetterAxis(int(existingCol)), excel.LetterAxis(col), name)
+				if foundCursor, ok := sp.lookupTable[name]; ok && foundCursor != col {
+					return xerrors.E0003(name, excel.Postion(nameRow, foundCursor), excel.Postion(nameRow, col))
 				}
-				sp.lookupTable[name] = uint32(col)
+				sp.lookupTable[name] = col
 			}
 
 			curr.SetColumnLookupTable(sp.lookupTable)

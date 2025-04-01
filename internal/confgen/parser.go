@@ -279,7 +279,7 @@ func NewExtendedSheetParser(protoPackage, locationName string, strcaseCtx strcas
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
-		lookupTable:  map[string]uint32{},
+		lookupTable:  map[string]int{},
 	}
 }
 

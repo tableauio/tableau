@@ -6,11 +6,11 @@ E0002:
   desc: cannot unmarshal file content to given proto.Message
   text: 'failed to unmarshal file "{{.Filename}}" to message "{{.MessageName}}": {{.Error}}{{.Lines}}'
   help: check the file content format is correct
-# [1000, 1999]: protogen error
-E1000:
+E0003:
   desc: column name conflicts in name row
   text: found same name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}"
   help: rename column name and keep sure it is unique in name row
+# [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2000:
   desc: integer overflow
@@ -100,10 +100,6 @@ E2021:
   desc: duplicate enum value alias
   text: 'in enum {{.EnumType}} definition, {{.EnumValue1}} and {{.EnumValue2}} have duplicate value alias "{{.Alias}}"'
   help: ensure the enum value alias is unique
-E2023:
-  desc: duplicate column name
-  text: 'Column {{.Col1}} and {{.Col2}} have duplicate name "{{.Name}}"'
-  help: ensure the column name is unique
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
