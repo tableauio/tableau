@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
+	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/types"
@@ -58,7 +59,11 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 					return xerrors.WrapKV(err)
 				}
 				curr.NewCell(row, &sp.names[row], &sp.types[row], data, sp.sheetOpts.AdjacentKey)
-				sp.lookupTable[sp.names[row]] = uint32(row)
+				name := sp.names[row]
+				if existingRow, ok := sp.lookupTable[name]; ok && existingRow != uint32(row) {
+					return xerrors.E2023(excel.LetterAxis(int(existingRow)), excel.LetterAxis(row), name)
+				}
+				sp.lookupTable[name] = uint32(row)
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
 
@@ -105,7 +110,11 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 					return xerrors.WrapKV(err)
 				}
 				curr.NewCell(col, &sp.names[col], &sp.types[col], data, sp.sheetOpts.AdjacentKey)
-				sp.lookupTable[sp.names[col]] = uint32(col)
+				name := sp.names[col]
+				if existingCol, ok := sp.lookupTable[name]; ok && existingCol != uint32(col) {
+					return xerrors.E2023(excel.LetterAxis(int(existingCol)), excel.LetterAxis(col), name)
+				}
+				sp.lookupTable[name] = uint32(col)
 			}
 
 			curr.SetColumnLookupTable(sp.lookupTable)
