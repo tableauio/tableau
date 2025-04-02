@@ -60,8 +60,8 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 		}
 		field := &internalpb.Field{
 			Number: number,
-			Name:   name,
-			Alias:  value.Alias,
+			Name:   strings.TrimSpace(name),
+			Alias:  strings.TrimSpace(value.Alias),
 		}
 		ws.Fields = append(ws.Fields, field)
 	}
@@ -108,7 +108,7 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 		},
 	}
 	for _, field := range desc.Fields {
-		shHeader.nameRowData = append(shHeader.nameRowData, field.Name)
+		shHeader.nameRowData = append(shHeader.nameRowData, strings.TrimSpace(field.Name))
 		shHeader.typeRowData = append(shHeader.typeRowData, field.Type)
 		shHeader.noteRowData = append(shHeader.noteRowData, "")
 	}
@@ -164,7 +164,7 @@ func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, pa
 			firstFieldOptionName = book.ExtractFromCell(value.Fields[0], 1)
 		}
 		info := &xproto.TypeInfo{
-			FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName + "." + value.Name),
+			FullName:             protoreflect.FullName(gen.ProtoPackage + "." + typeName + "." + strings.TrimSpace(value.Name)),
 			ParentFilename:       parentFilename,
 			Kind:                 types.MessageKind,
 			FirstFieldOptionName: firstFieldOptionName,
@@ -187,8 +187,8 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		}
 		field := &internalpb.Field{
 			Number: number,
-			Name:   value.Name,
-			Alias:  value.Alias,
+			Name:   strings.TrimSpace(value.Name),
+			Alias:  strings.TrimSpace(value.Alias),
 		}
 		// create a book parser
 		bp := newTableParser("union", "", "", gen)

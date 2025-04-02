@@ -280,9 +280,8 @@ func GetFieldDefaultValue(fd pref.FieldDescriptor) string {
 	return ""
 }
 
-func parseEnumValue(fd pref.FieldDescriptor, rawValue string) (v pref.Value, present bool, err error) {
-	// default enum value
-	value := strings.TrimSpace(rawValue)
+func parseEnumValue(fd pref.FieldDescriptor, value string) (v pref.Value, present bool, err error) {
+	// return default enum value if not set
 	if value == "" {
 		return DefaultEnumValue, false, nil
 	}
