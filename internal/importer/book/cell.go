@@ -54,9 +54,9 @@ type RowCells struct {
 	SheetName string
 	prev      *RowCells
 
-	Row         int                 // row number
-	cells       map[uint32]*RowCell // column index (started with 0) -> RowCell
-	lookupTable ColumnLookupTable   // name -> column index
+	Row         int               // row number
+	cells       map[int]*RowCell  // column index (started with 0) -> RowCell
+	lookupTable ColumnLookupTable // name -> column index
 }
 
 func NewRowCells(row int, prev *RowCells, sheetName string) *RowCells {
@@ -65,7 +65,7 @@ func NewRowCells(row int, prev *RowCells, sheetName string) *RowCells {
 		prev:      prev,
 
 		Row:   row,
-		cells: make(map[uint32]*RowCell),
+		cells: make(map[int]*RowCell),
 	}
 }
 
@@ -155,7 +155,7 @@ func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowC
 	if minCol == -1 || maxCol == -1 {
 		return nil, nil
 	}
-	return r.cells[uint32(minCol)], r.cells[uint32(maxCol)]
+	return r.cells[minCol], r.cells[maxCol]
 }
 
 func (r *RowCells) CellDebugKV(name string) []any {
@@ -186,7 +186,7 @@ func (r *RowCells) CellDebugKV(name string) []any {
 }
 
 // column name -> column index (started with 0)
-type ColumnLookupTable = map[string]uint32
+type ColumnLookupTable = map[string]int
 
 func (r *RowCells) SetColumnLookupTable(table ColumnLookupTable) {
 	r.lookupTable = table
@@ -212,13 +212,12 @@ func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulate
 			} else {
 				for i := cell.Col - 1; i >= 0; i-- {
 					// prevData := r.prev.cells[col].Data
-					ui := uint32(i)
-					backCell := r.cells[ui]
+					backCell := r.cells[i]
 					if !strings.HasPrefix(backCell.GetName(), prefix) {
 						break
 					}
 					if types.IsMap(backCell.GetType()) || types.IsKeyedList(backCell.GetType()) {
-						if r.prev.cells[ui].Data == r.cells[ui].Data {
+						if r.prev.cells[i].Data == r.cells[i].Data {
 							needPopulate = true
 							break
 						}
@@ -238,8 +237,7 @@ func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulate
 	}
 
 	// add new cell
-	index := uint32(col)
-	r.cells[index] = cell
+	r.cells[col] = cell
 }
 
 func (r *RowCells) GetCellCountWithPrefix(prefix string) int {
