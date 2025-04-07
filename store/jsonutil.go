@@ -80,11 +80,11 @@ func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Lo
 		if fd.Kind() != protoreflect.MessageKind {
 			return true
 		}
+		subNode := node.Get(fieldJSONName(fd))
 		if fd.IsMap() {
 			if fd.MapValue().Kind() != protoreflect.MessageKind {
 				return true
 			}
-			subNode := node.Get(fieldJSONName(fd))
 			v.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
 				err := convertJSONTimestamp(value.Message(), subNode.Get(key.String()), loc, useProtoNames)
 				if err != nil {
@@ -94,7 +94,6 @@ func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Lo
 				return true
 			})
 		} else if fd.IsList() {
-			subNode := node.Get(fieldJSONName(fd))
 			for i := 0; i < v.List().Len(); i++ {
 				err := convertJSONTimestamp(v.List().Get(i).Message(), subNode.Index(i), loc, useProtoNames)
 				if err != nil {
@@ -103,7 +102,7 @@ func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Lo
 				}
 			}
 		} else {
-			err := convertJSONTimestamp(v.Message(), node.Get(fieldJSONName(fd)), loc, useProtoNames)
+			err := convertJSONTimestamp(v.Message(), subNode, loc, useProtoNames)
 			if err != nil {
 				finalErr = err
 			}
