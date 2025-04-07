@@ -52,7 +52,7 @@ func processWhenEmitTimezones(msg proto.Message, jsonStr string, locationName st
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
-	_, err = convertJSONTimestamp(msg.ProtoReflect(), &root, loc, useProtoNames)
+	err = convertJSONTimestamp(msg.ProtoReflect(), &root, loc, useProtoNames)
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
@@ -67,14 +67,14 @@ func fieldJSONName(fd protoreflect.FieldDescriptor, useProtoNames bool) string {
 	return fd.JSONName()
 }
 
-func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Location, useProtoNames bool) (*ast.Node, error) {
+func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Location, useProtoNames bool) error {
 	if msg.Descriptor().FullName() == types.WellKnownMessageTimestamp {
 		raw, err := node.StrictString()
 		if err != nil {
-			return nil, err
+			return err
 		}
-		newNode := ast.NewString(formatTimestamp(raw, loc))
-		return &newNode, nil
+		*node = ast.NewString(formatTimestamp(raw, loc))
+		return nil
 	} else {
 		var finalErr error
 		msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
@@ -87,39 +87,30 @@ func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Lo
 				}
 				subNode := node.Get(fieldJSONName(fd, useProtoNames))
 				v.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
-					newNode, err := convertJSONTimestamp(value.Message(), subNode.Get(key.String()), loc, useProtoNames)
+					err := convertJSONTimestamp(value.Message(), subNode.Get(key.String()), loc, useProtoNames)
 					if err != nil {
 						finalErr = err
 						return false
-					}
-					if newNode != nil {
-						subNode.Set(key.String(), *newNode)
 					}
 					return true
 				})
 			} else if fd.IsList() {
 				subNode := node.Get(fieldJSONName(fd, useProtoNames))
 				for i := 0; i < v.List().Len(); i++ {
-					newNode, err := convertJSONTimestamp(v.List().Get(i).Message(), subNode.Index(i), loc, useProtoNames)
+					err := convertJSONTimestamp(v.List().Get(i).Message(), subNode.Index(i), loc, useProtoNames)
 					if err != nil {
 						finalErr = err
 						break
 					}
-					if newNode != nil {
-						subNode.SetByIndex(i, *newNode)
-					}
 				}
 			} else {
-				newNode, err := convertJSONTimestamp(v.Message(), node.Get(fieldJSONName(fd, useProtoNames)), loc, useProtoNames)
+				err := convertJSONTimestamp(v.Message(), node.Get(fieldJSONName(fd, useProtoNames)), loc, useProtoNames)
 				if err != nil {
 					finalErr = err
-				}
-				if newNode != nil {
-					node.Set(fieldJSONName(fd, useProtoNames), *newNode)
 				}
 			}
 			return finalErr == nil
 		})
-		return nil, finalErr
+		return finalErr
 	}
 }
