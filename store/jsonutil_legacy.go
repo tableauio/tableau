@@ -17,9 +17,9 @@ func init() {
 	tsRegexp = regexp.MustCompile(timestampPattern)
 }
 
-// deprecatedProcessWhenEmitTimezones provides a regex implementation for processing timestamps
+// processWhenEmitTimezonesByRegexp provides a regex implementation for processing timestamps
 // This is only for comparison in benchmarks, because it fails when the content of a string field matches the timestamp pattern
-func deprecatedProcessWhenEmitTimezones(jsonStr string, locationName string) (string, error) {
+func processWhenEmitTimezonesByRegexp(jsonStr string, locationName string) (string, error) {
 	loc, err := time.LoadLocation(locationName)
 	if err != nil {
 		return "", xerrors.Wrap(err)

@@ -52,14 +52,14 @@ func processWhenEmitTimezones(msg proto.Message, jsonStr string, locationName st
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
-	_, err = processTimeInJSON(msg.ProtoReflect(), &root, loc, useProtoNames)
+	_, err = convertJSONTimestamp(msg.ProtoReflect(), &root, loc, useProtoNames)
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
 	return root.Raw()
 }
 
-// References: https://github.com/protocolbuffers/protobuf-go/blob/v1.34.2/encoding/protojson/encode.go#L262
+// See https://github.com/protocolbuffers/protobuf-go/blob/v1.34.2/encoding/protojson/encode.go#L262
 func fieldJSONName(fd protoreflect.FieldDescriptor, useProtoNames bool) string {
 	if useProtoNames {
 		return fd.TextName()
@@ -67,7 +67,7 @@ func fieldJSONName(fd protoreflect.FieldDescriptor, useProtoNames bool) string {
 	return fd.JSONName()
 }
 
-func processTimeInJSON(msg protoreflect.Message, node *ast.Node, loc *time.Location, useProtoNames bool) (*ast.Node, error) {
+func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Location, useProtoNames bool) (*ast.Node, error) {
 	if msg.Descriptor().FullName() == types.WellKnownMessageTimestamp {
 		raw, err := node.StrictString()
 		if err != nil {
@@ -76,7 +76,7 @@ func processTimeInJSON(msg protoreflect.Message, node *ast.Node, loc *time.Locat
 		newNode := ast.NewString(formatTimestamp(raw, loc))
 		return &newNode, nil
 	} else {
-		var e error
+		var finalErr error
 		msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 			if fd.Kind() != protoreflect.MessageKind {
 				return true
@@ -87,9 +87,9 @@ func processTimeInJSON(msg protoreflect.Message, node *ast.Node, loc *time.Locat
 				}
 				subNode := node.Get(fieldJSONName(fd, useProtoNames))
 				v.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
-					newNode, err := processTimeInJSON(value.Message(), subNode.Get(key.String()), loc, useProtoNames)
+					newNode, err := convertJSONTimestamp(value.Message(), subNode.Get(key.String()), loc, useProtoNames)
 					if err != nil {
-						e = err
+						finalErr = err
 						return false
 					}
 					if newNode != nil {
@@ -100,9 +100,9 @@ func processTimeInJSON(msg protoreflect.Message, node *ast.Node, loc *time.Locat
 			} else if fd.IsList() {
 				subNode := node.Get(fieldJSONName(fd, useProtoNames))
 				for i := 0; i < v.List().Len(); i++ {
-					newNode, err := processTimeInJSON(v.List().Get(i).Message(), subNode.Index(i), loc, useProtoNames)
+					newNode, err := convertJSONTimestamp(v.List().Get(i).Message(), subNode.Index(i), loc, useProtoNames)
 					if err != nil {
-						e = err
+						finalErr = err
 						break
 					}
 					if newNode != nil {
@@ -110,16 +110,16 @@ func processTimeInJSON(msg protoreflect.Message, node *ast.Node, loc *time.Locat
 					}
 				}
 			} else {
-				newNode, err := processTimeInJSON(v.Message(), node.Get(fieldJSONName(fd, useProtoNames)), loc, useProtoNames)
+				newNode, err := convertJSONTimestamp(v.Message(), node.Get(fieldJSONName(fd, useProtoNames)), loc, useProtoNames)
 				if err != nil {
-					e = err
+					finalErr = err
 				}
 				if newNode != nil {
 					node.Set(fieldJSONName(fd, useProtoNames), *newNode)
 				}
 			}
-			return e == nil
+			return finalErr == nil
 		})
-		return nil, e
+		return nil, finalErr
 	}
 }

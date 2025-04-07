@@ -179,55 +179,6 @@ func Test_processWhenEmitTimezones(t *testing.T) {
 	}
 }
 
-func Test_deprecatedProcessWhenEmitTimezones(t *testing.T) {
-	type args struct {
-		message       proto.Message
-		locationName  string
-		useProtoNames bool
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "RFC3339 in string field",
-			args: args{
-				message: &unittestpb.PatchMergeConf{
-					Name: "2022-01-01T00:00:00Z",
-					Time: &unittestpb.PatchMergeConf_Time{
-						Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
-					},
-				},
-				locationName:  "Asia/Shanghai",
-				useProtoNames: true,
-			},
-			want:    `{"name":"2022-01-01T08:00:00+08:00","time":{"start":"2022-01-01T08:00:00+08:00"}}`, // This is incorrect because data of string field is converted
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			json, err := MarshalToJSON(tt.args.message, &MarshalOptions{
-				UseProtoNames: tt.args.useProtoNames,
-			})
-			if err != nil {
-				t.Errorf("MarshalToJSON() error = %v", err)
-				return
-			}
-			got, err := deprecatedProcessWhenEmitTimezones(string(json), tt.args.locationName)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("deprecatedProcessWhenEmitTimezones() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("deprecatedProcessWhenEmitTimezones() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func prepare(size int) (proto.Message, string) {
 	message := &unittestpb.JsonUtilTestData{}
 	for i := 0; i < size; i++ {
@@ -247,39 +198,39 @@ func prepare(size int) (proto.Message, string) {
 func Benchmark_regexp1(b *testing.B) {
 	_, json := prepare(1)
 	for i := 0; i < b.N; i++ {
-		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+		processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
 	}
 }
 func Benchmark_regexp10(b *testing.B) {
 	_, json := prepare(10)
 	for i := 0; i < b.N; i++ {
-		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+		processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
 	}
 }
 func Benchmark_regexp100(b *testing.B) {
 	_, json := prepare(100)
 	for i := 0; i < b.N; i++ {
-		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+		processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
 	}
 }
 func Benchmark_regexp1000(b *testing.B) {
 	_, json := prepare(1000)
 	for i := 0; i < b.N; i++ {
-		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+		processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
 	}
 }
 
 func Benchmark_regexp10000(b *testing.B) {
 	_, json := prepare(10000)
 	for i := 0; i < b.N; i++ {
-		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+		processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
 	}
 }
 
 func Benchmark_regexp100000(b *testing.B) {
 	_, json := prepare(100000)
 	for i := 0; i < b.N; i++ {
-		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+		processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
 	}
 }
 
