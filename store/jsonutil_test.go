@@ -1,11 +1,19 @@
 package store
 
-import "testing"
+import (
+	"testing"
+	"time"
 
-func Test_processWhenUseTimezones(t *testing.T) {
+	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+func Test_processWhenEmitTimezones(t *testing.T) {
 	type args struct {
-		jsonStr      string
-		locationName string
+		message       proto.Message
+		locationName  string
+		useProtoNames bool
 	}
 	tests := []struct {
 		name    string
@@ -16,44 +24,89 @@ func Test_processWhenUseTimezones(t *testing.T) {
 		{
 			name: "UTC",
 			args: args{
-				jsonStr:      `{"time":"2022-01-01T00:00:00Z"}`,
-				locationName: "UTC",
+				message: &unittestpb.PatchMergeConf{
+					Name: "test",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
+					},
+				},
+				locationName:  "UTC",
+				useProtoNames: true,
 			},
-			want:    `{"time":"2022-01-01T00:00:00+00:00"}`,
+			want:    `{"name":"test","time":{"start":"2022-01-01T00:00:00Z"}}`,
 			wantErr: false,
 		},
 		{
 			name: "UTC+8",
 			args: args{
-				jsonStr:      `{"time":"2022-01-01T00:00:00Z"}`,
-				locationName: "Asia/Shanghai",
+				message: &unittestpb.PatchMergeConf{
+					Name: "test",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
+					},
+				},
+				locationName:  "Asia/Shanghai",
+				useProtoNames: true,
 			},
-			want:    `{"time":"2022-01-01T08:00:00+08:00"}`,
+			want:    `{"name":"test","time":{"start":"2022-01-01T08:00:00+08:00"}}`,
 			wantErr: false,
 		},
 		{
 			name: "UTC-6",
 			args: args{
-				jsonStr:      `{"time":"2022-01-01T00:00:00Z"}`,
-				locationName: "America/Chicago",
+				message: &unittestpb.PatchMergeConf{
+					Name: "test",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
+					},
+				},
+				locationName:  "America/Chicago",
+				useProtoNames: true,
 			},
-			want:    `{"time":"2021-12-31T18:00:00-06:00"}`,
+			want:    `{"name":"test","time":{"start":"2021-12-31T18:00:00-06:00"}}`,
 			wantErr: false,
 		},
 		{
 			name: "UTC+0845",
 			args: args{
-				jsonStr:      `{"time":"2022-01-01T00:00:00Z"}`,
-				locationName: "Australia/Eucla",
+				message: &unittestpb.PatchMergeConf{
+					Name: "test",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
+					},
+				},
+				locationName:  "Australia/Eucla",
+				useProtoNames: true,
 			},
-			want:    `{"time":"2022-01-01T08:45:00+08:45"}`,
+			want:    `{"name":"test","time":{"start":"2022-01-01T08:45:00+08:45"}}`,
+			wantErr: false,
+		},
+		{
+			name: "RFC3339 in string field",
+			args: args{
+				message: &unittestpb.PatchMergeConf{
+					Name: "2022-01-01T00:00:00Z",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
+					},
+				},
+				locationName:  "Asia/Shanghai",
+				useProtoNames: true,
+			},
+			want:    `{"name":"2022-01-01T00:00:00Z","time":{"start":"2022-01-01T08:00:00+08:00"}}`,
 			wantErr: false,
 		},
 		{
 			name: "invalid-location",
 			args: args{
-				jsonStr:      `{"time":"2022-01-01T00:00:00Z"}`,
-				locationName: "invalid-location",
+				message: &unittestpb.PatchMergeConf{
+					Name: "test",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
+					},
+				},
+				locationName:  "invalid-location",
+				useProtoNames: true,
 			},
 			want:    ``,
 			wantErr: true,
@@ -61,13 +114,20 @@ func Test_processWhenUseTimezones(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := processWhenEmitTimezones(tt.args.jsonStr, tt.args.locationName)
+			json, err := MarshalToJSON(tt.args.message, &MarshalOptions{
+				UseProtoNames: tt.args.useProtoNames,
+			})
+			if err != nil {
+				t.Errorf("MarshalToJSON() error = %v", err)
+				return
+			}
+			got, err := processWhenEmitTimezones(tt.args.message, string(json), tt.args.locationName, tt.args.useProtoNames)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("processWhenUseTimezones() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("processWhenEmitTimezones() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("processWhenUseTimezones() = %v, want %v", got, tt.want)
+				t.Errorf("processWhenEmitTimezones() = %v, want %v", got, tt.want)
 			}
 		})
 	}

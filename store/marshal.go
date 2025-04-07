@@ -75,7 +75,7 @@ func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 	}
 	// process when use timezones
 	if options.EmitTimezones {
-		result, err := processWhenEmitTimezones(string(messageJSON), options.LocationName)
+		result, err := processWhenEmitTimezones(msg, string(messageJSON), options.LocationName, options.UseProtoNames)
 		if err != nil {
 			return nil, err
 		}

@@ -1,21 +1,17 @@
 package store
 
 import (
-	"fmt"
-	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/xerrors"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
-
-// Define a regex pattern to match RFC3339 timestamps
-var timestampPattern = `"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z"`
-var tsRegexp *regexp.Regexp
-
-func init() {
-	// Compile the regex
-	tsRegexp = regexp.MustCompile(timestampPattern)
-}
 
 // Format a timestamp to the desired string format
 func formatTimestamp(ts string, loc *time.Location) string {
@@ -24,7 +20,7 @@ func formatTimestamp(ts string, loc *time.Location) string {
 		return ts // Return the original string if parsing fails
 	}
 	localTime := t.In(loc)
-	return localTime.Format("2006-01-02T15:04:05-07:00")
+	return localTime.Format(time.RFC3339Nano)
 }
 
 // processWhenEmitTimezones emits timestamp in string format with timezones
@@ -49,19 +45,56 @@ func formatTimestamp(ts string, loc *time.Location) string {
 //   - https://pkg.go.dev/google.golang.org/protobuf/types/known/timestamppb#hdr-JSON_Mapping-Timestamp
 //   - https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp
 //   - RFC 3339: https://tools.ietf.org/html/rfc3339
-func processWhenEmitTimezones(jsonStr string, locationName string) (string, error) {
+func processWhenEmitTimezones(msg proto.Message, jsonStr string, locationName string, useProtoNames bool) (string, error) {
 	loc, err := time.LoadLocation(locationName)
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
-	// Replace timestamps in the JSON string with the desired format
-	result := tsRegexp.ReplaceAllStringFunc(jsonStr, func(ts string) string {
-		// Remove quotes from the timestamp string
-		ts = ts[1 : len(ts)-1]
-		// Format the timestamp
-		formattedTs := formatTimestamp(ts, loc)
-		// Add quotes back to the formatted timestamp
-		return fmt.Sprintf(`"%s"`, formattedTs)
-	})
-	return result, nil
+	err = processTimeInJSON(msg.ProtoReflect(), &jsonStr, loc, "", useProtoNames)
+	if err != nil {
+		return "", xerrors.Wrap(err)
+	}
+	return jsonStr, nil
+}
+
+// References: https://github.com/protocolbuffers/protobuf-go/blob/v1.34.2/encoding/protojson/encode.go#L262
+func fieldJSONName(fd protoreflect.FieldDescriptor, useProtoNames bool) string {
+	if useProtoNames {
+		return fd.TextName()
+	}
+	return fd.JSONName()
+}
+
+func processTimeInJSON(msg protoreflect.Message, jsonStr *string, loc *time.Location, prefix string, useProtoNames bool) error {
+	prefix = strings.TrimPrefix(prefix, ".")
+	if msg.Descriptor().FullName() == types.WellKnownMessageTimestamp {
+		replaced, err := sjson.Set(*jsonStr, prefix, formatTimestamp(gjson.Get(*jsonStr, prefix).String(), loc))
+		if err != nil {
+			return err
+		}
+		*jsonStr = replaced
+	} else {
+		msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+			if fd.Kind() != protoreflect.MessageKind {
+				return true
+			}
+			if fd.IsMap() {
+				if fd.MapValue().Kind() != protoreflect.MessageKind {
+					return true
+				}
+				v.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
+					processTimeInJSON(value.Message(), jsonStr, loc, prefix+"."+fieldJSONName(fd, useProtoNames)+"."+key.String(), useProtoNames)
+					return true
+				})
+			} else if fd.IsList() {
+				for i := 0; i < v.List().Len(); i++ {
+					processTimeInJSON(v.List().Get(i).Message(), jsonStr, loc, prefix+"."+fieldJSONName(fd, useProtoNames)+"."+strconv.Itoa(i), useProtoNames)
+				}
+			} else {
+				processTimeInJSON(v.Message(), jsonStr, loc, prefix+"."+fieldJSONName(fd, useProtoNames), useProtoNames)
+			}
+			return true
+		})
+	}
+	return nil
 }
