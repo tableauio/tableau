@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -175,5 +176,75 @@ func Test_processWhenEmitTimezones(t *testing.T) {
 				t.Errorf("processWhenEmitTimezones() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func prepare(size int) (proto.Message, string) {
+	message := &unittestpb.JsonUtilTestData{}
+	year := 2023
+	for i := 0; i < size; i++ {
+		message.ListField = append(message.ListField, &unittestpb.PatchMergeConf{
+			Name: fmt.Sprintf("list elem %d", i),
+			Time: &unittestpb.PatchMergeConf_Time{
+				Start: timestamppb.New(time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)),
+			},
+		})
+		year++
+	}
+	json, _ := MarshalToJSON(message, &MarshalOptions{
+		UseProtoNames: true,
+	})
+	return message, string(json)
+}
+
+func Benchmark_regexp1(b *testing.B) {
+	_, json := prepare(1)
+	for i := 0; i < b.N; i++ {
+		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+	}
+}
+func Benchmark_regexp10(b *testing.B) {
+	_, json := prepare(10)
+	for i := 0; i < b.N; i++ {
+		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+	}
+}
+func Benchmark_regexp100(b *testing.B) {
+	_, json := prepare(100)
+	for i := 0; i < b.N; i++ {
+		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+	}
+}
+func Benchmark_regexp1000(b *testing.B) {
+	_, json := prepare(1000)
+	for i := 0; i < b.N; i++ {
+		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+	}
+}
+
+func Benchmark_sonic1(b *testing.B) {
+	message, json := prepare(1)
+	for i := 0; i < b.N; i++ {
+		processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
+	}
+}
+func Benchmark_sonic10(b *testing.B) {
+	message, json := prepare(10)
+	for i := 0; i < b.N; i++ {
+		processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
+	}
+}
+
+func Benchmark_sonic100(b *testing.B) {
+	message, json := prepare(100)
+	for i := 0; i < b.N; i++ {
+		processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
+	}
+}
+
+func Benchmark_sonic1000(b *testing.B) {
+	message, json := prepare(1000)
+	for i := 0; i < b.N; i++ {
+		processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
 	}
 }

@@ -1,14 +1,12 @@
 package store
 
 import (
-	"strconv"
-	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
+	"github.com/bytedance/sonic/ast"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/xerrors"
-	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -50,11 +48,15 @@ func processWhenEmitTimezones(msg proto.Message, jsonStr string, locationName st
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
-	err = processTimeInJSON(msg.ProtoReflect(), &jsonStr, loc, "", useProtoNames)
+	root, err := sonic.Get([]byte(jsonStr))
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
-	return jsonStr, nil
+	_, err = processTimeInJSON(msg.ProtoReflect(), &root, loc, useProtoNames)
+	if err != nil {
+		return "", xerrors.Wrap(err)
+	}
+	return root.Raw()
 }
 
 // References: https://github.com/protocolbuffers/protobuf-go/blob/v1.34.2/encoding/protojson/encode.go#L262
@@ -65,15 +67,16 @@ func fieldJSONName(fd protoreflect.FieldDescriptor, useProtoNames bool) string {
 	return fd.JSONName()
 }
 
-func processTimeInJSON(msg protoreflect.Message, jsonStr *string, loc *time.Location, prefix string, useProtoNames bool) error {
-	prefix = strings.TrimPrefix(prefix, ".")
+func processTimeInJSON(msg protoreflect.Message, node *ast.Node, loc *time.Location, useProtoNames bool) (*ast.Node, error) {
 	if msg.Descriptor().FullName() == types.WellKnownMessageTimestamp {
-		replaced, err := sjson.Set(*jsonStr, prefix, formatTimestamp(gjson.Get(*jsonStr, prefix).String(), loc))
+		raw, err := node.StrictString()
 		if err != nil {
-			return err
+			return nil, err
 		}
-		*jsonStr = replaced
+		newNode := ast.NewString(formatTimestamp(raw, loc))
+		return &newNode, nil
 	} else {
+		var e error
 		msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 			if fd.Kind() != protoreflect.MessageKind {
 				return true
@@ -82,19 +85,41 @@ func processTimeInJSON(msg protoreflect.Message, jsonStr *string, loc *time.Loca
 				if fd.MapValue().Kind() != protoreflect.MessageKind {
 					return true
 				}
+				subNode := node.Get(fieldJSONName(fd, useProtoNames))
 				v.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
-					processTimeInJSON(value.Message(), jsonStr, loc, prefix+"."+fieldJSONName(fd, useProtoNames)+"."+key.String(), useProtoNames)
+					newNode, err := processTimeInJSON(value.Message(), subNode.Get(key.String()), loc, useProtoNames)
+					if err != nil {
+						e = err
+						return false
+					}
+					if newNode != nil {
+						subNode.Set(key.String(), *newNode)
+					}
 					return true
 				})
 			} else if fd.IsList() {
+				subNode := node.Get(fieldJSONName(fd, useProtoNames))
 				for i := 0; i < v.List().Len(); i++ {
-					processTimeInJSON(v.List().Get(i).Message(), jsonStr, loc, prefix+"."+fieldJSONName(fd, useProtoNames)+"."+strconv.Itoa(i), useProtoNames)
+					newNode, err := processTimeInJSON(v.List().Get(i).Message(), subNode.Index(i), loc, useProtoNames)
+					if err != nil {
+						e = err
+						break
+					}
+					if newNode != nil {
+						subNode.SetByIndex(i, *newNode)
+					}
 				}
 			} else {
-				processTimeInJSON(v.Message(), jsonStr, loc, prefix+"."+fieldJSONName(fd, useProtoNames), useProtoNames)
+				newNode, err := processTimeInJSON(v.Message(), node.Get(fieldJSONName(fd, useProtoNames)), loc, useProtoNames)
+				if err != nil {
+					e = err
+				}
+				if newNode != nil {
+					node.Set(fieldJSONName(fd, useProtoNames), *newNode)
+				}
 			}
-			return true
+			return e == nil
 		})
+		return nil, e
 	}
-	return nil
 }
