@@ -14,30 +14,12 @@ func Test_processWhenUseTimezones(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "UTC",
-			args: args{
-				jsonStr:      `{"time":"2022-01-01T00:00:00Z"}`,
-				locationName: "Asia/Tokyo",
-			},
-			want:    `{"time":"2022-01-01T09:00:00+09:00"}`,
-			wantErr: false,
-		},
-		{
 			name: "UTC+8",
 			args: args{
 				jsonStr:      `{"time":"2022-01-01T00:00:00Z"}`,
 				locationName: "Asia/Shanghai",
 			},
 			want:    `{"time":"2022-01-01T08:00:00+08:00"}`,
-			wantErr: false,
-		},
-		{
-			name: "UTC+9",
-			args: args{
-				jsonStr:      `{"time":"2022-01-01T00:00:00Z"}`,
-				locationName: "Asia/Tokyo",
-			},
-			want:    `{"time":"2022-01-01T09:00:00+09:00"}`,
 			wantErr: false,
 		},
 		{

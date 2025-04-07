@@ -33,9 +33,9 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 			LocationName:    opts.LocationName,
 			Pretty:          opts.Pretty,
 			EmitUnpopulated: opts.EmitUnpopulated,
+			EmitTimezones:   opts.EmitTimezones,
 			UseProtoNames:   opts.UseProtoNames,
 			UseEnumNumbers:  opts.UseEnumNumbers,
-			UseTimezones:    opts.UseTimezones,
 		}
 		out, err = MarshalToJSON(msg, options)
 		if err != nil {

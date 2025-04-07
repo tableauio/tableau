@@ -252,9 +252,9 @@ func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *
 			store.LocationName(locationName),
 			store.Pretty(opt.Pretty),
 			store.EmitUnpopulated(opt.EmitUnpopulated),
+			store.EmitTimezones(opt.EmitTimezones),
 			store.UseProtoNames(opt.UseProtoNames),
 			store.UseEnumNumbers(opt.UseEnumNumbers),
-			store.UseTimezones(opt.UseTimezones),
 		)
 		if err != nil {
 			return err
@@ -277,9 +277,9 @@ func storePatchMergeMessage(msg proto.Message, name, locationName, outputDir str
 			store.LocationName(locationName),
 			store.Pretty(opt.Pretty),
 			// store.EmitUnpopulated(opt.EmitUnpopulated), // DO NOT emit unpopulated fields for clear reading
+			store.EmitTimezones(opt.EmitTimezones),
 			store.UseProtoNames(opt.UseProtoNames),
 			store.UseEnumNumbers(opt.UseEnumNumbers),
-			store.UseTimezones(opt.UseTimezones),
 		)
 		if err != nil {
 			return err

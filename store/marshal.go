@@ -49,16 +49,16 @@ type MarshalOptions struct {
 	// Default: false.
 	EmitUnpopulated bool
 
+	// EmitTimezones specifies whether to emit timestamp in string format with
+	// timezones (as indicated by an offset).
+	EmitTimezones bool
+
 	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
 	// field names.
 	UseProtoNames bool
 
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool
-
-	// UseTimezones specifies whether to emit timestamp in string format with
-	// timezones (as indicated by an offset).
-	UseTimezones bool
 }
 
 // MarshalToJSON marshals the given proto.Message in the JSON format.
@@ -74,7 +74,7 @@ func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 		return nil, err
 	}
 	// process when use timezones
-	if options.UseTimezones {
+	if options.EmitTimezones {
 		result, err := processWhenUseTimezones(string(messageJSON), options.LocationName)
 		if err != nil {
 			return nil, err

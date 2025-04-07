@@ -23,10 +23,12 @@ type Options struct {
 	//
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
+
 	// Output pretty format of JSON and Text, with multiline and indent.
 	//
 	// Default: false.
 	Pretty bool
+
 	// EmitUnpopulated specifies whether to emit unpopulated fields. It does not
 	// emit unpopulated oneof fields or unpopulated extension fields.
 	// The JSON value emitted for unpopulated fields are as follows:
@@ -48,16 +50,19 @@ type Options struct {
 	//
 	// Default: false.
 	EmitUnpopulated bool
-	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
-	// field names.
-	UseProtoNames bool
-	// UseEnumNumbers emits enum values as numbers.
-	UseEnumNumbers bool
-	// UseTimezones specifies whether to emit timestamp in string format with
+
+	// EmitTimezones specifies whether to emit timestamp in string format with
 	// timezones (as indicated by an offset).
 	//
 	// NOTE: use with option "LocationName".
-	UseTimezones bool
+	EmitTimezones bool
+
+	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
+	// field names.
+	UseProtoNames bool
+
+	// UseEnumNumbers emits enum values as numbers.
+	UseEnumNumbers bool
 }
 
 // FilterFunc filter in messagers if returned value is true.
@@ -73,7 +78,7 @@ type Option func(*Options)
 
 // newDefault returns a default Options.
 func newDefault() *Options {
-	return &Options{}
+	return &Options{LocationName: "Local"}
 }
 
 // ParseOptions parses functional options and merge them to default Options.
@@ -142,10 +147,10 @@ func UseEnumNumbers(v bool) Option {
 	}
 }
 
-// UseTimezones specifies whether to emit timestamp in string format with
+// EmitTimezones specifies whether to emit timestamp in string format with
 // timezones (as indicated by an offset).
-func UseTimezones(v bool) Option {
+func EmitTimezones(v bool) Option {
 	return func(opts *Options) {
-		opts.UseTimezones = v
+		opts.EmitTimezones = v
 	}
 }
