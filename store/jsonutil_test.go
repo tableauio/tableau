@@ -181,15 +181,13 @@ func Test_processWhenEmitTimezones(t *testing.T) {
 
 func prepare(size int) (proto.Message, string) {
 	message := &unittestpb.JsonUtilTestData{}
-	year := 2023
 	for i := 0; i < size; i++ {
 		message.ListField = append(message.ListField, &unittestpb.PatchMergeConf{
 			Name: fmt.Sprintf("list elem %d", i),
 			Time: &unittestpb.PatchMergeConf_Time{
-				Start: timestamppb.New(time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)),
+				Start: timestamppb.New(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
 			},
 		})
-		year++
 	}
 	json, _ := MarshalToJSON(message, &MarshalOptions{
 		UseProtoNames: true,
@@ -222,6 +220,20 @@ func Benchmark_regexp1000(b *testing.B) {
 	}
 }
 
+func Benchmark_regexp10000(b *testing.B) {
+	_, json := prepare(10000)
+	for i := 0; i < b.N; i++ {
+		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+	}
+}
+
+func Benchmark_regexp100000(b *testing.B) {
+	_, json := prepare(100000)
+	for i := 0; i < b.N; i++ {
+		deprecatedProcessWhenEmitTimezones(json, "Asia/Shanghai")
+	}
+}
+
 func Benchmark_sonic1(b *testing.B) {
 	message, json := prepare(1)
 	for i := 0; i < b.N; i++ {
@@ -244,6 +256,20 @@ func Benchmark_sonic100(b *testing.B) {
 
 func Benchmark_sonic1000(b *testing.B) {
 	message, json := prepare(1000)
+	for i := 0; i < b.N; i++ {
+		processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
+	}
+}
+
+func Benchmark_sonic10000(b *testing.B) {
+	message, json := prepare(10000)
+	for i := 0; i < b.N; i++ {
+		processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
+	}
+}
+
+func Benchmark_sonic100000(b *testing.B) {
+	message, json := prepare(100000)
 	for i := 0; i < b.N; i++ {
 		processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
 	}
