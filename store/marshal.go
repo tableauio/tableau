@@ -12,6 +12,16 @@ import (
 )
 
 type MarshalOptions struct {
+	// Location represents the collection of time offsets in use in a geographical area.
+	//  - If the name is "" or "UTC", LoadLocation returns UTC.
+	//  - If the name is "Local", LoadLocation returns Local.
+	//  - Otherwise, the name is taken to be a location name corresponding to a file in the
+	//    IANA Time Zone database, such as "America/New_York", "Asia/Shanghai", and so on.
+	//
+	// See https://go.dev/src/time/zoneinfo_abbrs_windows.go.
+	//
+	// Default: "Local".
+	LocationName string `yaml:"locationName"`
 	// Output pretty format of JSON and Text, with multiline and indent.
 	//
 	// Default: false.
@@ -45,6 +55,10 @@ type MarshalOptions struct {
 
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool
+
+	// UseTimezones specifies whether to emit timestamp in string format with
+	// timezones (as indicated by an offset).
+	UseTimezones bool
 }
 
 // MarshalToJSON marshals the given proto.Message in the JSON format.
@@ -58,6 +72,14 @@ func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 	messageJSON, err := opts.Marshal(msg)
 	if err != nil {
 		return nil, err
+	}
+	// process when use timezones
+	if options.UseTimezones {
+		result, err := processWhenUseTimezones(string(messageJSON), options.LocationName)
+		if err != nil {
+			return nil, err
+		}
+		messageJSON = []byte(result)
 	}
 	// protojson does not offer a "deterministic" field ordering, but fields
 	// are still ordered consistently by their index. However, protojson can

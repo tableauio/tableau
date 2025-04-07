@@ -67,7 +67,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return err
 	}
 	mainName := getExportedConfName(info, mainImpInfo)
-	err = storeMessage(mainMsg, mainName, x.OutputDir, x.OutputOpt)
+	err = storeMessage(mainMsg, mainName, info.LocationName, x.OutputDir, x.OutputOpt)
 	if err != nil {
 		return err
 	}
@@ -88,10 +88,10 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 					xproto.PatchMessage(clonedMainMsg, msg)
 					msg = clonedMainMsg
 				} else {
-					return storePatchMergeMessage(msg, name, x.OutputDir, x.OutputOpt)
+					return storePatchMergeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt)
 				}
 			}
-			return storeMessage(msg, name, x.OutputDir, x.OutputOpt)
+			return storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt)
 		})
 	}
 	return eg.Wait()
@@ -118,7 +118,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 		return filename
 	}
 	name := getExportedConfName(info, mainImpInfo)
-	return storeMessage(protomsg, name, x.OutputDir, x.OutputOpt)
+	return storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt)
 }
 
 type oneMsg struct {

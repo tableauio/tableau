@@ -162,6 +162,7 @@ func genConf(logLevel, logMode string) error {
 					Pretty:          true,
 					Formats:         []format.Format{format.JSON},
 					EmitUnpopulated: true,
+					UseTimezones:    true,
 					// DryRun:          options.DryRunPatch,
 				},
 			},

@@ -5,12 +5,12 @@
     },
     "struct": {
         "id": 1,
-        "startTime": "2024-10-01T02:10:10Z",
+        "startTime": "2024-10-01T10:10:10+08:00",
         "expire": "3600s"
     },
     "reusePredefinedStruct": {
         "id": 2,
-        "startTime": "2026-10-01T02:10:10Z",
+        "startTime": "2026-10-01T10:10:10+08:00",
         "expire": "7200s"
     },
     "predefinedStruct": {

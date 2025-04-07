@@ -3,7 +3,7 @@
     "strictStruct": {
         "id": 1,
         "name": "apple",
-        "start": "2024-10-01T02:10:10Z",
+        "start": "2024-10-01T10:10:10+08:00",
         "expiry": "3600s"
     },
     "scalarList": [

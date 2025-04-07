@@ -274,12 +274,18 @@ type ConfOutputOption struct {
 	// Default: false.
 	EmitUnpopulated bool `yaml:"emitUnpopulated"`
 
-	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
-	// field names.
+	// UseProtoNames uses proto field name instead of lowerCamelCase name
+	// in JSON field names.
 	UseProtoNames bool `yaml:"useProtoNames"`
 
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool `yaml:"useEnumNumbers"`
+
+	// UseTimezones specifies whether to emit timestamp in string format with
+	// timezones (as indicated by an offset).
+	//
+	// Default: false.
+	UseTimezones bool `yaml:"useTimezones"`
 
 	// Specify dry run mode:
 	//  - patch: if sheet options are specified: Patch (PATCH_MERGE) and Scatter

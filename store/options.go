@@ -13,6 +13,16 @@ type Options struct {
 	//
 	// Default: "".
 	Name string
+	// Location represents the collection of time offsets in use in a geographical area.
+	//  - If the name is "" or "UTC", LoadLocation returns UTC.
+	//  - If the name is "Local", LoadLocation returns Local.
+	//  - Otherwise, the name is taken to be a location name corresponding to a file in the
+	//    IANA Time Zone database, such as "America/New_York", "Asia/Shanghai", and so on.
+	//
+	// See https://go.dev/src/time/zoneinfo_abbrs_windows.go.
+	//
+	// Default: "Local".
+	LocationName string `yaml:"locationName"`
 	// Output pretty format of JSON and Text, with multiline and indent.
 	//
 	// Default: false.
@@ -43,6 +53,11 @@ type Options struct {
 	UseProtoNames bool
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool
+	// UseTimezones specifies whether to emit timestamp in string format with
+	// timezones (as indicated by an offset).
+	//
+	// NOTE: use with option "LocationName".
+	UseTimezones bool
 }
 
 // FilterFunc filter in messagers if returned value is true.
@@ -88,6 +103,13 @@ func Name(v string) Option {
 	}
 }
 
+// LocationName specifies the location name for timezone processing.
+func LocationName(v string) Option {
+	return func(opts *Options) {
+		opts.LocationName = v
+	}
+}
+
 // Pretty specifies whether to prettify JSON and Text output with
 // multiline and indent.
 func Pretty(v bool) Option {
@@ -117,5 +139,13 @@ func UseProtoNames(v bool) Option {
 func UseEnumNumbers(v bool) Option {
 	return func(opts *Options) {
 		opts.UseEnumNumbers = v
+	}
+}
+
+// UseTimezones specifies whether to emit timestamp in string format with
+// timezones (as indicated by an offset).
+func UseTimezones(v bool) Option {
+	return func(opts *Options) {
+		opts.UseTimezones = v
 	}
 }
