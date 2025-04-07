@@ -59,14 +59,6 @@ func processWhenEmitTimezones(msg proto.Message, jsonStr string, locationName st
 	return root.Raw()
 }
 
-// See https://github.com/protocolbuffers/protobuf-go/blob/v1.34.2/encoding/protojson/encode.go#L262
-func fieldJSONName(fd protoreflect.FieldDescriptor, useProtoNames bool) string {
-	if useProtoNames {
-		return fd.TextName()
-	}
-	return fd.JSONName()
-}
-
 func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Location, useProtoNames bool) error {
 	if msg.Descriptor().FullName() == types.WellKnownMessageTimestamp {
 		raw, err := node.StrictString()
@@ -75,42 +67,48 @@ func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Lo
 		}
 		*node = ast.NewString(formatTimestamp(raw, loc))
 		return nil
-	} else {
-		var finalErr error
-		msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-			if fd.Kind() != protoreflect.MessageKind {
+	}
+	// See https://github.com/protocolbuffers/protobuf-go/blob/v1.34.2/encoding/protojson/encode.go#L262
+	fieldJSONName := func(fd protoreflect.FieldDescriptor) string {
+		if useProtoNames {
+			return fd.TextName()
+		}
+		return fd.JSONName()
+	}
+	var finalErr error
+	msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		if fd.Kind() != protoreflect.MessageKind {
+			return true
+		}
+		if fd.IsMap() {
+			if fd.MapValue().Kind() != protoreflect.MessageKind {
 				return true
 			}
-			if fd.IsMap() {
-				if fd.MapValue().Kind() != protoreflect.MessageKind {
-					return true
-				}
-				subNode := node.Get(fieldJSONName(fd, useProtoNames))
-				v.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
-					err := convertJSONTimestamp(value.Message(), subNode.Get(key.String()), loc, useProtoNames)
-					if err != nil {
-						finalErr = err
-						return false
-					}
-					return true
-				})
-			} else if fd.IsList() {
-				subNode := node.Get(fieldJSONName(fd, useProtoNames))
-				for i := 0; i < v.List().Len(); i++ {
-					err := convertJSONTimestamp(v.List().Get(i).Message(), subNode.Index(i), loc, useProtoNames)
-					if err != nil {
-						finalErr = err
-						break
-					}
-				}
-			} else {
-				err := convertJSONTimestamp(v.Message(), node.Get(fieldJSONName(fd, useProtoNames)), loc, useProtoNames)
+			subNode := node.Get(fieldJSONName(fd))
+			v.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
+				err := convertJSONTimestamp(value.Message(), subNode.Get(key.String()), loc, useProtoNames)
 				if err != nil {
 					finalErr = err
+					return false
+				}
+				return true
+			})
+		} else if fd.IsList() {
+			subNode := node.Get(fieldJSONName(fd))
+			for i := 0; i < v.List().Len(); i++ {
+				err := convertJSONTimestamp(v.List().Get(i).Message(), subNode.Index(i), loc, useProtoNames)
+				if err != nil {
+					finalErr = err
+					break
 				}
 			}
-			return finalErr == nil
-		})
-		return finalErr
-	}
+		} else {
+			err := convertJSONTimestamp(v.Message(), node.Get(fieldJSONName(fd)), loc, useProtoNames)
+			if err != nil {
+				finalErr = err
+			}
+		}
+		return finalErr == nil
+	})
+	return finalErr
 }
