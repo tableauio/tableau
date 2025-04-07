@@ -82,6 +82,51 @@ func Test_processWhenEmitTimezones(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "complicated message",
+			args: args{
+				message: &unittestpb.JsonUtilTestData{
+					NormalField: &unittestpb.PatchMergeConf{
+						Name: "normal",
+						Time: &unittestpb.PatchMergeConf_Time{
+							Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
+						},
+					},
+					ListField: []*unittestpb.PatchMergeConf{
+						{
+							Name: "list elem 0",
+							Time: &unittestpb.PatchMergeConf_Time{
+								Start: timestamppb.New(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+							},
+						},
+						{
+							Name: "list elem 1",
+							Time: &unittestpb.PatchMergeConf_Time{
+								Start: timestamppb.New(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+							},
+						},
+					},
+					MapField: map[int32]*unittestpb.PatchMergeConf{
+						2025: {
+							Name: "map key 2025",
+							Time: &unittestpb.PatchMergeConf_Time{
+								Start: timestamppb.New(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)),
+							},
+						},
+						2026: {
+							Name: "map key 2026",
+							Time: &unittestpb.PatchMergeConf_Time{
+								Start: timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+							},
+						},
+					},
+				},
+				locationName:  "Asia/Shanghai",
+				useProtoNames: true,
+			},
+			want:    `{"normal_field":{"name":"normal","time":{"start":"2022-01-01T08:00:00+08:00"}},"list_field":[{"name":"list elem 0","time":{"start":"2023-01-01T08:00:00+08:00"}},{"name":"list elem 1","time":{"start":"2024-01-01T08:00:00+08:00"}}],"map_field":{"2025":{"name":"map key 2025","time":{"start":"2025-01-01T08:00:00+08:00"}},"2026":{"name":"map key 2026","time":{"start":"2026-01-01T08:00:00+08:00"}}}}`,
+			wantErr: false,
+		},
+		{
 			name: "RFC3339 in string field",
 			args: args{
 				message: &unittestpb.PatchMergeConf{
