@@ -142,3 +142,9 @@ message RecursivePatchConf {
     }
   }
 }
+
+message JsonUtilTestData {
+  PatchMergeConf normal_field = 1;
+  repeated PatchMergeConf list_field = 2;
+  map<int32, PatchMergeConf> map_field = 3;
+}

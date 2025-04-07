@@ -274,8 +274,14 @@ type ConfOutputOption struct {
 	// Default: false.
 	EmitUnpopulated bool `yaml:"emitUnpopulated"`
 
-	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
-	// field names.
+	// EmitTimezones specifies whether to emit timestamp in string format with
+	// timezones (as indicated by an offset).
+	//
+	// Default: false.
+	EmitTimezones bool `yaml:"emitTimezones"`
+
+	// UseProtoNames uses proto field name instead of lowerCamelCase name
+	// in JSON field names.
 	UseProtoNames bool `yaml:"useProtoNames"`
 
 	// UseEnumNumbers emits enum values as numbers.

@@ -13,10 +13,22 @@ type Options struct {
 	//
 	// Default: "".
 	Name string
+	// Location represents the collection of time offsets in use in a geographical area.
+	//  - If the name is "" or "UTC", LoadLocation returns UTC.
+	//  - If the name is "Local", LoadLocation returns Local.
+	//  - Otherwise, the name is taken to be a location name corresponding to a file in the
+	//    IANA Time Zone database, such as "America/New_York", "Asia/Shanghai", and so on.
+	//
+	// See https://go.dev/src/time/zoneinfo_abbrs_windows.go.
+	//
+	// Default: "Local".
+	LocationName string `yaml:"locationName"`
+
 	// Output pretty format of JSON and Text, with multiline and indent.
 	//
 	// Default: false.
 	Pretty bool
+
 	// EmitUnpopulated specifies whether to emit unpopulated fields. It does not
 	// emit unpopulated oneof fields or unpopulated extension fields.
 	// The JSON value emitted for unpopulated fields are as follows:
@@ -38,9 +50,17 @@ type Options struct {
 	//
 	// Default: false.
 	EmitUnpopulated bool
+
+	// EmitTimezones specifies whether to emit timestamp in string format with
+	// timezones (as indicated by an offset).
+	//
+	// NOTE: use with option "LocationName".
+	EmitTimezones bool
+
 	// UseProtoNames uses proto field name instead of lowerCamelCase name in JSON
 	// field names.
 	UseProtoNames bool
+
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool
 }
@@ -58,7 +78,7 @@ type Option func(*Options)
 
 // newDefault returns a default Options.
 func newDefault() *Options {
-	return &Options{}
+	return &Options{LocationName: "Local"}
 }
 
 // ParseOptions parses functional options and merge them to default Options.
@@ -85,6 +105,13 @@ func Filter(filter FilterFunc) Option {
 func Name(v string) Option {
 	return func(opts *Options) {
 		opts.Name = v
+	}
+}
+
+// LocationName specifies the location name for timezone processing.
+func LocationName(v string) Option {
+	return func(opts *Options) {
+		opts.LocationName = v
 	}
 }
 
@@ -117,5 +144,13 @@ func UseProtoNames(v bool) Option {
 func UseEnumNumbers(v bool) Option {
 	return func(opts *Options) {
 		opts.UseEnumNumbers = v
+	}
+}
+
+// EmitTimezones specifies whether to emit timestamp in string format with
+// timezones (as indicated by an offset).
+func EmitTimezones(v bool) Option {
+	return func(opts *Options) {
+		opts.EmitTimezones = v
 	}
 }

@@ -240,7 +240,7 @@ func loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles
 }
 
 // storeMessage stores a message to one or multiple file formats.
-func storeMessage(msg proto.Message, name string, outputDir string, opt *options.ConfOutputOption) error {
+func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption) error {
 	outputDir = filepath.Join(outputDir, opt.Subdir)
 	formats := format.OutputFormats
 	if len(opt.Formats) != 0 {
@@ -249,8 +249,10 @@ func storeMessage(msg proto.Message, name string, outputDir string, opt *options
 	for _, fmt := range formats {
 		err := store.Store(msg, outputDir, fmt,
 			store.Name(name),
+			store.LocationName(locationName),
 			store.Pretty(opt.Pretty),
 			store.EmitUnpopulated(opt.EmitUnpopulated),
+			store.EmitTimezones(opt.EmitTimezones),
 			store.UseProtoNames(opt.UseProtoNames),
 			store.UseEnumNumbers(opt.UseEnumNumbers),
 		)
@@ -263,7 +265,7 @@ func storeMessage(msg proto.Message, name string, outputDir string, opt *options
 
 // storePatchMergeMessage stores a patch merge message to one or multiple file
 // formats. It will not emit unpopulated fields for clear reading.
-func storePatchMergeMessage(msg proto.Message, name string, outputDir string, opt *options.ConfOutputOption) error {
+func storePatchMergeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption) error {
 	outputDir = filepath.Join(outputDir, opt.Subdir)
 	formats := format.OutputFormats
 	if len(opt.Formats) != 0 {
@@ -272,8 +274,10 @@ func storePatchMergeMessage(msg proto.Message, name string, outputDir string, op
 	for _, fmt := range formats {
 		err := store.Store(msg, outputDir, fmt,
 			store.Name(name),
+			store.LocationName(locationName),
 			store.Pretty(opt.Pretty),
 			// store.EmitUnpopulated(opt.EmitUnpopulated), // DO NOT emit unpopulated fields for clear reading
+			store.EmitTimezones(opt.EmitTimezones),
 			store.UseProtoNames(opt.UseProtoNames),
 			store.UseEnumNumbers(opt.UseEnumNumbers),
 		)

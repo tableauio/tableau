@@ -30,8 +30,10 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 	case format.JSON:
 		filename += format.JSONExt
 		options := &MarshalOptions{
+			LocationName:    opts.LocationName,
 			Pretty:          opts.Pretty,
 			EmitUnpopulated: opts.EmitUnpopulated,
+			EmitTimezones:   opts.EmitTimezones,
 			UseProtoNames:   opts.UseProtoNames,
 			UseEnumNumbers:  opts.UseEnumNumbers,
 		}

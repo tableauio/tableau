@@ -126,7 +126,7 @@ func Test_storeMessage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := storeMessage(tt.args.msg, tt.args.name, tt.args.outputDir, tt.args.opt); (err != nil) != tt.wantErr {
+			if err := storeMessage(tt.args.msg, tt.args.name, "UTC", tt.args.outputDir, tt.args.opt); (err != nil) != tt.wantErr {
 				t.Errorf("storeMessage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
