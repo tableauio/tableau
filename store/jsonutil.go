@@ -27,7 +27,7 @@ func formatTimestamp(ts string, loc *time.Location) string {
 	return localTime.Format("2006-01-02T15:04:05-07:00")
 }
 
-// processWhenUseTimezones emits timestamp in string format with timezones
+// processWhenEmitTimezones emits timestamp in string format with timezones
 // (as indicated by an offset).
 //
 // # Problem
@@ -39,12 +39,17 @@ func formatTimestamp(ts string, loc *time.Location) string {
 // For example, "2017-01-15T01:30:15.01Z" encodes 15.01 seconds past 01:30 UTC
 // on January 15, 2017.
 //
+// # Solution
+//
+// This function processes the JSON string and replaces all timestamps with
+// the desired format.
+//
 // # References
 //
 //   - https://pkg.go.dev/google.golang.org/protobuf/types/known/timestamppb#hdr-JSON_Mapping-Timestamp
 //   - https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp
 //   - RFC 3339: https://tools.ietf.org/html/rfc3339
-func processWhenUseTimezones(jsonStr string, locationName string) (string, error) {
+func processWhenEmitTimezones(jsonStr string, locationName string) (string, error) {
 	loc, err := time.LoadLocation(locationName)
 	if err != nil {
 		return "", xerrors.Wrap(err)
