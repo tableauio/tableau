@@ -167,7 +167,8 @@ message VerticalUniqueFieldStructMap {
   message Main {
     uint32 main_id = 1 [(tableau.field) = {name:"MainID"}];
     string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}];
-    map<uint32, Sub> sub_map = 3 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
+    map<int32, int32> main_kv_map = 3 [(tableau.field) = {name:"MainKV" layout:LAYOUT_INCELL prop:{optional:true}}];
+    map<uint32, Sub> sub_map = 4 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
     message Sub {
       uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}];
       string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}];
@@ -189,7 +190,7 @@ message DocumentUniqueFieldStructList {
 message DocumentUniqueFieldStructMap {
   option (tableau.worksheet) = {name:"DocumentUniqueFieldStructMap"};
 
-  map<string, Chapt> chapter = 1 [(tableau.field) = {name:"Chapter" key:"@key"}];
+  map<string, Chapt> chapter = 1 [(tableau.field) = {name:"Chapter" key:"@key" prop:{optional:true}}];
   message Chapt {
     string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
     string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
@@ -199,4 +200,6 @@ message DocumentUniqueFieldStructMap {
       string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     }
   }
+  map<uint32, string> scalar_map = 2 [(tableau.field) = {name:"ScalarMap" prop:{optional:true}}];
+  map<uint32, string> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL prop:{optional:true}}];
 }

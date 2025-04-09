@@ -934,6 +934,25 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 			wantErr: true,
 			errcode: "E2005",
 		},
+		{
+			name:   "duplicate incell map key",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalUniqueFieldStructMap",
+					Table: &book.Table{
+						MaxRow: 2,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"MainID", "MainName", "MainKV", "SubID", "SubName"},
+							{"1001", "BackPack", "1:10,2:20,2:30", "1", "Gold"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2005",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

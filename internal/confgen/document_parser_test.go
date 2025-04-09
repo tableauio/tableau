@@ -855,6 +855,72 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 			wantErr: true,
 			errcode: "E2005",
 		},
+		{
+			name:   "duplicate scalar map key",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructMap",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructMap",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.MapNode,
+										Name: "ScalarMap",
+										Children: []*book.Node{
+											{
+												Name:  "1",
+												Value: "dog",
+											},
+											{
+												Name:  "2",
+												Value: "bird",
+											},
+											{
+												Name:  "2",
+												Value: "cat",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2005",
+		},
+		{
+			name:   "duplicate incell map key",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructMap",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructMap",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Name:  "IncellMap",
+										Value: "1:dog,2:bird,2:cat",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2005",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
