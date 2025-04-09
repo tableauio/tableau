@@ -140,3 +140,624 @@ func TestDocParser_parseFieldNotFound(t *testing.T) {
 		})
 	}
 }
+
+func TestDocParser_parseDocumentUniqueFieldStructList(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		errcode string
+	}{
+		{
+			name:   "no duplicate key",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructList",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructList",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.ListNode,
+										Name: "Items",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1001",
+													},
+													{
+														Name:  "Name",
+														Value: "Apple",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1002",
+													},
+													{
+														Name:  "Name",
+														Value: "Banana",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1003",
+													},
+													{
+														Name:  "Name",
+														Value: "Orange",
+													},
+													{
+														Name:  "Num",
+														Value: "20",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "duplicate id",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructList",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructList",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.ListNode,
+										Name: "Items",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1001",
+													},
+													{
+														Name:  "Name",
+														Value: "Apple",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1001", // duplicate
+													},
+													{
+														Name:  "Name",
+														Value: "Banana",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1003",
+													},
+													{
+														Name:  "Name",
+														Value: "Orange",
+													},
+													{
+														Name:  "Num",
+														Value: "20",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name:   "duplicate name",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructList",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructList",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.ListNode,
+										Name: "Items",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1001",
+													},
+													{
+														Name:  "Name",
+														Value: "Apple",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1002",
+													},
+													{
+														Name:  "Name",
+														Value: "Banana",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1003",
+													},
+													{
+														Name:  "Name",
+														Value: "Banana", // duplicate
+													},
+													{
+														Name:  "Num",
+														Value: "20",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.DocumentUniqueFieldStructList{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %+v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
+			}
+		})
+	}
+}
+
+func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		errcode string
+	}{
+		{
+			name:   "no duplicate key",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructMap",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructMap",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.MapNode,
+										Name: "Chapter",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Name: "1001",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterOne",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "2",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionTwo",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "3",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionThree",
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Name: "1002",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterTwo",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "2",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionTwo",
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "duplicate chapter name",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructMap",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructMap",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.MapNode,
+										Name: "Chapter",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Name: "1001",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterOne",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "2",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionTwo",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "3",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionThree",
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Name: "1002",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterOne", // duplicate
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "2",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionTwo",
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name:   "duplicate section name",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructMap",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructMap",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.MapNode,
+										Name: "Chapter",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Name: "1001",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterOne",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "2",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionTwo",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "3",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionThree",
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Name: "1002",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterTwo",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "2",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne", // duplicate
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.DocumentUniqueFieldStructMap{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %+v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
+			}
+		})
+	}
+}
