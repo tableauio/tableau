@@ -745,6 +745,116 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 			wantErr: true,
 			errcode: "E2022",
 		},
+		{
+			name:   "duplicate chapter id",
+			parser: docTestParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructMap",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructMap",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.MapNode,
+										Name: "Chapter",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Name: "1001",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterOne",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "2",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionTwo",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "3",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionThree",
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Name: "1001", // duplicate
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterTwo",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+															{
+																Kind: book.MapNode,
+																Name: "2",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionTwo",
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2005",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
