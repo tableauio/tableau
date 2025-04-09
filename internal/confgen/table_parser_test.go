@@ -737,3 +737,216 @@ func TestParser_parseWithSheetAndBookSep(t *testing.T) {
 		})
 	}
 }
+
+func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		errcode string
+	}{
+		{
+			name:   "no duplicate key",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalUniqueFieldStructList",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ID", "Name", "Desc"},
+							{"1", "Apple", "A kind of delicious fruit."},
+							{"2", "Orange", "A kind of sour fruit."},
+							{"3", "Banana", "A kind of calorie-rich fruit."},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "duplicate id",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalUniqueFieldStructList",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ID", "Name", "Desc"},
+							{"1", "Apple", "A kind of delicious fruit."},
+							{"1", "Orange", "A kind of sour fruit."},
+							{"3", "Banana", "A kind of calorie-rich fruit."},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name:   "duplicate name",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalUniqueFieldStructList",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ID", "Name", "Desc"},
+							{"1", "Apple", "A kind of delicious fruit."},
+							{"2", "Banana", "A kind of sour fruit."},
+							{"3", "Banana", "A kind of calorie-rich fruit."},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.VerticalUniqueFieldStructList{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
+			}
+		})
+	}
+}
+
+func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		errcode string
+	}{
+		{
+			name:   "no duplicate key",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalUniqueFieldStructMap",
+					Table: &book.Table{
+						MaxRow: 7,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"MainID", "MainName", "SubID", "SubName"},
+							{"1001", "BackPack", "1", "Gold"},
+							{"1001", "", "2", "Diamond"},
+							{"1001", "", "3", "Ticket"},
+							{"1001", "", "4", "Point"},
+							{"1002", "Equip", "1", "Weapon"},
+							{"1002", "", "2", "Gold"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "duplicate main name",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalUniqueFieldStructMap",
+					Table: &book.Table{
+						MaxRow: 7,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"MainID", "MainName", "SubID", "SubName"},
+							{"1001", "BackPack", "1", "Gold"},
+							{"1001", "", "2", "Diamond"},
+							{"1001", "", "3", "Ticket"},
+							{"1001", "", "4", "Point"},
+							{"1002", "BackPack", "1", "Weapon"},
+							{"1002", "", "2", "Gold"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name:   "duplicate sub name",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalUniqueFieldStructMap",
+					Table: &book.Table{
+						MaxRow: 7,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"MainID", "MainName", "SubID", "SubName"},
+							{"1001", "BackPack", "1", "Gold"},
+							{"1001", "", "2", "Diamond"},
+							{"1001", "", "3", "Ticket"},
+							{"1001", "", "4", "Ticket"},
+							{"1002", "Equip", "1", "Weapon"},
+							{"1002", "", "2", "Gold"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name:   "duplicate sub id",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalUniqueFieldStructMap",
+					Table: &book.Table{
+						MaxRow: 7,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"MainID", "MainName", "SubID", "SubName"},
+							{"1001", "BackPack", "1", "Gold"},
+							{"1001", "", "2", "Diamond"},
+							{"1001", "", "3", "Ticket"},
+							{"1001", "", "3", "Point"},
+							{"1002", "Equip", "1", "Weapon"},
+							{"1002", "", "2", "Gold"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2005",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.VerticalUniqueFieldStructMap{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
+			}
+		})
+	}
+}
