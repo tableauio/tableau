@@ -382,7 +382,6 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 	// struct list
 	if field.opts.Key != "" {
 		// KeyedList means the list is keyed by the specified Key option.
-		keyedListElemExisted := false
 		keyColName := prefix + field.opts.Name + field.opts.Key
 		md := elemValue.Message().Descriptor()
 		fd := sp.findFieldByName(md, field.opts.Key)
@@ -397,13 +396,12 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
-		ignoreIdx := -1
+		keyedListElemExisted := false
 		for i := 0; i < list.Len(); i++ {
 			elemVal := list.Get(i)
 			if elemVal.Message().Get(fd).Equal(key) {
 				elemValue = elemVal
 				keyedListElemExisted = true
-				ignoreIdx = i
 				break
 			}
 		}
@@ -411,23 +409,17 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 			if err := sp.checkListKeyUnique(field, md, cell.Data); err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
+		} else {
+			// set as present only if key is not existed
+			elemPresent = !keyedListElemExisted
 		}
-		elemPresent, err = sp.parseMessage(elemValue.Message(), rc, prefix+field.opts.Name)
+		present, err := sp.parseMessage(elemValue.Message(), rc, prefix+field.opts.Name)
 		if err != nil {
 			return false, err
 		}
-		if !keyPresent && !elemPresent {
+		if !keyPresent && !present {
 			return false, nil
 		}
-		if keyedListElemExisted {
-			// check uniqueness
-			dupName, err := sp.checkListElemSubFieldUnique(field, list, elemValue, ignoreIdx)
-			if err != nil {
-				keyColName := prefix + field.opts.Name + dupName
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
-			}
-		}
-		elemPresent = !keyedListElemExisted
 	} else if xproto.IsUnionField(field.fd) {
 		// cross-cell union list
 		colName := prefix + field.opts.Name

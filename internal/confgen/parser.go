@@ -658,7 +658,7 @@ func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap prot
 				}
 			}
 			if v.Message().Get(fd).Equal(key) {
-				dupName, err = subField.opts.GetName(), xerrors.E2022(fd.FullName(), key)
+				dupName, err = subField.opts.GetName(), xerrors.E2022(fd.Name(), key)
 				return false
 			}
 			return true
@@ -673,7 +673,7 @@ func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap prot
 // checkListElemSubFieldUnique checks whether the list elem's sub-field is unique.
 // If an error occured, also return the field name that has the duplicated value.
 // Elems in ignoreIdxs are not checked.
-func (sp *sheetParser) checkListElemSubFieldUnique(field *Field, list protoreflect.List, elemValue protoreflect.Value, ignoreIdxs ...int) (dupName string, err error) {
+func (sp *sheetParser) checkListElemSubFieldUnique(field *Field, list protoreflect.List, elemValue protoreflect.Value) (dupName string, err error) {
 	if field.fd.Message() == nil {
 		// no need to check if list element not message
 		return "", nil
@@ -692,19 +692,9 @@ func (sp *sheetParser) checkListElemSubFieldUnique(field *Field, list protorefle
 		}
 		key := elemValue.Message().Get(fd)
 		for j := 0; j < list.Len(); j++ {
-			if func() bool {
-				for _, ignoreIdx := range ignoreIdxs {
-					if j == ignoreIdx {
-						return true
-					}
-				}
-				return false
-			}() {
-				continue
-			}
 			elemVal := list.Get(j)
 			if elemVal.Message().Get(fd).Equal(key) {
-				return subField.opts.GetName(), xerrors.E2022(fd.FullName(), key)
+				return subField.opts.GetName(), xerrors.E2022(fd.Name(), key)
 			}
 		}
 	}
@@ -765,7 +755,7 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep 
 			}
 		}
 		// check uniqueness
-		_, err := sp.checkListElemSubFieldUnique(field, list, elemValue, -1)
+		_, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
 		if err != nil {
 			return false, err
 		}

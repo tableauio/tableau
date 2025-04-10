@@ -68,7 +68,6 @@ func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	}
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
-		Unique:   prop.Unique,
 		Form:     prop.Form,
 		Present:  prop.Present,
 		Optional: prop.Optional,
@@ -83,6 +82,8 @@ func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 }
 
 // ExtractScalarFieldProp extracts the specified props which the scalar field recognizes.
+//
+// FIXME(wenchy): wellknown type fields should also be supported.
 func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil
