@@ -122,6 +122,27 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			wantErr: true,
 			errcode: "E2005",
 		},
+		{
+			name:   "duplicate col name",
+			parser: testParser,
+			args: args{
+				sheet: &book.Sheet{
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ShopID", "GoodsID", "GoodsID", "Price"},
+							{"1", "1", "1", "10"},
+							{"2", "2", "2", "20"},
+							{"3", "3", "3", "30"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E0003",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

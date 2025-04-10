@@ -6,11 +6,11 @@ E0002:
   desc: cannot unmarshal file content to given proto.Message
   text: 'failed to unmarshal file "{{.Filename}}" to message "{{.MessageName}}": {{.Error}}{{.Lines}}'
   help: check the file content format is correct
-# [1000, 1999]: protogen error
-E1000:
-  desc: column name conflicts in name row
-  text: found same name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}"
+E0003:
+  desc: duplicate column name
+  text: duplicate column name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}"
   help: rename column name and keep sure it is unique in name row
+# [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2000:
   desc: integer overflow

@@ -10,7 +10,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// LetterAxis generate the corresponding column name.
+// LetterAxis generate the corresponding column letter position.
 // index: 0-based.
 func LetterAxis(index int) string {
 	var (
@@ -24,8 +24,9 @@ func LetterAxis(index int) string {
 	return colCode + string(key+int32(index)%26)
 }
 
-// Postion generate the position in a sheet.
-// row and col both are 0-based.
+// Postion generate the position (e.g.: A1) in a sheet.
+//
+// NOTE: row and col both are 0-based.
 func Postion(row, col int) string {
 	return fmt.Sprintf("%s%d", LetterAxis(col), row+1)
 }

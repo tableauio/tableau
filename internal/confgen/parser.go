@@ -250,10 +250,10 @@ type sheetParser struct {
 	sheetOpts    *tableaupb.WorksheetOptions
 	extInfo      *SheetParserExtInfo
 
-	// cached name and type
+	// cached names and types
 	names       []string               // names[col] -> name
 	types       []string               // types[col] -> name
-	lookupTable book.ColumnLookupTable // name -> column index (started with 0)
+	lookupTable book.ColumnLookupTable // column name -> column index (started with 0)
 }
 
 // SheetParserExtInfo is the extended info for refer check and so on.
@@ -279,7 +279,7 @@ func NewExtendedSheetParser(protoPackage, locationName string, strcaseCtx strcas
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
-		lookupTable:  map[string]uint32{},
+		lookupTable:  book.ColumnLookupTable{},
 	}
 }
 

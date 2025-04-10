@@ -23,6 +23,36 @@ func Test_processWhenEmitTimezones(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "UTC-empty",
+			args: args{
+				message: &unittestpb.PatchMergeConf{
+					Name: "test",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start: &timestamppb.Timestamp{},
+					},
+				},
+				locationName:  "UTC",
+				useProtoNames: true,
+			},
+			want:    `{"name":"test","time":{"start":"1970-01-01T00:00:00Z"}}`,
+			wantErr: false,
+		},
+		{
+			name: "UTC-nil",
+			args: args{
+				message: &unittestpb.PatchMergeConf{
+					Name: "test",
+					Time: &unittestpb.PatchMergeConf_Time{
+						Start: nil,
+					},
+				},
+				locationName:  "UTC",
+				useProtoNames: true,
+			},
+			want:    `{"name":"test","time":{}}`,
+			wantErr: false,
+		},
+		{
 			name: "UTC",
 			args: args{
 				message: &unittestpb.PatchMergeConf{

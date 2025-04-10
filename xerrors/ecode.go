@@ -51,9 +51,9 @@ func E0002(filename, messageName, errstr string, lines string) error {
 	})
 }
 
-// E1000: column name conflicts in name row.
-func E1000(name, positon1, positon2 string) error {
-	return renderEcode("E1000", map[string]any{
+// E0003: duplicate column name.
+func E0003(name, positon1, positon2 string) error {
+	return renderEcode("E0003", map[string]any{
 		"Name":      name,
 		"Position1": positon1,
 		"Position2": positon2,

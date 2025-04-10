@@ -6,11 +6,11 @@ E0002:
   desc: cannot unmarshal file content to given proto.Message
   text: '无法将"{{.Filename}}"的文件内容反序列化到Protobuf消息"{{.MessageName}}": {{.Error}}{{.Lines}}'
   help: 检查文件内容格式是否正确
-# [1000, 1999]: protogen error
-E1000:
-  desc: column name conflicts in name row
+E0003:
+  desc: duplicate column name
   text: '"{{.Position1}}" 和 "{{.Position2}}" 存在相同的列名 "{{.Name}}"'
   help: 修改冲突的列名，以确保唯一性
+# [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2000:
   desc: integer overflow
@@ -54,7 +54,7 @@ E2009:
   help: "合表时，不同的表不允许配置重复的键"
 E2010:
   desc: union type has no corresponding value field
-  text: 'union 类型"{{.TypeValue}}"找不到 field number 为"{{.FieldNumber}}"的对应 value 字段'
+  text: 'union 类型 "{{.TypeValue}}" 找不到 field number 为 "{{.FieldNumber}}" 的对应 value 字段'
   help: '新增 union value field 并绑定到类型"{{.TypeValue}}"'
 E2011:
   desc: field presence required but cell not filled
