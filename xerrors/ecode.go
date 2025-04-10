@@ -243,9 +243,17 @@ func E2021(enumType, enumValue1, enumValue2, alias any) error {
 	})
 }
 
-// E2022: map or list element field value not unique.
-func E2022(key any) error {
+// E2022: sub-field's value not unique in map values or list elements
+func E2022(fieldName, key any) error {
 	return renderEcode("E2022", map[string]any{
+		"FieldName": fieldName,
+		"Key":       key,
+	})
+}
+
+// E2023: KeyedList key not unique
+func E2023(key any) error {
+	return renderEcode("E2023", map[string]any{
 		"Key": key,
 	})
 }

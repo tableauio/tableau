@@ -552,31 +552,81 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 			childField := sp.parseFieldDescriptor(fd)
 			defer childField.release()
 			childLayout := parseTableMapLayout(childField.opts.Layout)
-			if childLayout == tableaupb.Layout_LAYOUT_INCELL {
-				// ignore incell map
-				continue
-			}
-			if childLayout == layout {
-				// map key must not be unique because its value has child with same layout
-				// but if it's assigned to be unique, it must be unique
+			if childLayout == tableaupb.Layout_LAYOUT_INCELL || childLayout == layout {
+				// 1. incell map
+				// 2. same layout, map key should not be unique
 				return false
 			}
 		} else if fd.IsList() {
 			childField := sp.parseFieldDescriptor(fd)
 			defer childField.release()
 			childLayout := parseTableListLayout(childField.opts.Layout)
-			if childLayout == tableaupb.Layout_LAYOUT_INCELL {
-				// ignore incell list
-				continue
-			}
-			if childLayout == layout {
-				// map key must not be unique because its value has child with same layout
-				// but if it's assigned to be unique, it must be unique
+			if childLayout == tableaupb.Layout_LAYOUT_INCELL || childLayout == layout {
+				// 1. incell list
+				// 2. same layout, map key should not be unique
 				return false
 			}
 		}
 	}
-	// map key must be unique because its value has no child with same layout
+	return true
+}
+
+func (sp *sheetParser) checkListKeyUnique(field *Field, md protoreflect.MessageDescriptor, keyData string) error {
+	// TODO: we need to cache key field descriptor for reuse, to avoid each loop to find it when parse table rows or document nodes.
+	fd := sp.findFieldByName(md, field.opts.Key)
+	if fd == nil {
+		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key))
+	}
+	keyField := sp.parseFieldDescriptor(fd)
+	defer keyField.release()
+	if fieldprop.RequireUnique(keyField.opts.Prop) ||
+		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceListKeyUnique(field, md)) {
+		return xerrors.Wrap(xerrors.E2023(keyData))
+	}
+	return nil
+}
+
+// deduceListKeyUnique deduces whether the KeyedList key unique or not.
+//
+// By default, KeyedList key should be unique. However, in order to aggregate
+// sub-field (map or list) with cardinality, the KeyedList key can be duplicate.
+// Then it be deduced to be unique if nesting hierarchy is like:
+//
+//   - KeyedList layout is incell or default.
+//   - KeyedList nesting map or list with different layout (vertical or horizontal).
+//   - KeyedList nesting no map or list.
+func (sp *sheetParser) deduceListKeyUnique(field *Field, md protoreflect.MessageDescriptor) bool {
+	if !sp.IsTable() {
+		// KeyedList key in document must be unique if not table sheet.
+		return true
+	}
+	layout := parseTableMapLayout(field.opts.Layout)
+	if layout == tableaupb.Layout_LAYOUT_INCELL {
+		// incell KeyedList key must be unique
+		return true
+	}
+	for i := 0; i < md.Fields().Len(); i++ {
+		fd := md.Fields().Get(i)
+		if fd.IsMap() {
+			childField := sp.parseFieldDescriptor(fd)
+			defer childField.release()
+			childLayout := parseTableMapLayout(childField.opts.Layout)
+			if childLayout == tableaupb.Layout_LAYOUT_INCELL || childLayout == layout {
+				// 1. incell map
+				// 2. same layout, map key should not be unique
+				return false
+			}
+		} else if fd.IsList() {
+			childField := sp.parseFieldDescriptor(fd)
+			defer childField.release()
+			childLayout := parseTableListLayout(childField.opts.Layout)
+			if childLayout == tableaupb.Layout_LAYOUT_INCELL || childLayout == layout {
+				// 1. incell list
+				// 2. same layout, map key should not be unique
+				return false
+			}
+		}
+	}
 	return true
 }
 
@@ -608,7 +658,7 @@ func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap prot
 				}
 			}
 			if v.Message().Get(fd).Equal(key) {
-				dupName, err = subField.opts.GetName(), xerrors.E2022(key)
+				dupName, err = subField.opts.GetName(), xerrors.E2022(fd.FullName(), key)
 				return false
 			}
 			return true
@@ -654,7 +704,7 @@ func (sp *sheetParser) checkListElemSubFieldUnique(field *Field, list protorefle
 			}
 			elemVal := list.Get(j)
 			if elemVal.Message().Get(fd).Equal(key) {
-				return subField.opts.GetName(), xerrors.E2022(key)
+				return subField.opts.GetName(), xerrors.E2022(fd.FullName(), key)
 			}
 		}
 	}
@@ -705,32 +755,21 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep 
 			firstNonePresentIndex = i
 			continue
 		}
-		if fdopts.GetKey() != "" {
-			// keyed list
-			keyedListElemExisted := false
+		if fdopts.GetKey() != "" && fd.Kind() != protoreflect.MessageKind {
+			// check key uniqueness for scalar/enum list
 			for j := 0; j < list.Len(); j++ {
 				elemVal := list.Get(j)
 				if elemVal.Equal(elemValue) {
-					keyedListElemExisted = true
-					break
+					return false, xerrors.WrapKV(xerrors.E2023(elemValue))
 				}
 			}
-			if !keyedListElemExisted {
-				// check uniqueness
-				_, err := sp.checkListElemSubFieldUnique(field, list, elemValue, -1)
-				if err != nil {
-					return false, err
-				}
-				list.Append(elemValue)
-			}
-		} else {
-			// check uniqueness
-			_, err := sp.checkListElemSubFieldUnique(field, list, elemValue, -1)
-			if err != nil {
-				return false, err
-			}
-			list.Append(elemValue)
 		}
+		// check uniqueness
+		_, err := sp.checkListElemSubFieldUnique(field, list, elemValue, -1)
+		if err != nil {
+			return false, err
+		}
+		list.Append(elemValue)
 	}
 	if fieldprop.IsFixed(fdopts.Prop) {
 		for list.Len() < fixedSize {

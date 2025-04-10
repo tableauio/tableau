@@ -407,10 +407,10 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 				break
 			}
 		}
-		keyField := sp.parseFieldDescriptor(fd)
-		defer keyField.release()
-		if fieldprop.RequireUnique(keyField.opts.Prop) && keyedListElemExisted {
-			return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
+		if keyedListElemExisted {
+			if err := sp.checkListKeyUnique(field, md, cell.Data); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
 		}
 		elemPresent, err = sp.parseMessage(elemValue.Message(), rc, prefix+field.opts.Name)
 		if err != nil {
@@ -496,6 +496,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 				// horizontal struct list
 				elemPresent, err = sp.parseMessage(elemValue.Message(), rc, colName)
 			}
+			// TODO: horizontal keyed struct list
 		} else {
 			// scalar list
 			if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {

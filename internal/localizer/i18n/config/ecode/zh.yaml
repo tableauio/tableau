@@ -35,7 +35,7 @@ E2004:
 E2005:
   desc: map key not unique
   text: map的key "{{.Key}}" 已存在
-  help: 此处map的key要保证唯一性, 不允许重复配置相同key
+  help: 确保map的key唯一, 不允许重复配置相同key
 E2006:
   desc: enum value not defined in enum type
   text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
@@ -101,9 +101,13 @@ E2021:
   text: '在枚举类型 {{.EnumType}} 定义中, {{.EnumValue1}} 和 {{.EnumValue2}} 定义了重复的枚举值别名 "{{.Alias}}"'
   help: 请确保枚举值别名唯一性
 E2022:
-  desc: map or list element field value not unique
-  text: map或list的元素字段唯一值 "{{.Key}}" 已存在
-  help: 此处map或list的元素字段值要保证唯一性, 不允许重复配置相同值
+  desc: sub-field's value not unique in map values or list elements
+  text: map value 或 list element 子字段 "{{.FieldName}}" 的值 "{{.Key}}" 已存在
+  help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值保证唯一, 不允许重复配置相同值
+E2023:
+  desc: KeyedList key not unique
+  text: KeyedList 的 key "{{.Key}}" 已存在
+  help: 确保 KeyedList 的 key 唯一, 不允许重复配置相同 key
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
