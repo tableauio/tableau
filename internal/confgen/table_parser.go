@@ -60,8 +60,8 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 				curr.NewCell(row, &sp.names[row], &sp.types[row], data, sp.sheetOpts.AdjacentKey)
 				name := sp.names[row]
-				if foundCursor, ok := sp.lookupTable[name]; ok && foundCursor != row {
-					return xerrors.E0003(name, excel.Postion(foundCursor, nameCol), excel.Postion(row, nameCol))
+				if foundRow, ok := sp.lookupTable[name]; ok && foundRow != row {
+					return xerrors.E0003(name, excel.Postion(foundRow, nameCol), excel.Postion(row, nameCol))
 				}
 				sp.lookupTable[name] = row
 			}
@@ -111,8 +111,8 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 				curr.NewCell(col, &sp.names[col], &sp.types[col], data, sp.sheetOpts.AdjacentKey)
 				name := sp.names[col]
-				if foundCursor, ok := sp.lookupTable[name]; ok && foundCursor != col {
-					return xerrors.E0003(name, excel.Postion(nameRow, foundCursor), excel.Postion(nameRow, col))
+				if foundCol, ok := sp.lookupTable[name]; ok && foundCol != col {
+					return xerrors.E0003(name, excel.Postion(nameRow, foundCol), excel.Postion(nameRow, col))
 				}
 				sp.lookupTable[name] = col
 			}

@@ -7,8 +7,8 @@ E0002:
   text: 'failed to unmarshal file "{{.Filename}}" to message "{{.MessageName}}": {{.Error}}{{.Lines}}'
   help: check the file content format is correct
 E0003:
-  desc: column name conflicts in name row
-  text: found same name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}"
+  desc: duplicate column name
+  text: duplicate column name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}"
   help: rename column name and keep sure it is unique in name row
 # [1000, 1999]: protogen error
 # [2000, 2999]: confgen error

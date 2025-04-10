@@ -51,7 +51,7 @@ func E0002(filename, messageName, errstr string, lines string) error {
 	})
 }
 
-// E0003: column name conflicts in name row.
+// E0003: duplicate column name.
 func E0003(name, positon1, positon2 string) error {
 	return renderEcode("E0003", map[string]any{
 		"Name":      name,
