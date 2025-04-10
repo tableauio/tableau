@@ -178,8 +178,9 @@ func (sp *tableParser) parseField(field *Field, msg protoreflect.Message, rc *bo
 }
 
 func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
-	switch field.opts.GetLayout() {
-	case tableaupb.Layout_LAYOUT_VERTICAL, tableaupb.Layout_LAYOUT_DEFAULT:
+	layout := parseTableMapLayout(field.opts.GetLayout())
+	switch layout {
+	case tableaupb.Layout_LAYOUT_VERTICAL:
 		// map default layout treated as virtical
 		return sp.parseVerticalMapField(field, msg, rc, prefix)
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
@@ -187,11 +188,10 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// NOTE(Wenchy): Even though named as incell, it still can merge
 		// multiple vertical/horizontal cells if provided, as map is a
-		// composite type with cardinality. In practical use cases, this
-		// is a very useful feature.
+		// composite type with cardinality. In practice, it is a very useful.
 		return sp.parseIncellMapField(field, msg, rc, prefix)
 	default:
-		return false, xerrors.Errorf("unknown layout: %v", field.opts.GetLayout())
+		return false, xerrors.Errorf("unknown layout: %v", layout)
 	}
 }
 
@@ -223,16 +223,9 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	}
 	var newMapValue protoreflect.Value
 	if reflectMap.Has(newMapKey) {
-		md := reflectMap.NewValue().Message().Descriptor()
-		fd := sp.findFieldByName(md, field.opts.Key)
-		if fd == nil {
-			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), rc.CellDebugKV(keyColName)...)
-		}
-		keyField := sp.parseFieldDescriptor(fd)
-		defer keyField.release()
-		if fieldprop.RequireUnique(keyField.opts.Prop) ||
-			(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
-			return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
+		// check map key uniqueness
+		if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
 		newMapValue = reflectMap.Mutable(newMapKey)
 	} else {
@@ -246,8 +239,8 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 		// key and value are both not present.
 		return false, nil
 	}
-	// check uniqueness
-	dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue, newMapKey)
+	// check map value sub-field uniqueness
+	dupName, err := sp.checkMapValueSubFieldUnique(field, reflectMap, newMapValue, newMapKey)
 	if err != nil {
 		keyColName := prefix + field.opts.Name + dupName
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -303,16 +296,9 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 		}
 		var newMapValue protoreflect.Value
 		if reflectMap.Has(newMapKey) {
-			md := reflectMap.NewValue().Message().Descriptor()
-			fd := sp.findFieldByName(md, field.opts.Key)
-			if fd == nil {
-				return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), rc.CellDebugKV(keyColName)...)
-			}
-			keyField := sp.parseFieldDescriptor(fd)
-			defer keyField.release()
-			if fieldprop.RequireUnique(field.opts.Prop) ||
-				(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
-				return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
+			// check map key uniqueness
+			if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
 			newMapValue = reflectMap.Mutable(newMapKey)
 		} else {
@@ -335,8 +321,8 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			checkRemainFlag = true
 			continue
 		}
-		// check uniqueness
-		dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue, newMapKey)
+		// check map value sub-field uniqueness
+		dupName, err := sp.checkMapValueSubFieldUnique(field, reflectMap, newMapValue, newMapKey)
 		if err != nil {
 			keyColName := prefix + field.opts.Name + strconv.Itoa(i) + dupName
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -369,7 +355,8 @@ func (sp *tableParser) parseIncellMapField(field *Field, msg protoreflect.Messag
 }
 
 func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
-	switch field.opts.GetLayout() {
+	layout := parseTableListLayout(field.opts.GetLayout())
+	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		return sp.parseVerticalListField(field, msg, rc, prefix)
 	case tableaupb.Layout_LAYOUT_HORIZONTAL, tableaupb.Layout_LAYOUT_DEFAULT:
@@ -378,11 +365,10 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// NOTE(Wenchy): Even though named as incell, it still can merge
 		// multiple vertical/horizontal cells if provided, as list is a
-		// composite type with cardinality. In practical use cases, this
-		// is a very useful feature.
+		// composite type with cardinality. In practice, it is a very useful.
 		return sp.parseIncellListField(field, msg, rc, prefix)
 	default:
-		return false, xerrors.Errorf("unknown layout: %v", field.opts.GetLayout())
+		return false, xerrors.Errorf("unknown layout: %v", layout)
 	}
 }
 
@@ -435,7 +421,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		}
 		if keyedListElemExisted {
 			// check uniqueness
-			dupName, err := sp.checkValueUniqueInList(field, list, elemValue, ignoreIdx)
+			dupName, err := sp.checkListElemSubFieldUnique(field, list, elemValue, ignoreIdx)
 			if err != nil {
 				keyColName := prefix + field.opts.Name + dupName
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -458,7 +444,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 	}
 	if elemPresent {
 		// check uniqueness
-		dupName, err := sp.checkValueUniqueInList(field, list, elemValue)
+		dupName, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
 		if err != nil {
 			keyColName := prefix + field.opts.Name + dupName
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -533,7 +519,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 			continue
 		}
 		// check uniqueness
-		dupName, err := sp.checkValueUniqueInList(field, list, elemValue)
+		dupName, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
 		if err != nil {
 			keyColName := colName + dupName
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)

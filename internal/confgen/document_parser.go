@@ -1,7 +1,6 @@
 package confgen
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -167,16 +166,9 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				}
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
-					md := reflectMap.NewValue().Message().Descriptor()
-					fd := sp.findFieldByName(md, field.opts.Key)
-					if fd == nil {
-						return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), node.DebugKV()...)
-					}
-					keyField := sp.parseFieldDescriptor(fd)
-					defer keyField.release()
-					if fieldprop.RequireUnique(keyField.opts.Prop) ||
-						(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
-						return false, xerrors.WrapKV(xerrors.E2005(keyData), node.DebugKV()...)
+					// check map key uniqueness
+					if err := sp.checkMapKeyUnique(field, reflectMap, keyData); err != nil {
+						return false, xerrors.WrapKV(err, node.DebugKV()...)
 					}
 					newMapValue = reflectMap.Mutable(newMapKey)
 				} else {
@@ -187,19 +179,12 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
 				// TODO: auto remove added virtual key node?
-				// check key uniqueness
-				if reflectMap.Has(newMapKey) {
-					if fieldprop.RequireUnique(field.opts.Prop) ||
-						(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
-						return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
-					}
-				}
 				if !keyPresent && !valuePresent {
 					// key and value are both not present.
 					continue
 				}
-				// check uniqueness
-				dupName, err := sp.checkValueUniqueInMap(field, reflectMap, newMapValue, newMapKey)
+				// check map value sub-field uniqueness
+				dupName, err := sp.checkMapValueSubFieldUnique(field, reflectMap, newMapValue, newMapKey)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
 				}
@@ -355,7 +340,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 			}
 			if elemPresent {
 				// check uniqueness
-				_, err := sp.checkValueUniqueInList(field, list, elemValue)
+				_, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}

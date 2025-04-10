@@ -319,6 +319,11 @@ func (sp *sheetParser) GetBookFormat() format.Format {
 	return sp.extInfo.BookFormat
 }
 
+// IsTable checks whether the sheet format is a table sheet.
+func (sp *sheetParser) IsTable() bool {
+	return sp.GetBookFormat() == format.Excel || sp.GetBookFormat() == format.CSV
+}
+
 // IsFieldOptional returns whether this field is optional (field name existence).
 //   - table formats (Excel/CSV): field's column can be absent.
 //   - document formats (XML/YAML): field's name can be absent.
@@ -505,15 +510,39 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 	return mapKey, present, nil
 }
 
+func (sp *sheetParser) checkMapKeyUnique(field *Field, reflectMap protoreflect.Map, keyData string) error {
+	// TODO: we need to cache key field descriptor for reuse, to avoid each loop to find it when parse table rows or document nodes.
+	md := reflectMap.NewValue().Message().Descriptor()
+	fd := sp.findFieldByName(md, field.opts.Key)
+	if fd == nil {
+		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key))
+	}
+	keyField := sp.parseFieldDescriptor(fd)
+	defer keyField.release()
+	if fieldprop.RequireUnique(keyField.opts.Prop) ||
+		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
+		return xerrors.Wrap(xerrors.E2005(keyData))
+	}
+	return nil
+}
+
 // deduceMapKeyUnique deduces whether the map key unique or not.
 //
-// By default, map key should be unique. The only exception is a vertical map
-// containing a sub-field with the same layout.
+// By default, map key should be unique. However, in order to aggregate
+// sub-field (map or list) with cardinality, the map key can be duplicate.
+// Then it be deduced to be unique if nesting hierarchy is like:
+//
+//   - map layout is incell or default.
+//   - map nesting map or list with different layout (vertical or horizontal).
+//   - map nesting no map or list.
 func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.Map) bool {
-	layout := field.opts.Layout
-	if layout != tableaupb.Layout_LAYOUT_VERTICAL &&
-		layout != tableaupb.Layout_LAYOUT_HORIZONTAL {
-		// incell and default maps must be unique
+	if !sp.IsTable() {
+		// map key in document must be unique if not table sheet.
+		return true
+	}
+	layout := parseTableMapLayout(field.opts.Layout)
+	if layout == tableaupb.Layout_LAYOUT_INCELL {
+		// incell map key must be unique
 		return true
 	}
 	md := reflectMap.NewValue().Message().Descriptor()
@@ -522,26 +551,39 @@ func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.
 		if fd.IsMap() {
 			childField := sp.parseFieldDescriptor(fd)
 			defer childField.release()
-			childLayout := childField.opts.Layout
+			childLayout := parseTableMapLayout(childField.opts.Layout)
+			if childLayout == tableaupb.Layout_LAYOUT_INCELL {
+				// ignore incell map
+				continue
+			}
 			if childLayout == layout {
+				// map key must not be unique because its value has child with same layout
+				// but if it's assigned to be unique, it must be unique
 				return false
 			}
 		} else if fd.IsList() {
 			childField := sp.parseFieldDescriptor(fd)
 			defer childField.release()
-			childLayout := childField.opts.Layout
+			childLayout := parseTableListLayout(childField.opts.Layout)
+			if childLayout == tableaupb.Layout_LAYOUT_INCELL {
+				// ignore incell list
+				continue
+			}
 			if childLayout == layout {
+				// map key must not be unique because its value has child with same layout
+				// but if it's assigned to be unique, it must be unique
 				return false
 			}
 		}
 	}
+	// map key must be unique because its value has no child with same layout
 	return true
 }
 
-// checkValueUniqueInMap checks if the mapValue is unique in map.
-// If error occured, also return the field name that has the duplicated value.
+// checkMapValueSubFieldUnique checks whether the map value's sub-field is unique.
+// If an error occured, also return the field name that has the duplicated value.
 // Keys in ignoreKeys are not checked.
-func (sp *sheetParser) checkValueUniqueInMap(field *Field, reflectMap protoreflect.Map, elemValue protoreflect.Value, ignoreKeys ...protoreflect.MapKey) (dupName string, err error) {
+func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap protoreflect.Map, elemValue protoreflect.Value, ignoreKeys ...protoreflect.MapKey) (dupName string, err error) {
 	if field.fd.MapValue().Message() == nil {
 		// no need to check if map value not message
 		return "", nil
@@ -578,10 +620,10 @@ func (sp *sheetParser) checkValueUniqueInMap(field *Field, reflectMap protorefle
 	return "", nil
 }
 
-// checkValueUniqueInList checks if the elemValue is unique in list.
-// If error occured, also return the field name that has the duplicated value.
+// checkListElemSubFieldUnique checks whether the list elem's sub-field is unique.
+// If an error occured, also return the field name that has the duplicated value.
 // Elems in ignoreIdxs are not checked.
-func (sp *sheetParser) checkValueUniqueInList(field *Field, list protoreflect.List, elemValue protoreflect.Value, ignoreIdxs ...int) (dupName string, err error) {
+func (sp *sheetParser) checkListElemSubFieldUnique(field *Field, list protoreflect.List, elemValue protoreflect.Value, ignoreIdxs ...int) (dupName string, err error) {
 	if field.fd.Message() == nil {
 		// no need to check if list element not message
 		return "", nil
@@ -625,7 +667,7 @@ func (sp *sheetParser) parseIncellList(field *Field, list protoreflect.List, ele
 }
 
 // parseListElems parses the given string slice to a list. Each elem's
-// coressponding type can be: scalar, enum, well-known, and struct.
+// corresponding type can be: scalar, enum, well-known, and struct.
 func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep string, elemDataList []string) (present bool, err error) {
 	fd := field.fd
 	fdopts := field.opts
@@ -663,9 +705,9 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep 
 			firstNonePresentIndex = i
 			continue
 		}
-		keyedListElemExisted := false
 		if fdopts.GetKey() != "" {
 			// keyed list
+			keyedListElemExisted := false
 			for j := 0; j < list.Len(); j++ {
 				elemVal := list.Get(j)
 				if elemVal.Equal(elemValue) {
@@ -673,10 +715,17 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep 
 					break
 				}
 			}
-		}
-		if !keyedListElemExisted {
+			if !keyedListElemExisted {
+				// check uniqueness
+				_, err := sp.checkListElemSubFieldUnique(field, list, elemValue, -1)
+				if err != nil {
+					return false, err
+				}
+				list.Append(elemValue)
+			}
+		} else {
 			// check uniqueness
-			_, err := sp.checkValueUniqueInList(field, list, elemValue, -1)
+			_, err := sp.checkListElemSubFieldUnique(field, list, elemValue, -1)
 			if err != nil {
 				return false, err
 			}
