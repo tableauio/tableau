@@ -164,9 +164,11 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
+				var newMapKeyExisted bool
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
-					// check map key uniqueness
+					newMapKeyExisted = true
+					// check map key unique
 					if err := sp.checkMapKeyUnique(field, reflectMap, keyData); err != nil {
 						return false, xerrors.WrapKV(err, node.DebugKV()...)
 					}
@@ -183,10 +185,12 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					// key and value are both not present.
 					continue
 				}
-				// check map value sub-field uniqueness
-				dupName, err := sp.checkMapValueSubFieldUnique(field, reflectMap, newMapValue, newMapKey)
-				if err != nil {
-					return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
+				if !newMapKeyExisted {
+					// check map value's sub-field unique
+					dupName, err := sp.checkMapValueSubFieldUnique(field, reflectMap, newMapValue)
+					if err != nil {
+						return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
+					}
 				}
 				reflectMap.Set(newMapKey, newMapValue)
 			}
@@ -339,7 +343,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 				return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 			}
 			if elemPresent {
-				// check uniqueness
+				// check list elem's sub-field unique
 				_, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)

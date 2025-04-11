@@ -582,11 +582,15 @@ func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoref
 }
 
 // checkMapValueSubFieldUnique checks whether the map value's sub-field is unique.
-// If an error occured, also return the field name that has the duplicated value.
+// If an error occured, it will return the field option name which has the duplicated value.
 // Keys in ignoreKeys are not checked.
-func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap protoreflect.Map, elemValue protoreflect.Value, ignoreKeys ...protoreflect.MapKey) (dupName string, err error) {
+//
+// TODO(performance):
+//  1. cache the unique field's FullName to check if the elem has unique sub fields.
+//  2. cache the unique field's values in map for speeding up checking. Note the nesting such as: map in map.
+func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap protoreflect.Map, elemValue protoreflect.Value) (dupName string, err error) {
 	if field.fd.MapValue().Message() == nil {
-		// no need to check if map value not message
+		// no need to check if map value is not message
 		return "", nil
 	}
 	md := elemValue.Message().Descriptor()
@@ -603,11 +607,6 @@ func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap prot
 		}
 		key := elemValue.Message().Get(fd)
 		reflectMap.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
-			for _, ignoreKey := range ignoreKeys {
-				if k.Interface() == ignoreKey.Interface() {
-					return true
-				}
-			}
 			if v.Message().Get(fd).Equal(key) {
 				dupName, err = subField.opts.GetName(), xerrors.E2022(fd.Name(), key)
 				return false
@@ -618,15 +617,18 @@ func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap prot
 			return dupName, err
 		}
 	}
-	return "", nil
+	return dupName, nil
 }
 
 // checkListElemSubFieldUnique checks whether the list elem's sub-field is unique.
-// If an error occured, also return the field name that has the duplicated value.
-// Elems in ignoreIdxs are not checked.
+// If an error occured, it will return the field option name which has the duplicated value.
+//
+// TODO(performance):
+//  1. cache the unique field's FullName to check if the elem has unique sub fields.
+//  2. cache the unique field's values in map for speeding up checking. Note the nesting such as: list in map.
 func (sp *sheetParser) checkListElemSubFieldUnique(field *Field, list protoreflect.List, elemValue protoreflect.Value) (dupName string, err error) {
 	if field.fd.Message() == nil {
-		// no need to check if list element not message
+		// no need to check if list element is not message
 		return "", nil
 	}
 	md := elemValue.Message().Descriptor()
@@ -649,7 +651,7 @@ func (sp *sheetParser) checkListElemSubFieldUnique(field *Field, list protorefle
 			}
 		}
 	}
-	return "", nil
+	return dupName, nil
 }
 
 func (sp *sheetParser) parseIncellList(field *Field, list protoreflect.List, elemData string) (present bool, err error) {
@@ -697,7 +699,7 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep 
 			continue
 		}
 		if fdopts.GetKey() != "" && fd.Kind() != protoreflect.MessageKind {
-			// check key uniqueness for scalar/enum list
+			// check key unique for scalar/enum list
 			for j := 0; j < list.Len(); j++ {
 				elemVal := list.Get(j)
 				if elemVal.Equal(elemValue) {
@@ -705,7 +707,7 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep 
 				}
 			}
 		}
-		// check uniqueness
+		// check list elem's sub-field unique
 		_, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
 		if err != nil {
 			return false, err
