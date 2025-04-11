@@ -11,10 +11,8 @@ import (
 	"github.com/tableauio/tableau/xerrors"
 )
 
-var docTestParser *sheetParser
-
-func init() {
-	docTestParser = NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+func newDocParserForTest() *sheetParser {
+	return NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
 		book.MetabookOptions(),
 		book.MetasheetOptions(),
 		&SheetParserExtInfo{
@@ -37,7 +35,7 @@ func TestDocParser_parseFieldNotFound(t *testing.T) {
 	}{
 		{
 			name:   "no duplicate key",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "YamlScalarConf",
@@ -95,7 +93,7 @@ func TestDocParser_parseFieldNotFound(t *testing.T) {
 		},
 		{
 			name:   "field-not-found",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "YamlScalarConf",
@@ -154,7 +152,7 @@ func TestDocParser_parseDocumentUniqueFieldStructList(t *testing.T) {
 	}{
 		{
 			name:   "no duplicate key",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructList",
@@ -232,7 +230,7 @@ func TestDocParser_parseDocumentUniqueFieldStructList(t *testing.T) {
 		},
 		{
 			name:   "duplicate id",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructList",
@@ -311,7 +309,7 @@ func TestDocParser_parseDocumentUniqueFieldStructList(t *testing.T) {
 		},
 		{
 			name:   "duplicate name",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructList",
@@ -418,7 +416,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 	}{
 		{
 			name:   "no duplicate key",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructMap",
@@ -527,7 +525,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 		},
 		{
 			name:   "duplicate chapter name",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructMap",
@@ -637,7 +635,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 		},
 		{
 			name:   "duplicate section name",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructMap",
@@ -747,7 +745,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 		},
 		{
 			name:   "duplicate chapter id",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructMap",
@@ -857,7 +855,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 		},
 		{
 			name:   "duplicate scalar map key",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructMap",
@@ -897,7 +895,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 		},
 		{
 			name:   "duplicate incell map key",
-			parser: docTestParser,
+			parser: newDocParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
 					Name: "DocumentUniqueFieldStructMap",
