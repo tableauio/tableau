@@ -157,9 +157,9 @@ message MatchConf {
 message Reward {
   option (tableau.worksheet) = {name:"Reward" datarow:4 nameline:1 typeline:1};
 
-  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true sequence:1}}];
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
     string desc = 2 [(tableau.field) = {name:"Desc"}];
     map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"ID" layout:LAYOUT_HORIZONTAL}];
     repeated Exchange exchange_list = 4 [(tableau.field) = {layout:LAYOUT_VERTICAL}];

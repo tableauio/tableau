@@ -1,6 +1,0 @@
-ID,Desc,TipID
-[Item]<uint32>,string,[Tip]<uint32>
-Item ID,Item Desc,提示
-1,desc1,1
-1,desc1,2
-3,desc3,3

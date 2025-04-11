@@ -164,8 +164,14 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
+				var newMapKeyExisted bool
 				var newMapValue protoreflect.Value
 				if reflectMap.Has(newMapKey) {
+					newMapKeyExisted = true
+					// check map key unique
+					if err := sp.checkMapKeyUnique(field, reflectMap, keyData); err != nil {
+						return false, xerrors.WrapKV(err, node.DebugKV()...)
+					}
 					newMapValue = reflectMap.Mutable(newMapKey)
 				} else {
 					newMapValue = reflectMap.NewValue()
@@ -175,16 +181,16 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
 				// TODO: auto remove added virtual key node?
-				// check key uniqueness
-				if reflectMap.Has(newMapKey) {
-					if fieldprop.RequireUnique(field.opts.Prop) ||
-						(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
-						return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
-					}
-				}
 				if !keyPresent && !valuePresent {
 					// key and value are both not present.
 					continue
+				}
+				if !newMapKeyExisted {
+					// check map value's sub-field unique
+					dupName, err := sp.checkMapValueSubFieldUnique(field, reflectMap, newMapValue)
+					if err != nil {
+						return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
+					}
 				}
 				reflectMap.Set(newMapKey, newMapValue)
 			}
@@ -233,6 +239,10 @@ func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap pr
 		}
 
 		newMapKey := fieldValue.MapKey()
+		if reflectMap.Has(newMapKey) {
+			// scalar map key must be unique
+			return xerrors.WrapKV(xerrors.E2005(key))
+		}
 		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
 		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value, nil)
 		if err != nil {
@@ -285,6 +295,10 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
+		if reflectMap.Has(newMapKey) {
+			// scalar map key must be unique
+			return xerrors.WrapKV(xerrors.E2005(key))
+		}
 		newMapValue := reflectMap.NewValue()
 		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
 		if err != nil {
@@ -329,6 +343,11 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 				return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 			}
 			if elemPresent {
+				// check list elem's sub-field unique
+				_, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
+				if err != nil {
+					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
+				}
 				list.Append(elemValue)
 			}
 		}

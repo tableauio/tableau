@@ -18,7 +18,6 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	}
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
-		Unique:   prop.Unique,
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
@@ -41,7 +40,6 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableau
 	}
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
-		Unique:   prop.Unique, // only for keyed list?
 		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
@@ -84,12 +82,15 @@ func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 }
 
 // ExtractScalarFieldProp extracts the specified props which the scalar field recognizes.
+//
+// FIXME(wenchy): wellknown type fields should also be supported.
 func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil
 	}
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
+		Unique:   prop.Unique,
 		Range:    prop.Range,
 		Refer:    prop.Refer,
 		Default:  prop.Default,

@@ -52,6 +52,7 @@ func (f *Field) release() {
 	fieldOptionsPool.Put(f.opts)
 }
 
+// TODO: use sync.Map to cache *Field for reuse, e.g.: treat key as fd.FullName().
 func (sp *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
 	// default value
 	name := sp.strcaseCtx.ToCamel(string(fd.FullName().Name()))
@@ -286,4 +287,24 @@ func storePatchMergeMessage(msg proto.Message, name, locationName, outputDir str
 		}
 	}
 	return nil
+}
+
+// parseTableMapLayout parses the layout of a map in table.
+// Map default layout is vertical in table.
+func parseTableMapLayout(layout tableaupb.Layout) tableaupb.Layout {
+	if layout == tableaupb.Layout_LAYOUT_DEFAULT {
+		// map default layout is vertical
+		layout = tableaupb.Layout_LAYOUT_VERTICAL
+	}
+	return layout
+}
+
+// parseTableListLayout parses the layout of a list in table.
+// List default layout is horizontal in table.
+func parseTableListLayout(layout tableaupb.Layout) tableaupb.Layout {
+	if layout == tableaupb.Layout_LAYOUT_DEFAULT {
+		// list default layout is horizontal
+		layout = tableaupb.Layout_LAYOUT_HORIZONTAL
+	}
+	return layout
 }

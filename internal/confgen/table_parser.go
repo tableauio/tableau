@@ -178,8 +178,9 @@ func (sp *tableParser) parseField(field *Field, msg protoreflect.Message, rc *bo
 }
 
 func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
-	switch field.opts.GetLayout() {
-	case tableaupb.Layout_LAYOUT_VERTICAL, tableaupb.Layout_LAYOUT_DEFAULT:
+	layout := parseTableMapLayout(field.opts.GetLayout())
+	switch layout {
+	case tableaupb.Layout_LAYOUT_VERTICAL:
 		// map default layout treated as virtical
 		return sp.parseVerticalMapField(field, msg, rc, prefix)
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
@@ -187,11 +188,10 @@ func (sp *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc 
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// NOTE(Wenchy): Even though named as incell, it still can merge
 		// multiple vertical/horizontal cells if provided, as map is a
-		// composite type with cardinality. In practical use cases, this
-		// is a very useful feature.
+		// composite type with cardinality. In practice, it is a very useful.
 		return sp.parseIncellMapField(field, msg, rc, prefix)
 	default:
-		return false, xerrors.Errorf("unknown layout: %v", field.opts.GetLayout())
+		return false, xerrors.Errorf("unknown layout: %v", layout)
 	}
 }
 
@@ -199,7 +199,8 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	if field.fd.MapValue().Kind() != protoreflect.MessageKind {
 		return false, xerrors.Errorf("vertical map value as scalar type is not supported")
 	}
-	keyColName := prefix + field.opts.Name + field.opts.Key
+	newPrefix := prefix + field.opts.Name
+	keyColName := newPrefix + field.opts.Key
 	cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -212,7 +213,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	// value must be empty if key not present
 	if !keyPresent && reflectMap.Has(newMapKey) {
 		tempCheckMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, prefix+field.opts.Name)
+		valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, newPrefix)
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
@@ -221,26 +222,32 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 		}
 		return false, nil
 	}
+	var newMapKeyExisted bool
 	var newMapValue protoreflect.Value
 	if reflectMap.Has(newMapKey) {
+		newMapKeyExisted = true
+		// check map key unique
+		if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+		}
 		newMapValue = reflectMap.Mutable(newMapKey)
 	} else {
 		newMapValue = reflectMap.NewValue()
 	}
-	valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, prefix+field.opts.Name)
+	valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, newPrefix)
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
-	}
-	// check key uniqueness
-	if reflectMap.Has(newMapKey) {
-		if fieldprop.RequireUnique(field.opts.Prop) ||
-			(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
-			return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
-		}
 	}
 	if !keyPresent && !valuePresent {
 		// key and value are both not present.
 		return false, nil
+	}
+	if !newMapKeyExisted {
+		// check map value's sub-field unique
+		dupName, err := sp.checkMapValueSubFieldUnique(field, reflectMap, newMapValue)
+		if err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(newPrefix+dupName)...)
+		}
 	}
 	reflectMap.Set(newMapKey, newMapValue)
 	return true, nil
@@ -255,7 +262,8 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 		// It means the previous continuous present cells has been parsed.
 		return true, nil
 	}
-	detectedSize := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
+	newPrefix := prefix + field.opts.Name
+	detectedSize := rc.GetCellCountWithPrefix(newPrefix)
 	if detectedSize <= 0 {
 		return false, xerrors.Errorf("no cell found with digit suffix")
 	}
@@ -269,7 +277,8 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 	// log.Debug("prefix size: ", size)
 	reflectMap := msg.Mutable(field.fd).Map()
 	for i := 1; i <= size; i++ {
-		keyColName := prefix + field.opts.Name + strconv.Itoa(i) + field.opts.Key
+		elemPrefix := newPrefix + strconv.Itoa(i)
+		keyColName := elemPrefix + field.opts.Key
 		cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -282,7 +291,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 		// value must be empty if key not present
 		if !keyPresent && reflectMap.Has(newMapKey) {
 			tempCheckMapValue := reflectMap.NewValue()
-			valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, prefix+field.opts.Name+strconv.Itoa(i))
+			valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, elemPrefix)
 			if err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
@@ -291,13 +300,19 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			}
 			break
 		}
+		var newMapKeyExisted bool
 		var newMapValue protoreflect.Value
 		if reflectMap.Has(newMapKey) {
+			newMapKeyExisted = true
+			// check map key unique
+			if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
 			newMapValue = reflectMap.Mutable(newMapKey)
 		} else {
 			newMapValue = reflectMap.NewValue()
 		}
-		valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, prefix+field.opts.Name+strconv.Itoa(i))
+		valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, elemPrefix)
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
@@ -314,11 +329,11 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			checkRemainFlag = true
 			continue
 		}
-		// check key uniqueness
-		if reflectMap.Has(newMapKey) {
-			if fieldprop.RequireUnique(field.opts.Prop) ||
-				(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
-				return false, xerrors.WrapKV(xerrors.E2005(cell.Data), rc.CellDebugKV(keyColName)...)
+		if !newMapKeyExisted {
+			// check map value's sub-field unique
+			dupName, err := sp.checkMapValueSubFieldUnique(field, reflectMap, newMapValue)
+			if err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(elemPrefix+dupName)...)
 			}
 		}
 		reflectMap.Set(newMapKey, newMapValue)
@@ -349,7 +364,8 @@ func (sp *tableParser) parseIncellMapField(field *Field, msg protoreflect.Messag
 }
 
 func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc *book.RowCells, prefix string) (present bool, err error) {
-	switch field.opts.GetLayout() {
+	layout := parseTableListLayout(field.opts.GetLayout())
+	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		return sp.parseVerticalListField(field, msg, rc, prefix)
 	case tableaupb.Layout_LAYOUT_HORIZONTAL, tableaupb.Layout_LAYOUT_DEFAULT:
@@ -358,11 +374,10 @@ func (sp *tableParser) parseListField(field *Field, msg protoreflect.Message, rc
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// NOTE(Wenchy): Even though named as incell, it still can merge
 		// multiple vertical/horizontal cells if provided, as list is a
-		// composite type with cardinality. In practical use cases, this
-		// is a very useful feature.
+		// composite type with cardinality. In practice, it is a very useful.
 		return sp.parseIncellListField(field, msg, rc, prefix)
 	default:
-		return false, xerrors.Errorf("unknown layout: %v", field.opts.GetLayout())
+		return false, xerrors.Errorf("unknown layout: %v", layout)
 	}
 }
 
@@ -373,17 +388,15 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 	list := msg.Mutable(field.fd).List()
 	elemPresent := false
 	elemValue := list.NewElement()
+	newPrefix := prefix + field.opts.Name
 	// struct list
 	if field.opts.Key != "" {
 		// KeyedList means the list is keyed by the specified Key option.
-		keyedListElemExisted := false
-		keyColName := prefix + field.opts.Name + field.opts.Key
+		keyColName := newPrefix + field.opts.Key
 		md := elemValue.Message().Descriptor()
-		keyProtoName := protoreflect.Name(sp.sheetParser.strcaseCtx.ToSnake(field.opts.Key))
-
-		fd := md.Fields().ByName(keyProtoName)
+		fd := sp.findFieldByName(md, field.opts.Key)
 		if fd == nil {
-			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", keyProtoName), rc.CellDebugKV(keyColName)...)
+			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), rc.CellDebugKV(keyColName)...)
 		}
 		cell, err := rc.Cell(keyColName, sp.IsFieldOptional(field))
 		if err != nil {
@@ -393,6 +406,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
+		keyedListElemExisted := false
 		for i := 0; i < list.Len(); i++ {
 			elemVal := list.Get(i)
 			if elemVal.Message().Get(fd).Equal(key) {
@@ -401,29 +415,40 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 				break
 			}
 		}
-		elemPresent, err = sp.parseMessage(elemValue.Message(), rc, prefix+field.opts.Name)
+		if keyedListElemExisted {
+			if err := sp.checkListKeyUnique(field, md, cell.Data); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
+		} else {
+			// set as present only if key is not existed
+			elemPresent = !keyedListElemExisted
+		}
+		present, err := sp.parseMessage(elemValue.Message(), rc, newPrefix)
 		if err != nil {
 			return false, err
 		}
-		if !keyPresent && !elemPresent {
+		if !keyPresent && !present {
 			return false, nil
 		}
-		elemPresent = !keyedListElemExisted
 	} else if xproto.IsUnionField(field.fd) {
 		// cross-cell union list
-		colName := prefix + field.opts.Name
-		elemPresent, err = sp.parseUnionMessage(elemValue.Message(), field, rc, colName)
+		elemPresent, err = sp.parseUnionMessage(elemValue.Message(), field, rc, newPrefix)
 		if err != nil {
 			return false, xerrors.Wrapf(err, "failed to parse cross-cell union list")
 		}
 	} else {
 		// cross-cell struct list
-		elemPresent, err = sp.parseMessage(elemValue.Message(), rc, prefix+field.opts.Name)
+		elemPresent, err = sp.parseMessage(elemValue.Message(), rc, newPrefix)
 		if err != nil {
 			return false, xerrors.Wrapf(err, "failed to parse cross-cell struct list")
 		}
 	}
 	if elemPresent {
+		// check list elem's sub-field unique
+		subFieldOptName, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
+		if err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(newPrefix+subFieldOptName)...)
+		}
 		list.Append(elemValue)
 		present = true
 	}
@@ -437,7 +462,8 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 		// It means the previous continuous present cells has been parsed.
 		return true, nil
 	}
-	detectedSize := rc.GetCellCountWithPrefix(prefix + field.opts.Name)
+	newPrefix := prefix + field.opts.Name
+	detectedSize := rc.GetCellCountWithPrefix(newPrefix)
 	if detectedSize <= 0 {
 		return false, xerrors.Errorf("no cell found with digit suffix")
 	}
@@ -451,47 +477,53 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 	for i := 1; i <= size; i++ {
 		elemPresent := false
 		elemValue := list.NewElement()
-		colName := prefix + field.opts.Name + strconv.Itoa(i)
+		elemPrefix := newPrefix + strconv.Itoa(i)
 		var cell *book.RowCell
 		if field.fd.Kind() == protoreflect.MessageKind {
 			if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 				// horizontal well-known list
-				if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
+				if cell, err = rc.Cell(elemPrefix, sp.IsFieldOptional(field)); err == nil {
 					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 				}
 			} else if xproto.IsUnionField(field.fd) {
 				// horizontal union list
-				elemPresent, err = sp.parseUnionMessage(elemValue.Message(), field, rc, colName)
+				elemPresent, err = sp.parseUnionMessage(elemValue.Message(), field, rc, elemPrefix)
 			} else if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 				// horizontal incell-struct list
-				if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
+				if cell, err = rc.Cell(elemPrefix, sp.IsFieldOptional(field)); err == nil {
 					elemPresent, err = sp.parseIncellStruct(elemValue, cell.Data, field.opts.GetProp().GetForm(), field.sep)
 				}
 			} else {
 				// horizontal struct list
-				elemPresent, err = sp.parseMessage(elemValue.Message(), rc, colName)
+				elemPresent, err = sp.parseMessage(elemValue.Message(), rc, elemPrefix)
 			}
+			// TODO: horizontal keyed struct list
 		} else {
 			// scalar list
-			if cell, err = rc.Cell(colName, sp.IsFieldOptional(field)); err == nil {
+			if cell, err = rc.Cell(elemPrefix, sp.IsFieldOptional(field)); err == nil {
 				elemValue, elemPresent, err = sp.parseFieldValue(field.fd, cell.Data, field.opts.Prop)
 			}
 		}
 		if err != nil {
-			return false, xerrors.WrapKV(err, rc.CellDebugKV(colName)...)
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(elemPrefix)...)
 		}
 		if firstNonePresentIndex != 0 {
 			// Check that no empty elements are existed in begin or middle.
 			// Guarantee all the remaining elements are not present,
 			// otherwise report error!
 			if elemPresent {
-				return false, xerrors.WrapKV(xerrors.E2016(firstNonePresentIndex, i), rc.CellDebugKV(colName)...)
+				return false, xerrors.WrapKV(xerrors.E2016(firstNonePresentIndex, i), rc.CellDebugKV(elemPrefix)...)
 			}
 			continue
 		}
 		if !elemPresent && !fieldprop.IsFixed(field.opts.Prop) {
 			firstNonePresentIndex = i
 			continue
+		}
+		// check list elem's sub-field unique
+		subFieldOptName, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
+		if err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(elemPrefix+subFieldOptName)...)
 		}
 		list.Append(elemValue)
 	}

@@ -102,7 +102,7 @@ func E2004(value any, vrange string) error {
 	})
 }
 
-// E2005: map key is not unique.
+// E2005: map key not unique.
 func E2005(key any) error {
 	return renderEcode("E2005", map[string]any{
 		"Key": key,
@@ -240,6 +240,21 @@ func E2021(enumType, enumValue1, enumValue2, alias any) error {
 		"EnumValue1": enumValue1,
 		"EnumValue2": enumValue2,
 		"Alias":      alias,
+	})
+}
+
+// E2022: sub-field's value not unique in map values or list elements
+func E2022(fieldName, key any) error {
+	return renderEcode("E2022", map[string]any{
+		"FieldName": fieldName,
+		"Key":       key,
+	})
+}
+
+// E2023: KeyedList key not unique
+func E2023(key any) error {
+	return renderEcode("E2023", map[string]any{
+		"Key": key,
 	})
 }
 
