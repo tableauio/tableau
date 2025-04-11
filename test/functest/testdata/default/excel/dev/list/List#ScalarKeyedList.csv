@@ -1,6 +1,0 @@
-ID,Desc,Tip
-[KeyedReward]<uint32>,string,[]<uint32>
-奖励ID,描述,提示
-1,奖励1,"1,2,3"
-1,奖励1,"4,5"
-3,奖励3,"1,2"

@@ -43,28 +43,3 @@ message FixedList {
     repeated uint32 tip_list = 5 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL prop:{size:3}}];
   }
 }
-
-message ScalarKeyedList {
-  option (tableau.worksheet) = {name:"ScalarKeyedList" datarow:4 nameline:1 typeline:1};
-
-  repeated KeyedReward keyed_reward_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message KeyedReward {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
-    repeated uint32 tip_list = 3 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL}];
-  }
-}
-
-message StructKeyedList {
-  option (tableau.worksheet) = {name:"StructKeyedList" datarow:4 nameline:1 typeline:1};
-
-  repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
-    repeated Tip tip_list = 3 [(tableau.field) = {key:"TipID" layout:LAYOUT_VERTICAL}];
-    message Tip {
-      uint32 tip_id = 1 [(tableau.field) = {name:"TipID"}];
-    }
-  }
-}

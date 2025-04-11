@@ -52,6 +52,7 @@ func (f *Field) release() {
 	fieldOptionsPool.Put(f.opts)
 }
 
+// TODO: use sync.Map to cache *Field for reuse, e.g.: treat key as fd.FullName().
 func (sp *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
 	// default value
 	name := sp.strcaseCtx.ToCamel(string(fd.FullName().Name()))
