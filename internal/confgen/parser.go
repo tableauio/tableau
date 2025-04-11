@@ -520,60 +520,10 @@ func (sp *sheetParser) checkMapKeyUnique(field *Field, reflectMap protoreflect.M
 	keyField := sp.parseFieldDescriptor(fd)
 	defer keyField.release()
 	if fieldprop.RequireUnique(keyField.opts.Prop) ||
-		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
+		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(field.opts.Layout, md)) {
 		return xerrors.Wrap(xerrors.E2005(keyData))
 	}
 	return nil
-}
-
-// deduceMapKeyUnique deduces whether the map key unique or not.
-//
-// # Document sheet
-//
-// Map key must be unique.
-//
-// # Table sheet
-//
-// By default, map key should be unique. However, in order to aggregate
-// sub-field (map or list) with cardinality, the map key can be duplicate.
-//
-// It should be deduced to be unique if nesting hierarchy is like:
-//   - map layout is incell.
-//   - map nesting map or list with different layout (vertical or horizontal).
-//   - map nesting no map or list.
-func (sp *sheetParser) deduceMapKeyUnique(field *Field, reflectMap protoreflect.Map) bool {
-	if !sp.IsTable() {
-		return true
-	}
-	layout := parseTableMapLayout(field.opts.Layout)
-	if layout == tableaupb.Layout_LAYOUT_INCELL {
-		// incell map key must be unique
-		return true
-	}
-	md := reflectMap.NewValue().Message().Descriptor()
-	for i := 0; i < md.Fields().Len(); i++ {
-		fd := md.Fields().Get(i)
-		if fd.IsMap() {
-			childField := sp.parseFieldDescriptor(fd)
-			defer childField.release()
-			childLayout := parseTableMapLayout(childField.opts.Layout)
-			if childLayout == tableaupb.Layout_LAYOUT_INCELL || childLayout == layout {
-				// 1. incell map
-				// 2. same layout, map key should not be unique
-				return false
-			}
-		} else if fd.IsList() {
-			childField := sp.parseFieldDescriptor(fd)
-			defer childField.release()
-			childLayout := parseTableListLayout(childField.opts.Layout)
-			if childLayout == tableaupb.Layout_LAYOUT_INCELL || childLayout == layout {
-				// 1. incell list
-				// 2. same layout, map key should not be unique
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func (sp *sheetParser) checkListKeyUnique(field *Field, md protoreflect.MessageDescriptor, keyData string) error {
@@ -585,34 +535,34 @@ func (sp *sheetParser) checkListKeyUnique(field *Field, md protoreflect.MessageD
 	keyField := sp.parseFieldDescriptor(fd)
 	defer keyField.release()
 	if fieldprop.RequireUnique(keyField.opts.Prop) ||
-		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceListKeyUnique(field, md)) {
+		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(field.opts.Layout, md)) {
 		return xerrors.Wrap(xerrors.E2023(keyData))
 	}
 	return nil
 }
 
-// deduceListKeyUnique deduces whether the KeyedList key unique or not.
+// deduceKeyUnique deduces whether the Map/KeyedList key is unique or not.
 //
 // # Document sheet
 //
-// KeyedList key must be unique.
+// Key must be unique.
 //
 // # Table sheet
 //
-// By default, KeyedList key should be unique. However, in order to aggregate
-// sub-field (map or list) with cardinality, the KeyedList key can be duplicate.
+// By default, the key should be unique. However, in order to aggregate
+// sub-field (map or list) with cardinality, the key can be duplicate.
 //
 // It should be deduced to be unique if nesting hierarchy is like:
-//   - KeyedList layout is incell.
-//   - KeyedList nesting map or list with different layout (vertical or horizontal).
-//   - KeyedList nesting no map or list.
-func (sp *sheetParser) deduceListKeyUnique(field *Field, md protoreflect.MessageDescriptor) bool {
+//   - Map/KeyedList layout is incell.
+//   - Map/KeyedList nesting map or list with different layout (vertical or horizontal).
+//   - Map/KeyedList nesting no map or list.
+func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoreflect.MessageDescriptor) bool {
 	if !sp.IsTable() {
 		return true
 	}
-	layout := parseTableMapLayout(field.opts.Layout)
+	layout := parseTableMapLayout(fieldLayout)
 	if layout == tableaupb.Layout_LAYOUT_INCELL {
-		// incell KeyedList key must be unique
+		// incell layout must be unique
 		return true
 	}
 	for i := 0; i < md.Fields().Len(); i++ {
@@ -622,7 +572,7 @@ func (sp *sheetParser) deduceListKeyUnique(field *Field, md protoreflect.Message
 			defer childField.release()
 			childLayout := parseTableMapLayout(childField.opts.Layout)
 			if childLayout == layout {
-				// same layout (vertical/horizontal), map key can be duplicate
+				// same layout (vertical/horizontal), the key can be duplicate
 				// to aggregate sub-field (map or list) with cardinality.
 				return false
 			}
