@@ -254,6 +254,22 @@ type sheetParser struct {
 	names       []string               // names[col] -> name
 	types       []string               // types[col] -> name
 	lookupTable book.ColumnLookupTable // column name -> column index (started with 0)
+
+	// cached maps and lists with cardinality
+	cards map[string]*cardInfo // map/list field card prefix -> cardInfo
+}
+
+type cardInfo struct {
+	// option field name -> uniqueField
+	uniqueFields map[string]*uniqueField
+	// TODO: option field name -> sequenceField
+	// sequenceFields map[string]*sequenceField
+}
+
+type uniqueField struct {
+	fd protoreflect.FieldDescriptor
+	// value set: map[string]bool
+	values map[string]bool
 }
 
 // SheetParserExtInfo is the extended info for refer check and so on.
@@ -280,6 +296,7 @@ func NewExtendedSheetParser(protoPackage, locationName string, strcaseCtx strcas
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
 		lookupTable:  book.ColumnLookupTable{},
+		cards:        map[string]*cardInfo{},
 	}
 }
 
@@ -581,87 +598,78 @@ func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoref
 	return true
 }
 
-// checkMapValueSubFieldUnique checks whether the map value's sub-field is unique.
+// checkSubFieldUnique checks whether the map value's or list element's sub-field is unique.
 // If an error occured, it will return the field option name which has the duplicated value.
-// Keys in ignoreKeys are not checked.
 //
-// TODO(performance):
-//  1. cache the unique field's FullName to check if the elem has unique sub fields.
-//  2. cache the unique field's values in map for speeding up checking. Note the nesting such as: map in map.
-func (sp *sheetParser) checkMapValueSubFieldUnique(field *Field, reflectMap protoreflect.Map, elemValue protoreflect.Value) (dupName string, err error) {
-	if field.fd.MapValue().Message() == nil {
-		// no need to check if map value is not message
-		return "", nil
+// # Performance improvement
+//
+//  1. parse sub fields metadata only once, and cache it for later use.
+//  2. cache the unique field's values in map for speeding up checking.
+//
+// TODO: rename to checkSubFieldProp to also support sequence check, even more checks.
+func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newValue protoreflect.Value) (dupName string, err error) {
+	if field.fd.IsMap() {
+		if field.fd.MapValue().Kind() != protoreflect.MessageKind || xproto.IsUnionField(field.fd.MapValue()) {
+			// no need to check
+			return "", nil
+		}
+	} else if field.fd.IsList() {
+		if field.fd.Kind() != protoreflect.MessageKind || xproto.IsUnionField(field.fd) {
+			// no need to check
+			return "", nil
+		}
+	} else {
+		return "", xerrors.Errorf("field %s is not map or list", field.fd.FullName())
 	}
-	md := elemValue.Message().Descriptor()
-	for i := 0; i < md.Fields().Len(); i++ {
-		fd := md.Fields().Get(i)
-		subField := sp.parseFieldDescriptor(fd)
-		defer subField.release()
-		if subField.opts.GetName() == field.opts.GetKey() {
-			// key field not checked
-			continue
+	info := sp.cards[cardPrefix]
+	if info == nil {
+		// parse sub fields metadata only once, and cache it for later use
+		md := newValue.Message().Descriptor()
+		info = &cardInfo{
+			uniqueFields: map[string]*uniqueField{},
 		}
-		if !fieldprop.RequireUnique(subField.opts.Prop) {
-			continue
-		}
-		key := elemValue.Message().Get(fd)
-		reflectMap.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
-			if v.Message().Get(fd).Equal(key) {
-				dupName, err = subField.opts.GetName(), xerrors.E2022(fd.Name(), key)
-				return false
+		for i := 0; i < md.Fields().Len(); i++ {
+			fd := md.Fields().Get(i)
+			subField := sp.parseFieldDescriptor(fd)
+			defer subField.release()
+			if subField.opts.GetName() == field.opts.GetKey() {
+				// key field not checked
+				continue
 			}
-			return true
-		})
-		if err != nil {
-			return dupName, err
+			if fieldprop.RequireUnique(subField.opts.Prop) {
+				value := fmt.Sprint(newValue.Message().Get(fd))
+				info.uniqueFields[subField.opts.GetName()] = &uniqueField{
+					fd: subField.fd,
+					values: map[string]bool{
+						value: true,
+					},
+				}
+			}
+		}
+		// add new unique value
+		sp.cards[cardPrefix] = info
+	} else {
+		for name, field := range info.uniqueFields {
+			val := fmt.Sprint(newValue.Message().Get(field.fd))
+			if field.values[fmt.Sprint(val)] {
+				dupName, err = name, xerrors.E2022(field.fd.Name(), val)
+				return dupName, err
+			}
+			// add new unique value
+			field.values[val] = true
 		}
 	}
 	return dupName, nil
 }
 
-// checkListElemSubFieldUnique checks whether the list elem's sub-field is unique.
-// If an error occured, it will return the field option name which has the duplicated value.
-//
-// TODO(performance):
-//  1. cache the unique field's FullName to check if the elem has unique sub fields.
-//  2. cache the unique field's values in map for speeding up checking. Note the nesting such as: list in map.
-func (sp *sheetParser) checkListElemSubFieldUnique(field *Field, list protoreflect.List, elemValue protoreflect.Value) (dupName string, err error) {
-	if field.fd.Message() == nil {
-		// no need to check if list element is not message
-		return "", nil
-	}
-	md := elemValue.Message().Descriptor()
-	for i := 0; i < md.Fields().Len(); i++ {
-		fd := md.Fields().Get(i)
-		subField := sp.parseFieldDescriptor(fd)
-		defer subField.release()
-		if subField.opts.GetName() == field.opts.GetKey() {
-			// key field not checked
-			continue
-		}
-		if !fieldprop.RequireUnique(subField.opts.Prop) {
-			continue
-		}
-		key := elemValue.Message().Get(fd)
-		for j := 0; j < list.Len(); j++ {
-			elemVal := list.Get(j)
-			if elemVal.Message().Get(fd).Equal(key) {
-				return subField.opts.GetName(), xerrors.E2022(fd.Name(), key)
-			}
-		}
-	}
-	return dupName, nil
-}
-
-func (sp *sheetParser) parseIncellList(field *Field, list protoreflect.List, elemData string) (present bool, err error) {
+func (sp *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) (present bool, err error) {
 	splits := strings.Split(elemData, field.sep)
-	return sp.parseListElems(field, list, field.subsep, splits)
+	return sp.parseListElems(field, list, cardPrefix, field.subsep, splits)
 }
 
 // parseListElems parses the given string slice to a list. Each elem's
 // corresponding type can be: scalar, enum, well-known, and struct.
-func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep string, elemDataList []string) (present bool, err error) {
+func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, cardPrefix string, sep string, elemDataList []string) (present bool, err error) {
 	fd := field.fd
 	fdopts := field.opts
 	detectedSize := len(elemDataList)
@@ -708,7 +716,7 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, sep 
 			}
 		}
 		// check list elem's sub-field unique
-		_, err := sp.checkListElemSubFieldUnique(field, list, elemValue)
+		_, err := sp.checkSubFieldUnique(field, cardPrefix, elemValue)
 		if err != nil {
 			return false, err
 		}
@@ -760,7 +768,7 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 	}
 }
 
-func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, dataList []string) (err error) {
+func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cardPrefix string, dataList []string) (err error) {
 	if len(dataList) == 0 {
 		return xerrors.Errorf("union field data not provided")
 	}
@@ -782,9 +790,9 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		list := fieldValue.List()
 		switch field.opts.GetLayout() {
 		case tableaupb.Layout_LAYOUT_INCELL, tableaupb.Layout_LAYOUT_DEFAULT:
-			present, err = sp.parseIncellList(field, list, dataList[0])
+			present, err = sp.parseIncellList(field, list, cardPrefix, dataList[0])
 		case tableaupb.Layout_LAYOUT_HORIZONTAL:
-			present, err = sp.parseListElems(field, list, field.sep, dataList)
+			present, err = sp.parseListElems(field, list, cardPrefix, field.sep, dataList)
 		default:
 			return xerrors.Errorf("union list field has illegal layout: %s", field.opts.GetLayout())
 		}
