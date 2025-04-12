@@ -155,5 +155,39 @@
                 }
             }
         }
+    },
+    "chapterMap": {
+        "1001": {
+            "id": 1001,
+            "name": "ChapterOne",
+            "sectionMap": {
+                "1": {
+                    "id": 1,
+                    "name": "SectionOne"
+                },
+                "2": {
+                    "id": 2,
+                    "name": "SectionTwo"
+                },
+                "3": {
+                    "id": 3,
+                    "name": "SectionThree"
+                }
+            }
+        },
+        "1002": {
+            "id": 1002,
+            "name": "ChapterTwo",
+            "sectionMap": {
+                "1": {
+                    "id": 1,
+                    "name": "SectionOne"
+                },
+                "2": {
+                    "id": 2,
+                    "name": "SectionTwo"
+                }
+            }
+        }
     }
 }

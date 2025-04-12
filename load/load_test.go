@@ -413,13 +413,3 @@ func TestLoadEmptyText(t *testing.T) {
 	)
 	require.NoError(t, err, "should return no error")
 }
-
-func TestLoadCSV_E0003(t *testing.T) {
-	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.CSV,
-		SubdirRewrites(map[string]string{"unittest/Unittest": "unittest/Unittest2"}),
-	)
-	require.Error(t, err, "should return an error")
-	desc := xerrors.NewDesc(err)
-	require.Equal(t, "E0003", desc.ErrCode())
-	t.Logf("error: %s", desc.String())
-}

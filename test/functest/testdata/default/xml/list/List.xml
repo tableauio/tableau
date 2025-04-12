@@ -23,6 +23,7 @@
         </Parent2>
     </Parent>
     <Fruit>[enum<.FruitType>]</Fruit>
+    <Item ID="[Item]uint32|{unique:true}" Name="string|{unique:true}" Num="int32"/>
 </ListConf2>
 -->
 
@@ -50,4 +51,7 @@
     <Fruit>FRUIT_TYPE_APPLE</Fruit>
     <Fruit>FRUIT_TYPE_ORANGE</Fruit>
     <Fruit>FRUIT_TYPE_BANANA</Fruit>
+    <Item ID="1001" Name="Apple" Num="10"/>
+    <Item ID="1002" Name="Banana" Num="10"/>
+    <Item ID="1003" Name="Orange" Num="20"/>
 </ListConf2>

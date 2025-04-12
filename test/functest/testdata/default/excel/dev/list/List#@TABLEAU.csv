@@ -1,5 +1,3 @@
-Sheet,Alias,Nameline,Typeline,Datarow
-EmptyElemList,,1,1,4
-ScalarKeyedList,,1,1,4
-StructKeyedList,,1,1,4
-FixedList,,1,1,4
+Sheet,Nameline,Typeline,Datarow
+EmptyElemList,1,1,4
+FixedList,1,1,4

@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -26,7 +27,7 @@ func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error
 	// get the first child (map node) in document
 	child := sheet.Document.Children[0]
 	msg := protomsg.ProtoReflect()
-	_, err := sp.parseMessage(msg, child)
+	_, err := sp.parseMessage(msg, child, "")
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeySheetName, sheet.Name)
 	}
@@ -34,7 +35,7 @@ func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error
 }
 
 // parseMessage parses all fields of a protobuf message.
-func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node) (present bool, err error) {
+func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
@@ -78,7 +79,8 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 					return xerrors.WrapKV(xerrors.E2014(field.opts.Name), kvs...)
 				}
 			}
-			fieldPresent, err := sp.parseField(field, msg, fieldNode)
+			newCardPrefix := cardPrefix + string(fd.Name())
+			fieldPresent, err := sp.parseField(field, msg, fieldNode, newCardPrefix)
 			if err != nil {
 				return xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
@@ -98,26 +100,25 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 	return present, nil
 }
 
-func (sp *documentParser) parseField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
+func (sp *documentParser) parseField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	// log.Debug(field.fd.ContainingMessage().FullName())
 	if field.fd.IsMap() {
-		return sp.parseMapField(field, msg, node)
+		return sp.parseMapField(field, msg, node, cardPrefix)
 	} else if field.fd.IsList() {
-		return sp.parseListField(field, msg, node)
+		return sp.parseListField(field, msg, node, cardPrefix)
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		if xproto.IsUnionField(field.fd) {
-			return sp.parseUnionField(field, msg, node)
+			return sp.parseUnionField(field, msg, node, cardPrefix)
 		}
-		return sp.parseStructField(field, msg, node)
+		return sp.parseStructField(field, msg, node, cardPrefix)
 	} else {
 		return sp.parseScalarField(field, msg, node)
 	}
 }
 
-func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
-	// Mutable returns a mutable reference to a composite type.
-	newValue := msg.Mutable(field.fd)
-	reflectMap := newValue.Map()
+func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+	prefValue := msg.Mutable(field.fd)
+	reflectMap := prefValue.Map()
 	// keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
 
@@ -165,26 +166,32 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
 				var newMapValue protoreflect.Value
-				if reflectMap.Has(newMapKey) {
+				newMapKeyExisted := reflectMap.Has(newMapKey)
+				if newMapKeyExisted {
+					// check map key unique
+					if err := sp.checkMapKeyUnique(field, reflectMap, keyData); err != nil {
+						return false, xerrors.WrapKV(err, node.DebugKV()...)
+					}
 					newMapValue = reflectMap.Mutable(newMapKey)
 				} else {
 					newMapValue = reflectMap.NewValue()
 				}
-				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode)
+				newCardPrefix := cardPrefix + fmt.Sprint(newMapKey)
+				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode, newCardPrefix)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
 				// TODO: auto remove added virtual key node?
-				// check key uniqueness
-				if reflectMap.Has(newMapKey) {
-					if fieldprop.RequireUnique(field.opts.Prop) ||
-						(!fieldprop.HasUnique(field.opts.Prop) && sp.deduceMapKeyUnique(field, reflectMap)) {
-						return false, xerrors.WrapKV(xerrors.E2005(elemNode.Name), elemNode.DebugKV()...)
-					}
-				}
 				if !keyPresent && !valuePresent {
 					// key and value are both not present.
 					continue
+				}
+				if !newMapKeyExisted {
+					// check map value's sub-field unique
+					dupName, err := sp.checkSubFieldUnique(field, cardPrefix, newMapValue)
+					if err != nil {
+						return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
+					}
 				}
 				reflectMap.Set(newMapKey, newMapValue)
 			}
@@ -194,7 +201,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 	}
 
 	if !msg.Has(field.fd) && reflectMap.Len() != 0 {
-		msg.Set(field.fd, newValue)
+		msg.Set(field.fd, prefValue)
 	}
 	if msg.Has(field.fd) || reflectMap.Len() != 0 {
 		present = true
@@ -233,6 +240,10 @@ func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap pr
 		}
 
 		newMapKey := fieldValue.MapKey()
+		if reflectMap.Has(newMapKey) {
+			// scalar map key must be unique
+			return xerrors.WrapKV(xerrors.E2005(key))
+		}
 		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
 		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value, nil)
 		if err != nil {
@@ -285,6 +296,10 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
+		if reflectMap.Has(newMapKey) {
+			// scalar map key must be unique
+			return xerrors.WrapKV(xerrors.E2005(key))
+		}
 		newMapValue := reflectMap.NewValue()
 		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
 		if err != nil {
@@ -299,7 +314,7 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 	return nil
 }
 
-func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
+func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	list := newValue.List()
@@ -307,7 +322,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
 		// node of XML scalar list with only 1 element is just like an incell list
 		node.Kind == book.ScalarNode:
-		present, err = sp.parseIncellList(field, list, node.Value)
+		present, err = sp.parseIncellList(field, list, cardPrefix, node.Value)
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -315,12 +330,13 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 		for _, elemNode := range node.Children {
 			elemPresent := false
 			elemValue := list.NewElement()
+			newCardPrefix := cardPrefix + strconv.Itoa(list.Len())
 			if xproto.IsUnionField(field.fd) {
 				// cross-cell union list
-				elemPresent, err = sp.parseUnionMessage(field, elemValue.Message(), elemNode)
+				elemPresent, err = sp.parseUnionMessage(field, elemValue.Message(), elemNode, newCardPrefix)
 			} else if field.fd.Kind() == protoreflect.MessageKind {
 				// cross-cell struct list
-				elemPresent, err = sp.parseMessage(elemValue.Message(), elemNode)
+				elemPresent, err = sp.parseMessage(elemValue.Message(), elemNode, newCardPrefix)
 			} else {
 				// cross-cell scalar list
 				elemValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
@@ -329,6 +345,11 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 				return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 			}
 			if elemPresent {
+				// check list elem's sub-field unique
+				_, err := sp.checkSubFieldUnique(field, cardPrefix, elemValue)
+				if err != nil {
+					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
+				}
 				list.Append(elemValue)
 			}
 		}
@@ -343,7 +364,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	return present, nil
 }
 
-func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
+func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	var structValue protoreflect.Value
 	if msg.Has(field.fd) {
 		// Get it if this field is populated. It will be overwritten if present.
@@ -361,7 +382,7 @@ func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message
 			}
 			node = node.Children[0]
 		}
-		present, err = sp.parseUnionMessage(field, structValue.Message(), node)
+		present, err = sp.parseUnionMessage(field, structValue.Message(), node, cardPrefix)
 	}
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
@@ -372,7 +393,7 @@ func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message
 	return
 }
 
-func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
+func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	var structValue protoreflect.Value
 	if msg.Has(field.fd) {
 		// Get it if this field is populated. It will be overwritten if present.
@@ -394,7 +415,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 			}
 			node = node.Children[0]
 		}
-		present, err = sp.parseMessage(structValue.Message(), node)
+		present, err = sp.parseMessage(structValue.Message(), node, cardPrefix)
 	}
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
@@ -418,7 +439,7 @@ func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Messag
 	return
 }
 
-func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
+func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	unionDesc := xproto.ExtractUnionDescriptor(field.fd.Message())
 	if unionDesc == nil {
 		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
@@ -514,7 +535,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					crossNodeValues = append(crossNodeValues, node.Value)
 				}
 			}
-			return sp.parseUnionMessageField(subField, fieldMsg, crossNodeValues)
+			return sp.parseUnionMessageField(subField, fieldMsg, cardPrefix, crossNodeValues)
 		}()
 		if err != nil {
 			return false, xerrors.WrapKV(err, valNode.DebugNameKV()...)

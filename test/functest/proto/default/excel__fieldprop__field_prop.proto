@@ -14,9 +14,9 @@ option (tableau.workbook) = {name:"excel/fieldprop/FieldProp#*.csv" namerow:1 ty
 message EquipConf {
   option (tableau.worksheet) = {name:"EquipConf"};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true}}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
     int32 damage = 2 [(tableau.field) = {name:"Damage"}];
   }
 }
@@ -41,9 +41,9 @@ message ItemConf {
 message ScalarFieldProp {
   option (tableau.worksheet) = {name:"ScalarFieldProp"};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true sequence:1}}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,100" refer:"ItemConf.ID"}}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,100" unique:true refer:"ItemConf.ID"}}];
     repeated Prop prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
     message Prop {
       int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}];
@@ -85,9 +85,9 @@ message SepConf {
 message UniqueFalse {
   option (tableau.worksheet) = {name:"UniqueFalse"};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{unique:false}}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}];
     repeated int32 num_list = 2 [(tableau.field) = {name:"Num" layout:LAYOUT_INCELL}];
   }
 }

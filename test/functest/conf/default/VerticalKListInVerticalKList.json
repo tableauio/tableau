@@ -1,0 +1,28 @@
+{
+    "keyedItemList": [
+        {
+            "id": 1,
+            "desc": "Apple",
+            "propList": [
+                {
+                    "propId": 10,
+                    "propNum": 100
+                },
+                {
+                    "propId": 11,
+                    "propNum": 110
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "desc": "Orange",
+            "propList": [
+                {
+                    "propId": 20,
+                    "propNum": 200
+                }
+            ]
+        }
+    ]
+}

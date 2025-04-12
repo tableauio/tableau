@@ -85,8 +85,8 @@ E2017:
   text: '"{{.MapType}}" contains multiple empty keys'
   help: ensure there is at most one empty key in map, or assign them explicitly if you need multiple zero-value keys
 E2018:
-  desc: map key not exist
-  text: 'map key field "{{.KeyName}}" not exist'
+  desc: map key not exists
+  text: 'map key field "{{.KeyName}}" not exists'
   help: ensure the key field is set in elements of map
 E2019:
   desc: invalid fraction pattern
@@ -100,6 +100,14 @@ E2021:
   desc: duplicate enum value alias
   text: 'in enum {{.EnumType}} definition, {{.EnumValue1}} and {{.EnumValue2}} have duplicate value alias "{{.Alias}}"'
   help: ensure the enum value alias is unique
+E2022:
+  desc: sub-field's value not unique in map values or list elements
+  text: value "{{.Key}}" of sub-field "{{.FieldName}}" duplicates in map values or list elements
+  help: ensure value of sub-field "{{.FieldName}}" is unique in map values or list elements
+E2023:
+  desc: KeyedList key not unique
+  text: KeyedList key "{{.Key}}" duplicates
+  help: ensure KeyedList's key is unique
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

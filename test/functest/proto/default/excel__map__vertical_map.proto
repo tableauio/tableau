@@ -11,6 +11,21 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/map/VerticalMap#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
+message UniqueFieldInVerticalStructMap {
+  option (tableau.worksheet) = {name:"UniqueFieldInVerticalStructMap"};
+
+  map<uint32, Main> main_map = 1 [(tableau.field) = {key:"MainID" layout:LAYOUT_VERTICAL}];
+  message Main {
+    uint32 main_id = 1 [(tableau.field) = {name:"MainID"}];
+    string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}];
+    map<uint32, Sub> sub_map = 3 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
+    message Sub {
+      uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}];
+      string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}];
+    }
+  }
+}
+
 message VerticalPredefinedStructMap {
   option (tableau.worksheet) = {name:"VerticalPredefinedStructMap"};
 
