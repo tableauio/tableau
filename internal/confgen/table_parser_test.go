@@ -752,7 +752,7 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 			parser: newTableParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
-					Name: "VerticalUniqueFieldStructList",
+					Name: "UniqueFieldInVerticalStructList",
 					Table: &book.Table{
 						MaxRow: 4,
 						MaxCol: 3,
@@ -772,7 +772,7 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 			parser: newTableParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
-					Name: "VerticalUniqueFieldStructList",
+					Name: "UniqueFieldInVerticalStructList",
 					Table: &book.Table{
 						MaxRow: 4,
 						MaxCol: 3,
@@ -793,7 +793,7 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 			parser: newTableParserForTest(),
 			args: args{
 				sheet: &book.Sheet{
-					Name: "VerticalUniqueFieldStructList",
+					Name: "UniqueFieldInVerticalStructList",
 					Table: &book.Table{
 						MaxRow: 4,
 						MaxCol: 3,
@@ -812,7 +812,7 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.parser.Parse(&unittestpb.VerticalUniqueFieldStructList{}, tt.args.sheet)
+			err := tt.parser.Parse(&unittestpb.UniqueFieldInVerticalStructList{}, tt.args.sheet)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}

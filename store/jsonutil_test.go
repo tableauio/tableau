@@ -12,9 +12,10 @@ import (
 
 func Test_processWhenEmitTimezones(t *testing.T) {
 	type args struct {
-		message       proto.Message
-		locationName  string
-		useProtoNames bool
+		message         proto.Message
+		locationName    string
+		emitUnpopulated bool
+		useProtoNames   bool
 	}
 	tests := []struct {
 		name    string
@@ -187,11 +188,48 @@ func Test_processWhenEmitTimezones(t *testing.T) {
 			want:    ``,
 			wantErr: true,
 		},
+		{
+			name: "UTC-empty-emit-unpopulated",
+			args: args{
+				message: &unittestpb.PatchMergeConf_Time{
+					Start: &timestamppb.Timestamp{},
+				},
+				locationName:    "UTC",
+				emitUnpopulated: true,
+			},
+			want:    `{"start":"1970-01-01T00:00:00Z","expiry":null}`,
+			wantErr: false,
+		},
+		{
+			name: "UTC-nil-emit-unpopulated",
+			args: args{
+				message: &unittestpb.PatchMergeConf_Time{
+					Start: nil,
+				},
+				locationName:    "UTC",
+				emitUnpopulated: true,
+			},
+			want:    `{"start":null,"expiry":null}`,
+			wantErr: false,
+		},
+		{
+			name: "UTC+8-emit-unpopulated",
+			args: args{
+				message: &unittestpb.PatchMergeConf_Time{
+					Start: timestamppb.New(time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)),
+				},
+				locationName:    "Asia/Shanghai",
+				emitUnpopulated: true,
+			},
+			want:    `{"start":"2022-01-01T08:00:00+08:00","expiry":null}`,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			json, err := MarshalToJSON(tt.args.message, &MarshalOptions{
-				UseProtoNames: tt.args.useProtoNames,
+				EmitUnpopulated: tt.args.emitUnpopulated,
+				UseProtoNames:   tt.args.useProtoNames,
 			})
 			if err != nil {
 				t.Errorf("MarshalToJSON() error = %v", err)

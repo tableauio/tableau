@@ -72,7 +72,7 @@ func CheckMapDuplicateKey(dst, src proto.Message) error {
 			srcMap := v.Map()
 			srcMap.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
 				if dstMap.Has(k) {
-					err = xerrors.E2009(k, fd.FullName())
+					err = xerrors.E2009(k, fd.Name())
 					return false
 				}
 				return true

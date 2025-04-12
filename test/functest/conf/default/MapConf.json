@@ -159,33 +159,33 @@
     "chapterMap": {
         "1001": {
             "id": 1001,
-            "name": "ChaptOne",
+            "name": "ChapterOne",
             "sectionMap": {
                 "1": {
                     "id": 1,
-                    "name": "SectOne"
+                    "name": "SectionOne"
                 },
                 "2": {
                     "id": 2,
-                    "name": "SectTwo"
+                    "name": "SectionTwo"
                 },
                 "3": {
                     "id": 3,
-                    "name": "SectThree"
+                    "name": "SectionThree"
                 }
             }
         },
         "1002": {
             "id": 1002,
-            "name": "ChaptTwo",
+            "name": "ChapterTwo",
             "sectionMap": {
                 "1": {
                     "id": 1,
-                    "name": "SectOne"
+                    "name": "SectionOne"
                 },
                 "2": {
                     "id": 2,
-                    "name": "SectTwo"
+                    "name": "SectionTwo"
                 }
             }
         }

@@ -51,11 +51,11 @@ MapInMap:
         Name: string
         Num: int32
 Chapter:
-  "@type": "map<string, Chapt>|{unique:true}"
+  "@type": "map<string, Chapter>|{unique:true}"
   "@struct":
     Name: string|{unique:true}
     Section:
-      "@type": "map<uint32, Sect>|{unique:true}"
+      "@type": "map<uint32, Section>|{unique:true}"
       "@struct":
         Name: string|{unique:true}
 ---
@@ -144,18 +144,18 @@ MapInMap:
         Num: 200
 Chapter:
   1001:
-    Name: ChaptOne
+    Name: ChapterOne
     Section:
       1:
-        Name: SectOne
+        Name: SectionOne
       2:
-        Name: SectTwo
+        Name: SectionTwo
       3:
-        Name: SectThree
+        Name: SectionThree
   1002:
-    Name: ChaptTwo
+    Name: ChapterTwo
     Section:
       1:
-        Name: SectOne
+        Name: SectionOne
       2:
-        Name: SectTwo
+        Name: SectionTwo

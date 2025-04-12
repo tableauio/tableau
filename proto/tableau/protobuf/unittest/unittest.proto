@@ -149,8 +149,8 @@ message JsonUtilTestData {
   map<int32, PatchMergeConf> map_field = 3;
 }
 
-message VerticalUniqueFieldStructList {
-  option (tableau.worksheet) = {name:"VerticalUniqueFieldStructList"};
+message UniqueFieldInVerticalStructList {
+  option (tableau.worksheet) = {name:"UniqueFieldInVerticalStructList"};
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
@@ -190,12 +190,12 @@ message DocumentUniqueFieldStructList {
 message DocumentUniqueFieldStructMap {
   option (tableau.worksheet) = {name:"DocumentUniqueFieldStructMap"};
 
-  map<string, Chapt> chapter = 1 [(tableau.field) = {name:"Chapter" key:"@key" prop:{optional:true}}];
-  message Chapt {
+  map<string, Chapter> chapter = 1 [(tableau.field) = {name:"Chapter" key:"@key" prop:{optional:true}}];
+  message Chapter {
     string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
     string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-    map<uint32, Sect> section = 3 [(tableau.field) = {name:"Section" key:"@key"}];
-    message Sect {
+    map<uint32, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key"}];
+    message Section {
       uint32 key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
       string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     }

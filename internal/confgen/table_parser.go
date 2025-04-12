@@ -207,8 +207,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 	}
-	prefValue := msg.Mutable(field.fd)
-	reflectMap := prefValue.Map()
+	reflectMap := msg.Mutable(field.fd).Map()
 	newMapKey, keyPresent, err := sp.parseMapKey(field, reflectMap, cell.Data)
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -226,10 +225,9 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 		}
 		return false, nil
 	}
-	var newMapKeyExisted bool
 	var newMapValue protoreflect.Value
-	if reflectMap.Has(newMapKey) {
-		newMapKeyExisted = true
+	newMapKeyExisted := reflectMap.Has(newMapKey)
+	if newMapKeyExisted {
 		// check map key unique
 		if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
@@ -279,8 +277,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 	}
 	checkRemainFlag := false
 	// log.Debug("prefix size: ", size)
-	prefValue := msg.Mutable(field.fd)
-	reflectMap := prefValue.Map()
+	reflectMap := msg.Mutable(field.fd).Map()
 	for i := 1; i <= size; i++ {
 		elemPrefix := newPrefix + strconv.Itoa(i)
 		keyColName := elemPrefix + field.opts.Key
@@ -305,10 +302,9 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			}
 			break
 		}
-		var newMapKeyExisted bool
 		var newMapValue protoreflect.Value
-		if reflectMap.Has(newMapKey) {
-			newMapKeyExisted = true
+		newMapKeyExisted := reflectMap.Has(newMapKey)
+		if newMapKeyExisted {
 			// check map key unique
 			if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)

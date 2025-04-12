@@ -170,33 +170,33 @@
     "chapter": {
         "1001": {
             "key": "1001",
-            "name": "ChaptOne",
+            "name": "ChapterOne",
             "section": {
                 "1": {
                     "key": 1,
-                    "name": "SectOne"
+                    "name": "SectionOne"
                 },
                 "2": {
                     "key": 2,
-                    "name": "SectTwo"
+                    "name": "SectionTwo"
                 },
                 "3": {
                     "key": 3,
-                    "name": "SectThree"
+                    "name": "SectionThree"
                 }
             }
         },
         "1002": {
             "key": "1002",
-            "name": "ChaptTwo",
+            "name": "ChapterTwo",
             "section": {
                 "1": {
                     "key": 1,
-                    "name": "SectOne"
+                    "name": "SectionOne"
                 },
                 "2": {
                     "key": 2,
-                    "name": "SectTwo"
+                    "name": "SectionTwo"
                 }
             }
         }
