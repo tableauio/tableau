@@ -128,7 +128,7 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 					Name: "MallConf",
 					Table: &book.Table{
 						MaxRow: 4,
-						MaxCol: 3,
+						MaxCol: 4,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "GoodsID", "Price"},
 							{"1", "1", "1", "10"},
@@ -140,6 +140,26 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			},
 			wantErr: true,
 			errcode: "E0003",
+		},
+		{
+			name:   "duplicate empty col name",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "MallConf",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"ShopID", "", "GoodsID", "", "Price"},
+							{"1", "x", "1", "x", "10"},
+							{"2", "x", "2", "x", "20"},
+							{"3", "x", "3", "x", "30"},
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
