@@ -1,0 +1,4 @@
+Chapter1ID,Chapter1Section1ID,Chapter1Section1Item1ID,Chapter1Section1Item1Name
+[Chapter]uint32,[Chapter]uint32,[Item]uint32,string
+Chapter1 ID,Chapter1 section1 ID,Chapter1 section1 item1 ID,Chapter1 section1 item1 name
+1,10,100,Orange

@@ -1,4 +1,4 @@
 RewardItemID,RewardItemNum,CostItemID,CostItemNum,PredefinedItemID,PredefinedItemNum
 {Item(RewardItem)}int32,int32,{Item(CostItem)}int32,int32,{.Item(PredefinedItem)}int32,int32
-Item's ID,Item's ID,Cost's ID,Cost's ID,Predefined item's ID,Predefined item's ID
+Item ID,Item ID,Cost ID,Cost ID,Predefined item ID,Predefined item ID
 1,100,2,200,10,20

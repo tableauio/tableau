@@ -70,6 +70,7 @@ func (b *Book) GetBookOptions() *tableaupb.WorkbookOptions {
 		Datarow:  meta.Datarow,
 		Nameline: meta.Nameline,
 		Typeline: meta.Typeline,
+		Noteline: meta.Noteline,
 		Sep:      meta.Sep,
 		Subsep:   meta.Subsep,
 	}

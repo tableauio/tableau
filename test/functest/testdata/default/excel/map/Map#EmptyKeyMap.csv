@@ -1,6 +1,6 @@
 ID,Desc
 "map<uint32, Item>",string
-Item's ID,Item's name
+Item ID,Item name
 1,Apple
 ,Orange
 3,Banana

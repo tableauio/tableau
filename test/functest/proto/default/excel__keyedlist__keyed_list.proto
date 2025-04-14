@@ -14,11 +14,11 @@ option (tableau.workbook) = {name:"excel/keyedlist/KeyedList#*.csv" namerow:1 ty
 message IncellEnumKeyedList {
   option (tableau.worksheet) = {name:"IncellEnumKeyedList"};
 
-  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}];
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}]; // Type list
 }
 
 message IncellScalarKeyedList {
   option (tableau.worksheet) = {name:"IncellScalarKeyedList"};
 
-  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL}];
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL}]; // ID list
 }

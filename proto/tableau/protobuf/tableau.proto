@@ -100,18 +100,23 @@ message WorkbookOptions {
   //
   // Default: 0.
   int32 typeline = 8;
+  // The line number of column note definition in a cell. 0 means
+  // the whole cell.
+  //
+  // Default: 0.
+  int32 noteline = 9;
   // Sheet-level separator for separating:
   //  - incell list elements (scalar or struct).
   //  - incell map items.
   //
   // If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
-  string sep = 9;
+  string sep = 10;
   // Sheet-level subseparator for separating:
   //  - key-value pair of each incell map item.
   //  - struct fields of each incell struct list element.
   //
   // If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
-  string subsep = 10;
+  string subsep = 11;
 }
 
 message WorksheetOptions {
@@ -143,22 +148,27 @@ message WorksheetOptions {
   //
   // Default: 0.
   int32 typeline = 7;
+  // The line number of column note definition in a cell. 0 means
+  // the whole cell.
+  //
+  // Default: 0.
+  int32 noteline = 8;
   // Sheet-level separator for separating:
   //  - incell list elements (scalar or struct).
   //  - incell map items.
   //
   // If set, it will overwrite global-level seq in options.ConfInputOption.Sep.
-  string sep = 8;
+  string sep = 9;
   // Sheet-level subseparator for separating:
   //  - key-value pair of each incell map item.
   //  - struct fields of each incell struct list element.
   //
   // If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
-  string subsep = 9;
+  string subsep = 10;
   // Nested naming of the namerow.
-  bool nested = 10;
+  bool nested = 11;
   // Interchange the rows and columns of worksheet.
-  bool transpose = 11;
+  bool transpose = 12;
   // Labels are key/value pairs that are attached to sheet.
   // Labels can be used to organize and to select subsets of sheets.
   // For example:
@@ -167,37 +177,37 @@ message WorksheetOptions {
   //
   // This concept is much like it is in k8s, see
   // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/.
-  map<string, string> labels = 12;
+  map<string, string> labels = 13;
   // Merger merge multiple workbook sheets (comma-separated) into one
   // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
-  repeated string merger = 13;
+  repeated string merger = 14;
   // Merge adjacent rows with the same key. If the key cell is not set,
   // it will be treated the same as the nearest key above the same column.
-  bool adjacent_key = 14;
+  bool adjacent_key = 15;
   // In order to track field presence of basic types (numeric, string, bytes,
   // and enums), the generated field will be labeled "optional".
   //
   // See https://protobuf.dev/programming-guides/field_presence/
-  bool field_presence = 15;
+  bool field_presence = 16;
   // Indicate this XML sheet is a template or not. Template sheet structure will
   // only be parsed based on metasheet "@TABLEAU" in comments.
-  bool template = 16;
+  bool template = 17;
   // Sheet mode.
-  Mode mode = 17;
+  Mode mode = 18;
   // Scatter convert multiple workbook sheets (comma-separated) separately
   // with same schema. E.g.: Item1.xlsx,Item2.xlsx,ItemAward*.xlsx.
-  repeated string scatter = 18;
+  repeated string scatter = 19;
   // Whether all fields in this sheet are optional (field name existence).
   // If set to true, then:
   //  - table formats (Excel/CSV): field's column can be absent.
   //  - document formats (XML/YAML): field's name can be absent.
-  bool optional = 19;
+  bool optional = 20;
   // Sheet patch type.
-  Patch patch = 20;
+  Patch patch = 21;
   // confgen: export JSON/Bin/Text files with parent dir created.
-  bool with_parent_dir = 21;
+  bool with_parent_dir = 22;
   // confgen(scatter): export JSON/Bin/Text filenames without book name prefix.
-  bool scatter_without_book_name = 22;
+  bool scatter_without_book_name = 23;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.

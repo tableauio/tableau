@@ -1,6 +1,6 @@
 ID,Desc,PropID,PropNum
 [KeyedItem]<uint32>,string,[Prop]<uint32>,int32
-Item's ID,Item's desc,Prop's ID,Prop's num
+Item ID,Item desc,Prop ID,Prop num
 1,Apple,10,100
 1,Banana,11,110
 2,Orange,20,200

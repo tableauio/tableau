@@ -1,6 +1,6 @@
 ID,Desc,Tip
 [KeyedItem]<uint32>|{unique:false},string,[]<uint32>
-Item's ID,Item's desc,Item's tip
+Item ID,Item desc,Item tip
 1,Apple,"1,2,3"
 1,Banana,"4,5"
 2,Orange,"1,2"

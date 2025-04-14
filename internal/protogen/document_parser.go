@@ -49,7 +49,7 @@ func (p *documentParser) parseField(field *internalpb.Field, node *book.Node) (p
 		}
 	} else {
 		// scalar or enum type
-		scalarField, err := p.parseBasicField(nameCell, typeCell)
+		scalarField, err := p.parseBasicField(nameCell, typeCell, "")
 		if err != nil {
 			return false, errWithNodeKV(err, node, xerrors.KeyPBFieldType, "scalar/enum")
 		}
@@ -150,7 +150,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = keynameCell
 			// 1. append key to the first value struct field
-			scalarField, err := p.parseBasicField(keynameCell, desc.KeyType+desc.Prop.RawProp())
+			scalarField, err := p.parseBasicField(keynameCell, desc.KeyType+desc.Prop.RawProp(), "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -158,7 +158,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 			}
 			field.Fields = append(field.Fields, scalarField)
 			// 2. append value to the second value struct field
-			scalarField, err = p.parseBasicField(book.KeywordValue, desc.ValueType)
+			scalarField, err = p.parseBasicField(book.KeywordValue, desc.ValueType, "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
@@ -187,7 +187,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 	field.Options.Key = keynameCell
 	// struct map
 	// auto append key to the first value struct field
-	scalarField, err := p.parseBasicField(keynameCell, desc.KeyType+desc.Prop.RawProp())
+	scalarField, err := p.parseBasicField(keynameCell, desc.KeyType+desc.Prop.RawProp(), "")
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -230,7 +230,7 @@ func (p *documentParser) parseListField(field *internalpb.Field, node *book.Node
 	if desc.ElemType == "" {
 		elemType = desc.ColumnType
 	}
-	scalarField, err := p.parseBasicField(node.Name, elemType)
+	scalarField, err := p.parseBasicField(node.Name, elemType, "")
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.ElemType,
@@ -282,7 +282,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 		span = tableaupb.Span_SPAN_INNER_CELL
 	}
 	parseStrictStructField := func(fieldNodes []*book.Node) error {
-		scalarField, err := p.parseBasicField(node.Name, desc.StructType)
+		scalarField, err := p.parseBasicField(node.Name, desc.StructType, "")
 		if err != nil {
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.StructType,
@@ -317,7 +317,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 
 		// predefined struct
 		if desc.ColumnType == "" {
-			structField, err := p.parseBasicField(node.Name, desc.StructType)
+			structField, err := p.parseBasicField(node.Name, desc.StructType, "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.StructType,
@@ -340,7 +340,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 				xerrors.KeyPBFieldType, desc.StructType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text)
 		}
-		scalarField, err := p.parseBasicField(node.Name, desc.ColumnType)
+		scalarField, err := p.parseBasicField(node.Name, desc.ColumnType, "")
 		if err != nil {
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldName, node.Name,
@@ -354,7 +354,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
-			scalarField, err := p.parseBasicField(fieldName, fieldType)
+			scalarField, err := p.parseBasicField(fieldName, fieldType, "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldName, fieldName,

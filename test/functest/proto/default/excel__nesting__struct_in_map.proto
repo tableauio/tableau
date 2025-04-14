@@ -16,8 +16,8 @@ message IncellStructInVerticalMap {
 
   map<int32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    Item item = 2 [(tableau.field) = {name:"Item" span:SPAN_INNER_CELL}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward ID
+    Item item = 2 [(tableau.field) = {name:"Item" span:SPAN_INNER_CELL}]; // Item info
     message Item {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       int32 num = 2 [(tableau.field) = {name:"Num"}];
@@ -30,7 +30,7 @@ message PredefinedStructInVerticalMap {
 
   map<int32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward ID
     protoconf.Item item = 2 [(tableau.field) = {name:"Item"}];
   }
 }
@@ -40,11 +40,11 @@ message StructInVerticalMap {
 
   map<int32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward ID
     Item item = 2 [(tableau.field) = {name:"Item"}];
     message Item {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int32 num = 2 [(tableau.field) = {name:"Num"}];
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+      int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item Num
     }
   }
 }

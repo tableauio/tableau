@@ -115,6 +115,7 @@ func genProto(logLevel, logMode string) error {
 						DataRow:  2,
 						NameLine: 2,
 						TypeLine: 3,
+						NoteLine: 1,
 						Sep:      ",",
 						Subsep:   ":",
 					},

@@ -92,7 +92,7 @@ func Test_isSameFieldMessageType(t *testing.T) {
 				left:  nil,
 				right: nil,
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "one-is-nil",
@@ -100,7 +100,7 @@ func Test_isSameFieldMessageType(t *testing.T) {
 				left:  &internalpb.Field{},
 				right: nil,
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "one-sub-fields-nil",

@@ -45,10 +45,10 @@ message EnumTypeReuseInBook {
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}];
-    protoconf.BirdType bird_type = 3 [(tableau.field) = {name:"BirdType"}];
-    int32 price = 4 [(tableau.field) = {name:"Price"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}]; // Item type
+    protoconf.BirdType bird_type = 3 [(tableau.field) = {name:"BirdType"}]; // Bird type
+    int32 price = 4 [(tableau.field) = {name:"Price"}]; // Item price
   }
 }
 
@@ -103,7 +103,7 @@ message StructTypeReuseInBook {
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward ID
     protoconf.Pet pet = 2 [(tableau.field) = {name:"Pet"}];
     protoconf.TaskReward task_reward = 3 [(tableau.field) = {name:"TaskReward"}];
   }
@@ -129,17 +129,17 @@ message SimpleTarget {
   }
 
   message PVP {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    int64 damage = 2 [(tableau.field) = {name:"Damage"}];
-    protoconf.FruitType type = 3 [(tableau.field) = {name:"Type"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Note
+    int64 damage = 2 [(tableau.field) = {name:"Damage"}]; // Note
+    protoconf.FruitType type = 3 [(tableau.field) = {name:"Type"}]; // Note
   }
   message PVE {
-    repeated uint32 hero_list = 1 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}];
-    map<int32, int64> dungeon_map = 2 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}];
+    repeated uint32 hero_list = 1 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}]; // Note
+    map<int32, int64> dungeon_map = 2 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}]; // Note
   }
   message Skill {
-    google.protobuf.Timestamp start_time = 1 [(tableau.field) = {name:"StartTime"}];
-    google.protobuf.Duration duration = 2 [(tableau.field) = {name:"Duration"}];
+    google.protobuf.Timestamp start_time = 1 [(tableau.field) = {name:"StartTime"}]; // Note
+    google.protobuf.Duration duration = 2 [(tableau.field) = {name:"Duration"}]; // Note
   }
 }
 
@@ -169,40 +169,40 @@ message TaskTarget {
   }
 
   message PVP {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    int64 damage = 2 [(tableau.field) = {name:"Damage"}];
-    repeated protoconf.FruitType type_list = 3 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Note
+    int64 damage = 2 [(tableau.field) = {name:"Damage"}]; // Note
+    repeated protoconf.FruitType type_list = 3 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}]; // Note
   }
   message PVE {
-    Mission mission = 1 [(tableau.field) = {name:"Mission" span:SPAN_INNER_CELL}];
+    Mission mission = 1 [(tableau.field) = {name:"Mission" span:SPAN_INNER_CELL}]; // Note
     message Mission {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];
       protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}];
     }
-    repeated uint32 hero_list = 2 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}];
-    map<int32, int64> dungeon_map = 3 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}];
+    repeated uint32 hero_list = 2 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}]; // Note
+    map<int32, int64> dungeon_map = 3 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}]; // Note
   }
   message Story {
-    protoconf.Item cost = 1 [(tableau.field) = {name:"Cost" span:SPAN_INNER_CELL}];
-    map<int32, protoconf.FruitType> fruit_map = 2 [(tableau.field) = {name:"Fruit" layout:LAYOUT_INCELL}];
-    map<int32, Flavor> flavor_map = 3 [(tableau.field) = {name:"Flavor" key:"Key" layout:LAYOUT_INCELL}];
+    protoconf.Item cost = 1 [(tableau.field) = {name:"Cost" span:SPAN_INNER_CELL}]; // Note
+    map<int32, protoconf.FruitType> fruit_map = 2 [(tableau.field) = {name:"Fruit" layout:LAYOUT_INCELL}]; // Note
+    map<int32, Flavor> flavor_map = 3 [(tableau.field) = {name:"Flavor" key:"Key" layout:LAYOUT_INCELL}]; // Note
     message Flavor {
       protoconf.FruitFlavor key = 1 [(tableau.field) = {name:"Key"}];
       protoconf.FruitType value = 2 [(tableau.field) = {name:"Value"}];
     }
   }
   message Hobby {
-    map<int32, Flavor> flavor_map = 1 [(tableau.field) = {name:"Flavor" key:"Key" layout:LAYOUT_INCELL}];
+    map<int32, Flavor> flavor_map = 1 [(tableau.field) = {name:"Flavor" key:"Key" layout:LAYOUT_INCELL}]; // Note
     message Flavor {
       protoconf.FruitFlavor key = 1 [(tableau.field) = {name:"Key"}];
       protoconf.FruitType value = 2 [(tableau.field) = {name:"Value"}];
     }
-    google.protobuf.Timestamp start_time = 2 [(tableau.field) = {name:"StartTime"}];
-    google.protobuf.Duration duration = 3 [(tableau.field) = {name:"Duration"}];
+    google.protobuf.Timestamp start_time = 2 [(tableau.field) = {name:"StartTime"}]; // Note
+    google.protobuf.Duration duration = 3 [(tableau.field) = {name:"Duration"}]; // Note
   }
   message Skill {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    int64 damage = 2 [(tableau.field) = {name:"Damage"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Note
+    int64 damage = 2 [(tableau.field) = {name:"Damage"}]; // Note
   }
 }
 
@@ -297,8 +297,8 @@ message UnionTypeReuseInBook {
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    int32 progress = 2 [(tableau.field) = {name:"Progress"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    int32 progress = 2 [(tableau.field) = {name:"Progress"}]; // Progress
     protoconf.TaskTarget task_target = 3 [(tableau.field) = {name:"TaskTarget"}];
     protoconf.HeroTarget hero_target = 4 [(tableau.field) = {name:"HeroTarget"}];
   }

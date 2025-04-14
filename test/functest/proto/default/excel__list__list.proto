@@ -14,39 +14,39 @@ option (tableau.workbook) = {name:"excel/list/List#*.csv" namerow:1 typerow:2 no
 message HorizontalExplicitFixedSizeList {
   option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{size:2}}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{size:2}}]; // Item
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // name
   }
 }
 
 message HorizontalImplicitFixedSizeList {
   option (tableau.worksheet) = {name:"HorizontalImplicitFixedSizeList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}]; // Item
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // name
   }
 }
 
 message IncellPredefinedStructList {
   option (tableau.worksheet) = {name:"IncellPredefinedStructList"};
 
-  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}]; // Item list
 }
 
 message IncellScalarList {
   option (tableau.worksheet) = {name:"IncellScalarList"};
 
-  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}];
+  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}]; // ID list
 }
 
 message IncellStructList {
   option (tableau.worksheet) = {name:"IncellStructList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}]; // Item list
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
@@ -56,5 +56,5 @@ message IncellStructList {
 message incellEnumList {
   option (tableau.worksheet) = {name:"incellEnumList"};
 
-  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}];
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}]; // Type list
 }

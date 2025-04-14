@@ -13,7 +13,7 @@ option (tableau.workbook) = {name:"excel/scalar/Scalar#*.csv" namerow:1 typerow:
 message Scalar {
   option (tableau.worksheet) = {name:"Scalar"};
 
-  uint32 id = 1 [(tableau.field) = {name:"ID"}];
-  string name = 2 [(tableau.field) = {name:"Name"}];
-  string desc = 3 [(tableau.field) = {name:"Desc"}];
+  uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
+  string name = 2 [(tableau.field) = {name:"Name"}]; // Item's Name
+  string desc = 3 [(tableau.field) = {name:"Desc"}]; // Item's Description
 }

@@ -52,7 +52,7 @@ func (t *tableHeader) getTypeCell(cursor int) string {
 }
 
 func (t *tableHeader) getNoteCell(cursor int) string {
-	return getCell(t.noteRowData, cursor, 1) // default note line is 1
+	return getCell(t.noteRowData, cursor, t.NoteLine)
 }
 
 // checkNameConflicts checks to keep sure each column name must be unique in name row.

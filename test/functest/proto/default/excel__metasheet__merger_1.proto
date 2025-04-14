@@ -15,8 +15,8 @@ message MetasheetOptionMerger {
 
   map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Zone {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    int32 difficulty = 3 [(tableau.field) = {name:"Difficulty"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Zone ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Zone name
+    int32 difficulty = 3 [(tableau.field) = {name:"Difficulty"}]; // Zone difficulty
   }
 }

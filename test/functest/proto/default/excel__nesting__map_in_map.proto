@@ -15,12 +15,12 @@ message HorizontalMapInVerticalMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    map<int32, Prop> prop_map = 3 [(tableau.field) = {name:"Prop" key:"ID" layout:LAYOUT_HORIZONTAL}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item name
+    map<int32, Prop> prop_map = 3 [(tableau.field) = {name:"Prop" key:"ID" layout:LAYOUT_HORIZONTAL}]; // Prop
     message Prop {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int64 value = 2 [(tableau.field) = {name:"Value"}];
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+      int64 value = 2 [(tableau.field) = {name:"Value"}]; // value
     }
   }
 }
@@ -30,8 +30,8 @@ message IncellMapInVerticalMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    map<int32, string> props_map = 2 [(tableau.field) = {name:"Props" layout:LAYOUT_INCELL}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    map<int32, string> props_map = 2 [(tableau.field) = {name:"Props" layout:LAYOUT_INCELL}]; // Item props
   }
 }
 
@@ -40,12 +40,12 @@ message VerticalMapInVerticalMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item name
     map<int32, Prop> prop_map = 3 [(tableau.field) = {key:"PropID" layout:LAYOUT_VERTICAL}];
     message Prop {
-      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}];
-      int64 prop_value = 2 [(tableau.field) = {name:"PropValue"}];
+      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}]; // Prop ID
+      int64 prop_value = 2 [(tableau.field) = {name:"PropValue"}]; // Prop value
     }
   }
 }

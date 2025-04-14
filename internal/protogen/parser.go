@@ -78,12 +78,12 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 }
 
 // parseBasicField parses scalar or enum type.
-func (p *bookParser) parseBasicField(name, typ string) (*internalpb.Field, error) {
-	return parseBasicField(p.gen.typeInfos, p.gen.strcaseCtx, name, typ)
+func (p *bookParser) parseBasicField(name, typ, note string) (*internalpb.Field, error) {
+	return parseBasicField(p.gen.typeInfos, p.gen.strcaseCtx, name, typ, note)
 }
 
 // parseBasicField parses scalar or enum type.
-func parseBasicField(typeInfos *xproto.TypeInfos, strcaseCtx strcase.Context, name, typ string) (*internalpb.Field, error) {
+func parseBasicField(typeInfos *xproto.TypeInfos, strcaseCtx strcase.Context, name, typ, note string) (*internalpb.Field, error) {
 	var prop types.PropDescriptor
 	// enum syntax pattern
 	if desc := types.MatchEnum(typ); desc != nil {
@@ -109,15 +109,18 @@ func parseBasicField(typeInfos *xproto.TypeInfos, strcaseCtx strcase.Context, na
 			xerrors.KeyPBFieldType, typ,
 			xerrors.KeyTrimmedNameCell, name)
 	}
-	pureName := strings.TrimPrefix(name, book.MetaSign) // remove leading meta sign "@""
+	pureName := strings.TrimPrefix(name, book.MetaSign) // remove leading meta sign "@"
 	return &internalpb.Field{
 		Name:       strcaseCtx.ToSnake(pureName),
 		Type:       typeDesc.Name,
 		FullType:   typeDesc.FullName,
+		Note:       strings.TrimSpace(note),
 		Predefined: typeDesc.Predefined,
 		Options: &tableaupb.FieldOptions{
 			Name: name,
-			Note: "", // no need to add note now, maybe will be deprecated in the future.
+			// Currently, there is no need to set note, but maybe in the future,
+			// we want to get note by protobuf reflection, then should set it.
+			Note: "",
 			Prop: ExtractScalarFieldProp(fieldProp),
 		},
 	}, nil

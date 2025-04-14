@@ -116,7 +116,7 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 	var err error
 	for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
 		subField := &internalpb.Field{}
-		cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "")
+		cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "")
 		if err != nil {
 			return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 		}
@@ -199,6 +199,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 				TypeRow:  1,
 				NameLine: 1,
 				TypeLine: 2,
+				NoteLine: 3,
 			},
 			nameRowData: value.Fields,
 			typeRowData: value.Fields,
@@ -209,7 +210,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
 			fieldNumber := cursor + 1
 			subField := &internalpb.Field{}
-			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", parseroptions.Mode(tableaupb.Mode_MODE_UNION_TYPE))
+			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "", parseroptions.Mode(tableaupb.Mode_MODE_UNION_TYPE))
 			if err != nil {
 				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 			}

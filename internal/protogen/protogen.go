@@ -427,14 +427,14 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				typeCol := tableHeader.TypeRow - 1
 				typeCell, err := sheet.Table.Cell(row, typeCol)
 				if err != nil {
-					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, typeCol))
+					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyTypeCellPos, excel.Postion(row, typeCol))
 				}
 				tableHeader.typeRowData = append(tableHeader.typeRowData, typeCell)
 
 				noteCol := tableHeader.NoteRow - 1
 				noteCell, err := sheet.Table.Cell(row, noteCol)
 				if err != nil {
-					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, noteCol))
+					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNoteCellPos, excel.Postion(row, noteCol))
 				}
 				tableHeader.noteRowData = append(tableHeader.noteRowData, noteCell)
 			}
@@ -463,7 +463,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				var parsed bool
 				for cursor := 0; cursor < len(tableHeader.nameRowData); cursor++ {
 					field := &internalpb.Field{}
-					cursor, parsed, err = bp.parseField(field, tableHeader, cursor, "", parseroptions.Nested(ws.Options.Nested))
+					cursor, parsed, err = bp.parseField(field, tableHeader, cursor, "", "", parseroptions.Nested(ws.Options.Nested))
 					if err != nil {
 						return wrapDebugErr(err, debugBookName, debugSheetName, tableHeader, cursor)
 					}

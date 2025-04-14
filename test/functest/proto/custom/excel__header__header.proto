@@ -8,11 +8,11 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/header/Header#*.csv" namerow:1 typerow:1 noterow:1 datarow:2 nameline:2 typeline:3 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/header/Header#*.csv" namerow:1 typerow:1 noterow:1 datarow:2 nameline:2 typeline:3 noteline:1 sep:"," subsep:":"};
 
 message TableHeader {
   option (tableau.worksheet) = {name:"TableHeader"};
 
-  int32 id = 1 [(tableau.field) = {name:"ID"}];
-  repeated int32 prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL prop:{sep:";"}}];
+  int32 id = 1 [(tableau.field) = {name:"ID"}]; // IDNote
+  repeated int32 prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL prop:{sep:";"}}]; // PropNote
 }

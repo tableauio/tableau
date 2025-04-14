@@ -29,6 +29,8 @@ const (
 	KeyTrimmedNameCell  = "TrimmedNameCell"  // trimmed name cell value
 	KeyTypeCellPos      = "TypeCellPos"      // type cell position
 	KeyTypeCell         = "TypeCell"         // type cell value
+	KeyNoteCellPos      = "NoteCellPos"      // note cell position
+	KeyNoteCell         = "NoteCell"         // note cell value
 	KeyDataCellPos      = "DataCellPos"      // data cell position
 	KeyDataCell         = "DataCell"         // data data value
 

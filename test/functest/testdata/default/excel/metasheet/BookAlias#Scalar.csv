@@ -1,4 +1,4 @@
 ID,Name,Desc
 uint32,string,string
-Item's ID,Item's Name,Item's Description
+Item ID,Item Name,Item Description
 1,Apple,A kind of delicious fruit.

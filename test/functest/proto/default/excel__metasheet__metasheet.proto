@@ -16,18 +16,18 @@ message Index {
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}];
-    string name = 3 [(tableau.field) = {name:"Name"}];
-    int32 price = 4 [(tableau.field) = {name:"Price"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}]; // Item type
+    string name = 3 [(tableau.field) = {name:"Name"}]; // Item name
+    int32 price = 4 [(tableau.field) = {name:"Price"}]; // Item price
   }
 }
 
 message Transpose {
   option (tableau.worksheet) = {name:"Transpose" transpose:true};
 
-  int32 id = 1 [(tableau.field) = {name:"ID"}];
-  string name = 2 [(tableau.field) = {name:"Name"}];
-  string desc = 3 [(tableau.field) = {name:"Desc"}];
-  repeated int32 skill_list = 4 [(tableau.field) = {name:"Skill" layout:LAYOUT_INCELL}];
+  int32 id = 1 [(tableau.field) = {name:"ID"}]; // Hero's ID
+  string name = 2 [(tableau.field) = {name:"Name"}]; // Hero's name
+  string desc = 3 [(tableau.field) = {name:"Desc"}]; // Hero's description
+  repeated int32 skill_list = 4 [(tableau.field) = {name:"Skill" layout:LAYOUT_INCELL}]; // Hero's skills
 }

@@ -1,6 +1,6 @@
 ID,Num
 "map<int32, .Item>",int32
-Item's ID,Item's num
+Item ID,Item num
 1,100
 2,200
 3,300
