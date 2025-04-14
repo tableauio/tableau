@@ -1,0 +1,18 @@
+{
+    "chapterMap": {
+        "1": {
+            "id": 1,
+            "sectionMap": {
+                "10": {
+                    "id": 10,
+                    "itemMap": {
+                        "100": {
+                            "id": 100,
+                            "name": "Orange"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
