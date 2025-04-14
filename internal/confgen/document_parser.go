@@ -1,7 +1,6 @@
 package confgen
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -79,7 +78,7 @@ func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node
 					return xerrors.WrapKV(xerrors.E2014(field.opts.Name), kvs...)
 				}
 			}
-			newCardPrefix := cardPrefix + string(fd.Name())
+			newCardPrefix := cardPrefix + "." + string(fd.Name())
 			fieldPresent, err := sp.parseField(field, msg, fieldNode, newCardPrefix)
 			if err != nil {
 				return xerrors.WrapKV(err,
@@ -176,7 +175,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				} else {
 					newMapValue = reflectMap.NewValue()
 				}
-				newCardPrefix := cardPrefix + fmt.Sprint(newMapKey)
+				newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
 				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode, newCardPrefix)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
@@ -330,7 +329,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 		for _, elemNode := range node.Children {
 			elemPresent := false
 			elemValue := list.NewElement()
-			newCardPrefix := cardPrefix + strconv.Itoa(list.Len())
+			newCardPrefix := cardPrefix + "." + strconv.Itoa(list.Len())
 			if xproto.IsUnionField(field.fd) {
 				// cross-cell union list
 				elemPresent, err = sp.parseUnionMessage(field, elemValue.Message(), elemNode, newCardPrefix)

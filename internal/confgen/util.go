@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -307,4 +308,32 @@ func parseTableListLayout(layout tableaupb.Layout) tableaupb.Layout {
 		layout = tableaupb.Layout_LAYOUT_HORIZONTAL
 	}
 	return layout
+}
+
+// isSafePathKeyChar returns true if the input character is safe for not
+// needing escaping.
+func isSafePathKeyChar(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+		(c >= '0' && c <= '9') || c <= ' ' || c > '~' || c == '_' ||
+		c == '-' || c == ':'
+}
+
+// refer: https://github.com/tidwall/gjson/blob/v1.18.0/gjson.go#L3560
+func escapeMapKey(key protoreflect.Value) string {
+	comp := fmt.Sprint(key)
+	for i := 0; i < len(comp); i++ {
+		if !isSafePathKeyChar(comp[i]) {
+			ncomp := make([]byte, len(comp)+1)
+			copy(ncomp, comp[:i])
+			ncomp = ncomp[:i]
+			for ; i < len(comp); i++ {
+				if !isSafePathKeyChar(comp[i]) {
+					ncomp = append(ncomp, '\\')
+				}
+				ncomp = append(ncomp, comp[i])
+			}
+			return string(ncomp)
+		}
+	}
+	return comp
 }

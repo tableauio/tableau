@@ -919,6 +919,181 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 			wantErr: true,
 			errcode: "E2005",
 		},
+		{
+			name:   "card prefix uniqueness",
+			parser: newDocParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentUniqueFieldStructMap",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentUniqueFieldStructMap",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.MapNode,
+										Name: "Chapter",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Name: "_infox",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterOne",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "1",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									{
+										Kind: book.MapNode,
+										Name: "ChapterInfo",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Name: "x",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterOne",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "section",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																	{
+																		Kind: book.MapNode,
+																		Name: "Section",
+																		Children: []*book.Node{
+																			{
+																				Kind: book.MapNode,
+																				Name: "section",
+																				Children: []*book.Node{
+																					{
+																						Name:  "Name",
+																						Value: "SectionOne",
+																					},
+																					{
+																						Kind: book.MapNode,
+																						Name: "Section",
+																						Children: []*book.Node{
+																							{
+																								Kind: book.MapNode,
+																								Name: "section",
+																								Children: []*book.Node{
+																									{
+																										Name:  "Name",
+																										Value: "SectionOne",
+																									},
+																									{
+																										Kind: book.MapNode,
+																										Name: "Section",
+																										Children: []*book.Node{
+																											{
+																												Kind: book.MapNode,
+																												Name: "section",
+																												Children: []*book.Node{
+																													{
+																														Name:  "Name",
+																														Value: "SectionOne",
+																													},
+																												},
+																											},
+																										},
+																									},
+																								},
+																							},
+																						},
+																					},
+																				},
+																			},
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Name: "x.section",
+												Children: []*book.Node{
+													{
+														Name:  "Name",
+														Value: "ChapterTwo",
+													},
+													{
+														Kind: book.MapNode,
+														Name: "Section",
+														Children: []*book.Node{
+															{
+																Kind: book.MapNode,
+																Name: "section.section",
+																Children: []*book.Node{
+																	{
+																		Name:  "Name",
+																		Value: "SectionOne",
+																	},
+																	{
+																		Kind: book.MapNode,
+																		Name: "Section",
+																		Children: []*book.Node{
+																			{
+																				Kind: book.MapNode,
+																				Name: "section",
+																				Children: []*book.Node{
+																					{
+																						Name:  "Name",
+																						Value: "SectionOne",
+																					},
+																				},
+																			},
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

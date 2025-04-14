@@ -144,7 +144,7 @@ func (sp *tableParser) parseMessage(msg protoreflect.Message, rc *book.RowCells,
 			// TODO(performance): cache the parsed field for reuse, as each table row will be parsed repeatedly.
 			field := sp.parseFieldDescriptor(fd)
 			defer field.release()
-			newCardPrefix := cardPrefix + string(fd.Name())
+			newCardPrefix := cardPrefix + "." + string(fd.Name())
 			fieldPresent, err := sp.parseField(field, msg, rc, prefix, newCardPrefix)
 			if err != nil {
 				return xerrors.WrapKV(err,
@@ -214,7 +214,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 	}
-	newCardPrefix := cardPrefix + fmt.Sprint(newMapKey)
+	newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
 	// value must be empty if key not present
 	if !keyPresent && reflectMap.Has(newMapKey) {
 		tempCheckMapValue := reflectMap.NewValue()
@@ -291,7 +291,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
-		newCardPrefix := cardPrefix + fmt.Sprint(newMapKey)
+		newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
 		// value must be empty if key not present
 		if !keyPresent && reflectMap.Has(newMapKey) {
 			tempCheckMapValue := reflectMap.NewValue()
@@ -392,7 +392,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 	elemPresent := false
 	elemValue := list.NewElement()
 	newPrefix := prefix + field.opts.Name
-	newCardPrefix := cardPrefix + strconv.Itoa(list.Len())
+	newCardPrefix := cardPrefix + "." + strconv.Itoa(list.Len())
 	// struct list
 	if field.opts.Key != "" {
 		// KeyedList means the list is keyed by the specified Key option.
@@ -428,7 +428,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 			elemPresent = !keyedListElemExisted
 		}
 		// For KeyedList, use key but not len(list) as cardinality
-		newCardPrefix := cardPrefix + fmt.Sprint(key)
+		newCardPrefix := cardPrefix + "." + escapeMapKey(key)
 		present, err := sp.parseMessage(elemValue.Message(), rc, newPrefix, newCardPrefix)
 		if err != nil {
 			return false, err
@@ -484,7 +484,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 		elemPresent := false
 		elemValue := list.NewElement()
 		elemPrefix := newPrefix + strconv.Itoa(i)
-		newCardPrefix := cardPrefix + strconv.Itoa(list.Len())
+		newCardPrefix := cardPrefix + "." + strconv.Itoa(list.Len())
 		var cell *book.RowCell
 		if field.fd.Kind() == protoreflect.MessageKind {
 			if types.IsWellKnownMessage(field.fd.Message().FullName()) {
