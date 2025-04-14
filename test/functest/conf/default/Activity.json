@@ -14,7 +14,27 @@
                             "sectionItemList": [
                                 {
                                     "id": 2001,
-                                    "num": 1
+                                    "num": 1,
+                                    "bonusList": [
+                                        {
+                                            "id": 101,
+                                            "num": 1
+                                        },
+                                        {
+                                            "id": 201,
+                                            "num": 1
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": 0,
+                                    "num": 0,
+                                    "bonusList": [
+                                        {
+                                            "id": 301,
+                                            "num": 1
+                                        }
+                                    ]
                                 }
                             ],
                             "duration": {
@@ -39,7 +59,7 @@
                                 "incellParam5Map": {},
                                 "target": 10
                             },
-                            "warnInfo": {
+                            "bonusInfo": {
                                 "id": 1,
                                 "desc": "desc1",
                                 "value": 100
@@ -61,7 +81,27 @@
                             "sectionItemList": [
                                 {
                                     "id": 2001,
-                                    "num": 1
+                                    "num": 1,
+                                    "bonusList": [
+                                        {
+                                            "id": 102,
+                                            "num": 2
+                                        },
+                                        {
+                                            "id": 202,
+                                            "num": 2
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": 0,
+                                    "num": 0,
+                                    "bonusList": [
+                                        {
+                                            "id": 302,
+                                            "num": 2
+                                        }
+                                    ]
                                 }
                             ],
                             "duration": {
@@ -104,7 +144,7 @@
                                 },
                                 "target": 10
                             },
-                            "warnInfo": {
+                            "bonusInfo": {
                                 "id": 1,
                                 "desc": "desc1",
                                 "value": 100
@@ -163,7 +203,7 @@
                                 },
                                 "target": 1
                             },
-                            "warnInfo": {
+                            "bonusInfo": {
                                 "id": 2,
                                 "desc": "desc2",
                                 "value": 500
@@ -209,7 +249,7 @@
                                 "incellParam5Map": {},
                                 "target": 1
                             },
-                            "warnInfo": {
+                            "bonusInfo": {
                                 "id": 3,
                                 "desc": "desc3",
                                 "value": 1000
@@ -242,15 +282,27 @@
                             "sectionItemList": [
                                 {
                                     "id": 2002,
-                                    "num": 2
+                                    "num": 2,
+                                    "bonusList": [
+                                        {
+                                            "id": 2,
+                                            "num": 2
+                                        },
+                                        {
+                                            "id": 2,
+                                            "num": 2
+                                        }
+                                    ]
                                 },
                                 {
                                     "id": 2002,
-                                    "num": 3
-                                },
-                                {
-                                    "id": 2002,
-                                    "num": 3
+                                    "num": 3,
+                                    "bonusList": [
+                                        {
+                                            "id": 2,
+                                            "num": 2
+                                        }
+                                    ]
                                 }
                             ],
                             "duration": {
@@ -273,7 +325,7 @@
                                 "incellParam5Map": {},
                                 "target": 0
                             },
-                            "warnInfo": null,
+                            "bonusInfo": null,
                             "incellStruct": null,
                             "intParamList": [],
                             "tipMap": {},
@@ -297,15 +349,27 @@
                             "sectionItemList": [
                                 {
                                     "id": 2001,
-                                    "num": 1
+                                    "num": 1,
+                                    "bonusList": [
+                                        {
+                                            "id": 1,
+                                            "num": 1
+                                        },
+                                        {
+                                            "id": 1,
+                                            "num": 1
+                                        }
+                                    ]
                                 },
                                 {
                                     "id": 2002,
-                                    "num": 2
-                                },
-                                {
-                                    "id": 2002,
-                                    "num": 2
+                                    "num": 2,
+                                    "bonusList": [
+                                        {
+                                            "id": 1,
+                                            "num": 1
+                                        }
+                                    ]
                                 }
                             ],
                             "duration": {
@@ -328,7 +392,7 @@
                                 "incellParam5Map": {},
                                 "target": 0
                             },
-                            "warnInfo": null,
+                            "bonusInfo": null,
                             "incellStruct": null,
                             "intParamList": [],
                             "tipMap": {},
@@ -352,15 +416,27 @@
                             "sectionItemList": [
                                 {
                                     "id": 2001,
-                                    "num": 1
+                                    "num": 1,
+                                    "bonusList": [
+                                        {
+                                            "id": 1,
+                                            "num": 1
+                                        },
+                                        {
+                                            "id": 1,
+                                            "num": 1
+                                        }
+                                    ]
                                 },
                                 {
                                     "id": 2002,
-                                    "num": 2
-                                },
-                                {
-                                    "id": 2002,
-                                    "num": 2
+                                    "num": 2,
+                                    "bonusList": [
+                                        {
+                                            "id": 1,
+                                            "num": 1
+                                        }
+                                    ]
                                 }
                             ],
                             "duration": {
@@ -383,7 +459,7 @@
                                 "incellParam5Map": {},
                                 "target": 0
                             },
-                            "warnInfo": null,
+                            "bonusInfo": null,
                             "incellStruct": null,
                             "intParamList": [],
                             "tipMap": {},

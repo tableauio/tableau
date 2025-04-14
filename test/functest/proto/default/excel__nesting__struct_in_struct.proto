@@ -16,8 +16,8 @@ message IncellStructInStruct {
 
   Reward reward = 1 [(tableau.field) = {name:"Reward"}];
   message Reward {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    Item item = 2 [(tableau.field) = {name:"Item" span:SPAN_INNER_CELL}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward's ID
+    Item item = 2 [(tableau.field) = {name:"Item" span:SPAN_INNER_CELL}]; // Reward's item
     message Item {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       int32 num = 2 [(tableau.field) = {name:"Num"}];
@@ -30,7 +30,7 @@ message PredefinedStructInStruct {
 
   Reward reward = 1 [(tableau.field) = {name:"Reward"}];
   message Reward {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward's ID
     protoconf.Item item = 2 [(tableau.field) = {name:"Item"}];
   }
 }
@@ -40,11 +40,11 @@ message StructInStruct {
 
   Reward reward = 1 [(tableau.field) = {name:"Reward"}];
   message Reward {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward's ID
     Item item = 2 [(tableau.field) = {name:"Item"}];
     message Item {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int32 num = 2 [(tableau.field) = {name:"Num"}];
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
+      int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item's num
     }
   }
 }

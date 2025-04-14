@@ -225,7 +225,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
 		}
-		scalarField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp(), "")
+		scalarField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp(), header.getNoteCell(cursor))
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -278,7 +278,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			Layout: layout,
 			Prop:   ExtractMapFieldProp(prop),
 		}
-		scalarField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp(), "")
+		scalarField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp(), header.getNoteCell(cursor))
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -581,6 +581,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				return cursor, err
 			}
 			if parsed {
+				field.Note = header.getNoteCell(cursor)
 				field.Fields = tempField.Fields
 				field.Predefined = tempField.Predefined
 				field.Options.Span = tempField.Options.Span
@@ -738,7 +739,8 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 		return cursor, err
 	}
 	if fieldPairs != nil {
-		scalarField, err := p.parseBasicField(trimmedNameCell, desc.ColumnType, "")
+		// incell struct
+		scalarField, err := p.parseBasicField(trimmedNameCell, desc.ColumnType, header.getNoteCell(cursor))
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.ColumnType,

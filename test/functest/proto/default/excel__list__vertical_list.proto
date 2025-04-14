@@ -17,28 +17,28 @@ message UniqueFieldInVerticalStructList {
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
-    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-    string desc = 3 [(tableau.field) = {name:"Desc"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}]; // Item's ID
+    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}]; // Item's name
+    string desc = 3 [(tableau.field) = {name:"Desc"}]; // Item's desc
   }
 }
 
 message VerticalEnumList {
   option (tableau.worksheet) = {name:"VerticalEnumList"};
 
-  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}];
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}]; // Type
 }
 
 message VerticalIncellPredefStructList {
   option (tableau.worksheet) = {name:"VerticalIncellPredefStructList"};
 
-  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}]; // Item's info
 }
 
 message VerticalIncellStructList {
   option (tableau.worksheet) = {name:"VerticalIncellStructList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}]; // Item's info
   message Item {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
@@ -48,7 +48,7 @@ message VerticalIncellStructList {
 message VerticalIncellUnionList {
   option (tableau.worksheet) = {name:"VerticalIncellUnionList"};
 
-  repeated union.Target target_list = 1 [(tableau.field) = {name:"Target" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}];
+  repeated union.Target target_list = 1 [(tableau.field) = {name:"Target" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}]; // Target's info
 }
 
 message VerticalPredefinedStructList {
@@ -60,7 +60,7 @@ message VerticalPredefinedStructList {
 message VerticalScalarList {
   option (tableau.worksheet) = {name:"VerticalScalarList"};
 
-  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}];
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}]; // ID
 }
 
 message VerticalStructList {
@@ -68,9 +68,9 @@ message VerticalStructList {
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    string desc = 3 [(tableau.field) = {name:"Desc"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item's name
+    string desc = 3 [(tableau.field) = {name:"Desc"}]; // Item's desc
   }
 }
 

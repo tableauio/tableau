@@ -16,14 +16,14 @@ message EmptyElemList {
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}]; // 奖励ID
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // 描述
     map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"ID" layout:LAYOUT_HORIZONTAL}];
     repeated Section section_list = 4 [(tableau.field) = {name:"Section" layout:LAYOUT_HORIZONTAL}];
     message Section {
-      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 节ID
     }
-    repeated uint32 value_list = 5 [(tableau.field) = {name:"Value" layout:LAYOUT_HORIZONTAL}];
+    repeated uint32 value_list = 5 [(tableau.field) = {name:"Value" layout:LAYOUT_HORIZONTAL}]; // buff值
     repeated protoconf.Item bonus_list = 6 [(tableau.field) = {name:"Bonus" layout:LAYOUT_HORIZONTAL}];
   }
 }
@@ -33,13 +33,13 @@ message FixedList {
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 奖励ID
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // 描述
     repeated Section section_list = 3 [(tableau.field) = {name:"Section" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
     message Section {
-      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 节ID
     }
-    repeated uint32 value_list = 4 [(tableau.field) = {name:"Value" layout:LAYOUT_HORIZONTAL prop:{size:2}}];
-    repeated uint32 tip_list = 5 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL prop:{size:3}}];
+    repeated uint32 value_list = 4 [(tableau.field) = {name:"Value" layout:LAYOUT_HORIZONTAL prop:{size:2}}]; // buff值
+    repeated uint32 tip_list = 5 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL prop:{size:3}}]; // 提示
   }
 }

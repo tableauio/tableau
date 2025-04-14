@@ -16,11 +16,11 @@ message HorizontalColumnSkippedMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
     map<int32, Prop> prop_map = 2 [(tableau.field) = {name:"Prop" key:"ID" layout:LAYOUT_HORIZONTAL}];
     message Prop {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int32 value = 2 [(tableau.field) = {name:"Value"}];
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Prop1's ID
+      int32 value = 2 [(tableau.field) = {name:"Value"}]; // Prop1's value
     }
   }
 }
@@ -36,7 +36,7 @@ message HorizontalStructMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
   }
 }

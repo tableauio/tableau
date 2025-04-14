@@ -16,8 +16,8 @@ message EmptyKeyMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // Item's name
   }
 }
 
@@ -26,8 +26,8 @@ message EnumKeyMap {
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"Type" layout:LAYOUT_VERTICAL}];
   message Item {
-    protoconf.FruitType type = 1 [(tableau.field) = {name:"Type"}];
-    int32 price = 2 [(tableau.field) = {name:"Price"}];
+    protoconf.FruitType type = 1 [(tableau.field) = {name:"Type"}]; // Item's type
+    int32 price = 2 [(tableau.field) = {name:"Price"}]; // Item's price
   }
 }
 
@@ -36,8 +36,8 @@ message HorizontalExplicitFixedSizeMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{size:2}}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
   }
 }
 
@@ -46,21 +46,21 @@ message HorizontalImplicitFixedSizeMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
   }
 }
 
 message IncellEnumMap {
   option (tableau.worksheet) = {name:"IncellEnumMap"};
 
-  map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+  map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}]; // Fruits
   message Fruit {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"Key"}];
     int64 value = 2 [(tableau.field) = {name:"Value"}];
   }
-  map<int64, protoconf.FruitFlavor> flavor_map = 2 [(tableau.field) = {name:"Flavor" layout:LAYOUT_INCELL}];
-  map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+  map<int64, protoconf.FruitFlavor> flavor_map = 2 [(tableau.field) = {name:"Flavor" layout:LAYOUT_INCELL}]; // Flavors
+  map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}]; // Items
   message Item {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"Key"}];
     protoconf.FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
@@ -70,5 +70,5 @@ message IncellEnumMap {
 message IncellMap {
   option (tableau.worksheet) = {name:"IncellMap"};
 
-  map<uint32, string> items_map = 1 [(tableau.field) = {name:"Items" layout:LAYOUT_INCELL}];
+  map<uint32, string> items_map = 1 [(tableau.field) = {name:"Items" layout:LAYOUT_INCELL}]; // Items
 }

@@ -16,12 +16,12 @@ message IncellStructInHorizontaListFF {
 
   repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
   message Reward {
-    Item item = 1 [(tableau.field) = {name:"Item" span:SPAN_INNER_CELL}];
+    Item item = 1 [(tableau.field) = {name:"Item" span:SPAN_INNER_CELL}]; // Reward1's item
     message Item {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       int32 num = 2 [(tableau.field) = {name:"Num"}];
     }
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Reward's name
   }
 }
 
@@ -30,9 +30,9 @@ message IncellStructInVerticalList {
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    Prop prop_id = 3 [(tableau.field) = {name:"PropID" span:SPAN_INNER_CELL}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item's name
+    Prop prop_id = 3 [(tableau.field) = {name:"PropID" span:SPAN_INNER_CELL}]; // Prop's ID
     message Prop {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       int64 value = 2 [(tableau.field) = {name:"Value"}];
@@ -46,7 +46,7 @@ message PredefStructInHorizontaListFF {
   repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
   message Reward {
     protoconf.Item item = 1 [(tableau.field) = {name:"Item"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Reward's name
   }
 }
 
@@ -57,10 +57,10 @@ message StructInHorizontaListFF {
   message Reward {
     Item item = 1 [(tableau.field) = {name:"Item"}];
     message Item {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int32 num = 2 [(tableau.field) = {name:"Num"}];
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
+      int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item1's num
     }
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Reward's name
   }
 }
 
@@ -69,12 +69,12 @@ message StructInVerticalList {
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item's name
     Prop prop = 3 [(tableau.field) = {name:"Prop"}];
     message Prop {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int64 value = 2 [(tableau.field) = {name:"Value"}];
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Prop's ID
+      int64 value = 2 [(tableau.field) = {name:"Value"}]; // Prop's value
     }
   }
 }

@@ -18,11 +18,11 @@ message HorizontalColumnSkippedList {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
     repeated Prop prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL}];
     message Prop {
-      int32 id = 1 [(tableau.field) = {name:"ID"}];
-      int32 value = 2 [(tableau.field) = {name:"Value"}];
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Prop1's ID
+      int32 value = 2 [(tableau.field) = {name:"Value"}]; // Prop1's value
     }
   }
 }
@@ -30,7 +30,7 @@ message HorizontalColumnSkippedList {
 message HorizontalEnumList {
   option (tableau.worksheet) = {name:"HorizontalEnumList"};
 
-  repeated protoconf.FruitType param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}];
+  repeated protoconf.FruitType param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}]; // Param1's value
 }
 
 message HorizontalIncellInStructList {
@@ -38,28 +38,28 @@ message HorizontalIncellInStructList {
 
   repeated Task task_list = 1 [(tableau.field) = {name:"Task" layout:LAYOUT_HORIZONTAL}];
   message Task {
-    repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}];
+    repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}]; // Task1
   }
 }
 
 message HorizontalIncellPdefStructList {
   option (tableau.worksheet) = {name:"HorizontalIncellPdefStructList"};
 
-  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
-  int32 value = 2 [(tableau.field) = {name:"Value"}];
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}]; // Item1's info
+  int32 value = 2 [(tableau.field) = {name:"Value"}]; // Value
 }
 
 message HorizontalIncellPdefStructList2 {
   option (tableau.worksheet) = {name:"HorizontalIncellPdefStructList2"};
 
-  repeated protoconf.Item reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
-  int32 value = 2 [(tableau.field) = {name:"Value"}];
+  repeated protoconf.Item reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}]; // Item1's info
+  int32 value = 2 [(tableau.field) = {name:"Value"}]; // Value
 }
 
 message HorizontalIncellStructList {
   option (tableau.worksheet) = {name:"HorizontalIncellStructList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL span:SPAN_INNER_CELL}]; // Item1's info
   message Item {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
@@ -75,8 +75,8 @@ message HorizontalPredefinedStructList {
 message HorizontalScalarList {
   option (tableau.worksheet) = {name:"HorizontalScalarList"};
 
-  repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL prop:{range:"1,~" refer:"ItemConf.ID,EquipConf.ID"}}];
-  repeated google.protobuf.Timestamp time_list = 2 [(tableau.field) = {name:"Time" layout:LAYOUT_HORIZONTAL}];
+  repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL prop:{range:"1,~" refer:"ItemConf.ID,EquipConf.ID"}}]; // Param1's value
+  repeated google.protobuf.Timestamp time_list = 2 [(tableau.field) = {name:"Time" layout:LAYOUT_HORIZONTAL}]; // Time1's value
 }
 
 message HorizontalStructList {
@@ -84,8 +84,8 @@ message HorizontalStructList {
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
   }
 }
 
@@ -94,7 +94,7 @@ message HorizontalUnionList {
 
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
     repeated union.Target target_list = 2 [(tableau.field) = {name:"Target" layout:LAYOUT_HORIZONTAL}];
   }
 }

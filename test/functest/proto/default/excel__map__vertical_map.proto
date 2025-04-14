@@ -16,12 +16,12 @@ message UniqueFieldInVerticalStructMap {
 
   map<uint32, Main> main_map = 1 [(tableau.field) = {key:"MainID" layout:LAYOUT_VERTICAL}];
   message Main {
-    uint32 main_id = 1 [(tableau.field) = {name:"MainID"}];
-    string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}];
+    uint32 main_id = 1 [(tableau.field) = {name:"MainID"}]; // Item's MainID
+    string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}]; // Item's MainName
     map<uint32, Sub> sub_map = 3 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
     message Sub {
-      uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}];
-      string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}];
+      uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}]; // Item's SubID
+      string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}]; // Item's SubName
     }
   }
 }
@@ -37,8 +37,8 @@ message VerticalStructMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    string desc = 3 [(tableau.field) = {name:"Desc"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item’s ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item’s name
+    string desc = 3 [(tableau.field) = {name:"Desc"}]; // Item’s desc
   }
 }

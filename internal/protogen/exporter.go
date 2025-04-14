@@ -283,8 +283,11 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 		!types.IsWellKnownMessage(field.FullType) {
 		label = "optional "
 	}
-
-	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " ", genFieldOptionsString(field.Options), ";")
+	note := ""
+	if field.Note != "" {
+		note = " // " + field.Note
+	}
+	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " ", genFieldOptionsString(field.Options), ";", note)
 
 	typeName := field.Type
 	fullTypeName := field.FullType

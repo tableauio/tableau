@@ -18,46 +18,51 @@ message Activity {
 
   map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL}];
   message Activity {
-    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID" prop:{range:"~,999999"}}];
+    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID" prop:{range:"~,999999"}}]; // 活动ID
     string activity_name = 2 [(tableau.field) = {name:"ActivityName"}];
     map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
     message Chapter {
-      uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID"}];
-      string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}];
+      uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID"}]; // 章ID
+      string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}]; // 章名
       repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
       message Section {
-        uint32 section_id = 1 [(tableau.field) = {name:"SectionID" prop:{range:"~,100"}}];
-        string section_name = 2 [(tableau.field) = {name:"SectionName"}];
+        uint32 section_id = 1 [(tableau.field) = {name:"SectionID" prop:{range:"~,100"}}]; // 节ID
+        string section_name = 2 [(tableau.field) = {name:"SectionName"}]; // 节名
         repeated Item section_item_list = 3 [(tableau.field) = {name:"SectionItem" layout:LAYOUT_HORIZONTAL}];
         message Item {
-          int32 id = 1 [(tableau.field) = {name:"Id" prop:{range:"~,3001"}}];
-          int32 num = 2 [(tableau.field) = {name:"Num"}];
+          int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"~,3001"}}]; // 奖励1ID
+          int32 num = 2 [(tableau.field) = {name:"Num"}]; // 奖励1Num
+          repeated Bonus bonus_list = 3 [(tableau.field) = {name:"Bonus" layout:LAYOUT_HORIZONTAL}];
+          message Bonus {
+            int32 id = 1 [(tableau.field) = {name:"ID"}]; // 奖励1津贴1ID
+            int32 num = 2 [(tableau.field) = {name:"Num"}]; // 奖励1津贴1Num
+          }
         }
         protoconf.Duration duration = 4 [(tableau.field) = {name:"Duration"}];
-        google.protobuf.Duration timespan = 5 [(tableau.field) = {name:"Timespan"}];
+        google.protobuf.Duration timespan = 5 [(tableau.field) = {name:"Timespan"}]; // 持续多久
         Task task = 6 [(tableau.field) = {name:"Task"}];
         message Task {
-          int32 type = 1 [(tableau.field) = {name:"Type" prop:{range:"~,20"}}];
-          int32 param_1 = 2 [(tableau.field) = {name:"Param1"}];
-          int32 param_2 = 3 [(tableau.field) = {name:"Param2"}];
-          int32 param_3 = 4 [(tableau.field) = {name:"Param3"}];
-          repeated int32 incell_param_1_list = 5 [(tableau.field) = {name:"IncellParam1" layout:LAYOUT_INCELL prop:{range:"1,50"}}];
-          repeated int32 incell_param_2_list = 6 [(tableau.field) = {name:"IncellParam2" layout:LAYOUT_INCELL}];
-          repeated int32 incell_param_3_list = 7 [(tableau.field) = {name:"IncellParam3" layout:LAYOUT_INCELL}];
-          map<int32, int32> incell_param_4_map = 8 [(tableau.field) = {name:"IncellParam4" layout:LAYOUT_INCELL}];
-          map<int32, int32> incell_param_5_map = 9 [(tableau.field) = {name:"IncellParam5" layout:LAYOUT_INCELL prop:{range:"1,100"}}];
-          int32 target = 10 [(tableau.field) = {name:"Target" prop:{range:"~,10"}}];
+          int32 type = 1 [(tableau.field) = {name:"Type" prop:{range:"~,20"}}]; // 任务类型
+          int32 param_1 = 2 [(tableau.field) = {name:"Param1"}]; // 参数1
+          int32 param_2 = 3 [(tableau.field) = {name:"Param2"}]; // 参数2
+          int32 param_3 = 4 [(tableau.field) = {name:"Param3"}]; // 参数3
+          repeated int32 incell_param_1_list = 5 [(tableau.field) = {name:"IncellParam1" layout:LAYOUT_INCELL prop:{range:"1,50"}}]; // 参数列表1
+          repeated int32 incell_param_2_list = 6 [(tableau.field) = {name:"IncellParam2" layout:LAYOUT_INCELL}]; // 参数列表2
+          repeated int32 incell_param_3_list = 7 [(tableau.field) = {name:"IncellParam3" layout:LAYOUT_INCELL}]; // 参数列表3
+          map<int32, int32> incell_param_4_map = 8 [(tableau.field) = {name:"IncellParam4" layout:LAYOUT_INCELL}]; // 参数列表4
+          map<int32, int32> incell_param_5_map = 9 [(tableau.field) = {name:"IncellParam5" layout:LAYOUT_INCELL prop:{range:"1,100"}}]; // 参数列表5
+          int32 target = 10 [(tableau.field) = {name:"Target" prop:{range:"~,10"}}]; // 目标
         }
-        Info warn_info = 7 [(tableau.field) = {name:"WarnInfo" span:SPAN_INNER_CELL}];
+        Info bonus_info = 7 [(tableau.field) = {name:"BonusInfo" span:SPAN_INNER_CELL}]; // 津贴信息
         message Info {
           int32 id = 1 [(tableau.field) = {name:"Id"}];
           string desc = 2 [(tableau.field) = {name:"Desc"}];
           int32 value = 3 [(tableau.field) = {name:"Value"}];
         }
-        Info incell_struct = 8 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}];
-        repeated int32 int_param_list = 9 [(tableau.field) = {name:"IntParam" layout:LAYOUT_INCELL}];
-        map<int32, string> tip_map = 10 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}];
-        repeated string client_param_list = 11 [(tableau.field) = {name:"ClientParam" layout:LAYOUT_HORIZONTAL}];
+        Info incell_struct = 8 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}]; // 结构参数
+        repeated int32 int_param_list = 9 [(tableau.field) = {name:"IntParam" layout:LAYOUT_INCELL}]; // 整型参数列表
+        map<int32, string> tip_map = 10 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}]; // 提示
+        repeated string client_param_list = 11 [(tableau.field) = {name:"ClientParam" layout:LAYOUT_HORIZONTAL}]; // 客户端参数1
       }
     }
   }
@@ -68,11 +73,11 @@ message ExchangeInfo {
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
-    google.protobuf.Timestamp begin_time = 3 [(tableau.field) = {name:"BeginTime"}];
-    google.protobuf.Timestamp date = 4 [(tableau.field) = {name:"Date"}];
-    google.protobuf.Duration time = 5 [(tableau.field) = {name:"Time"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 奖励ID
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // 描述
+    google.protobuf.Timestamp begin_time = 3 [(tableau.field) = {name:"BeginTime"}]; // 开始时间
+    google.protobuf.Timestamp date = 4 [(tableau.field) = {name:"Date"}]; // 日期
+    google.protobuf.Duration time = 5 [(tableau.field) = {name:"Time"}]; // 时间
   }
 }
 
@@ -81,14 +86,14 @@ message Loader {
 
   map<int32, Server> server_map = 1 [(tableau.field) = {name:"Server" key:"Type" layout:LAYOUT_VERTICAL}];
   message Server {
-    protoconf.ServerType type = 1 [(tableau.field) = {name:"Type"}];
+    protoconf.ServerType type = 1 [(tableau.field) = {name:"Type"}]; // 进程名
     repeated Conf conf_list = 2 [(tableau.field) = {name:"Conf" key:"Type" layout:LAYOUT_VERTICAL}];
     message Conf {
-      protoconf.ConfType type = 1 [(tableau.field) = {name:"Type"}];
+      protoconf.ConfType type = 1 [(tableau.field) = {name:"Type"}]; // 配置Sheet名
       repeated Condition condition_list = 2 [(tableau.field) = {name:"Condition" key:"Type" layout:LAYOUT_VERTICAL}];
       message Condition {
-        int32 type = 1 [(tableau.field) = {name:"Type"}];
-        int32 value = 2 [(tableau.field) = {name:"Value"}];
+        int32 type = 1 [(tableau.field) = {name:"Type"}]; // 条件类型
+        int32 value = 2 [(tableau.field) = {name:"Value"}]; // 条件值
       }
       repeated Deploy deploy_list = 3 [(tableau.field) = {name:"Deploy" layout:LAYOUT_HORIZONTAL}];
       message Deploy {
@@ -104,53 +109,53 @@ message Loader {
 message MatchConf {
   option (tableau.worksheet) = {name:"Match" datarow:4 nameline:1 typeline:1 nested:true field_presence:true};
 
-  optional int32 interval = 1 [(tableau.field) = {name:"Interval"}];
-  optional int32 timeout = 2 [(tableau.field) = {name:"Timeout"}];
+  optional int32 interval = 1 [(tableau.field) = {name:"Interval"}]; // 间隔时间
+  optional int32 timeout = 2 [(tableau.field) = {name:"Timeout"}]; // 超时时间
   map<int32, Factor> factor_map = 3 [(tableau.field) = {name:"Factor" key:"Type" layout:LAYOUT_HORIZONTAL}];
   message Factor {
-    optional int32 type = 1 [(tableau.field) = {name:"Type"}];
-    optional int32 value = 2 [(tableau.field) = {name:"Value"}];
+    optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // 因子类型
+    optional int32 value = 2 [(tableau.field) = {name:"Value"}]; // 因子值
   }
   map<uint32, Mode> mode_map = 4 [(tableau.field) = {name:"Mode" key:"ID" layout:LAYOUT_VERTICAL}];
   message Mode {
-    optional uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    optional int32 difficulty = 2 [(tableau.field) = {name:"Difficulty"}];
-    optional string desc = 3 [(tableau.field) = {name:"Desc"}];
+    optional uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 奖励ID
+    optional int32 difficulty = 2 [(tableau.field) = {name:"Difficulty"}]; // 难度
+    optional string desc = 3 [(tableau.field) = {name:"Desc"}]; // 描述
     repeated AI ai_list = 4 [(tableau.field) = {name:"AI" layout:LAYOUT_VERTICAL}];
     message AI {
-      optional int32 type = 1 [(tableau.field) = {name:"Type"}];
-      optional int32 ability = 2 [(tableau.field) = {name:"Ability"}];
+      optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // AI类型
+      optional int32 ability = 2 [(tableau.field) = {name:"Ability"}]; // 能力
     }
   }
   Task task = 5 [(tableau.field) = {name:"Task"}];
   message Task {
-    optional int32 type = 1 [(tableau.field) = {name:"Type"}];
-    repeated int32 param_list = 2 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}];
+    optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // 任务类型
+    repeated int32 param_list = 2 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}]; // 参数1
     map<uint32, Filter> filter_map = 3 [(tableau.field) = {name:"Filter" key:"Type" layout:LAYOUT_VERTICAL}];
     message Filter {
-      optional uint32 type = 1 [(tableau.field) = {name:"Type"}];
-      optional bool open = 2 [(tableau.field) = {name:"Open"}];
+      optional uint32 type = 1 [(tableau.field) = {name:"Type"}]; // 过滤器类型
+      optional bool open = 2 [(tableau.field) = {name:"Open"}]; // 过滤器是否打开
       repeated Job job_list = 3 [(tableau.field) = {name:"Job" layout:LAYOUT_VERTICAL}];
       message Job {
-        optional int32 type = 1 [(tableau.field) = {name:"Type"}];
-        optional int32 count = 2 [(tableau.field) = {name:"Count"}];
+        optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // AI类型
+        optional int32 count = 2 [(tableau.field) = {name:"Count"}]; // 能力
       }
       repeated Section section_list = 4 [(tableau.field) = {name:"Section" layout:LAYOUT_VERTICAL}];
       message Section {
-        optional uint32 id = 1 [(tableau.field) = {name:"ID"}];
-        optional string name = 2 [(tableau.field) = {name:"Name"}];
+        optional uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 节ID
+        optional string name = 2 [(tableau.field) = {name:"Name"}]; // 节名
         repeated Item item_list = 3 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
         message Item {
-          optional int32 id = 1 [(tableau.field) = {name:"Id"}];
-          optional int32 num = 2 [(tableau.field) = {name:"Num"}];
+          optional int32 id = 1 [(tableau.field) = {name:"Id"}]; // 奖励1Id
+          optional int32 num = 2 [(tableau.field) = {name:"Num"}]; // 奖励1Num
         }
       }
     }
   }
   Robot robot = 6 [(tableau.field) = {name:"Robot"}];
   message Robot {
-    optional int32 type = 1 [(tableau.field) = {name:"Type"}];
-    optional int32 ability = 2 [(tableau.field) = {name:"Ability"}];
+    optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // 机器人类型
+    optional int32 ability = 2 [(tableau.field) = {name:"Ability"}]; // 能力
   }
 }
 
@@ -159,16 +164,16 @@ message Reward {
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}]; // 奖励ID
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // 描述
     map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"ID" layout:LAYOUT_HORIZONTAL}];
     repeated Exchange exchange_list = 4 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
     message Exchange {
-      uint32 exchange_id = 1 [(tableau.field) = {name:"ExchangeID"}];
+      uint32 exchange_id = 1 [(tableau.field) = {name:"ExchangeID"}]; // 兑换ID
       repeated ExchangeItem input_item_list = 2 [(tableau.field) = {name:"InputItem" layout:LAYOUT_HORIZONTAL}];
       message ExchangeItem {
-        int32 id = 1 [(tableau.field) = {name:"ID"}];
-        int32 num = 2 [(tableau.field) = {name:"Num"}];
+        int32 id = 1 [(tableau.field) = {name:"ID"}]; // 道具1ID
+        int32 num = 2 [(tableau.field) = {name:"Num"}]; // 道具1Num
       }
       repeated ExchangeItem output_item_list = 3 [(tableau.field) = {name:"OutputItem" layout:LAYOUT_HORIZONTAL}];
     }

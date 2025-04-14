@@ -15,8 +15,8 @@ message ScopedTypeReuseListElem {
 
   repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
   }
   repeated Item reward_list = 2 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
 }
@@ -26,8 +26,8 @@ message ScopedTypeReuseMapValue {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
   }
   map<uint32, Item> reward_map = 2 [(tableau.field) = {name:"Reward" key:"ID" layout:LAYOUT_HORIZONTAL}];
 }
@@ -37,12 +37,12 @@ message ScopedTypeReuseStruct {
 
   Item item = 1 [(tableau.field) = {name:"Item"}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item's name
   }
   Reward reward = 2 [(tableau.field) = {name:"Reward"}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Reward's name
   }
 }

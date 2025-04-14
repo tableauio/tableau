@@ -14,13 +14,13 @@ option (tableau.workbook) = {name:"excel/keyedlist/VerticalKeyedList#*.csv" name
 message VerticalEnumKeyedList {
   option (tableau.worksheet) = {name:"VerticalEnumKeyedList"};
 
-  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}];
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}]; // Type
 }
 
 message VerticalScalarKeyedList {
   option (tableau.worksheet) = {name:"VerticalScalarKeyedList"};
 
-  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL}];
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL}]; // ID
 }
 
 message VerticalStructKeyedList {
@@ -28,11 +28,11 @@ message VerticalStructKeyedList {
 
   repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
     map<int32, Prop> prop_map = 2 [(tableau.field) = {key:"PropID" layout:LAYOUT_VERTICAL}];
     message Prop {
-      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}];
-      string prop_name = 2 [(tableau.field) = {name:"PropName"}];
+      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}]; // Prop's ID
+      string prop_name = 2 [(tableau.field) = {name:"PropName"}]; // Prop's name
     }
   }
 }
