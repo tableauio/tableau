@@ -5,27 +5,20 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/keyedlist/KeyedList#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
-message VerticalIncellScalarKeyedList {
-  option (tableau.worksheet) = {name:"VerticalIncellScalarKeyedList"};
+message IncellEnumKeyedList {
+  option (tableau.worksheet) = {name:"IncellEnumKeyedList"};
 
-  repeated int32 param_list = 1 [(tableau.field) = {name:"Param" key:"Param" layout:LAYOUT_INCELL}];
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}];
 }
 
-message VerticalStructKeyedList {
-  option (tableau.worksheet) = {name:"VerticalStructKeyedList"};
+message IncellScalarKeyedList {
+  option (tableau.worksheet) = {name:"IncellScalarKeyedList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    map<int32, Prop> prop_map = 2 [(tableau.field) = {key:"PropID" layout:LAYOUT_VERTICAL}];
-    message Prop {
-      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}];
-      string prop_name = 2 [(tableau.field) = {name:"PropName"}];
-    }
-  }
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL}];
 }

@@ -31,19 +31,30 @@ message HorizontalImplicitFixedSizeList {
   }
 }
 
+message IncellPredefinedStructList {
+  option (tableau.worksheet) = {name:"IncellPredefinedStructList"};
+
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+}
+
 message IncellScalarList {
   option (tableau.worksheet) = {name:"IncellScalarList"};
 
-  repeated int32 param_list = 1 [(tableau.field) = {name:"Param" layout:LAYOUT_INCELL}];
+  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}];
 }
 
 message IncellStructList {
   option (tableau.worksheet) = {name:"IncellStructList"};
 
-  repeated Ticket ticket_list = 1 [(tableau.field) = {name:"Ticket" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
-  message Ticket {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    int32 score = 2 [(tableau.field) = {name:"Score"}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    int32 num = 2 [(tableau.field) = {name:"Num"}];
   }
-  repeated protoconf.Item item_list = 2 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
+}
+
+message incellEnumList {
+  option (tableau.worksheet) = {name:"incellEnumList"};
+
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}];
 }
