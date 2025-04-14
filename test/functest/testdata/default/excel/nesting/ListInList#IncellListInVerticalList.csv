@@ -1,6 +1,6 @@
 ID,Prop
 [Item]uint32,[]int32
-Item's ID,Item's props
+Item ID,Item props
 1,"10,20,30"
 2,"10,20"
 3,10

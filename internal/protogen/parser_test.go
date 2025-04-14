@@ -23,6 +23,7 @@ func Test_parseField(t *testing.T) {
 		typeInfos *xproto.TypeInfos
 		name      string
 		typ       string
+		note      string
 	}
 	tests := []struct {
 		name    string
@@ -66,7 +67,7 @@ func Test_parseField(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseBasicField(tt.args.typeInfos, strcase.Context{}, tt.args.name, tt.args.typ)
+			got, err := parseBasicField(tt.args.typeInfos, strcase.Context{}, tt.args.name, tt.args.typ, tt.args.note)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseField() error = %v, wantErr %v", err, tt.wantErr)
 				return

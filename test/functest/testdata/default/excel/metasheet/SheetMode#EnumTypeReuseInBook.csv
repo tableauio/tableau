@@ -1,6 +1,6 @@
 ID,Type,BirdType,Price
 "map<int32, Item>",enum<.ItemType>,enum<.BirdType>,int32
-Item’s ID,Item’s type,Bird’s type,Item’s price
+Item ID,Item type,Bird type,Item price
 1,Fruit,Canary,40
 2,Fruit,Woodpecker,20
 3,Equip,Owl,10

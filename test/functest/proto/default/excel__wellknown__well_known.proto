@@ -17,7 +17,7 @@ message WellKnownTypeComparator {
   option (tableau.worksheet) = {name:"WellKnownTypeComparator"};
 
   tableau.Comparator min_ratio = 1 [(tableau.field) = {name:"MinRatio"}]; // min ratio
-  repeated tableau.Comparator ratio_list = 2 [(tableau.field) = {name:"Ratio" layout:LAYOUT_HORIZONTAL}]; // ratio1
+  repeated tableau.Comparator ratio_list = 2 [(tableau.field) = {name:"Ratio" layout:LAYOUT_HORIZONTAL}]; // ratio
 }
 
 message WellKnownTypeDate {
@@ -48,7 +48,7 @@ message WellKnownTypeFraction {
   option (tableau.worksheet) = {name:"WellKnownTypeFraction"};
 
   tableau.Fraction min_ratio = 1 [(tableau.field) = {name:"MinRatio"}]; // min ratio
-  repeated tableau.Fraction ratio_list = 2 [(tableau.field) = {name:"Ratio" layout:LAYOUT_HORIZONTAL}]; // ratio1
+  repeated tableau.Fraction ratio_list = 2 [(tableau.field) = {name:"Ratio" layout:LAYOUT_HORIZONTAL}]; // ratio
 }
 
 message WellKnownTypeTime {

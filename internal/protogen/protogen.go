@@ -463,7 +463,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				var parsed bool
 				for cursor := 0; cursor < len(tableHeader.nameRowData); cursor++ {
 					field := &internalpb.Field{}
-					cursor, parsed, err = bp.parseField(field, tableHeader, cursor, "", parseroptions.Nested(ws.Options.Nested))
+					cursor, parsed, err = bp.parseField(field, tableHeader, cursor, "", "", parseroptions.Nested(ws.Options.Nested))
 					if err != nil {
 						return wrapDebugErr(err, debugBookName, debugSheetName, tableHeader, cursor)
 					}

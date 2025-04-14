@@ -1,6 +1,6 @@
 ID,Type,Name,Price
 "map<int32, Item>",enum<.ItemType>,string,int32
-Item’s ID,Item’s type,Item’s name,Item’s price
+Item ID,Item type,Item name,Item price
 1,Fruit,Apple,40
 2,Fruit,Orange,20
 3,Equip,Sword,10

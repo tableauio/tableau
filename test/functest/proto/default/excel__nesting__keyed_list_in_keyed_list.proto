@@ -15,9 +15,9 @@ message IncellKListInVerticalKList {
 
   repeated KeyedItem keyed_item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message KeyedItem {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}]; // Item's ID
-    string desc = 2 [(tableau.field) = {name:"Desc"}]; // Item's desc
-    repeated uint32 tip_list = 3 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL}]; // Item's tip
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}]; // Item ID
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // Item desc
+    repeated uint32 tip_list = 3 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL}]; // Item tip
   }
 }
 
@@ -26,12 +26,12 @@ message VerticalKListInVerticalKList {
 
   repeated KeyedItem keyed_item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message KeyedItem {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
-    string desc = 2 [(tableau.field) = {name:"Desc"}]; // Item's desc
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // Item desc
     repeated Prop prop_list = 3 [(tableau.field) = {key:"PropID" layout:LAYOUT_VERTICAL}];
     message Prop {
-      uint32 prop_id = 1 [(tableau.field) = {name:"PropID"}]; // Prop's ID
-      int32 prop_num = 2 [(tableau.field) = {name:"PropNum"}]; // Prop's num
+      uint32 prop_id = 1 [(tableau.field) = {name:"PropID"}]; // Prop ID
+      int32 prop_num = 2 [(tableau.field) = {name:"PropNum"}]; // Prop num
     }
   }
 }

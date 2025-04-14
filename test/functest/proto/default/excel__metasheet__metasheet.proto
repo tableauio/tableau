@@ -16,10 +16,10 @@ message Index {
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item’s ID
-    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}]; // Item’s type
-    string name = 3 [(tableau.field) = {name:"Name"}]; // Item’s name
-    int32 price = 4 [(tableau.field) = {name:"Price"}]; // Item’s price
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}]; // Item type
+    string name = 3 [(tableau.field) = {name:"Name"}]; // Item name
+    int32 price = 4 [(tableau.field) = {name:"Price"}]; // Item price
   }
 }
 

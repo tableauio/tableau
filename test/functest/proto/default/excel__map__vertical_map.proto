@@ -16,12 +16,12 @@ message UniqueFieldInVerticalStructMap {
 
   map<uint32, Main> main_map = 1 [(tableau.field) = {key:"MainID" layout:LAYOUT_VERTICAL}];
   message Main {
-    uint32 main_id = 1 [(tableau.field) = {name:"MainID"}]; // Item's MainID
-    string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}]; // Item's MainName
+    uint32 main_id = 1 [(tableau.field) = {name:"MainID"}]; // Item main ID
+    string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}]; // Item main name
     map<uint32, Sub> sub_map = 3 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
     message Sub {
-      uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}]; // Item's SubID
-      string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}]; // Item's SubName
+      uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}]; // Item sub ID
+      string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}]; // Item sub name
     }
   }
 }

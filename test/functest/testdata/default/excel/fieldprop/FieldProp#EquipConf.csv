@@ -1,6 +1,6 @@
 ID,Damage
 "map<uint32, Item>|{unique:true}",int32
-Equip's ID,Equip's damage
+Equip ID,Equip damage
 1000,100
 1001,200
 1002,300

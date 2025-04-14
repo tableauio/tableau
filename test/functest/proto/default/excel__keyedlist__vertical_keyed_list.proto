@@ -28,11 +28,11 @@ message VerticalStructKeyedList {
 
   repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
     map<int32, Prop> prop_map = 2 [(tableau.field) = {key:"PropID" layout:LAYOUT_VERTICAL}];
     message Prop {
-      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}]; // Prop's ID
-      string prop_name = 2 [(tableau.field) = {name:"PropName"}]; // Prop's name
+      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}]; // Prop ID
+      string prop_name = 2 [(tableau.field) = {name:"PropName"}]; // Prop name
     }
   }
 }

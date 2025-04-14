@@ -1,6 +1,6 @@
 ID,Item
 "map<int32, Reward>","{int32 ID, int32 Num}Item"
-Reward's ID,Item's info
+Reward ID,Item info
 1,"1,100"
 2,"2,200"
 3,

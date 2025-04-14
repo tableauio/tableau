@@ -1,6 +1,6 @@
 PropID,PropVal,ItemDesc
 [Hero]{Prop}int32,int32,string
-Hero prop's ID.,Hero prop's value.,Hero prop's description.
+Hero prop ID.,Hero prop value.,Hero prop description.
 1,1,hero1
 2,3,hero2
 3,5,hero3

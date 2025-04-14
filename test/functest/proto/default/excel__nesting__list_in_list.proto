@@ -14,24 +14,24 @@ option (tableau.workbook) = {name:"excel/nesting/ListInList#*.csv" namerow:1 typ
 message HPredefStructListInHListFF {
   option (tableau.worksheet) = {name:"HPredefStructListInHListFF"};
 
-  repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
+  repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}]; // Item
   message Reward {
     repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
-    string name = 2 [(tableau.field) = {name:"Name"}]; // Reward's name
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Reward name
   }
 }
 
 message HorizontalListInHorizontaListFF {
   option (tableau.worksheet) = {name:"HorizontalListInHorizontaListFF"};
 
-  repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
+  repeated Reward reward_list = 1 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}]; // Item
   message Reward {
     repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
     message Item {
-      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
-      int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item1's num
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1 ID
+      int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item1 num
     }
-    string name = 2 [(tableau.field) = {name:"Name"}]; // Reward's name
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Reward name
   }
 }
 
@@ -40,12 +40,12 @@ message HorizontalListInVerticalList {
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
-    string name = 2 [(tableau.field) = {name:"Name"}]; // Item's name
-    repeated Prop prop_list = 3 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item name
+    repeated Prop prop_list = 3 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL}]; // Prop
     message Prop {
-      int32 id = 1 [(tableau.field) = {name:"ID"}]; // Prop1's ID
-      int64 value = 2 [(tableau.field) = {name:"Value"}]; // Prop1's value
+      int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+      int64 value = 2 [(tableau.field) = {name:"Value"}]; // value
     }
   }
 }
@@ -55,8 +55,8 @@ message IncellListInVerticalList {
 
   repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
-    repeated int32 prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}]; // Item's props
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    repeated int32 prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}]; // Item props
   }
 }
 
@@ -65,12 +65,12 @@ message VerticalListInVerticalKeyedList {
 
   repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
-    string name = 2 [(tableau.field) = {name:"Name"}]; // Item's name
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item name
     repeated Prop prop_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
     message Prop {
-      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}]; // Prop's ID
-      int64 prop_value = 2 [(tableau.field) = {name:"PropValue"}]; // Prop's value
+      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}]; // Prop ID
+      int64 prop_value = 2 [(tableau.field) = {name:"PropValue"}]; // Prop value
     }
   }
 }

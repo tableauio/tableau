@@ -16,8 +16,8 @@ message EmptyKeyMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
-    string desc = 2 [(tableau.field) = {name:"Desc"}]; // Item's name
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // Item name
   }
 }
 
@@ -26,28 +26,28 @@ message EnumKeyMap {
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"Type" layout:LAYOUT_VERTICAL}];
   message Item {
-    protoconf.FruitType type = 1 [(tableau.field) = {name:"Type"}]; // Item's type
-    int32 price = 2 [(tableau.field) = {name:"Price"}]; // Item's price
+    protoconf.FruitType type = 1 [(tableau.field) = {name:"Type"}]; // Item type
+    int32 price = 2 [(tableau.field) = {name:"Price"}]; // Item price
   }
 }
 
 message HorizontalExplicitFixedSizeMap {
   option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeMap"};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{size:2}}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{size:2}}]; // Item
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
-    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // name
   }
 }
 
 message HorizontalImplicitFixedSizeMap {
   option (tableau.worksheet) = {name:"HorizontalImplicitFixedSizeMap"};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}]; // Item
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
-    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // name
   }
 }
 

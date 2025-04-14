@@ -14,20 +14,20 @@ option (tableau.workbook) = {name:"excel/list/List#*.csv" namerow:1 typerow:2 no
 message HorizontalExplicitFixedSizeList {
   option (tableau.worksheet) = {name:"HorizontalExplicitFixedSizeList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{size:2}}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{size:2}}]; // Item
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
-    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // name
   }
 }
 
 message HorizontalImplicitFixedSizeList {
   option (tableau.worksheet) = {name:"HorizontalImplicitFixedSizeList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}]; // Item
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item1's ID
-    string name = 2 [(tableau.field) = {name:"Name"}]; // Item1's name
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // name
   }
 }
 

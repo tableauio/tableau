@@ -16,16 +16,16 @@ message EquipConf {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}]; // Equip's ID
-    int32 damage = 2 [(tableau.field) = {name:"Damage"}]; // Equip's damage
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}]; // Equip ID
+    int32 damage = 2 [(tableau.field) = {name:"Damage"}]; // Equip damage
   }
 }
 
 message FieldPropForm {
   option (tableau.worksheet) = {name:"FieldPropForm"};
 
-  protoconf.Transform transform_1 = 1 [(tableau.field) = {name:"Transform1" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}];
-  protoconf.Transform transform_2 = 2 [(tableau.field) = {name:"Transform2" span:SPAN_INNER_CELL prop:{form:FORM_JSON}}];
+  protoconf.Transform transform_1 = 1 [(tableau.field) = {name:"Transform1" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}]; // Box transform1
+  protoconf.Transform transform_2 = 2 [(tableau.field) = {name:"Transform2" span:SPAN_INNER_CELL prop:{form:FORM_JSON}}]; // Box transform2
 }
 
 message ItemConf {
@@ -33,8 +33,8 @@ message ItemConf {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
-    int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item's num
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item num
   }
 }
 
@@ -44,10 +44,10 @@ message ScalarFieldProp {
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,100" unique:true refer:"ItemConf.ID"}}]; // Item ID
-    repeated Prop prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
+    repeated Prop prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}]; // Prop
     message Prop {
-      int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}]; // Prop 1 ID
-      string flavor = 2 [(tableau.field) = {name:"Flavor"}]; // Prop 1 flavor
+      int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}]; // ID
+      string flavor = 2 [(tableau.field) = {name:"Flavor"}]; // flavor
     }
     Appearance appearance = 3 [(tableau.field) = {name:"Appearance"}];
     message Appearance {
@@ -87,7 +87,7 @@ message UniqueFalse {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}]; // Item's ID
-    repeated int32 num_list = 2 [(tableau.field) = {name:"Num" layout:LAYOUT_INCELL}]; // Item's num
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}]; // Item ID
+    repeated int32 num_list = 2 [(tableau.field) = {name:"Num" layout:LAYOUT_INCELL}]; // Item num
   }
 }

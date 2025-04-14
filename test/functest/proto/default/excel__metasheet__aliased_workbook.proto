@@ -13,7 +13,7 @@ option (tableau.workbook) = {name:"excel/metasheet/BookAlias#*.csv" alias:"Alias
 message AliasedSheetScalar {
   option (tableau.worksheet) = {name:"Scalar" labels:{key:"app" value:"gamesvr"} labels:{key:"patch" value:"merge"}};
 
-  uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item's ID
-  string name = 2 [(tableau.field) = {name:"Name"}]; // Item's Name
-  string desc = 3 [(tableau.field) = {name:"Desc"}]; // Item's Description
+  uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+  string name = 2 [(tableau.field) = {name:"Name"}]; // Item Name
+  string desc = 3 [(tableau.field) = {name:"Desc"}]; // Item Description
 }

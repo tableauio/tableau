@@ -1,6 +1,6 @@
 ID,PropID,PropName
 [Item]<uint32>,"map<int32, Prop>",string
-Item's ID,Prop's ID,Prop's name
+Item ID,Prop ID,Prop name
 1,1,sweet
 2,1,sweet
 2,2,delicious

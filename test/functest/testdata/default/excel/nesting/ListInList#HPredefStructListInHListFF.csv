@@ -1,4 +1,4 @@
 Reward1Item1ID,Reward1Item1Num,Reward1Item2ID,Reward1Item2Num,Reward1Name,Reward2Item1ID,Reward2Item1Num,Reward2Name
 [Reward][.Item]int32,int32,int32,int32,string,int32,int32,string
-Item1's ID,Item1's num,Item2's ID,Item2's num,Reward's name,Item1's ID,Item1's num,Reward's name
+Item1 ID,Item1 num,Item2 ID,Item2 num,Reward name,Item1 ID,Item1 num,Reward name
 1,10,2,20,Lotto,10,100,Super Lotto

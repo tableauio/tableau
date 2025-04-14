@@ -1,6 +1,6 @@
 ID,Num
 "map<uint32, Item>|{unique:false}",[]int32
-Item's ID,Item's num
+Item ID,Item num
 1,101
 1,102
 1,103

@@ -28,14 +28,14 @@ message Activity {
       message Section {
         uint32 section_id = 1 [(tableau.field) = {name:"SectionID" prop:{range:"~,100"}}]; // 节ID
         string section_name = 2 [(tableau.field) = {name:"SectionName"}]; // 节名
-        repeated Item section_item_list = 3 [(tableau.field) = {name:"SectionItem" layout:LAYOUT_HORIZONTAL}];
+        repeated Item section_item_list = 3 [(tableau.field) = {name:"SectionItem" layout:LAYOUT_HORIZONTAL}]; // 奖励
         message Item {
-          int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"~,3001"}}]; // 奖励1ID
-          int32 num = 2 [(tableau.field) = {name:"Num"}]; // 奖励1Num
-          repeated Bonus bonus_list = 3 [(tableau.field) = {name:"Bonus" layout:LAYOUT_HORIZONTAL}];
+          int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"~,3001"}}]; // ID
+          int32 num = 2 [(tableau.field) = {name:"Num"}]; // Num
+          repeated Bonus bonus_list = 3 [(tableau.field) = {name:"Bonus" layout:LAYOUT_HORIZONTAL}]; // 津贴
           message Bonus {
-            int32 id = 1 [(tableau.field) = {name:"ID"}]; // 奖励1津贴1ID
-            int32 num = 2 [(tableau.field) = {name:"Num"}]; // 奖励1津贴1Num
+            int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+            int32 num = 2 [(tableau.field) = {name:"Num"}]; // Num
           }
         }
         protoconf.Duration duration = 4 [(tableau.field) = {name:"Duration"}];
@@ -62,7 +62,7 @@ message Activity {
         Info incell_struct = 8 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}]; // 结构参数
         repeated int32 int_param_list = 9 [(tableau.field) = {name:"IntParam" layout:LAYOUT_INCELL}]; // 整型参数列表
         map<int32, string> tip_map = 10 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}]; // 提示
-        repeated string client_param_list = 11 [(tableau.field) = {name:"ClientParam" layout:LAYOUT_HORIZONTAL}]; // 客户端参数1
+        repeated string client_param_list = 11 [(tableau.field) = {name:"ClientParam" layout:LAYOUT_HORIZONTAL}]; // 客户端参数
       }
     }
   }
@@ -130,7 +130,7 @@ message MatchConf {
   Task task = 5 [(tableau.field) = {name:"Task"}];
   message Task {
     optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // 任务类型
-    repeated int32 param_list = 2 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}]; // 参数1
+    repeated int32 param_list = 2 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}]; // 参数
     map<uint32, Filter> filter_map = 3 [(tableau.field) = {name:"Filter" key:"Type" layout:LAYOUT_VERTICAL}];
     message Filter {
       optional uint32 type = 1 [(tableau.field) = {name:"Type"}]; // 过滤器类型
@@ -144,10 +144,10 @@ message MatchConf {
       message Section {
         optional uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 节ID
         optional string name = 2 [(tableau.field) = {name:"Name"}]; // 节名
-        repeated Item item_list = 3 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}];
+        repeated Item item_list = 3 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}]; // 奖励
         message Item {
-          optional int32 id = 1 [(tableau.field) = {name:"Id"}]; // 奖励1Id
-          optional int32 num = 2 [(tableau.field) = {name:"Num"}]; // 奖励1Num
+          optional int32 id = 1 [(tableau.field) = {name:"Id"}]; // Id
+          optional int32 num = 2 [(tableau.field) = {name:"Num"}]; // Num
         }
       }
     }
@@ -166,16 +166,16 @@ message Reward {
   message Reward {
     uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}]; // 奖励ID
     string desc = 2 [(tableau.field) = {name:"Desc"}]; // 描述
-    map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"ID" layout:LAYOUT_HORIZONTAL}];
+    map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"ID" layout:LAYOUT_HORIZONTAL}]; // 奖励
     repeated Exchange exchange_list = 4 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
     message Exchange {
       uint32 exchange_id = 1 [(tableau.field) = {name:"ExchangeID"}]; // 兑换ID
-      repeated ExchangeItem input_item_list = 2 [(tableau.field) = {name:"InputItem" layout:LAYOUT_HORIZONTAL}];
+      repeated ExchangeItem input_item_list = 2 [(tableau.field) = {name:"InputItem" layout:LAYOUT_HORIZONTAL}]; // 道具
       message ExchangeItem {
-        int32 id = 1 [(tableau.field) = {name:"ID"}]; // 道具1ID
-        int32 num = 2 [(tableau.field) = {name:"Num"}]; // 道具1Num
+        int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+        int32 num = 2 [(tableau.field) = {name:"Num"}]; // Num
       }
-      repeated ExchangeItem output_item_list = 3 [(tableau.field) = {name:"OutputItem" layout:LAYOUT_HORIZONTAL}];
+      repeated ExchangeItem output_item_list = 3 [(tableau.field) = {name:"OutputItem" layout:LAYOUT_HORIZONTAL}]; // 奖励
     }
   }
 }

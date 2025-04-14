@@ -28,8 +28,8 @@ message PredefinedIncellUnion {
   map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Task {
     int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
-    union.Target target_1 = 2 [(tableau.field) = {name:"Target1" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}];
-    union.Target target_2 = 3 [(tableau.field) = {name:"Target2" span:SPAN_INNER_CELL prop:{form:FORM_JSON}}];
+    union.Target target_1 = 2 [(tableau.field) = {name:"Target1" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}]; // Target1
+    union.Target target_2 = 3 [(tableau.field) = {name:"Target2" span:SPAN_INNER_CELL prop:{form:FORM_JSON}}]; // Target2
     int32 progress = 4 [(tableau.field) = {name:"Progress"}]; // Progress
   }
 }

@@ -45,10 +45,10 @@ message EnumTypeReuseInBook {
 
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item’s ID
-    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}]; // Item’s type
-    protoconf.BirdType bird_type = 3 [(tableau.field) = {name:"BirdType"}]; // Bird’s type
-    int32 price = 4 [(tableau.field) = {name:"Price"}]; // Item’s price
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    protoconf.ItemType type = 2 [(tableau.field) = {name:"Type"}]; // Item type
+    protoconf.BirdType bird_type = 3 [(tableau.field) = {name:"BirdType"}]; // Bird type
+    int32 price = 4 [(tableau.field) = {name:"Price"}]; // Item price
   }
 }
 
@@ -103,7 +103,7 @@ message StructTypeReuseInBook {
 
   map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward’s ID
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward ID
     protoconf.Pet pet = 2 [(tableau.field) = {name:"Pet"}];
     protoconf.TaskReward task_reward = 3 [(tableau.field) = {name:"TaskReward"}];
   }
@@ -183,7 +183,7 @@ message TaskTarget {
     map<int32, int64> dungeon_map = 3 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}]; // Note
   }
   message Story {
-    protoconf.Item cost = 1 [(tableau.field) = {name:"Cost" span:SPAN_INNER_CELL}];
+    protoconf.Item cost = 1 [(tableau.field) = {name:"Cost" span:SPAN_INNER_CELL}]; // Note
     map<int32, protoconf.FruitType> fruit_map = 2 [(tableau.field) = {name:"Fruit" layout:LAYOUT_INCELL}]; // Note
     map<int32, Flavor> flavor_map = 3 [(tableau.field) = {name:"Flavor" key:"Key" layout:LAYOUT_INCELL}]; // Note
     message Flavor {

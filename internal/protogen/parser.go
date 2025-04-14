@@ -114,7 +114,7 @@ func parseBasicField(typeInfos *xproto.TypeInfos, strcaseCtx strcase.Context, na
 		Name:       strcaseCtx.ToSnake(pureName),
 		Type:       typeDesc.Name,
 		FullType:   typeDesc.FullName,
-		Note:       note,
+		Note:       strings.TrimSpace(note),
 		Predefined: typeDesc.Predefined,
 		Options: &tableaupb.FieldOptions{
 			Name: name,

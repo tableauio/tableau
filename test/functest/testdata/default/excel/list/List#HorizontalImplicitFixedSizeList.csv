@@ -1,4 +1,4 @@
 Item1ID,Item1Name,Item2ID,Item2Name,Item3ID,Item3Name
 [Item]uint32|{fixed:true},string,uint32,string,uint32,string
-Item1's ID,Item1's name,Item2's ID,Item2's name,Item3's ID,Item3's name
+Item1 ID,Item1 name,Item2 ID,Item2 name,Item3 ID,Item3 name
 1,Apple,,,3,Banana
