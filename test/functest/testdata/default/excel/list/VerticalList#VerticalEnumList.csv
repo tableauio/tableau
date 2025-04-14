@@ -1,0 +1,6 @@
+Type
+[]enum<.FruitType>
+Type
+"Apple,Orange,Banana"
+"FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE"
+1

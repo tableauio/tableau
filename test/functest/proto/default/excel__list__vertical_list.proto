@@ -23,6 +23,12 @@ message UniqueFieldInVerticalStructList {
   }
 }
 
+message VerticalEnumList {
+  option (tableau.worksheet) = {name:"VerticalEnumList"};
+
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}];
+}
+
 message VerticalIncellPredefStructList {
   option (tableau.worksheet) = {name:"VerticalIncellPredefStructList"};
 
@@ -49,6 +55,12 @@ message VerticalPredefinedStructList {
   option (tableau.worksheet) = {name:"VerticalPredefinedStructList"};
 
   repeated protoconf.Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+}
+
+message VerticalScalarList {
+  option (tableau.worksheet) = {name:"VerticalScalarList"};
+
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}];
 }
 
 message VerticalStructList {

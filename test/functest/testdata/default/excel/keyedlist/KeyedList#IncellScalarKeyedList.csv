@@ -1,4 +1,4 @@
 ID
-[]int32
+[]<uint32>
 ID list
 "1,2,3"

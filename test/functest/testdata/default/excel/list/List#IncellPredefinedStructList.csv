@@ -1,4 +1,4 @@
 Item
-"[]{uint32 ID, int32 Num}Item"
+[]{.Item}
 Item list
 "1:10,2:20,3:30"
