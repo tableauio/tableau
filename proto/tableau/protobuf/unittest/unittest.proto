@@ -194,12 +194,33 @@ message DocumentUniqueFieldStructMap {
   message Chapter {
     string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
     string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-    map<uint32, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key"}];
+    map<string, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key"}];
     message Section {
-      uint32 key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
+      string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
       string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     }
   }
   map<uint32, string> scalar_map = 2 [(tableau.field) = {name:"ScalarMap" prop:{optional:true}}];
   map<uint32, string> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL prop:{optional:true}}];
+  // for card prefix tests
+  map<string, ChapterInfo> chapter_info = 13 [(tableau.field) = {name:"ChapterInfo" key:"@key" prop:{optional:true}}];
+  message ChapterInfo {
+    string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
+    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+    map<string, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key" prop:{optional:true}}];
+    message Section {
+      string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
+      string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+      map<string, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key" prop:{optional:true}}];
+      message Section {
+        string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
+        string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+        map<string, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key" prop:{optional:true}}];
+        message Section {
+          string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
+          string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+        }
+      }
+    }
+  }
 }
