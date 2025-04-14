@@ -8,7 +8,7 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/header/Header#*.csv" namerow:1 typerow:1 noterow:1 datarow:2 nameline:2 typeline:3 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/header/Header#*.csv" namerow:1 typerow:1 noterow:1 datarow:2 nameline:2 typeline:3 noteline:1 sep:"," subsep:":"};
 
 message TableHeader {
   option (tableau.worksheet) = {name:"TableHeader"};

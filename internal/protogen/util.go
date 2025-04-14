@@ -103,17 +103,20 @@ func (g *GeneratedBuf) String() string {
 }
 
 func wrapDebugErr(err error, bookName, sheetName string, header *tableHeader, cursor int) error {
-	nameCellPos := excel.Postion(header.NameRow-1, cursor)
-	typeCellPos := excel.Postion(header.TypeRow-1, cursor)
-	if header.transpose {
-		nameCellPos = excel.Postion(cursor, header.NameRow-1)
-		typeCellPos = excel.Postion(cursor, header.TypeRow-1)
+	getCellPos := func(row int) string {
+		if header.transpose {
+			return excel.Postion(cursor, row-1)
+		}
+		return excel.Postion(row-1, cursor)
 	}
 	return xerrors.WrapKV(err,
 		xerrors.KeyBookName, bookName,
 		xerrors.KeySheetName, sheetName,
-		xerrors.KeyNameCellPos, nameCellPos,
-		xerrors.KeyTypeCellPos, typeCellPos,
+		xerrors.KeyNameCellPos, getCellPos(header.NameRow),
+		xerrors.KeyTypeCellPos, getCellPos(header.TypeRow),
+		xerrors.KeyNoteCellPos, getCellPos(header.NoteRow),
 		xerrors.KeyNameCell, header.getNameCell(cursor),
-		xerrors.KeyTypeCell, header.getTypeCell(cursor))
+		xerrors.KeyTypeCell, header.getTypeCell(cursor),
+		xerrors.KeyNoteCell, header.getNoteCell(cursor),
+	)
 }

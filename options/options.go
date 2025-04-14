@@ -46,6 +46,7 @@ type HeaderOption struct {
 	//
 	// Default: 2.
 	TypeRow int32 `yaml:"typerow"`
+
 	// Exact row number of column note at a worksheet.
 	//
 	// Default: 3.
@@ -67,6 +68,12 @@ type HeaderOption struct {
 	//
 	// Default: 0.
 	TypeLine int32 `yaml:"typeline"`
+
+	// The line number of column note definition in a cell.
+	// Value 0 means the whole cell.
+	//
+	// Default: 0.
+	NoteLine int32 `yaml:"noteline"`
 
 	// Separator for separating:
 	//  - incell list elements (scalar or struct).

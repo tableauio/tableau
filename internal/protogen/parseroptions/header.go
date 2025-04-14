@@ -12,6 +12,7 @@ type Header struct {
 	DataRow  int
 	NameLine int
 	TypeLine int
+	NoteLine int
 	Sep      string
 	Subsep   string
 }
@@ -78,6 +79,16 @@ func MergeHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.Work
 		hdr.TypeLine = int(globalOpts.TypeLine)
 	} else {
 		hdr.TypeLine = 0
+	}
+	// note line
+	if sheetOpts.GetNoteline() != 0 {
+		hdr.NoteLine = int(sheetOpts.GetNoteline())
+	} else if bookOpts.GetNoteline() != 0 {
+		hdr.NoteLine = int(bookOpts.GetNoteline())
+	} else if globalOpts != nil && globalOpts.NoteLine != 0 {
+		hdr.NoteLine = int(globalOpts.NoteLine)
+	} else {
+		hdr.NoteLine = 0
 	}
 	// sep
 	if sheetOpts.GetSep() != "" {

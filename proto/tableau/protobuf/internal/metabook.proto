@@ -24,22 +24,23 @@ message Metasheet {
   int32 datarow = 6 [(tableau.field) = {name:"Datarow" prop:{optional:true}}];
   int32 nameline = 7 [(tableau.field) = {name:"Nameline" prop:{optional:true}}];
   int32 typeline = 8 [(tableau.field) = {name:"Typeline" prop:{optional:true}}];
-  bool transpose = 9 [(tableau.field) = {name:"Transpose" prop:{optional:true}}];
+  int32 noteline = 9 [(tableau.field) = {name:"Noteline" prop:{optional:true}}];
+  bool transpose = 10 [(tableau.field) = {name:"Transpose" prop:{optional:true}}];
   // nested naming of namerow
-  bool nested = 10 [(tableau.field) = {name:"Nested" prop:{optional:true}}];
-  string sep = 11 [(tableau.field) = {name:"Sep" prop:{optional:true}}];
-  string subsep = 12 [(tableau.field) = {name:"Subsep" prop:{optional:true}}];
+  bool nested = 11 [(tableau.field) = {name:"Nested" prop:{optional:true}}];
+  string sep = 12 [(tableau.field) = {name:"Sep" prop:{optional:true}}];
+  string subsep = 13 [(tableau.field) = {name:"Subsep" prop:{optional:true}}];
   // merge multiple sheets with same schema to one.
   // each element is:
   // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>,
   //   then the sheet name is the same as this sheet.
   // - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
-  repeated string merger = 13 [(tableau.field) = {name:"Merger" layout:LAYOUT_INCELL prop:{optional:true}}];
+  repeated string merger = 14 [(tableau.field) = {name:"Merger" layout:LAYOUT_INCELL prop:{optional:true}}];
   // Tableau will merge adjacent rows with the same key. If the key cell is not set,
   // it will be treated as the same as the most nearest key above the same column.
   //
   // This option is only useful for map or keyed-list.
-  bool adjacent_key = 14 [(tableau.field) = {name:"AdjacentKey" prop:{optional:true}}];
+  bool adjacent_key = 15 [(tableau.field) = {name:"AdjacentKey" prop:{optional:true}}];
   // Field presence is the notion of whether a protobuf field has a value. If set as true,
   // in order to track presence for basic types (numeric, string, bytes, and enums), the
   // generated .proto will add the `optional` label to them.
@@ -47,29 +48,29 @@ message Metasheet {
   // Singular proto3 fields of basic types (numeric, string, bytes, and enums) which are defined
   // with the optional label have explicit presence, like proto2 (this feature is enabled by default
   // as release 3.15). Refer: https://github.com/protocolbuffers/protobuf/blob/main/docs/field_presence.md
-  bool field_presence = 15 [(tableau.field) = {name:"FieldPresence" prop:{optional:true}}];
+  bool field_presence = 16 [(tableau.field) = {name:"FieldPresence" prop:{optional:true}}];
   // declares if sheet is a template config, which only generates protobuf IDL and not generates json data.
   // NOTE: currently only used for XML protogen.
-  bool template = 16 [(tableau.field) = {name:"Template" prop:{optional:true}}];
+  bool template = 17 [(tableau.field) = {name:"Template" prop:{optional:true}}];
   // Sheet mode.
-  tableau.Mode mode = 17 [(tableau.field) = {name:"Mode" prop:{optional:true}}];
+  tableau.Mode mode = 18 [(tableau.field) = {name:"Mode" prop:{optional:true}}];
   // Scatter converts sheets separately with same schema.
   // each element is:
   // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
   //   then the sheet name is the same as this sheet.
   // - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
-  repeated string scatter = 18 [(tableau.field) = {name:"Scatter" layout:LAYOUT_INCELL prop:{optional:true}}];
+  repeated string scatter = 19 [(tableau.field) = {name:"Scatter" layout:LAYOUT_INCELL prop:{optional:true}}];
   // Whether all fields in this sheet are optional (field name existence).
   // If set to true, then:
   //  - table formats (Excel/CSV): field's column can be absent.
   //  - document formats (XML/YAML): field's name can be absent.
-  bool optional = 19 [(tableau.field) = {name:"Optional" prop:{optional:true}}];
+  bool optional = 20 [(tableau.field) = {name:"Optional" prop:{optional:true}}];
   // Sheet patch type.
-  tableau.Patch patch = 20 [(tableau.field) = {name:"Patch" prop:{optional:true}}];
+  tableau.Patch patch = 21 [(tableau.field) = {name:"Patch" prop:{optional:true}}];
   // confgen: export JSON/Bin/Text files with parent dir created.
-  bool with_parent_dir = 21 [(tableau.field) = {name:"WithParentDir" prop:{optional:true}}];
+  bool with_parent_dir = 22 [(tableau.field) = {name:"WithParentDir" prop:{optional:true}}];
   // confgen(scatter): export JSON/Bin/Text filenames without book name prefix.
-  bool scatter_without_book_name = 22 [(tableau.field) = {name:"ScatterWithoutBookName" prop:{optional:true}}];
+  bool scatter_without_book_name = 23 [(tableau.field) = {name:"ScatterWithoutBookName" prop:{optional:true}}];
   // Labels are key/value pairs that are attached to sheet.
   // Labels can be used to organize and to select subsets of sheets.
   // For example:
@@ -78,7 +79,7 @@ message Metasheet {
   //
   // This concept is much like it is in k8s, see
   // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/.
-  map<string, string> labels = 23 [(tableau.field) = {name:"Labels" layout:LAYOUT_INCELL prop:{optional:true}}];
+  map<string, string> labels = 24 [(tableau.field) = {name:"Labels" layout:LAYOUT_INCELL prop:{optional:true}}];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers

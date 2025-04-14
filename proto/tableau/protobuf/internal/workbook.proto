@@ -31,18 +31,18 @@ message Field {
   string alias = 3;
   string type = 4;
   string full_type = 5;
-  ListEntry list_entry = 6;
-  MapEntry map_entry = 7;
+  string note = 6;
+  ListEntry list_entry = 7;
+  MapEntry map_entry = 8;
   // Indicate whether this field's related type is predefined.
   // - enum: enum type
   // - struct: message type
   // - list: list's element type
   // - map: map's value type
-  bool predefined = 8;
-  tableau.FieldOptions options = 9;
-
+  bool predefined = 9;
+  tableau.FieldOptions options = 10;
   // This field can be struct, list or map if sub fields's length is not 0.
-  repeated Field fields = 10;
+  repeated Field fields = 11;
 
   message ListEntry {
     string elem_type = 1;

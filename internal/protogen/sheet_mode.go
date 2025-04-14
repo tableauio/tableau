@@ -199,6 +199,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 				TypeRow:  1,
 				NameLine: 1,
 				TypeLine: 2,
+				NoteLine: 3,
 			},
 			nameRowData: value.Fields,
 			typeRowData: value.Fields,

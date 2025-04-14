@@ -15,7 +15,6 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/prototext"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -380,23 +379,16 @@ func marshalToText(m protoreflect.ProtoMessage) string {
 }
 
 func isSameFieldMessageType(left, right *internalpb.Field) bool {
-	if left == nil || right == nil {
-		return false
-	}
-	if left.Fields == nil || right.Fields == nil {
-		return false
-	}
-	if len(left.Fields) != len(right.Fields) ||
-		left.Type != right.Type ||
-		left.FullType != right.FullType {
-		return false
-	}
-
-	for i, l := range left.Fields {
-		r := right.Fields[i]
-		if !proto.Equal(l, r) {
-			return false
+	if left.GetType() == right.GetType() &&
+		left.GetFullType() == right.GetFullType() &&
+		len(left.GetFields()) == len(right.GetFields()) {
+		for i, l := range left.GetFields() {
+			r := right.GetFields()[i]
+			if !isSameFieldMessageType(l, r) {
+				return false
+			}
 		}
+		return true
 	}
-	return true
+	return false
 }
