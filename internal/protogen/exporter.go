@@ -159,6 +159,9 @@ func (x *sheetExporter) export() error {
 }
 
 func (x *sheetExporter) exportEnum() error {
+	if x.ws.Note != "" {
+		x.g.P("// ", x.ws.Note)
+	}
 	x.g.P("enum ", x.ws.Name, " {")
 	opts := &tableaupb.EnumOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
 	x.g.P("  option (tableau.etype) = {", marshalToText(opts), "};")
@@ -169,7 +172,11 @@ func (x *sheetExporter) exportEnum() error {
 			ename := x.be.gen.strcaseCtx.ToScreamingSnake(x.ws.Name) + "_INVALID"
 			x.g.P("  ", ename, " = 0;")
 		}
-		x.g.P("  ", strings.TrimSpace(field.Name), " = ", field.Number, ` [(tableau.evalue).name = "`, strings.TrimSpace(field.Alias), `"];`)
+		note := ""
+		if field.Alias != "" {
+			note = " // " + field.Alias
+		}
+		x.g.P("  ", strings.TrimSpace(field.Name), " = ", field.Number, ` [(tableau.evalue).name = "`, strings.TrimSpace(field.Alias), `"];`, note)
 	}
 	x.g.P("}")
 	if !x.isLastSheet {
@@ -228,7 +235,11 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P("    TYPE_INVALID = 0;")
 	for _, field := range x.ws.Fields {
 		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(field.Name)
-		x.g.P("    ", ename, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`)
+		note := ""
+		if field.Alias != "" {
+			note = " // " + field.Alias
+		}
+		x.g.P("    ", ename, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`, note)
 	}
 	x.g.P("  }")
 	x.g.P()
