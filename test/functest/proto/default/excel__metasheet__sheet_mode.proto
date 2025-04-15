@@ -119,8 +119,8 @@ message SimpleTarget {
   oneof value {
     option (tableau.oneof) = {field:"Field"};
 
-    PVP pvp = 1; // Bound to enum value: TYPE_PVP.
-    PVE pve = 2; // Bound to enum value: TYPE_PVE.
+    Pvp pvp = 1; // Bound to enum value: TYPE_PVP.
+    Pve pve = 2; // Bound to enum value: TYPE_PVE.
     Skill skill = 3; // Bound to enum value: TYPE_SKILL.
   }
 
@@ -131,12 +131,12 @@ message SimpleTarget {
     TYPE_SKILL = 3 [(tableau.evalue).name = "AliasSkill"]; // AliasSkill
   }
 
-  message PVP {
+  message Pvp {
     uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Note
     int64 damage = 2 [(tableau.field) = {name:"Damage"}]; // Note
     protoconf.FruitType type = 3 [(tableau.field) = {name:"Type"}]; // Note
   }
-  message PVE {
+  message Pve {
     repeated uint32 hero_list = 1 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}]; // Note
     map<int32, int64> dungeon_map = 2 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}]; // Note
   }
@@ -153,8 +153,8 @@ message TaskTarget {
   oneof value {
     option (tableau.oneof) = {field:"Field"};
 
-    PVP pvp = 1; // Bound to enum value: TYPE_PVP.
-    PVE pve = 2; // Bound to enum value: TYPE_PVE.
+    Pvp pvp = 1; // Bound to enum value: TYPE_PVP.
+    Pve pve = 2; // Bound to enum value: TYPE_PVE.
     Story story = 3; // Bound to enum value: TYPE_STORY.
     Hobby hobby = 4; // Bound to enum value: TYPE_HOBBY.
     Skill skill = 5; // Bound to enum value: TYPE_SKILL.
@@ -171,12 +171,12 @@ message TaskTarget {
     TYPE_EMPTY = 6 [(tableau.evalue).name = "AliasEmpty"]; // AliasEmpty
   }
 
-  message PVP {
+  message Pvp {
     uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Note
     int64 damage = 2 [(tableau.field) = {name:"Damage"}]; // Note
     repeated protoconf.FruitType type_list = 3 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}]; // Note
   }
-  message PVE {
+  message Pve {
     Mission mission = 1 [(tableau.field) = {name:"Mission" span:SPAN_INNER_CELL}]; // Note
     message Mission {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];
@@ -270,21 +270,21 @@ message BattleTarget {
   oneof value {
     option (tableau.oneof) = {note:"BattleTarget note" field:"Field"};
 
-    PVP pvp = 1; // Bound to enum value: TYPE_PVP.
-    PVE pve = 2; // Bound to enum value: TYPE_PVE.
+    PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
   }
 
   enum Type {
     TYPE_INVALID = 0;
-    TYPE_PVP = 1 [(tableau.evalue).name = "BattlePVP"]; // BattlePVP
-    TYPE_PVE = 2 [(tableau.evalue).name = "BattlePVE"]; // BattlePVE
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "BattlePVP"]; // BattlePVP
+    TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "BattlePVE"]; // BattlePVE
   }
 
-  message PVP {
+  message PvpBattle {
     int32 battle_id = 1 [(tableau.field) = {name:"BattleID"}];
     int64 damage = 2 [(tableau.field) = {name:"Damage"}];
   }
-  message PVE {
+  message PveBattle {
     repeated int32 hero_id_list = 1 [(tableau.field) = {name:"HeroID" layout:LAYOUT_INCELL}];
     map<int32, int64> dungeon_map = 2 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}];
     Boss boss = 3 [(tableau.field) = {name:"Boss" span:SPAN_INNER_CELL}];

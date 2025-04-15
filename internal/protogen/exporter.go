@@ -224,7 +224,7 @@ func (x *sheetExporter) exportUnion() error {
 		if len(field.Fields) == 0 {
 			x.g.P("    // No field bound to enum value: ", ename, ".")
 		} else {
-			x.g.P("    ", strings.TrimSpace(field.Name), " ", x.be.gen.strcaseCtx.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+			x.g.P("    ", x.be.gen.strcaseCtx.ToCamel(field.Name), " ", x.be.gen.strcaseCtx.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 		}
 	}
 	x.g.P(`  }`)
@@ -249,7 +249,7 @@ func (x *sheetExporter) exportUnion() error {
 		if len(msgField.Fields) == 0 {
 			continue
 		}
-		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
+		x.g.P("  message ", x.be.gen.strcaseCtx.ToCamel(msgField.Name), " {")
 		// generate the fields
 		depth := 2
 		for _, field := range msgField.Fields {

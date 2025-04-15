@@ -54,8 +54,8 @@ message FieldCapTarget {
 
     Exchange exchange = 101; // Bound to enum value: TYPE_EXCHANGE.
     Vote vote = 102; // Bound to enum value: TYPE_VOTE.
-    Fruit2V2 fruit_2v2 = 103; // Bound to enum value: TYPE_FRUIT_2V2.
-    Key3V3 key_3v3 = 104; // Bound to enum value: TYPE_KEY_3V3.
+    Fruit2v2 fruit_2v2 = 103; // Bound to enum value: TYPE_FRUIT_2V2.
+    Key3v3 key_3v3 = 104; // Bound to enum value: TYPE_KEY_3V3.
   }
 
   enum Type {
@@ -76,12 +76,12 @@ message FieldCapTarget {
     repeated uint32 againsts_list = 3 [(tableau.field) = {name:"Againsts" layout:LAYOUT_HORIZONTAL prop:{cross:1}}];
     repeated uint32 abstains_list = 4 [(tableau.field) = {name:"Abstains" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
   }
-  message Fruit2V2 {
+  message Fruit2v2 {
     repeated protoconf.FruitType type_a_list = 1 [(tableau.field) = {name:"TypeA" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];
     repeated protoconf.FruitType type_b_list = 4 [(tableau.field) = {name:"TypeB" layout:LAYOUT_INCELL}];
     repeated protoconf.FruitFlavor flavor_list = 5 [(tableau.field) = {name:"Flavor" layout:LAYOUT_HORIZONTAL prop:{cross:-1}}];
   }
-  message Key3V3 {
+  message Key3v3 {
     repeated int32 keys_list = 1 [(tableau.field) = {name:"Keys" key:"Keys" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];
     repeated int32 values_list = 4 [(tableau.field) = {name:"Values" layout:LAYOUT_HORIZONTAL prop:{cross:-1}}];
   }
