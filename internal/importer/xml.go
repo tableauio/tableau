@@ -30,9 +30,8 @@ var (
 const (
 	xmlProlog          = `<?xml version='1.0' encoding='UTF-8'?>`
 	atTypeDisplacement = "ATYPE"
-	ungreedyPropGroup  = `(\|\{[^\{\}]+\})?`                       // e.g.: |{default:"100"}
-	metasheetItemBlock = `<Item(\s+\S+\s*=\s*("\S+"|'\S+'))+\s*/>` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
-	sheetBlock         = `<%v(>(.*\n)*</%v>|\s*/>)`                // e.g.: <XXXConf>...</XXXConf>
+	ungreedyPropGroup  = `(\|\{[^\{\}]+\})?` // e.g.: |{default:"100"}
+	metasheetItemBlock = `<Item\s+[^>]*\/>`  // e.g.: <Item Sheet="XXXConf" Sep="|"/>
 )
 
 func init() {
@@ -599,9 +598,9 @@ func splitXMLMetasheet(content string) string {
 	// 		<Weight Num="map<uint32, Weight>"/>
 	// </Server>
 	// -->
-	metasheetRegexp := regexp.MustCompile(fmt.Sprintf(`<!--\s*(.*\n)+?(<%v(>(\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)(.*\n)+?)-->\s*\n`, book.MetasheetName, book.MetasheetName))
+	metasheetRegexp := regexp.MustCompile(fmt.Sprintf(`<!--([\s\S]*?<%v(?:>(?:\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)[\s\S]*?)-->`, book.MetasheetName, book.MetasheetName))
 	matches := metasheetRegexp.FindStringSubmatch(content)
-	if len(matches) < 3 {
+	if len(matches) < 2 {
 		return ""
 	}
 	scanner := bufio.NewScanner(strings.NewReader(matches[0]))
@@ -613,7 +612,7 @@ func splitXMLMetasheet(content string) string {
 		log.Panicf("scanner err:%v", err)
 		return ""
 	}
-	metasheet := matches[2]
+	metasheet := matches[1]
 	metasheet = strings.ReplaceAll(metasheet, "<@", "<AT")
 	metasheet = strings.ReplaceAll(metasheet, "</@", "</AT")
 	metasheet = strings.ReplaceAll(metasheet, book.KeywordType, atTypeDisplacement)
