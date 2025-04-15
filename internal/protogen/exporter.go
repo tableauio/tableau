@@ -249,7 +249,7 @@ func (x *sheetExporter) exportUnion() error {
 		if len(msgField.Fields) == 0 {
 			continue
 		}
-		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
+		x.g.P("  message ", x.be.gen.strcaseCtx.ToCamel(msgField.Name), " {")
 		// generate the fields
 		depth := 2
 		for _, field := range msgField.Fields {
