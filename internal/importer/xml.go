@@ -45,7 +45,7 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 	if mode == Protogen {
 		book, err = readXMLBookWithOnlySchemaSheet(filename, parser)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read xml book: %s", filename)
 		}
 		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
@@ -53,7 +53,7 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 	} else {
 		book, err = readXMLBook(filename, parser)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read xml book: %s", filename)
 		}
 	}
 
