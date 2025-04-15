@@ -103,6 +103,14 @@ func TestNewXMLImporter(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "InvalidMeta2.xml",
+			args: args{
+				filename: "testdata/InvalidMeta2.xml",
+				parser:   &TestSheetParser{},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

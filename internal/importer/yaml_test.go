@@ -97,6 +97,15 @@ func TestNewYAMLImporter(t *testing.T) {
 			name: "NotSupportAliasNode.yaml",
 			args: args{
 				filename: "testdata/NotSupportAliasNode.yaml",
+				mode:     Protogen,
+				parser:   &TestSheetParser{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NotSupportAliasNode.yaml",
+			args: args{
+				filename: "testdata/NotSupportAliasNode.yaml",
 				parser:   &TestSheetParser{},
 			},
 			wantErr: true,
