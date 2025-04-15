@@ -224,7 +224,7 @@ func (x *sheetExporter) exportUnion() error {
 		if len(field.Fields) == 0 {
 			x.g.P("    // No field bound to enum value: ", ename, ".")
 		} else {
-			x.g.P("    ", strings.TrimSpace(field.Name), " ", x.be.gen.strcaseCtx.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+			x.g.P("    ", x.be.gen.strcaseCtx.ToCamel(field.Name), " ", x.be.gen.strcaseCtx.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 		}
 	}
 	x.g.P(`  }`)
