@@ -141,6 +141,7 @@ type ProtoInputOption struct {
 	FollowSymlink bool `yaml:"followSymlink"`
 
 	// Specify metasheet name. Metasheet is "@TABLEAU" if not set.
+	// NOTE: metasheet name must start with '@'.
 	//
 	// Default: "".
 	MetasheetName string `yaml:"metasheetName"`

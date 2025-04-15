@@ -6,7 +6,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +14,7 @@ import (
 	"github.com/subchen/go-xmldom"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/xerrors"
 )
 
@@ -23,34 +23,20 @@ type XMLImporter struct {
 }
 
 var (
-	attrRegexp      *regexp.Regexp
-	tagRegexp       *regexp.Regexp
-	metasheetRegexp *regexp.Regexp
+	attrRegexp *regexp.Regexp
+	tagRegexp  *regexp.Regexp
 )
 
 const (
-	xmlProlog             = `<?xml version='1.0' encoding='UTF-8'?>`
-	atTableauDisplacement = `ATABLEAU`
-	atTypeDisplacement    = "ATYPE"
-	ungreedyPropGroup     = `(\|\{[^\{\}]+\})?`                       // e.g.: |{default:"100"}
-	metasheetItemBlock    = `<Item(\s+\S+\s*=\s*("\S+"|'\S+'))+\s*/>` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
-	sheetBlock            = `<%v(>(.*\n)*</%v>|\s*/>)`                // e.g.: <XXXConf>...</XXXConf>
+	xmlProlog          = `<?xml version='1.0' encoding='UTF-8'?>`
+	atTypeDisplacement = "ATYPE"
+	ungreedyPropGroup  = `(\|\{[^\{\}]+\})?` // e.g.: |{default:"100"}
+	metasheetItemBlock = `<Item\s+[^>]*\/>`  // e.g.: <Item Sheet="XXXConf" Sep="|"/>
 )
 
 func init() {
 	attrRegexp = regexp.MustCompile(`\s*=\s*("|')` + types.TypeGroup + ungreedyPropGroup + `("|')`) // e.g.: = "int32|{range:"1,~"}"
 	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`)                // e.g.: >int32|{range:"1,~"}</
-	// metasheet regexp, e.g.:
-	// <!--
-	// <@TABLEAU>
-	// 		<Item Sheet="Server" />
-	// </@TABLEAU>
-
-	// <Server>
-	// 		<Weight Num="map<uint32, Weight>"/>
-	// </Server>
-	// -->
-	metasheetRegexp = regexp.MustCompile(fmt.Sprintf(`<!--\s+(<%v(>(\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)(.*\n)+?)-->\s*\n`, book.MetasheetName, book.MetasheetName))
 }
 
 func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*XMLImporter, error) {
@@ -59,7 +45,7 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 	if mode == Protogen {
 		book, err = readXMLBookWithOnlySchemaSheet(filename, parser)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read xml book: %s", filename)
 		}
 		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
@@ -67,7 +53,7 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 	} else {
 		book, err = readXMLBook(filename, parser)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to read xml book: %s", filename)
 		}
 	}
 
@@ -85,7 +71,23 @@ func readXMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawDocs, err := extractRawXMLDocuments(string(content))
+	metasheet := splitXMLMetasheet(string(content))
+	rawDocs, err := extractRawXMLDocuments(metasheet)
+	if err != nil {
+		return nil, err
+	}
+	for _, rawDoc := range rawDocs {
+		doc, err := xmldom.ParseXML(rawDoc)
+		if err != nil {
+			return nil, err
+		}
+		sheet, err := parseXMLSheet(doc, Protogen)
+		if err != nil {
+			return nil, xerrors.Wrapf(err, "file: %s", filename)
+		}
+		newBook.AddSheet(sheet)
+	}
+	rawDocs, err = extractRawXMLDocuments(string(content))
 	if err != nil {
 		return nil, err
 	}
@@ -130,10 +132,14 @@ func readXMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (*
 	return newBook, nil
 }
 
+func xmlMetasheetName() string {
+	return strings.Replace(book.MetasheetName, "@", "AT", 1)
+}
+
 func parseXMLSheet(doc *xmldom.Document, mode ImporterMode) (*book.Sheet, error) {
 	name := doc.Root.Name
 	if mode == Protogen {
-		if name == atTableauDisplacement {
+		if name == xmlMetasheetName() {
 			return parseXMLMetaSheet(doc)
 		}
 		name = "@" + name
@@ -579,6 +585,17 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 
 // splitXMLMetasheet splits metasheet from xml notes
 func splitXMLMetasheet(content string) string {
+	// metasheet regexp, e.g.:
+	// <!--
+	// <@TABLEAU>
+	// 		<Item Sheet="Server" />
+	// </@TABLEAU>
+
+	// <Server>
+	// 		<Weight Num="map<uint32, Weight>"/>
+	// </Server>
+	// -->
+	metasheetRegexp := regexp.MustCompile(fmt.Sprintf(`<!--([\s\S]*?<%v(?:>(?:\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)[\s\S]*?)-->`, book.MetasheetName, book.MetasheetName))
 	matches := metasheetRegexp.FindStringSubmatch(content)
 	if len(matches) < 2 {
 		return ""
@@ -593,7 +610,8 @@ func splitXMLMetasheet(content string) string {
 		return ""
 	}
 	metasheet := matches[1]
-	metasheet = strings.ReplaceAll(metasheet, book.MetasheetName, atTableauDisplacement)
+	metasheet = strings.ReplaceAll(metasheet, "<@", "<AT")
+	metasheet = strings.ReplaceAll(metasheet, "</@", "</AT")
 	metasheet = strings.ReplaceAll(metasheet, book.KeywordType, atTypeDisplacement)
 	metasheet = escapeAttrs(metasheet)
 	metasheet = xmlProlog + "\n" + metasheet

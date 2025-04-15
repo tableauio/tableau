@@ -69,6 +69,15 @@ func TestNewXMLImporter(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "not-exist",
+			args: args{
+				filename: "testdata/not-exist.xml",
+				mode:     Protogen,
+				parser:   &TestSheetParser{},
+			},
+			wantErr: true,
+		},
+		{
 			name: "Test.xml",
 			args: args{
 				filename: "testdata/Test.xml",
@@ -76,15 +85,43 @@ func TestNewXMLImporter(t *testing.T) {
 				parser:   &TestSheetParser{},
 			},
 		},
+		{
+			name: "InvalidMeta1.xml",
+			args: args{
+				filename: "testdata/InvalidMeta1.xml",
+				mode:     Protogen,
+				parser:   &TestSheetParser{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "InvalidMeta2.xml",
+			args: args{
+				filename: "testdata/InvalidMeta2.xml",
+				mode:     Protogen,
+				parser:   &TestSheetParser{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "InvalidMeta2.xml",
+			args: args{
+				filename: "testdata/InvalidMeta2.xml",
+				parser:   &TestSheetParser{},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewXMLImporter(tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewYAMLImporter() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewXMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			fmt.Println(got.String())
+			if got != nil {
+				fmt.Println(got.String())
+			}
 		})
 	}
 }

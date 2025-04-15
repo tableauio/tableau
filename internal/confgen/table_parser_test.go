@@ -529,25 +529,8 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 }
 
 func TestTableParser_parseDocumentMetasheet(t *testing.T) {
-	path := "./testdata/Metasheet.yaml"
-	parser := NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
-		book.MetabookOptions(),
-		book.MetasheetOptions(),
-		&SheetParserExtInfo{
-			InputDir:       "",
-			SubdirRewrites: map[string]string{},
-			BookFormat:     format.YAML,
-		})
-	imp, err := importer.New(path, importer.Parser(parser))
-	if err != nil {
-		t.Fatal(err)
-	}
-	sheet := imp.GetSheet(book.MetasheetName)
-	if sheet == nil {
-		t.Fatalf("metasheet not found")
-	}
 	type args struct {
-		sheet *book.Sheet
+		path string
 	}
 	tests := []struct {
 		name    string
@@ -557,9 +540,16 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 		wantMsg proto.Message
 	}{
 		{
-			name:    "parse document metasheet",
-			parser:  parser,
-			args:    args{sheet: sheet},
+			name: "parse yaml metasheet",
+			parser: NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+				book.MetabookOptions(),
+				book.MetasheetOptions(),
+				&SheetParserExtInfo{
+					InputDir:       "",
+					SubdirRewrites: map[string]string{},
+					BookFormat:     format.YAML,
+				}),
+			args:    args{path: "./testdata/Metasheet.yaml"},
 			wantErr: false,
 			wantMsg: &internalpb.Metabook{
 				MetasheetMap: map[string]*internalpb.Metasheet{
@@ -574,11 +564,40 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "parse xml metasheet",
+			parser: NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+				book.MetabookOptions(),
+				book.MetasheetOptions(),
+				&SheetParserExtInfo{
+					InputDir:       "",
+					SubdirRewrites: map[string]string{},
+					BookFormat:     format.XML,
+				}),
+			args:    args{path: "./testdata/Metasheet.xml"},
+			wantErr: false,
+			wantMsg: &internalpb.Metabook{
+				MetasheetMap: map[string]*internalpb.Metasheet{
+					"ItemConf": {
+						Sheet:      "ItemConf",
+						OrderedMap: true,
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			imp, err := importer.New(tt.args.path, importer.Parser(tt.parser))
+			if err != nil {
+				t.Fatal(err)
+			}
+			sheet := imp.GetSheet(book.MetasheetName)
+			if sheet == nil {
+				t.Fatalf("metasheet not found")
+			}
 			msg := &internalpb.Metabook{}
-			err := tt.parser.Parse(msg, tt.args.sheet)
+			err = tt.parser.Parse(msg, sheet)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %s, wantErr %v", xerrors.NewDesc(err), tt.wantErr)
 			}

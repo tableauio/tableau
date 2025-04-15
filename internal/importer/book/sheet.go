@@ -2,6 +2,7 @@ package book
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -25,9 +26,11 @@ const BookNameInMetasheet = "#"
 // NOTE: If will not change MetasheetName value if the specified name
 // is empty.
 func SetMetasheetName(name string) {
-	if name != "" {
-		MetasheetName = name
+	if !strings.HasPrefix(name, "@") {
+		panic(fmt.Sprintf("metasheet name must start with '@': %q", name))
 	}
+	// set cumtomized metasheet name
+	MetasheetName = name
 }
 
 type SheetParser interface {

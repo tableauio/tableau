@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+<@TABLEAU>
+    <Item Sheet="Item" Merger="Test_*.xml"/>
+</@TABLEAU>
+
+<Item>
+    <Predefined @type="[.Item]">
+        <Scalar>int32</Scalar>
+    </Predefined>
+</Item>
+-->
