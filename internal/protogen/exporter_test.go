@@ -279,9 +279,9 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
   option (tableau.etype) = {name:"ItemType"};
 
   ITEM_TYPE_INVALID = 0;
-  ITEM_TYPE_FRUIT = 1 [(tableau.evalue).name = "Fruit"];
-  ITEM_TYPE_EQUIP = 2 [(tableau.evalue).name = "Equip"];
-  ITEM_TYPE_BOX = 3 [(tableau.evalue).name = "Box"];
+  ITEM_TYPE_FRUIT = 1 [(tableau.evalue).name = "Fruit"]; // Fruit
+  ITEM_TYPE_EQUIP = 2 [(tableau.evalue).name = "Equip"]; // Equip
+  ITEM_TYPE_BOX = 3 [(tableau.evalue).name = "Box"]; // Box
 }
 
 `,
@@ -392,7 +392,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 
   enum Type {
     TYPE_INVALID = 0;
-    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"];
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
   }
 
   message PvpBattle {
