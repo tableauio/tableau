@@ -133,10 +133,7 @@ func readXMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (*
 }
 
 func xmlMetasheetName() string {
-	if strings.HasPrefix(book.MetasheetName, "@") {
-		return "AT" + book.MetasheetName[1:]
-	}
-	return book.MetasheetName
+	return strings.Replace(book.MetasheetName, "@", "AT", 1)
 }
 
 func parseXMLSheet(doc *xmldom.Document, mode ImporterMode) (*book.Sheet, error) {

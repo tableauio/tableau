@@ -85,6 +85,22 @@ func TestNewYAMLImporter(t *testing.T) {
 				parser:   &TestSheetParser{},
 			},
 		},
+		{
+			name: "not-exist.yaml",
+			args: args{
+				filename: "testdata/not-exist.yaml",
+				parser:   nil,
+			},
+			wantErr: true,
+		},
+		{
+			name: "NotSupportAliasNode.yaml",
+			args: args{
+				filename: "testdata/NotSupportAliasNode.yaml",
+				parser:   &TestSheetParser{},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -93,10 +109,9 @@ func TestNewYAMLImporter(t *testing.T) {
 				t.Errorf("NewYAMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			fmt.Println(got.String())
-			// if !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("NewYAMLImporter() = %v, want %v", got, tt.want)
-			// }
+			if got != nil {
+				fmt.Println(got.String())
+			}
 		})
 	}
 }

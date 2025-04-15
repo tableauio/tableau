@@ -1,0 +1,8 @@
+"@sheet": "@TABLEAU"
+YamlScalarConf:
+---
+"@sheet": "@YamlScalarConf"
+---
+"@sheet": YamlScalarConf
+First occurrence: &anchor Foo
+Second occurrence: *anchor
