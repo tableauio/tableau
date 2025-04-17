@@ -13,6 +13,7 @@ import (
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
+	"google.golang.org/protobuf/proto"
 )
 
 const outdir = "./testdata/_proto/default"
@@ -122,6 +123,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 		name    string
 		gen     *Generator
 		args    args
+		want    []*internalpb.Worksheet
 		wantErr bool
 	}{
 		{
@@ -129,18 +131,118 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
-				ws:   &internalpb.Worksheet{},
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 4,
+						MaxRow: 5,
+						MaxCol: 3,
 						Rows: [][]string{
 							{"Number", "Name", "Alias"},
 							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
 							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
 							{"2", "ITEM_TYPE_EQUIP", "Equip"},
 							{"3", "ITEM_TYPE_BOX", "Box"},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Fields: []*internalpb.Field{
+						{
+							Number: 0,
+							Name:   "ITEM_TYPE_UNKNOWN",
+							Alias:  "Unknown",
+						},
+						{
+							Number: 1,
+							Name:   "ITEM_TYPE_FRUIT",
+							Alias:  "Fruit",
+						},
+						{
+							Number: 2,
+							Name:   "ITEM_TYPE_EQUIP",
+							Alias:  "Equip",
+						},
+						{
+							Number: 3,
+							Name:   "ITEM_TYPE_BOX",
+							Alias:  "Box",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MODE_ENUM_TYPE_MULTI",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE_MULTI,
+				ws:   &internalpb.Worksheet{Name: "EnumDefault"},
+				sheet: &book.Sheet{
+					Name: "EnumDefault",
+					Table: &book.Table{
+						MaxRow: 11,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ItemType", "Item's Type", ""},
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"3", "ITEM_TYPE_BOX", "Box"},
+							{"", "", ""},
+							{"ModeType", "Mode's Type", ""},
+							{"Alias", "Name", ""},
+							{"Pvp", "MODE_TYPE_PVP", ""},
+							{"Pve", "MODE_TYPE_PVE", ""},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Note: "Item's Type",
+					Fields: []*internalpb.Field{
+						{
+							Number: 0,
+							Name:   "ITEM_TYPE_UNKNOWN",
+							Alias:  "Unknown",
+						},
+						{
+							Number: 1,
+							Name:   "ITEM_TYPE_FRUIT",
+							Alias:  "Fruit",
+						},
+						{
+							Number: 2,
+							Name:   "ITEM_TYPE_EQUIP",
+							Alias:  "Equip",
+						},
+						{
+							Number: 3,
+							Name:   "ITEM_TYPE_BOX",
+							Alias:  "Box",
+						},
+					},
+				},
+				{
+					Name: "ModeType",
+					Note: "Mode's Type",
+					Fields: []*internalpb.Field{
+						{
+							Number: 1,
+							Name:   "MODE_TYPE_PVP",
+							Alias:  "Pvp",
+						},
+						{
+							Number: 2,
+							Name:   "MODE_TYPE_PVE",
+							Alias:  "Pve",
 						},
 					},
 				},
@@ -152,17 +254,170 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
-				ws:   &internalpb.Worksheet{},
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 3,
+						MaxRow: 4,
 						MaxCol: 2,
 						Rows: [][]string{
 							{"Name", "Type"},
 							{"ID", "uint32"},
 							{"Prop", "map<int32, string>"},
 							{"Feature", "[]int32"},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Fields: []*internalpb.Field{
+						{
+							Number:   1,
+							Name:     "id",
+							Type:     "uint32",
+							FullType: "uint32",
+							Options: &tableaupb.FieldOptions{
+								Name: "ID",
+							},
+						},
+						{
+							Number:   2,
+							Name:     "prop_map",
+							Type:     "map<int32, string>",
+							FullType: "map<int32, string>",
+							MapEntry: &internalpb.Field_MapEntry{
+								KeyType:       "int32",
+								ValueType:     "string",
+								ValueFullType: "string",
+							},
+							Options: &tableaupb.FieldOptions{
+								Name:   "Prop",
+								Layout: tableaupb.Layout_LAYOUT_INCELL,
+							},
+						},
+						{
+							Number:   3,
+							Name:     "feature_list",
+							Type:     "repeated int32",
+							FullType: "repeated int32",
+							ListEntry: &internalpb.Field_ListEntry{
+								ElemType:     "int32",
+								ElemFullType: "int32",
+							},
+							Options: &tableaupb.FieldOptions{
+								Name:   "Feature",
+								Layout: tableaupb.Layout_LAYOUT_INCELL,
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MODE_STRUCT_TYPE_MULTI",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_STRUCT_TYPE_MULTI,
+				ws:   &internalpb.Worksheet{Name: "StuuctDefault"},
+				sheet: &book.Sheet{
+					Name: "StuuctDefault",
+					Table: &book.Table{
+						MaxRow: 11,
+						MaxCol: 2,
+						Rows: [][]string{
+							{"ItemType", "Item's Type"},
+							{"Name", "Type"},
+							{"ID", "uint32"},
+							{"Prop", "map<int32, string>"},
+							{"Feature", "[]int32"},
+							{"", ""},
+							{"ModeType", "Mode's Type"},
+							{"Type", "Name"},
+							{"uint32", "ID"},
+							{"string", "Name"},
+							{"bool", "Valid"},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Note: "Item's Type",
+					Fields: []*internalpb.Field{
+						{
+							Number:   1,
+							Name:     "id",
+							Type:     "uint32",
+							FullType: "uint32",
+							Options: &tableaupb.FieldOptions{
+								Name: "ID",
+							},
+						},
+						{
+							Number:   2,
+							Name:     "prop_map",
+							Type:     "map<int32, string>",
+							FullType: "map<int32, string>",
+							MapEntry: &internalpb.Field_MapEntry{
+								KeyType:       "int32",
+								ValueType:     "string",
+								ValueFullType: "string",
+							},
+							Options: &tableaupb.FieldOptions{
+								Name:   "Prop",
+								Layout: tableaupb.Layout_LAYOUT_INCELL,
+							},
+						},
+						{
+							Number:   3,
+							Name:     "feature_list",
+							Type:     "repeated int32",
+							FullType: "repeated int32",
+							ListEntry: &internalpb.Field_ListEntry{
+								ElemType:     "int32",
+								ElemFullType: "int32",
+							},
+							Options: &tableaupb.FieldOptions{
+								Name:   "Feature",
+								Layout: tableaupb.Layout_LAYOUT_INCELL,
+							},
+						},
+					},
+				},
+				{
+					Name: "ModeType",
+					Note: "Mode's Type",
+					Fields: []*internalpb.Field{
+						{
+							Number:   1,
+							Name:     "id",
+							Type:     "uint32",
+							FullType: "uint32",
+							Options: &tableaupb.FieldOptions{
+								Name: "ID",
+							},
+						},
+						{
+							Number:   2,
+							Name:     "name",
+							Type:     "string",
+							FullType: "string",
+							Options: &tableaupb.FieldOptions{
+								Name: "Name",
+							},
+						},
+						{
+							Number:   3,
+							Name:     "valid",
+							Type:     "bool",
+							FullType: "bool",
+							Options: &tableaupb.FieldOptions{
+								Name: "Valid",
+							},
 						},
 					},
 				},
@@ -174,7 +429,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
-				ws:   &internalpb.Worksheet{},
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
@@ -188,13 +443,301 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					},
 				},
 			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Fields: []*internalpb.Field{
+						{
+							Number: 1,
+							Name:   "PvpBattle",
+							Alias:  "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{
+									Number:   1,
+									Name:     "id",
+									Type:     "uint32",
+									FullType: "uint32",
+									Options: &tableaupb.FieldOptions{
+										Name: "ID",
+									},
+								},
+								{
+									Number:   2,
+									Name:     "damage",
+									Type:     "int64",
+									FullType: "int64",
+									Options: &tableaupb.FieldOptions{
+										Name: "Damage",
+									},
+								},
+								{
+									Number:   3,
+									Name:     "mission",
+									Type:     "Mission",
+									FullType: "Mission",
+									Options: &tableaupb.FieldOptions{
+										Name: "Mission",
+										Span: tableaupb.Span_SPAN_INNER_CELL,
+									},
+									Fields: []*internalpb.Field{
+										{
+											Number:   1,
+											Name:     "id",
+											Type:     "uint32",
+											FullType: "uint32",
+											Options: &tableaupb.FieldOptions{
+												Name: "ID",
+											},
+										},
+										{
+											Number:   2,
+											Name:     "level",
+											Type:     "int32",
+											FullType: "int32",
+											Options: &tableaupb.FieldOptions{
+												Name: "Level",
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							Number: 2,
+							Name:   "PveBattle",
+							Alias:  "SoloPVEBattle",
+							Fields: []*internalpb.Field{
+								{
+									Number:   1,
+									Name:     "prop_map",
+									Type:     "map<int32, string>",
+									FullType: "map<int32, string>",
+									MapEntry: &internalpb.Field_MapEntry{
+										KeyType:       "int32",
+										ValueType:     "string",
+										ValueFullType: "string",
+									},
+									Options: &tableaupb.FieldOptions{
+										Name:   "Prop",
+										Layout: tableaupb.Layout_LAYOUT_INCELL,
+									},
+								},
+								{
+									Number:   2,
+									Name:     "feature_list",
+									Type:     "repeated int32",
+									FullType: "repeated int32",
+									ListEntry: &internalpb.Field_ListEntry{
+										ElemType:     "int32",
+										ElemFullType: "int32",
+									},
+									Options: &tableaupb.FieldOptions{
+										Name:   "Feature",
+										Layout: tableaupb.Layout_LAYOUT_INCELL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MODE_UNION_TYPE_MULTI",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE_MULTI,
+				ws:   &internalpb.Worksheet{Name: "UnionDefault"},
+				sheet: &book.Sheet{
+					Name: "UnionDefault",
+					Table: &book.Table{
+						MaxRow: 9,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"ItemType", "Item's Type", "", "", ""},
+							{"Name", "Alias", "Field1", "Field2", "Field3"},
+							{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
+							{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+							{"", "", "", "", ""},
+							{"ModeType", "Mode's Type", "", "", ""},
+							{"Field3", "Name", "Field1", "Alias", "Field2"},
+							{"", "PVP", "ID\nuint32", "PvpMode", "Difficulty\nint32"},
+							{"", "PVE", "Name\nstring", "PveMode", "Score\nint32"},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Note: "Item's Type",
+					Fields: []*internalpb.Field{
+						{
+							Number: 1,
+							Name:   "PvpBattle",
+							Alias:  "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{
+									Number:   1,
+									Name:     "id",
+									Type:     "uint32",
+									FullType: "uint32",
+									Options: &tableaupb.FieldOptions{
+										Name: "ID",
+									},
+								},
+								{
+									Number:   2,
+									Name:     "damage",
+									Type:     "int64",
+									FullType: "int64",
+									Options: &tableaupb.FieldOptions{
+										Name: "Damage",
+									},
+								},
+								{
+									Number:   3,
+									Name:     "mission",
+									Type:     "Mission",
+									FullType: "Mission",
+									Options: &tableaupb.FieldOptions{
+										Name: "Mission",
+										Span: tableaupb.Span_SPAN_INNER_CELL,
+									},
+									Fields: []*internalpb.Field{
+										{
+											Number:   1,
+											Name:     "id",
+											Type:     "uint32",
+											FullType: "uint32",
+											Options: &tableaupb.FieldOptions{
+												Name: "ID",
+											},
+										},
+										{
+											Number:   2,
+											Name:     "level",
+											Type:     "int32",
+											FullType: "int32",
+											Options: &tableaupb.FieldOptions{
+												Name: "Level",
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							Number: 2,
+							Name:   "PveBattle",
+							Alias:  "SoloPVEBattle",
+							Fields: []*internalpb.Field{
+								{
+									Number:   1,
+									Name:     "prop_map",
+									Type:     "map<int32, string>",
+									FullType: "map<int32, string>",
+									MapEntry: &internalpb.Field_MapEntry{
+										KeyType:       "int32",
+										ValueType:     "string",
+										ValueFullType: "string",
+									},
+									Options: &tableaupb.FieldOptions{
+										Name:   "Prop",
+										Layout: tableaupb.Layout_LAYOUT_INCELL,
+									},
+								},
+								{
+									Number:   2,
+									Name:     "feature_list",
+									Type:     "repeated int32",
+									FullType: "repeated int32",
+									ListEntry: &internalpb.Field_ListEntry{
+										ElemType:     "int32",
+										ElemFullType: "int32",
+									},
+									Options: &tableaupb.FieldOptions{
+										Name:   "Feature",
+										Layout: tableaupb.Layout_LAYOUT_INCELL,
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					Name: "ModeType",
+					Note: "Mode's Type",
+					Fields: []*internalpb.Field{
+						{
+							Number: 1,
+							Name:   "PVP",
+							Alias:  "PvpMode",
+							Fields: []*internalpb.Field{
+								{
+									Number:   1,
+									Name:     "id",
+									Type:     "uint32",
+									FullType: "uint32",
+									Options: &tableaupb.FieldOptions{
+										Name: "ID",
+									},
+								},
+								{
+									Number:   2,
+									Name:     "difficulty",
+									Type:     "int32",
+									FullType: "int32",
+									Options: &tableaupb.FieldOptions{
+										Name: "Difficulty",
+									},
+								},
+							},
+						},
+						{
+							Number: 2,
+							Name:   "PVE",
+							Alias:  "PveMode",
+							Fields: []*internalpb.Field{
+								{
+									Number:   1,
+									Name:     "name",
+									Type:     "string",
+									FullType: "string",
+									Options: &tableaupb.FieldOptions{
+										Name: "Name",
+									},
+								},
+								{
+									Number:   2,
+									Name:     "score",
+									Type:     "int32",
+									FullType: "int32",
+									Options: &tableaupb.FieldOptions{
+										Name: "Score",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", ""); (err != nil) != tt.wantErr {
+			if got, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", ""); (err != nil) != tt.wantErr {
 				t.Errorf("Generator.parseSpecialSheetMode() error = %v, wantErr %v", err, tt.wantErr)
+			} else if len(got) != len(tt.want) {
+				t.Errorf("Generator.parseSpecialSheetMode() size = %v, want size %v", len(got), len(tt.want))
+			} else {
+				for i := range got {
+					if !proto.Equal(got[i], tt.want[i]) {
+						t.Errorf("Generator.parseSpecialSheetMode()[%d] = %v\n want[%d] %v", i, got[i], i, tt.want[i])
+					}
+				}
 			}
 		})
 	}

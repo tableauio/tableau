@@ -37,10 +37,16 @@ func extractSheetBlockTypeRow(cols []string) (name, note string, err error) {
 }
 
 func isEnumTypeBlockHeader(cols []string) bool {
-	if len(cols) >= 3 {
-		return cols[0] == colNumber && cols[1] == colName && cols[2] == colAlias
+	var containsName, containsAlias bool
+	for _, col := range cols {
+		if col == colName {
+			containsName = true
+		}
+		if col == colAlias {
+			containsAlias = true
+		}
 	}
-	return false
+	return containsName && containsAlias
 }
 
 func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator) error {
@@ -69,10 +75,16 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 }
 
 func isStructTypeBlockHeader(cols []string) bool {
-	if len(cols) >= 2 {
-		return cols[0] == colName && cols[1] == colType
+	var containsName, containsType bool
+	for _, col := range cols {
+		if col == colName {
+			containsName = true
+		}
+		if col == colType {
+			containsType = true
+		}
 	}
-	return false
+	return containsName && containsType
 }
 
 func extractStructTypeInfo(sheet *book.Sheet, typeName, parentFilename string, parser book.SheetParser, gen *Generator) error {
@@ -115,11 +127,13 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 	var parsed bool
 	var err error
 	for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
+		fieldNumber := cursor + 1
 		subField := &internalpb.Field{}
 		cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "")
 		if err != nil {
 			return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 		}
+		subField.Number = int32(fieldNumber)
 		if parsed {
 			ws.Fields = append(ws.Fields, subField)
 		}
@@ -128,10 +142,19 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 }
 
 func isUnionTypeBlockHeader(cols []string) bool {
-	if len(cols) >= 3 {
-		return cols[0] == colName && cols[1] == colAlias && strings.HasPrefix(cols[2], colFieldPrefix)
+	var containsName, containsAlias, containsField1 bool
+	for _, col := range cols {
+		if col == colName {
+			containsName = true
+		}
+		if col == colAlias {
+			containsAlias = true
+		}
+		if col == colFieldPrefix+"1" {
+			containsField1 = true
+		}
 	}
-	return false
+	return containsName && containsAlias && containsField1
 }
 
 func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, parser book.SheetParser, gen *Generator) error {
