@@ -352,6 +352,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 		field.Options.Prop = ExtractStructFieldProp(prop)
 
 		for i := 0; i < len(fieldPairs); i += 2 {
+			fieldNumber := i/2 + 1
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
 			scalarField, err := p.parseBasicField(fieldName, fieldType, "")
@@ -361,6 +362,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 					xerrors.KeyPBFieldType, fieldType,
 					xerrors.KeyPBFieldOpts, desc.Prop.Text)
 			}
+			scalarField.Number = int32(fieldNumber)
 			field.Fields = append(field.Fields, scalarField)
 		}
 		return nil
