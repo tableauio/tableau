@@ -276,7 +276,6 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 						{
 							// Note that field numbers are not set explicitly when parsing sheets.
 							// They are auto generated when exporting to proto files finally.
-							// This behavior may also be changed in the future.
 							//
 							// Number:   1,
 							Name:     "id",
@@ -457,7 +456,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							Alias:  "SoloPVPBattle",
 							Fields: []*internalpb.Field{
 								{
-									Number:   1,
+									// Number:   1,
 									Name:     "id",
 									Type:     "uint32",
 									FullType: "uint32",
@@ -466,7 +465,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 								},
 								{
-									Number:   2,
+									// Number:   2,
 									Name:     "damage",
 									Type:     "int64",
 									FullType: "int64",
@@ -475,7 +474,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 								},
 								{
-									Number:   3,
+									// Number:   3,
 									Name:     "mission",
 									Type:     "Mission",
 									FullType: "Mission",
@@ -512,7 +511,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							Alias:  "SoloPVEBattle",
 							Fields: []*internalpb.Field{
 								{
-									Number:   1,
+									// Number:   1,
 									Name:     "prop_map",
 									Type:     "map<int32, string>",
 									FullType: "map<int32, string>",
@@ -527,7 +526,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 								},
 								{
-									Number:   2,
+									// Number:   2,
 									Name:     "feature_list",
 									Type:     "repeated int32",
 									FullType: "repeated int32",
@@ -583,7 +582,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							Alias:  "SoloPVPBattle",
 							Fields: []*internalpb.Field{
 								{
-									Number:   1,
+									// Number:   1,
 									Name:     "id",
 									Type:     "uint32",
 									FullType: "uint32",
@@ -592,7 +591,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 								},
 								{
-									Number:   2,
+									// Number:   2,
 									Name:     "damage",
 									Type:     "int64",
 									FullType: "int64",
@@ -601,7 +600,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 								},
 								{
-									Number:   3,
+									// Number:   3,
 									Name:     "mission",
 									Type:     "Mission",
 									FullType: "Mission",
@@ -638,7 +637,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							Alias:  "SoloPVEBattle",
 							Fields: []*internalpb.Field{
 								{
-									Number:   1,
+									// Number:   1,
 									Name:     "prop_map",
 									Type:     "map<int32, string>",
 									FullType: "map<int32, string>",
@@ -653,7 +652,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 								},
 								{
-									Number:   2,
+									// Number:   2,
 									Name:     "feature_list",
 									Type:     "repeated int32",
 									FullType: "repeated int32",
@@ -680,7 +679,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							Alias:  "PvpMode",
 							Fields: []*internalpb.Field{
 								{
-									Number:   1,
+									// Number:   1,
 									Name:     "id",
 									Type:     "uint32",
 									FullType: "uint32",
@@ -689,7 +688,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 								},
 								{
-									Number:   2,
+									// Number:   2,
 									Name:     "difficulty",
 									Type:     "int32",
 									FullType: "int32",
@@ -705,7 +704,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							Alias:  "PveMode",
 							Fields: []*internalpb.Field{
 								{
-									Number:   1,
+									// Number:   1,
 									Name:     "name",
 									Type:     "string",
 									FullType: "string",
@@ -714,7 +713,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 								},
 								{
-									Number:   2,
+									// Number:   2,
 									Name:     "score",
 									Type:     "int32",
 									FullType: "int32",

@@ -252,10 +252,16 @@ func (x *sheetExporter) exportUnion() error {
 		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
 		// generate the fields
 		depth := 2
+		tagid := 1
 		for _, field := range msgField.Fields {
-			if err := x.exportField(depth, int(field.Number), field, msgField.Name); err != nil {
+			if err := x.exportField(depth, tagid, field, msgField.Name); err != nil {
 				return err
 			}
+			cross := int(field.GetOptions().GetProp().GetCross())
+			if cross < 1 {
+				cross = 1
+			}
+			tagid += cross
 		}
 		x.g.P("  }")
 	}
