@@ -300,6 +300,14 @@ func NewExtendedSheetParser(protoPackage, locationName string, strcaseCtx strcas
 	}
 }
 
+// reset resets the runtime data of sheet parser for reuse
+func (sp *sheetParser) reset() {
+	sp.names = nil
+	sp.types = nil
+	sp.lookupTable = book.ColumnLookupTable{}
+	sp.cards = map[string]*cardInfo{}
+}
+
 // GetSep returns sheet-level separator.
 func (sp *sheetParser) GetSep() string {
 	// sheet-level
@@ -349,6 +357,7 @@ func (sp *sheetParser) IsFieldOptional(field *Field) bool {
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+	defer sp.reset()
 	if sheet.Document != nil {
 		docParser := &documentParser{sheetParser: sp}
 		return docParser.Parse(protomsg, sheet)

@@ -603,11 +603,11 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		Namerow: 1,
 		Datarow: 2,
 	}
+	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 
 	// parse each special sheet mode
 	switch mode {
 	case tableaupb.Mode_MODE_ENUM_TYPE:
-		parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 		if err := parseEnumType(ws, sheet, parser, gen); err != nil {
 			return nil, err
 		}
@@ -631,7 +631,6 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := book.NewTableSheet(subWs.Name, block)
-				parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 				if err := parseEnumType(subWs, subSheet, parser, gen); err != nil {
 					return nil, err
 				}
@@ -640,7 +639,6 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		}
 		return worksheets, nil
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
-		parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 		if err := parseStructType(ws, sheet, parser, gen, debugBookName, debugSheetName); err != nil {
 			return nil, err
 		}
@@ -664,7 +662,6 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := book.NewTableSheet(subWs.Name, block)
-				parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 				if err := parseStructType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}
@@ -673,7 +670,6 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		}
 		return worksheets, nil
 	case tableaupb.Mode_MODE_UNION_TYPE:
-		parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 		if err := parseUnionType(ws, sheet, parser, gen, debugBookName, debugSheetName); err != nil {
 			return nil, err
 		}
@@ -697,7 +693,6 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := book.NewTableSheet(subWs.Name, block)
-				parser := confgen.NewSheetParser(xproto.InternalProtoPackage, gen.LocationName, gen.strcaseCtx, sheetOpts)
 				if err := parseUnionType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}

@@ -4,9 +4,9 @@ ID,uint32
 Num,int32
 ,
 Pet,Pet note
-Name,Type
-Kind,int32
-Tip,[]string
+Type,Name
+int32,Kind
+[]string,Tip
 ,
 ,
 ,

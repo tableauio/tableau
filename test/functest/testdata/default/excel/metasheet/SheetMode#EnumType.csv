@@ -5,15 +5,15 @@ Number,Name,Alias
 3,CAT_TYPE_SPHYNX,Sphynx
 ,,
 DogType,DogType note,
-Number,Name,Alias
-1,DOG_TYPE_POODLE,Poodle
-2,DOG_TYPE_BULLDOG,Bulldog
-3,DOG_TYPE_DACHSHUND,Dachshund
+Name,Number,Alias
+DOG_TYPE_POODLE,1,Poodle
+DOG_TYPE_BULLDOG,2,Bulldog
+DOG_TYPE_DACHSHUND,3,Dachshund
 ,,
 ,,
 ,,
 BirdType,BirdType note,
-Number,Name,Alias
-1,CANARY,Canary
-2,WOODPECKER,Woodpecker
-3,OWL,Owl
+Alias,Number,Name
+Canary,1,CANARY
+Woodpecker,2,WOODPECKER
+Owl,3,OWL

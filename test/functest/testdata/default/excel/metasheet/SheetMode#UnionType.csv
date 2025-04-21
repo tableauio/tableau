@@ -7,23 +7,23 @@ uint32","Bank
 map<int32, string>",
 ,,,,
 HeroTarget,HeroTarget note,,,
-Name,Alias,Field1,Field2,Field3
-StarUp,HeroStarUp,"ID
-uint32","Star
-int32",
-LevelUp,HeroLevelUp,"ID
-[]uint32","Level
-int32","Super
-bool"
+Alias,Name,Field3,Field2,Field1
+HeroStarUp,StarUp,,"Star
+int32","ID
+uint32"
+HeroLevelUp,LevelUp,"Super
+bool","Level
+int32","ID
+[]uint32"
 ,,,,
 ,,,,
 ,,,,
 BattleTarget,BattleTarget note,,,
-Name,Alias,Field1,Field2,Field3
-PVP,BattlePVP,"BattleID
-int32","Damage
-int64",
-PVE,BattlePVE,"HeroID
-[]int32","Dungeon
-map<int32, int64>","Boss
+Field1,Name,Field2,Alias,Field3
+"BattleID
+int32",PVP,"Damage
+int64",BattlePVP,
+"HeroID
+[]int32",PVE,"Dungeon
+map<int32, int64>",BattlePVE,"Boss
 {uint32 ID, int64 Damage}Boss"
