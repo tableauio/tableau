@@ -123,11 +123,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 
 	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
 		// incell map
-		value := node.Value
-		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
-			value = node.Children[0].Value
-		}
-		err = sp.parseIncellMap(field, reflectMap, value)
+		err = sp.parseIncellMap(field, reflectMap, node.ScalarValue())
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -325,11 +321,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
 		// node of XML scalar list with only 1 element is just like an incell list
 		node.Kind == book.ScalarNode:
-		value := node.Value
-		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
-			value = node.Children[0].Value
-		}
-		present, err = sp.parseIncellList(field, list, cardPrefix, value)
+		present, err = sp.parseIncellList(field, list, cardPrefix, node.ScalarValue())
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -385,11 +377,7 @@ func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message
 	}
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		value := node.Value
-		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
-			value = node.Children[0].Value
-		}
-		present, err = sp.parseIncellUnion(structValue, value, field.opts.GetProp().GetForm())
+		present, err = sp.parseIncellUnion(structValue, node.ScalarValue(), field.opts.GetProp().GetForm())
 	} else {
 		if node.Kind == book.ListNode {
 			if len(node.Children) != 1 {
@@ -419,17 +407,9 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		value := node.Value
-		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
-			value = node.Children[0].Value
-		}
-		present, err = sp.parseIncellStruct(structValue, value, field.opts.GetProp().GetForm(), field.sep)
+		present, err = sp.parseIncellStruct(structValue, node.ScalarValue(), field.opts.GetProp().GetForm(), field.sep)
 	} else if types.IsWellKnownMessage(field.fd.Message().FullName()) {
-		value := node.Value
-		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
-			value = node.Children[0].Value
-		}
-		structValue, present, err = sp.parseFieldValue(field.fd, value, field.opts.Prop)
+		structValue, present, err = sp.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
 	} else {
 		// cross-cell struct
 		if node.Kind == book.ListNode {
@@ -452,11 +432,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
 	var newValue protoreflect.Value
 	// FIXME(wenchy): treat any scalar field's present as true if this field's key exists?
-	value := node.Value
-	if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
-		value = node.Children[0].Value
-	}
-	newValue, present, err = sp.parseFieldValue(field.fd, value, field.opts.Prop)
+	newValue, present, err = sp.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
