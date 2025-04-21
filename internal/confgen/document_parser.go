@@ -123,7 +123,11 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 
 	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
 		// incell map
-		err = sp.parseIncellMap(field, reflectMap, node.Value)
+		value := node.Value
+		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
+			value = node.Children[0].Value
+		}
+		err = sp.parseIncellMap(field, reflectMap, value)
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -321,7 +325,11 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
 		// node of XML scalar list with only 1 element is just like an incell list
 		node.Kind == book.ScalarNode:
-		present, err = sp.parseIncellList(field, list, cardPrefix, node.Value)
+		value := node.Value
+		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
+			value = node.Children[0].Value
+		}
+		present, err = sp.parseIncellList(field, list, cardPrefix, value)
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -335,7 +343,11 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 				elemPresent, err = sp.parseUnionMessage(field, elemValue.Message(), elemNode, newCardPrefix)
 			} else if field.fd.Kind() == protoreflect.MessageKind {
 				// cross-cell struct list
-				elemPresent, err = sp.parseMessage(elemValue.Message(), elemNode, newCardPrefix)
+				if types.IsWellKnownMessage(field.fd.Message().FullName()) {
+					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
+				} else {
+					elemPresent, err = sp.parseMessage(elemValue.Message(), elemNode, newCardPrefix)
+				}
 			} else {
 				// cross-cell scalar list
 				elemValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
@@ -373,7 +385,11 @@ func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message
 	}
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		present, err = sp.parseIncellUnion(structValue, node.Value, field.opts.GetProp().GetForm())
+		value := node.Value
+		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
+			value = node.Children[0].Value
+		}
+		present, err = sp.parseIncellUnion(structValue, value, field.opts.GetProp().GetForm())
 	} else {
 		if node.Kind == book.ListNode {
 			if len(node.Children) != 1 {
@@ -403,9 +419,17 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		present, err = sp.parseIncellStruct(structValue, node.Value, field.opts.GetProp().GetForm(), field.sep)
+		value := node.Value
+		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
+			value = node.Children[0].Value
+		}
+		present, err = sp.parseIncellStruct(structValue, value, field.opts.GetProp().GetForm(), field.sep)
 	} else if types.IsWellKnownMessage(field.fd.Message().FullName()) {
-		structValue, present, err = sp.parseFieldValue(field.fd, node.Value, field.opts.Prop)
+		value := node.Value
+		if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
+			value = node.Children[0].Value
+		}
+		structValue, present, err = sp.parseFieldValue(field.fd, value, field.opts.Prop)
 	} else {
 		// cross-cell struct
 		if node.Kind == book.ListNode {
@@ -428,7 +452,11 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
 	var newValue protoreflect.Value
 	// FIXME(wenchy): treat any scalar field's present as true if this field's key exists?
-	newValue, present, err = sp.parseFieldValue(field.fd, node.Value, field.opts.Prop)
+	value := node.Value
+	if value == "" && node.Kind == book.ListNode && len(node.Children) != 0 {
+		value = node.Children[0].Value
+	}
+	newValue, present, err = sp.parseFieldValue(field.fd, value, field.opts.Prop)
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}

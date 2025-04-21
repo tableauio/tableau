@@ -13,6 +13,9 @@
     </Empty>
     <Award>{uint32 ID, int32 Num}Award</Award>
     <Vector>{.Vector3}</Vector>
+    <Date>date</Date>
+    <Text>string</Text>
+    <Attr Value="int32" />
 </XMLStructConf>
 
 <XMLStructConf2>
@@ -32,6 +35,15 @@
     </Empty>
     <Award>3, 30</Award>
     <Vector>2.7182818, 3.1415926, -1</Vector>
+    <Date>2024-10-01 10:10:10</Date>
+    <Text RedundantAttr="do not affect text parsing">
+        This text is ignored since it's before the last child.
+        <RedundantChild/>
+        This text is adopted.
+    </Text>
+    <Attr Value="123">
+        Redundant text do not affect attr or child parsing.
+    </Attr>
 </XMLStructConf>
 
 <XMLStructConf2>

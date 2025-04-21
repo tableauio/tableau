@@ -9,6 +9,19 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 )
 
+func Test_XXX(t *testing.T) {
+	rawDoc := `
+<?xml version="1.0" encoding="UTF-8"?>
+    <Text RedundantAttr="abc">
+        1230
+        <RedundantChild/>
+    </Text>
+`
+	doc, err := xmldom.ParseXML(rawDoc)
+	require.NoError(t, err)
+	t.Logf("%+v", doc)
+}
+
 func Test_inspectXMLNode(t *testing.T) {
 	// your byte array
 	data := []byte(`

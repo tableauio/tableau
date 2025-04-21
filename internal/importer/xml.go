@@ -274,16 +274,12 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			curBNode.Children = append(curBNode.Children, subNode)
 		}
 	default:
-		if node.Text != "" {
-			if len(node.Attributes) != 0 || len(node.Children) != 0 {
-				return xerrors.Errorf("node contains text so attributes and children must be empty|name: %s", node.Name)
-			}
-			bnode.Name = node.Name
-			bnode.Value = node.Text
+		bnode.Name = node.Name
+		bnode.Value = node.Text
+		if len(node.Attributes) == 0 && len(node.Children) == 0 {
 			break
 		}
 		bnode.Kind = book.MapNode
-		bnode.Name = node.Name
 		for _, attr := range node.Attributes {
 			subNode := &book.Node{
 				Name:  attr.Name,
@@ -296,38 +292,16 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			if err := parseXMLNode(child, subNode, mode); err != nil {
 				return xerrors.Wrapf(err, "parse xml node failed")
 			}
-			if subNode.Kind == book.ScalarNode {
-				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
-					bnode.Children = append(bnode.Children, subNode)
-				} else if existingBnode.Kind == book.ScalarNode {
-					existingBnode.Kind = book.ListNode
-					subNode.Name = ""
-					existingBnode.Children = append(existingBnode.Children, &book.Node{
-						Kind:  book.ScalarNode,
-						Value: existingBnode.Value,
-					}, subNode)
-					existingBnode.Value = ""
-				} else {
-					subNode.Name = ""
-					existingBnode.Children = append(existingBnode.Children, subNode)
+			existingBnode := bnode.FindChild(subNode.Name)
+			if existingBnode == nil {
+				existingBnode = &book.Node{
+					Kind: book.ListNode,
+					Name: subNode.Name,
 				}
-			} else {
-				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
-					bnode.Children = append(bnode.Children, &book.Node{
-						Kind: book.ListNode,
-						Name: subNode.Name,
-						Children: []*book.Node{
-							{
-								Kind:     book.MapNode,
-								Children: subNode.Children,
-							},
-						},
-					})
-				} else {
-					subNode.Name = ""
-					existingBnode.Children = append(existingBnode.Children, subNode)
-				}
+				bnode.Children = append(bnode.Children, existingBnode)
 			}
+			subNode.Name = ""
+			existingBnode.Children = append(existingBnode.Children, subNode)
 		}
 	}
 	return nil
