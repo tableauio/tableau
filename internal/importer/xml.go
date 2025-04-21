@@ -281,6 +281,16 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		}
 		bnode.Kind = book.MapNode
 		for _, attr := range node.Attributes {
+			// treat attributes as scalar subnodes
+			// Examples:
+			//
+			// <RankConf MaxScore="100">
+			// </RankConf>
+			//
+			// will be converted to:
+			//
+			// # document RankConf
+			//   MaxScore: 100 # scalar
 			subNode := &book.Node{
 				Name:  attr.Name,
 				Value: attr.Value,
@@ -288,6 +298,30 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			bnode.Children = append(bnode.Children, subNode)
 		}
 		for _, child := range node.Children {
+			// treat children as list subnodes
+			// Examples:
+			//
+			// <RankConf>
+			//   <MaxScore>100</MaxScore>
+			// </RankConf>
+			//
+			// will be converted to:
+			//
+			// # document RankConf
+			//   MaxScore: # list
+			// 	   - 100 # scalar
+			//
+			// <RankConf>
+			//   <MaxScore>100</MaxScore>
+			//   <MaxScore>200</MaxScore>
+			// </RankConf>
+			//
+			// will be converted to:
+			//
+			// # document RankConf
+			//   MaxScore: # list
+			// 	   - 100 # scalar
+			// 	   - 200 # scalar
 			subNode := &book.Node{}
 			if err := parseXMLNode(child, subNode, mode); err != nil {
 				return xerrors.Wrapf(err, "parse xml node failed")
@@ -299,6 +333,9 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 					Name: subNode.Name,
 				}
 				bnode.Children = append(bnode.Children, existingBnode)
+			}
+			if existingBnode.Kind != book.ListNode {
+				return xerrors.Errorf("children name confilcts with attributes|name: %s", node.Name)
 			}
 			subNode.Name = ""
 			existingBnode.Children = append(existingBnode.Children, subNode)
