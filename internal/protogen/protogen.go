@@ -151,15 +151,12 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 func (gen *Generator) processFirstPass() error {
 	// first pass
 	log.Infof("%15s: processing all books", "first-pass")
-	if len(gen.InputOpt.Subdirs) != 0 {
-		for _, subdir := range gen.InputOpt.Subdirs {
-			dir := filepath.Join(gen.InputDir, subdir)
-			if err := gen.processDirFirstPass(dir); err != nil {
-				return err
-			}
-		}
-	} else {
-		if err := gen.processDirFirstPass(gen.InputDir); err != nil {
+	if len(gen.InputOpt.Subdirs) == 0 {
+		return gen.processDirFirstPass(gen.InputDir)
+	}
+	for _, subdir := range gen.InputOpt.Subdirs {
+		dir := filepath.Join(gen.InputDir, subdir)
+		if err := gen.processDirFirstPass(dir); err != nil {
 			return err
 		}
 	}
@@ -175,14 +172,14 @@ func (gen *Generator) processSecondPass() error {
 	}
 	gen.cacheMu.RUnlock()
 
-	var eg2 errgroup.Group
+	var eg errgroup.Group
 	for _, absPath := range absPaths {
 		absPath := absPath
-		eg2.Go(func() error {
+		eg.Go(func() error {
 			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), true, secondPass)
 		})
 	}
-	return eg2.Wait()
+	return eg.Wait()
 }
 
 func (gen *Generator) processDirFirstPass(dir string) (err error) {
