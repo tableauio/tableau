@@ -9,6 +9,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/x/xfs"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/xerrors"
 )
 
@@ -46,6 +47,7 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 			if err != nil {
 				return xerrors.WrapKV(err)
 			}
+			log.Debugf("remove existed proto file: %s", fpath)
 		}
 	} else {
 		// create output dir
