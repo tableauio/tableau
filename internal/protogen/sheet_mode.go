@@ -39,14 +39,17 @@ func extractSheetBlockTypeRow(cols []string) (name, note string, err error) {
 func isEnumTypeBlockHeader(cols []string) bool {
 	var containsName, containsAlias bool
 	for _, col := range cols {
-		if col == colName {
+		switch col {
+		case colName:
 			containsName = true
-		}
-		if col == colAlias {
+		case colAlias:
 			containsAlias = true
 		}
+		if containsName && containsAlias {
+			return true
+		}
 	}
-	return containsName && containsAlias
+	return false
 }
 
 func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator) error {
@@ -77,14 +80,17 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 func isStructTypeBlockHeader(cols []string) bool {
 	var containsName, containsType bool
 	for _, col := range cols {
-		if col == colName {
+		switch col {
+		case colName:
 			containsName = true
-		}
-		if col == colType {
+		case colType:
 			containsType = true
 		}
+		if containsName && containsType {
+			return true
+		}
 	}
-	return containsName && containsType
+	return false
 }
 
 func extractStructTypeInfo(sheet *book.Sheet, typeName, parentFilename string, parser book.SheetParser, gen *Generator) error {
@@ -142,17 +148,19 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 func isUnionTypeBlockHeader(cols []string) bool {
 	var containsName, containsAlias, containsField1 bool
 	for _, col := range cols {
-		if col == colName {
+		switch col {
+		case colName:
 			containsName = true
-		}
-		if col == colAlias {
+		case colAlias:
 			containsAlias = true
-		}
-		if col == colFieldPrefix+"1" {
+		case colFieldPrefix + "1":
 			containsField1 = true
 		}
+		if containsName && containsAlias && containsField1 {
+			return true
+		}
 	}
-	return containsName && containsAlias && containsField1
+	return false
 }
 
 func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, parser book.SheetParser, gen *Generator) error {
