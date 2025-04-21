@@ -79,6 +79,25 @@ func (n *Node) GetValue() string {
 	return n.Value
 }
 
+// ScalarValue returns node's value. XML importer will convert a scalar node
+// to an 1-elem list node and this returns the elem's value as node's value.
+func (n *Node) ScalarValue() string {
+	value := n.Value
+	if value == "" && n.Kind == ListNode && len(n.Children) != 0 {
+		value = n.Children[0].Value
+	}
+	return value
+}
+
+// StructNode returns node's as a struct node. XML importer will convert a struct node
+// to an 1-elem list node and this returns the elem node as struct node.
+func (n *Node) StructNode() *Node {
+	if n.Kind == ListNode && len(n.Children) != 0 {
+		return n.Children[0]
+	}
+	return n
+}
+
 // IsMeta checks whether this node is meta (name starts with leading "@") or not.
 func (n *Node) IsMeta() bool {
 	return strings.HasPrefix(n.Name, MetaSign)

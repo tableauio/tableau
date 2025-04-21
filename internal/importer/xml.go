@@ -274,17 +274,23 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			curBNode.Children = append(curBNode.Children, subNode)
 		}
 	default:
-		if node.Text != "" {
-			if len(node.Attributes) != 0 || len(node.Children) != 0 {
-				return xerrors.Errorf("node contains text so attributes and children must be empty|name: %s", node.Name)
-			}
-			bnode.Name = node.Name
-			bnode.Value = node.Text
+		bnode.Name = node.Name
+		bnode.Value = node.Text
+		if len(node.Attributes) == 0 && len(node.Children) == 0 {
 			break
 		}
 		bnode.Kind = book.MapNode
-		bnode.Name = node.Name
 		for _, attr := range node.Attributes {
+			// treat attributes as scalar subnodes
+			// Examples:
+			//
+			// <RankConf MaxScore="100">
+			// </RankConf>
+			//
+			// will be converted to:
+			//
+			// # document RankConf
+			//   MaxScore: 100 # scalar
 			subNode := &book.Node{
 				Name:  attr.Name,
 				Value: attr.Value,
@@ -292,42 +298,47 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			bnode.Children = append(bnode.Children, subNode)
 		}
 		for _, child := range node.Children {
+			// treat children as list subnodes
+			// Examples:
+			//
+			// <RankConf>
+			//   <MaxScore>100</MaxScore>
+			// </RankConf>
+			//
+			// will be converted to:
+			//
+			// # document RankConf
+			//   MaxScore: # list
+			// 	   - 100 # scalar
+			//
+			// <RankConf>
+			//   <MaxScore>100</MaxScore>
+			//   <MaxScore>200</MaxScore>
+			// </RankConf>
+			//
+			// will be converted to:
+			//
+			// # document RankConf
+			//   MaxScore: # list
+			// 	   - 100 # scalar
+			// 	   - 200 # scalar
 			subNode := &book.Node{}
 			if err := parseXMLNode(child, subNode, mode); err != nil {
 				return xerrors.Wrapf(err, "parse xml node failed")
 			}
-			if subNode.Kind == book.ScalarNode {
-				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
-					bnode.Children = append(bnode.Children, subNode)
-				} else if existingBnode.Kind == book.ScalarNode {
-					existingBnode.Kind = book.ListNode
-					subNode.Name = ""
-					existingBnode.Children = append(existingBnode.Children, &book.Node{
-						Kind:  book.ScalarNode,
-						Value: existingBnode.Value,
-					}, subNode)
-					existingBnode.Value = ""
-				} else {
-					subNode.Name = ""
-					existingBnode.Children = append(existingBnode.Children, subNode)
+			existingBnode := bnode.FindChild(subNode.Name)
+			if existingBnode == nil {
+				existingBnode = &book.Node{
+					Kind: book.ListNode,
+					Name: subNode.Name,
 				}
-			} else {
-				if existingBnode := bnode.FindChild(subNode.Name); existingBnode == nil {
-					bnode.Children = append(bnode.Children, &book.Node{
-						Kind: book.ListNode,
-						Name: subNode.Name,
-						Children: []*book.Node{
-							{
-								Kind:     book.MapNode,
-								Children: subNode.Children,
-							},
-						},
-					})
-				} else {
-					subNode.Name = ""
-					existingBnode.Children = append(existingBnode.Children, subNode)
-				}
+				bnode.Children = append(bnode.Children, existingBnode)
 			}
+			if existingBnode.Kind != book.ListNode {
+				return xerrors.Errorf("children name confilcts with attributes|name: %s", node.Name)
+			}
+			subNode.Name = ""
+			existingBnode.Children = append(existingBnode.Children, subNode)
 		}
 	}
 	return nil
