@@ -27,3 +27,13 @@ PVE,BattlePVE,"HeroID
 []int32","Dungeon
 map<int32, int64>","Boss
 {uint32 ID, int64 Damage}Boss"
+,,,,
+ColumnDisorderedUnion,ColumnDisorderedUnion note,,,
+Field3,Name,Field2,Alias,Field1
+,Goblin,"Damage
+int64",MonsterGoblin,"HP
+int32"
+"Gold
+int32",Kobold,"Weapon
+string",MonsterKobold,"HP
+int32"

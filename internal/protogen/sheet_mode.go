@@ -37,8 +37,17 @@ func extractSheetBlockTypeRow(cols []string) (name, note string, err error) {
 }
 
 func isEnumTypeBlockHeader(cols []string) bool {
-	if len(cols) >= 3 {
-		return cols[0] == colNumber && cols[1] == colName && cols[2] == colAlias
+	var containsName, containsAlias bool
+	for _, col := range cols {
+		switch col {
+		case colName:
+			containsName = true
+		case colAlias:
+			containsAlias = true
+		}
+		if containsName && containsAlias {
+			return true
+		}
 	}
 	return false
 }
@@ -69,8 +78,17 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 }
 
 func isStructTypeBlockHeader(cols []string) bool {
-	if len(cols) >= 2 {
-		return cols[0] == colName && cols[1] == colType
+	var containsName, containsType bool
+	for _, col := range cols {
+		switch col {
+		case colName:
+			containsName = true
+		case colType:
+			containsType = true
+		}
+		if containsName && containsType {
+			return true
+		}
 	}
 	return false
 }
@@ -128,8 +146,19 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 }
 
 func isUnionTypeBlockHeader(cols []string) bool {
-	if len(cols) >= 3 {
-		return cols[0] == colName && cols[1] == colAlias && strings.HasPrefix(cols[2], colFieldPrefix)
+	var containsName, containsAlias, containsField1 bool
+	for _, col := range cols {
+		switch col {
+		case colName:
+			containsName = true
+		case colAlias:
+			containsAlias = true
+		case colFieldPrefix + "1":
+			containsField1 = true
+		}
+		if containsName && containsAlias && containsField1 {
+			return true
+		}
 	}
 	return false
 }
@@ -208,13 +237,11 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		var parsed bool
 		var err error
 		for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
-			fieldNumber := cursor + 1
 			subField := &internalpb.Field{}
 			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "", parseroptions.Mode(tableaupb.Mode_MODE_UNION_TYPE))
 			if err != nil {
 				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 			}
-			subField.Number = int32(fieldNumber)
 			if parsed {
 				field.Fields = append(field.Fields, subField)
 			}

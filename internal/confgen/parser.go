@@ -288,16 +288,24 @@ func NewSheetParser(protoPackage, locationName string, strcaseCtx strcase.Contex
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
 func NewExtendedSheetParser(protoPackage, locationName string, strcaseCtx strcase.Context, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
-	return &sheetParser{
+	sp := &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
 		strcaseCtx:   strcaseCtx,
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
-		lookupTable:  book.ColumnLookupTable{},
-		cards:        map[string]*cardInfo{},
 	}
+	sp.reset()
+	return sp
+}
+
+// reset resets the runtime data of sheet parser for reuse
+func (sp *sheetParser) reset() {
+	sp.names = nil
+	sp.types = nil
+	sp.lookupTable = book.ColumnLookupTable{}
+	sp.cards = map[string]*cardInfo{}
 }
 
 // GetSep returns sheet-level separator.
@@ -349,6 +357,7 @@ func (sp *sheetParser) IsFieldOptional(field *Field) bool {
 }
 
 func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+	defer sp.reset()
 	if sheet.Document != nil {
 		docParser := &documentParser{sheetParser: sp}
 		return docParser.Parse(protomsg, sheet)

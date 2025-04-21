@@ -14,3 +14,8 @@ FruitShop,FruitShop note
 Name,Type
 FruitType,enum<.FruitType>
 Prop,"map<int32, string>"
+,
+ColumnDisorderedStruct,ColumnDisorderedStruct note
+Type,Name
+int32,ID
+string,Name
