@@ -108,17 +108,8 @@ func (gen *Generator) GenAll() error {
 		return err
 	}
 	// first pass
-	if len(gen.InputOpt.Subdirs) != 0 {
-		for _, subdir := range gen.InputOpt.Subdirs {
-			dir := filepath.Join(gen.InputDir, subdir)
-			if err := gen.generate(dir); err != nil {
-				return err
-			}
-		}
-	} else {
-		if err := gen.generate(gen.InputDir); err != nil {
-			return err
-		}
+	if err := gen.processFirstPass(); err != nil {
+		return err
 	}
 	// second pass
 	return gen.processSecondPass()
@@ -129,18 +120,50 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		return err
 	}
 	// first pass
-	var eg1 errgroup.Group
-	for _, relWorkbookPath := range relWorkbookPaths {
-		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-		eg1.Go(func() error {
-			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass)
-		})
-	}
-	if err := eg1.Wait(); err != nil {
-		return err
+	if gen.InputOpt.FirstPassProcessAll {
+		if err := gen.processFirstPass(); err != nil {
+			return err
+		}
+	} else {
+		log.Infof("%15s: processing only specified books", "first-pass")
+		var eg errgroup.Group
+		for _, relWorkbookPath := range relWorkbookPaths {
+			absPath := filepath.Join(gen.InputDir, relWorkbookPath)
+			eg.Go(func() error {
+				return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass)
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			return err
+		}
 	}
 	// second pass
-	return gen.processSecondPass()
+	var eg errgroup.Group
+	for _, relWorkbookPath := range relWorkbookPaths {
+		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
+		eg.Go(func() error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, secondPass)
+		})
+	}
+	return eg.Wait()
+}
+
+func (gen *Generator) processFirstPass() error {
+	// first pass
+	log.Infof("%15s: processing all books", "first-pass")
+	if len(gen.InputOpt.Subdirs) != 0 {
+		for _, subdir := range gen.InputOpt.Subdirs {
+			dir := filepath.Join(gen.InputDir, subdir)
+			if err := gen.processDirFirstPass(dir); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := gen.processDirFirstPass(gen.InputDir); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (gen *Generator) processSecondPass() error {
@@ -156,13 +179,13 @@ func (gen *Generator) processSecondPass() error {
 	for _, absPath := range absPaths {
 		absPath := absPath
 		eg2.Go(func() error {
-			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, secondPass)
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), true, secondPass)
 		})
 	}
 	return eg2.Wait()
 }
 
-func (gen *Generator) generate(dir string) (err error) {
+func (gen *Generator) processDirFirstPass(dir string) (err error) {
 	var eg errgroup.Group
 	defer func() {
 		if err == nil {
@@ -181,7 +204,7 @@ func (gen *Generator) generate(dir string) (err error) {
 		if entry.IsDir() {
 			// scan and generate subdir recursively
 			subdir := filepath.Join(dir, entry.Name())
-			err = gen.generate(subdir)
+			err = gen.processDirFirstPass(subdir)
 			if err != nil {
 				return xerrors.WrapKV(err, xerrors.KeySubdir, subdir)
 			}
@@ -200,7 +223,7 @@ func (gen *Generator) generate(dir string) (err error) {
 				// is not a directory
 				log.Warnf("symlink: %s is not a directory, currently not processed", dstPath)
 			}
-			err = gen.generate(dstPath)
+			err = gen.processDirFirstPass(dstPath)
 			if err != nil {
 				return xerrors.WrapKV(err, xerrors.KeySubdir, dstPath)
 			}
@@ -386,7 +409,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		debugBookName += " (rewrite: " + rewrittenBookName + ")"
 	}
 
-	if pass == firstPass {
+	if pass == secondPass {
 		log.Infof("%15s: %s, %d sheet(s) will be parsed", "analyzing book", debugBookName, len(imp.GetSheets()))
 	}
 	bookOpts := imp.GetBookOptions()
@@ -409,7 +432,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		// parse sheet header
 		ws := sheet.ToWorkseet()
 		debugSheetName := sheet.GetDebugName()
-		if pass == firstPass {
+		if pass == secondPass {
 			log.Infof("%15s: %s", "parsing sheet", debugSheetName)
 		}
 

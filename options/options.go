@@ -145,6 +145,14 @@ type ProtoInputOption struct {
 	//
 	// Default: "".
 	MetasheetName string `yaml:"metasheetName"`
+
+	// In the first-pass stage of protogen, whether to process all files when
+	// only generate some specified files. In the first-pass under the hood,
+	// all predefined types will be parsed and then can be recognized and used
+	// in the second-pass.
+	//
+	// Default: false.
+	FirstPassProcessAll bool `yaml:"firstPassProcessAll"`
 }
 
 // Output options for generating proto files.
