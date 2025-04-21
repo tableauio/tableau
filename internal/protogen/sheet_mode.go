@@ -127,13 +127,11 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 	var parsed bool
 	var err error
 	for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
-		fieldNumber := cursor + 1
 		subField := &internalpb.Field{}
 		cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "")
 		if err != nil {
 			return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 		}
-		subField.Number = int32(fieldNumber)
 		if parsed {
 			ws.Fields = append(ws.Fields, subField)
 		}

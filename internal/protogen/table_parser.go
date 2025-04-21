@@ -656,7 +656,6 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				}
 				if fieldPairs != nil {
 					for i := 0; i < len(fieldPairs); i += 2 {
-						fieldNumber := i/2 + 1
 						fieldType := fieldPairs[i]
 						fieldName := fieldPairs[i+1]
 						scalarField, err := p.parseBasicField(fieldName, fieldType, "")
@@ -666,7 +665,6 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 								xerrors.KeyPBFieldOpts, desc.Prop.Text,
 								xerrors.KeyTrimmedNameCell, trimmedNameCell)
 						}
-						scalarField.Number = int32(fieldNumber)
 						field.Fields = append(field.Fields, scalarField)
 					}
 				}
@@ -778,7 +776,6 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 		field.Options.Prop = ExtractStructFieldProp(prop)
 
 		for i := 0; i < len(fieldPairs); i += 2 {
-			fieldNumber := i/2 + 1
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
 			scalarField, err := p.parseBasicField(fieldName, fieldType, "")
@@ -788,7 +785,6 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 					xerrors.KeyPBFieldOpts, desc.Prop.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
 			}
-			scalarField.Number = int32(fieldNumber)
 			field.Fields = append(field.Fields, scalarField)
 		}
 	} else {

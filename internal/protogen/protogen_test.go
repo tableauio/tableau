@@ -274,7 +274,11 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					Name: "ItemType",
 					Fields: []*internalpb.Field{
 						{
-							Number:   1,
+							// Note that field numbers are not set explicitly when parsing sheets.
+							// They are auto generated when exporting to proto files finally.
+							// This behavior may also be changed in the future.
+							//
+							// Number:   1,
 							Name:     "id",
 							Type:     "uint32",
 							FullType: "uint32",
@@ -283,7 +287,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							},
 						},
 						{
-							Number:   2,
+							// Number:   2,
 							Name:     "prop_map",
 							Type:     "map<int32, string>",
 							FullType: "map<int32, string>",
@@ -298,7 +302,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							},
 						},
 						{
-							Number:   3,
+							// Number:   3,
 							Name:     "feature_list",
 							Type:     "repeated int32",
 							FullType: "repeated int32",
@@ -349,7 +353,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					Note: "Item's Type",
 					Fields: []*internalpb.Field{
 						{
-							Number:   1,
+							// Number:   1,
 							Name:     "id",
 							Type:     "uint32",
 							FullType: "uint32",
@@ -358,7 +362,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							},
 						},
 						{
-							Number:   2,
+							// Number:   2,
 							Name:     "prop_map",
 							Type:     "map<int32, string>",
 							FullType: "map<int32, string>",
@@ -373,7 +377,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							},
 						},
 						{
-							Number:   3,
+							// Number:   3,
 							Name:     "feature_list",
 							Type:     "repeated int32",
 							FullType: "repeated int32",
@@ -393,7 +397,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					Note: "Mode's Type",
 					Fields: []*internalpb.Field{
 						{
-							Number:   1,
+							// Number:   1,
 							Name:     "id",
 							Type:     "uint32",
 							FullType: "uint32",
@@ -402,7 +406,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							},
 						},
 						{
-							Number:   2,
+							// Number:   2,
 							Name:     "name",
 							Type:     "string",
 							FullType: "string",
@@ -411,7 +415,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 							},
 						},
 						{
-							Number:   3,
+							// Number:   3,
 							Name:     "valid",
 							Type:     "bool",
 							FullType: "bool",
@@ -481,7 +485,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 									Fields: []*internalpb.Field{
 										{
-											Number:   1,
+											// Number:   1,
 											Name:     "id",
 											Type:     "uint32",
 											FullType: "uint32",
@@ -490,7 +494,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 											},
 										},
 										{
-											Number:   2,
+											// Number:   2,
 											Name:     "level",
 											Type:     "int32",
 											FullType: "int32",
@@ -607,7 +611,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 									},
 									Fields: []*internalpb.Field{
 										{
-											Number:   1,
+											// Number:   1,
 											Name:     "id",
 											Type:     "uint32",
 											FullType: "uint32",
@@ -616,7 +620,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 											},
 										},
 										{
-											Number:   2,
+											// Number:   2,
 											Name:     "level",
 											Type:     "int32",
 											FullType: "int32",
