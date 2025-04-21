@@ -43,6 +43,16 @@ enum BirdType {
   BIRD_TYPE_OWL = 3 [(tableau.evalue).name = "Owl"]; // Owl
 }
 
+// ColumnDisorderedEnum note
+enum ColumnDisorderedEnum {
+  option (tableau.etype) = {name:"EnumType" note:"ColumnDisorderedEnum note"};
+
+  COLUMN_DISORDERED_ENUM_INVALID = 0;
+  COLUMN_DISORDERED_ENUM_LARGE = 1 [(tableau.evalue).name = "Large"]; // Large
+  COLUMN_DISORDERED_ENUM_MEDIUM = 2 [(tableau.evalue).name = "Medium"]; // Medium
+  COLUMN_DISORDERED_ENUM_SMALL = 3 [(tableau.evalue).name = "Small"]; // Small
+}
+
 message EnumTypeReuseInBook {
   option (tableau.worksheet) = {name:"EnumTypeReuseInBook"};
 
@@ -99,6 +109,13 @@ message FruitShop {
 
   protoconf.FruitType fruit_type = 1 [(tableau.field) = {name:"FruitType"}];
   map<int32, string> prop_map = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}];
+}
+
+message ColumnDisorderedStruct {
+  option (tableau.struct) = {name:"StructType" note:"ColumnDisorderedStruct note"};
+
+  int32 id = 1 [(tableau.field) = {name:"ID"}];
+  string name = 2 [(tableau.field) = {name:"Name"}];
 }
 
 message StructTypeReuseInBook {
@@ -292,6 +309,34 @@ message BattleTarget {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];
       int64 damage = 2 [(tableau.field) = {name:"Damage"}];
     }
+  }
+}
+
+message ColumnDisorderedUnion {
+  option (tableau.union) = {name:"UnionType" note:"ColumnDisorderedUnion note"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {note:"ColumnDisorderedUnion note" field:"Field"};
+
+    Goblin goblin = 1; // Bound to enum value: TYPE_GOBLIN.
+    Kobold kobold = 2; // Bound to enum value: TYPE_KOBOLD.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_GOBLIN = 1 [(tableau.evalue).name = "MonsterGoblin"]; // MonsterGoblin
+    TYPE_KOBOLD = 2 [(tableau.evalue).name = "MonsterKobold"]; // MonsterKobold
+  }
+
+  message Goblin {
+    int32 hp = 1 [(tableau.field) = {name:"HP"}];
+    int64 damage = 2 [(tableau.field) = {name:"Damage"}];
+  }
+  message Kobold {
+    int32 hp = 1 [(tableau.field) = {name:"HP"}];
+    string weapon = 2 [(tableau.field) = {name:"Weapon"}];
+    int32 gold = 3 [(tableau.field) = {name:"Gold"}];
   }
 }
 

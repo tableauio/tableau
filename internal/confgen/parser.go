@@ -288,16 +288,16 @@ func NewSheetParser(protoPackage, locationName string, strcaseCtx strcase.Contex
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
 func NewExtendedSheetParser(protoPackage, locationName string, strcaseCtx strcase.Context, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
-	return &sheetParser{
+	sp := &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
 		strcaseCtx:   strcaseCtx,
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
-		lookupTable:  book.ColumnLookupTable{},
-		cards:        map[string]*cardInfo{},
 	}
+	sp.reset()
+	return sp
 }
 
 // reset resets the runtime data of sheet parser for reuse

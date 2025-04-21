@@ -4,9 +4,9 @@ ID,uint32
 Num,int32
 ,
 Pet,Pet note
-Type,Name
-int32,Kind
-[]string,Tip
+Name,Type
+Kind,int32
+Tip,[]string
 ,
 ,
 ,
@@ -14,3 +14,8 @@ FruitShop,FruitShop note
 Name,Type
 FruitType,enum<.FruitType>
 Prop,"map<int32, string>"
+,
+ColumnDisorderedStruct,ColumnDisorderedStruct note
+Type,Name
+int32,ID
+string,Name
