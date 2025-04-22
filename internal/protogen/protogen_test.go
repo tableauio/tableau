@@ -515,6 +515,28 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "MODE_STRUCT_TYPE dup name",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 2,
+						Rows: [][]string{
+							{"Name", "Type"},
+							{"ID", "uint32"},
+							{"Prop", "map<int32, string>"},
+							{"Prop", "[]int32"}, // dupliacte
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "MODE_STRUCT_TYPE_MULTI",
 			gen:  testgen,
 			args: args{

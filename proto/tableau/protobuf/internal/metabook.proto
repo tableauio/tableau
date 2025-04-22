@@ -140,7 +140,7 @@ message StructDescriptor {
 
   repeated Field fields = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Field {
-    string name = 1 [(tableau.field) = {name:"Name"}];
+    string name = 1 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     string type = 2 [(tableau.field) = {name:"Type"}];
   }
 }
