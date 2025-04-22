@@ -92,7 +92,7 @@ func TestSheet_GetDataName(t *testing.T) {
 	}{
 		{
 			name: "TableSheet",
-			s:    NewTableSheet("TableSheet", nil),
+			s:    NewTableSheet("TableSheet", nil, 0),
 			want: "TableSheet",
 		},
 		{

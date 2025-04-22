@@ -51,10 +51,10 @@ type Sheet struct {
 }
 
 // NewTableSheet creates a new Sheet with a table.
-func NewTableSheet(name string, rows [][]string) *Sheet {
+func NewTableSheet(name string, rows [][]string, rowOffset int) *Sheet {
 	return &Sheet{
 		Name:  name,
-		Table: NewTable(rows),
+		Table: NewTable(rows, rowOffset),
 	}
 }
 

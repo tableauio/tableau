@@ -14,10 +14,15 @@ type Table struct {
 	MaxRow int
 	MaxCol int
 	Rows   [][]string // 2D array strings
+
+	// RowOffset is the row index of the first row in Rows.
+	// The current Rows may be part of a multi enum/struct/union sheet,
+	// so we need to know the offset to calculate the correct row number.
+	RowOffset int
 }
 
 // NewTable creates a new Table.
-func NewTable(rows [][]string) *Table {
+func NewTable(rows [][]string, rowOffset int) *Table {
 	maxRow := len(rows)
 	maxCol := 0
 	// NOTE: different rows may have different lengths,
@@ -29,9 +34,10 @@ func NewTable(rows [][]string) *Table {
 		}
 	}
 	return &Table{
-		MaxRow: maxRow,
-		MaxCol: maxCol,
-		Rows:   rows,
+		MaxRow:    maxRow,
+		MaxCol:    maxCol,
+		Rows:      rows,
+		RowOffset: rowOffset,
 	}
 }
 

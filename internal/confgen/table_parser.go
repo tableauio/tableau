@@ -87,7 +87,7 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 		typeRow := header.TypeRow - 1
 		var prev *book.RowCells
 		for row := header.DataRow - 1; row < sheet.Table.MaxRow; row++ {
-			curr := book.NewRowCells(row, prev, sheet.Name)
+			curr := book.NewRowCells(row+sheet.Table.RowOffset, prev, sheet.Name)
 			for col := 0; col < sheet.Table.MaxCol; col++ {
 				if row == header.DataRow-1 {
 					nameCell, err := sheet.Table.Cell(nameRow, col)

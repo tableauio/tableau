@@ -236,6 +236,29 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "MODE_ENUM_TYPE dup alias",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 5,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"3", "ITEM_TYPE_BOX", "Equip"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "MODE_ENUM_TYPE_MULTI",
 			gen:  testgen,
 			args: args{
@@ -604,6 +627,27 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "MODE_UNION_TYPE dup alias",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 5,
+						Rows: [][]string{
+							{"Name", "Alias", "Field1", "Field2", "Field3"},
+							{"PvpBattle", "SoloBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
+							{"PveBattle", "SoloBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+						},
+					},
+				},
+			},
+			wantErr: true,
 		},
 		{
 			name: "MODE_UNION_TYPE_MULTI",
