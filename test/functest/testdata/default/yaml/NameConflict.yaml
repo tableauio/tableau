@@ -1,0 +1,35 @@
+"@sheet": "@TABLEAU"
+---
+"@sheet": "@YamlNameConflictConf"
+ConflictFieldStruct:
+  "@type": "{ConflictFieldStruct}"
+  ID: uint32
+  Id: uint64
+  iD: int32
+  id: int64
+  ID_: string
+  id__: float
+ConflictFieldKeyMap:
+  "@type": "map<uint32, Item>"
+  "@struct":
+    Name: string
+    Num: int32
+    Key: int32 # conflict with @key
+---
+"@sheet": "YamlNameConflictConf"
+ConflictFieldStruct:
+  ID: 1
+  Id: 12
+  iD: 1234
+  id: 12345
+  ID_: 123456
+  id__: 1234567
+ConflictFieldKeyMap:
+  1:
+    Name: Apple
+    Num: 1
+    Key: 10
+  2:
+    Name: Banana
+    Num: 2
+    Key: 20

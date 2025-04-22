@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/tableauio/tableau/internal/excel"
@@ -121,4 +123,98 @@ func wrapDebugErr(err error, bookName, sheetName string, header *tableHeader, cu
 		xerrors.KeyTypeCell, header.getTypeCell(cursor),
 		xerrors.KeyNoteCell, header.getNoteCell(cursor),
 	)
+}
+
+var (
+	safeFieldNameReg         = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+	safeEnumNameReg          = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+	safeMessageNameReg       = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*$`)
+	consecutiveUnderscoreReg = regexp.MustCompile(`__+`)
+)
+
+func safeFieldName(fieldName string, existingFieldNames map[string]bool) (string, error) {
+	// Trim spaces
+	fieldName = strings.TrimSpace(fieldName)
+
+	// Validate field name
+	ok := safeFieldNameReg.MatchString(fieldName)
+	if !ok {
+		return "", xerrors.Errorf("invalid field name: %s", fieldName)
+	}
+
+	// Remove consecutive underscores
+	fieldName = consecutiveUnderscoreReg.ReplaceAllString(fieldName, "_")
+
+	// Trim underscores from end
+	fieldName = strings.TrimSuffix(fieldName, "_")
+
+	// Check for duplicates
+	if existingFieldNames[fieldName] {
+		i := 1
+		for ; existingFieldNames[fieldName+strconv.Itoa(i)]; i++ {
+		}
+		fieldName += strconv.Itoa(i)
+	}
+
+	existingFieldNames[fieldName] = true
+
+	return fieldName, nil
+}
+
+func safeEnumName(enumName string, existingEnumNames map[string]bool) (string, error) {
+	// Trim spaces
+	enumName = strings.TrimSpace(enumName)
+
+	// Validate enum name
+	ok := safeEnumNameReg.MatchString(enumName)
+	if !ok {
+		return "", xerrors.Errorf("invalid enum name: %s", enumName)
+	}
+
+	// Remove consecutive underscores
+	enumName = consecutiveUnderscoreReg.ReplaceAllString(enumName, "_")
+
+	// Trim underscores from end
+	enumName = strings.TrimSuffix(enumName, "_")
+
+	// Check for duplicates
+	if existingEnumNames[enumName] {
+		i := 1
+		for ; existingEnumNames[enumName+strconv.Itoa(i)]; i++ {
+		}
+		enumName += strconv.Itoa(i)
+	}
+
+	existingEnumNames[enumName] = true
+
+	return enumName, nil
+}
+
+func safeMessageName(messageName string, existingMessageNames map[string]bool) (string, error) {
+	// Trim spaces
+	messageName = strings.TrimSpace(messageName)
+
+	// Validate enum name
+	ok := safeMessageNameReg.MatchString(messageName)
+	if !ok {
+		return "", xerrors.Errorf("invalid enum name: %s", messageName)
+	}
+
+	// Remove consecutive underscores
+	messageName = consecutiveUnderscoreReg.ReplaceAllString(messageName, "_")
+
+	// Trim underscores from end
+	messageName = strings.TrimSuffix(messageName, "_")
+
+	// Check for duplicates
+	if existingMessageNames[messageName] {
+		i := 1
+		for ; existingMessageNames[messageName+strconv.Itoa(i)]; i++ {
+		}
+		messageName += strconv.Itoa(i)
+	}
+
+	existingMessageNames[messageName] = true
+
+	return messageName, nil
 }

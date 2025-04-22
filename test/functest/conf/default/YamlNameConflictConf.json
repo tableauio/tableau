@@ -1,0 +1,24 @@
+{
+    "conflictFieldStruct": {
+        "id": 1,
+        "id1": "12",
+        "iD": 1234,
+        "id2": "12345",
+        "id3": "123456",
+        "id4": 1234567
+    },
+    "conflictFieldKeyMap": {
+        "1": {
+            "key": 1,
+            "name": "Apple",
+            "num": 1,
+            "key1": 10
+        },
+        "2": {
+            "key": 2,
+            "name": "Banana",
+            "num": 2,
+            "key1": 20
+        }
+    }
+}

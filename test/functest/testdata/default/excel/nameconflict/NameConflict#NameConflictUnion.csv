@@ -1,0 +1,6 @@
+Name,Alias,Field1,Field2,Field3
+PVP,BattlePVP,"BattleID
+int32","Damage
+int64",
+PVP_,BattlePVP2,"HeroID
+[]int32",,

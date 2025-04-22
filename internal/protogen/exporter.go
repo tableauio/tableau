@@ -167,16 +167,27 @@ func (x *sheetExporter) exportEnum() error {
 	x.g.P("  option (tableau.etype) = {", marshalToText(opts), "};")
 	x.g.P("")
 	// generate the enum value fields
+	existingEnumNames := map[string]bool{}
+	existingEnumAlias := map[string]bool{}
 	for i, field := range x.ws.Fields {
 		if i == 0 && field.Number != 0 {
 			ename := x.be.gen.strcaseCtx.ToScreamingSnake(x.ws.Name) + "_INVALID"
 			x.g.P("  ", ename, " = 0;")
 		}
-		note := ""
-		if field.Alias != "" {
-			note = " // " + field.Alias
+		enumName, err := safeEnumName(field.Name, existingEnumNames)
+		if err != nil {
+			return err
 		}
-		x.g.P("  ", strings.TrimSpace(field.Name), " = ", field.Number, ` [(tableau.evalue).name = "`, strings.TrimSpace(field.Alias), `"];`, note)
+		alias := strings.TrimSpace(field.Alias)
+		if existingEnumAlias[alias] {
+			return xerrors.Errorf("duplicate enum alias: %s", alias)
+		}
+		existingEnumAlias[alias] = true
+		note := ""
+		if alias != "" {
+			note = " // " + alias
+		}
+		x.g.P("  ", enumName, " = ", field.Number, ` [(tableau.evalue).name = "`, alias, `"];`, note)
 	}
 	x.g.P("}")
 	if !x.isLastSheet {
@@ -192,9 +203,15 @@ func (x *sheetExporter) exportStruct() error {
 	x.g.P("")
 	// generate the fields
 	depth := 1
+	existingFieldNames := map[string]bool{}
+	existingFieldOptNames := map[string]bool{}
 	for i, field := range x.ws.Fields {
 		tagid := i + 1
-		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+		if existingFieldOptNames[field.Options.Name] {
+			return xerrors.Errorf("duplicate field option name: %s", field.Options.Name)
+		}
+		existingFieldOptNames[field.Options.Name] = true
+		if err := x.exportField(depth, tagid, field, x.ws.Name, existingFieldNames); err != nil {
 			return err
 		}
 	}
@@ -219,42 +236,64 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P("    option (tableau.oneof) = {", marshalToText(oneOfOpts), "};")
 	x.g.P()
 
+	messageNames := []string{}
+	existingNames := map[string]bool{}
 	for _, field := range x.ws.Fields {
-		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(field.Name)
+		messageName, err := safeMessageName(field.Name, existingNames)
+		if err != nil {
+			return err
+		}
+		messageNames = append(messageNames, messageName)
+	}
+
+	for i, field := range x.ws.Fields {
+		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(messageNames[i])
 		if len(field.Fields) == 0 {
 			x.g.P("    // No field bound to enum value: ", ename, ".")
 		} else {
-			x.g.P("    ", strings.TrimSpace(field.Name), " ", x.be.gen.strcaseCtx.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+			x.g.P("    ", messageNames[i], " ", x.be.gen.strcaseCtx.ToSnake(messageNames[i]), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 		}
 	}
 	x.g.P(`  }`)
 	x.g.P()
 
 	// generate enum type
+	existingEnumAlias := map[string]bool{}
 	x.g.P("  enum Type {")
 	x.g.P("    TYPE_INVALID = 0;")
-	for _, field := range x.ws.Fields {
-		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(field.Name)
-		note := ""
-		if field.Alias != "" {
-			note = " // " + field.Alias
+	for i, field := range x.ws.Fields {
+		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(messageNames[i])
+		alias := strings.TrimSpace(field.Alias)
+		if existingEnumAlias[alias] {
+			return xerrors.Errorf("duplicate enum alias: %s", alias)
 		}
-		x.g.P("    ", ename, " = ", field.Number, ` [(tableau.evalue).name = "`, field.Alias, `"];`, note)
+		existingEnumAlias[alias] = true
+		note := ""
+		if alias != "" {
+			note = " // " + alias
+		}
+		x.g.P("    ", ename, " = ", field.Number, ` [(tableau.evalue).name = "`, alias, `"];`, note)
 	}
 	x.g.P("  }")
 	x.g.P()
 
 	// generate message type
-	for _, msgField := range x.ws.Fields {
+	for i, msgField := range x.ws.Fields {
 		if len(msgField.Fields) == 0 {
 			continue
 		}
-		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
+		x.g.P("  message ", messageNames[i], " {")
 		// generate the fields
 		depth := 2
 		tagid := 1
+		existingFieldNames := map[string]bool{}
+		existingFieldOptNames := map[string]bool{}
 		for _, field := range msgField.Fields {
-			if err := x.exportField(depth, tagid, field, msgField.Name); err != nil {
+			if existingFieldOptNames[field.Options.Name] {
+				return xerrors.Errorf("duplicate field option name: %s", field.Options.Name)
+			}
+			existingFieldOptNames[field.Options.Name] = true
+			if err := x.exportField(depth, tagid, field, msgField.Name, existingFieldNames); err != nil {
 				return err
 			}
 			cross := int(field.GetOptions().GetProp().GetCross())
@@ -280,9 +319,15 @@ func (x *sheetExporter) exportMessager() error {
 	x.g.P("")
 	// generate the fields
 	depth := 1
+	existingFieldNames := map[string]bool{}
+	existingFieldOptNames := map[string]bool{}
 	for i, field := range x.ws.Fields {
 		tagid := i + 1
-		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+		if existingFieldOptNames[field.Options.Name] {
+			return xerrors.Errorf("duplicate field option name: %s", field.Options.Name)
+		}
+		existingFieldOptNames[field.Options.Name] = true
+		if err := x.exportField(depth, tagid, field, x.ws.Name, existingFieldNames); err != nil {
 			return err
 		}
 	}
@@ -293,7 +338,7 @@ func (x *sheetExporter) exportMessager() error {
 	return nil
 }
 
-func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Field, prefix string) error {
+func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Field, prefix string, existingFieldNames map[string]bool) error {
 	label := ""
 	if x.ws.GetOptions().GetFieldPresence() &&
 		types.IsScalarType(field.FullType) &&
@@ -304,7 +349,11 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 	if field.Note != "" {
 		note = " // " + field.Note
 	}
-	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " ", genFieldOptionsString(field.Options), ";", note)
+	fieldName, err := safeFieldName(field.Name, existingFieldNames)
+	if err != nil {
+		return err
+	}
+	x.g.P(printer.Indent(depth), label, field.FullType, " ", fieldName, " = ", tagid, " ", genFieldOptionsString(field.Options), ";", note)
 
 	typeName := field.Type
 	fullTypeName := field.FullType
@@ -333,7 +382,7 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 		nestedMsgName := prefix + "." + typeName
 		switch {
 		case field.Fields != nil:
-			// iff field is a map or list and message type is not imported.
+			// if field is a map or list and message type is not imported.
 			if isSameFieldMessageType(field, x.nestedMessages[nestedMsgName]) {
 				// if the nested message is the same as the previous one,
 				// just use the previous one, and don't generate a new one.
@@ -353,9 +402,15 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 
 		// x.g.P("")
 		x.g.P(printer.Indent(depth), "message ", typeName, " {")
+		existingSubfieldNames := map[string]bool{}
+		existingSubfieldOptNames := map[string]bool{}
 		for i, f := range field.Fields {
 			tagid := i + 1
-			if err := x.exportField(depth+1, tagid, f, nestedMsgName); err != nil {
+			if existingSubfieldOptNames[f.Options.Name] {
+				return xerrors.Errorf("duplicate field option name: %s", f.Options.Name)
+			}
+			existingSubfieldOptNames[f.Options.Name] = true
+			if err := x.exportField(depth+1, tagid, f, nestedMsgName, existingSubfieldNames); err != nil {
 				return err
 			}
 		}

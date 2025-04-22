@@ -1,0 +1,4 @@
+Sheet,Mode
+NameConflictEnum,MODE_ENUM_TYPE
+NameConflictStruct,MODE_STRUCT_TYPE
+NameConflictUnion,MODE_UNION_TYPE
