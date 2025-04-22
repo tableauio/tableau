@@ -1,0 +1,44 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "name": "Apple",
+            "price": 100,
+            "number": 1,
+            "decompose": {
+                "id": 1001,
+                "num": 10
+            },
+            "attributeList": [
+                {
+                    "id": 90001,
+                    "value": 20
+                },
+                {
+                    "id": 90002,
+                    "value": 30
+                }
+            ]
+        },
+        "2": {
+            "id": 2,
+            "name": "Banana",
+            "price": 500,
+            "number": 20,
+            "decompose": {
+                "id": 1002,
+                "num": 20
+            },
+            "attributeList": [
+                {
+                    "id": 90003,
+                    "value": 30
+                },
+                {
+                    "id": 90004,
+                    "value": 40
+                }
+            ]
+        }
+    }
+}
