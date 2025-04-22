@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -184,6 +186,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 		args    args
 		want    []*internalpb.Worksheet
 		wantErr bool
+		errcode string
 	}{
 		{
 			name: "MODE_ENUM_TYPE",
@@ -301,6 +304,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_ENUM_TYPE dup zero number",
@@ -324,6 +328,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_ENUM_TYPE dup name",
@@ -347,6 +352,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_ENUM_TYPE dup alias",
@@ -370,6 +376,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_ENUM_TYPE_MULTI",
@@ -535,6 +542,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_STRUCT_TYPE_MULTI",
@@ -843,6 +851,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_UNION_TYPE dup name",
@@ -864,6 +873,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_UNION_TYPE dup alias",
@@ -885,6 +895,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_UNION_TYPE_MULTI",
@@ -1071,8 +1082,15 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", ""); (err != nil) != tt.wantErr {
+			got, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", "")
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Generator.parseSpecialSheetMode() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			} else if len(got) != len(tt.want) {
 				t.Errorf("Generator.parseSpecialSheetMode() size = %v, want size %v", len(got), len(tt.want))
 			} else {

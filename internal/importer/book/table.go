@@ -22,9 +22,10 @@ type Table struct {
 }
 
 // NewTable creates a new Table.
-func NewTable(rows [][]string, rowOffset int) *Table {
+func NewTable(rows [][]string, setters ...TableOption) *Table {
 	maxRow := len(rows)
 	maxCol := 0
+	opts := parseTableOptions(setters...)
 	// NOTE: different rows may have different lengths,
 	// and we need to find the max col.
 	for _, row := range rows {
@@ -37,7 +38,7 @@ func NewTable(rows [][]string, rowOffset int) *Table {
 		MaxRow:    maxRow,
 		MaxCol:    maxCol,
 		Rows:      rows,
-		RowOffset: rowOffset,
+		RowOffset: opts.RowOffset,
 	}
 }
 

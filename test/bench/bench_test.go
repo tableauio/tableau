@@ -69,7 +69,7 @@ func genTestdata(maxID int) {
 	}
 	b := book.NewBook("Test", "testdata/Test.xlsx", nil)
 	// add metasheet
-	metasheet := book.NewTableSheet(book.MetasheetName, nil, 0)
+	metasheet := book.NewTableSheet(book.MetasheetName, nil)
 	b.AddSheet(metasheet)
 	// add Item sheet
 	rows := [][]string{
@@ -93,7 +93,7 @@ func genTestdata(maxID int) {
 		rows = append(rows, newRows...)
 	}
 
-	itemSheet := book.NewTableSheet("Item", rows, 0)
+	itemSheet := book.NewTableSheet("Item", rows)
 	b.AddSheet(itemSheet)
 
 	err := b.ExportExcel()

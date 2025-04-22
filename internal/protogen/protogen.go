@@ -579,7 +579,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 				blockBeginRow := row
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(sheet.Name, block, blockBeginRow)
+				subSheet := book.NewTableSheet(sheet.Name, block, book.RowOffset(blockBeginRow))
 				if err := extractStructTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
 					return err
 				}
@@ -604,7 +604,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 				blockBeginRow := row
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(sheet.Name, block, blockBeginRow)
+				subSheet := book.NewTableSheet(sheet.Name, block, book.RowOffset(blockBeginRow))
 				if err := extractUnionTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
 					return err
 				}
@@ -650,7 +650,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(subWs.Name, block, blockBeginRow)
+				subSheet := book.NewTableSheet(subWs.Name, block, book.RowOffset(blockBeginRow))
 				if err := parseEnumType(subWs, subSheet, parser, gen); err != nil {
 					return nil, err
 				}
@@ -681,7 +681,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(subWs.Name, block, blockBeginRow)
+				subSheet := book.NewTableSheet(subWs.Name, block, book.RowOffset(blockBeginRow))
 				if err := parseStructType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}
@@ -712,7 +712,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				block, blockEndRow := sheet.Table.ExtractBlock(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(subWs.Name, block, blockBeginRow)
+				subSheet := book.NewTableSheet(subWs.Name, block, book.RowOffset(blockBeginRow))
 				if err := parseUnionType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}

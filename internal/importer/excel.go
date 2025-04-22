@@ -112,7 +112,7 @@ func readExcelMetasheet(file *excelize.File) (*book.Sheet, error) {
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetName)
 	}
-	return book.NewTableSheet(sheetName, rows, 0), nil
+	return book.NewTableSheet(sheetName, rows), nil
 }
 
 func readExcelSheets(file *excelize.File, srOpts []*sheetReaderOptions) ([]*book.Sheet, error) {
@@ -125,7 +125,7 @@ func readExcelSheets(file *excelize.File, srOpts []*sheetReaderOptions) ([]*book
 			}
 			return nil, xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetReader.Name)
 		}
-		sheets = append(sheets, book.NewTableSheet(sheetReader.Name, rows, 0))
+		sheets = append(sheets, book.NewTableSheet(sheetReader.Name, rows))
 	}
 
 	return sheets, nil
