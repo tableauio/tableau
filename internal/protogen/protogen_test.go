@@ -76,7 +76,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test1",
+			name: "test1-FirstPassModeDefault",
 			gen: NewGenerator("protoconf", "./", outdir,
 				options.Proto(
 					&options.ProtoOption{
@@ -90,6 +90,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 							Formats: []format.Format{
 								format.YAML,
 							},
+							FirstPassMode: "",
 						},
 						Output: &options.ProtoOutputOption{
 							FilenameWithSubdirPrefix: true,
@@ -100,7 +101,65 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 					},
 				),
 			),
-			args:    args{relWorkbookPaths: []string{"./testdata/yaml/Test.yaml"}},
+			args:    args{relWorkbookPaths: []string{"./testdata/yaml/Test.yaml", "./testdata/csv/Unittest#*.csv"}},
+			wantErr: false,
+		},
+		{
+			name: "test2-FirstPassModeNormal",
+			gen: NewGenerator("protoconf", "./", outdir,
+				options.Proto(
+					&options.ProtoOption{
+						Input: &options.ProtoInputOption{
+							ProtoPaths: []string{outdir},
+							ProtoFiles: []string{
+								"common/base.proto",
+								"common/common.proto",
+								"common/union.proto",
+							},
+							Formats: []format.Format{
+								format.YAML,
+							},
+							FirstPassMode: options.FirstPassModeNormal,
+						},
+						Output: &options.ProtoOutputOption{
+							FilenameWithSubdirPrefix: true,
+							FileOptions: map[string]string{
+								"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+							},
+						},
+					},
+				),
+			),
+			args:    args{relWorkbookPaths: []string{"./testdata/yaml/Test.yaml", "./testdata/csv/Unittest#*.csv"}},
+			wantErr: false,
+		},
+		{
+			name: "test3-FirstPassModeAdvanced",
+			gen: NewGenerator("protoconf", "./", outdir,
+				options.Proto(
+					&options.ProtoOption{
+						Input: &options.ProtoInputOption{
+							ProtoPaths: []string{outdir},
+							ProtoFiles: []string{
+								"common/base.proto",
+								"common/common.proto",
+								"common/union.proto",
+							},
+							Formats: []format.Format{
+								format.YAML,
+							},
+							FirstPassMode: options.FirstPassModeAdvanced,
+						},
+						Output: &options.ProtoOutputOption{
+							FilenameWithSubdirPrefix: true,
+							FileOptions: map[string]string{
+								"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+							},
+						},
+					},
+				),
+			),
+			args:    args{relWorkbookPaths: []string{"./testdata/yaml/Test.yaml", "./testdata/csv/Unittest#*.csv"}},
 			wantErr: false,
 		},
 	}

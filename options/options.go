@@ -146,13 +146,18 @@ type ProtoInputOption struct {
 	// Default: "".
 	MetasheetName string `yaml:"metasheetName"`
 
-	// In the first-pass stage of protogen, whether to process all files when
-	// only generate some specified files. In the first-pass under the hood,
-	// all predefined types will be parsed and then can be recognized and used
-	// in the second-pass.
+	// Specify the first-pass mode to parse predefined types when generate
+	// specified config files. Under the hood, the parsed predefined types will
+	// be recognized and used in the second-pass.
 	//
-	// Default: false.
-	FirstPassProcessAll bool `yaml:"firstPassProcessAll"`
+	// The first-pass mode can be:
+	//
+	//	- "": default mode, parse based on specified config files.
+	//  - "normal": parse based on all config files.
+	//  - "advanced": parse based on all previous generated proto files.
+	//
+	// Default: "".
+	FirstPassMode FirstPassMode `yaml:"firstPassMode"`
 }
 
 // Output options for generating proto files.
@@ -304,11 +309,18 @@ type ConfOutputOption struct {
 	UseEnumNumbers bool `yaml:"useEnumNumbers"`
 
 	// Specify dry run mode:
-	//  - patch: if sheet options are specified: Patch (PATCH_MERGE) and Scatter
+	//  - "patch": if sheet options are specified: Patch (PATCH_MERGE) and Scatter
 	//
 	// Default: "".
 	DryRun DryRun `yaml:"dryRun"`
 }
+
+type FirstPassMode = string
+
+const (
+	FirstPassModeNormal   FirstPassMode = "normal"
+	FirstPassModeAdvanced FirstPassMode = "advanced"
+)
 
 type DryRun = string
 
