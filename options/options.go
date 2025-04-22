@@ -152,7 +152,7 @@ type ProtoInputOption struct {
 	//
 	// The first-pass mode can be:
 	//
-	//	- "": default mode, parse based on specified config files.
+	//  - "": default mode, parse based on specified config files.
 	//  - "normal": parse based on all config files.
 	//  - "advanced": parse based on all previous generated proto files.
 	//
