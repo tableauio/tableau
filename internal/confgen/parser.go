@@ -650,8 +650,9 @@ func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newV
 			}
 			if fieldprop.RequireUnique(subField.opts.Prop) {
 				values := map[string]bool{}
-				if !sp.IsFieldOptional(subField) || newValue.Message().Has(fd) {
+				if sp.IsFieldOptional(subField) && !newValue.Message().Has(fd) {
 					// do not add default value to existing values for optional fields
+				} else {
 					value := fmt.Sprint(newValue.Message().Get(fd))
 					values[value] = true
 				}

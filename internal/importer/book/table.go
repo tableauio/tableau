@@ -15,10 +15,7 @@ type Table struct {
 	MaxCol int
 	Rows   [][]string // 2D array strings
 
-	// RowOffset is the row index of the first row in Rows.
-	// The current Rows may be part of a multi enum/struct/union sheet,
-	// so we need to know the offset to calculate the correct row number.
-	RowOffset int
+	Options TableOptions
 }
 
 // NewTable creates a new Table.
@@ -35,10 +32,10 @@ func NewTable(rows [][]string, setters ...TableOption) *Table {
 		}
 	}
 	return &Table{
-		MaxRow:    maxRow,
-		MaxCol:    maxCol,
-		Rows:      rows,
-		RowOffset: opts.RowOffset,
+		MaxRow:  maxRow,
+		MaxCol:  maxCol,
+		Rows:    rows,
+		Options: *opts,
 	}
 }
 
