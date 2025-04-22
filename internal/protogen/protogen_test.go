@@ -236,6 +236,119 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "MODE_ENUM_TYPE no number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 2,
+						Rows: [][]string{
+							{"Name", "Alias"},
+							{"ITEM_TYPE_FRUIT", "Fruit"},
+							{"ITEM_TYPE_EQUIP", "Equip"},
+							{"ITEM_TYPE_BOX", "Box"},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Fields: []*internalpb.Field{
+						{
+							Number: 1,
+							Name:   "ITEM_TYPE_FRUIT",
+							Alias:  "Fruit",
+						},
+						{
+							Number: 2,
+							Name:   "ITEM_TYPE_EQUIP",
+							Alias:  "Equip",
+						},
+						{
+							Number: 3,
+							Name:   "ITEM_TYPE_BOX",
+							Alias:  "Box",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MODE_ENUM_TYPE dup number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 5,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"2", "ITEM_TYPE_BOX", "Box"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "MODE_ENUM_TYPE dup zero number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 5,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"0", "ITEM_TYPE_FRUIT", "Fruit"}, // duplicate
+							{"1", "ITEM_TYPE_EQUIP", "Equip"},
+							{"2", "ITEM_TYPE_BOX", "Box"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "MODE_ENUM_TYPE dup name",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 5,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"3", "ITEM_TYPE_EQUIP", "Box"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "MODE_ENUM_TYPE dup alias",
 			gen:  testgen,
 			args: args{
@@ -629,6 +742,108 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "MODE_UNION_TYPE with number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"Number", "Name", "Alias", "Field1"},
+							{"2", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
+							{"5", "PveBattle", "SoloPVEBattle", "Name\nstring"},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Fields: []*internalpb.Field{
+						{
+							Number: 2,
+							Name:   "PvpBattle",
+							Alias:  "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{
+									// Number:   1,
+									Name:     "id",
+									Type:     "uint32",
+									FullType: "uint32",
+									Options: &tableaupb.FieldOptions{
+										Name: "ID",
+									},
+								},
+							},
+						},
+						{
+							Number: 5,
+							Name:   "PveBattle",
+							Alias:  "SoloPVEBattle",
+							Fields: []*internalpb.Field{
+								{
+									// Number:   1,
+									Name:     "name",
+									Type:     "string",
+									FullType: "string",
+									Options: &tableaupb.FieldOptions{
+										Name: "Name",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MODE_UNION_TYPE dup number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"Number", "Name", "Alias", "Field1"},
+							{"1", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
+							{"1", "PveBattle", "SoloPVEBattle", "Name\nstring"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "MODE_UNION_TYPE dup name",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Name", "Alias", "Field1"},
+							{"Battle", "SoloPvpBattle", "ID\nuint32"},
+							{"Battle", "SoloPveBattle", "Name\nstring"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "MODE_UNION_TYPE dup alias",
 			gen:  testgen,
 			args: args{
@@ -638,11 +853,11 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					Name: "ItemType",
 					Table: &book.Table{
 						MaxRow: 3,
-						MaxCol: 5,
+						MaxCol: 3,
 						Rows: [][]string{
-							{"Name", "Alias", "Field1", "Field2", "Field3"},
-							{"PvpBattle", "SoloBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
-							{"PveBattle", "SoloBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+							{"Name", "Alias", "Field1"},
+							{"PvpBattle", "SoloBattle", "ID\nuint32"},
+							{"PveBattle", "SoloBattle", "Name\nstring"}, // duplicate
 						},
 					},
 				},

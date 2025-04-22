@@ -269,7 +269,8 @@ type cardInfo struct {
 type uniqueField struct {
 	fd protoreflect.FieldDescriptor
 	// value set: map[string]bool
-	values map[string]bool
+	values   map[string]bool
+	optional bool
 }
 
 // SheetParserExtInfo is the extended info for refer check and so on.
@@ -610,6 +611,8 @@ func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoref
 // checkSubFieldUnique checks whether the map value's or list element's sub-field is unique.
 // If an error occured, it will return the field option name which has the duplicated value.
 //
+// The uniqueness check ignores optional fields with default value.
+//
 // # Performance improvement
 //
 //  1. parse sub fields metadata only once, and cache it for later use.
@@ -646,12 +649,17 @@ func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newV
 				continue
 			}
 			if fieldprop.RequireUnique(subField.opts.Prop) {
-				value := fmt.Sprint(newValue.Message().Get(fd))
+				values := map[string]bool{}
+				if !sp.IsFieldOptional(subField) || newValue.Message().Has(fd) {
+					// do not add current value to existing value map
+					// if this is an optional field with default value
+					value := fmt.Sprint(newValue.Message().Get(fd))
+					values[value] = true
+				}
 				info.uniqueFields[subField.opts.GetName()] = &uniqueField{
-					fd: subField.fd,
-					values: map[string]bool{
-						value: true,
-					},
+					fd:       subField.fd,
+					values:   values,
+					optional: sp.IsFieldOptional(subField),
 				}
 			}
 		}
@@ -659,6 +667,10 @@ func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newV
 		sp.cards[cardPrefix] = info
 	} else {
 		for name, field := range info.uniqueFields {
+			if field.optional && !newValue.Message().Has(field.fd) {
+				// ignore optional fields with default value
+				continue
+			}
 			val := fmt.Sprint(newValue.Message().Get(field.fd))
 			if field.values[fmt.Sprint(val)] {
 				dupName, err = name, xerrors.E2022(field.fd.Name(), val)
