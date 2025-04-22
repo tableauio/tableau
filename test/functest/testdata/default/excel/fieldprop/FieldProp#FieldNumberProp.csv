@@ -1,0 +1,5 @@
+ID,Name,Price,Number,DecomposeID,DecomposeNum,Attribute1ID,Attribute1Value,Attribute2ID,Attribute2Value
+"map<uint32,Item>",string,int32|{number:10},int32,{Decompose}uint32|{number:20},int32|{number:5},[Attribute]uint32|{number:30},int32,uint32,int32
+,,,,,,,,,
+1,Apple,100,1,1001,10,90001,20,90002,30
+2,Banana,500,20,1002,20,90003,30,90004,40

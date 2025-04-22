@@ -344,6 +344,12 @@ message FieldProp {
   //
   // TODO: use cases for more field types.
   string pattern = 16;
+  // Specify number of this field.
+  // All fields with number unspecified will use a sequence starting from 1 by default, 
+  // and users should guarantee this number do not conflict with the default sequence.
+  //
+  // For tables, assigning number to a cross cell map/list/struct field also works on its 1st sub-field.
+  int32 number = 17;
 }
 
 // Layout of list and map.
