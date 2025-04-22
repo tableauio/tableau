@@ -649,36 +649,28 @@ func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newV
 				continue
 			}
 			if fieldprop.RequireUnique(subField.opts.Prop) {
-				values := map[string]bool{}
-				if sp.IsFieldOptional(subField) && !newValue.Message().Has(fd) {
-					// do not add default value to existing values for optional fields
-				} else {
-					value := fmt.Sprint(newValue.Message().Get(fd))
-					values[value] = true
-				}
 				info.uniqueFields[subField.opts.GetName()] = &uniqueField{
 					fd:       subField.fd,
-					values:   values,
+					values:   map[string]bool{},
 					optional: sp.IsFieldOptional(subField),
 				}
 			}
 		}
 		// add new unique value
 		sp.cards[cardPrefix] = info
-	} else {
-		for name, field := range info.uniqueFields {
-			if field.optional && !newValue.Message().Has(field.fd) {
-				// ignore optional fields with default value
-				continue
-			}
-			val := fmt.Sprint(newValue.Message().Get(field.fd))
-			if field.values[fmt.Sprint(val)] {
-				dupName, err = name, xerrors.E2022(field.fd.Name(), val)
-				return dupName, err
-			}
-			// add new unique value
-			field.values[val] = true
+	}
+	for name, field := range info.uniqueFields {
+		if field.optional && !newValue.Message().Has(field.fd) {
+			// ignore optional fields with default value
+			continue
 		}
+		val := fmt.Sprint(newValue.Message().Get(field.fd))
+		if field.values[fmt.Sprint(val)] {
+			dupName, err = name, xerrors.E2022(field.fd.Name(), val)
+			return dupName, err
+		}
+		// add new unique value
+		field.values[val] = true
 	}
 	return dupName, nil
 }
