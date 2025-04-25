@@ -14,12 +14,15 @@ type Table struct {
 	MaxRow int
 	MaxCol int
 	Rows   [][]string // 2D array strings
+
+	Options TableOptions
 }
 
 // NewTable creates a new Table.
-func NewTable(rows [][]string) *Table {
+func NewTable(rows [][]string, setters ...TableOption) *Table {
 	maxRow := len(rows)
 	maxCol := 0
+	opts := parseTableOptions(setters...)
 	// NOTE: different rows may have different lengths,
 	// and we need to find the max col.
 	for _, row := range rows {
@@ -29,9 +32,10 @@ func NewTable(rows [][]string) *Table {
 		}
 	}
 	return &Table{
-		MaxRow: maxRow,
-		MaxCol: maxCol,
-		Rows:   rows,
+		MaxRow:  maxRow,
+		MaxCol:  maxCol,
+		Rows:    rows,
+		Options: *opts,
 	}
 }
 

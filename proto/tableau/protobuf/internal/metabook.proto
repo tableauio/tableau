@@ -32,9 +32,9 @@ message Metasheet {
   string subsep = 13 [(tableau.field) = {name:"Subsep" prop:{optional:true}}];
   // merge multiple sheets with same schema to one.
   // each element is:
-  // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>,
+  //  - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) to merge (relative to this workbook): <Workbook>,
   //   then the sheet name is the same as this sheet.
-  // - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
+  //  - or a workbook name (relative to this workbook) with a worksheet name: <Workbook>#<Worksheet>.
   repeated string merger = 14 [(tableau.field) = {name:"Merger" layout:LAYOUT_INCELL prop:{optional:true}}];
   // Tableau will merge adjacent rows with the same key. If the key cell is not set,
   // it will be treated as the same as the most nearest key above the same column.
@@ -56,9 +56,9 @@ message Metasheet {
   tableau.Mode mode = 18 [(tableau.field) = {name:"Mode" prop:{optional:true}}];
   // Scatter converts sheets separately with same schema.
   // each element is:
-  // - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
+  //  - a workbook name or Glob(https://pkg.go.dev/path/filepath#Glob) which is relative to this workbook: <Workbook>,
   //   then the sheet name is the same as this sheet.
-  // - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
+  //  - or a workbook name which is relative to this workbook with a worksheet name: <Workbook>#<Worksheet>.
   repeated string scatter = 19 [(tableau.field) = {name:"Scatter" layout:LAYOUT_INCELL prop:{optional:true}}];
   // Whether all fields in this sheet are optional (field name existence).
   // If set to true, then:
@@ -100,8 +100,8 @@ message Metasheet {
   // Generated APIs are:
   //
   // C++:
-  // - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
-  // - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
+  //  - const std::vector<const STRUCT_TYPE*>& Find<IndexName>(INDEX_TYPE index) const;
+  //  - const STRUCT_TYPE* FindFirst<IndexName>(INDEX_TYPE index);
   string index = 51 [(tableau.field) = {name:"Index" prop:{optional:true}}];
 
   // Specify loader language options.
@@ -125,9 +125,9 @@ message EnumDescriptor {
 
   repeated Value values = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Value {
-    optional int32 number = 1 [(tableau.field) = {name:"Number" prop:{optional:true}}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    string alias = 3 [(tableau.field) = {name:"Alias"}];
+    optional int32 number = 1 [(tableau.field) = {name:"Number" prop:{optional:true unique:true}}];
+    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+    string alias = 3 [(tableau.field) = {name:"Alias" prop:{unique:true}}];
   }
 }
 
@@ -140,7 +140,7 @@ message StructDescriptor {
 
   repeated Field fields = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Field {
-    string name = 1 [(tableau.field) = {name:"Name"}];
+    string name = 1 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     string type = 2 [(tableau.field) = {name:"Type"}];
   }
 }
@@ -154,11 +154,11 @@ message UnionDescriptor {
 
   repeated Value values = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Value {
-    optional int32 number = 1 [(tableau.field) = {name:"Number" prop:{optional:true}}];
+    optional int32 number = 1 [(tableau.field) = {name:"Number" prop:{optional:true unique:true}}];
     // This is message type name, and the corresponding enum value name
     // is generated as: "TYPE_" + strcase.ToScreamingSnake(name).
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    string alias = 3 [(tableau.field) = {name:"Alias"}];
+    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+    string alias = 3 [(tableau.field) = {name:"Alias" prop:{unique:true}}];
     repeated string fields = 4 [(tableau.field) = {name:"Field" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
   }
 }

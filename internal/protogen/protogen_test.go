@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -184,6 +186,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 		args    args
 		want    []*internalpb.Worksheet
 		wantErr bool
+		errcode string
 	}{
 		{
 			name: "MODE_ENUM_TYPE",
@@ -234,6 +237,146 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "MODE_ENUM_TYPE no number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 2,
+						Rows: [][]string{
+							{"Name", "Alias"},
+							{"ITEM_TYPE_FRUIT", "Fruit"},
+							{"ITEM_TYPE_EQUIP", "Equip"},
+							{"ITEM_TYPE_BOX", "Box"},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Fields: []*internalpb.Field{
+						{
+							Number: 1,
+							Name:   "ITEM_TYPE_FRUIT",
+							Alias:  "Fruit",
+						},
+						{
+							Number: 2,
+							Name:   "ITEM_TYPE_EQUIP",
+							Alias:  "Equip",
+						},
+						{
+							Number: 3,
+							Name:   "ITEM_TYPE_BOX",
+							Alias:  "Box",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MODE_ENUM_TYPE dup number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 5,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"2", "ITEM_TYPE_BOX", "Box"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name: "MODE_ENUM_TYPE dup zero number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 5,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"0", "ITEM_TYPE_FRUIT", "Fruit"}, // duplicate
+							{"1", "ITEM_TYPE_EQUIP", "Equip"},
+							{"2", "ITEM_TYPE_BOX", "Box"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name: "MODE_ENUM_TYPE dup name",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 5,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"3", "ITEM_TYPE_EQUIP", "Box"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name: "MODE_ENUM_TYPE dup alias",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_ENUM_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 5,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Number", "Name", "Alias"},
+							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+							{"2", "ITEM_TYPE_EQUIP", "Equip"},
+							{"3", "ITEM_TYPE_BOX", "Equip"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_ENUM_TYPE_MULTI",
@@ -377,6 +520,29 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "MODE_STRUCT_TYPE dup name",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 2,
+						Rows: [][]string{
+							{"Name", "Type"},
+							{"ID", "uint32"},
+							{"Prop", "map<int32, string>"},
+							{"Prop", "[]int32"}, // dupliacte
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
 		},
 		{
 			name: "MODE_STRUCT_TYPE_MULTI",
@@ -606,6 +772,132 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "MODE_UNION_TYPE with number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"Number", "Name", "Alias", "Field1"},
+							{"2", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
+							{"5", "PveBattle", "SoloPVEBattle", "Name\nstring"},
+						},
+					},
+				},
+			},
+			want: []*internalpb.Worksheet{
+				{
+					Name: "ItemType",
+					Fields: []*internalpb.Field{
+						{
+							Number: 2,
+							Name:   "PvpBattle",
+							Alias:  "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{
+									// Number:   1,
+									Name:     "id",
+									Type:     "uint32",
+									FullType: "uint32",
+									Options: &tableaupb.FieldOptions{
+										Name: "ID",
+									},
+								},
+							},
+						},
+						{
+							Number: 5,
+							Name:   "PveBattle",
+							Alias:  "SoloPVEBattle",
+							Fields: []*internalpb.Field{
+								{
+									// Number:   1,
+									Name:     "name",
+									Type:     "string",
+									FullType: "string",
+									Options: &tableaupb.FieldOptions{
+										Name: "Name",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "MODE_UNION_TYPE dup number",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 4,
+						Rows: [][]string{
+							{"Number", "Name", "Alias", "Field1"},
+							{"1", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
+							{"1", "PveBattle", "SoloPVEBattle", "Name\nstring"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name: "MODE_UNION_TYPE dup name",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Name", "Alias", "Field1"},
+							{"Battle", "SoloPvpBattle", "ID\nuint32"},
+							{"Battle", "SoloPveBattle", "Name\nstring"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
+			name: "MODE_UNION_TYPE dup alias",
+			gen:  testgen,
+			args: args{
+				mode: tableaupb.Mode_MODE_UNION_TYPE,
+				ws:   &internalpb.Worksheet{Name: "ItemType"},
+				sheet: &book.Sheet{
+					Name: "ItemType",
+					Table: &book.Table{
+						MaxRow: 3,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"Name", "Alias", "Field1"},
+							{"PvpBattle", "SoloBattle", "ID\nuint32"},
+							{"PveBattle", "SoloBattle", "Name\nstring"}, // duplicate
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2022",
+		},
+		{
 			name: "MODE_UNION_TYPE_MULTI",
 			gen:  testgen,
 			args: args{
@@ -790,8 +1082,15 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", ""); (err != nil) != tt.wantErr {
+			got, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", "")
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Generator.parseSpecialSheetMode() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			} else if len(got) != len(tt.want) {
 				t.Errorf("Generator.parseSpecialSheetMode() size = %v, want size %v", len(got), len(tt.want))
 			} else {
