@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -101,23 +100,6 @@ func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, va
 		}
 	}
 	return nil
-}
-
-func CheckMapKeySequence(prop *tableaupb.FieldProp, kind protoreflect.Kind, mapkey protoreflect.MapKey, prefMap protoreflect.Map) bool {
-	if !RequireSequence(prop) {
-		return true
-	}
-	val, err := strconv.Atoi(mapkey.Value().String())
-	if err != nil {
-		log.Errorf("convert map key to int64 failed: %s", err)
-		return false
-	}
-	seq := int(prop.GetSequence())
-	len := prefMap.Len()
-	if len == 0 {
-		return val == seq
-	}
-	return val == seq+len || val == seq+len-1
 }
 
 // IsFixed check the horizontal list/map is fixed size or not.

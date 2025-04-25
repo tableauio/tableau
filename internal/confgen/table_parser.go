@@ -233,8 +233,16 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 		if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
+		// check map key sequence
+		if err := sp.checkMapKeySequence(field, reflectMap, cell.Data, true); err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+		}
 		newMapValue = reflectMap.Mutable(newMapKey)
 	} else {
+		// check map key sequence
+		if err := sp.checkMapKeySequence(field, reflectMap, cell.Data, false); err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+		}
 		newMapValue = reflectMap.NewValue()
 	}
 	valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, newPrefix, newCardPrefix)
@@ -310,8 +318,16 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
+			// check map key sequence
+			if err := sp.checkMapKeySequence(field, reflectMap, cell.Data, true); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
 			newMapValue = reflectMap.Mutable(newMapKey)
 		} else {
+			// check map key sequence
+			if err := sp.checkMapKeySequence(field, reflectMap, cell.Data, false); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
 			newMapValue = reflectMap.NewValue()
 		}
 		valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, elemPrefix, newCardPrefix)
@@ -419,10 +435,16 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 			}
 		}
 		if keyedListElemExisted {
-			if err := sp.checkListKeyUnique(field, md, cell.Data); err != nil {
+			if err := sp.checkListKeyUnique(field, list, cell.Data); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
+			if err := sp.checkListKeySequence(field, list, cell.Data, true); err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
 		} else {
+			if err := sp.checkListKeySequence(field, list, cell.Data, false); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
 			// set as present only if key is not existed
 			elemPresent = !keyedListElemExisted
 		}
