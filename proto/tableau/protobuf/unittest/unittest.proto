@@ -224,3 +224,14 @@ message DocumentUniqueFieldStructMap {
     }
   }
 }
+
+message SequentialFieldInVerticalStructList {
+  option (tableau.worksheet) = {name:"SequentialFieldInVerticalStructList"};
+
+  repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{sequence:1}}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+    int64 num = 3 [(tableau.field) = {name:"Num" prop:{sequence:12345}}];
+  }
+}
