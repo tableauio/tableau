@@ -946,3 +946,101 @@ func TestTableParser_parseVerticalSequentialFieldStructList(t *testing.T) {
 		})
 	}
 }
+
+func TestTableParser_parseVerticalSequentialFieldStructMap(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		errcode string
+	}{
+		{
+			name:   "sequential conditions met",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalSequentialFieldStructMap",
+					Table: &book.Table{
+						MaxRow: 7,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"MainID", "SubID", "SubName"},
+							{"1001", "1", "Gold"},
+							{"1001", "2", "Diamond"},
+							{"1001", "3", "Ticket"},
+							{"1001", "4", "Point"},
+							{"1002", "1", "Weapon"},
+							{"1002", "2", "Gold"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "main id not sequential",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalSequentialFieldStructMap",
+					Table: &book.Table{
+						MaxRow: 7,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"MainID", "SubID", "SubName"},
+							{"1001", "1", "Gold"},
+							{"1001", "2", "Diamond"},
+							{"1002", "1", "Weapon"},
+							{"1002", "2", "Gold"},
+							{"1001", "3", "Ticket"},
+							{"1001", "4", "Point"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2003",
+		},
+		{
+			name:   "sub id not sequential",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "VerticalSequentialFieldStructMap",
+					Table: &book.Table{
+						MaxRow: 6,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"MainID", "SubID", "SubName"},
+							{"1001", "1", "Gold"},
+							{"1001", "2", "Diamond"},
+							{"1001", "4", "Point"},
+							{"1002", "1", "Weapon"},
+							{"1002", "2", "Gold"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2003",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.VerticalSequentialFieldStructMap{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
+			}
+		})
+	}
+}

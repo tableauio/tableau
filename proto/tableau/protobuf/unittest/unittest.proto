@@ -51,7 +51,7 @@ message IncellList {
 message ItemConf {
   option (tableau.worksheet) = {name:"ItemConf" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  map<uint32, unittest.Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
+  map<uint32, unittest.Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
 }
 
 message MallConf {
@@ -233,5 +233,19 @@ message SequentialFieldInVerticalStructList {
     uint32 id = 1 [(tableau.field) = {name:"ID" prop:{sequence:1}}];
     string name = 2 [(tableau.field) = {name:"Name"}];
     int64 num = 3 [(tableau.field) = {name:"Num" prop:{sequence:12345}}];
+  }
+}
+
+message VerticalSequentialFieldStructMap {
+  option (tableau.worksheet) = {name:"VerticalSequentialFieldStructMap"};
+
+  map<uint32, Main> main_map = 1 [(tableau.field) = {key:"MainID" layout:LAYOUT_VERTICAL}];
+  message Main {
+    uint32 main_id = 1 [(tableau.field) = {name:"MainID" prop:{sequence:1001}}];
+    map<uint32, Sub> sub_map = 2 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
+    message Sub {
+      uint32 sub_id = 1 [(tableau.field) = {name:"SubID" prop:{sequence:1}}];
+      string sub_name = 2 [(tableau.field) = {name:"SubName"}];
+    }
   }
 }

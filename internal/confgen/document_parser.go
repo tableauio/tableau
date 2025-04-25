@@ -171,8 +171,16 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					if err := sp.checkMapKeyUnique(field, reflectMap, keyData); err != nil {
 						return false, xerrors.WrapKV(err, node.DebugKV()...)
 					}
+					// check map key sequence
+					if err := sp.checkMapKeySequence(field, reflectMap, keyData, true); err != nil {
+						return false, xerrors.WrapKV(err, node.DebugKV()...)
+					}
 					newMapValue = reflectMap.Mutable(newMapKey)
 				} else {
+					// check map key sequence
+					if err := sp.checkMapKeySequence(field, reflectMap, keyData, false); err != nil {
+						return false, xerrors.WrapKV(err, node.DebugKV()...)
+					}
 					newMapValue = reflectMap.NewValue()
 				}
 				newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
