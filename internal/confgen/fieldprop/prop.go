@@ -20,6 +20,10 @@ func RequireUnique(prop *tableaupb.FieldProp) bool {
 	return prop != nil && prop.Unique != nil && prop.GetUnique()
 }
 
+func RequireSequence(prop *tableaupb.FieldProp) bool {
+	return prop != nil && prop.Sequence != nil
+}
+
 func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value, present bool) error {
 	if prop == nil || strings.TrimSpace(prop.Range) == "" {
 		return nil
@@ -100,33 +104,20 @@ func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, va
 }
 
 func CheckMapKeySequence(prop *tableaupb.FieldProp, kind protoreflect.Kind, mapkey protoreflect.MapKey, prefMap protoreflect.Map) bool {
-	if prop == nil || prop.Sequence == nil {
+	if !RequireSequence(prop) {
 		return true
 	}
-	val, err := convertValueToInt64(kind, mapkey.Value())
+	val, err := strconv.Atoi(mapkey.Value().String())
 	if err != nil {
 		log.Errorf("convert map key to int64 failed: %s", err)
 		return false
 	}
-	len := int64(prefMap.Len())
+	seq := int(prop.GetSequence())
+	len := prefMap.Len()
 	if len == 0 {
-		return val == prop.GetSequence()
+		return val == seq
 	}
-	return val == prop.GetSequence()+len || val == prop.GetSequence()+len-1
-}
-
-func convertValueToInt64(kind protoreflect.Kind, value protoreflect.Value) (int64, error) {
-	switch kind {
-	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
-		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return value.Int(), nil
-	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
-		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		// NOTE: as sequence type is int64, so convert to int64 even if the value is uint64.
-		return int64(value.Uint()), nil
-	default:
-		return 0, xerrors.Errorf("not supported sequence kind: %s", kind)
-	}
+	return val == seq+len || val == seq+len-1
 }
 
 // IsFixed check the horizontal list/map is fixed size or not.
