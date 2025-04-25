@@ -203,7 +203,9 @@ func (x *sheetExporter) exportStruct() error {
 	depth := 1
 	tagid := 1
 	for _, field := range x.ws.Fields {
-		if err := x.exportField(depth, &tagid, field, x.ws.Name); err != nil {
+		var err error
+		tagid, err = x.exportField(depth, tagid, field, x.ws.Name)
+		if err != nil {
 			return err
 		}
 	}
@@ -263,7 +265,9 @@ func (x *sheetExporter) exportUnion() error {
 		depth := 2
 		tagid := 1
 		for _, field := range msgField.Fields {
-			if err := x.exportField(depth, &tagid, field, msgField.Name); err != nil {
+			var err error
+			tagid, err = x.exportField(depth, tagid, field, msgField.Name)
+			if err != nil {
 				return err
 			}
 		}
@@ -289,7 +293,9 @@ func (x *sheetExporter) exportMessager() error {
 	depth := 1
 	tagid := 1
 	for _, field := range x.ws.Fields {
-		if err := x.exportField(depth, &tagid, field, x.ws.Name); err != nil {
+		var err error
+		tagid, err = x.exportField(depth, tagid, field, x.ws.Name)
+		if err != nil {
 			return err
 		}
 	}
@@ -300,7 +306,7 @@ func (x *sheetExporter) exportMessager() error {
 	return nil
 }
 
-func (x *sheetExporter) exportField(depth int, tagid *int, field *internalpb.Field, prefix string) error {
+func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Field, prefix string) (int, error) {
 	label := ""
 	if x.ws.GetOptions().GetFieldPresence() &&
 		types.IsScalarType(field.FullType) &&
@@ -315,12 +321,12 @@ func (x *sheetExporter) exportField(depth int, tagid *int, field *internalpb.Fie
 	if field.Options.GetProp().GetNumber() != 0 {
 		number = int(field.Options.GetProp().GetNumber())
 	} else {
-		number = *tagid
+		number = tagid
 		cross := int(field.GetOptions().GetProp().GetCross())
 		if cross < 1 {
 			cross = 1
 		}
-		*tagid += cross
+		tagid += cross
 	}
 	x.g.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", number, " ", genFieldOptionsString(field.Options), ";", note)
 
@@ -355,16 +361,16 @@ func (x *sheetExporter) exportField(depth int, tagid *int, field *internalpb.Fie
 			if isSameFieldMessageType(field, x.nestedMessages[nestedMsgName]) {
 				// if the nested message is the same as the previous one,
 				// just use the previous one, and don't generate a new one.
-				return nil
+				return tagid, nil
 			}
 		case !types.IsScalarType(typeName):
 			if _, ok := x.nestedMessages[nestedMsgName]; ok {
 				// if the nested message has the same name with the previous one,
 				// just use the previous one, and don't generate a new one.
-				return nil
+				return tagid, nil
 			}
 		default:
-			return nil
+			return tagid, nil
 		}
 		// bookkeeping this nested msessage, so we can check if we can reuse it later.
 		x.nestedMessages[nestedMsgName] = field
@@ -373,13 +379,15 @@ func (x *sheetExporter) exportField(depth int, tagid *int, field *internalpb.Fie
 		x.g.P(printer.Indent(depth), "message ", typeName, " {")
 		tid := 1
 		for _, f := range field.Fields {
-			if err := x.exportField(depth+1, &tid, f, nestedMsgName); err != nil {
-				return err
+			var err error
+			tid, err = x.exportField(depth+1, tid, f, nestedMsgName)
+			if err != nil {
+				return tagid, err
 			}
 		}
 		x.g.P(printer.Indent(depth), "}")
 	}
-	return nil
+	return tagid, nil
 }
 
 func genFieldOptionsString(opts *tableaupb.FieldOptions) string {
