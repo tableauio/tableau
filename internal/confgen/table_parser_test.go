@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/strcase"
+	"github.com/tableauio/tableau/internal/metasheet"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
@@ -18,9 +19,9 @@ import (
 )
 
 func newTableParserForTest() *sheetParser {
-	return NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+	return NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
 		book.MetabookOptions(),
-		book.MetasheetOptions(),
+		book.MetasheetOptions(context.Background()),
 		&SheetParserExtInfo{
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},
@@ -451,9 +452,9 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 	}{
 		{
 			name: "parse yaml metasheet",
-			parser: NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+			parser: NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
 				book.MetabookOptions(),
-				book.MetasheetOptions(),
+				book.MetasheetOptions(context.Background()),
 				&SheetParserExtInfo{
 					InputDir:       "",
 					SubdirRewrites: map[string]string{},
@@ -476,9 +477,9 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 		},
 		{
 			name: "parse xml metasheet",
-			parser: NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+			parser: NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
 				book.MetabookOptions(),
-				book.MetasheetOptions(),
+				book.MetasheetOptions(context.Background()),
 				&SheetParserExtInfo{
 					InputDir:       "",
 					SubdirRewrites: map[string]string{},
@@ -498,11 +499,11 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			imp, err := importer.New(tt.args.path, importer.Parser(tt.parser))
+			imp, err := importer.New(context.Background(), tt.args.path, importer.Parser(tt.parser))
 			if err != nil {
 				t.Fatal(err)
 			}
-			sheet := imp.GetSheet(book.MetasheetName)
+			sheet := imp.GetSheet(metasheet.DefaultMetasheetName)
 			if sheet == nil {
 				t.Fatalf("metasheet not found")
 			}
@@ -521,7 +522,7 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 }
 
 func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
-	parserWithBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+	parserWithBookSep := NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
 		&tableaupb.WorkbookOptions{
 			Sep:    ",",
 			Subsep: ":",
@@ -535,7 +536,7 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 			BookFormat:     format.YAML,
 		})
 
-	parserWithSheetAndBookSep := NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+	parserWithSheetAndBookSep := NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
 		&tableaupb.WorkbookOptions{
 			Sep:    ",",
 			Subsep: ":",

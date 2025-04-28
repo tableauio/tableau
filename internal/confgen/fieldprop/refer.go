@@ -1,6 +1,7 @@
 package fieldprop
 
 import (
+	"context"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -132,7 +133,7 @@ type Input struct {
 	Present        bool // field presence
 }
 
-func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
+func loadValueSpace(ctx context.Context, refer string, input *Input) (*ValueSpace, error) {
 	referInfo, err := parseRefer(refer)
 	if err != nil {
 		return nil, err
@@ -155,13 +156,13 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 	// rewrite subdir
 	rewrittenWorkbookName := xfs.RewriteSubdir(bookName, input.SubdirRewrites)
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
-	primaryImporter, err := importer.New(absWbPath, importer.Sheets([]string{sheetName}))
+	primaryImporter, err := importer.New(ctx, absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
 
 	// get merger importer infos
-	impInfos, err := importer.GetMergerImporters(input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
+	impInfos, err := importer.GetMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
 	}
@@ -218,7 +219,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 // InReferredSpace checks whether the cell data is at least in one of the other sheets'
 // column value space (aka message's field value space). prop.Refer is comma separated,
 // e.g.: "SheetName(SheetAlias).ColumnName[,SheetName(SheetAlias).ColumnName]..."
-func InReferredSpace(prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
+func InReferredSpace(ctx context.Context, prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
 	if prop == nil || strings.TrimSpace(prop.Refer) == "" {
 		return true, nil
 	}
@@ -228,7 +229,7 @@ func InReferredSpace(prop *tableaupb.FieldProp, cellData string, input *Input) (
 	}
 
 	loadFunc := func(refer string) (*ValueSpace, error) {
-		return loadValueSpace(refer, input)
+		return loadValueSpace(ctx, refer, input)
 	}
 
 	// NOTE: prop.Refer is comma separated, e.g.: "SheetName(SheetAlias).ColumnName[,SheetName(SheetAlias).ColumnName]..."

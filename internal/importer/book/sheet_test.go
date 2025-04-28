@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 )
@@ -239,10 +238,4 @@ func TestSheet_ToWorkseet(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestSetMetasheetName(t *testing.T) {
-	assert.Panicsf(t, assert.PanicTestFunc(func() {
-		SetMetasheetName("No@StartMetasheetName")
-	}), "SetMetasheetName() should panic when metasheet name not starts with '@'")
 }

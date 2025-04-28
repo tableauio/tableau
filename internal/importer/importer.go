@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -35,18 +36,18 @@ type Importer interface {
 }
 
 // New creates a new importer.
-func New(filename string, setters ...Option) (Importer, error) {
+func New(ctx context.Context, filename string, setters ...Option) (Importer, error) {
 	opts := parseOptions(setters...)
 	fmt := format.GetFormat(filename)
 	switch fmt {
 	case format.Excel:
-		return NewExcelImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
+		return NewExcelImporter(ctx, filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	case format.CSV:
-		return NewCSVImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
+		return NewCSVImporter(ctx, filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	case format.XML:
-		return NewXMLImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
+		return NewXMLImporter(ctx, filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	case format.YAML:
-		return NewYAMLImporter(filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
+		return NewYAMLImporter(ctx, filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
 	default:
 		return nil, xerrors.Errorf("unsupported format: %v", fmt)
 	}
@@ -61,7 +62,7 @@ type ImporterInfo struct {
 //  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 //  2. exclude self
 //  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
+func GetScatterImporters(ctx context.Context, inputDir, primaryBookName, sheetName string, scatterSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
 	var importerInfos []ImporterInfo
 	for _, specifier := range scatterSpecifiers {
 		relBookPaths, specifiedSheetName, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
@@ -76,7 +77,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 			fpath := filepath.Join(inputDir, relBookPath)
 			rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
-			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
+			importer, err := New(ctx, fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
 				return nil, xerrors.Wrapf(err, "failed to create importer: %s", fpath)
 			}
@@ -90,7 +91,7 @@ func GetScatterImporters(inputDir, primaryBookName, sheetName string, scatterSpe
 //  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 //  2. exclude self
 //  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
+func GetMergerImporters(ctx context.Context, inputDir, primaryBookName, sheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
 	var importerInfos []ImporterInfo
 	for _, specifier := range sheetSpecifiers {
 		relBookPaths, specifiedSheetName, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
@@ -105,7 +106,7 @@ func GetMergerImporters(inputDir, primaryBookName, sheetName string, sheetSpecif
 			fpath := filepath.Join(inputDir, relBookPath)
 			rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 			primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
-			importer, err := New(fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
+			importer, err := New(ctx, fpath, Sheets([]string{specifiedSheetName}), Cloned(primaryBookPath))
 			if err != nil {
 				return nil, xerrors.Wrapf(err, "failed to create importer: %s", fpath)
 			}

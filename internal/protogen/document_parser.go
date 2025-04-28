@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
@@ -130,7 +131,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 
 		// auto add suffix "_map".
 		// field.Name = strcase.ToSnake(valueTypeDesc.Name) + mapVarSuffix
-		field.Name = p.gen.strcaseCtx.ToSnake(variableCell)
+		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(variableCell)
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
@@ -170,7 +171,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 		return nil
 	}
 	// struct map
-	field.Name = p.gen.strcaseCtx.ToSnake(variableCell)
+	field.Name = strcase.FromContext(p.gen.ctx).ToSnake(variableCell)
 	field.Type = mapType
 	field.FullType = fullMapType
 	// For map type, Predefined indicates the ValueType of map has been defined.
@@ -193,7 +194,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
-	scalarField.Name = p.gen.strcaseCtx.ToSnake(strings.TrimPrefix(node.GetMetaKey(), book.MetaSign))
+	scalarField.Name = strcase.FromContext(p.gen.ctx).ToSnake(strings.TrimPrefix(node.GetMetaKey(), book.MetaSign))
 	field.Fields = append(field.Fields, scalarField)
 	// parse other value fields
 	structNode := node.GetMetaStructNode()
@@ -246,7 +247,7 @@ func (p *documentParser) parseListField(field *internalpb.Field, node *book.Node
 	}
 	// auto add suffix "_list".
 	// field.Name = strcase.ToSnake(node.Name) + listVarSuffix
-	field.Name = p.gen.strcaseCtx.ToSnake(variableCell)
+	field.Name = strcase.FromContext(p.gen.ctx).ToSnake(variableCell)
 	field.Options = &tableaupb.FieldOptions{
 		Name:   node.Name,
 		Layout: layout,
@@ -290,7 +291,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 		}
 		proto.Merge(field, scalarField)
 
-		field.Name = p.gen.strcaseCtx.ToSnake(node.Name)
+		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(node.Name)
 		field.Options = &tableaupb.FieldOptions{
 			Name: node.Name,
 			Span: span,

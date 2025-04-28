@@ -26,9 +26,7 @@ func TestMain(m *testing.M) {
 	testgen = NewGeneratorWithOptions("protoconf", "testdata", "testdata", &options.Options{
 		LocationName: "Asia/Shanghai",
 		Proto: &options.ProtoOption{
-			Input: &options.ProtoInputOption{
-				MetasheetName: "",
-			},
+			Input:  &options.ProtoInputOption{},
 			Output: &options.ProtoOutputOption{},
 		},
 	})

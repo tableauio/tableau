@@ -1,12 +1,14 @@
 package book
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/excel"
+	"github.com/tableauio/tableau/internal/metasheet"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
@@ -21,13 +23,14 @@ type Book struct {
 
 	meta       *internalpb.Metabook
 	metaParser SheetParser
+	ctx        context.Context
 }
 
 // NewBook creates a new book.
 // Example:
 //   - bookName: Test
 //   - filename: testdata/Test.xlsx
-func NewBook(bookName, filename string, parser SheetParser) *Book {
+func NewBook(ctx context.Context, bookName, filename string, parser SheetParser) *Book {
 	return &Book{
 		name:     bookName,
 		filename: filename,
@@ -36,6 +39,7 @@ func NewBook(bookName, filename string, parser SheetParser) *Book {
 			MetasheetMap: make(map[string]*internalpb.Metasheet),
 		},
 		metaParser: parser,
+		ctx:        ctx,
 	}
 }
 
@@ -146,23 +150,24 @@ func (b *Book) Clear() {
 // ParseMetaAndPurge parses metasheet to Metabook and
 // purge needless sheets which is not in parsed Metabook.
 func (b *Book) ParseMetaAndPurge() (err error) {
-	metasheet := b.GetSheet(MetasheetName)
+	metasheetName := metasheet.FromContext(b.ctx).MetasheetName()
+	metasheet := b.GetSheet(metasheetName)
 	if metasheet == nil {
-		log.Debugf("metasheet %s not found in book %s, maybe it is a to be merged sheet", MetasheetName, b.Filename())
+		log.Debugf("metasheet %s not found in book %s, maybe it is a to be merged sheet", metasheetName, b.Filename())
 		b.Clear()
 		return nil
 	}
 
 	b.meta, err = metasheet.ParseMetasheet(b.metaParser)
 	if err != nil {
-		return xerrors.Wrapf(err, "failed to parse sheet: %s#%s", b.Filename(), MetasheetName)
+		return xerrors.Wrapf(err, "failed to parse sheet: %s#%s", b.Filename(), metasheetName)
 	}
 
 	if len(b.meta.MetasheetMap) == 0 {
 		// need all sheets except the MetasheetName and BookNameInMetasheet
 		b.meta.MetasheetMap = make(map[string]*internalpb.Metasheet) // init
 		for _, sheet := range b.GetSheets() {
-			if sheet.Name != MetasheetName && sheet.Name != BookNameInMetasheet {
+			if sheet.Name != metasheetName && sheet.Name != BookNameInMetasheet {
 				if sheet.Document != nil {
 					if sheet.Document.IsMeta() {
 						sheetName := sheet.Document.GetDataSheetName()
@@ -179,7 +184,7 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 		}
 	}
 
-	log.Debugf("%s#%s: %+v", b.Filename(), MetasheetName, b.meta)
+	log.Debugf("%s#%s: %+v", b.Filename(), metasheetName, b.meta)
 
 	var reservedSheetNames []string
 	for sheetName, sheetMeta := range b.meta.MetasheetMap {
@@ -198,7 +203,7 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 	}
 	// NOTE: only reserve the sheets that are specified in metasheet
 	b.Squeeze(reservedSheetNames)
-	log.Debugf("squeezed: %s#%s: %+v", b.Filename(), MetasheetName, reservedSheetNames)
+	log.Debugf("squeezed: %s#%s: %+v", b.Filename(), metasheetName, reservedSheetNames)
 	return nil
 }
 
