@@ -1,7 +1,6 @@
 package book
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -9,8 +8,10 @@ var testTable *Table
 
 func init() {
 	testTable = &Table{
-		MaxRow: 5,
-		MaxCol: 3,
+		BeginRow: 0,
+		EndRow:   5,
+		BeginCol: 0,
+		EndCol:   3,
 		Rows: [][]string{
 			{"1", "2", "3"},
 			{"11", "12", "13"},
@@ -80,7 +81,7 @@ func TestTable_FindBlockEndRow(t *testing.T) {
 			args: args{
 				startRow: 0,
 			},
-			want: 1,
+			want: 2,
 		},
 		{
 			name: "start-row-is-empty",
@@ -96,50 +97,13 @@ func TestTable_FindBlockEndRow(t *testing.T) {
 			args: args{
 				startRow: 3,
 			},
-			want: 4,
+			want: 5,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.tr.FindBlockEndRow(tt.args.startRow); got != tt.want {
 				t.Errorf("Table.FindBlockEndRow() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTable_ExtractBlock(t *testing.T) {
-	type args struct {
-		startRow int
-	}
-	tests := []struct {
-		name       string
-		tr         *Table
-		args       args
-		wantRows   [][]string
-		wantEndRow int
-	}{
-		{
-			name: "extract-block",
-			tr:   testTable,
-			args: args{
-				startRow: 0,
-			},
-			wantRows: [][]string{
-				{"1", "2", "3"},
-				{"11", "12", "13"},
-			},
-			wantEndRow: 1,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotRows, gotEndRow := tt.tr.ExtractBlock(tt.args.startRow)
-			if !reflect.DeepEqual(gotRows, tt.wantRows) {
-				t.Errorf("Table.ExtractBlock() gotRows = %v, want %v", gotRows, tt.wantRows)
-			}
-			if gotEndRow != tt.wantEndRow {
-				t.Errorf("Table.ExtractBlock() gotEndRow = %v, want %v", gotEndRow, tt.wantEndRow)
 			}
 		})
 	}

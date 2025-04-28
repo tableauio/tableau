@@ -29,15 +29,16 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 		// namerow: name column
 		// [datarow, MaxCol]: data column
 		// kvRow := make(map[string]string)
-		sp.names = make([]string, sheet.Table.MaxRow)
-		sp.types = make([]string, sheet.Table.MaxRow)
-		nameCol := header.NameRow - 1
-		typeCol := header.TypeRow - 1
+		sp.names = make([]string, sheet.Table.EndRow-sheet.Table.BeginRow)
+		sp.types = make([]string, sheet.Table.EndRow-sheet.Table.BeginRow)
+		nameCol := sheet.Table.BeginCol + header.NameRow - 1
+		typeCol := sheet.Table.BeginCol + header.TypeRow - 1
+		dataCol := sheet.Table.BeginCol + header.DataRow - 1
 		var prev *book.RowCells
-		for col := header.DataRow - 1; col < sheet.Table.MaxCol; col++ {
+		for col := dataCol; col < sheet.Table.EndCol; col++ {
 			curr := book.NewRowCells(col, prev, sheet.Name)
-			for row := 0; row < sheet.Table.MaxRow; row++ {
-				if col == header.DataRow-1 {
+			for row := sheet.Table.BeginRow; row < sheet.Table.EndRow; row++ {
+				if col == dataCol {
 					nameCell, err := sheet.Table.Cell(row, nameCol)
 					if err != nil {
 						return xerrors.WrapKV(err)
@@ -81,15 +82,16 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	} else {
 		// namerow: name row
 		// [datarow, MaxRow]: data row
-		sp.names = make([]string, sheet.Table.MaxCol)
-		sp.types = make([]string, sheet.Table.MaxCol)
-		nameRow := header.NameRow - 1
-		typeRow := header.TypeRow - 1
+		sp.names = make([]string, sheet.Table.EndCol-sheet.Table.BeginCol)
+		sp.types = make([]string, sheet.Table.EndCol-sheet.Table.BeginCol)
+		nameRow := sheet.Table.BeginRow + header.NameRow - 1
+		typeRow := sheet.Table.BeginRow + header.TypeRow - 1
+		dataRow := sheet.Table.BeginRow + header.DataRow - 1
 		var prev *book.RowCells
-		for row := header.DataRow - 1; row < sheet.Table.MaxRow; row++ {
-			curr := book.NewRowCells(row+sheet.Table.Options.RowOffset, prev, sheet.Name)
-			for col := 0; col < sheet.Table.MaxCol; col++ {
-				if row == header.DataRow-1 {
+		for row := dataRow; row < sheet.Table.EndRow; row++ {
+			curr := book.NewRowCells(row, prev, sheet.Name)
+			for col := sheet.Table.BeginCol; col < sheet.Table.EndCol; col++ {
+				if row == dataRow {
 					nameCell, err := sheet.Table.Cell(nameRow, col)
 					if err != nil {
 						return xerrors.WrapKV(err)

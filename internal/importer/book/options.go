@@ -1,27 +1,28 @@
 package book
 
-type TableOptions struct {
-	// RowOffset is the row index of the first row in Rows.
-	// The current Rows may be part of a multi enum/struct/union sheet,
-	// so we need to know the offset to calculate the correct row number.
-	RowOffset int
-}
-
 // Option is the functional option type.
-type TableOption func(*TableOptions)
+type TableOption func(*Table)
 
-// RowOffset sets the offset of table's first row to the whole sheet.
-// For non-multi sheet modes, the offset is always zero.
-func RowOffset(offset int) TableOption {
-	return func(opts *TableOptions) {
-		opts.RowOffset = offset
+// Rows sets the table-occupied row range of the whole sheet.
+func Rows(begin, end int) TableOption {
+	return func(table *Table) {
+		if begin >= 0 {
+			table.BeginRow = begin
+		}
+		if end <= table.maxRow {
+			table.EndRow = end
+		}
 	}
 }
 
-func parseTableOptions(setters ...TableOption) *TableOptions {
-	opts := &TableOptions{}
-	for _, setter := range setters {
-		setter(opts)
+// Cols sets the table-occupied column range of the whole sheet.
+func Cols(begin, end int) TableOption {
+	return func(table *Table) {
+		if begin >= 0 {
+			table.BeginCol = begin
+		}
+		if end <= table.maxCol {
+			table.EndCol = end
+		}
 	}
-	return opts
 }

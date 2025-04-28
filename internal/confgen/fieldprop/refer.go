@@ -187,8 +187,8 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 			// TODO: transpose
 		} else {
 			foundColumn := -1
-			nameRow := header.NameRow - 1
-			for col := 0; col < sheet.Table.MaxRow; col++ {
+			nameRow := sheet.Table.BeginRow + header.NameRow - 1
+			for col := sheet.Table.BeginCol; col < sheet.Table.EndCol; col++ {
 				nameCell, err := sheet.Table.Cell(nameRow, col)
 				if err != nil {
 					return nil, xerrors.WrapKV(err)
@@ -202,7 +202,7 @@ func loadValueSpace(refer string, input *Input) (*ValueSpace, error) {
 			if foundColumn < 0 {
 				return nil, xerrors.E2015(referInfo.Column, bookName, sheetName)
 			}
-			for row := header.DataRow - 1; row < sheet.Table.MaxRow; row++ {
+			for row := sheet.Table.BeginRow + header.DataRow - 1; row < sheet.Table.EndRow; row++ {
 				data, err := sheet.Table.Cell(row, foundColumn)
 				if err != nil {
 					return nil, xerrors.WrapKV(err)

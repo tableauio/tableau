@@ -197,8 +197,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   5,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"Number", "Name", "Alias"},
 							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
@@ -247,8 +249,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 2,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   2,
 						Rows: [][]string{
 							{"Name", "Alias"},
 							{"ITEM_TYPE_FRUIT", "Fruit"},
@@ -291,8 +295,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   5,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"Number", "Name", "Alias"},
 							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
@@ -315,8 +321,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   5,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"Number", "Name", "Alias"},
 							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
@@ -339,8 +347,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   5,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"Number", "Name", "Alias"},
 							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
@@ -363,8 +373,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   5,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"Number", "Name", "Alias"},
 							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
@@ -387,8 +399,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "EnumDefault",
 					Table: &book.Table{
-						MaxRow: 11,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   11,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ItemType", "Item's Type", ""},
 							{"Number", "Name", "Alias"},
@@ -460,8 +474,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 2,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   2,
 						Rows: [][]string{
 							{"Name", "Type"},
 							{"ID", "uint32"},
@@ -530,8 +546,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 2,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   2,
 						Rows: [][]string{
 							{"Name", "Type"},
 							{"ID", "uint32"},
@@ -553,8 +571,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "StuuctDefault",
 					Table: &book.Table{
-						MaxRow: 11,
-						MaxCol: 2,
+						BeginRow: 0,
+						EndRow:   11,
+						BeginCol: 0,
+						EndCol:   2,
 						Rows: [][]string{
 							{"ItemType", "Item's Type"},
 							{"Name", "Type"},
@@ -661,8 +681,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"Name", "Alias", "Field1", "Field2", "Field3"},
 							{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
@@ -780,8 +802,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 4,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   4,
 						Rows: [][]string{
 							{"Number", "Name", "Alias", "Field1"},
 							{"2", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
@@ -840,8 +864,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 4,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   4,
 						Rows: [][]string{
 							{"Number", "Name", "Alias", "Field1"},
 							{"1", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
@@ -862,8 +888,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"Name", "Alias", "Field1"},
 							{"Battle", "SoloPvpBattle", "ID\nuint32"},
@@ -884,8 +912,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"Name", "Alias", "Field1"},
 							{"PvpBattle", "SoloBattle", "ID\nuint32"},
@@ -906,8 +936,10 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "UnionDefault",
 					Table: &book.Table{
-						MaxRow: 9,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   9,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"ItemType", "Item's Type", "", "", ""},
 							{"Name", "Alias", "Field1", "Field2", "Field3"},
@@ -1125,8 +1157,10 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "ItemType",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 4,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   4,
 						Rows: [][]string{
 							{"Number", "Name", "Alias"},
 							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
@@ -1149,8 +1183,10 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "TaskReward",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 2,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   2,
 						Rows: [][]string{
 							{"Name", "Type"},
 							{"ID", "uint32"},
@@ -1172,8 +1208,10 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "TaskTarget",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"Name", "Alias", "Field1", "Field2", "Field3"},
 							{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},

@@ -46,8 +46,10 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"1", "1", "10"},
@@ -66,8 +68,10 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"1", "1", "10"},
@@ -86,8 +90,10 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"1", "1", "10"},
@@ -106,8 +112,10 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"1", "1", "10"},
@@ -127,8 +135,10 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 4,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   4,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "GoodsID", "Price"},
 							{"1", "1", "1", "10"},
@@ -148,8 +158,10 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"ShopID", "", "GoodsID", "", "Price"},
 							{"1", "x", "1", "x", "10"},
@@ -196,8 +208,10 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"1", "1", "10"},
@@ -216,8 +230,10 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"", "1", "10"},
@@ -236,8 +252,10 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"", "1", "10"},
@@ -285,8 +303,10 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"1", "1", "10"},
@@ -305,8 +325,10 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"", "", ""},
@@ -325,8 +347,10 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"", "", ""},
@@ -345,8 +369,10 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "MallConf",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ShopID", "GoodsID", "Price"},
 							{"", "1", "10"},
@@ -393,8 +419,10 @@ func TestTableParser_parseHorizontalMapWithDuplicateKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "RewardConf",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
 							{"1", "1", "10", "2", "20"},
@@ -412,8 +440,10 @@ func TestTableParser_parseHorizontalMapWithDuplicateKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "RewardConf",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
 							{"1", "1", "10", "1", "20"},
@@ -460,8 +490,10 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "RewardConf",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
 							{"1", "1", "10", "2", "20"},
@@ -479,8 +511,10 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "RewardConf",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
 							{"1", "1", "10", "", "20"},
@@ -498,8 +532,10 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "RewardConf",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 7,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   7,
 						Rows: [][]string{
 							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num", "Item3ID", "Item3Num"},
 							{"1", "1", "10", "", "20", "", "30"},
@@ -658,8 +694,10 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "SimpleIncellMap",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 1,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   1,
 						Rows: [][]string{
 							{"Item"},
 							{"1:10,2:20,3:30"},
@@ -686,8 +724,10 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "SimpleIncellMap",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 1,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   1,
 						Rows: [][]string{
 							{"Item"},
 							{"1=10;2=20;3=30"},
@@ -714,8 +754,10 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "IncellStructList",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 1,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   1,
 						Rows: [][]string{
 							{"Item"},
 							{"1:10,2:20,3:30"},
@@ -742,8 +784,10 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "IncellStructList",
 					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 1,
+						BeginRow: 0,
+						EndRow:   3,
+						BeginCol: 0,
+						EndCol:   1,
 						Rows: [][]string{
 							{"Item"},
 							{"1=10;2=20;3=30"},
@@ -793,8 +837,10 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "UniqueFieldInVerticalStructList",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ID", "Name", "Desc"},
 							{"1", "Apple", "A kind of delicious fruit."},
@@ -813,8 +859,10 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "UniqueFieldInVerticalStructList",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ID", "Name", "Desc"},
 							{"1", "Apple", "A kind of delicious fruit."},
@@ -834,8 +882,10 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "UniqueFieldInVerticalStructList",
 					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
+						BeginRow: 0,
+						EndRow:   4,
+						BeginCol: 0,
+						EndCol:   3,
 						Rows: [][]string{
 							{"ID", "Name", "Desc"},
 							{"1", "Apple", "A kind of delicious fruit."},
@@ -883,8 +933,10 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "VerticalUniqueFieldStructMap",
 					Table: &book.Table{
-						MaxRow: 7,
-						MaxCol: 4,
+						BeginRow: 0,
+						EndRow:   7,
+						BeginCol: 0,
+						EndCol:   4,
 						Rows: [][]string{
 							{"MainID", "MainName", "SubID", "SubName"},
 							{"1001", "BackPack", "1", "Gold"},
@@ -906,8 +958,10 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "VerticalUniqueFieldStructMap",
 					Table: &book.Table{
-						MaxRow: 7,
-						MaxCol: 4,
+						BeginRow: 0,
+						EndRow:   7,
+						BeginCol: 0,
+						EndCol:   4,
 						Rows: [][]string{
 							{"MainID", "MainName", "SubID", "SubName"},
 							{"1001", "BackPack", "1", "Gold"},
@@ -930,8 +984,10 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "VerticalUniqueFieldStructMap",
 					Table: &book.Table{
-						MaxRow: 7,
-						MaxCol: 4,
+						BeginRow: 0,
+						EndRow:   7,
+						BeginCol: 0,
+						EndCol:   4,
 						Rows: [][]string{
 							{"MainID", "MainName", "SubID", "SubName"},
 							{"1001", "BackPack", "1", "Gold"},
@@ -954,8 +1010,10 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "VerticalUniqueFieldStructMap",
 					Table: &book.Table{
-						MaxRow: 7,
-						MaxCol: 4,
+						BeginRow: 0,
+						EndRow:   7,
+						BeginCol: 0,
+						EndCol:   4,
 						Rows: [][]string{
 							{"MainID", "MainName", "SubID", "SubName"},
 							{"1001", "BackPack", "1", "Gold"},
@@ -978,8 +1036,10 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 				sheet: &book.Sheet{
 					Name: "VerticalUniqueFieldStructMap",
 					Table: &book.Table{
-						MaxRow: 2,
-						MaxCol: 5,
+						BeginRow: 0,
+						EndRow:   2,
+						BeginCol: 0,
+						EndCol:   5,
 						Rows: [][]string{
 							{"MainID", "MainName", "MainKV", "SubID", "SubName"},
 							{"1001", "BackPack", "1:10,2:20,2:30", "1", "Gold"},
