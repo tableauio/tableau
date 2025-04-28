@@ -1044,3 +1044,80 @@ func TestTableParser_parseVerticalSequentialFieldStructMap(t *testing.T) {
 		})
 	}
 }
+
+func TestTableParser_parseVerticalSequentialFieldKeyedList(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		errcode string
+	}{
+		{
+			name:   "sequential conditions met",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "SequentialKeyInVerticalKeyedList",
+					Table: &book.Table{
+						MaxRow: 8,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ID", "PropID", "PropName"},
+							{"1", "1", "attack"},
+							{"1", "2", "defence"},
+							{"2", "1", "attack"},
+							{"2", "3", "crit"},
+							{"3", "1", "attack"},
+							{"3", "2", "defence"},
+							{"3", "4", "evade"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "key not sequential",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "SequentialFieldInVerticalStructList",
+					Table: &book.Table{
+						MaxRow: 4,
+						MaxCol: 3,
+						Rows: [][]string{
+							{"ID", "PropID", "PropName"},
+							{"1", "1", "attack"},
+							{"1", "2", "defence"},
+							{"3", "1", "attack"},
+							{"3", "2", "defence"},
+							{"3", "4", "evade"},
+							{"2", "1", "attack"},
+							{"2", "3", "crit"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2003",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.SequentialKeyInVerticalKeyedList{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
+			}
+		})
+	}
+}
