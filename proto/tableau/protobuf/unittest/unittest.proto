@@ -236,6 +236,20 @@ message SequentialFieldInVerticalStructList {
   }
 }
 
+message SequentialKeyInVerticalKeyedList {
+  option (tableau.worksheet) = {name:"SequentialKeyInVerticalKeyedList"};
+
+  repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{sequence:1}}];
+    map<int32, Prop> prop_map = 2 [(tableau.field) = {key:"PropID" layout:LAYOUT_VERTICAL}];
+    message Prop {
+      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}];
+      string prop_name = 2 [(tableau.field) = {name:"PropName"}];
+    }
+  }
+}
+
 message VerticalSequentialFieldStructMap {
   option (tableau.worksheet) = {name:"VerticalSequentialFieldStructMap"};
 
