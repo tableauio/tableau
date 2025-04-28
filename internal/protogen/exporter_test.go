@@ -1,6 +1,7 @@
 package protogen
 
 import (
+	"context"
 	"regexp"
 	"testing"
 
@@ -273,7 +274,9 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 				},
 				g: NewGeneratedBuf(),
 				be: &bookExporter{
-					gen: &Generator{},
+					gen: &Generator{
+						ctx: context.Background(),
+					},
 				},
 			},
 			want: `enum ItemType {
@@ -376,7 +379,9 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 				},
 				g: NewGeneratedBuf(),
 				be: &bookExporter{
-					gen: &Generator{},
+					gen: &Generator{
+						ctx: context.Background(),
+					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),

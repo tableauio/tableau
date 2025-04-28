@@ -7,6 +7,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -196,7 +197,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			prefix += valueTypeDesc.Name // add prefix with value type
 		}
 		// auto add suffix "_map".
-		field.Name = p.gen.strcaseCtx.ToSnake(valueTypeDesc.Name) + mapVarSuffix
+		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(valueTypeDesc.Name) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		// For map type, Predefined indicates the ValueType of map has been defined.
@@ -263,7 +264,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		prefix += mapName
 		notePrefix += mapNote
 		// auto add suffix "_map".
-		field.Name = p.gen.strcaseCtx.ToSnake(mapName) + mapVarSuffix
+		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(mapName) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		field.Note = strings.TrimSpace(mapNote)
@@ -344,7 +345,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		}
 
 		// auto add suffix "_map".
-		field.Name = p.gen.strcaseCtx.ToSnake(trimmedNameCell) + mapVarSuffix
+		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(trimmedNameCell) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
 		field.Note = header.getNoteCell(cursor)
@@ -505,7 +506,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 			ElemFullType: scalarField.FullType,
 		}
 		// auto add suffix "_list".
-		field.Name = p.gen.strcaseCtx.ToSnake(pureElemTypeName) + listVarSuffix
+		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(pureElemTypeName) + listVarSuffix
 		field.Options.Name = "" // Default, name is empty for vertical list
 		field.Options.Layout = layout
 
@@ -581,7 +582,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 			ElemFullType: scalarField.FullType,
 		}
 		// auto add suffix "_list".
-		field.Name = p.gen.strcaseCtx.ToSnake(listName) + listVarSuffix
+		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(listName) + listVarSuffix
 		field.Options.Name = listName
 		field.Options.Layout = layout
 
@@ -824,7 +825,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 			}
 		}
 
-		field.Name = p.gen.strcaseCtx.ToSnake(structName)
+		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(structName)
 		field.Options = &tableaupb.FieldOptions{
 			Name: structName,
 			Prop: ExtractStructFieldProp(prop),

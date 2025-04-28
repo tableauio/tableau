@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -113,7 +114,7 @@ func TestNewYAMLImporter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewYAMLImporter(tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
+			got, err := NewYAMLImporter(context.Background(), tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewYAMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return

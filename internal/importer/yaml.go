@@ -2,6 +2,7 @@ package importer
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -20,11 +21,11 @@ type YAMLImporter struct {
 	*book.Book
 }
 
-func NewYAMLImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*YAMLImporter, error) {
+func NewYAMLImporter(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*YAMLImporter, error) {
 	var book *book.Book
 	var err error
 	if mode == Protogen {
-		book, err = readYAMLBookWithOnlySchemaSheet(filename, parser)
+		book, err = readYAMLBookWithOnlySchemaSheet(ctx, filename, parser)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read yaml book: %s", filename)
 		}
@@ -32,7 +33,7 @@ func NewYAMLImporter(filename string, sheetNames []string, parser book.SheetPars
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	} else {
-		book, err = readYAMLBook(filename, parser)
+		book, err = readYAMLBook(ctx, filename, parser)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read yaml book: %s", filename)
 		}
@@ -44,9 +45,9 @@ func NewYAMLImporter(filename string, sheetNames []string, parser book.SheetPars
 	}, nil
 }
 
-func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
+func readYAMLBook(ctx context.Context, filename string, parser book.SheetParser) (*book.Book, error) {
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	newBook := book.NewBook(bookName, filename, parser)
+	newBook := book.NewBook(ctx, bookName, filename, parser)
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -73,9 +74,9 @@ func readYAMLBook(filename string, parser book.SheetParser) (*book.Book, error) 
 	return newBook, nil
 }
 
-func readYAMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (*book.Book, error) {
+func readYAMLBookWithOnlySchemaSheet(ctx context.Context, filename string, parser book.SheetParser) (*book.Book, error) {
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	newBook := book.NewBook(bookName, filename, parser)
+	newBook := book.NewBook(ctx, bookName, filename, parser)
 
 	content, err := os.ReadFile(filename)
 	if err != nil {

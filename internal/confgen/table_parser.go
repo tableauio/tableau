@@ -8,6 +8,7 @@ import (
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -647,7 +648,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 	}
 
 	// parse union type
-	typeColName := prefix + sp.strcaseCtx.ToCamel(unionDesc.TypeName())
+	typeColName := prefix + strcase.FromContext(sp.ctx).ToCamel(unionDesc.TypeName())
 	cell, err := rc.Cell(typeColName, sp.IsFieldOptional(field))
 	if err != nil {
 		return false, xerrors.WrapKV(err, rc.CellDebugKV(typeColName)...)

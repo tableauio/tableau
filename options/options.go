@@ -2,6 +2,7 @@ package options
 
 import (
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/metasheet"
 	"github.com/tableauio/tableau/log"
 )
 
@@ -29,6 +30,12 @@ type Options struct {
 	// For example, if you configure K8s -> k8s, then the field name in PascalCase "InK8s"
 	// will be converted to snake_case "in_k8s" but not "in_k_8_s".
 	Acronyms map[string]string `yaml:"acronyms"`
+
+	// Specify metasheet name. Metasheet is "@TABLEAU" if not set.
+	// NOTE: metasheet name must start with '@'.
+	//
+	// Default: "".
+	MetasheetName string `yaml:"metasheetName"`
 
 	Log *log.Options // Log options.
 
@@ -139,12 +146,6 @@ type ProtoInputOption struct {
 	//
 	// Default: false.
 	FollowSymlink bool `yaml:"followSymlink"`
-
-	// Specify metasheet name. Metasheet is "@TABLEAU" if not set.
-	// NOTE: metasheet name must start with '@'.
-	//
-	// Default: "".
-	MetasheetName string `yaml:"metasheetName"`
 
 	// Specify the first-pass mode to parse predefined types when generate
 	// specified config files. Under the hood, the parsed predefined types will
@@ -376,6 +377,13 @@ func Acronyms(o map[string]string) Option {
 	}
 }
 
+// MetasheetName configures your custom metasheet name globally in protogen and confgen.
+func MetasheetName(o string) Option {
+	return func(opts *Options) {
+		opts.MetasheetName = o
+	}
+}
+
 // Log sets log options.
 func Log(o *log.Options) Option {
 	return func(opts *Options) {
@@ -400,8 +408,9 @@ func Conf(o *ConfOption) Option {
 // NewDefault returns a default Options.
 func NewDefault() *Options {
 	return &Options{
-		Lang:         "en",
-		LocationName: "Local",
+		Lang:          "en",
+		LocationName:  "Local",
+		MetasheetName: metasheet.DefaultMetasheetName,
 		Log: &log.Options{
 			Mode:  "SIMPLE",
 			Level: "INFO",
