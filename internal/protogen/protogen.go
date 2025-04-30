@@ -144,19 +144,16 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		if err := gen.preprocess(true, false); err != nil {
 			return err
 		}
+		log.Infof("%15s: parsing specified books", "first-pass")
+		if err := gen.processInputs(relWorkbookPaths...); err != nil {
+			return err
+		}
 	default:
 		if err := gen.preprocess(false, false); err != nil {
 			return err
 		}
 		log.Infof("%15s: parsing only specified books", "first-pass")
-		var eg errgroup.Group
-		for _, relWorkbookPath := range relWorkbookPaths {
-			absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-			eg.Go(func() error {
-				return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass)
-			})
-		}
-		if err := eg.Wait(); err != nil {
+		if err := gen.processInputs(relWorkbookPaths...); err != nil {
 			return err
 		}
 	}
@@ -169,6 +166,20 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		})
 	}
 	return eg.Wait()
+}
+
+func (gen *Generator) processInputs(relWorkbookPaths ...string) error {
+	var eg errgroup.Group
+	for _, relWorkbookPath := range relWorkbookPaths {
+		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
+		eg.Go(func() error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass)
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (gen *Generator) processFirstPass(checkProtoFileConflicts bool) error {
