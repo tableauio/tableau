@@ -318,8 +318,9 @@ type ConfOutputOption struct {
 type FirstPassMode = string
 
 const (
-	FirstPassModeNormal   FirstPassMode = "normal"
-	FirstPassModeAdvanced FirstPassMode = "advanced"
+	FirstPassModeDefault  FirstPassMode = ""         // parse based on specified config files.
+	FirstPassModeNormal   FirstPassMode = "normal"   // parse based on all config files.
+	FirstPassModeAdvanced FirstPassMode = "advanced" // parse based on all previous generated proto files
 )
 
 type DryRun = string

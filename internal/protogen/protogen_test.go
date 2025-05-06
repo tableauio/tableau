@@ -90,7 +90,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 								"common/union.proto",
 							},
 							Formats: []format.Format{
-								format.YAML,
+								format.YAML, format.CSV,
 							},
 							FirstPassMode: "",
 						},
@@ -119,7 +119,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 								"common/union.proto",
 							},
 							Formats: []format.Format{
-								format.YAML,
+								format.YAML, format.CSV,
 							},
 							FirstPassMode: options.FirstPassModeNormal,
 						},
@@ -148,7 +148,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 								"common/union.proto",
 							},
 							Formats: []format.Format{
-								format.YAML,
+								format.YAML, format.CSV,
 							},
 							FirstPassMode: options.FirstPassModeAdvanced,
 						},
