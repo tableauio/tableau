@@ -1,6 +1,6 @@
-ID,Num
-"map<uint32, .Item>|{sequence:1}",int32
-Item's ID,Item's num
-1,100
-2,200
-3,300
+ID,Num,Type
+"map<uint32, Item>",int32,"enum<.FruitItemType>"
+Item's ID,Item's num,Item's type
+1,100,apple
+2,200,banana
+3,300,orange
