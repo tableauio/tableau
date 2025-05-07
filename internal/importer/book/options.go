@@ -1,28 +1,33 @@
 package book
 
-// Option is the functional option type.
-type TableOption func(*Table)
+type TableOptions struct {
+	BeginRow, EndRow int
+	BeginCol, EndCol int
+}
 
-// Rows sets the table-occupied row range of the whole sheet.
+// Option is the functional option type.
+type TableOption func(*TableOptions)
+
+// Rows sets the table-occupied row range of the whole sheet: [begin, end).
 func Rows(begin, end int) TableOption {
-	return func(table *Table) {
-		if begin >= 0 {
-			table.BeginRow = begin
-		}
-		if end <= table.maxRow {
-			table.EndRow = end
-		}
+	return func(opts *TableOptions) {
+		opts.BeginRow = begin
+		opts.EndRow = end
 	}
 }
 
-// Cols sets the table-occupied column range of the whole sheet.
+// Cols sets the table-occupied column range of the whole sheet: [begin, end).
 func Cols(begin, end int) TableOption {
-	return func(table *Table) {
-		if begin >= 0 {
-			table.BeginCol = begin
-		}
-		if end <= table.maxCol {
-			table.EndCol = end
-		}
+	return func(opts *TableOptions) {
+		opts.BeginCol = begin
+		opts.EndCol = end
 	}
+}
+
+func parseTableOptions(setters ...TableOption) *TableOptions {
+	opts := &TableOptions{}
+	for _, setter := range setters {
+		setter(opts)
+	}
+	return opts
 }

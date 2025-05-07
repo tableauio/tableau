@@ -11,11 +11,9 @@ import (
 
 // Table represents a 2D array table.
 type Table struct {
+	Rows           [][]string // 2D array strings
 	maxRow, maxCol int
-
-	BeginRow, EndRow int
-	BeginCol, EndCol int
-	Rows             [][]string // 2D array strings
+	opts           TableOptions
 }
 
 // NewTable creates a new Table.
@@ -30,19 +28,40 @@ func NewTable(rows [][]string, setters ...TableOption) *Table {
 			maxCol = n
 		}
 	}
-	table := &Table{
-		maxRow:   maxRow,
-		maxCol:   maxCol,
-		BeginRow: 0,
-		EndRow:   maxRow,
-		BeginCol: 0,
-		EndCol:   maxCol,
-		Rows:     rows,
+	return &Table{
+		maxRow: maxRow,
+		maxCol: maxCol,
+		Rows:   rows,
+		opts:   *parseTableOptions(setters...),
 	}
-	for _, setter := range setters {
-		setter(table)
+}
+
+func (t *Table) BeginRow() int {
+	if t.opts.BeginRow >= 0 {
+		return t.opts.BeginRow
 	}
-	return table
+	return 0
+}
+
+func (t *Table) EndRow() int {
+	if t.opts.EndRow > 0 && t.opts.EndRow <= t.maxRow {
+		return t.opts.EndRow
+	}
+	return t.maxRow
+}
+
+func (t *Table) BeginCol() int {
+	if t.opts.BeginCol >= 0 {
+		return t.opts.BeginCol
+	}
+	return 0
+}
+
+func (t *Table) EndCol() int {
+	if t.opts.EndCol > 0 && t.opts.EndCol <= t.maxCol {
+		return t.opts.EndCol
+	}
+	return t.maxCol
 }
 
 // GetRow returns the row data by row index (started with 0). It will return
@@ -74,23 +93,23 @@ func (t *Table) IsRowEmpty(row int) bool {
 // NOTE: A block is a series of contiguous none-empty rows. So different blocks
 // are seperated by one or more empty rows.
 func (t *Table) FindBlockEndRow(startRow int) int {
-	for row := startRow; row < t.EndRow; row++ {
+	for row := startRow; row < t.EndRow(); row++ {
 		if t.IsRowEmpty(row) {
 			return row
 		}
 	}
-	return t.EndRow
+	return t.EndRow()
 }
 
 // Cell returns the cell at (row, col).
 func (t *Table) Cell(row, col int) (string, error) {
-	if row < t.BeginRow || row >= t.EndRow {
+	if row < t.BeginRow() || row >= t.EndRow() {
 		return "", xerrors.Errorf("cell row %d out of range", row)
 	}
-	if col < t.BeginCol || col >= t.EndCol {
+	if col < t.BeginCol() || col >= t.EndCol() {
 		return "", xerrors.Errorf("cell col %d out of range", col)
 	}
-	// MOTE: different row may have different length.
+	// NOTE: different row may have different length.
 	if col >= len(t.Rows[row]) {
 		return "", nil
 	}

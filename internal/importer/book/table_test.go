@@ -7,19 +7,13 @@ import (
 var testTable *Table
 
 func init() {
-	testTable = &Table{
-		BeginRow: 0,
-		EndRow:   5,
-		BeginCol: 0,
-		EndCol:   3,
-		Rows: [][]string{
-			{"1", "2", "3"},
-			{"11", "12", "13"},
-			{},
-			{"31", "32", "33"},
-			{"41", "42"},
-		},
-	}
+	testTable = NewTable([][]string{
+		{"1", "2", "3"},
+		{"11", "12", "13"},
+		{},
+		{"31", "32", "33"},
+		{"41", "42"},
+	})
 }
 func TestTable_IsRowEmpty(t *testing.T) {
 	type args struct {

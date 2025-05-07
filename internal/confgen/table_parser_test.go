@@ -43,21 +43,14 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			name:   "no duplicate key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"1", "1", "10"},
-							{"2", "2", "20"},
-							{"3", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"1", "1", "10"},
+						{"2", "2", "20"},
+						{"3", "3", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -65,21 +58,14 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			name:   "duplicate shop",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"1", "1", "10"},
-							{"1", "2", "20"},
-							{"1", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"1", "1", "10"},
+						{"1", "2", "20"},
+						{"1", "3", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -87,21 +73,14 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			name:   "duplicate goods",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"1", "1", "10"},
-							{"2", "1", "20"},
-							{"3", "1", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"1", "1", "10"},
+						{"2", "1", "20"},
+						{"3", "1", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -109,21 +88,14 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			name:   "duplicate shop and goods",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"1", "1", "10"},
-							{"1", "1", "20"},
-							{"1", "1", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"1", "1", "10"},
+						{"1", "1", "20"},
+						{"1", "1", "30"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2005",
@@ -132,21 +104,14 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			name:   "duplicate col name",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   4,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "GoodsID", "Price"},
-							{"1", "1", "1", "10"},
-							{"2", "2", "2", "20"},
-							{"3", "3", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "GoodsID", "Price"},
+						{"1", "1", "1", "10"},
+						{"2", "2", "2", "20"},
+						{"3", "3", "3", "30"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E0003",
@@ -155,21 +120,14 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 			name:   "duplicate empty col name",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   5,
-						Rows: [][]string{
-							{"ShopID", "", "GoodsID", "", "Price"},
-							{"1", "x", "1", "x", "10"},
-							{"2", "x", "2", "x", "20"},
-							{"3", "x", "3", "x", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "", "GoodsID", "", "Price"},
+						{"1", "x", "1", "x", "10"},
+						{"2", "x", "2", "x", "20"},
+						{"3", "x", "3", "x", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -205,21 +163,14 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 			name:   "no empty key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"1", "1", "10"},
-							{"2", "2", "20"},
-							{"3", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"1", "1", "10"},
+						{"2", "2", "20"},
+						{"3", "3", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -227,21 +178,14 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 			name:   "one empty key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"", "1", "10"},
-							{"2", "2", "20"},
-							{"3", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"", "1", "10"},
+						{"2", "2", "20"},
+						{"3", "3", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -249,21 +193,14 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 			name:   "multiple empty keys",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"", "1", "10"},
-							{"", "2", "20"},
-							{"3", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"", "1", "10"},
+						{"", "2", "20"},
+						{"3", "3", "30"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2017",
@@ -300,21 +237,14 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 			name:   "no empty row",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"1", "1", "10"},
-							{"2", "2", "20"},
-							{"3", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"1", "1", "10"},
+						{"2", "2", "20"},
+						{"3", "3", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -322,21 +252,14 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 			name:   "one empty row",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"", "", ""},
-							{"2", "2", "20"},
-							{"3", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"", "", ""},
+						{"2", "2", "20"},
+						{"3", "3", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -344,21 +267,14 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 			name:   "multiple empty rows",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"", "", ""},
-							{"", "", ""},
-							{"3", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"", "", ""},
+						{"", "", ""},
+						{"3", "3", "30"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -366,21 +282,14 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 			name:   "empty key with empty row",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "MallConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ShopID", "GoodsID", "Price"},
-							{"", "1", "10"},
-							{"", "", ""},
-							{"", "", ""},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"MallConf",
+					[][]string{
+						{"ShopID", "GoodsID", "Price"},
+						{"", "1", "10"},
+						{"", "", ""},
+						{"", "", ""},
+					}),
 			},
 			wantErr: false,
 		},
@@ -416,20 +325,13 @@ func TestTableParser_parseHorizontalMapWithDuplicateKey(t *testing.T) {
 			name:   "no duplicate key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "RewardConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   5,
-						Rows: [][]string{
-							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
-							{"1", "1", "10", "2", "20"},
-							{"2", "1", "10", "2", "20"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"RewardConf",
+					[][]string{
+						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+						{"1", "1", "10", "2", "20"},
+						{"2", "1", "10", "2", "20"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -437,20 +339,13 @@ func TestTableParser_parseHorizontalMapWithDuplicateKey(t *testing.T) {
 			name:   "duplicate item",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "RewardConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   5,
-						Rows: [][]string{
-							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
-							{"1", "1", "10", "1", "20"},
-							{"2", "1", "10", "2", "20"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"RewardConf",
+					[][]string{
+						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+						{"1", "1", "10", "1", "20"},
+						{"2", "1", "10", "2", "20"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2005",
@@ -487,20 +382,13 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 			name:   "no empty key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "RewardConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   5,
-						Rows: [][]string{
-							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
-							{"1", "1", "10", "2", "20"},
-							{"2", "1", "10", "2", "20"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"RewardConf",
+					[][]string{
+						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+						{"1", "1", "10", "2", "20"},
+						{"2", "1", "10", "2", "20"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -508,20 +396,13 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 			name:   "one empty key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "RewardConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   5,
-						Rows: [][]string{
-							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
-							{"1", "1", "10", "", "20"},
-							{"2", "1", "10", "2", "20"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"RewardConf",
+					[][]string{
+						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+						{"1", "1", "10", "", "20"},
+						{"2", "1", "10", "2", "20"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -529,20 +410,13 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 			name:   "multiple empty keys",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "RewardConf",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   7,
-						Rows: [][]string{
-							{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num", "Item3ID", "Item3Num"},
-							{"1", "1", "10", "", "20", "", "30"},
-							{"2", "1", "10", "2", "20", "3", "30"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"RewardConf",
+					[][]string{
+						{"RewardID", "Item1ID", "Item1Num", "Item2ID", "Item2Num", "Item3ID", "Item3Num"},
+						{"1", "1", "10", "", "20", "", "30"},
+						{"2", "1", "10", "2", "20", "3", "30"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2017",
@@ -691,20 +565,13 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 			name:   "incell map: book-level sep and subsep",
 			parser: parserWithBookSep,
 			args: args{
-				sheet: &book.Sheet{
-					Name: "SimpleIncellMap",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   1,
-						Rows: [][]string{
-							{"Item"},
-							{"1:10,2:20,3:30"},
-							{"4:40,5:50"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"SimpleIncellMap",
+					[][]string{
+						{"Item"},
+						{"1:10,2:20,3:30"},
+						{"4:40,5:50"},
+					}),
 				msg: &unittestpb.SimpleIncellMap{},
 			},
 			want: &unittestpb.SimpleIncellMap{
@@ -721,20 +588,13 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 			name:   "incell map: sheet-level and book-level sep and subsep",
 			parser: parserWithSheetAndBookSep,
 			args: args{
-				sheet: &book.Sheet{
-					Name: "SimpleIncellMap",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   1,
-						Rows: [][]string{
-							{"Item"},
-							{"1=10;2=20;3=30"},
-							{"4=40;5=50"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"SimpleIncellMap",
+					[][]string{
+						{"Item"},
+						{"1=10;2=20;3=30"},
+						{"4=40;5=50"},
+					}),
 				msg: &unittestpb.SimpleIncellMap{},
 			},
 			want: &unittestpb.SimpleIncellMap{
@@ -751,20 +611,13 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 			name:   "incell struct list: book-level sep and subsep",
 			parser: parserWithBookSep,
 			args: args{
-				sheet: &book.Sheet{
-					Name: "IncellStructList",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   1,
-						Rows: [][]string{
-							{"Item"},
-							{"1:10,2:20,3:30"},
-							{"4:40,5:50"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"IncellStructList",
+					[][]string{
+						{"Item"},
+						{"1:10,2:20,3:30"},
+						{"4:40,5:50"},
+					}),
 				msg: &unittestpb.IncellStructList{},
 			},
 			want: &unittestpb.IncellStructList{
@@ -781,20 +634,13 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 			name:   "incell struct list: sheet-level and book-level sep and subsep",
 			parser: parserWithSheetAndBookSep,
 			args: args{
-				sheet: &book.Sheet{
-					Name: "IncellStructList",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   3,
-						BeginCol: 0,
-						EndCol:   1,
-						Rows: [][]string{
-							{"Item"},
-							{"1=10;2=20;3=30"},
-							{"4=40;5=50"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"IncellStructList",
+					[][]string{
+						{"Item"},
+						{"1=10;2=20;3=30"},
+						{"4=40;5=50"},
+					}),
 				msg: &unittestpb.IncellStructList{},
 			},
 			want: &unittestpb.IncellStructList{
@@ -834,21 +680,14 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 			name:   "no duplicate key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "UniqueFieldInVerticalStructList",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ID", "Name", "Desc"},
-							{"1", "Apple", "A kind of delicious fruit."},
-							{"2", "Orange", "A kind of sour fruit."},
-							{"3", "Banana", "A kind of calorie-rich fruit."},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"UniqueFieldInVerticalStructList",
+					[][]string{
+						{"ID", "Name", "Desc"},
+						{"1", "Apple", "A kind of delicious fruit."},
+						{"2", "Orange", "A kind of sour fruit."},
+						{"3", "Banana", "A kind of calorie-rich fruit."},
+					}),
 			},
 			wantErr: false,
 		},
@@ -856,21 +695,14 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 			name:   "duplicate id",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "UniqueFieldInVerticalStructList",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ID", "Name", "Desc"},
-							{"1", "Apple", "A kind of delicious fruit."},
-							{"1", "Orange", "A kind of sour fruit."},
-							{"3", "Banana", "A kind of calorie-rich fruit."},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"UniqueFieldInVerticalStructList",
+					[][]string{
+						{"ID", "Name", "Desc"},
+						{"1", "Apple", "A kind of delicious fruit."},
+						{"1", "Orange", "A kind of sour fruit."},
+						{"3", "Banana", "A kind of calorie-rich fruit."},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -879,21 +711,14 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 			name:   "duplicate name",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "UniqueFieldInVerticalStructList",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   4,
-						BeginCol: 0,
-						EndCol:   3,
-						Rows: [][]string{
-							{"ID", "Name", "Desc"},
-							{"1", "Apple", "A kind of delicious fruit."},
-							{"2", "Banana", "A kind of sour fruit."},
-							{"3", "Banana", "A kind of calorie-rich fruit."},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"UniqueFieldInVerticalStructList",
+					[][]string{
+						{"ID", "Name", "Desc"},
+						{"1", "Apple", "A kind of delicious fruit."},
+						{"2", "Banana", "A kind of sour fruit."},
+						{"3", "Banana", "A kind of calorie-rich fruit."},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -930,24 +755,17 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 			name:   "no duplicate key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "VerticalUniqueFieldStructMap",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   7,
-						BeginCol: 0,
-						EndCol:   4,
-						Rows: [][]string{
-							{"MainID", "MainName", "SubID", "SubName"},
-							{"1001", "BackPack", "1", "Gold"},
-							{"1001", "", "2", "Diamond"},
-							{"1001", "", "3", "Ticket"},
-							{"1001", "", "4", "Point"},
-							{"1002", "Equip", "1", "Weapon"},
-							{"1002", "", "2", "Gold"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"VerticalUniqueFieldStructMap",
+					[][]string{
+						{"MainID", "MainName", "SubID", "SubName"},
+						{"1001", "BackPack", "1", "Gold"},
+						{"1001", "", "2", "Diamond"},
+						{"1001", "", "3", "Ticket"},
+						{"1001", "", "4", "Point"},
+						{"1002", "Equip", "1", "Weapon"},
+						{"1002", "", "2", "Gold"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -955,24 +773,17 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 			name:   "duplicate main name",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "VerticalUniqueFieldStructMap",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   7,
-						BeginCol: 0,
-						EndCol:   4,
-						Rows: [][]string{
-							{"MainID", "MainName", "SubID", "SubName"},
-							{"1001", "BackPack", "1", "Gold"},
-							{"1001", "", "2", "Diamond"},
-							{"1001", "", "3", "Ticket"},
-							{"1001", "", "4", "Point"},
-							{"1002", "BackPack", "1", "Weapon"},
-							{"1002", "", "2", "Gold"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"VerticalUniqueFieldStructMap",
+					[][]string{
+						{"MainID", "MainName", "SubID", "SubName"},
+						{"1001", "BackPack", "1", "Gold"},
+						{"1001", "", "2", "Diamond"},
+						{"1001", "", "3", "Ticket"},
+						{"1001", "", "4", "Point"},
+						{"1002", "BackPack", "1", "Weapon"},
+						{"1002", "", "2", "Gold"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -981,24 +792,17 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 			name:   "duplicate sub name",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "VerticalUniqueFieldStructMap",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   7,
-						BeginCol: 0,
-						EndCol:   4,
-						Rows: [][]string{
-							{"MainID", "MainName", "SubID", "SubName"},
-							{"1001", "BackPack", "1", "Gold"},
-							{"1001", "", "2", "Diamond"},
-							{"1001", "", "3", "Ticket"},
-							{"1001", "", "4", "Ticket"},
-							{"1002", "Equip", "1", "Weapon"},
-							{"1002", "", "2", "Gold"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"VerticalUniqueFieldStructMap",
+					[][]string{
+						{"MainID", "MainName", "SubID", "SubName"},
+						{"1001", "BackPack", "1", "Gold"},
+						{"1001", "", "2", "Diamond"},
+						{"1001", "", "3", "Ticket"},
+						{"1001", "", "4", "Ticket"},
+						{"1002", "Equip", "1", "Weapon"},
+						{"1002", "", "2", "Gold"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -1007,24 +811,17 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 			name:   "duplicate sub id",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "VerticalUniqueFieldStructMap",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   7,
-						BeginCol: 0,
-						EndCol:   4,
-						Rows: [][]string{
-							{"MainID", "MainName", "SubID", "SubName"},
-							{"1001", "BackPack", "1", "Gold"},
-							{"1001", "", "2", "Diamond"},
-							{"1001", "", "3", "Ticket"},
-							{"1001", "", "3", "Point"},
-							{"1002", "Equip", "1", "Weapon"},
-							{"1002", "", "2", "Gold"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"VerticalUniqueFieldStructMap",
+					[][]string{
+						{"MainID", "MainName", "SubID", "SubName"},
+						{"1001", "BackPack", "1", "Gold"},
+						{"1001", "", "2", "Diamond"},
+						{"1001", "", "3", "Ticket"},
+						{"1001", "", "3", "Point"},
+						{"1002", "Equip", "1", "Weapon"},
+						{"1002", "", "2", "Gold"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2005",
@@ -1033,19 +830,12 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 			name:   "duplicate incell map key",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "VerticalUniqueFieldStructMap",
-					Table: &book.Table{
-						BeginRow: 0,
-						EndRow:   2,
-						BeginCol: 0,
-						EndCol:   5,
-						Rows: [][]string{
-							{"MainID", "MainName", "MainKV", "SubID", "SubName"},
-							{"1001", "BackPack", "1:10,2:20,2:30", "1", "Gold"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"VerticalUniqueFieldStructMap",
+					[][]string{
+						{"MainID", "MainName", "MainKV", "SubID", "SubName"},
+						{"1001", "BackPack", "1:10,2:20,2:30", "1", "Gold"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2005",
