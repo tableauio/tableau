@@ -69,7 +69,9 @@ func NewDocumentSheet(name string, doc *Node) *Sheet {
 // ParseMetasheet parses a sheet to Metabook by the specified parser.
 func (s *Sheet) ParseMetasheet(parser SheetParser) (*internalpb.Metabook, error) {
 	metabook := &internalpb.Metabook{}
-	if s.Document != nil || (s.Table != nil && s.Table.MaxRow > 1) {
+	if s.Document != nil || (s.Table != nil && s.Table.RowSize() > 1) {
+		// For table, parse it only if the table have data part (the first row
+		// is the name row).
 		if err := parser.Parse(metabook, s); err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}

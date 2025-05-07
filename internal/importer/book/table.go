@@ -11,18 +11,15 @@ import (
 
 // Table represents a 2D array table.
 type Table struct {
-	MaxRow int
-	MaxCol int
-	Rows   [][]string // 2D array strings
-
-	Options TableOptions
+	Rows           [][]string // 2D array strings
+	maxRow, maxCol int        // max row and col count
+	opts           TableOptions
 }
 
 // NewTable creates a new Table.
 func NewTable(rows [][]string, setters ...TableOption) *Table {
 	maxRow := len(rows)
 	maxCol := 0
-	opts := parseTableOptions(setters...)
 	// NOTE: different rows may have different lengths,
 	// and we need to find the max col.
 	for _, row := range rows {
@@ -32,11 +29,65 @@ func NewTable(rows [][]string, setters ...TableOption) *Table {
 		}
 	}
 	return &Table{
-		MaxRow:  maxRow,
-		MaxCol:  maxCol,
-		Rows:    rows,
-		Options: *opts,
+		Rows:   rows,
+		maxRow: maxRow,
+		maxCol: maxCol,
+		opts:   *parseTableOptions(setters...),
 	}
+}
+
+// BeginRow returns the begin row of the given block.
+func (t *Table) BeginRow() int {
+	if t.opts.BeginRow >= 0 {
+		return t.opts.BeginRow
+	}
+	return 0
+}
+
+// EndRow returns the end row (row after the last row) of the given block.
+//
+// For loop example:
+//
+//	for row := t.BeginRow(); row < t.EndRow(); row++ {
+//		fmt.Println(row)
+//	}
+func (t *Table) EndRow() int {
+	if t.opts.EndRow > 0 && t.opts.EndRow <= t.maxRow {
+		return t.opts.EndRow
+	}
+	return t.maxRow
+}
+
+// BeginCol returns the begin column of the given block.
+func (t *Table) BeginCol() int {
+	if t.opts.BeginCol >= 0 {
+		return t.opts.BeginCol
+	}
+	return 0
+}
+
+// EndCol returns the end column (column after the last column) of the given block.
+//
+// For loop example:
+//
+//	for col := t.BeginCol(); row < t.EndCol(); col++ {
+//		fmt.Println(col)
+//	}
+func (t *Table) EndCol() int {
+	if t.opts.EndCol > 0 && t.opts.EndCol <= t.maxCol {
+		return t.opts.EndCol
+	}
+	return t.maxCol
+}
+
+// RowSize returns the row size of the given block.
+func (t *Table) RowSize() int {
+	return t.EndRow() - t.BeginRow()
+}
+
+// ColSize returns the column size of the given block.
+func (t *Table) ColSize() int {
+	return t.EndCol() - t.BeginCol()
 }
 
 // GetRow returns the row data by row index (started with 0). It will return
@@ -61,43 +112,30 @@ func (t *Table) IsRowEmpty(row int) bool {
 	return true
 }
 
-// FindBlockEndRow finds the end row of the block. If the start row is empty,
-// it will just return the start row. Otherwise, it will return the last
-// none-empty row.
+// FindBlockEndRow finds the end row (row after the last non-empty row) of
+// the block. If the start row is empty, it will just return the start row.
+// Otherwise, it will return past-the-last non-empty row.
 //
-// NOTE: A block is a series of contiguous none-empty rows. So different blocks
+// NOTE: A block is a series of contiguous non-empty rows. So different blocks
 // are seperated by one or more empty rows.
 func (t *Table) FindBlockEndRow(startRow int) int {
-	for row := startRow; row <= len(t.Rows); row++ {
+	for row := startRow; row < t.EndRow(); row++ {
 		if t.IsRowEmpty(row) {
-			if row == startRow {
-				return row
-			}
-			return row - 1
+			return row
 		}
 	}
-	return len(t.Rows)
-}
-
-// ExtractBlock extracts a block of rows.
-//
-// NOTE: A block is a series of contiguous none-empty rows. So different blocks
-// are seperated by one or more empty rows.
-func (t *Table) ExtractBlock(startRow int) (rows [][]string, endRow int) {
-	endRow = t.FindBlockEndRow(startRow)
-	rows = t.Rows[startRow : endRow+1]
-	return
+	return t.EndRow()
 }
 
 // Cell returns the cell at (row, col).
 func (t *Table) Cell(row, col int) (string, error) {
-	if row < 0 || row >= t.MaxRow {
+	if row < t.BeginRow() || row >= t.EndRow() {
 		return "", xerrors.Errorf("cell row %d out of range", row)
 	}
-	if col < 0 || col >= t.MaxCol {
+	if col < t.BeginCol() || col >= t.EndCol() {
 		return "", xerrors.Errorf("cell col %d out of range", col)
 	}
-	// MOTE: different row may have different length.
+	// NOTE: different row may have different length.
 	if col >= len(t.Rows[row]) {
 		return "", nil
 	}
@@ -121,7 +159,7 @@ func (t *Table) ExportCSV(writer io.Writer) error {
 	// FIXME(wenchy): will be something wrong if we add the empty cell?
 	// TODO: deepcopy a new rows!
 	for nrow, row := range t.Rows {
-		for i := len(row); i < t.MaxCol; i++ {
+		for i := len(row); i < t.maxCol; i++ {
 			// log.Debugf("add empty cell: %s", s.Name)
 			row = append(row, "")
 		}

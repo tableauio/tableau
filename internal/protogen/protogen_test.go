@@ -194,20 +194,15 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"Number", "Name", "Alias"},
-							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
-							{"2", "ITEM_TYPE_EQUIP", "Equip"},
-							{"3", "ITEM_TYPE_BOX", "Box"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Number", "Name", "Alias"},
+						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+						{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+						{"2", "ITEM_TYPE_EQUIP", "Equip"},
+						{"3", "ITEM_TYPE_BOX", "Box"},
+					}),
 			},
 			want: []*internalpb.Worksheet{
 				{
@@ -244,19 +239,14 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 2,
-						Rows: [][]string{
-							{"Name", "Alias"},
-							{"ITEM_TYPE_FRUIT", "Fruit"},
-							{"ITEM_TYPE_EQUIP", "Equip"},
-							{"ITEM_TYPE_BOX", "Box"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Name", "Alias"},
+						{"ITEM_TYPE_FRUIT", "Fruit"},
+						{"ITEM_TYPE_EQUIP", "Equip"},
+						{"ITEM_TYPE_BOX", "Box"},
+					}),
 			},
 			want: []*internalpb.Worksheet{
 				{
@@ -288,20 +278,15 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"Number", "Name", "Alias"},
-							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
-							{"2", "ITEM_TYPE_EQUIP", "Equip"},
-							{"2", "ITEM_TYPE_BOX", "Box"}, // duplicate
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Number", "Name", "Alias"},
+						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+						{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+						{"2", "ITEM_TYPE_EQUIP", "Equip"},
+						{"2", "ITEM_TYPE_BOX", "Box"}, // duplicate
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -312,20 +297,15 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"Number", "Name", "Alias"},
-							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-							{"0", "ITEM_TYPE_FRUIT", "Fruit"}, // duplicate
-							{"1", "ITEM_TYPE_EQUIP", "Equip"},
-							{"2", "ITEM_TYPE_BOX", "Box"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Number", "Name", "Alias"},
+						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+						{"0", "ITEM_TYPE_FRUIT", "Fruit"}, // duplicate
+						{"1", "ITEM_TYPE_EQUIP", "Equip"},
+						{"2", "ITEM_TYPE_BOX", "Box"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -336,20 +316,15 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"Number", "Name", "Alias"},
-							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
-							{"2", "ITEM_TYPE_EQUIP", "Equip"},
-							{"3", "ITEM_TYPE_EQUIP", "Box"}, // duplicate
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Number", "Name", "Alias"},
+						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+						{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+						{"2", "ITEM_TYPE_EQUIP", "Equip"},
+						{"3", "ITEM_TYPE_EQUIP", "Box"}, // duplicate
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -360,20 +335,15 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 5,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"Number", "Name", "Alias"},
-							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
-							{"2", "ITEM_TYPE_EQUIP", "Equip"},
-							{"3", "ITEM_TYPE_BOX", "Equip"}, // duplicate
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Number", "Name", "Alias"},
+						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+						{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+						{"2", "ITEM_TYPE_EQUIP", "Equip"},
+						{"3", "ITEM_TYPE_BOX", "Equip"}, // duplicate
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -384,26 +354,21 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE_MULTI,
 				ws:   &internalpb.Worksheet{Name: "EnumDefault"},
-				sheet: &book.Sheet{
-					Name: "EnumDefault",
-					Table: &book.Table{
-						MaxRow: 11,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"ItemType", "Item's Type", ""},
-							{"Number", "Name", "Alias"},
-							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
-							{"2", "ITEM_TYPE_EQUIP", "Equip"},
-							{"3", "ITEM_TYPE_BOX", "Box"},
-							{"", "", ""},
-							{"ModeType", "Mode's Type", ""},
-							{"Alias", "Name", ""},
-							{"Pvp", "MODE_TYPE_PVP", ""},
-							{"Pve", "MODE_TYPE_PVE", ""},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"EnumDefault",
+					[][]string{
+						{"ItemType", "Item's Type", ""},
+						{"Number", "Name", "Alias"},
+						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+						{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+						{"2", "ITEM_TYPE_EQUIP", "Equip"},
+						{"3", "ITEM_TYPE_BOX", "Box"},
+						{"", "", ""},
+						{"ModeType", "Mode's Type", ""},
+						{"Alias", "Name", ""},
+						{"Pvp", "MODE_TYPE_PVP", ""},
+						{"Pve", "MODE_TYPE_PVE", ""},
+					}),
 			},
 			want: []*internalpb.Worksheet{
 				{
@@ -457,19 +422,14 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 2,
-						Rows: [][]string{
-							{"Name", "Type"},
-							{"ID", "uint32"},
-							{"Prop", "map<int32, string>"},
-							{"Feature", "[]int32"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Name", "Type"},
+						{"ID", "uint32"},
+						{"Prop", "map<int32, string>"},
+						{"Feature", "[]int32"},
+					}),
 			},
 			want: []*internalpb.Worksheet{
 				{
@@ -527,19 +487,14 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 2,
-						Rows: [][]string{
-							{"Name", "Type"},
-							{"ID", "uint32"},
-							{"Prop", "map<int32, string>"},
-							{"Prop", "[]int32"}, // dupliacte
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Name", "Type"},
+						{"ID", "uint32"},
+						{"Prop", "map<int32, string>"},
+						{"Prop", "[]int32"}, // dupliacte
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -550,26 +505,21 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_STRUCT_TYPE_MULTI,
 				ws:   &internalpb.Worksheet{Name: "StuuctDefault"},
-				sheet: &book.Sheet{
-					Name: "StuuctDefault",
-					Table: &book.Table{
-						MaxRow: 11,
-						MaxCol: 2,
-						Rows: [][]string{
-							{"ItemType", "Item's Type"},
-							{"Name", "Type"},
-							{"ID", "uint32"},
-							{"Prop", "map<int32, string>"},
-							{"Feature", "[]int32"},
-							{"", ""},
-							{"ModeType", "Mode's Type"},
-							{"Type", "Name"},
-							{"uint32", "ID"},
-							{"string", "Name"},
-							{"bool", "Valid"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"StructDefault",
+					[][]string{
+						{"ItemType", "Item's Type"},
+						{"Name", "Type"},
+						{"ID", "uint32"},
+						{"Prop", "map<int32, string>"},
+						{"Feature", "[]int32"},
+						{"", ""},
+						{"ModeType", "Mode's Type"},
+						{"Type", "Name"},
+						{"uint32", "ID"},
+						{"string", "Name"},
+						{"bool", "Valid"},
+					}),
 			},
 			want: []*internalpb.Worksheet{
 				{
@@ -658,18 +608,13 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 5,
-						Rows: [][]string{
-							{"Name", "Alias", "Field1", "Field2", "Field3"},
-							{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
-							{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Name", "Alias", "Field1", "Field2", "Field3"},
+						{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
+						{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+					}),
 			},
 			want: []*internalpb.Worksheet{
 				{
@@ -777,18 +722,13 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 4,
-						Rows: [][]string{
-							{"Number", "Name", "Alias", "Field1"},
-							{"2", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
-							{"5", "PveBattle", "SoloPVEBattle", "Name\nstring"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Number", "Name", "Alias", "Field1"},
+						{"2", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
+						{"5", "PveBattle", "SoloPVEBattle", "Name\nstring"},
+					}),
 			},
 			want: []*internalpb.Worksheet{
 				{
@@ -837,18 +777,13 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 4,
-						Rows: [][]string{
-							{"Number", "Name", "Alias", "Field1"},
-							{"1", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
-							{"1", "PveBattle", "SoloPVEBattle", "Name\nstring"}, // duplicate
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Number", "Name", "Alias", "Field1"},
+						{"1", "PvpBattle", "SoloPVPBattle", "ID\nuint32"},
+						{"1", "PveBattle", "SoloPVEBattle", "Name\nstring"}, // duplicate
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -859,18 +794,13 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"Name", "Alias", "Field1"},
-							{"Battle", "SoloPvpBattle", "ID\nuint32"},
-							{"Battle", "SoloPveBattle", "Name\nstring"}, // duplicate
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Name", "Alias", "Field1"},
+						{"Battle", "SoloPvpBattle", "ID\nuint32"},
+						{"Battle", "SoloPveBattle", "Name\nstring"}, // duplicate
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -881,18 +811,13 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
 				ws:   &internalpb.Worksheet{Name: "ItemType"},
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"Name", "Alias", "Field1"},
-							{"PvpBattle", "SoloBattle", "ID\nuint32"},
-							{"PveBattle", "SoloBattle", "Name\nstring"}, // duplicate
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Name", "Alias", "Field1"},
+						{"PvpBattle", "SoloBattle", "ID\nuint32"},
+						{"PveBattle", "SoloBattle", "Name\nstring"}, // duplicate
+					}),
 			},
 			wantErr: true,
 			errcode: "E2022",
@@ -903,24 +828,19 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE_MULTI,
 				ws:   &internalpb.Worksheet{Name: "UnionDefault"},
-				sheet: &book.Sheet{
-					Name: "UnionDefault",
-					Table: &book.Table{
-						MaxRow: 9,
-						MaxCol: 5,
-						Rows: [][]string{
-							{"ItemType", "Item's Type", "", "", ""},
-							{"Name", "Alias", "Field1", "Field2", "Field3"},
-							{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
-							{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
-							{"", "", "", "", ""},
-							{"ModeType", "Mode's Type", "", "", ""},
-							{"Field3", "Name", "Field1", "Alias", "Field2"},
-							{"", "PVP", "ID\nuint32", "PvpMode", "Difficulty\nint32"},
-							{"", "PVE", "Name\nstring", "PveMode", "Score\nint32"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"UnionDefault",
+					[][]string{
+						{"ItemType", "Item's Type", "", "", ""},
+						{"Name", "Alias", "Field1", "Field2", "Field3"},
+						{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
+						{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+						{"", "", "", "", ""},
+						{"ModeType", "Mode's Type", "", "", ""},
+						{"Field3", "Name", "Field1", "Alias", "Field2"},
+						{"", "PVP", "ID\nuint32", "PvpMode", "Difficulty\nint32"},
+						{"", "PVE", "Name\nstring", "PveMode", "Score\nint32"},
+					}),
 			},
 			want: []*internalpb.Worksheet{
 				{
@@ -1122,20 +1042,15 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_ENUM_TYPE,
-				sheet: &book.Sheet{
-					Name: "ItemType",
-					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 4,
-						Rows: [][]string{
-							{"Number", "Name", "Alias"},
-							{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
-							{"1", "ITEM_TYPE_FRUIT", "Fruit"},
-							{"2", "ITEM_TYPE_EQUIP", "Equip"},
-							{"3", "ITEM_TYPE_BOX", "Box"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"ItemType",
+					[][]string{
+						{"Number", "Name", "Alias"},
+						{"0", "ITEM_TYPE_UNKNOWN", "Unknown"},
+						{"1", "ITEM_TYPE_FRUIT", "Fruit"},
+						{"2", "ITEM_TYPE_EQUIP", "Equip"},
+						{"3", "ITEM_TYPE_BOX", "Box"},
+					}),
 				typeName:       "ItemType",
 				parentFilename: "test.proto",
 			},
@@ -1146,19 +1061,14 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_STRUCT_TYPE,
-				sheet: &book.Sheet{
-					Name: "TaskReward",
-					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 2,
-						Rows: [][]string{
-							{"Name", "Type"},
-							{"ID", "uint32"},
-							{"Prop", "map<int32, string>"},
-							{"Feature", "[]int32"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"TaskReward",
+					[][]string{
+						{"Name", "Type"},
+						{"ID", "uint32"},
+						{"Prop", "map<int32, string>"},
+						{"Feature", "[]int32"},
+					}),
 				typeName:       "TaskReward",
 				parentFilename: "test.proto",
 			},
@@ -1169,18 +1079,13 @@ func TestGenerator_extractTypeInfoFromSpecialSheetMode(t *testing.T) {
 			gen:  testgen,
 			args: args{
 				mode: tableaupb.Mode_MODE_UNION_TYPE,
-				sheet: &book.Sheet{
-					Name: "TaskTarget",
-					Table: &book.Table{
-						MaxRow: 3,
-						MaxCol: 5,
-						Rows: [][]string{
-							{"Name", "Alias", "Field1", "Field2", "Field3"},
-							{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
-							{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"TaskTarget",
+					[][]string{
+						{"Name", "Alias", "Field1", "Field2", "Field3"},
+						{"PvpBattle", "SoloPVPBattle", "ID\nuint32", "Damage\nint64", "Mission\n{uint32 ID, int32 Level}Mission"},
+						{"PveBattle", "SoloPVEBattle", "Prop\nmap<int32, string>", "Feature\n[]int32"},
+					}),
 				typeName:       "TaskTarget",
 				parentFilename: "test.proto",
 			},
