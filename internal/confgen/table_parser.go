@@ -29,8 +29,8 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 		// namerow: name column
 		// [datarow, MaxCol]: data column
 		// kvRow := make(map[string]string)
-		sp.names = make([]string, sheet.Table.EndRow()-sheet.Table.BeginRow())
-		sp.types = make([]string, sheet.Table.EndRow()-sheet.Table.BeginRow())
+		sp.names = make([]string, sheet.Table.RowSize())
+		sp.types = make([]string, sheet.Table.RowSize())
 		nameCol := sheet.Table.BeginCol() + header.NameRow - 1
 		typeCol := sheet.Table.BeginCol() + header.TypeRow - 1
 		dataCol := sheet.Table.BeginCol() + header.DataRow - 1
@@ -68,7 +68,6 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
-
 			_, err := sp.parseMessage(msg, curr, "", "")
 			if err != nil {
 				return err
@@ -82,8 +81,8 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	} else {
 		// namerow: name row
 		// [datarow, MaxRow]: data row
-		sp.names = make([]string, sheet.Table.EndCol()-sheet.Table.BeginCol())
-		sp.types = make([]string, sheet.Table.EndCol()-sheet.Table.BeginCol())
+		sp.names = make([]string, sheet.Table.ColSize())
+		sp.types = make([]string, sheet.Table.ColSize())
 		nameRow := sheet.Table.BeginRow() + header.NameRow - 1
 		typeRow := sheet.Table.BeginRow() + header.TypeRow - 1
 		dataRow := sheet.Table.BeginRow() + header.DataRow - 1
@@ -120,9 +119,7 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 					sp.lookupTable[name] = col
 				}
 			}
-
 			curr.SetColumnLookupTable(sp.lookupTable)
-
 			_, err := sp.parseMessage(msg, curr, "", "")
 			if err != nil {
 				return err

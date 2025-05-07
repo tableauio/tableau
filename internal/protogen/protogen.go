@@ -540,7 +540,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 		}
 		gen.typeInfos.Put(info)
 	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
-		for row := sheet.Table.BeginRow(); row <= sheet.Table.EndRow(); row++ {
+		for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
 			cols := sheet.Table.GetRow(row)
 			if isEnumTypeBlockHeader(cols) {
 				if row < 1 {
@@ -565,7 +565,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 			return err
 		}
 	case tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
-		for row := sheet.Table.BeginRow(); row <= sheet.Table.EndRow(); row++ {
+		for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
 			cols := sheet.Table.GetRow(row)
 			if isStructTypeBlockHeader(cols) {
 				if row < 1 {
@@ -590,7 +590,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 			return err
 		}
 	case tableaupb.Mode_MODE_UNION_TYPE_MULTI:
-		for row := sheet.Table.BeginRow(); row <= sheet.Table.EndRow(); row++ {
+		for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
 			cols := sheet.Table.GetRow(row)
 			if isUnionTypeBlockHeader(cols) {
 				if row < 1 {
@@ -634,7 +634,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		return []*internalpb.Worksheet{ws}, nil
 	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
 		var worksheets []*internalpb.Worksheet
-		for row := sheet.Table.BeginRow(); row <= sheet.Table.EndRow(); row++ {
+		for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
 			cols := sheet.Table.GetRow(row)
 			if isEnumTypeBlockHeader(cols) {
 				if row < 1 {
@@ -665,7 +665,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		return []*internalpb.Worksheet{ws}, nil
 	case tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
 		var worksheets []*internalpb.Worksheet
-		for row := sheet.Table.BeginRow(); row <= sheet.Table.EndRow(); row++ {
+		for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
 			cols := sheet.Table.GetRow(row)
 			if isStructTypeBlockHeader(cols) {
 				if row < 1 {
@@ -696,7 +696,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		return []*internalpb.Worksheet{ws}, nil
 	case tableaupb.Mode_MODE_UNION_TYPE_MULTI:
 		var worksheets []*internalpb.Worksheet
-		for row := sheet.Table.BeginRow(); row <= sheet.Table.EndRow(); row++ {
+		for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
 			cols := sheet.Table.GetRow(row)
 			if isUnionTypeBlockHeader(cols) {
 				if row < 1 {

@@ -12,7 +12,7 @@ import (
 // Table represents a 2D array table.
 type Table struct {
 	Rows           [][]string // 2D array strings
-	maxRow, maxCol int
+	maxRow, maxCol int        // max row and col count
 	opts           TableOptions
 }
 
@@ -36,6 +36,7 @@ func NewTable(rows [][]string, setters ...TableOption) *Table {
 	}
 }
 
+// BeginRow returns the begin row of the given block.
 func (t *Table) BeginRow() int {
 	if t.opts.BeginRow >= 0 {
 		return t.opts.BeginRow
@@ -43,6 +44,13 @@ func (t *Table) BeginRow() int {
 	return 0
 }
 
+// EndRow returns the end row (row after the last row) of the given block.
+//
+// For loop example:
+//
+//	for row := t.BeginRow(); row < t.EndRow(); row++ {
+//		fmt.Println(row)
+//	}
 func (t *Table) EndRow() int {
 	if t.opts.EndRow > 0 && t.opts.EndRow <= t.maxRow {
 		return t.opts.EndRow
@@ -50,6 +58,7 @@ func (t *Table) EndRow() int {
 	return t.maxRow
 }
 
+// BeginCol returns the begin column of the given block.
 func (t *Table) BeginCol() int {
 	if t.opts.BeginCol >= 0 {
 		return t.opts.BeginCol
@@ -57,11 +66,28 @@ func (t *Table) BeginCol() int {
 	return 0
 }
 
+// EndCol returns the end column (column after the last column) of the given block.
+//
+// For loop example:
+//
+//	for col := t.BeginCol(); row < t.EndCol(); col++ {
+//		fmt.Println(col)
+//	}
 func (t *Table) EndCol() int {
 	if t.opts.EndCol > 0 && t.opts.EndCol <= t.maxCol {
 		return t.opts.EndCol
 	}
 	return t.maxCol
+}
+
+// RowSize returns the row size of the given block.
+func (t *Table) RowSize() int {
+	return t.EndRow() - t.BeginRow()
+}
+
+// ColSize returns the column size of the given block.
+func (t *Table) ColSize() int {
+	return t.EndCol() - t.BeginCol()
 }
 
 // GetRow returns the row data by row index (started with 0). It will return
@@ -86,11 +112,11 @@ func (t *Table) IsRowEmpty(row int) bool {
 	return true
 }
 
-// FindBlockEndRow finds the end row of the block. If the start row is empty,
-// it will just return the start row. Otherwise, it will return the last
-// none-empty row.
+// FindBlockEndRow finds the end row (row after the last non-empty row) of
+// the block. If the start row is empty, it will just return the start row.
+// Otherwise, it will return past-the-last non-empty row.
 //
-// NOTE: A block is a series of contiguous none-empty rows. So different blocks
+// NOTE: A block is a series of contiguous non-empty rows. So different blocks
 // are seperated by one or more empty rows.
 func (t *Table) FindBlockEndRow(startRow int) int {
 	for row := startRow; row < t.EndRow(); row++ {
