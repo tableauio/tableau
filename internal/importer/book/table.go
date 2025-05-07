@@ -29,9 +29,9 @@ func NewTable(rows [][]string, setters ...TableOption) *Table {
 		}
 	}
 	return &Table{
+		Rows:   rows,
 		maxRow: maxRow,
 		maxCol: maxCol,
-		Rows:   rows,
 		opts:   *parseTableOptions(setters...),
 	}
 }
