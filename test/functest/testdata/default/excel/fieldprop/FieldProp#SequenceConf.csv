@@ -1,0 +1,12 @@
+DungeonID,DungeonName,ChapterID,ChapterDifficulty,SectionID,SectionAward
+"map<uint32, Dungeon>",string,"map<uint32, Chapter>|{sequence:1}",int32,"map<uint32, Section>|{sequence:1}",{.Item}
+,,,,,
+1000,MoonLake,1,10,1,"10001,1"
+1000,MoonLake,1,10,2,"10002,2"
+1000,MoonLake,1,10,3,"10003,3"
+1000,MoonLake,2,10,1,"10011,1"
+1000,MoonLake,2,10,2,"10012,2"
+1001,BabelTower,1,10,1,"20001,1"
+1001,BabelTower,1,10,2,"20002,2"
+1001,BabelTower,2,10,1,"20011,1"
+1001,BabelTower,2,10,2,"20012,2"

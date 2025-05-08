@@ -230,11 +230,19 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	newMapKeyExisted := reflectMap.Has(newMapKey)
 	if newMapKeyExisted {
 		// check map key unique
-		if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
+		if err := sp.checkMapKeyUnique(field, cell.Data); err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+		}
+		// check map key sequence
+		if err := sp.checkMapKeySequence(field, reflectMap, cell.Data, true); err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
 		newMapValue = reflectMap.Mutable(newMapKey)
 	} else {
+		// check map key sequence
+		if err := sp.checkMapKeySequence(field, reflectMap, cell.Data, false); err != nil {
+			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+		}
 		newMapValue = reflectMap.NewValue()
 	}
 	valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, newPrefix, newCardPrefix)
@@ -246,8 +254,8 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 		return false, nil
 	}
 	if !newMapKeyExisted {
-		// check map value's sub-field unique
-		dupName, err := sp.checkSubFieldUnique(field, cardPrefix, newMapValue)
+		// check map value's sub-field prop
+		dupName, err := sp.checkSubFieldProp(field, cardPrefix, newMapValue)
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(newPrefix+dupName)...)
 		}
@@ -307,11 +315,19 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 		newMapKeyExisted := reflectMap.Has(newMapKey)
 		if newMapKeyExisted {
 			// check map key unique
-			if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
+			if err := sp.checkMapKeyUnique(field, cell.Data); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
+			// check map key sequence
+			if err := sp.checkMapKeySequence(field, reflectMap, cell.Data, true); err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
 			newMapValue = reflectMap.Mutable(newMapKey)
 		} else {
+			// check map key sequence
+			if err := sp.checkMapKeySequence(field, reflectMap, cell.Data, false); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
 			newMapValue = reflectMap.NewValue()
 		}
 		valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, elemPrefix, newCardPrefix)
@@ -332,8 +348,8 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			continue
 		}
 		if !newMapKeyExisted {
-			// check map value's sub-field unique
-			dupName, err := sp.checkSubFieldUnique(field, cardPrefix, newMapValue)
+			// check map value's sub-field prop
+			dupName, err := sp.checkSubFieldProp(field, cardPrefix, newMapValue)
 			if err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(elemPrefix+dupName)...)
 			}
@@ -419,10 +435,16 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 			}
 		}
 		if keyedListElemExisted {
-			if err := sp.checkListKeyUnique(field, md, cell.Data); err != nil {
+			if err := sp.checkListKeyUnique(field, cell.Data); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
+			if err := sp.checkListKeySequence(field, list, cell.Data, true); err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
 		} else {
+			if err := sp.checkListKeySequence(field, list, cell.Data, false); err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+			}
 			// set as present only if key is not existed
 			elemPresent = !keyedListElemExisted
 		}
@@ -449,8 +471,8 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		}
 	}
 	if elemPresent {
-		// check list elem's sub-field unique
-		subFieldOptName, err := sp.checkSubFieldUnique(field, cardPrefix, elemValue)
+		// check list elem's sub-field prop
+		subFieldOptName, err := sp.checkSubFieldProp(field, cardPrefix, elemValue)
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(newPrefix+subFieldOptName)...)
 		}
@@ -526,8 +548,8 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 			firstNonePresentIndex = i
 			continue
 		}
-		// check list elem's sub-field unique
-		subFieldOptName, err := sp.checkSubFieldUnique(field, cardPrefix, elemValue)
+		// check list elem's sub-field prop
+		subFieldOptName, err := sp.checkSubFieldProp(field, cardPrefix, elemValue)
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(elemPrefix+subFieldOptName)...)
 		}

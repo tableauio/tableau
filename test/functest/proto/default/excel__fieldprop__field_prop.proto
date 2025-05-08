@@ -31,9 +31,9 @@ message FieldPropForm {
 message ItemConf {
   option (tableau.worksheet) = {name:"ItemConf"};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{sequence:1}}]; // Item ID
     int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item num
   }
 }
@@ -41,9 +41,9 @@ message ItemConf {
 message ScalarFieldProp {
   option (tableau.worksheet) = {name:"ScalarFieldProp"};
 
-  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,100" unique:true refer:"ItemConf.ID"}}]; // Item ID
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,100" unique:true refer:"ItemConf.ID" sequence:1}}]; // Item ID
     repeated Prop prop_list = 2 [(tableau.field) = {name:"Prop" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}]; // Prop
     message Prop {
       int32 id = 1 [(tableau.field) = {name:"ID" prop:{range:"1,10"}}]; // ID
@@ -78,6 +78,26 @@ message SepConf {
     message Prop {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];
       int32 value = 2 [(tableau.field) = {name:"Value"}];
+    }
+  }
+}
+
+message SequenceConf {
+  option (tableau.worksheet) = {name:"SequenceConf"};
+
+  map<uint32, Dungeon> dungeon_map = 1 [(tableau.field) = {key:"DungeonID" layout:LAYOUT_VERTICAL}];
+  message Dungeon {
+    uint32 dungeon_id = 1 [(tableau.field) = {name:"DungeonID"}];
+    string dungeon_name = 2 [(tableau.field) = {name:"DungeonName"}];
+    map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
+    message Chapter {
+      uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID" prop:{sequence:1}}];
+      int32 chapter_difficulty = 2 [(tableau.field) = {name:"ChapterDifficulty"}];
+      map<uint32, Section> section_map = 3 [(tableau.field) = {key:"SectionID" layout:LAYOUT_VERTICAL}];
+      message Section {
+        uint32 section_id = 1 [(tableau.field) = {name:"SectionID" prop:{sequence:1}}];
+        protoconf.Item section_award = 2 [(tableau.field) = {name:"SectionAward" span:SPAN_INNER_CELL}];
+      }
     }
   }
 }

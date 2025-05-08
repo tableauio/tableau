@@ -1,0 +1,103 @@
+{
+    "dungeonMap": {
+        "1000": {
+            "dungeonId": 1000,
+            "dungeonName": "MoonLake",
+            "chapterMap": {
+                "1": {
+                    "chapterId": 1,
+                    "chapterDifficulty": 10,
+                    "sectionMap": {
+                        "1": {
+                            "sectionId": 1,
+                            "sectionAward": {
+                                "id": 10001,
+                                "num": 1
+                            }
+                        },
+                        "2": {
+                            "sectionId": 2,
+                            "sectionAward": {
+                                "id": 10002,
+                                "num": 2
+                            }
+                        },
+                        "3": {
+                            "sectionId": 3,
+                            "sectionAward": {
+                                "id": 10003,
+                                "num": 3
+                            }
+                        }
+                    }
+                },
+                "2": {
+                    "chapterId": 2,
+                    "chapterDifficulty": 10,
+                    "sectionMap": {
+                        "1": {
+                            "sectionId": 1,
+                            "sectionAward": {
+                                "id": 10011,
+                                "num": 1
+                            }
+                        },
+                        "2": {
+                            "sectionId": 2,
+                            "sectionAward": {
+                                "id": 10012,
+                                "num": 2
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "1001": {
+            "dungeonId": 1001,
+            "dungeonName": "BabelTower",
+            "chapterMap": {
+                "1": {
+                    "chapterId": 1,
+                    "chapterDifficulty": 10,
+                    "sectionMap": {
+                        "1": {
+                            "sectionId": 1,
+                            "sectionAward": {
+                                "id": 20001,
+                                "num": 1
+                            }
+                        },
+                        "2": {
+                            "sectionId": 2,
+                            "sectionAward": {
+                                "id": 20002,
+                                "num": 2
+                            }
+                        }
+                    }
+                },
+                "2": {
+                    "chapterId": 2,
+                    "chapterDifficulty": 10,
+                    "sectionMap": {
+                        "1": {
+                            "sectionId": 1,
+                            "sectionAward": {
+                                "id": 20011,
+                                "num": 1
+                            }
+                        },
+                        "2": {
+                            "sectionId": 2,
+                            "sectionAward": {
+                                "id": 20012,
+                                "num": 2
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
