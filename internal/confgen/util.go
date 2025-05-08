@@ -8,6 +8,7 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -56,7 +57,7 @@ func (f *Field) release() {
 // TODO: use sync.Map to cache *Field for reuse, e.g.: treat key as fd.FullName().
 func (sp *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
 	// default value
-	name := sp.strcaseCtx.ToCamel(string(fd.FullName().Name()))
+	name := strcase.FromContext(sp.ctx).ToCamel(string(fd.FullName().Name()))
 	note := ""
 	span := tableaupb.Span_SPAN_DEFAULT
 	key := ""

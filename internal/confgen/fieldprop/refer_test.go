@@ -1,6 +1,7 @@
 package fieldprop
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -146,7 +147,7 @@ func TestInReferredSpace(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := InReferredSpace(tt.args.prop, tt.args.cellData, tt.args.input)
+			got, err := InReferredSpace(context.Background(), tt.args.prop, tt.args.cellData, tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("InReferredSpace() error = %v, wantErr %v", err, tt.wantErr)
 				return

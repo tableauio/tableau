@@ -1,11 +1,10 @@
 package importer
 
-import "github.com/tableauio/tableau/internal/importer/book"
-
 type bookReaderOptions struct {
-	Name     string // book name without suffix
-	Filename string // book filename with path
-	Sheets   []*sheetReaderOptions
+	Name          string // book name without suffix
+	Filename      string // book filename with path
+	MetasheetName string
+	Sheets        []*sheetReaderOptions
 }
 
 type sheetReaderOptions struct {
@@ -16,7 +15,7 @@ type sheetReaderOptions struct {
 
 func (b *bookReaderOptions) GetMetasheet() *sheetReaderOptions {
 	for _, sheet := range b.Sheets {
-		if sheet.Name == book.MetasheetName {
+		if sheet.Name == b.MetasheetName {
 			return sheet
 		}
 	}

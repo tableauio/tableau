@@ -1,20 +1,20 @@
 package confgen
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"github.com/tableauio/tableau/xerrors"
 )
 
 func newDocParserForTest() *sheetParser {
-	return NewExtendedSheetParser("protoconf", "Asia/Shanghai", strcase.Context{},
+	return NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
 		book.MetabookOptions(),
-		book.MetasheetOptions(),
+		book.MetasheetOptions(context.Background()),
 		&SheetParserExtInfo{
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},

@@ -5,6 +5,7 @@
 package load
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/tableauio/tableau/format"
@@ -162,6 +163,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	sheets := []string{sheetOpts.Name}
 
 	self, err := importer.New(
+		context.Background(),
 		wbPath,
 		importer.Sheets(sheets),
 	)
@@ -170,7 +172,7 @@ func loadOrigin(msg proto.Message, dir string, options ...Option) error {
 	}
 
 	// get merger importer infos
-	impInfos, err := importer.GetMergerImporters(dir, bookOpts.Name, sheetOpts.Name, sheetOpts.Merger, opts.SubdirRewrites)
+	impInfos, err := importer.GetMergerImporters(context.Background(), dir, bookOpts.Name, sheetOpts.Name, sheetOpts.Merger, opts.SubdirRewrites)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to get merger importer infos for %s", wbPath)
 	}

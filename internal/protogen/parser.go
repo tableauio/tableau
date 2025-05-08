@@ -1,6 +1,7 @@
 package protogen
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -35,10 +36,10 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	if alias != "" {
 		protoBookName = alias
 	}
-	filename := gen.strcaseCtx.ToSnake(protoBookName)
+	filename := strcase.FromContext(gen.ctx).ToSnake(protoBookName)
 	if gen.OutputOpt.FilenameWithSubdirPrefix {
 		bookPath := filepath.Join(filepath.Dir(relSlashPath), protoBookName)
-		snakePath := gen.strcaseCtx.ToSnake(xfs.CleanSlashPath(bookPath))
+		snakePath := strcase.FromContext(gen.ctx).ToSnake(xfs.CleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
 	// sep and subsep
@@ -79,11 +80,11 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 
 // parseBasicField parses scalar or enum type.
 func (p *bookParser) parseBasicField(name, typ, note string) (*internalpb.Field, error) {
-	return parseBasicField(p.gen.typeInfos, p.gen.strcaseCtx, name, typ, note)
+	return parseBasicField(p.gen.ctx, p.gen.typeInfos, name, typ, note)
 }
 
 // parseBasicField parses scalar or enum type.
-func parseBasicField(typeInfos *xproto.TypeInfos, strcaseCtx strcase.Context, name, typ, note string) (*internalpb.Field, error) {
+func parseBasicField(ctx context.Context, typeInfos *xproto.TypeInfos, name, typ, note string) (*internalpb.Field, error) {
 	var prop types.PropDescriptor
 	// enum syntax pattern
 	if desc := types.MatchEnum(typ); desc != nil {
@@ -111,7 +112,7 @@ func parseBasicField(typeInfos *xproto.TypeInfos, strcaseCtx strcase.Context, na
 	}
 	pureName := strings.TrimPrefix(name, book.MetaSign) // remove leading meta sign "@"
 	return &internalpb.Field{
-		Name:       strcaseCtx.ToSnake(pureName),
+		Name:       strcase.FromContext(ctx).ToSnake(pureName),
 		Type:       typeDesc.Name,
 		FullType:   typeDesc.FullName,
 		Note:       strings.TrimSpace(note),
