@@ -230,7 +230,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	newMapKeyExisted := reflectMap.Has(newMapKey)
 	if newMapKeyExisted {
 		// check map key unique
-		if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
+		if err := sp.checkMapKeyUnique(field, cell.Data); err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
 		// check map key sequence
@@ -315,7 +315,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 		newMapKeyExisted := reflectMap.Has(newMapKey)
 		if newMapKeyExisted {
 			// check map key unique
-			if err := sp.checkMapKeyUnique(field, reflectMap, cell.Data); err != nil {
+			if err := sp.checkMapKeyUnique(field, cell.Data); err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
 			// check map key sequence
@@ -435,7 +435,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 			}
 		}
 		if keyedListElemExisted {
-			if err := sp.checkListKeyUnique(field, list, cell.Data); err != nil {
+			if err := sp.checkListKeyUnique(field, cell.Data); err != nil {
 				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 			}
 			if err := sp.checkListKeySequence(field, list, cell.Data, true); err != nil {

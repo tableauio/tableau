@@ -541,34 +541,24 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 	return mapKey, present, nil
 }
 
-func (sp *sheetParser) checkMapKeyUnique(field *Field, reflectMap protoreflect.Map, keyData string) error {
-	// TODO: we need to cache key field descriptor for reuse, to avoid each loop to find it when parse table rows or document nodes.
-	md := reflectMap.NewValue().Message().Descriptor()
-	fd := sp.findFieldByName(md, field.opts.Key)
-	if fd == nil {
-		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key))
-	}
-	keyField := sp.parseFieldDescriptor(fd)
-	defer keyField.release()
-	if fieldprop.RequireUnique(keyField.opts.Prop) ||
-		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(field.opts.Layout, md)) {
-		return xerrors.Wrap(xerrors.E2005(keyData))
-	}
-	return nil
+func (sp *sheetParser) checkMapKeyUnique(field *Field, keyData string) error {
+	return sp.checkKeyUnique(field.fd.MapValue().Message(), field.opts, keyData)
 }
 
-func (sp *sheetParser) checkListKeyUnique(field *Field, reflectList protoreflect.List, keyData string) error {
-	// TODO: we need to cache key field descriptor for reuse, to avoid each loop to find it when parse table rows or document nodes.
-	md := reflectList.NewElement().Message().Descriptor()
-	fd := sp.findFieldByName(md, field.opts.Key)
+func (sp *sheetParser) checkListKeyUnique(field *Field, keyData string) error {
+	return sp.checkKeyUnique(field.fd.Message(), field.opts, keyData)
+}
+
+func (sp *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string) error {
+	fd := sp.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
-		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key))
+		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
 	}
 	keyField := sp.parseFieldDescriptor(fd)
 	defer keyField.release()
 	if fieldprop.RequireUnique(keyField.opts.Prop) ||
-		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(field.opts.Layout, md)) {
-		return xerrors.Wrap(xerrors.E2023(keyData))
+		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(fdOpts.Layout, md)) {
+		return xerrors.Wrap(xerrors.E2005(keyData))
 	}
 	return nil
 }
@@ -614,39 +604,17 @@ func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoref
 }
 
 func (sp *sheetParser) checkMapKeySequence(field *Field, reflectMap protoreflect.Map, keyData string, merged bool) error {
-	// TODO: we need to cache key field descriptor for reuse, to avoid each loop to find it when parse table rows or document nodes.
-	md := reflectMap.NewValue().Message().Descriptor()
-	fd := sp.findFieldByName(md, field.opts.Key)
-	if fd == nil {
-		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key))
-	}
-	keyField := sp.parseFieldDescriptor(fd)
-	defer keyField.release()
-	if !fieldprop.RequireSequence(keyField.opts.Prop) {
-		// do not require sequential
-		return nil
-	}
-	seq := keyField.opts.Prop.GetSequence()
-	len := int64(reflectMap.Len())
-	val, err := strconv.ParseInt(keyData, 10, 64)
-	if err != nil {
-		return xerrors.E2003(keyData, keyField.opts.Prop.GetSequence())
-	}
-	if merged && val == seq+len-1 {
-		return nil
-	}
-	if !merged && val == seq+len {
-		return nil
-	}
-	return xerrors.E2003(keyData, keyField.opts.Prop.GetSequence())
+	return sp.checkKeySequence(field.fd.MapValue().Message(), field.opts, keyData, int64(reflectMap.Len()), merged)
 }
 
 func (sp *sheetParser) checkListKeySequence(field *Field, reflectList protoreflect.List, keyData string, merged bool) error {
-	// TODO: we need to cache key field descriptor for reuse, to avoid each loop to find it when parse table rows or document nodes.
-	md := reflectList.NewElement().Message().Descriptor()
-	fd := sp.findFieldByName(md, field.opts.Key)
+	return sp.checkKeySequence(field.fd.Message(), field.opts, keyData, int64(reflectList.Len()), merged)
+}
+
+func (sp *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string, len int64, merged bool) error {
+	fd := sp.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
-		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key))
+		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
 	}
 	keyField := sp.parseFieldDescriptor(fd)
 	defer keyField.release()
@@ -655,7 +623,6 @@ func (sp *sheetParser) checkListKeySequence(field *Field, reflectList protorefle
 		return nil
 	}
 	seq := keyField.opts.Prop.GetSequence()
-	len := int64(reflectList.Len())
 	val, err := strconv.ParseInt(keyData, 10, 64)
 	if err != nil {
 		return xerrors.E2003(keyData, keyField.opts.Prop.GetSequence())
@@ -799,7 +766,7 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, card
 			for j := 0; j < list.Len(); j++ {
 				elemVal := list.Get(j)
 				if elemVal.Equal(elemValue) {
-					return false, xerrors.WrapKV(xerrors.E2023(elemValue))
+					return false, xerrors.WrapKV(xerrors.E2005(elemValue))
 				}
 			}
 		}

@@ -168,7 +168,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				newMapKeyExisted := reflectMap.Has(newMapKey)
 				if newMapKeyExisted {
 					// check map key unique
-					if err := sp.checkMapKeyUnique(field, reflectMap, keyData); err != nil {
+					if err := sp.checkMapKeyUnique(field, keyData); err != nil {
 						return false, xerrors.WrapKV(err, node.DebugKV()...)
 					}
 					// check map key sequence
