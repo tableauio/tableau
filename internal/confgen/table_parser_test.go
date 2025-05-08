@@ -872,19 +872,14 @@ func TestTableParser_parseVerticalSequentialFieldStructList(t *testing.T) {
 			name:   "sequential conditions met",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "SequentialFieldInVerticalStructList",
-					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"ID", "Name", "Num"},
-							{"1", "Apple", "12345"},
-							{"2", "Orange", "12346"},
-							{"3", "Banana", "12347"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"SequentialFieldInVerticalStructList",
+					[][]string{
+						{"ID", "Name", "Num"},
+						{"1", "Apple", "12345"},
+						{"2", "Orange", "12346"},
+						{"3", "Banana", "12347"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -892,19 +887,14 @@ func TestTableParser_parseVerticalSequentialFieldStructList(t *testing.T) {
 			name:   "id not sequential",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "SequentialFieldInVerticalStructList",
-					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"ID", "Name", "Num"},
-							{"1", "Apple", "12345"},
-							{"11", "Orange", "12346"},
-							{"111", "Banana", "12347"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"SequentialFieldInVerticalStructList",
+					[][]string{
+						{"ID", "Name", "Num"},
+						{"1", "Apple", "12345"},
+						{"11", "Orange", "12346"},
+						{"111", "Banana", "12347"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2003",
@@ -913,19 +903,14 @@ func TestTableParser_parseVerticalSequentialFieldStructList(t *testing.T) {
 			name:   "num not sequential",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "SequentialFieldInVerticalStructList",
-					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"ID", "Name", "Num"},
-							{"1", "Apple", "12345"},
-							{"2", "Orange", "23456"},
-							{"3", "Banana", "34567"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"SequentialFieldInVerticalStructList",
+					[][]string{
+						{"ID", "Name", "Num"},
+						{"1", "Apple", "12345"},
+						{"2", "Orange", "23456"},
+						{"3", "Banana", "34567"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2003",
@@ -962,22 +947,17 @@ func TestTableParser_parseVerticalSequentialFieldStructMap(t *testing.T) {
 			name:   "sequential conditions met",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "VerticalSequentialFieldStructMap",
-					Table: &book.Table{
-						MaxRow: 7,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"MainID", "SubID", "SubName"},
-							{"1001", "1", "Gold"},
-							{"1001", "2", "Diamond"},
-							{"1001", "3", "Ticket"},
-							{"1001", "4", "Point"},
-							{"1002", "1", "Weapon"},
-							{"1002", "2", "Gold"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"VerticalSequentialFieldStructMap",
+					[][]string{
+						{"MainID", "SubID", "SubName"},
+						{"1001", "1", "Gold"},
+						{"1001", "2", "Diamond"},
+						{"1001", "3", "Ticket"},
+						{"1001", "4", "Point"},
+						{"1002", "1", "Weapon"},
+						{"1002", "2", "Gold"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -985,22 +965,17 @@ func TestTableParser_parseVerticalSequentialFieldStructMap(t *testing.T) {
 			name:   "main id not sequential",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "VerticalSequentialFieldStructMap",
-					Table: &book.Table{
-						MaxRow: 7,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"MainID", "SubID", "SubName"},
-							{"1001", "1", "Gold"},
-							{"1001", "2", "Diamond"},
-							{"1002", "1", "Weapon"},
-							{"1002", "2", "Gold"},
-							{"1001", "3", "Ticket"},
-							{"1001", "4", "Point"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"VerticalSequentialFieldStructMap",
+					[][]string{
+						{"MainID", "SubID", "SubName"},
+						{"1001", "1", "Gold"},
+						{"1001", "2", "Diamond"},
+						{"1002", "1", "Weapon"},
+						{"1002", "2", "Gold"},
+						{"1001", "3", "Ticket"},
+						{"1001", "4", "Point"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2003",
@@ -1009,21 +984,16 @@ func TestTableParser_parseVerticalSequentialFieldStructMap(t *testing.T) {
 			name:   "sub id not sequential",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "VerticalSequentialFieldStructMap",
-					Table: &book.Table{
-						MaxRow: 6,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"MainID", "SubID", "SubName"},
-							{"1001", "1", "Gold"},
-							{"1001", "2", "Diamond"},
-							{"1001", "4", "Point"},
-							{"1002", "1", "Weapon"},
-							{"1002", "2", "Gold"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"VerticalSequentialFieldStructMap",
+					[][]string{
+						{"MainID", "SubID", "SubName"},
+						{"1001", "1", "Gold"},
+						{"1001", "2", "Diamond"},
+						{"1001", "4", "Point"},
+						{"1002", "1", "Weapon"},
+						{"1002", "2", "Gold"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2003",
@@ -1060,23 +1030,18 @@ func TestTableParser_parseVerticalSequentialFieldKeyedList(t *testing.T) {
 			name:   "sequential conditions met",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "SequentialKeyInVerticalKeyedList",
-					Table: &book.Table{
-						MaxRow: 8,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"ID", "PropID", "PropName"},
-							{"1", "1", "attack"},
-							{"1", "2", "defence"},
-							{"2", "1", "attack"},
-							{"2", "3", "crit"},
-							{"3", "1", "attack"},
-							{"3", "2", "defence"},
-							{"3", "4", "evade"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"SequentialKeyInVerticalKeyedList",
+					[][]string{
+						{"ID", "PropID", "PropName"},
+						{"1", "1", "attack"},
+						{"1", "2", "defence"},
+						{"2", "1", "attack"},
+						{"2", "3", "crit"},
+						{"3", "1", "attack"},
+						{"3", "2", "defence"},
+						{"3", "4", "evade"},
+					}),
 			},
 			wantErr: false,
 		},
@@ -1084,23 +1049,18 @@ func TestTableParser_parseVerticalSequentialFieldKeyedList(t *testing.T) {
 			name:   "key not sequential",
 			parser: newTableParserForTest(),
 			args: args{
-				sheet: &book.Sheet{
-					Name: "SequentialFieldInVerticalStructList",
-					Table: &book.Table{
-						MaxRow: 4,
-						MaxCol: 3,
-						Rows: [][]string{
-							{"ID", "PropID", "PropName"},
-							{"1", "1", "attack"},
-							{"1", "2", "defence"},
-							{"3", "1", "attack"},
-							{"3", "2", "defence"},
-							{"3", "4", "evade"},
-							{"2", "1", "attack"},
-							{"2", "3", "crit"},
-						},
-					},
-				},
+				sheet: book.NewTableSheet(
+					"SequentialKeyInVerticalKeyedList",
+					[][]string{
+						{"ID", "PropID", "PropName"},
+						{"1", "1", "attack"},
+						{"1", "2", "defence"},
+						{"3", "1", "attack"},
+						{"3", "2", "defence"},
+						{"3", "4", "evade"},
+						{"2", "1", "attack"},
+						{"2", "3", "crit"},
+					}),
 			},
 			wantErr: true,
 			errcode: "E2003",
