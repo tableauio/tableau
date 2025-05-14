@@ -1,13 +1,13 @@
 module github.com/tableauio/tableau
 
-go 1.20
+go 1.23
 
 require (
 	github.com/bytedance/sonic v1.13.2
 	github.com/emirpasic/gods v1.18.1
 	github.com/jhump/protoreflect v1.16.0
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240820135758-21b1d9897dc7
-	github.com/rogpeppe/go-internal v1.10.0
+	github.com/rogpeppe/go-internal v1.14.1
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.9.0
 	github.com/subchen/go-xmldom v1.1.2
