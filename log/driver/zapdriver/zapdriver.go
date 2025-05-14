@@ -104,7 +104,12 @@ func (d *ZapDriver) Print(r *core.Record) {
 		logger = d.logger.With(fields...)
 	}
 
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	switch r.Level {
 	case core.DebugLevel:
 		if r.Format == nil {

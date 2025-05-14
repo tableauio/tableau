@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/log/core"
 	"github.com/tableauio/tableau/log/driver/zapdriver"
-	_ "github.com/tableauio/tableau/log/driver/zapdriver"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -69,9 +69,11 @@ func TestLevel(t *testing.T) {
 			want: "DEBUG",
 		},
 	}
-	Init(&Options{
+	err := Init(&Options{
 		Level: "DEBUG",
+		Mode:  "FULL",
 	})
+	assert.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := Level(); got != tt.want {
@@ -98,43 +100,26 @@ func Test_logs(t *testing.T) {
 	Warnw("test", args)
 	Errorw("test", args)
 
-	func() {
-		defer func() {
-			recover()
-		}()
+	assert.Panics(t, func() {
 		Panic(args...)
-	}()
-	func() {
-		defer func() {
-			recover()
-		}()
+	})
+	assert.Panics(t, func() {
+		Panic(args...)
 		Panicf("count: %d", 1)
-	}()
-	func() {
-		defer func() {
-			recover()
-		}()
+	})
+	assert.Panics(t, func() {
 		Panicw("test", args)
-	}()
-	func() {
-		defer func() {
-			recover()
-		}()
-		Fatal(args...)
-	}()
-	func() {
-		defer func() {
-			recover()
-		}()
-		Fatalf("count: %d", 1)
-	}()
-
-	func() {
-		defer func() {
-			recover()
-		}()
-		Fatalw("test", args)
-	}()
+	})
+	// NOTE: we cannot test fatal, because it will exit the process.
+	// assert.Panics(t, func() {
+	// 	Fatal(args...)
+	// })
+	// assert.Panics(t, func() {
+	// 	Fatalf("count: %d", 1)
+	// })
+	// assert.Panics(t, func() {
+	// 	Fatalw("test", args)
+	// })
 }
 
 func TestMain(m *testing.M) {

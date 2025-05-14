@@ -116,7 +116,12 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	if f, err := lockedfile.Create(path); err != nil {
 		return xerrors.WrapKV(err)
 	} else {
-		defer f.Close()
+		defer func() {
+			err := f.Close()
+			if err != nil {
+				log.Panicf("failed to close file: %s", path)
+			}
+		}()
 		if _, err = f.Write(g1.Content()); err != nil {
 			return xerrors.WrapKV(err)
 		}

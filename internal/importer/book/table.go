@@ -180,7 +180,10 @@ func (t *Table) ExportExcel(file *excelize.File, sheetName string) error {
 			if err != nil {
 				return xerrors.Wrapf(err, "failed to convert column number %d to name", ncol+1)
 			}
-			file.SetColWidth(sheetName, colname, colname, 20)
+			err = file.SetColWidth(sheetName, colname, colname, 20)
+			if err != nil {
+				return xerrors.Wrapf(err, "failed to set column width %s", colname)
+			}
 			axis, err := excelize.CoordinatesToCellName(ncol+1, nrow+1)
 			if err != nil {
 				return xerrors.Wrapf(err, "failed to convert coordinates (%d,%d) to cell name", ncol+1, nrow+1)

@@ -1,6 +1,7 @@
 package xfs
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -58,16 +59,17 @@ func copyFileContents(src, dst string) (err error) {
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() {
+		cerr := in.Close()
+		err = errors.Join(err, cerr)
+	}()
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		cerr := out.Close()
-		if err == nil {
-			err = cerr
-		}
+		err = errors.Join(err, cerr)
 	}()
 	if _, err = io.Copy(out, in); err != nil {
 		return err

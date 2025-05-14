@@ -432,7 +432,8 @@ func TestLoadWithPatch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			PatchMessage(tt.args.dst, tt.args.src)
+			err := PatchMessage(tt.args.dst, tt.args.src)
+			require.NoError(t, err)
 			require.Equal(t, proto.Equal(tt.args.result, tt.args.dst), true)
 		})
 	}

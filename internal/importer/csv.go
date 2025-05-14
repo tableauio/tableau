@@ -110,7 +110,12 @@ func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to open file: %s", filename)
 	}
-	defer f.Close()
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			log.Panicf("failed to close file: %s", filename)
+		}
+	}()
 
 	r := csv.NewReader(f)
 

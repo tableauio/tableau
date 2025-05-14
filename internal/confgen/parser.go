@@ -85,7 +85,10 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 			if info.SheetOpts.Patch == tableaupb.Patch_PATCH_MERGE {
 				if info.ExtInfo.DryRun == options.DryRunPatch {
 					clonedMainMsg := proto.Clone(mainMsg)
-					xproto.PatchMessage(clonedMainMsg, msg)
+					err = xproto.PatchMessage(clonedMainMsg, msg)
+					if err != nil {
+						return err
+					}
 					msg = clonedMainMsg
 				} else {
 					return storePatchMergeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt)

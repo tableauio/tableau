@@ -320,7 +320,7 @@ func parseTimeWithLocation(locationName string, timeStr string) (time.Time, erro
 		return time.Time{}, xerrors.WrapKV(err)
 	} else {
 		timeStr = strings.TrimSpace(timeStr)
-		layout := "2006-01-02 15:04:05"
+		layout := ""
 		if strings.Contains(timeStr, " ") {
 			layout = "2006-01-02 15:04:05"
 		} else {

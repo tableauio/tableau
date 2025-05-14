@@ -64,7 +64,7 @@ func (b *base) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			io.WriteString(s, content)
+			_, _ = io.WriteString(s, content)
 			if b.stack != nil {
 				b.stack.Format(s, verb)
 			}
@@ -72,9 +72,9 @@ func (b *base) Format(s fmt.State, verb rune) {
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, content)
+		_, _ = io.WriteString(s, content)
 	case 'q':
-		fmt.Fprintf(s, "%q", content)
+		_, _ = fmt.Fprintf(s, "%q", content)
 	}
 }
 
@@ -118,9 +118,9 @@ func (w *withCode) Format(s fmt.State, verb rune) {
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, content)
+		_, _ = io.WriteString(s, content)
 	case 'q':
-		fmt.Fprintf(s, "%q", content)
+		_, _ = fmt.Fprintf(s, "%q", content)
 	}
 }
 
@@ -158,9 +158,9 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, content)
+		_, _ = io.WriteString(s, content)
 	case 'q':
-		fmt.Fprintf(s, "%q", content)
+		_, _ = fmt.Fprintf(s, "%q", content)
 	}
 }
 

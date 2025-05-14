@@ -239,7 +239,12 @@ func (b *Book) ExportCSV() error {
 		if err != nil {
 			return xerrors.Wrapf(err, "failed to create csv file: %s", path)
 		}
-		defer f.Close()
+		defer func() {
+			err := f.Close()
+			if err != nil {
+				log.Panicf("failed to close file: %s", path)
+			}
+		}()
 		if sheet.Table != nil {
 			if err := sheet.Table.ExportCSV(f); err != nil {
 				return xerrors.Wrapf(err, "export sheet %s to excel failed", sheet.Name)
