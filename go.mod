@@ -1,11 +1,11 @@
 module github.com/tableauio/tableau
 
-go 1.20
+go 1.21
 
 require (
 	github.com/bytedance/sonic v1.13.2
 	github.com/emirpasic/gods v1.18.1
-	github.com/jhump/protoreflect v1.16.0
+	github.com/jhump/protoreflect v1.17.0
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240820135758-21b1d9897dc7
 	github.com/rogpeppe/go-internal v1.10.0
 	github.com/spf13/cobra v1.9.1
@@ -14,8 +14,8 @@ require (
 	github.com/xuri/excelize/v2 v2.6.1
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.24.0
-	golang.org/x/sync v0.6.0
-	golang.org/x/text v0.14.0
+	golang.org/x/sync v0.8.0
+	golang.org/x/text v0.15.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -23,7 +23,7 @@ require (
 
 require (
 	github.com/antchfx/xpath v1.2.3 // indirect
-	github.com/bufbuild/protocompile v0.10.0 // indirect
+	github.com/bufbuild/protocompile v0.14.1 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -41,8 +41,8 @@ require (
 	github.com/xuri/nfp v0.0.0-20220409054826-5e722a1d9e22 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/arch v0.14.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
+	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 )
