@@ -105,10 +105,9 @@ func (d *ZapDriver) Print(r *core.Record) {
 	}
 
 	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			panic(err)
-		}
+		// For console: sync /dev/stderr: invalid argument
+		// TODO: fix it
+		_ = logger.Sync()
 	}()
 	switch r.Level {
 	case core.DebugLevel:
