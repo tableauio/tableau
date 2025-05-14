@@ -28,8 +28,8 @@ const (
 	// FatalLevel logs a message, then calls os.Exit(1).
 	FatalLevel
 
-	_minLevel = DebugLevel
-	_maxLevel = FatalLevel
+	// _minLevel = DebugLevel
+	// _maxLevel = FatalLevel
 )
 
 // String returns a lower-case ASCII representation of the log level.

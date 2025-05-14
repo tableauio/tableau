@@ -164,6 +164,7 @@ func Test_MarshalToBin(t *testing.T) {
 			args: args{
 				msg: itemConf,
 			},
+			// nolint:staticcheck
 			wantOut: []byte(`
 
 

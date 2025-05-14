@@ -644,15 +644,27 @@ func escapeAttrs(doc string) string {
 	escapedDoc := attrRegexp.ReplaceAllStringFunc(doc, func(s string) string {
 		matches := attrRegexp.FindStringSubmatch(s)
 		var typeBuf, propBuf bytes.Buffer
-		xml.EscapeText(&typeBuf, []byte(matches[2]))
-		xml.EscapeText(&propBuf, []byte(matches[3]))
+		err := xml.EscapeText(&typeBuf, []byte(matches[2]))
+		if err != nil {
+			log.Panicf("xml.EscapeText err: %v", err)
+		}
+		err = xml.EscapeText(&propBuf, []byte(matches[3]))
+		if err != nil {
+			log.Panicf("xml.EscapeText err: %v", err)
+		}
 		return fmt.Sprintf("=\"%s%s\"", typeBuf.String(), propBuf.String())
 	})
 	escapedDoc = tagRegexp.ReplaceAllStringFunc(escapedDoc, func(s string) string {
 		matches := tagRegexp.FindStringSubmatch(s)
 		var typeBuf, propBuf bytes.Buffer
-		xml.EscapeText(&typeBuf, []byte(matches[1]))
-		xml.EscapeText(&propBuf, []byte(matches[2]))
+		err := xml.EscapeText(&typeBuf, []byte(matches[1]))
+		if err != nil {
+			log.Panicf("xml.EscapeText err: %v", err)
+		}
+		err = xml.EscapeText(&propBuf, []byte(matches[2]))
+		if err != nil {
+			log.Panicf("xml.EscapeText err: %v", err)
+		}
 		return fmt.Sprintf(">%s%s</", typeBuf.String(), propBuf.String())
 	})
 	return escapedDoc
