@@ -513,6 +513,11 @@ func TestIsScalarType(t *testing.T) {
 			want: true,
 		},
 		{
+			name: WellKnownMessageVersion,
+			args: args{t: WellKnownMessageVersion},
+			want: true,
+		},
+		{
 			name: "MessageType",
 			args: args{t: "MessageType"},
 			want: false,

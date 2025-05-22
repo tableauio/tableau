@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
@@ -34,6 +35,7 @@ var DefaultTimestampValue pref.Value
 var DefaultDurationValue pref.Value
 var DefaultFractionValue pref.Value
 var DefaultComparatorValue pref.Value
+var DefaultVersionValue pref.Value
 
 func init() {
 	DefaultBoolValue = pref.ValueOfBool(false)
@@ -69,7 +71,7 @@ func init() {
 // # Well-known types
 //
 // Well-known types are message types defined by [types.IsWellKnownMessage].
-func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string) (v pref.Value, present bool, err error) {
+func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string, fprop *tableaupb.FieldProp) (v pref.Value, present bool, err error) {
 	purifyInteger := func(s string) string {
 		// trim integer boring suffix matched by regexp `.0*$`
 		if matches := types.MatchBoringInteger(s); matches != nil {
@@ -260,6 +262,11 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 				return DefaultComparatorValue, false, nil
 			}
 			return parseComparator(fd.Message(), value)
+		case types.WellKnownMessageVersion:
+			if value == "" {
+				return DefaultComparatorValue, false, nil
+			}
+			return parseVersion(fd.Message(), value, fprop)
 		default:
 			return pref.Value{}, false, xerrors.Errorf("not supported message type: %s", msgName)
 		}
@@ -457,6 +464,54 @@ func parseComparator(md pref.MessageDescriptor, value string) (v pref.Value, pre
 		return DefaultComparatorValue, false, err
 	}
 	msg.Set(valueFD, valueVal)
+	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
+}
+
+func parseVersion(md pref.MessageDescriptor, value string, fprop *tableaupb.FieldProp) (v pref.Value, present bool, err error) {
+	pattern := fprop.GetPattern()
+	if pattern == "" {
+		pattern = options.DefaultVersionPattern
+	}
+	// pattern
+	ss := strings.Split(pattern, ".")
+	ds := make([]int64, 0, len(ss)+1)
+	for _, s := range ss {
+		d, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return DefaultVersionValue, false, xerrors.E2024(pattern, err)
+		}
+		ds = append(ds, d)
+	}
+	// value
+	vss := strings.Split(value, ".")
+	if len(vss) != len(ss) {
+		return DefaultVersionValue, false, xerrors.E2025(value, pattern)
+	}
+	vds := make([]int64, 0, len(vss))
+	for i, s := range vss {
+		d, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return DefaultVersionValue, false, xerrors.E2024(value, err)
+		}
+		if d > ds[i] {
+			return DefaultVersionValue, false, xerrors.E2025(value, pattern)
+		}
+		vds = append(vds, d)
+	}
+
+	msg := dynamicpb.NewMessage(md)
+	// dotted_decimal
+	ddFD := md.Fields().ByName("dotted_decimal")
+	msg.Set(ddFD, pref.ValueOfString(value))
+	// interger
+	intFD := md.Fields().ByName("interger")
+	interger := int64(0)
+	ds = append(ds, 0)
+	for i, d := range vds {
+		interger += d
+		interger *= ds[i+1] + 1
+	}
+	msg.Set(intFD, pref.ValueOfInt64(interger))
 	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 }
 

@@ -94,3 +94,10 @@ message Vector4i {
   int32 z = 3 [(tableau.field) = { name: "Z" }];
   int32 w = 4 [(tableau.field) = { name: "W" }];
 }
+
+// A 4D vector using int32 coordinates.
+// See https://docs.godotengine.org/en/stable/classes/class_vector4i.html
+message Version {
+  string dotted_decimal = 1 [(tableau.field) = { name: "DottedDecimal" }];
+  int64 interger = 2 [(tableau.field) = { name: "Integer" }];
+}

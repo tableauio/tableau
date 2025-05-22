@@ -1,0 +1,28 @@
+{
+    "minVersion": {
+        "dottedDecimal": "1.1.1.1",
+        "interger": "100101001"
+    },
+    "versionList": [
+        {
+            "dottedDecimal": "192.168.0.1",
+            "interger": "3232235521"
+        },
+        {
+            "dottedDecimal": "192.168.0.2",
+            "interger": "3232235522"
+        },
+        {
+            "dottedDecimal": "192.168.0.3",
+            "interger": "3232235523"
+        },
+        {
+            "dottedDecimal": "192.168.0.4",
+            "interger": "3232235524"
+        },
+        {
+            "dottedDecimal": "192.168.0.5",
+            "interger": "3232235525"
+        }
+    ]
+}

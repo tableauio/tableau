@@ -7,6 +7,7 @@ const (
 	WellKnownMessageDuration   = "google.protobuf.Duration"
 	WellKnownMessageFraction   = "tableau.Fraction"
 	WellKnownMessageComparator = "tableau.Comparator"
+	WellKnownMessageVersion    = "tableau.Version"
 )
 
 var wellKnownMessages map[string]string
@@ -17,6 +18,7 @@ func init() {
 		WellKnownMessageDuration:   "google/protobuf/duration.proto",
 		WellKnownMessageFraction:   "tableau/protobuf/wellknown.proto",
 		WellKnownMessageComparator: "tableau/protobuf/wellknown.proto",
+		WellKnownMessageVersion:    "tableau/protobuf/wellknown.proto",
 	}
 }
 

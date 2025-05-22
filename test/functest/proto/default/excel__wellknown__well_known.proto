@@ -58,3 +58,10 @@ message WellKnownTypeTime {
   google.protobuf.Duration end_time = 2 [(tableau.field) = {name:"EndTime"}]; // End time
   repeated google.protobuf.Duration time_list = 3 [(tableau.field) = {name:"Time" layout:LAYOUT_INCELL}]; // Time
 }
+
+message WellKnownTypeVersion {
+  option (tableau.worksheet) = {name:"WellKnownTypeVersion"};
+
+  tableau.Version min_version = 1 [(tableau.field) = {name:"MinVersion" prop:{pattern:"99.999.99.999"}}]; // min version
+  repeated tableau.Version version_list = 2 [(tableau.field) = {name:"Version" layout:LAYOUT_HORIZONTAL}]; // version
+}

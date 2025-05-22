@@ -108,6 +108,14 @@ E2023:
   desc: KeyedList key not unique
   text: KeyedList key "{{.Key}}" duplicates
   help: ensure KeyedList's key is unique
+E2024:
+  desc: invalid version pattern
+  text: '"{{.Value}}" cannot be parsed into dotted-decimal format, {{.Error}}'
+  help: "available patterns: 255.255.255.255"
+E2025:
+  desc: version value mismatches pattern
+  text: '"{{.Value}}" mismatches dotted-decimal pattern {{.Pattern}}'
+  help: "ensure the version value match the pattern and all decimal values are valid"
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
