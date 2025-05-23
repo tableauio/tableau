@@ -1,0 +1,56 @@
+{
+    "minVersion": {
+        "str": "1.2.3.4.5.6",
+        "val": "10020300405006",
+        "major": 1,
+        "minor": 2,
+        "patch": 3,
+        "others": [
+            4,
+            5,
+            6
+        ]
+    },
+    "versionList": [
+        {
+            "str": "1.0.0",
+            "val": "65536",
+            "major": 1,
+            "minor": 0,
+            "patch": 0,
+            "others": []
+        },
+        {
+            "str": "1.0.1",
+            "val": "65537",
+            "major": 1,
+            "minor": 0,
+            "patch": 1,
+            "others": []
+        },
+        {
+            "str": "1.0.2",
+            "val": "65538",
+            "major": 1,
+            "minor": 0,
+            "patch": 2,
+            "others": []
+        },
+        {
+            "str": "1.1.0",
+            "val": "65792",
+            "major": 1,
+            "minor": 1,
+            "patch": 0,
+            "others": []
+        },
+        {
+            "str": "2.0.0",
+            "val": "131072",
+            "major": 2,
+            "minor": 0,
+            "patch": 0,
+            "others": []
+        }
+    ]
+}

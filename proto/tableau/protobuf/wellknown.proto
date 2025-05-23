@@ -94,3 +94,22 @@ message Vector4i {
   int32 z = 3 [(tableau.field) = { name: "Z" }];
   int32 w = 4 [(tableau.field) = { name: "W" }];
 }
+
+// Version number in [dot-decimal notation](https://en.wikipedia.org/wiki/Dot-decimal_notation).
+// The version form is "<MAJOR>.<MINOR>.<PATCH>[.<OTHER>]...".
+//
+// You can specify the version pattern as "<MAJOR_MAX>.<MINOR_MAX>.<PATCH_MAX>[.<OTHER_MAX>]...".
+//  - Each part with suffix "MAX" represents the max decimal value of each part in the dot-decimal notation.
+//  - Each part "XXX_MAX+1" represents the part's value occupying in an integer.
+//  - For example, the formula for general pattern "<MAJOR_MAX>.<MINOR_MAX>.<PATCH_MAX>" is: 
+//    MAJOR*(MINOR_MAX+1)*(PATCH_MAX+1) + MINOR*(PATCH_MAX+1) + PATCH
+// 
+// Default pattern: "255.255.255".
+message Version {
+  string str = 1; // Version in string form.
+  uint64 val = 2; // Version in integer form.
+  uint32 major = 3; // Major version number.
+  uint32 minor = 4; // Minor version number.
+  uint32 patch = 5; // Patch version number.
+  repeated uint32 others = 6; // Other version numbers, such as build number, resource version, and so on.
+}

@@ -5,7 +5,9 @@ import (
 	"math"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/xerrors"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -346,7 +348,7 @@ func TestParseFieldValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName)
+			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseFieldValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -591,6 +593,138 @@ func Test_parseComparator(t *testing.T) {
 			}
 			if err == nil && !gotC.Equal(pref.ValueOfMessage(tt.wantC.ProtoReflect())) {
 				t.Errorf("parseComparator() = %v, want %v", gotC, tt.wantC)
+			}
+		})
+	}
+}
+
+func Test_parseVersion(t *testing.T) {
+	msg := &tableaupb.Version{}
+	md := msg.ProtoReflect().Descriptor()
+	type args struct {
+		value   string
+		pattern string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantV   *tableaupb.Version
+		wantErr bool
+		errcode string
+	}{
+		{
+			name: "default pattern",
+			args: args{
+				value: "1.2.3",
+			},
+			wantV: &tableaupb.Version{
+				Str:   "1.2.3",
+				Val:   1<<16 | 2<<8 | 3, // 66051
+				Major: 1,
+				Minor: 2,
+				Patch: 3,
+			},
+		},
+		{
+			name: "custom pattern",
+			args: args{
+				pattern: "99.999.99.999",
+				value:   "12.345.67.890",
+			},
+			wantV: &tableaupb.Version{
+				Str:    "12.345.67.890",
+				Val:    1234567890,
+				Major:  12,
+				Minor:  345,
+				Patch:  67,
+				Others: []uint32{890},
+			},
+		},
+		{
+			name: "no dot in pattern",
+			args: args{
+				pattern: "65535",
+				value:   "1024",
+			},
+			wantV: &tableaupb.Version{
+				Str:   "1024",
+				Val:   1024,
+				Major: 1024,
+			},
+		},
+		{
+			name: "version mismatches pattern",
+			args: args{
+				pattern: "255.255.255",
+				value:   "1.0.0.0",
+			},
+			wantErr: true,
+			errcode: "E2025",
+		},
+		{
+			name: "negative pattern decimal",
+			args: args{
+				pattern: "255.-255.255",
+				value:   "1.0.0",
+			},
+			wantErr: true,
+			errcode: "E2024",
+		},
+		{
+			name: "negative version decimal",
+			args: args{
+				pattern: "255.255.255",
+				value:   "1.-1.0",
+			},
+			wantErr: true,
+			errcode: "E2024",
+		},
+		{
+			name: "pattern decimal max uint32",
+			args: args{
+				pattern: fmt.Sprintf("255.255.%d", math.MaxUint32),
+				value:   "0.2.0",
+			},
+			wantV: &tableaupb.Version{
+				Str:   "0.2.0",
+				Val:   2 * (math.MaxUint32 + 1),
+				Minor: 2,
+			},
+		},
+		{
+			name: "pattern decimal exceeds max uint32",
+			args: args{
+				pattern: fmt.Sprintf("255.255.%d", math.MaxUint32+1),
+				value:   "1.0.0",
+			},
+			wantErr: true,
+			errcode: "E2024",
+		},
+		{
+			name: "pattern decimal product exceeds max uint64",
+			args: args{
+				pattern: fmt.Sprintf("%d.%d.%d", math.MaxUint32, math.MaxUint32, math.MaxUint32),
+				value:   "1.0.0",
+			},
+			wantErr: true,
+			errcode: "E2024",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotV, _, err := parseVersion(md, tt.args.value, tt.args.pattern)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseVersion() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err == nil && !gotV.Equal(pref.ValueOfMessage(tt.wantV.ProtoReflect())) {
+				t.Errorf("parseVersion() = %v, want %v", gotV, tt.wantV)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
 			}
 		})
 	}

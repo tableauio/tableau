@@ -5,10 +5,12 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
@@ -34,6 +36,7 @@ var DefaultTimestampValue pref.Value
 var DefaultDurationValue pref.Value
 var DefaultFractionValue pref.Value
 var DefaultComparatorValue pref.Value
+var DefaultVersionValue pref.Value
 
 func init() {
 	DefaultBoolValue = pref.ValueOfBool(false)
@@ -69,7 +72,7 @@ func init() {
 // # Well-known types
 //
 // Well-known types are message types defined by [types.IsWellKnownMessage].
-func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string) (v pref.Value, present bool, err error) {
+func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string, fprop *tableaupb.FieldProp) (v pref.Value, present bool, err error) {
 	purifyInteger := func(s string) string {
 		// trim integer boring suffix matched by regexp `.0*$`
 		if matches := types.MatchBoringInteger(s); matches != nil {
@@ -260,6 +263,11 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 				return DefaultComparatorValue, false, nil
 			}
 			return parseComparator(fd.Message(), value)
+		case types.WellKnownMessageVersion:
+			if value == "" {
+				return DefaultVersionValue, false, nil
+			}
+			return parseVersion(fd.Message(), value, fprop.GetPattern())
 		default:
 			return pref.Value{}, false, xerrors.Errorf("not supported message type: %s", msgName)
 		}
@@ -458,6 +466,106 @@ func parseComparator(md pref.MessageDescriptor, value string) (v pref.Value, pre
 	}
 	msg.Set(valueFD, valueVal)
 	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
+}
+
+func parseVersion(md pref.MessageDescriptor, value string, pattern string) (v pref.Value, present bool, err error) {
+	if pattern == "" {
+		pattern = options.DefaultVersionPattern
+	}
+	// pattern
+	patternSlice, err := patternToSlice(pattern)
+	if err != nil {
+		return DefaultVersionValue, false, err
+	}
+	// value
+	versionStrSlice := strings.Split(value, ".")
+	if len(versionStrSlice) != len(patternSlice) {
+		return DefaultVersionValue, false, xerrors.E2025(value, pattern)
+	}
+	versionSlice := make([]uint32, 0, len(versionStrSlice))
+	for i, s := range versionStrSlice {
+		d, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return DefaultVersionValue, false, xerrors.E2024(value, err)
+		}
+		if uint32(d) > patternSlice[i] {
+			return DefaultVersionValue, false, xerrors.E2025(value, pattern)
+		}
+		versionSlice = append(versionSlice, uint32(d))
+	}
+
+	msg := dynamicpb.NewMessage(md)
+	// string form
+	strFD := md.Fields().ByName("str")
+	msg.Set(strFD, pref.ValueOfString(value))
+	// integer form
+	valFD := md.Fields().ByName("val")
+	versionVal := uint64(0)
+	patternSlice = append(patternSlice, 0)
+	for i, v := range versionSlice {
+		versionVal += uint64(v)
+		if i != len(versionSlice)-1 {
+			versionVal *= uint64(patternSlice[i+1]) + 1
+		}
+	}
+	msg.Set(valFD, pref.ValueOfUint64(versionVal))
+	// major.minor.patch.others
+	majorFD := md.Fields().ByName("major")
+	msg.Set(majorFD, pref.ValueOfUint32(versionSlice[0]))
+	if len(versionSlice) > 1 {
+		minorFD := md.Fields().ByName("minor")
+		msg.Set(minorFD, pref.ValueOfUint32(versionSlice[1]))
+	}
+	if len(versionSlice) > 2 {
+		patchFD := md.Fields().ByName("patch")
+		msg.Set(patchFD, pref.ValueOfUint32(versionSlice[2]))
+	}
+	if len(versionSlice) > 3 {
+		patchFD := md.Fields().ByName("others")
+		for i := 3; i < len(versionSlice); i++ {
+			msg.Mutable(patchFD).List().Append(pref.ValueOfUint32(versionSlice[i]))
+		}
+	}
+	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
+}
+
+var versionPatterns = &versionPatternCache{
+	cache: map[string][]uint32{},
+}
+
+type versionPatternCache struct {
+	sync.RWMutex
+	cache map[string][]uint32 // pattern str -> pattern slice
+}
+
+func patternToSlice(pattern string) ([]uint32, error) {
+	versionPatterns.RLock()
+	v, ok := versionPatterns.cache[pattern]
+	versionPatterns.RUnlock()
+	if ok {
+		return v, nil
+	}
+	versionPatterns.Lock()
+	defer versionPatterns.Unlock()
+	patternStrSlice := strings.Split(pattern, ".")
+	patternSlice := make([]uint32, 0, len(patternStrSlice))
+	for _, s := range patternStrSlice {
+		d, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return nil, xerrors.E2024(pattern, err)
+		}
+		patternSlice = append(patternSlice, uint32(d))
+	}
+	product := uint64(1)
+	for _, v := range patternSlice {
+		multiplier := uint64(v) + 1
+		if product > math.MaxUint64/multiplier {
+			return nil, xerrors.E2024(pattern, xerrors.Errorf("product of all pattern decimals overflow uint64"))
+		}
+		product *= multiplier
+	}
+	versionPatterns.cache[pattern] = patternSlice
+	return patternSlice, nil
 }
 
 func findFirstDigitOrSignIndex(s string) (int, error) {

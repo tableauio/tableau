@@ -258,6 +258,22 @@ func E2023(key any) error {
 	})
 }
 
+// E2024: invalid version pattern.
+func E2024(value string, err error) error {
+	return renderEcode("E2024", map[string]any{
+		"Value": value,
+		"Error": err,
+	})
+}
+
+// E2025: version value mismatches pattern.
+func E2025(value, pattern string) error {
+	return renderEcode("E2025", map[string]any{
+		"Value":   value,
+		"Pattern": pattern,
+	})
+}
+
 // E3000: no workbook file found about sheet specifier.
 func E3000(sheetSpecifier, pattern string) error {
 	return renderEcode("E3000", map[string]any{

@@ -341,6 +341,10 @@ const (
 	DefaultSubsep = ":"
 )
 
+const (
+	DefaultVersionPattern = "255.255.255"
+)
+
 // Option is the functional option type.
 type Option func(*Options)
 

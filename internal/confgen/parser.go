@@ -859,7 +859,7 @@ func (sp *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData
 //   - Enum types
 //   - Well-known types
 func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, fprop *tableaupb.FieldProp) (v protoreflect.Value, present bool, err error) {
-	v, present, err = xproto.ParseFieldValue(fd, rawValue, sp.LocationName)
+	v, present, err = xproto.ParseFieldValue(fd, rawValue, sp.LocationName, fprop)
 	if err != nil {
 		return v, present, err
 	}
