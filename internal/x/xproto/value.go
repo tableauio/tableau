@@ -529,12 +529,24 @@ func parseVersion(md pref.MessageDescriptor, value string, pattern string) (v pr
 	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 }
 
-var versionPatterns sync.Map
+var versionPatterns = &versionPatternCache{
+	cache: map[string][]uint32{},
+}
+
+type versionPatternCache struct {
+	sync.RWMutex
+	cache map[string][]uint32 // pattern str -> pattern slice
+}
 
 func patternToSlice(pattern string) ([]uint32, error) {
-	if v, ok := versionPatterns.Load(pattern); ok {
-		return v.([]uint32), nil
+	versionPatterns.RLock()
+	v, ok := versionPatterns.cache[pattern]
+	versionPatterns.RUnlock()
+	if ok {
+		return v, nil
 	}
+	versionPatterns.Lock()
+	defer versionPatterns.Unlock()
 	patternStrSlice := strings.Split(pattern, ".")
 	patternSlice := make([]uint32, 0, len(patternStrSlice))
 	for _, s := range patternStrSlice {
@@ -552,7 +564,7 @@ func patternToSlice(pattern string) ([]uint32, error) {
 		}
 		product *= multiplier
 	}
-	versionPatterns.Store(pattern, patternSlice)
+	versionPatterns.cache[pattern] = patternSlice
 	return patternSlice, nil
 }
 
