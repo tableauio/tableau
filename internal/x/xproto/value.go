@@ -357,7 +357,7 @@ func parseDuration(val string) (time.Duration, error) {
 			// "HHmm" -> "<HH>h<mm>m", e.g.:  "1010" -> "10h10m"
 			val = val[0:2] + "h" + val[2:4] + "m"
 		case 6:
-			// "HHmmss" -> "<HH>h<mm>m<patternStrSlice>s", e.g.: "101010" -> "10h10m10s"
+			// "HHmmss" -> "<HH>h<mm>m<ss>s", e.g.: "101010" -> "10h10m10s"
 			val = val[0:2] + "h" + val[2:4] + "m" + val[4:] + "s"
 		default:
 			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HHmmss" or "HHmm"`)
@@ -370,10 +370,10 @@ func parseDuration(val string) (time.Duration, error) {
 			// "HH:mm" -> "<HH>h<mm>m", e.g.: "10:10" -> "10h10m"
 			val = splits[0] + "h" + splits[1] + "m"
 		case 3:
-			// "HH:mm:patternStrSlice" -> "<HH>h<mm>m<patternStrSlice>s", e.g.: "10:10:10" -> "10h10m10s"
+			// "HH:mm:ss" -> "<HH>h<mm>m<ss>s", e.g.: "10:10:10" -> "10h10m10s"
 			val = splits[0] + "h" + splits[1] + "m" + splits[2] + "s"
 		default:
-			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HH:mm:patternStrSlice" or "HH:mm"`)
+			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HH:mm:ss" or "HH:mm"`)
 		}
 
 	}
