@@ -1,4 +1,4 @@
-MinVersion,Version1,Version2,Version3,Version4,Version5
-"version|{pattern:""99.999.99.999.99.999""}",[]version,version,version,version,version
-min version,version1,version 2,version 3,version 4,version 5
-1.2.3.4.5.6,1.0.0,1.0.1,1.0.2,1.1.0,2.0.0
+Version,CustomVersion,IncellVersion,HorizontalVersion1,HorizontalVersion2,HorizontalVersion3
+version,"version|{pattern:""99.999.99.999.99.999""}","[]version|{pattern:""999.999.999""}","[]version|{pattern:""999.999.999""}",version,version
+default version,custom version,incell version,horizontal version1,horizontal version2,horizontal version3
+1.0.3,1.2.3.4.5.6,"1.2.3,4.5.6",1.0.0,1.2.3,2.0.3

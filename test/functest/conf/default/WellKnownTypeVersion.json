@@ -1,5 +1,13 @@
 {
-    "minVersion": {
+    "version": {
+        "str": "1.0.3",
+        "val": "65539",
+        "major": 1,
+        "minor": 0,
+        "patch": 3,
+        "others": []
+    },
+    "customVersion": {
         "str": "1.2.3.4.5.6",
         "val": "10020300405006",
         "major": 1,
@@ -11,45 +19,47 @@
             6
         ]
     },
-    "versionList": [
+    "incellVersionList": [
+        {
+            "str": "1.2.3",
+            "val": "1002003",
+            "major": 1,
+            "minor": 2,
+            "patch": 3,
+            "others": []
+        },
+        {
+            "str": "4.5.6",
+            "val": "4005006",
+            "major": 4,
+            "minor": 5,
+            "patch": 6,
+            "others": []
+        }
+    ],
+    "horizontalVersionList": [
         {
             "str": "1.0.0",
-            "val": "65536",
+            "val": "1000000",
             "major": 1,
             "minor": 0,
             "patch": 0,
             "others": []
         },
         {
-            "str": "1.0.1",
-            "val": "65537",
+            "str": "1.2.3",
+            "val": "1002003",
             "major": 1,
-            "minor": 0,
-            "patch": 1,
+            "minor": 2,
+            "patch": 3,
             "others": []
         },
         {
-            "str": "1.0.2",
-            "val": "65538",
-            "major": 1,
-            "minor": 0,
-            "patch": 2,
-            "others": []
-        },
-        {
-            "str": "1.1.0",
-            "val": "65792",
-            "major": 1,
-            "minor": 1,
-            "patch": 0,
-            "others": []
-        },
-        {
-            "str": "2.0.0",
-            "val": "131072",
+            "str": "2.0.3",
+            "val": "2000003",
             "major": 2,
             "minor": 0,
-            "patch": 0,
+            "patch": 3,
             "others": []
         }
     ]

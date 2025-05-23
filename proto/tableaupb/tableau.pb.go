@@ -1280,9 +1280,15 @@ type FieldProp struct {
 	//
 	// TODO: use cases for more composite types.
 	Cross int32 `protobuf:"varint,15,opt,name=cross,proto3" json:"cross,omitempty"`
-	// Specify the dotted-decimal pattern of current cell. Each decimal
-	// number ranges from 0 to the corresponding part (MAX) of pattern.
-	// Default pattern: "255.255.255".
+	// Specify the pattern of scalar, list element, and map value.
+	//
+	// For version (tableau.Version) field:
+	//
+	//	Specify the dotted-decimal pattern of current cell. Each decimal
+	//	number ranges from 0 to the corresponding part (MAX) of pattern.
+	//	Default pattern: "255.255.255".
+	//
+	// TODO: use cases for more field types.
 	Pattern string `protobuf:"bytes,16,opt,name=pattern,proto3" json:"pattern,omitempty"`
 }
 

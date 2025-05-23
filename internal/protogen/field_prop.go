@@ -54,6 +54,7 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableau
 	if isScalarList {
 		p.Range = prop.Range
 		p.Refer = prop.Refer
+		p.Pattern = prop.Pattern
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

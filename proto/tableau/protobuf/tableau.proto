@@ -334,9 +334,15 @@ message FieldProp {
   //
   // TODO: use cases for more composite types.
   int32 cross = 15;
-  // Specify the dotted-decimal pattern of current cell. Each decimal
-  // number ranges from 0 to the corresponding part (MAX) of pattern.
-  // Default pattern: "255.255.255".
+  // Specify the pattern of scalar, list element, and map value.
+  //
+  // For version (tableau.Version) field:
+  //
+  //    Specify the dotted-decimal pattern of current cell. Each decimal
+  //    number ranges from 0 to the corresponding part (MAX) of pattern.
+  //    Default pattern: "255.255.255".
+  //
+  // TODO: use cases for more field types.
   string pattern = 16;
 }
 
