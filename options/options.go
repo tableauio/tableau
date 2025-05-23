@@ -342,7 +342,7 @@ const (
 )
 
 const (
-	DefaultVersionPattern = "255.255.255.255"
+	DefaultVersionPattern = "255.255.255"
 )
 
 // Option is the functional option type.

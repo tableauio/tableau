@@ -1,28 +1,56 @@
 {
     "minVersion": {
-        "dottedDecimal": "1.1.1.1",
-        "interger": "100101001"
+        "str": "1.2.3.4.5.6",
+        "val": "10020300405006",
+        "major": 1,
+        "minor": 2,
+        "patch": 3,
+        "others": [
+            4,
+            5,
+            6
+        ]
     },
     "versionList": [
         {
-            "dottedDecimal": "192.168.0.1",
-            "interger": "3232235521"
+            "str": "1.0.0",
+            "val": "65536",
+            "major": 1,
+            "minor": 0,
+            "patch": 0,
+            "others": []
         },
         {
-            "dottedDecimal": "192.168.0.2",
-            "interger": "3232235522"
+            "str": "1.0.1",
+            "val": "65537",
+            "major": 1,
+            "minor": 0,
+            "patch": 1,
+            "others": []
         },
         {
-            "dottedDecimal": "192.168.0.3",
-            "interger": "3232235523"
+            "str": "1.0.2",
+            "val": "65538",
+            "major": 1,
+            "minor": 0,
+            "patch": 2,
+            "others": []
         },
         {
-            "dottedDecimal": "192.168.0.4",
-            "interger": "3232235524"
+            "str": "1.1.0",
+            "val": "65792",
+            "major": 1,
+            "minor": 1,
+            "patch": 0,
+            "others": []
         },
         {
-            "dottedDecimal": "192.168.0.5",
-            "interger": "3232235525"
+            "str": "2.0.0",
+            "val": "131072",
+            "major": 2,
+            "minor": 0,
+            "patch": 0,
+            "others": []
         }
     ]
 }

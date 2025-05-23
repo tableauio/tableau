@@ -474,44 +474,61 @@ func parseVersion(md pref.MessageDescriptor, value string, fprop *tableaupb.Fiel
 	}
 	// pattern
 	ss := strings.Split(pattern, ".")
-	ds := make([]int64, 0, len(ss)+1)
+	ds := make([]uint32, 0, len(ss)+1)
 	for _, s := range ss {
-		d, err := strconv.ParseInt(s, 10, 64)
+		d, err := strconv.ParseInt(s, 10, 32)
 		if err != nil {
 			return DefaultVersionValue, false, xerrors.E2024(pattern, err)
 		}
-		ds = append(ds, d)
+		ds = append(ds, uint32(d))
 	}
 	// value
 	vss := strings.Split(value, ".")
 	if len(vss) != len(ss) {
 		return DefaultVersionValue, false, xerrors.E2025(value, pattern)
 	}
-	vds := make([]int64, 0, len(vss))
+	vds := make([]uint32, 0, len(vss))
 	for i, s := range vss {
-		d, err := strconv.ParseInt(s, 10, 64)
+		d, err := strconv.ParseInt(s, 10, 32)
 		if err != nil {
 			return DefaultVersionValue, false, xerrors.E2024(value, err)
 		}
-		if d > ds[i] {
+		if uint32(d) > ds[i] {
 			return DefaultVersionValue, false, xerrors.E2025(value, pattern)
 		}
-		vds = append(vds, d)
+		vds = append(vds, uint32(d))
 	}
 
 	msg := dynamicpb.NewMessage(md)
-	// dotted_decimal
-	ddFD := md.Fields().ByName("dotted_decimal")
-	msg.Set(ddFD, pref.ValueOfString(value))
-	// interger
-	intFD := md.Fields().ByName("interger")
-	interger := int64(0)
+	// string form
+	strFD := md.Fields().ByName("str")
+	msg.Set(strFD, pref.ValueOfString(value))
+	// integer form
+	valFD := md.Fields().ByName("val")
+	interger := uint64(0)
 	ds = append(ds, 0)
 	for i, d := range vds {
-		interger += d
-		interger *= ds[i+1] + 1
+		interger += uint64(d)
+		interger *= uint64(ds[i+1] + 1)
 	}
-	msg.Set(intFD, pref.ValueOfInt64(interger))
+	msg.Set(valFD, pref.ValueOfUint64(interger))
+	// major.minor.patch form
+	majorFD := md.Fields().ByName("major")
+	msg.Set(majorFD, pref.ValueOfUint32(vds[0]))
+	if len(vds) > 1 {
+		minorFD := md.Fields().ByName("minor")
+		msg.Set(minorFD, pref.ValueOfUint32(vds[1]))
+	}
+	if len(vds) > 2 {
+		patchFD := md.Fields().ByName("patch")
+		msg.Set(patchFD, pref.ValueOfUint32(vds[2]))
+	}
+	if len(vds) > 3 {
+		patchFD := md.Fields().ByName("others")
+		for i := 3; i < len(vds); i++ {
+			msg.Mutable(patchFD).List().Append(pref.ValueOfUint32(vds[i]))
+		}
+	}
 	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 }
 
