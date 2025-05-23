@@ -680,6 +680,18 @@ func Test_parseVersion(t *testing.T) {
 			errcode: "E2024",
 		},
 		{
+			name: "pattern decimal max uint32",
+			args: args{
+				pattern: fmt.Sprintf("255.255.%d", math.MaxUint32),
+				value:   "0.2.0",
+			},
+			wantV: &tableaupb.Version{
+				Str:   "0.2.0",
+				Val:   2 * (math.MaxUint32 + 1),
+				Minor: 2,
+			},
+		},
+		{
 			name: "pattern decimal exceeds max uint32",
 			args: args{
 				pattern: fmt.Sprintf("255.255.%d", math.MaxUint32+1),

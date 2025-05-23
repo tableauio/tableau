@@ -516,7 +516,7 @@ func parseVersion(md pref.MessageDescriptor, value string, pattern string) (v pr
 	patternSlice = append(patternSlice, 0)
 	for i, v := range versionSlice {
 		versionVal += uint64(v)
-		versionVal *= uint64(patternSlice[i+1] + 1)
+		versionVal *= uint64(patternSlice[i+1]) + 1
 	}
 	msg.Set(valFD, pref.ValueOfUint64(versionVal))
 	// major.minor.patch.others
