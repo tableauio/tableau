@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -472,26 +473,13 @@ func parseVersion(md pref.MessageDescriptor, value string, pattern string) (v pr
 		pattern = options.DefaultVersionPattern
 	}
 	// pattern
-	patternStrSlice := strings.Split(pattern, ".")
-	patternSlice := make([]uint32, 0, len(patternStrSlice)+1)
-	for _, s := range patternStrSlice {
-		d, err := strconv.ParseUint(s, 10, 32)
-		if err != nil {
-			return DefaultVersionValue, false, xerrors.E2024(pattern, err)
-		}
-		patternSlice = append(patternSlice, uint32(d))
-	}
-	product := uint64(1)
-	for _, v := range patternSlice {
-		multiplier := uint64(v) + 1
-		if product > math.MaxUint64/multiplier {
-			return DefaultVersionValue, false, xerrors.E2024(pattern, xerrors.Errorf("product of all pattern decimals overflow uint64"))
-		}
-		product *= multiplier
+	patternSlice, err := patternToSlice(pattern)
+	if err != nil {
+		return DefaultVersionValue, false, err
 	}
 	// value
 	versionStrSlice := strings.Split(value, ".")
-	if len(versionStrSlice) != len(patternStrSlice) {
+	if len(versionStrSlice) != len(patternSlice) {
 		return DefaultVersionValue, false, xerrors.E2025(value, pattern)
 	}
 	versionSlice := make([]uint32, 0, len(versionStrSlice))
@@ -516,7 +504,9 @@ func parseVersion(md pref.MessageDescriptor, value string, pattern string) (v pr
 	patternSlice = append(patternSlice, 0)
 	for i, v := range versionSlice {
 		versionVal += uint64(v)
-		versionVal *= uint64(patternSlice[i+1]) + 1
+		if i != len(versionSlice)-1 {
+			versionVal *= uint64(patternSlice[i+1]) + 1
+		}
 	}
 	msg.Set(valFD, pref.ValueOfUint64(versionVal))
 	// major.minor.patch.others
@@ -537,6 +527,33 @@ func parseVersion(md pref.MessageDescriptor, value string, pattern string) (v pr
 		}
 	}
 	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
+}
+
+var versionPatterns sync.Map
+
+func patternToSlice(pattern string) ([]uint32, error) {
+	if v, ok := versionPatterns.Load(pattern); ok {
+		return v.([]uint32), nil
+	}
+	patternStrSlice := strings.Split(pattern, ".")
+	patternSlice := make([]uint32, 0, len(patternStrSlice))
+	for _, s := range patternStrSlice {
+		d, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return nil, xerrors.E2024(pattern, err)
+		}
+		patternSlice = append(patternSlice, uint32(d))
+	}
+	product := uint64(1)
+	for _, v := range patternSlice {
+		multiplier := uint64(v) + 1
+		if product > math.MaxUint64/multiplier {
+			return nil, xerrors.E2024(pattern, xerrors.Errorf("product of all pattern decimals overflow uint64"))
+		}
+		product *= multiplier
+	}
+	versionPatterns.Store(pattern, patternSlice)
+	return patternSlice, nil
 }
 
 func findFirstDigitOrSignIndex(s string) (int, error) {
