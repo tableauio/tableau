@@ -62,6 +62,8 @@ message WellKnownTypeTime {
 message WellKnownTypeVersion {
   option (tableau.worksheet) = {name:"WellKnownTypeVersion"};
 
-  tableau.Version min_version = 1 [(tableau.field) = {name:"MinVersion" prop:{pattern:"99.999.99.999.99.999"}}]; // min version
-  repeated tableau.Version version_list = 2 [(tableau.field) = {name:"Version" layout:LAYOUT_HORIZONTAL}]; // version
+  tableau.Version version = 1 [(tableau.field) = {name:"Version"}]; // default version
+  tableau.Version custom_version = 2 [(tableau.field) = {name:"CustomVersion" prop:{pattern:"99.999.99.999.99.999"}}]; // custom version
+  repeated tableau.Version incell_version_list = 3 [(tableau.field) = {name:"IncellVersion" layout:LAYOUT_INCELL prop:{pattern:"999.999.999"}}]; // incell version
+  repeated tableau.Version horizontal_version_list = 4 [(tableau.field) = {name:"HorizontalVersion" layout:LAYOUT_HORIZONTAL prop:{pattern:"999.999.999"}}]; // horizontal version
 }
