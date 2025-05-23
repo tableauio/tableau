@@ -111,10 +111,10 @@ E2023:
 E2024:
   desc: invalid version pattern
   text: '"{{.Value}}" cannot be parsed into dotted-decimal format, {{.Error}}'
-  help: "available patterns: 255.255.255.255"
+  help: "ensure version pattern is: <MAJOR>.<MINOR>.<PATCH>[.<OTHER>]..."
 E2025:
   desc: version value mismatches pattern
-  text: '"{{.Value}}" mismatches dotted-decimal pattern {{.Pattern}}'
+  text: 'version "{{.Value}}" mismatches dotted-decimal pattern "{{.Pattern}}"'
   help: "ensure the version value match the pattern and all decimal values are valid"
 # [3000, 3999]: importer error
 E3000:

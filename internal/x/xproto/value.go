@@ -264,9 +264,9 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			return parseComparator(fd.Message(), value)
 		case types.WellKnownMessageVersion:
 			if value == "" {
-				return DefaultComparatorValue, false, nil
+				return DefaultVersionValue, false, nil
 			}
-			return parseVersion(fd.Message(), value, fprop)
+			return parseVersion(fd.Message(), value, fprop.GetPattern())
 		default:
 			return pref.Value{}, false, xerrors.Errorf("not supported message type: %s", msgName)
 		}
@@ -357,7 +357,7 @@ func parseDuration(val string) (time.Duration, error) {
 			// "HHmm" -> "<HH>h<mm>m", e.g.:  "1010" -> "10h10m"
 			val = val[0:2] + "h" + val[2:4] + "m"
 		case 6:
-			// "HHmmss" -> "<HH>h<mm>m<ss>s", e.g.: "101010" -> "10h10m10s"
+			// "HHmmss" -> "<HH>h<mm>m<patternStrSlice>s", e.g.: "101010" -> "10h10m10s"
 			val = val[0:2] + "h" + val[2:4] + "m" + val[4:] + "s"
 		default:
 			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HHmmss" or "HHmm"`)
@@ -370,10 +370,10 @@ func parseDuration(val string) (time.Duration, error) {
 			// "HH:mm" -> "<HH>h<mm>m", e.g.: "10:10" -> "10h10m"
 			val = splits[0] + "h" + splits[1] + "m"
 		case 3:
-			// "HH:mm:ss" -> "<HH>h<mm>m<ss>s", e.g.: "10:10:10" -> "10h10m10s"
+			// "HH:mm:patternStrSlice" -> "<HH>h<mm>m<patternStrSlice>s", e.g.: "10:10:10" -> "10h10m10s"
 			val = splits[0] + "h" + splits[1] + "m" + splits[2] + "s"
 		default:
-			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HH:mm:ss" or "HH:mm"`)
+			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HH:mm:patternStrSlice" or "HH:mm"`)
 		}
 
 	}
@@ -467,36 +467,43 @@ func parseComparator(md pref.MessageDescriptor, value string) (v pref.Value, pre
 	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 }
 
-func parseVersion(md pref.MessageDescriptor, value string, fprop *tableaupb.FieldProp) (v pref.Value, present bool, err error) {
-	pattern := fprop.GetPattern()
+func parseVersion(md pref.MessageDescriptor, value string, pattern string) (v pref.Value, present bool, err error) {
 	if pattern == "" {
 		pattern = options.DefaultVersionPattern
 	}
 	// pattern
-	ss := strings.Split(pattern, ".")
-	ds := make([]uint32, 0, len(ss)+1)
-	for _, s := range ss {
-		d, err := strconv.ParseInt(s, 10, 32)
+	patternStrSlice := strings.Split(pattern, ".")
+	patternSlice := make([]uint32, 0, len(patternStrSlice)+1)
+	for _, s := range patternStrSlice {
+		d, err := strconv.ParseUint(s, 10, 32)
 		if err != nil {
 			return DefaultVersionValue, false, xerrors.E2024(pattern, err)
 		}
-		ds = append(ds, uint32(d))
+		patternSlice = append(patternSlice, uint32(d))
+	}
+	product := uint64(1)
+	for _, v := range patternSlice {
+		multiplier := uint64(v) + 1
+		if product > math.MaxUint64/multiplier {
+			return DefaultVersionValue, false, xerrors.E2024(pattern, xerrors.Errorf("product of all pattern decimals overflow uint64"))
+		}
+		product *= multiplier
 	}
 	// value
-	vss := strings.Split(value, ".")
-	if len(vss) != len(ss) {
+	versionStrSlice := strings.Split(value, ".")
+	if len(versionStrSlice) != len(patternStrSlice) {
 		return DefaultVersionValue, false, xerrors.E2025(value, pattern)
 	}
-	vds := make([]uint32, 0, len(vss))
-	for i, s := range vss {
-		d, err := strconv.ParseInt(s, 10, 32)
+	versionSlice := make([]uint32, 0, len(versionStrSlice))
+	for i, s := range versionStrSlice {
+		d, err := strconv.ParseUint(s, 10, 32)
 		if err != nil {
 			return DefaultVersionValue, false, xerrors.E2024(value, err)
 		}
-		if uint32(d) > ds[i] {
+		if uint32(d) > patternSlice[i] {
 			return DefaultVersionValue, false, xerrors.E2025(value, pattern)
 		}
-		vds = append(vds, uint32(d))
+		versionSlice = append(versionSlice, uint32(d))
 	}
 
 	msg := dynamicpb.NewMessage(md)
@@ -505,28 +512,28 @@ func parseVersion(md pref.MessageDescriptor, value string, fprop *tableaupb.Fiel
 	msg.Set(strFD, pref.ValueOfString(value))
 	// integer form
 	valFD := md.Fields().ByName("val")
-	interger := uint64(0)
-	ds = append(ds, 0)
-	for i, d := range vds {
-		interger += uint64(d)
-		interger *= uint64(ds[i+1] + 1)
+	versionVal := uint64(0)
+	patternSlice = append(patternSlice, 0)
+	for i, v := range versionSlice {
+		versionVal += uint64(v)
+		versionVal *= uint64(patternSlice[i+1] + 1)
 	}
-	msg.Set(valFD, pref.ValueOfUint64(interger))
-	// major.minor.patch form
+	msg.Set(valFD, pref.ValueOfUint64(versionVal))
+	// major.minor.patch.others
 	majorFD := md.Fields().ByName("major")
-	msg.Set(majorFD, pref.ValueOfUint32(vds[0]))
-	if len(vds) > 1 {
+	msg.Set(majorFD, pref.ValueOfUint32(versionSlice[0]))
+	if len(versionSlice) > 1 {
 		minorFD := md.Fields().ByName("minor")
-		msg.Set(minorFD, pref.ValueOfUint32(vds[1]))
+		msg.Set(minorFD, pref.ValueOfUint32(versionSlice[1]))
 	}
-	if len(vds) > 2 {
+	if len(versionSlice) > 2 {
 		patchFD := md.Fields().ByName("patch")
-		msg.Set(patchFD, pref.ValueOfUint32(vds[2]))
+		msg.Set(patchFD, pref.ValueOfUint32(versionSlice[2]))
 	}
-	if len(vds) > 3 {
+	if len(versionSlice) > 3 {
 		patchFD := md.Fields().ByName("others")
-		for i := 3; i < len(vds); i++ {
-			msg.Mutable(patchFD).List().Append(pref.ValueOfUint32(vds[i]))
+		for i := 3; i < len(versionSlice); i++ {
+			msg.Mutable(patchFD).List().Append(pref.ValueOfUint32(versionSlice[i]))
 		}
 	}
 	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil

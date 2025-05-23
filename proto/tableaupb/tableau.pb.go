@@ -1280,13 +1280,9 @@ type FieldProp struct {
 	//
 	// TODO: use cases for more composite types.
 	Cross int32 `protobuf:"varint,15,opt,name=cross,proto3" json:"cross,omitempty"`
-	// Specify the data pattern of current cell. Only works on version fields
-	// for now.
-	//
-	// For version field:
-	//
-	//	Specify the dotted-decimal pattern of current cell. Each decimal
-	//	number ranges from 0 to the pattern value.
+	// Specify the dotted-decimal pattern of current cell. Each decimal
+	// number ranges from 0 to the corresponding part (MAX) of pattern.
+	// Default pattern: "255.255.255".
 	Pattern string `protobuf:"bytes,16,opt,name=pattern,proto3" json:"pattern,omitempty"`
 }
 

@@ -111,11 +111,11 @@ E2023:
 E2024:
   desc: invalid version pattern
   text: '"{{.Value}}" 无法以点分十进制解析, {{.Error}}'
-  help: "支持的版本号形式如: 255.255.255.255"
+  help: "确保版本号格式为: <MAJOR>.<MINOR>.<PATCH>[.<OTHER>]..."
 E2025:
   desc: version value mismatches pattern
-  text: '"{{.Value}}" 与点分十进制格式 {{.Pattern}} 不匹配'
-  help: "确保单元格的值与版本号模式匹配, 且每个十进制数值均合法"
+  text: '版本号 "{{.Value}}" 与点分十进制格式 "{{.Pattern}}" 不匹配'
+  help: "确保输入的版本号与版本号格式匹配, 且每个十进制数值均合法"
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
