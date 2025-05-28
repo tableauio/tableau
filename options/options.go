@@ -158,6 +158,13 @@ type ProtoInputOption struct {
 	//
 	// Default: "".
 	FirstPassMode FirstPassMode `yaml:"firstPassMode"`
+
+	// Specify the name pattern for messager(regexp supported). If the generated
+	// messager name does not match this pattern, an error will be reported.
+	// Example: Conf$
+	//
+	// Default: "".
+	MessagerPattern string `yaml:"messagerPattern"`
 }
 
 // Output options for generating proto files.

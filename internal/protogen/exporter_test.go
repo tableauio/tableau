@@ -1,6 +1,7 @@
 package protogen
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -410,6 +411,69 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.x.exportUnion(); (err != nil) != tt.wantErr {
 				t.Errorf("sheetExporter.exportUnion() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assert.Equal(t, tt.want, tt.x.g.String())
+		})
+	}
+}
+
+func Test_sheetExporter_exportMessager(t *testing.T) {
+	tests := []struct {
+		name    string
+		x       *sheetExporter
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "export-messager",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ItemConf",
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+					},
+				},
+				g: NewGeneratedBuf(),
+				be: &bookExporter{
+					gen:                   &Generator{},
+					messagerPatternRegexp: regexp.MustCompile(`Conf$`),
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message ItemConf {
+  option (tableau.worksheet) = {};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			name: "export-messager-pattern-not-match",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ItemConf",
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+					},
+				},
+				g: NewGeneratedBuf(),
+				be: &bookExporter{
+					gen:                   &Generator{},
+					messagerPatternRegexp: regexp.MustCompile(`Data$`),
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.x.exportMessager(); (err != nil) != tt.wantErr {
+				t.Errorf("sheetExporter.exportMessager() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assert.Equal(t, tt.want, tt.x.g.String())
 		})
