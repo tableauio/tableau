@@ -28,7 +28,7 @@ func NewIntegerComparator(sign Comparator_Sign, num int32) *Comparator {
 	}
 }
 
-// Compare returns if the given fraction matches the given comparator.
+// Compare returns true if the given fraction matches the given comparator.
 func Compare(left *Fraction, cmp *Comparator) bool {
 	right := cmp.GetValue()
 	// cross-multiply to compare
