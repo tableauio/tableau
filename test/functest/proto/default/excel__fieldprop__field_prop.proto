@@ -40,7 +40,8 @@ message FieldNumberProp {
       uint32 id = 1 [(tableau.field) = {name:"ID"}];
       int32 value = 8 [(tableau.field) = {name:"Value"}];
     }
-    int32 rarity = 11 [(tableau.field) = {name:"Rarity"}];
+    int32 rarity = 6 [(tableau.field) = {name:"Rarity"}]; // Auto generated field number
+    int32 effect = 8 [(tableau.field) = {name:"Effect"}]; // Auto generated field number
   }
 }
 
