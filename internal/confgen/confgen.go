@@ -46,7 +46,7 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	ctx := context.Background()
 	ctx = strcase.NewContext(ctx, opts.Acronyms)
-	ctx = metasheet.NewContext(ctx, opts.MetasheetName)
+	ctx = metasheet.NewContext(ctx, opts.Proto.Input.MetasheetName)
 
 	g := &Generator{
 		ProtoPackage: protoPackage,
