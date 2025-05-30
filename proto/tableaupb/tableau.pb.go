@@ -1290,11 +1290,14 @@ type FieldProp struct {
 	//
 	// TODO: use cases for more field types.
 	Pattern string `protobuf:"bytes,16,opt,name=pattern,proto3" json:"pattern,omitempty"`
-	// Specify number of this field.
-	// All fields with number unspecified will use a sequence starting from 1 by default,
-	// and users should guarantee this number do not conflict with the default sequence.
+	// Specify field number (unique numbered tag).
+	// All fields without numbers specified will use a sequence starting from 1 by default,
+	// and will not reuse explicitly specified field numbers.
+	// The first field of a message must occupy number 1 by default, and specifying other
+	// field number as 1 makes no sense since this number is reserved for the first field.
+	// If you specify same field number on multiple fields, only the first of them works.
 	//
-	// For tables, assigning number to a cross cell map/list/struct field also works on its 1st sub-field.
+	// Refer to [protobuf: Assigning Field Numbers](https://protobuf.dev/programming-guides/proto3/#assigning)
 	Number int32 `protobuf:"varint,17,opt,name=number,proto3" json:"number,omitempty"`
 }
 

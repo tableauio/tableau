@@ -71,9 +71,9 @@ message OneofOptions {
 
 message WorkbookOptions {
   // filename with path, e.g.: "relative/path/BookName.suffix" (slash path)
-  string name = 1;   
+  string name = 1;
   // book alias without suffix, e.g.: "BookAlias"
-  string alias = 2;  
+  string alias = 2;
   // Exact row number of column name definition at a worksheet.
   //
   // Default: 1.
@@ -344,11 +344,14 @@ message FieldProp {
   //
   // TODO: use cases for more field types.
   string pattern = 16;
-  // Specify number of this field.
-  // All fields with number unspecified will use a sequence starting from 1 by default, 
-  // and users should guarantee this number do not conflict with the default sequence.
+  // Specify field number (unique numbered tag).
+  // All fields without numbers specified will use a sequence starting from 1 by default,
+  // and will not reuse explicitly specified field numbers.
+  // The first field of a message must occupy number 1 by default, and specifying other
+  // field number as 1 makes no sense since this number is reserved for the first field.
+  // If you specify same field number on multiple fields, only the first of them works.
   //
-  // For tables, assigning number to a cross cell map/list/struct field also works on its 1st sub-field.
+  // Refer to [protobuf: Assigning Field Numbers](https://protobuf.dev/programming-guides/proto3/#assigning)
   int32 number = 17;
 }
 

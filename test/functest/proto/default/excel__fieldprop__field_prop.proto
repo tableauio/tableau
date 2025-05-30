@@ -28,18 +28,19 @@ message FieldNumberProp {
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
-    int32 price = 10 [(tableau.field) = {name:"Price" prop:{number:10}}];
-    int32 number = 3 [(tableau.field) = {name:"Number"}];
-    Decompose decompose = 20 [(tableau.field) = {name:"Decompose" prop:{number:20}}];
+    int32 price = 3 [(tableau.field) = {name:"Price"}];
+    int32 number = 4 [(tableau.field) = {name:"Number"}];
+    Decompose decompose = 5 [(tableau.field) = {name:"Decompose"}];
     message Decompose {
-      uint32 id = 20 [(tableau.field) = {name:"ID" prop:{number:20}}];
-      int32 num = 5 [(tableau.field) = {name:"Num" prop:{number:5}}];
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 num = 6 [(tableau.field) = {name:"Num"}];
     }
-    repeated Attribute attribute_list = 30 [(tableau.field) = {name:"Attribute" layout:LAYOUT_HORIZONTAL prop:{number:30}}];
+    repeated Attribute attribute_list = 7 [(tableau.field) = {name:"Attribute" layout:LAYOUT_HORIZONTAL}];
     message Attribute {
-      uint32 id = 30 [(tableau.field) = {name:"ID" prop:{number:30}}];
-      int32 value = 1 [(tableau.field) = {name:"Value"}];
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 value = 8 [(tableau.field) = {name:"Value"}];
     }
+    int32 rarity = 11 [(tableau.field) = {name:"Rarity"}];
   }
 }
 
