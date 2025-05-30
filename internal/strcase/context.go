@@ -15,11 +15,11 @@ type acronymRegex struct {
 	Replacement string
 }
 
-type ContextData struct {
+type Context struct {
 	acronyms map[string]*acronymRegex
 }
 
-// AddToContext creates a new context with the given acronyms.
+// NewContext creates a new context with the given acronyms.
 //
 // Examples:
 //
@@ -28,7 +28,7 @@ type ContextData struct {
 //   - "3D": "3d"
 //   - `A(1\d{3})`: "a$l1}"
 //   - `(\d)[vV](\d)`: "${1}v${2}"
-func AddToContext(ctx context.Context, acronyms map[string]string) context.Context {
+func NewContext(ctx context.Context, acronyms map[string]string) context.Context {
 	parsedAcronyms := make(map[string]*acronymRegex, len(acronyms))
 	for pattern, replacement := range acronyms {
 		parsedAcronyms[pattern] = &acronymRegex{
@@ -37,17 +37,17 @@ func AddToContext(ctx context.Context, acronyms map[string]string) context.Conte
 			Replacement: replacement,
 		}
 	}
-	return context.WithValue(ctx, ctxKey{}, &ContextData{
+	return context.WithValue(ctx, ctxKey{}, &Context{
 		acronyms: parsedAcronyms,
 	})
 }
 
-func FromContext(ctx context.Context) *ContextData {
-	s, _ := ctx.Value(ctxKey{}).(*ContextData)
+func FromContext(ctx context.Context) *Context {
+	s, _ := ctx.Value(ctxKey{}).(*Context)
 	return s
 }
 
-func (ctx *ContextData) rangeAcronym(full string, pos int) (*acronymRegex, string) {
+func (ctx *Context) rangeAcronym(full string, pos int) (*acronymRegex, string) {
 	if ctx == nil {
 		return nil, ""
 	}

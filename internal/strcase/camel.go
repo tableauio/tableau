@@ -6,7 +6,7 @@ import (
 
 // Converts a string to camelCase/CamelCase. The first word starting with
 // initial uppercase or lowercase letter.
-func (ctx *ContextData) toCamelInitCase(s string, initUppercase bool) string {
+func (ctx *Context) toCamelInitCase(s string, initUppercase bool) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return s
@@ -64,11 +64,11 @@ func (ctx *ContextData) toCamelInitCase(s string, initUppercase bool) string {
 }
 
 // ToCamel converts a string to CamelCase
-func (a *ContextData) ToCamel(s string) string {
+func (a *Context) ToCamel(s string) string {
 	return a.toCamelInitCase(s, true)
 }
 
 // ToLowerCamel converts a string to lowerCamelCase
-func (a *ContextData) ToLowerCamel(s string) string {
+func (a *Context) ToLowerCamel(s string) string {
 	return a.toCamelInitCase(s, false)
 }
