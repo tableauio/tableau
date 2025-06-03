@@ -2,6 +2,7 @@ package metasheet
 
 import (
 	"context"
+	"fmt"
 	"strings"
 )
 
@@ -23,13 +24,18 @@ func NewContext(ctx context.Context, metasheetName string) context.Context {
 }
 
 func FromContext(ctx context.Context) *Context {
-	s, _ := ctx.Value(ctxKey{}).(*Context)
-	return s
+	if s, ok := ctx.Value(ctxKey{}).(*Context); ok {
+		return s
+	}
+	return &Context{metasheetName: DefaultMetasheetName}
 }
 
 func (ctx *Context) MetasheetName() string {
-	if ctx == nil || !strings.HasSuffix(ctx.metasheetName, "@") {
+	if ctx.metasheetName == "" {
 		return DefaultMetasheetName
+	}
+	if !strings.HasPrefix(ctx.metasheetName, "@") {
+		panic(fmt.Sprintf("metasheet name must start with '@': %q", ctx.metasheetName))
 	}
 	return ctx.metasheetName
 }

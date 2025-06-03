@@ -43,14 +43,13 @@ func NewContext(ctx context.Context, acronyms map[string]string) context.Context
 }
 
 func FromContext(ctx context.Context) *Context {
-	s, _ := ctx.Value(ctxKey{}).(*Context)
-	return s
+	if s, ok := ctx.Value(ctxKey{}).(*Context); ok {
+		return s
+	}
+	return &Context{}
 }
 
 func (ctx *Context) rangeAcronym(full string, pos int) (*acronymRegex, string) {
-	if ctx == nil {
-		return nil, ""
-	}
 	var (
 		acronym *acronymRegex
 		prefix  string

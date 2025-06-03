@@ -64,11 +64,11 @@ func (ctx *Context) toCamelInitCase(s string, initUppercase bool) string {
 }
 
 // ToCamel converts a string to CamelCase
-func (a *Context) ToCamel(s string) string {
-	return a.toCamelInitCase(s, true)
+func (ctx *Context) ToCamel(s string) string {
+	return ctx.toCamelInitCase(s, true)
 }
 
 // ToLowerCamel converts a string to lowerCamelCase
-func (a *Context) ToLowerCamel(s string) string {
-	return a.toCamelInitCase(s, false)
+func (ctx *Context) ToLowerCamel(s string) string {
+	return ctx.toCamelInitCase(s, false)
 }
