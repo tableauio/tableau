@@ -10,7 +10,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/metasheet"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"

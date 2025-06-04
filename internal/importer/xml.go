@@ -14,7 +14,7 @@ import (
 
 	"github.com/subchen/go-xmldom"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/metasheet"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/xerrors"

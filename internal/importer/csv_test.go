@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tableauio/tableau/internal/metasheet"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 )
 
 func TestCSVImporter_ExportExcel(t *testing.T) {

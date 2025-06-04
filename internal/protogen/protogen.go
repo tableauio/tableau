@@ -13,7 +13,7 @@ import (
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/metasheet"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"

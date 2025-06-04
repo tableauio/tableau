@@ -9,7 +9,7 @@ import (
 
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/metasheet"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"

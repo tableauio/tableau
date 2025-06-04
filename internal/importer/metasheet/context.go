@@ -18,6 +18,12 @@ const DefaultMetasheetName = "@TABLEAU"
 // A valid metasheet name must start with '@', otherwise
 // use default metasheet name instead.
 func NewContext(ctx context.Context, metasheetName string) context.Context {
+	if metasheetName == "" {
+		metasheetName = DefaultMetasheetName
+	}
+	if !strings.HasPrefix(metasheetName, "@") {
+		panic(fmt.Sprintf("metasheet name must start with '@': %q", metasheetName))
+	}
 	return context.WithValue(ctx, ctxKey{}, &Context{
 		metasheetName: metasheetName,
 	})
@@ -31,11 +37,5 @@ func FromContext(ctx context.Context) *Context {
 }
 
 func (ctx *Context) MetasheetName() string {
-	if ctx.metasheetName == "" {
-		return DefaultMetasheetName
-	}
-	if !strings.HasPrefix(ctx.metasheetName, "@") {
-		panic(fmt.Sprintf("metasheet name must start with '@': %q", ctx.metasheetName))
-	}
 	return ctx.metasheetName
 }
