@@ -1,14 +1,16 @@
 package importer
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 )
 
 func TestCSVImporter_ExportExcel(t *testing.T) {
-	importer, _ := NewCSVImporter("testdata/Test#Test.csv", nil, nil, 0, false)
+	importer, _ := NewCSVImporter(context.Background(), "testdata/Test#Test.csv", nil, nil, 0, false)
 	tests := []struct {
 		name    string
 		x       *CSVImporter
@@ -47,11 +49,12 @@ func Test_parseCSVBookReaderOptions(t *testing.T) {
 				sheetNames: []string{},
 			},
 			want: &bookReaderOptions{
-				Name:     "Test",
-				Filename: "testdata/Test#*.csv",
+				Name:          "Test",
+				Filename:      "testdata/Test#*.csv",
+				MetasheetName: metasheet.DefaultMetasheetName,
 				Sheets: []*sheetReaderOptions{
 					{
-						Name:     "@TABLEAU",
+						Name:     metasheet.DefaultMetasheetName,
 						Filename: "testdata/Test#@TABLEAU.csv",
 					},
 					{
@@ -69,7 +72,7 @@ func Test_parseCSVBookReaderOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseCSVBookReaderOptions(tt.args.filename, tt.args.sheetNames)
+			got, err := parseCSVBookReaderOptions(tt.args.filename, tt.args.sheetNames, metasheet.DefaultMetasheetName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseCSVBookReaderOptions() error = %v, wantErr %v", err, tt.wantErr)
 				return

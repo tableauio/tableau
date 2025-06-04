@@ -1,6 +1,7 @@
 package bench
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -67,9 +69,9 @@ func genTestdata(maxID int) {
 			panic(err)
 		}
 	}
-	b := book.NewBook("Test", "testdata/Test.xlsx", nil)
+	b := book.NewBook(context.Background(), "Test", "testdata/Test.xlsx", nil)
 	// add metasheet
-	metasheet := book.NewTableSheet(book.MetasheetName, nil)
+	metasheet := book.NewTableSheet(metasheet.DefaultMetasheetName, nil)
 	b.AddSheet(metasheet)
 	// add Item sheet
 	rows := [][]string{

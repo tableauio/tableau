@@ -1,10 +1,10 @@
 package protogen
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -67,7 +67,7 @@ func Test_parseField(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseBasicField(tt.args.typeInfos, strcase.Context{}, tt.args.name, tt.args.typ, tt.args.note)
+			got, err := parseBasicField(context.Background(), tt.args.typeInfos, tt.args.name, tt.args.typ, tt.args.note)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseField() error = %v, wantErr %v", err, tt.wantErr)
 				return

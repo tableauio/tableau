@@ -8,6 +8,7 @@ import (
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/printer"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -178,7 +179,7 @@ func (x *sheetExporter) exportEnum() error {
 	// generate the enum value fields
 	for i, field := range x.ws.Fields {
 		if i == 0 && field.Number != 0 {
-			ename := x.be.gen.strcaseCtx.ToScreamingSnake(x.ws.Name) + "_INVALID"
+			ename := strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(x.ws.Name) + "_INVALID"
 			x.g.P("  ", ename, " = 0;")
 		}
 		note := ""
@@ -229,11 +230,11 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P()
 
 	for _, field := range x.ws.Fields {
-		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(field.Name)
+		ename := "TYPE_" + strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(field.Name)
 		if len(field.Fields) == 0 {
 			x.g.P("    // No field bound to enum value: ", ename, ".")
 		} else {
-			x.g.P("    ", strings.TrimSpace(field.Name), " ", x.be.gen.strcaseCtx.ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+			x.g.P("    ", strings.TrimSpace(field.Name), " ", strcase.FromContext(x.be.gen.ctx).ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 		}
 	}
 	x.g.P(`  }`)
@@ -243,7 +244,7 @@ func (x *sheetExporter) exportUnion() error {
 	x.g.P("  enum Type {")
 	x.g.P("    TYPE_INVALID = 0;")
 	for _, field := range x.ws.Fields {
-		ename := "TYPE_" + x.be.gen.strcaseCtx.ToScreamingSnake(field.Name)
+		ename := "TYPE_" + strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(field.Name)
 		note := ""
 		if field.Alias != "" {
 			note = " // " + field.Alias

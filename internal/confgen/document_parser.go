@@ -6,6 +6,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -437,7 +438,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	}
 
 	// parse union type
-	typeNodeName := sp.strcaseCtx.ToCamel(unionDesc.TypeName())
+	typeNodeName := strcase.FromContext(sp.ctx).ToCamel(unionDesc.TypeName())
 	typeNode := node.FindChild(typeNodeName)
 	if typeNode == nil && xproto.GetFieldDefaultValue(unionDesc.Type) != "" {
 		// if this field has a default value, use virtual node

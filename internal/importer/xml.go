@@ -3,6 +3,7 @@ package importer
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/subchen/go-xmldom"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/xerrors"
@@ -39,11 +41,11 @@ func init() {
 	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`)                // e.g.: >int32|{range:"1,~"}</
 }
 
-func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*XMLImporter, error) {
+func NewXMLImporter(ctx context.Context, filename string, sheets []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*XMLImporter, error) {
 	var book *book.Book
 	var err error
 	if mode == Protogen {
-		book, err = readXMLBookWithOnlySchemaSheet(filename, parser)
+		book, err = readXMLBookWithOnlySchemaSheet(ctx, filename, parser)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read xml book: %s", filename)
 		}
@@ -51,7 +53,7 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	} else {
-		book, err = readXMLBook(filename, parser)
+		book, err = readXMLBook(ctx, filename, parser)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read xml book: %s", filename)
 		}
@@ -63,16 +65,16 @@ func NewXMLImporter(filename string, sheets []string, parser book.SheetParser, m
 	}, nil
 }
 
-func readXMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
+func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) (*book.Book, error) {
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	newBook := book.NewBook(bookName, filename, parser)
+	newBook := book.NewBook(ctx, bookName, filename, parser)
 
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	metasheet := splitXMLMetasheet(string(content))
-	rawDocs, err := extractRawXMLDocuments(metasheet)
+	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
+	rawDocs, err := extractRawXMLDocuments(ms)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +83,7 @@ func readXMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
 		if err != nil {
 			return nil, err
 		}
-		sheet, err := parseXMLSheet(doc, Protogen)
+		sheet, err := parseXMLSheet(doc, Protogen, metasheet.FromContext(ctx).Name)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
@@ -96,7 +98,7 @@ func readXMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
 		if err != nil {
 			return nil, err
 		}
-		sheet, err := parseXMLSheet(doc, UnknownMode)
+		sheet, err := parseXMLSheet(doc, UnknownMode, metasheet.FromContext(ctx).Name)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
@@ -105,16 +107,16 @@ func readXMLBook(filename string, parser book.SheetParser) (*book.Book, error) {
 	return newBook, nil
 }
 
-func readXMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (*book.Book, error) {
+func readXMLBookWithOnlySchemaSheet(ctx context.Context, filename string, parser book.SheetParser) (*book.Book, error) {
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	newBook := book.NewBook(bookName, filename, parser)
+	newBook := book.NewBook(ctx, bookName, filename, parser)
 
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	metasheet := splitXMLMetasheet(string(content))
-	rawDocs, err := extractRawXMLDocuments(metasheet)
+	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
+	rawDocs, err := extractRawXMLDocuments(ms)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +125,7 @@ func readXMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (*
 		if err != nil {
 			return nil, err
 		}
-		sheet, err := parseXMLSheet(doc, Protogen)
+		sheet, err := parseXMLSheet(doc, Protogen, metasheet.FromContext(ctx).Name)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
@@ -132,15 +134,15 @@ func readXMLBookWithOnlySchemaSheet(filename string, parser book.SheetParser) (*
 	return newBook, nil
 }
 
-func xmlMetasheetName() string {
-	return strings.Replace(book.MetasheetName, "@", "AT", 1)
+func xmlMetasheetName(metasheetName string) string {
+	return strings.Replace(metasheetName, "@", "AT", 1)
 }
 
-func parseXMLSheet(doc *xmldom.Document, mode ImporterMode) (*book.Sheet, error) {
+func parseXMLSheet(doc *xmldom.Document, mode ImporterMode, metasheetName string) (*book.Sheet, error) {
 	name := doc.Root.Name
 	if mode == Protogen {
-		if name == xmlMetasheetName() {
-			return parseXMLMetaSheet(doc)
+		if name == xmlMetasheetName(metasheetName) {
+			return parseXMLMetaSheet(doc, metasheetName)
 		}
 		name = "@" + name
 	}
@@ -175,12 +177,12 @@ func parseXMLSheet(doc *xmldom.Document, mode ImporterMode) (*book.Sheet, error)
 	return sheet, nil
 }
 
-func parseXMLMetaSheet(doc *xmldom.Document) (*book.Sheet, error) {
+func parseXMLMetaSheet(doc *xmldom.Document, metasheetName string) (*book.Sheet, error) {
 	bnode := &book.Node{}
 	bnode.Kind = book.MapNode
 	bnode.Children = append(bnode.Children, &book.Node{
 		Name:  book.SheetKey,
-		Value: book.MetasheetName,
+		Value: metasheetName,
 	})
 	for _, child := range doc.Root.Children {
 		if child.Name != "Item" {
@@ -202,9 +204,9 @@ func parseXMLMetaSheet(doc *xmldom.Document) (*book.Sheet, error) {
 		bnode.Children = append(bnode.Children, subNode)
 	}
 	sheet := book.NewDocumentSheet(
-		book.MetasheetName,
+		metasheetName,
 		&book.Node{
-			Name:     book.MetasheetName,
+			Name:     metasheetName,
 			Kind:     book.DocumentNode,
 			Children: []*book.Node{bnode},
 		},
@@ -595,7 +597,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 }
 
 // splitXMLMetasheet splits metasheet from xml notes
-func splitXMLMetasheet(content string) string {
+func splitXMLMetasheet(content string, metasheetName string) string {
 	// metasheet regexp, e.g.:
 	// <!--
 	// <@TABLEAU>
@@ -606,7 +608,7 @@ func splitXMLMetasheet(content string) string {
 	// 		<Weight Num="map<uint32, Weight>"/>
 	// </Server>
 	// -->
-	metasheetRegexp := regexp.MustCompile(fmt.Sprintf(`<!--([\s\S]*?<%v(?:>(?:\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)[\s\S]*?)-->`, book.MetasheetName, book.MetasheetName))
+	metasheetRegexp := regexp.MustCompile(fmt.Sprintf(`<!--([\s\S]*?<%v(?:>(?:\s+`+metasheetItemBlock+`\s+)*</%v>|\s*/>)[\s\S]*?)-->`, metasheetName, metasheetName))
 	matches := metasheetRegexp.FindStringSubmatch(content)
 	if len(matches) < 2 {
 		return ""

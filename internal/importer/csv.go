@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"context"
 	"encoding/csv"
 	"io"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -19,20 +21,20 @@ type CSVImporter struct {
 	*book.Book
 }
 
-func NewCSVImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*CSVImporter, error) {
-	brOpts, err := parseCSVBookReaderOptions(filename, sheetNames)
+func NewCSVImporter(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*CSVImporter, error) {
+	brOpts, err := parseCSVBookReaderOptions(filename, sheetNames, metasheet.FromContext(ctx).Name)
 	if err != nil {
 		return nil, err
 	}
 
 	if mode == Protogen {
-		err := adjustCSVTopN(brOpts, parser, cloned)
+		err := adjustCSVTopN(ctx, brOpts, parser, cloned)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 		}
 	}
 
-	book, err := readCSVBook(brOpts, parser)
+	book, err := readCSVBook(ctx, brOpts, parser)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
 	}
@@ -47,7 +49,7 @@ func NewCSVImporter(filename string, sheetNames []string, parser book.SheetParse
 	}, nil
 }
 
-func adjustCSVTopN(brOpts *bookReaderOptions, parser book.SheetParser, cloned bool) error {
+func adjustCSVTopN(ctx context.Context, brOpts *bookReaderOptions, parser book.SheetParser, cloned bool) error {
 	if parser != nil && !cloned {
 		// parse metasheet, and change topN to 0 if any sheet is transpose or not default mode.
 		metasheetReaderOpts := brOpts.GetMetasheet()
@@ -58,17 +60,17 @@ func adjustCSVTopN(brOpts *bookReaderOptions, parser book.SheetParser, cloned bo
 			}
 			return nil
 		}
-		metasheet, err := readCSVSheet(brOpts.GetMetasheet().Filename, book.MetasheetName, 0)
+		ms, err := readCSVSheet(brOpts.GetMetasheet().Filename, metasheet.FromContext(ctx).Name, 0)
 		if err != nil {
 			return err
 		}
-		meta, err := metasheet.ParseMetasheet(parser)
+		meta, err := ms.ParseMetasheet(parser)
 		if err != nil {
-			return xerrors.Wrapf(err, "failed to parse metasheet: %s", book.MetasheetName)
+			return xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheet.FromContext(ctx).Name)
 		}
 
 		for _, srOpts := range brOpts.Sheets {
-			if srOpts.Name == book.MetasheetName {
+			if srOpts.Name == metasheet.FromContext(ctx).Name {
 				// for metasheet, read all rows
 				srOpts.TopN = 0
 				continue
@@ -83,8 +85,8 @@ func adjustCSVTopN(brOpts *bookReaderOptions, parser book.SheetParser, cloned bo
 	return nil
 }
 
-func readCSVBook(brOpts *bookReaderOptions, parser book.SheetParser) (*book.Book, error) {
-	newBook := book.NewBook(brOpts.Name, brOpts.Filename, parser)
+func readCSVBook(ctx context.Context, brOpts *bookReaderOptions, parser book.SheetParser) (*book.Book, error) {
+	newBook := book.NewBook(ctx, brOpts.Name, brOpts.Filename, parser)
 	for _, srOpts := range brOpts.Sheets {
 		rows, err := readCSVRows(srOpts.Filename, srOpts.TopN)
 		if err != nil {
@@ -145,7 +147,7 @@ func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 	return rows, nil
 }
 
-func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReaderOptions, error) {
+func parseCSVBookReaderOptions(filename string, sheetNames []string, metasheetName string) (*bookReaderOptions, error) {
 	bookName, _, err := xfs.ParseCSVFilenamePattern(filename)
 	if err != nil {
 		return nil, xerrors.Errorf("cannot parse the book name from filename: %s", filename)
@@ -166,8 +168,9 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string) (*bookReade
 	}
 
 	brOpts := &bookReaderOptions{
-		Name:     bookName,
-		Filename: globFilename,
+		Name:          bookName,
+		Filename:      globFilename,
+		MetasheetName: metasheetName,
 	}
 	for _, val := range set.Values() {
 		filename := val.(string)

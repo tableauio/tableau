@@ -119,7 +119,8 @@ func genProto(logLevel, logMode string) error {
 						Sep:      ",",
 						Subsep:   ":",
 					},
-					Subdirs: []string{"excel"},
+					Subdirs:       []string{"excel"},
+					MetasheetName: "@TABLEAU_CUSTOM",
 				},
 				Output: &options.ProtoOutputOption{
 					FilenameWithSubdirPrefix: true,

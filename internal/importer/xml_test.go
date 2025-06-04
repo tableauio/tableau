@@ -1,12 +1,14 @@
 package importer
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/subchen/go-xmldom"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 )
 
 func Test_inspectXMLNode(t *testing.T) {
@@ -32,13 +34,13 @@ func Test_inspectXMLNode(t *testing.T) {
 </RankConf>
 `)
 	// protogen
-	metasheet := splitXMLMetasheet(string(data))
-	rawDocs, err := extractRawXMLDocuments(metasheet)
+	ms := splitXMLMetasheet(string(data), metasheet.DefaultMetasheetName)
+	rawDocs, err := extractRawXMLDocuments(ms)
 	require.NoError(t, err)
 	for _, rawDoc := range rawDocs {
 		doc, err := xmldom.ParseXML(rawDoc)
 		require.NoError(t, err)
-		sheet, err := parseXMLSheet(doc, Protogen)
+		sheet, err := parseXMLSheet(doc, Protogen, metasheet.DefaultMetasheetName)
 		require.NoError(t, err)
 		fmt.Println(sheet.String())
 	}
@@ -48,7 +50,7 @@ func Test_inspectXMLNode(t *testing.T) {
 	for _, rawDoc := range rawDocs {
 		doc, err := xmldom.ParseXML(rawDoc)
 		require.NoError(t, err)
-		sheet, err := parseXMLSheet(doc, Confgen)
+		sheet, err := parseXMLSheet(doc, Confgen, metasheet.DefaultMetasheetName)
 		require.NoError(t, err)
 		fmt.Println(sheet.String())
 	}
@@ -114,7 +116,7 @@ func TestNewXMLImporter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewXMLImporter(tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
+			got, err := NewXMLImporter(context.Background(), tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewXMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return

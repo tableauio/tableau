@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 )
 
 func TestNeedSheet(t *testing.T) {
@@ -59,15 +59,18 @@ func Test_bookReaderOptions_GetMetasheet(t *testing.T) {
 		{
 			name: "existed-metasheet",
 			b: &bookReaderOptions{
+				MetasheetName: metasheet.DefaultMetasheetName,
 				Sheets: []*sheetReaderOptions{
-					{Name: book.MetasheetName, Filename: "testdata/Test#Item.csv"},
+					{Name: metasheet.DefaultMetasheetName, Filename: "testdata/Test#Item.csv"},
 				},
 			},
-			want: &sheetReaderOptions{Name: book.MetasheetName, Filename: "testdata/Test#Item.csv"},
+			want: &sheetReaderOptions{Name: metasheet.DefaultMetasheetName, Filename: "testdata/Test#Item.csv"},
 		},
 		{
 			name: "not-existed-metasheet",
-			b:    &bookReaderOptions{},
+			b: &bookReaderOptions{
+				MetasheetName: metasheet.DefaultMetasheetName,
+			},
 			want: nil,
 		},
 	}

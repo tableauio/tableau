@@ -1,11 +1,13 @@
 package importer
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 	"strings"
 
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -18,7 +20,7 @@ type ExcelImporter struct {
 	*book.Book
 }
 
-func NewExcelImporter(filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*ExcelImporter, error) {
+func NewExcelImporter(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*ExcelImporter, error) {
 	file, err := excelize.OpenFile(filename)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to open file %s", filename)
@@ -36,13 +38,13 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 	}
 
 	if mode == Protogen {
-		err := adjustExcelTopN(file, brOpts, parser, cloned)
+		err := adjustExcelTopN(ctx, file, brOpts, parser, cloned)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 		}
 	}
 
-	book, err := readExcelBook(file, brOpts, parser)
+	book, err := readExcelBook(ctx, file, brOpts, parser)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 	}
@@ -58,10 +60,10 @@ func NewExcelImporter(filename string, sheetNames []string, parser book.SheetPar
 	}, nil
 }
 
-func adjustExcelTopN(file *excelize.File, brOpts *bookReaderOptions, parser book.SheetParser, cloned bool) error {
+func adjustExcelTopN(ctx context.Context, file *excelize.File, brOpts *bookReaderOptions, parser book.SheetParser, cloned bool) error {
 	if parser != nil && !cloned {
 		// parse metasheet, and change topN to 0 if any sheet is transpose or not default mode.
-		metasheet, err := readExcelMetasheet(file)
+		ms, err := readExcelMetasheet(file, metasheet.FromContext(ctx).Name)
 		if err != nil {
 			if errors.Is(err, ErrSheetNotFound) {
 				log.Debugf("metasheet not found, use default TopN: %d", defaultTopN)
@@ -72,13 +74,13 @@ func adjustExcelTopN(file *excelize.File, brOpts *bookReaderOptions, parser book
 			}
 			return err
 		}
-		meta, err := metasheet.ParseMetasheet(parser)
+		meta, err := ms.ParseMetasheet(parser)
 		if err != nil {
-			return xerrors.Wrapf(err, "failed to parse metasheet: %s", book.MetasheetName)
+			return xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheet.FromContext(ctx).Name)
 		}
 
 		for _, srOpts := range brOpts.Sheets {
-			if srOpts.Name == book.MetasheetName {
+			if srOpts.Name == metasheet.FromContext(ctx).Name {
 				// for metasheet, read all rows
 				srOpts.TopN = 0
 				continue
@@ -93,8 +95,8 @@ func adjustExcelTopN(file *excelize.File, brOpts *bookReaderOptions, parser book
 	return nil
 }
 
-func readExcelBook(file *excelize.File, brOpts *bookReaderOptions, parser book.SheetParser) (*book.Book, error) {
-	newBook := book.NewBook(brOpts.Name, brOpts.Filename, parser)
+func readExcelBook(ctx context.Context, file *excelize.File, brOpts *bookReaderOptions, parser book.SheetParser) (*book.Book, error) {
+	newBook := book.NewBook(ctx, brOpts.Name, brOpts.Filename, parser)
 	sheets, err := readExcelSheets(file, brOpts.Sheets)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to read excel: %s", brOpts.Filename)
@@ -106,8 +108,7 @@ func readExcelBook(file *excelize.File, brOpts *bookReaderOptions, parser book.S
 }
 
 // readExcelMetasheet reads all rows of metasheet.
-func readExcelMetasheet(file *excelize.File) (*book.Sheet, error) {
-	sheetName := book.MetasheetName
+func readExcelMetasheet(file *excelize.File, sheetName string) (*book.Sheet, error) {
 	rows, err := readExcelSheetRows(file, sheetName, 0)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetName)
@@ -165,9 +166,6 @@ func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][
 			return nil, xerrors.Wrapf(err, "read the %dth row failed: %s#%s", nrow, f.Path, sheetName)
 		}
 		rows = append(rows, row)
-	}
-	if sheetName == book.MetasheetName {
-		log.Debugf("read %d rows (topN:%d) from sheet: %s#%s", len(rows), topN, f.Path, sheetName)
 	}
 	return rows, nil
 }

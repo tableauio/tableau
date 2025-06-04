@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
+	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -21,6 +24,7 @@ import (
 )
 
 type Generator struct {
+	ctx          context.Context
 	ProtoPackage string // protobuf package name.
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated files.
@@ -39,6 +43,10 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 }
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
+	ctx := context.Background()
+	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
+	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
+
 	g := &Generator{
 		ProtoPackage: protoPackage,
 		InputDir:     indir,
@@ -46,6 +54,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		LocationName: opts.LocationName,
 		InputOpt:     opts.Conf.Input,
 		OutputOpt:    opts.Conf.Output,
+		ctx:          ctx,
 		PerfStats:    sync.Map{},
 	}
 	return g
@@ -176,7 +185,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		}
 	}
 
-	imp, err := importer.New(absWbPath, importer.Sheets(sheets), importer.Mode(importer.Confgen))
+	imp, err := importer.New(gen.ctx, absWbPath, importer.Sheets(sheets), importer.Mode(importer.Confgen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
@@ -222,7 +231,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 }
 
 func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, workbookName, sheetName string) error {
-	importers, err := importer.GetScatterImporters(gen.InputDir, workbookName, sheetName, sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
+	importers, err := importer.GetScatterImporters(gen.ctx, gen.InputDir, workbookName, sheetName, sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
@@ -235,7 +244,7 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 }
 
 func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, workbookName, sheetName string) error {
-	importers, err := importer.GetMergerImporters(gen.InputDir, workbookName, sheetName, sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
+	importers, err := importer.GetMergerImporters(gen.ctx, gen.InputDir, workbookName, sheetName, sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}

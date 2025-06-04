@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -218,7 +218,7 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 		err := xerrors.E0001(sheetName, bookName)
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
-	parser := NewExtendedSheetParser(info.ProtoPackage, info.LocationName, strcase.Context{}, info.BookOpts, info.SheetOpts, info.ExtInfo)
+	parser := NewExtendedSheetParser(context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -248,7 +248,7 @@ func (si *SheetInfo) HasMerger() bool {
 type sheetParser struct {
 	ProtoPackage string
 	LocationName string
-	strcaseCtx   strcase.Context
+	ctx          context.Context
 	bookOpts     *tableaupb.WorkbookOptions
 	sheetOpts    *tableaupb.WorksheetOptions
 	extInfo      *SheetParserExtInfo
@@ -286,16 +286,16 @@ type SheetParserExtInfo struct {
 }
 
 // NewSheetParser creates a new sheet parser.
-func NewSheetParser(protoPackage, locationName string, strcaseCtx strcase.Context, opts *tableaupb.WorksheetOptions) *sheetParser {
-	return NewExtendedSheetParser(protoPackage, locationName, strcaseCtx, &tableaupb.WorkbookOptions{}, opts, nil)
+func NewSheetParser(ctx context.Context, protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
+	return NewExtendedSheetParser(ctx, protoPackage, locationName, &tableaupb.WorkbookOptions{}, opts, nil)
 }
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
-func NewExtendedSheetParser(protoPackage, locationName string, strcaseCtx strcase.Context, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
+func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName string, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
 	sp := &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
-		strcaseCtx:   strcaseCtx,
+		ctx:          ctx,
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
@@ -883,7 +883,7 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 				PRFiles:        sp.extInfo.PRFiles,
 				Present:        present,
 			}
-			ok, err := fieldprop.InReferredSpace(fprop, rawValue, input)
+			ok, err := fieldprop.InReferredSpace(sp.ctx, fprop, rawValue, input)
 			if err != nil {
 				return v, present, err
 			}

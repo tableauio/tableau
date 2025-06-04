@@ -2,36 +2,21 @@ package book
 
 import (
 	"bytes"
-	"fmt"
+	"context"
 	"strings"
 
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 
-// MetasheetName is the name of metasheet which defines the metadata
-// of each worksheet. Default is "@TABLEAU".
-var MetasheetName = "@TABLEAU"
-
 const SheetKey = "@sheet"
 
 // BookNameInMetasheet is the special sign which represents workbook itself in metasheet.
 // Default is "#".
 const BookNameInMetasheet = "#"
-
-// SetMetasheetName change the metasheet name to the specified name.
-//
-// NOTE: If will not change MetasheetName value if the specified name
-// is empty.
-func SetMetasheetName(name string) {
-	if !strings.HasPrefix(name, "@") {
-		panic(fmt.Sprintf("metasheet name must start with '@': %q", name))
-	}
-	// set cumtomized metasheet name
-	MetasheetName = name
-}
 
 type SheetParser interface {
 	Parse(protomsg proto.Message, sheet *Sheet) error
@@ -205,9 +190,9 @@ func MetabookOptions() *tableaupb.WorkbookOptions {
 	}
 }
 
-func MetasheetOptions() *tableaupb.WorksheetOptions {
+func MetasheetOptions(context context.Context) *tableaupb.WorksheetOptions {
 	return &tableaupb.WorksheetOptions{
-		Name:    MetasheetName,
+		Name:    metasheet.FromContext(context).Name,
 		Namerow: 1,
 		Datarow: 2,
 	}

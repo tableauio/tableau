@@ -1,12 +1,13 @@
 package tableau
 
 import (
+	"context"
+
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -79,6 +80,7 @@ func SetLang(lang string) error {
 
 // NewImporter creates a new importer of the specified workbook.
 func NewImporter(workbookPath string) (importer.Importer, error) {
-	parser := confgen.NewSheetParser(xproto.InternalProtoPackage, "", strcase.Context{}, book.MetasheetOptions())
-	return importer.New(workbookPath, importer.Parser(parser))
+	ctx := context.Background()
+	parser := confgen.NewSheetParser(ctx, xproto.InternalProtoPackage, "", book.MetasheetOptions(ctx))
+	return importer.New(ctx, workbookPath, importer.Parser(parser))
 }
