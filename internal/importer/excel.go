@@ -63,7 +63,7 @@ func NewExcelImporter(ctx context.Context, filename string, sheetNames []string,
 func adjustExcelTopN(ctx context.Context, file *excelize.File, brOpts *bookReaderOptions, parser book.SheetParser, cloned bool) error {
 	if parser != nil && !cloned {
 		// parse metasheet, and change topN to 0 if any sheet is transpose or not default mode.
-		ms, err := readExcelMetasheet(file, metasheet.FromContext(ctx).MetasheetName())
+		ms, err := readExcelMetasheet(file, metasheet.FromContext(ctx).Name)
 		if err != nil {
 			if errors.Is(err, ErrSheetNotFound) {
 				log.Debugf("metasheet not found, use default TopN: %d", defaultTopN)
@@ -76,11 +76,11 @@ func adjustExcelTopN(ctx context.Context, file *excelize.File, brOpts *bookReade
 		}
 		meta, err := ms.ParseMetasheet(parser)
 		if err != nil {
-			return xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheet.FromContext(ctx).MetasheetName())
+			return xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheet.FromContext(ctx).Name)
 		}
 
 		for _, srOpts := range brOpts.Sheets {
-			if srOpts.Name == metasheet.FromContext(ctx).MetasheetName() {
+			if srOpts.Name == metasheet.FromContext(ctx).Name {
 				// for metasheet, read all rows
 				srOpts.TopN = 0
 				continue

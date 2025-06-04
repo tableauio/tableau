@@ -192,7 +192,7 @@ func MetabookOptions() *tableaupb.WorkbookOptions {
 
 func MetasheetOptions(context context.Context) *tableaupb.WorksheetOptions {
 	return &tableaupb.WorksheetOptions{
-		Name:    metasheet.FromContext(context).MetasheetName(),
+		Name:    metasheet.FromContext(context).Name,
 		Namerow: 1,
 		Datarow: 2,
 	}

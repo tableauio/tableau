@@ -22,7 +22,7 @@ type CSVImporter struct {
 }
 
 func NewCSVImporter(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*CSVImporter, error) {
-	brOpts, err := parseCSVBookReaderOptions(filename, sheetNames, metasheet.FromContext(ctx).MetasheetName())
+	brOpts, err := parseCSVBookReaderOptions(filename, sheetNames, metasheet.FromContext(ctx).Name)
 	if err != nil {
 		return nil, err
 	}
@@ -60,17 +60,17 @@ func adjustCSVTopN(ctx context.Context, brOpts *bookReaderOptions, parser book.S
 			}
 			return nil
 		}
-		ms, err := readCSVSheet(brOpts.GetMetasheet().Filename, metasheet.FromContext(ctx).MetasheetName(), 0)
+		ms, err := readCSVSheet(brOpts.GetMetasheet().Filename, metasheet.FromContext(ctx).Name, 0)
 		if err != nil {
 			return err
 		}
 		meta, err := ms.ParseMetasheet(parser)
 		if err != nil {
-			return xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheet.FromContext(ctx).MetasheetName())
+			return xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheet.FromContext(ctx).Name)
 		}
 
 		for _, srOpts := range brOpts.Sheets {
-			if srOpts.Name == metasheet.FromContext(ctx).MetasheetName() {
+			if srOpts.Name == metasheet.FromContext(ctx).Name {
 				// for metasheet, read all rows
 				srOpts.TopN = 0
 				continue

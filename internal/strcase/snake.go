@@ -5,32 +5,32 @@ import (
 )
 
 // ToSnake converts a string to snake_case
-func (ctx *Context) ToSnake(s string) string {
+func (ctx *Strcase) ToSnake(s string) string {
 	return ctx.ToDelimited(s, '_')
 }
 
-func (ctx *Context) ToSnakeWithIgnore(s string, ignore string) string {
+func (ctx *Strcase) ToSnakeWithIgnore(s string, ignore string) string {
 	return ctx.ToScreamingDelimited(s, '_', ignore, false)
 }
 
 // ToScreamingSnake converts a string to SCREAMING_SNAKE_CASE
-func (ctx *Context) ToScreamingSnake(s string) string {
+func (ctx *Strcase) ToScreamingSnake(s string) string {
 	return ctx.ToScreamingDelimited(s, '_', "", true)
 }
 
 // ToKebab converts a string to kebab-case
-func (ctx *Context) ToKebab(s string) string {
+func (ctx *Strcase) ToKebab(s string) string {
 	return ctx.ToDelimited(s, '-')
 }
 
 // ToScreamingKebab converts a string to SCREAMING-KEBAB-CASE
-func (ctx *Context) ToScreamingKebab(s string) string {
+func (ctx *Strcase) ToScreamingKebab(s string) string {
 	return ctx.ToScreamingDelimited(s, '-', "", true)
 }
 
 // ToDelimited converts a string to delimited.snake.case
 // (in this case `delimiter = '.'`)
-func (ctx *Context) ToDelimited(s string, delimiter uint8) string {
+func (ctx *Strcase) ToDelimited(s string, delimiter uint8) string {
 	return ctx.ToScreamingDelimited(s, delimiter, "", false)
 }
 
@@ -38,7 +38,7 @@ func (ctx *Context) ToDelimited(s string, delimiter uint8) string {
 // (in this case `delimiter = '.'; screaming = true`)
 // or delimited.snake.case
 // (in this case `delimiter = '.'; screaming = false`)
-func (ctx *Context) ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bool) string {
+func (ctx *Strcase) ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bool) string {
 	n := strings.Builder{}
 	n.Grow(len(s) + 2) // nominal 2 bytes of extra space for inserted delimiters
 

@@ -73,7 +73,7 @@ func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) 
 	if err != nil {
 		return nil, err
 	}
-	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).MetasheetName())
+	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
 	rawDocs, err := extractRawXMLDocuments(ms)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) 
 		if err != nil {
 			return nil, err
 		}
-		sheet, err := parseXMLSheet(doc, Protogen, metasheet.FromContext(ctx).MetasheetName())
+		sheet, err := parseXMLSheet(doc, Protogen, metasheet.FromContext(ctx).Name)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
@@ -98,7 +98,7 @@ func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) 
 		if err != nil {
 			return nil, err
 		}
-		sheet, err := parseXMLSheet(doc, UnknownMode, metasheet.FromContext(ctx).MetasheetName())
+		sheet, err := parseXMLSheet(doc, UnknownMode, metasheet.FromContext(ctx).Name)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
@@ -115,7 +115,7 @@ func readXMLBookWithOnlySchemaSheet(ctx context.Context, filename string, parser
 	if err != nil {
 		return nil, err
 	}
-	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).MetasheetName())
+	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
 	rawDocs, err := extractRawXMLDocuments(ms)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func readXMLBookWithOnlySchemaSheet(ctx context.Context, filename string, parser
 		if err != nil {
 			return nil, err
 		}
-		sheet, err := parseXMLSheet(doc, Protogen, metasheet.FromContext(ctx).MetasheetName())
+		sheet, err := parseXMLSheet(doc, Protogen, metasheet.FromContext(ctx).Name)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}

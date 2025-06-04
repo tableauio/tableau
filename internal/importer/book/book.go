@@ -150,7 +150,7 @@ func (b *Book) Clear() {
 // ParseMetaAndPurge parses metasheet to Metabook and
 // purge needless sheets which is not in parsed Metabook.
 func (b *Book) ParseMetaAndPurge() (err error) {
-	metasheetName := metasheet.FromContext(b.ctx).MetasheetName()
+	metasheetName := metasheet.FromContext(b.ctx).Name
 	metasheet := b.GetSheet(metasheetName)
 	if metasheet == nil {
 		log.Debugf("metasheet %s not found in book %s, maybe it is a to be merged sheet", metasheetName, b.Filename())
