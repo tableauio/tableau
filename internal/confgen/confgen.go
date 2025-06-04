@@ -24,6 +24,7 @@ import (
 )
 
 type Generator struct {
+	ctx          context.Context
 	ProtoPackage string // protobuf package name.
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated files.
@@ -31,8 +32,6 @@ type Generator struct {
 	LocationName string                    // TZ location name.
 	InputOpt     *options.ConfInputOption  // Input settings.
 	OutputOpt    *options.ConfOutputOption // output settings.
-
-	ctx context.Context
 
 	// Performance stats
 	PerfStats sync.Map

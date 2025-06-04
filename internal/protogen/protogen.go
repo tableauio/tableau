@@ -31,6 +31,7 @@ import (
 )
 
 type Generator struct {
+	ctx          context.Context
 	ProtoPackage string // protobuf package name.
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated protoconf files.
@@ -38,8 +39,6 @@ type Generator struct {
 	LocationName string // TZ location name.
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
-
-	ctx context.Context
 
 	// internal
 	protofiles *protoregistry.Files // all parsed imported proto file descriptors.

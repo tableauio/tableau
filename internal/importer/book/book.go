@@ -16,6 +16,7 @@ import (
 )
 
 type Book struct {
+	ctx        context.Context
 	name       string            // book name without suffix
 	filename   string            // book filename
 	sheets     map[string]*Sheet // sheet name -> sheet
@@ -23,7 +24,6 @@ type Book struct {
 
 	meta       *internalpb.Metabook
 	metaParser SheetParser
-	ctx        context.Context
 }
 
 // NewBook creates a new book.
