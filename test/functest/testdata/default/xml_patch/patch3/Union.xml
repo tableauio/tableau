@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLUnionConf>
+    <PredefinedUnion Field1="1" Field2="10" Field3="Apple,Orange,Banana"/>
+    <PredefinedIncellUnion>type:TYPE_SKILL</PredefinedIncellUnion>
+    <Union Type="PVP" Field1="1" Field2="10" Field3="Apple,Orange,Banana"/>
+</XMLUnionConf>

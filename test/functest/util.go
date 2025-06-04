@@ -159,6 +159,11 @@ func genConf(logLevel, logMode string) error {
 					ExcludedProtoFiles: []string{
 						"./_proto/default/xml__metasheet__metasheet.proto",
 					},
+					PatchdirRewrites: map[string]string{
+						"excel": "excel_patch",
+						"xml":   "xml_patch",
+						"yaml":  "yaml_patch",
+					},
 				},
 				Output: &options.ConfOutputOption{
 					Pretty:          true,

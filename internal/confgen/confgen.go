@@ -240,6 +240,13 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 	if err := exporter.ScatterAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
+	patcherImporters, err := importer.GetPatcherImporters(gen.ctx, gen.InputDir, workbookName, sheetName, gen.InputOpt.PatchdirRewrites, gen.InputOpt.SubdirRewrites)
+	if err != nil {
+		return err
+	}
+	if err := exporter.PatchAndExport(sheetInfo, patcherImporters...); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -251,6 +258,13 @@ func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo
 	mainImporter := importer.ImporterInfo{Importer: self}
 	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
 	if err := exporter.MergeAndExport(sheetInfo, mainImporter, importers...); err != nil {
+		return err
+	}
+	patcherImporters, err := importer.GetPatcherImporters(gen.ctx, gen.InputDir, workbookName, sheetName, gen.InputOpt.PatchdirRewrites, gen.InputOpt.SubdirRewrites)
+	if err != nil {
+		return err
+	}
+	if err := exporter.PatchAndExport(sheetInfo, patcherImporters...); err != nil {
 		return err
 	}
 	return nil

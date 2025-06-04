@@ -124,6 +124,34 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 	return storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt)
 }
 
+// PatchAndExport parse multiple importer infos into separate protomsgs, then export each other.
+func (x *sheetExporter) PatchAndExport(info *SheetInfo, impInfos ...importer.ImporterInfo) error {
+	// exported conf name pattern is : PatchRelPath/<SheetName>
+	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
+		// here filename has no ext suffix
+		filename := string(info.MD.Name())
+		return filepath.Join(impInfo.PatchRelPath, filename)
+	}
+	var eg errgroup.Group
+	for _, impInfo := range impInfos {
+		impInfo := impInfo
+		// map-reduce: map jobs for concurrent processing
+		eg.Go(func() error {
+			msg, err := parseMessageFromOneImporter(info, impInfo)
+			if err != nil {
+				if xerrors.NewDesc(err).ErrCode() == "E0001" {
+					// patch sheet no exist is possible, so ignore E0001
+					return nil
+				}
+				return err
+			}
+			name := getExportedConfName(info, impInfo)
+			return storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt)
+		})
+	}
+	return eg.Wait()
+}
+
 type oneMsg struct {
 	protomsg  proto.Message
 	bookName  string

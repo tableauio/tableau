@@ -1,31 +1,5 @@
 package xerrors
 
-import "fmt"
-
-type Error struct {
-	Code int
-	Desc string
-}
-
-func (e *Error) Error() string {
-	if e.Code == 0 {
-		return ""
-	}
-	return fmt.Sprintf("E%4d: %s", e.Code, e.Desc)
-}
-
-func (e *Error) Is(target error) bool {
-	t, ok := target.(*Error)
-	if !ok {
-		return false
-	}
-	return e.Code == t.Code
-}
-
-// if errors.Is(err, &Error{Code: 1001}) {
-//		// err's User field is "someuser".
-// }
-
 // Error code space sections:
 //	[0001, 0999]: common error
 //  [1000, 1999]: protogen error
