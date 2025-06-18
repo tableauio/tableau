@@ -328,25 +328,14 @@ func parseTimeWithLocation(locationName string, timeStr string) (time.Time, erro
 		return time.Time{}, xerrors.WrapKV(err)
 	} else {
 		timeStr = strings.TrimSpace(timeStr)
-		layout := ""
-		if strings.Contains(timeStr, " ") {
-			layout = "2006-01-02 15:04:05"
-		} else {
-			layout = "2006-01-02"
-			if !strings.Contains(timeStr, "-") {
-				if len(timeStr) == 8 {
-					// convert "yyyymmdd" to "yyyy-mm-dd"
-					timeStr = timeStr[0:4] + "-" + timeStr[4:6] + "-" + timeStr[6:8]
-				} else {
-					return time.Time{}, xerrors.Errorf(`invalid date format, please follow format like: "yyyy-MM-dd" or "yyMMdd"`)
-				}
+		layouts := []string{"20060102", time.DateOnly, time.DateTime, time.RFC3339}
+		for _, layout := range layouts {
+			t, err := time.ParseInLocation(layout, timeStr, location)
+			if err == nil {
+				return t, nil
 			}
 		}
-		t, err := time.ParseInLocation(layout, timeStr, location)
-		if err != nil {
-			return time.Time{}, xerrors.WrapKV(err)
-		}
-		return t, nil
+		return time.Time{}, xerrors.Errorf(`invalid date format, please follow format like: %v`, layouts)
 	}
 }
 
