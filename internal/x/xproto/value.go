@@ -330,16 +330,13 @@ func parseTimeWithLocation(locationName string, timeStr string) (time.Time, erro
 		timeStr = strings.TrimSpace(timeStr)
 		layout := ""
 		if strings.Contains(timeStr, " ") {
-			layout = "2006-01-02 15:04:05"
+			layout = time.DateTime
 		} else {
-			layout = "2006-01-02"
+			layout = time.DateOnly
 			if !strings.Contains(timeStr, "-") {
-				if len(timeStr) == 8 {
-					// convert "yyyymmdd" to "yyyy-mm-dd"
-					timeStr = timeStr[0:4] + "-" + timeStr[4:6] + "-" + timeStr[6:8]
-				} else {
-					return time.Time{}, xerrors.Errorf(`invalid date format, please follow format like: "yyyy-MM-dd" or "yyMMdd"`)
-				}
+				layout = "20060102"
+			} else if strings.Contains(timeStr, "T") {
+				layout = time.RFC3339
 			}
 		}
 		t, err := time.ParseInLocation(layout, timeStr, location)
