@@ -328,7 +328,7 @@ func parseTimeWithLocation(locationName string, timeStr string) (time.Time, erro
 		return time.Time{}, xerrors.WrapKV(err)
 	} else {
 		timeStr = strings.TrimSpace(timeStr)
-		layouts := []string{"20060102", time.DateOnly, time.DateTime, time.RFC3339}
+		layouts := []string{time.DateTime, time.DateOnly, "20060102", time.RFC3339}
 		for _, layout := range layouts {
 			t, err := time.ParseInLocation(layout, timeStr, location)
 			if err == nil {
