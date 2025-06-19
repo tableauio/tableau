@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/strcase/camelcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/xerrors"
 )
@@ -261,4 +262,14 @@ func (r *RowCells) GetCellCountWithPrefix(prefix string) int {
 		}
 	}
 	return size
+}
+
+func (r *RowCells) Ignored() bool {
+	if cell, err := r.Cell("#IGNORE", false); err == nil {
+		if ok, _ := xproto.ParseBool(cell.Data); ok {
+			// ignore this row
+			return true
+		}
+	}
+	return false
 }

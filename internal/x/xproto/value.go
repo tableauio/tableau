@@ -73,14 +73,6 @@ func init() {
 //
 // Well-known types are message types defined by [types.IsWellKnownMessage].
 func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string, fprop *tableaupb.FieldProp) (v pref.Value, present bool, err error) {
-	purifyInteger := func(s string) string {
-		// trim integer boring suffix matched by regexp `.0*$`
-		if matches := types.MatchBoringInteger(s); matches != nil {
-			return matches[1]
-		}
-		return s
-	}
-
 	getTrimmedValue := func() string {
 		value := strings.TrimSpace(rawValue)
 		if value == "" {
@@ -158,7 +150,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			return DefaultBoolValue, false, nil
 		}
 		// Keep compatibility with excel number format.
-		val, err := strconv.ParseBool(purifyInteger(value))
+		val, err := ParseBool(value)
 		if err != nil {
 			return DefaultBoolValue, false, xerrors.E2013(value, err)
 		}
@@ -286,6 +278,17 @@ func GetFieldDefaultValue(fd pref.FieldDescriptor) string {
 		return fieldOpts.Prop.Default
 	}
 	return ""
+}
+
+func ParseBool(value string) (bool, error) {
+	purifyInteger := func(s string) string {
+		// trim integer boring suffix matched by regexp `.0*$`
+		if matches := types.MatchBoringInteger(s); matches != nil {
+			return matches[1]
+		}
+		return s
+	}
+	return strconv.ParseBool(purifyInteger(value))
 }
 
 func parseEnumValue(fd pref.FieldDescriptor, value string) (v pref.Value, present bool, err error) {
