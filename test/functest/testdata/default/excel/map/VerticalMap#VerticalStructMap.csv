@@ -1,6 +1,7 @@
-ID,Name,Desc
-"map<uint32, Item>",string,string
-Item’s ID,Item’s name,Item’s desc
-1,Apple,A kind of delicious fruit.
-2,Orange,A kind of sour fruit.
-3,Banana,A kind of calorie-rich fruit.
+ID,Name,Desc,#IGNORE
+"map<uint32, Item>",string,string,
+Item’s ID,Item’s name,Item’s desc,
+1,Apple,A kind of delicious fruit.,
+2,Orange,A kind of sour fruit.,
+3,Banana,A kind of calorie-rich fruit.,
+4,Pear,A kind of sweet fruit.,1
