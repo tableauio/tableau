@@ -114,8 +114,8 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	return nil
 }
 
-// load loads the generated config file (json/text/bin) from the given
-// directory.
+// load loads the genarated config file (json/text/bin) from the given
+// path.
 func load(msg proto.Message, path string, fmt format.Format, opts *Options) error {
 	content, err := opts.ReadFunc(path)
 	if err != nil {
