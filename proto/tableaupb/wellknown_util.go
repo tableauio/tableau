@@ -59,6 +59,11 @@ func Compare(left *Fraction, cmp *Comparator) bool {
 }
 
 // LocalTime converts a timestamp to a local time.
+//
+// NOTE: The [Timestamp.AsTime] method returns a UTC time, so we provide
+// [LocalTime] to convert it to a local time for easy use.
+//
+// [Timestamp.AsTime]: https://pkg.go.dev/google.golang.org/protobuf/types/known/timestamppb#Timestamp.AsTime
 func LocalTime(ts *timestamppb.Timestamp) time.Time {
 	return ts.AsTime().Local()
 }
