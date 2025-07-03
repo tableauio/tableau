@@ -1,5 +1,11 @@
 package tableaupb
 
+import (
+	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
 // NewFraction creates a new fraction.
 func NewFraction(num, den int32) *Fraction {
 	return &Fraction{Num: num, Den: den}
@@ -50,4 +56,14 @@ func Compare(left *Fraction, cmp *Comparator) bool {
 	default:
 		panic("invalid compare operator")
 	}
+}
+
+// LocalTime converts a timestamp to a local time.
+//
+// NOTE: The [Timestamp.AsTime] method returns a UTC time, so we provide
+// [LocalTime] to convert it to a local time for easy use.
+//
+// [Timestamp.AsTime]: https://pkg.go.dev/google.golang.org/protobuf/types/known/timestamppb#Timestamp.AsTime
+func LocalTime(ts *timestamppb.Timestamp) time.Time {
+	return ts.AsTime().Local()
 }
