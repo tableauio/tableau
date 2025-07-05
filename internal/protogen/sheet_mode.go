@@ -62,7 +62,7 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 	for i, value := range desc.Values {
 		number := int32(i + 1)
 		if value.Number != nil {
-			number = *value.Number
+			number = value.GetNumber()
 		}
 		name := value.Name
 		if gen.OutputOpt.EnumValueWithPrefix && !strings.HasPrefix(name, prefix) {
