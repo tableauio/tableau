@@ -176,28 +176,21 @@ func (x *sheetExporter) exportEnum() error {
 	opts := &tableaupb.EnumOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
 	x.g.P("  option (tableau.etype) = {", marshalToText(opts), "};")
 	x.g.P("")
-	// generate the enum value fielda
-	valBuf := NewGeneratedBuf()
-	zeroEnumValueFound := false
+	// generate the enum value fields
 	for i, field := range x.ws.Fields {
-		if field.Number == 0 {
-			zeroEnumValueFound = true
-			if i != 0 {
-				return xerrors.Errorf("zero enum value must be the first one, but found at enum value row: %d", i+1)
-			}
+		if i == 0 && field.Number != 0 {
+			ename := strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(x.ws.Name) + "_INVALID"
+			x.g.P("  ", ename, " = 0;")
+		}
+		if field.Number == 0 && i != 0 {
+			return xerrors.Errorf("zero enum value must be the first one, but found at enum value row: %d", i+1)
 		}
 		note := ""
 		if field.Alias != "" {
 			note = " // " + field.Alias
 		}
-		valBuf.P("  ", strings.TrimSpace(field.Name), " = ", field.Number, ` [(tableau.evalue).name = "`, strings.TrimSpace(field.Alias), `"];`, note)
+		x.g.P("  ", strings.TrimSpace(field.Name), " = ", field.Number, ` [(tableau.evalue).name = "`, strings.TrimSpace(field.Alias), `"];`, note)
 	}
-	if !zeroEnumValueFound {
-		// auto prepend a zero enum value if not found
-		ename := strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(x.ws.Name) + "_INVALID"
-		x.g.P("  ", ename, " = 0;")
-	}
-	x.g.Write(valBuf.buf.Bytes())
 	x.g.P("}")
 	if !x.isLastSheet {
 		x.g.P("")

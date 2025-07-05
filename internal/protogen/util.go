@@ -94,11 +94,6 @@ func (g *GeneratedBuf) P(v ...any) {
 	fmt.Fprintln(&g.buf)
 }
 
-// Write writes to the generated buffer.
-func (g *GeneratedBuf) Write(b []byte) {
-	g.buf.Write(b)
-}
-
 // Content returns the contents of the generated file.
 func (g *GeneratedBuf) Content() []byte {
 	return g.buf.Bytes()
