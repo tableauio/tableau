@@ -74,42 +74,49 @@ func Test_parseIndexes(t *testing.T) {
 			want: []string{"ID", "(ID, Type)@Item"},
 		},
 		{
-			name: "one keyed index",
+			name: "one sorted index",
 			args: args{
 				str: "ID<Name>",
 			},
 			want: []string{"ID<Name>"},
 		},
 		{
-			name: "one multi-column keyed index",
+			name: "one multi-column sorted index",
 			args: args{
 				str: "(ID, Type)<Name>",
 			},
 			want: []string{"(ID, Type)<Name>"},
 		},
 		{
-			name: "one named multi-column keyed index",
+			name: "one named multi-column sorted index",
 			args: args{
 				str: "(ID, Type)<Name>@Item",
 			},
 			want: []string{"(ID, Type)<Name>@Item"},
 		},
 		{
-			name: "one named multi-column multi-keyed index",
+			name: "one named multi-column multi-sorted index",
 			args: args{
 				str: "(ID, Type)<Name, Alias>@Item",
 			},
 			want: []string{"(ID, Type)<Name, Alias>@Item"},
 		},
 		{
-			name: "one single-column index and one named multi-column multi-keyed index",
+			name: "one column multi-sorted index",
+			args: args{
+				str: "ID<Name, Alias>",
+			},
+			want: []string{"ID<Name, Alias>"},
+		},
+		{
+			name: "one single-column index and one named multi-column multi-sorted index",
 			args: args{
 				str: "ID,(ID, Type)<Name, Alias>@Item",
 			},
 			want: []string{"ID", "(ID, Type)<Name, Alias>@Item"},
 		},
 		{
-			name: "one single-column index and one named multi-column multi-keyed index with extra space separated",
+			name: "one single-column index and one named multi-column multi-sorted index with extra space separated",
 			args: args{
 				str: "ID, (ID, Type)<Name, Alias>@Item",
 			},
