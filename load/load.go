@@ -1,7 +1,7 @@
 // Package load provides functions to load a protobuf message from
 // different formats:
-//   - generated fomats: json, bin, txt
-//   - origin formats: xlsx, csv, xml, yaml.
+//   - output formats(JSON, Bin, Text)
+//   - input formats(Excel, CSV, XML, YAML)
 package load
 
 import (
