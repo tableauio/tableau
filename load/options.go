@@ -10,6 +10,8 @@ import (
 type BaseOptions struct {
 	// LoadFunc loads a messager's content.
 	//
+	// NOTE: only output formats(JSON, Bin, Text) are supported.
+	//
 	// Default: load.
 	LoadFunc LoadFn
 }
@@ -20,14 +22,14 @@ type MessagerOptions struct {
 	// If specified, then the main messager will be parsed from the file
 	// directly, other than the specified load dir.
 	//
-	// NOTE: only JSON, Bin, and Text formats are supported.
+	// NOTE: only output formats(JSON, Bin, Text) are supported.
 	//
 	// Default: nil.
 	Path string
 	// PatchPaths specifies one or multiple corresponding patch file paths.
 	// If specified, then main messager will be patched.
 	//
-	// NOTE: only JSON, Bin, and Text formats are supported.
+	// NOTE: only output formats(JSON, Bin, Text) are supported.
 	//
 	// Default: nil.
 	PatchPaths []string
@@ -38,6 +40,8 @@ type Options struct {
 	// Location represents the collection of time offsets in use in
 	// a geographical area.
 	//
+	// NOTE: only input formats(Excel, CSV, XML, YAML) are supported.
+	//
 	// If the name is "" or "UTC", LoadLocation returns UTC.
 	// If the name is "Local", LoadLocation returns Local.
 	//
@@ -46,26 +50,32 @@ type Options struct {
 	// IgnoreUnknownFields signifies whether to ignore unknown JSON fields
 	// during parsing.
 	//
+	// NOTE: only JSON format is supported.
+	//
 	// Default: false.
 	IgnoreUnknownFields bool
 	// SubdirRewrites rewrites subdir paths (relative to workbook name option
 	// in .proto file).
 	//
+	// NOTE: only input formats(Excel, CSV, XML, YAML) are supported.
+	//
 	// Default: nil.
 	SubdirRewrites map[string]string
 	// PatchDirs specifies the directory paths for config patching.
 	//
+	// NOTE: only output formats(JSON, Bin, Text) are supported.
+	//
 	// Default: nil.
 	PatchDirs []string
 	// Mode specifies the loading mode for config patching.
+	//
+	// NOTE: only output formats(JSON, Bin, Text) are supported.
 	//
 	// Default: ModeDefault.
 	Mode LoadMode
 	// MessagerOptions maps each messager name to a MessageOptions.
 	// If specified, then the messager will be parsed with the given options
 	// directly.
-	//
-	// NOTE: only JSON, Bin, and Text formats are supported.
 	//
 	// Default: nil.
 	MessagerOptions map[string]*MessagerOptions
