@@ -6,6 +6,7 @@ package load
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 
 	"github.com/tableauio/tableau/format"
@@ -24,17 +25,18 @@ import (
 
 // Load fills message from file in the specified directory and format.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
+	opts := ParseOptions(options...)
 	if format.IsInputFormat(fmt) {
-		return loadOrigin(msg, dir, options...)
+		return loadOrigin(msg, dir, opts)
 	}
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
+	load := opts.GetLoadFunc(name)
 	var path string
-	opts := ParseOptions(options...)
-	if p, ok := opts.Paths[name]; ok {
+	if p := opts.MessagerOptions[name]; p != nil && p.Path != "" {
 		// path specified in Paths, then use it instead of dir.
-		path = p
-		fmt = format.GetFormat(p)
+		path = p.Path
+		fmt = format.GetFormat(path)
 	} else {
 		// path in dir
 		path = filepath.Join(dir, name+format.Format2Ext(fmt))
@@ -47,15 +49,16 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 }
 
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
+	name := string(msg.ProtoReflect().Descriptor().Name())
+	load := opts.GetLoadFunc(name)
 	if opts.Mode == ModeOnlyMain {
 		// ignore patch files when ModeOnlyMain specified
 		return load(msg, path, fmt, opts)
 	}
-	name := string(msg.ProtoReflect().Descriptor().Name())
 	var patchPaths []string
-	if p, ok := opts.PatchPaths[name]; ok {
+	if p := opts.MessagerOptions[name]; p != nil {
 		// patch path specified in PatchPaths, then use it instead of PatchDirs.
-		patchPaths = p
+		patchPaths = p.PatchPaths
 	} else {
 		// patch path in PatchDirs
 		for _, patchDir := range opts.PatchDirs {
@@ -114,14 +117,18 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	return nil
 }
 
-// load loads the genarated config file (json/text/bin) from the given
+// defaultLoad loads the genarated config file (json/text/bin) from the given
 // path.
-func load(msg proto.Message, path string, fmt format.Format, opts *Options) error {
-	content, err := opts.ReadFunc(path)
+func defaultLoad(msg proto.Message, path string, fmt format.Format, opts *Options) error {
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
 	}
+	return DefaultUnmarshal(content, msg, path, fmt, opts)
+}
 
+// DefaultUnmarshal unmarshals the message from the given bytes.
+func DefaultUnmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *Options) error {
 	var unmarshalErr error
 	switch fmt {
 	case format.JSON:
@@ -146,9 +153,7 @@ func load(msg proto.Message, path string, fmt format.Format, opts *Options) erro
 
 // loadOrigin loads the origin file (excel/csv/xml/yaml) from the given
 // directory.
-func loadOrigin(msg proto.Message, dir string, options ...Option) error {
-	opts := ParseOptions(options...)
-
+func loadOrigin(msg proto.Message, dir string, opts *Options) error {
 	md := msg.ProtoReflect().Descriptor()
 	protofile, bookOpts := confgen.ParseFileOptions(md.ParentFile())
 	if bookOpts == nil {
