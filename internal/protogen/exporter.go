@@ -74,7 +74,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 			Imports:        make(map[string]bool),
 		}
 		if err := se.export(); err != nil {
-			return err
+			return xerrors.WrapKV(err, xerrors.KeySheetName, ws.Name)
 		}
 		for key := range se.Imports {
 			set.Add(key)
@@ -181,6 +181,9 @@ func (x *sheetExporter) exportEnum() error {
 		if i == 0 && field.Number != 0 {
 			ename := strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(x.ws.Name) + "_INVALID"
 			x.g.P("  ", ename, " = 0;")
+		}
+		if field.Number == 0 && i != 0 {
+			return xerrors.Errorf("zero enum value must be the first one, but found at enum value row: %d", i+1)
 		}
 		note := ""
 		if field.Alias != "" {

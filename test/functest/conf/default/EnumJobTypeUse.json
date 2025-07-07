@@ -1,0 +1,21 @@
+{
+    "mainJob": "JOB_TYPE_TEACHER",
+    "viceJobList": [
+        "JOB_TYPE_DOCTOR",
+        "JOB_TYPE_ACCOUNTANT"
+    ],
+    "availableJobMap": {
+        "-1": {
+            "key": "JOB_TYPE_ALL",
+            "value": 3
+        },
+        "20": {
+            "key": "JOB_TYPE_DOCTOR",
+            "value": 1
+        },
+        "30": {
+            "key": "JOB_TYPE_ACCOUNTANT",
+            "value": 2
+        }
+    }
+}

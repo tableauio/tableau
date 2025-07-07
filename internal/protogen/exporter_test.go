@@ -259,7 +259,7 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "export-enum",
+			name: "auto add zero enum value",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "ItemType",
@@ -291,13 +291,40 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 `,
 			wantErr: false,
 		},
+		{
+			name: "zero enum value not the first one",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ItemType",
+					Options: &tableaupb.WorksheetOptions{
+						Name: "ItemType",
+					},
+					Fields: []*internalpb.Field{
+						{Number: -1, Name: "ITEM_TYPE_FRUIT", Alias: "Fruit"},
+						{Number: 0, Name: "ITEM_TYPE_EQUIP", Alias: "Equip"},
+						{Number: 1, Name: "ITEM_TYPE_BOX", Alias: "Box"},
+					},
+				},
+				g: NewGeneratedBuf(),
+				be: &bookExporter{
+					gen: &Generator{
+						ctx: context.Background(),
+					},
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.x.exportEnum(); (err != nil) != tt.wantErr {
+			err := tt.x.exportEnum()
+			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetExporter.exportEnum() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			assert.Equal(t, tt.want, tt.x.g.String())
+			if err == nil {
+				assert.Equal(t, tt.want, tt.x.g.String())
+			}
 		})
 	}
 }

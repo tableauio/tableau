@@ -1,0 +1,4 @@
+MainJob,ViceJob,AvailableJob
+enum<.JobType>,[]enum<.JobType>,"map<enum<.JobType>, int32>"
+Main job,Vice job,Vice job
+Teacher,"Doctor,Accountant","Doctor:1,Accountant:2,All:3"
