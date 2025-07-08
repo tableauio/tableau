@@ -21,6 +21,30 @@ message EquipConf {
   }
 }
 
+message FieldNumberProp {
+  option (tableau.worksheet) = {name:"FieldNumberProp"};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+    int32 price = 3 [(tableau.field) = {name:"Price"}];
+    int32 number = 4 [(tableau.field) = {name:"Number"}];
+    Decompose decompose = 5 [(tableau.field) = {name:"Decompose"}];
+    message Decompose {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 num = 6 [(tableau.field) = {name:"Num"}];
+    }
+    repeated Attribute attribute_list = 7 [(tableau.field) = {name:"Attribute" layout:LAYOUT_HORIZONTAL}];
+    message Attribute {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 value = 8 [(tableau.field) = {name:"Value"}];
+    }
+    int32 rarity = 6 [(tableau.field) = {name:"Rarity"}]; // Auto generated field number
+    int32 effect = 8 [(tableau.field) = {name:"Effect"}]; // Auto generated field number
+  }
+}
+
 message FieldPropForm {
   option (tableau.worksheet) = {name:"FieldPropForm"};
 

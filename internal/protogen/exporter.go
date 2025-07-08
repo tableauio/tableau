@@ -204,10 +204,10 @@ func (x *sheetExporter) exportStruct() error {
 	x.g.P("  option (tableau.struct) = {", marshalToText(opts), "};")
 	x.g.P("")
 	// generate the fields
-	depth := 1
 	for i, field := range x.ws.Fields {
 		tagid := i + 1
-		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+		err := x.exportField(1, tagid, field, x.ws.Name)
+		if err != nil {
 			return err
 		}
 	}
@@ -264,10 +264,9 @@ func (x *sheetExporter) exportUnion() error {
 		}
 		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
 		// generate the fields
-		depth := 2
 		tagid := 1
 		for _, field := range msgField.Fields {
-			if err := x.exportField(depth, tagid, field, msgField.Name); err != nil {
+			if err := x.exportField(2, tagid, field, msgField.Name); err != nil {
 				return err
 			}
 			cross := int(field.GetOptions().GetProp().GetCross())
@@ -294,11 +293,12 @@ func (x *sheetExporter) exportMessager() error {
 	x.g.P("message ", x.ws.Name, " {")
 	x.g.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
 	x.g.P("")
+	// generate the tagids
+	tagids := genTagids(x.ws.Fields)
 	// generate the fields
-	depth := 1
 	for i, field := range x.ws.Fields {
-		tagid := i + 1
-		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+		tagid := tagids[i]
+		if err := x.exportField(1, tagid, field, x.ws.Name); err != nil {
 			return err
 		}
 	}
@@ -369,8 +369,10 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 
 		// x.g.P("")
 		x.g.P(printer.Indent(depth), "message ", typeName, " {")
+		// generate the tagids
+		tagids := genTagids(field.Fields)
 		for i, f := range field.Fields {
-			tagid := i + 1
+			tagid := tagids[i]
 			if err := x.exportField(depth+1, tagid, f, nestedMsgName); err != nil {
 				return err
 			}
@@ -386,6 +388,7 @@ func genFieldOptionsString(opts *tableaupb.FieldOptions) string {
 	if opts.Prop != nil {
 		jsonName = opts.Prop.JsonName
 		opts.Prop.JsonName = ""
+		opts.Prop.Number = 0
 
 		// set nil if field prop is empty
 		if IsEmptyFieldProp(opts.Prop) {
@@ -427,4 +430,37 @@ func isSameFieldMessageType(left, right *internalpb.Field) bool {
 		return true
 	}
 	return false
+}
+
+func genTagids(fields []*internalpb.Field) []int {
+	tagids := make([]int, 0, len(fields))
+	occupiedTagids := make(map[int]bool, len(fields))
+	for i, field := range fields {
+		if i == 0 {
+			tagids = append(tagids, 1)
+			continue
+		}
+		number := int(field.Options.GetProp().GetNumber())
+		if number > 1 && !occupiedTagids[number] {
+			tagids = append(tagids, number)
+			occupiedTagids[number] = true
+		} else {
+			tagids = append(tagids, 0)
+		}
+	}
+	autogenTagid := 1
+	nextTagid := func() int {
+		for {
+			autogenTagid++
+			if !occupiedTagids[autogenTagid] {
+				return autogenTagid
+			}
+		}
+	}
+	for i, tagid := range tagids {
+		if tagid == 0 {
+			tagids[i] = nextTagid()
+		}
+	}
+	return tagids
 }
