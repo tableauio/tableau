@@ -1,7 +1,7 @@
 // Package load provides functions to load a protobuf message from
 // different formats:
-//   - output formats(JSON, Bin, Text)
-//   - input formats(Excel, CSV, XML, YAML)
+//   - output formats: JSON, Bin, Text
+//   - input formats: Excel, CSV, XML, YAML
 package load
 
 import (
@@ -31,7 +31,7 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	}
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
-	load := opts.GetLoadFunc(name)
+	load := opts.getLoadFunc(name)
 	var path string
 	if p := opts.MessagerOptions[name]; p != nil && p.Path != "" {
 		// path specified in Paths, then use it instead of dir.
@@ -50,7 +50,7 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
 	name := string(msg.ProtoReflect().Descriptor().Name())
-	load := opts.GetLoadFunc(name)
+	load := opts.getLoadFunc(name)
 	if opts.Mode == ModeOnlyMain {
 		// ignore patch files when ModeOnlyMain specified
 		return load(msg, path, fmt, opts)

@@ -92,7 +92,7 @@ const (
 // LoadFn loads the config file to the input msg.
 type LoadFn func(proto.Message, string, format.Format, *Options) error
 
-func (o *Options) GetLoadFunc(name string) LoadFn {
+func (o *Options) getLoadFunc(name string) LoadFn {
 	if opts := o.MessagerOptions[name]; opts != nil && opts.LoadFunc != nil {
 		return opts.LoadFunc
 	}
