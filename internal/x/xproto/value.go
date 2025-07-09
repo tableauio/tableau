@@ -280,15 +280,13 @@ func GetFieldDefaultValue(fd pref.FieldDescriptor) string {
 	return ""
 }
 
+// ParseBool parses bool value from cell data. Floats with a decimal part of 0 are treated as integers.
 func ParseBool(value string) (bool, error) {
-	purifyInteger := func(s string) string {
-		// trim integer boring suffix matched by regexp `.0*$`
-		if matches := types.MatchBoringInteger(s); matches != nil {
-			return matches[1]
-		}
-		return s
+	// trim integer boring suffix matched by regexp `.0+$`
+	if matches := types.MatchBoringInteger(value); len(matches) > 1 {
+		return strconv.ParseBool(matches[1])
 	}
-	return strconv.ParseBool(purifyInteger(value))
+	return strconv.ParseBool(value)
 }
 
 func parseEnumValue(fd pref.FieldDescriptor, value string) (v pref.Value, present bool, err error) {
