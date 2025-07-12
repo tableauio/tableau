@@ -129,23 +129,23 @@ func parseMessagerOptions(o *Options, name string) *MessagerOptions {
 	} else {
 		mopts = &MessagerOptions{}
 	}
-	if mopts.BaseOptions.LocationName == "" {
-		mopts.BaseOptions.LocationName = o.BaseOptions.LocationName
+	if mopts.LocationName == "" {
+		mopts.LocationName = o.LocationName
 	}
-	if mopts.BaseOptions.IgnoreUnknownFields == nil {
-		mopts.BaseOptions.IgnoreUnknownFields = o.BaseOptions.IgnoreUnknownFields
+	if mopts.IgnoreUnknownFields == nil {
+		mopts.IgnoreUnknownFields = o.IgnoreUnknownFields
 	}
-	if mopts.BaseOptions.PatchDirs == nil {
-		mopts.BaseOptions.PatchDirs = o.BaseOptions.PatchDirs
+	if mopts.PatchDirs == nil {
+		mopts.PatchDirs = o.PatchDirs
 	}
-	if mopts.BaseOptions.Mode == modeNone {
-		mopts.BaseOptions.Mode = o.BaseOptions.Mode
+	if mopts.Mode == modeNone {
+		mopts.Mode = o.Mode
 	}
-	if mopts.BaseOptions.ReadFunc == nil {
-		mopts.BaseOptions.ReadFunc = o.BaseOptions.ReadFunc
+	if mopts.ReadFunc == nil {
+		mopts.ReadFunc = o.ReadFunc
 	}
-	if mopts.BaseOptions.LoadFunc == nil {
-		mopts.BaseOptions.LoadFunc = o.BaseOptions.LoadFunc
+	if mopts.LoadFunc == nil {
+		mopts.LoadFunc = o.LoadFunc
 	}
 	return mopts
 }
