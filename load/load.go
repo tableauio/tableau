@@ -22,7 +22,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// Load loads message's content based on the dir path, format, and options.
+// Load loads message's content based on the provided dir, format, and options.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
 	opts := ParseOptions(options...)
 	if format.IsInputFormat(fmt) {
@@ -47,19 +47,19 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	return mopts.LoadFunc(msg, path, fmt, mopts)
 }
 
-func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, mopts *MessagerOptions) error {
+func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
 	name := string(msg.ProtoReflect().Descriptor().Name())
-	if mopts.Mode == ModeOnlyMain {
+	if opts.Mode == ModeOnlyMain {
 		// ignore patch files when ModeOnlyMain specified
-		return mopts.LoadFunc(msg, path, fmt, mopts)
+		return opts.LoadFunc(msg, path, fmt, opts)
 	}
 	var patchPaths []string
-	if mopts.PatchPaths != nil {
+	if opts.PatchPaths != nil {
 		// patch path specified in PatchPaths, then use it instead of PatchDirs.
-		patchPaths = mopts.PatchPaths
+		patchPaths = opts.PatchPaths
 	} else {
 		// patch path in PatchDirs
-		for _, patchDir := range mopts.PatchDirs {
+		for _, patchDir := range opts.PatchDirs {
 			patchPaths = append(patchPaths, filepath.Join(patchDir, name+format.Format2Ext(fmt)))
 		}
 	}
@@ -76,32 +76,32 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		}
 	}
 	if len(existedPatchPaths) == 0 {
-		if mopts.Mode == ModeOnlyPatch {
+		if opts.Mode == ModeOnlyPatch {
 			// just returns empty message when ModeOnlyPatch specified but no valid patch file provided.
 			return nil
 		}
 		// no valid patch path provided, then just load from the "main" file.
-		return mopts.LoadFunc(msg, path, fmt, mopts)
+		return opts.LoadFunc(msg, path, fmt, opts)
 	}
 
 	switch patch {
 	case tableaupb.Patch_PATCH_REPLACE:
 		// just use the last "patch" file
 		patchPath := existedPatchPaths[len(existedPatchPaths)-1]
-		if err := mopts.LoadFunc(msg, patchPath, format.GetFormat(patchPath), mopts); err != nil {
+		if err := opts.LoadFunc(msg, patchPath, format.GetFormat(patchPath), opts); err != nil {
 			return err
 		}
 	case tableaupb.Patch_PATCH_MERGE:
-		if mopts.Mode != ModeOnlyPatch {
+		if opts.Mode != ModeOnlyPatch {
 			// load msg from the "main" file
-			if err := mopts.LoadFunc(msg, path, fmt, mopts); err != nil {
+			if err := opts.LoadFunc(msg, path, fmt, opts); err != nil {
 				return err
 			}
 		}
 		patchMsg := msg.ProtoReflect().New().Interface()
 		// load patchMsg from each "patch" file
 		for _, patchPath := range existedPatchPaths {
-			if err := mopts.LoadFunc(patchMsg, patchPath, format.GetFormat(patchPath), mopts); err != nil {
+			if err := opts.LoadFunc(patchMsg, patchPath, format.GetFormat(patchPath), opts); err != nil {
 				return err
 			}
 			if err := xproto.PatchMessage(msg, patchMsg); err != nil {
