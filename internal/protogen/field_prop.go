@@ -18,7 +18,6 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	}
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
-		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
 		Present:  prop.Present,
@@ -40,7 +39,6 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableau
 	}
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
-		Sequence: prop.Sequence,
 		Fixed:    prop.Fixed,
 		Size:     prop.Size,
 		Present:  prop.Present,
@@ -92,6 +90,7 @@ func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	p := &tableaupb.FieldProp{
 		JsonName: prop.JsonName,
 		Unique:   prop.Unique,
+		Sequence: prop.Sequence,
 		Range:    prop.Range,
 		Refer:    prop.Refer,
 		Default:  prop.Default,

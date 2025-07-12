@@ -14,9 +14,9 @@ option (tableau.workbook) = {name:"excel/dev/list/List#*.csv" namerow:1 typerow:
 message EmptyElemList {
   option (tableau.worksheet) = {name:"EmptyElemList" datarow:4 nameline:1 typeline:1};
 
-  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL prop:{sequence:1}}];
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Reward {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}]; // 奖励ID
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true sequence:1}}]; // 奖励ID
     string desc = 2 [(tableau.field) = {name:"Desc"}]; // 描述
     map<int32, protoconf.Item> reward_item_map = 3 [(tableau.field) = {name:"RewardItem" key:"ID" layout:LAYOUT_HORIZONTAL}]; // 奖励
     repeated Section section_list = 4 [(tableau.field) = {name:"Section" layout:LAYOUT_HORIZONTAL}];

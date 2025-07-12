@@ -169,11 +169,19 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				newMapKeyExisted := reflectMap.Has(newMapKey)
 				if newMapKeyExisted {
 					// check map key unique
-					if err := sp.checkMapKeyUnique(field, reflectMap, keyData); err != nil {
+					if err := sp.checkMapKeyUnique(field, keyData); err != nil {
+						return false, xerrors.WrapKV(err, node.DebugKV()...)
+					}
+					// check map key sequence
+					if err := sp.checkMapKeySequence(field, reflectMap, keyData, true); err != nil {
 						return false, xerrors.WrapKV(err, node.DebugKV()...)
 					}
 					newMapValue = reflectMap.Mutable(newMapKey)
 				} else {
+					// check map key sequence
+					if err := sp.checkMapKeySequence(field, reflectMap, keyData, false); err != nil {
+						return false, xerrors.WrapKV(err, node.DebugKV()...)
+					}
 					newMapValue = reflectMap.NewValue()
 				}
 				newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
@@ -187,8 +195,8 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					continue
 				}
 				if !newMapKeyExisted {
-					// check map value's sub-field unique
-					dupName, err := sp.checkSubFieldUnique(field, cardPrefix, newMapValue)
+					// check map value's sub-field prop
+					dupName, err := sp.checkSubFieldProp(field, cardPrefix, newMapValue)
 					if err != nil {
 						return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
 					}
@@ -349,8 +357,8 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 				return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 			}
 			if elemPresent {
-				// check list elem's sub-field unique
-				_, err := sp.checkSubFieldUnique(field, cardPrefix, elemValue)
+				// check list elem's sub-field prop
+				_, err := sp.checkSubFieldProp(field, cardPrefix, elemValue)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}

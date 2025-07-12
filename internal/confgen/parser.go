@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -265,8 +266,8 @@ type sheetParser struct {
 type cardInfo struct {
 	// option field name -> uniqueField
 	uniqueFields map[string]*uniqueField
-	// TODO: option field name -> sequenceField
-	// sequenceFields map[string]*sequenceField
+	// option field name -> sequenceField
+	sequenceFields map[string]*sequenceField
 }
 
 type uniqueField struct {
@@ -274,6 +275,12 @@ type uniqueField struct {
 	// value set: map[string]bool
 	values   map[string]bool
 	optional bool
+}
+
+type sequenceField struct {
+	fd       protoreflect.FieldDescriptor
+	sequence int64
+	valueNum int64 // value number relative to sequence
 }
 
 // SheetParserExtInfo is the extended info for refer check and so on.
@@ -534,39 +541,27 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 		}
 		mapKey = fieldValue.MapKey()
 	}
-	if !fieldprop.CheckMapKeySequence(field.opts.Prop, keyFd.Kind(), mapKey, reflectMap) {
-		return mapKey, false, xerrors.E2003(cellData, field.opts.Prop.GetSequence())
-	}
 	return mapKey, present, nil
 }
 
-func (sp *sheetParser) checkMapKeyUnique(field *Field, reflectMap protoreflect.Map, keyData string) error {
-	// TODO: we need to cache key field descriptor for reuse, to avoid each loop to find it when parse table rows or document nodes.
-	md := reflectMap.NewValue().Message().Descriptor()
-	fd := sp.findFieldByName(md, field.opts.Key)
-	if fd == nil {
-		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key))
-	}
-	keyField := sp.parseFieldDescriptor(fd)
-	defer keyField.release()
-	if fieldprop.RequireUnique(keyField.opts.Prop) ||
-		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(field.opts.Layout, md)) {
-		return xerrors.Wrap(xerrors.E2005(keyData))
-	}
-	return nil
+func (sp *sheetParser) checkMapKeyUnique(field *Field, keyData string) error {
+	return sp.checkKeyUnique(field.fd.MapValue().Message(), field.opts, keyData)
 }
 
-func (sp *sheetParser) checkListKeyUnique(field *Field, md protoreflect.MessageDescriptor, keyData string) error {
-	// TODO: we need to cache key field descriptor for reuse, to avoid each loop to find it when parse table rows or document nodes.
-	fd := sp.findFieldByName(md, field.opts.Key)
+func (sp *sheetParser) checkListKeyUnique(field *Field, keyData string) error {
+	return sp.checkKeyUnique(field.fd.Message(), field.opts, keyData)
+}
+
+func (sp *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string) error {
+	fd := sp.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
-		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key))
+		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
 	}
 	keyField := sp.parseFieldDescriptor(fd)
 	defer keyField.release()
 	if fieldprop.RequireUnique(keyField.opts.Prop) ||
-		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(field.opts.Layout, md)) {
-		return xerrors.Wrap(xerrors.E2023(keyData))
+		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(fdOpts.Layout, md)) {
+		return xerrors.Wrap(xerrors.E2005(keyData))
 	}
 	return nil
 }
@@ -611,18 +606,50 @@ func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoref
 	return true
 }
 
-// checkSubFieldUnique checks whether the map value's or list element's sub-field is unique.
-// If an error occured, it will return the field option name which has the duplicated value.
+func (sp *sheetParser) checkMapKeySequence(field *Field, reflectMap protoreflect.Map, keyData string, merged bool) error {
+	return sp.checkKeySequence(field.fd.MapValue().Message(), field.opts, keyData, int64(reflectMap.Len()), merged)
+}
+
+func (sp *sheetParser) checkListKeySequence(field *Field, reflectList protoreflect.List, keyData string, merged bool) error {
+	return sp.checkKeySequence(field.fd.Message(), field.opts, keyData, int64(reflectList.Len()), merged)
+}
+
+func (sp *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string, len int64, merged bool) error {
+	fd := sp.findFieldByName(md, fdOpts.Key)
+	if fd == nil {
+		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
+	}
+	keyField := sp.parseFieldDescriptor(fd)
+	defer keyField.release()
+	if !fieldprop.RequireSequence(keyField.opts.Prop) {
+		// do not require sequence
+		return nil
+	}
+	seq := keyField.opts.Prop.GetSequence()
+	val, err := strconv.ParseInt(keyData, 10, 64)
+	if err != nil {
+		return xerrors.E2003(keyData, keyField.opts.Prop.GetSequence())
+	}
+	if merged && val == seq+len-1 {
+		return nil
+	}
+	if !merged && val == seq+len {
+		return nil
+	}
+	return xerrors.E2003(keyData, keyField.opts.Prop.GetSequence())
+}
+
+// checkSubFieldProp checks whether the map value's or list element's sub-field value
+// meets its unique or sequence conditions. The uniqueness check ignores optional
+// fields with default value.
 //
-// The uniqueness check ignores optional fields with default value.
+// If an error occured, it will return the field option name which fails the condition.
 //
 // # Performance improvement
 //
 //  1. parse sub fields metadata only once, and cache it for later use.
-//  2. cache the unique field's values in map for speeding up checking.
-//
-// TODO: rename to checkSubFieldProp to also support sequence check, even more checks.
-func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newValue protoreflect.Value) (dupName string, err error) {
+//  2. cache the field's values in map for speeding up checking.
+func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValue protoreflect.Value) (string, error) {
 	if field.fd.IsMap() {
 		if field.fd.MapValue().Kind() != protoreflect.MessageKind || xproto.IsUnionField(field.fd.MapValue()) {
 			// no need to check
@@ -641,7 +668,8 @@ func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newV
 		// parse sub fields metadata only once, and cache it for later use
 		md := newValue.Message().Descriptor()
 		info = &cardInfo{
-			uniqueFields: map[string]*uniqueField{},
+			uniqueFields:   map[string]*uniqueField{},
+			sequenceFields: map[string]*sequenceField{},
 		}
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
@@ -658,6 +686,12 @@ func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newV
 					optional: sp.IsFieldOptional(subField),
 				}
 			}
+			if fieldprop.RequireSequence(subField.opts.Prop) {
+				info.sequenceFields[subField.opts.GetName()] = &sequenceField{
+					fd:       subField.fd,
+					sequence: subField.opts.Prop.GetSequence(),
+				}
+			}
 		}
 		// add new unique value
 		sp.cards[cardPrefix] = info
@@ -667,15 +701,23 @@ func (sp *sheetParser) checkSubFieldUnique(field *Field, cardPrefix string, newV
 			// ignore optional fields with default value
 			continue
 		}
-		val := fmt.Sprint(newValue.Message().Get(field.fd))
+		val := newValue.Message().Get(field.fd).String()
 		if field.values[fmt.Sprint(val)] {
-			dupName, err = name, xerrors.E2022(field.fd.Name(), val)
-			return dupName, err
+			return name, xerrors.E2022(field.fd.Name(), val)
 		}
 		// add new unique value
 		field.values[val] = true
 	}
-	return dupName, nil
+	for name, field := range info.sequenceFields {
+		val := newValue.Message().Get(field.fd).String()
+		intVal, err := strconv.ParseInt(newValue.Message().Get(field.fd).String(), 10, 64)
+		if err != nil || intVal != field.sequence+field.valueNum {
+			return name, xerrors.E2003(val, field.sequence)
+		}
+		// self increase sequence number
+		field.valueNum++
+	}
+	return "", nil
 }
 
 func (sp *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) (present bool, err error) {
@@ -727,12 +769,12 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, card
 			for j := 0; j < list.Len(); j++ {
 				elemVal := list.Get(j)
 				if elemVal.Equal(elemValue) {
-					return false, xerrors.WrapKV(xerrors.E2023(elemValue))
+					return false, xerrors.WrapKV(xerrors.E2005(elemValue))
 				}
 			}
 		}
-		// check list elem's sub-field unique
-		_, err := sp.checkSubFieldUnique(field, cardPrefix, elemValue)
+		// check list elem's sub-field prop
+		_, err := sp.checkSubFieldProp(field, cardPrefix, elemValue)
 		if err != nil {
 			return false, err
 		}

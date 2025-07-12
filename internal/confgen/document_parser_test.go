@@ -1110,3 +1110,188 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 		})
 	}
 }
+
+func TestDocParser_parseSequenceUniqueFieldStructList(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		errcode string
+	}{
+		{
+			name:   "in sequence",
+			parser: newDocParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentSequenceFieldStructList",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentSequenceFieldStructList",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.ListNode,
+										Name: "Items",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1001",
+													},
+													{
+														Name:  "Name",
+														Value: "Apple",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1002",
+													},
+													{
+														Name:  "Name",
+														Value: "Banana",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1003",
+													},
+													{
+														Name:  "Name",
+														Value: "Orange",
+													},
+													{
+														Name:  "Num",
+														Value: "20",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "id not in sequence",
+			parser: newDocParserForTest(),
+			args: args{
+				sheet: &book.Sheet{
+					Name: "DocumentSequenceFieldStructList",
+					Document: &book.Node{
+						Kind: book.DocumentNode,
+						Name: "DocumentSequenceFieldStructList",
+						Children: []*book.Node{
+							{
+								Kind: book.MapNode,
+								Children: []*book.Node{
+									{
+										Kind: book.ListNode,
+										Name: "Items",
+										Children: []*book.Node{
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1001",
+													},
+													{
+														Name:  "Name",
+														Value: "Apple",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1003", // not in sequence
+													},
+													{
+														Name:  "Name",
+														Value: "Banana",
+													},
+													{
+														Name:  "Num",
+														Value: "10",
+													},
+												},
+											},
+											{
+												Kind: book.MapNode,
+												Children: []*book.Node{
+													{
+														Name:  "ID",
+														Value: "1004",
+													},
+													{
+														Name:  "Name",
+														Value: "Orange",
+													},
+													{
+														Name:  "Num",
+														Value: "20",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+			errcode: "E2003",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.DocumentSequenceFieldStructList{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %+v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				if tt.errcode != "" {
+					desc := xerrors.NewDesc(err)
+					require.Equal(t, tt.errcode, desc.ErrCode())
+				}
+			}
+		})
+	}
+}
