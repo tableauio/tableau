@@ -15,14 +15,17 @@ func HasUnique(prop *tableaupb.FieldProp) bool {
 	return prop != nil && prop.Unique != nil
 }
 
+// RequireUnique checks whether the field's unique property is set explicitly.
 func RequireUnique(prop *tableaupb.FieldProp) bool {
 	return prop != nil && prop.Unique != nil && prop.GetUnique()
 }
 
+// RequireSequence checks whether the field's sequence property is set explicitly.
 func RequireSequence(prop *tableaupb.FieldProp) bool {
 	return prop != nil && prop.Sequence != nil
 }
 
+// CheckInRange checks whether the value is in the range.
 func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value, present bool) error {
 	if prop == nil || strings.TrimSpace(prop.Range) == "" {
 		return nil

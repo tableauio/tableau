@@ -278,9 +278,9 @@ type uniqueField struct {
 }
 
 type sequenceField struct {
-	fd       protoreflect.FieldDescriptor
-	sequence int64
-	valueNum int64 // value number relative to sequence
+	fd         protoreflect.FieldDescriptor
+	sequence   int64
+	valueCount int64 // value count in sequence
 }
 
 // SheetParserExtInfo is the extended info for refer check and so on.
@@ -614,7 +614,7 @@ func (sp *sheetParser) checkListKeySequence(field *Field, reflectList protorefle
 	return sp.checkKeySequence(field.fd.Message(), field.opts, keyData, int64(reflectList.Len()), merged)
 }
 
-func (sp *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string, len int64, merged bool) error {
+func (sp *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string, valueCount int64, merged bool) error {
 	fd := sp.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
 		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
@@ -628,12 +628,12 @@ func (sp *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpt
 	seq := keyField.opts.Prop.GetSequence()
 	val, err := strconv.ParseInt(keyData, 10, 64)
 	if err != nil {
-		return xerrors.E2003(keyData, keyField.opts.Prop.GetSequence())
+		return xerrors.Wrapf(err, "failed to parse integer: %q", keyData)
 	}
-	if merged && val == seq+len-1 {
+	if merged && val == seq+valueCount-1 {
 		return nil
 	}
-	if !merged && val == seq+len {
+	if !merged && val == seq+valueCount {
 		return nil
 	}
 	return xerrors.E2003(keyData, keyField.opts.Prop.GetSequence())
@@ -701,21 +701,24 @@ func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newVal
 			// ignore optional fields with default value
 			continue
 		}
-		val := newValue.Message().Get(field.fd).String()
-		if field.values[fmt.Sprint(val)] {
-			return name, xerrors.E2022(field.fd.Name(), val)
+		valStr := newValue.Message().Get(field.fd).String()
+		if field.values[valStr] {
+			return name, xerrors.E2022(field.fd.Name(), valStr)
 		}
 		// add new unique value
-		field.values[val] = true
+		field.values[valStr] = true
 	}
 	for name, field := range info.sequenceFields {
-		val := newValue.Message().Get(field.fd).String()
-		intVal, err := strconv.ParseInt(newValue.Message().Get(field.fd).String(), 10, 64)
-		if err != nil || intVal != field.sequence+field.valueNum {
-			return name, xerrors.E2003(val, field.sequence)
+		valStr := newValue.Message().Get(field.fd).String()
+		val, err := strconv.ParseInt(newValue.Message().Get(field.fd).String(), 10, 64)
+		if err != nil {
+			return "", xerrors.Wrapf(err, "failed to parse integer: %q", valStr)
 		}
-		// self increase sequence number
-		field.valueNum++
+		if val != field.sequence+field.valueCount {
+			return name, xerrors.E2003(valStr, field.sequence)
+		}
+		// increase value count in sequence
+		field.valueCount++
 	}
 	return "", nil
 }
