@@ -6,7 +6,6 @@ package load
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 
 	"github.com/tableauio/tableau/format"
@@ -116,10 +115,10 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	return nil
 }
 
-// defaultLoad is the default [WithLoadFunc] which loads the message's content from
+// LoadMessager is the default [LoadFunc] which loads the message's content from
 // the given path, format, and options.
-func defaultLoad(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-	content, err := os.ReadFile(path)
+func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+	content, err := opts.ReadFunc(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
 	}

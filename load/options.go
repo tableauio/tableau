@@ -1,6 +1,8 @@
 package load
 
 import (
+	"os"
+
 	"github.com/tableauio/tableau/format"
 	"google.golang.org/protobuf/proto"
 )
@@ -41,11 +43,16 @@ type BaseOptions struct {
 	// Default: ModeDefault.
 	Mode LoadMode
 
+	// ReadFunc reads the config file and returns its content.
+	//
+	// Default: [os.ReadFile].
+	ReadFunc ReadFunc
+
 	// LoadFunc loads a messager's content.
 	//
 	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
-	// Default: load.
+	// Default: [LoadMessager].
 	LoadFunc LoadFunc
 }
 
@@ -100,10 +107,14 @@ type Options struct {
 type LoadMode int
 
 const (
-	ModeDefault   LoadMode = iota // Load all related files
+	modeNone      LoadMode = iota // none
+	ModeAll                       // Load all related files
 	ModeOnlyMain                  // Only load the main file
 	ModeOnlyPatch                 // Only load the patch files
 )
+
+// ReadFunc reads the config file and returns its content.
+type ReadFunc func(name string) ([]byte, error)
 
 // LoadFunc defines a func which loads message's content based on the given
 // path, format, and options.
@@ -118,18 +129,23 @@ func parseMessagerOptions(o *Options, name string) *MessagerOptions {
 	} else {
 		mopts = &MessagerOptions{}
 	}
+	if mopts.BaseOptions.LocationName == "" {
+		mopts.BaseOptions.LocationName = o.BaseOptions.LocationName
+	}
 	if mopts.BaseOptions.IgnoreUnknownFields == nil {
 		mopts.BaseOptions.IgnoreUnknownFields = o.BaseOptions.IgnoreUnknownFields
 	}
-	if mopts.BaseOptions.LoadFunc == nil {
-		if o.BaseOptions.LoadFunc != nil {
-			mopts.BaseOptions.LoadFunc = o.BaseOptions.LoadFunc
-		} else {
-			mopts.BaseOptions.LoadFunc = defaultLoad
-		}
+	if mopts.BaseOptions.PatchDirs == nil {
+		mopts.BaseOptions.PatchDirs = o.BaseOptions.PatchDirs
 	}
-	if mopts.BaseOptions.LocationName == "" {
-		mopts.BaseOptions.LocationName = o.BaseOptions.LocationName
+	if mopts.BaseOptions.Mode == modeNone {
+		mopts.BaseOptions.Mode = o.BaseOptions.Mode
+	}
+	if mopts.BaseOptions.ReadFunc == nil {
+		mopts.BaseOptions.ReadFunc = o.BaseOptions.ReadFunc
+	}
+	if mopts.BaseOptions.LoadFunc == nil {
+		mopts.BaseOptions.LoadFunc = o.BaseOptions.LoadFunc
 	}
 	return mopts
 }
@@ -142,6 +158,9 @@ func newDefault() *Options {
 	return &Options{
 		BaseOptions: BaseOptions{
 			LocationName: "Local",
+			Mode:         ModeAll,
+			ReadFunc:     os.ReadFile,
+			LoadFunc:     LoadMessager,
 		},
 		MessagerOptions: map[string]*MessagerOptions{},
 	}
@@ -155,6 +174,13 @@ func ParseOptions(setters ...Option) *Options {
 		setter(opts)
 	}
 	return opts
+}
+
+// WithReadFunc sets a custom read func.
+func WithReadFunc(readFunc ReadFunc) Option {
+	return func(opts *Options) {
+		opts.ReadFunc = readFunc
+	}
 }
 
 // WithLoadFunc sets a custom load func.
