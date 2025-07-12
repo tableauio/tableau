@@ -5,22 +5,23 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// BaseOptions is the common struct for both global-level and sheet-level
+// BaseOptions is the common struct for both global-level and messager-level
 // Options.
 type BaseOptions struct {
 	// LoadFunc loads a messager's content.
 	//
-	// NOTE: only output formats(JSON, Bin, Text) are supported.
+	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
 	// Default: load.
-	LoadFunc LoadFn
+	LoadFunc LoadFunc
 }
 
+// MessagerOptions is the options struct for a messager.
 type MessagerOptions struct {
 	BaseOptions
-	// Path specifies a this messager's config file path.
-	// If specified, then the main messager will be parsed from the file
-	// directly, other than the specified load dir.
+	// Path specifies messager's config file path.
+	// If specified, then the main messager will be parsed directly,
+	// other than the specified load dir.
 	//
 	// NOTE: only output formats(JSON, Bin, Text) are supported.
 	//
@@ -29,12 +30,14 @@ type MessagerOptions struct {
 	// PatchPaths specifies one or multiple corresponding patch file paths.
 	// If specified, then main messager will be patched.
 	//
-	// NOTE: only output formats(JSON, Bin, Text) are supported.
+	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
 	// Default: nil.
 	PatchPaths []string
 }
 
+// Options is the options struct, which contains both global-level and
+// messager-level options.
 type Options struct {
 	BaseOptions
 	// Location represents the collection of time offsets in use in
@@ -57,19 +60,19 @@ type Options struct {
 	// SubdirRewrites rewrites subdir paths (relative to workbook name option
 	// in .proto file).
 	//
-	// NOTE: only input formats(Excel, CSV, XML, YAML) are supported.
+	// NOTE: only input formats (Excel, CSV, XML, YAML) are supported.
 	//
 	// Default: nil.
 	SubdirRewrites map[string]string
 	// PatchDirs specifies the directory paths for config patching.
 	//
-	// NOTE: only output formats(JSON, Bin, Text) are supported.
+	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
 	// Default: nil.
 	PatchDirs []string
 	// Mode specifies the loading mode for config patching.
 	//
-	// NOTE: only output formats(JSON, Bin, Text) are supported.
+	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
 	// Default: ModeDefault.
 	Mode LoadMode
@@ -89,10 +92,12 @@ const (
 	ModeOnlyPatch                 // Only load the patch files
 )
 
-// LoadFn loads the config file to the input msg.
-type LoadFn func(proto.Message, string, format.Format, *Options) error
+// LoadFunc defines a func which loads message's content based on the given
+// path, format, and options.
+type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *Options) error
 
-func (o *Options) getLoadFunc(name string) LoadFn {
+// getLoadFunc returns the load func for the given messager name.
+func (o *Options) getLoadFunc(name string) LoadFunc {
 	if opts := o.MessagerOptions[name]; opts != nil && opts.LoadFunc != nil {
 		return opts.LoadFunc
 	}
@@ -123,24 +128,10 @@ func ParseOptions(setters ...Option) *Options {
 	return opts
 }
 
-// LoadFunc loads a messager's content.
-func LoadFunc(loadFunc LoadFn) Option {
+// WithLoadFunc sets a custom load func.
+func WithLoadFunc(loadFunc LoadFunc) Option {
 	return func(opts *Options) {
 		opts.LoadFunc = loadFunc
-	}
-}
-
-// LoadFuncs maps each messager name to a corresponding LoadFn.
-// If specified, then the main messager will be loaded by the current
-// load func, other than the global one.
-func LoadFuncs(loadFuncs map[string]LoadFn) Option {
-	return func(opts *Options) {
-		for name, loadFunc := range loadFuncs {
-			if opts.MessagerOptions[name] == nil {
-				opts.MessagerOptions[name] = &MessagerOptions{}
-			}
-			opts.MessagerOptions[name].LoadFunc = loadFunc
-		}
 	}
 }
 
@@ -171,6 +162,8 @@ func SubdirRewrites(subdirRewrites map[string]string) Option {
 // directly, other than the specified load dir.
 //
 // NOTE: only JSON, Bin, and Text formats are supported.
+//
+// Deprecated: use [WithMessagerOptions] instead.
 func Paths(paths map[string]string) Option {
 	return func(opts *Options) {
 		for name, path := range paths {
@@ -186,6 +179,8 @@ func Paths(paths map[string]string) Option {
 // file paths. If specified, then main messager will be patched.
 //
 // NOTE: only JSON, Bin, and Text formats are supported.
+//
+// Deprecated: use [WithMessagerOptions] instead.
 func PatchPaths(paths map[string][]string) Option {
 	return func(opts *Options) {
 		for name, path := range paths {
@@ -210,5 +205,12 @@ func PatchDirs(dirs ...string) Option {
 func Mode(mode LoadMode) Option {
 	return func(opts *Options) {
 		opts.Mode = mode
+	}
+}
+
+// WithMessagerOptions sets the messager options.
+func WithMessagerOptions(mopts map[string]*MessagerOptions) Option {
+	return func(opts *Options) {
+		opts.MessagerOptions = mopts
 	}
 }

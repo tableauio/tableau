@@ -23,7 +23,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// Load fills message from file in the specified directory and format.
+// Load loads message's content based on the dir path, format, and options.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
 	opts := ParseOptions(options...)
 	if format.IsInputFormat(fmt) {
@@ -34,7 +34,7 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	load := opts.getLoadFunc(name)
 	var path string
 	if p := opts.MessagerOptions[name]; p != nil && p.Path != "" {
-		// path specified in Paths, then use it instead of dir.
+		// path specified directly, then use it instead of dir.
 		path = p.Path
 		fmt = format.GetFormat(path)
 	} else {
@@ -56,7 +56,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		return load(msg, path, fmt, opts)
 	}
 	var patchPaths []string
-	if p := opts.MessagerOptions[name]; p != nil {
+	if p := opts.MessagerOptions[name]; p != nil && p.PatchPaths != nil {
 		// patch path specified in PatchPaths, then use it instead of PatchDirs.
 		patchPaths = p.PatchPaths
 	} else {
@@ -117,18 +117,18 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	return nil
 }
 
-// defaultLoad loads the genarated config file (json/text/bin) from the given
-// path.
+// defaultLoad is the default [WithLoadFunc] which loads the message's content from
+// the given path, format, and options.
 func defaultLoad(msg proto.Message, path string, fmt format.Format, opts *Options) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
 	}
-	return DefaultUnmarshal(content, msg, path, fmt, opts)
+	return Unmarshal(content, msg, path, fmt, opts)
 }
 
-// DefaultUnmarshal unmarshals the message from the given bytes.
-func DefaultUnmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *Options) error {
+// Unmarshal unmarshals the message based on the given content, format, and options.
+func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *Options) error {
 	var unmarshalErr error
 	switch fmt {
 	case format.JSON:

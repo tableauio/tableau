@@ -175,9 +175,9 @@ func TestLoad(t *testing.T) {
 				fmt: format.JSON,
 				options: []Option{
 					LocationName("Local"),
-					LoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *Options) error {
+					WithLoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *Options) error {
 						bytes := []byte(`{"itemMap":{"1":{"id":1,"num":100},"2":{"id":2,"num":200},"3":{"id":3,"num":300}}}`)
-						return DefaultUnmarshal(bytes, msg, path, fmt, opts)
+						return Unmarshal(bytes, msg, path, fmt, opts)
 					}),
 				},
 			},
