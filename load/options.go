@@ -6,14 +6,55 @@ import (
 )
 
 // BaseOptions is the common struct for both global-level and messager-level
-// Options.
+// options.
 type BaseOptions struct {
+	// Location represents the collection of time offsets in use in
+	// a geographical area.
+	//
+	// NOTE: only input formats(Excel, CSV, XML, YAML) are supported.
+	//
+	// If the name is "" or "UTC", LoadLocation returns UTC.
+	// If the name is "Local", LoadLocation returns Local.
+	//
+	// Default: "Local".
+	LocationName string
+
+	// IgnoreUnknownFields signifies whether to ignore unknown JSON fields
+	// during parsing.
+	//
+	// NOTE: only JSON format is supported.
+	//
+	// Default: nil.
+	IgnoreUnknownFields *bool
+
+	// PatchDirs specifies the directory paths for config patching.
+	//
+	// NOTE: only output formats (JSON, Bin, Text) are supported.
+	//
+	// Default: nil.
+	PatchDirs []string
+
+	// Mode specifies the loading mode for config patching.
+	//
+	// NOTE: only output formats (JSON, Bin, Text) are supported.
+	//
+	// Default: ModeDefault.
+	Mode LoadMode
+
 	// LoadFunc loads a messager's content.
 	//
 	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
 	// Default: load.
 	LoadFunc LoadFunc
+}
+
+// GetIgnoreUnknownFields returns the IgnoreUnknownFields value.
+func (o *BaseOptions) GetIgnoreUnknownFields() bool {
+	if o.IgnoreUnknownFields == nil {
+		return false
+	}
+	return *o.IgnoreUnknownFields
 }
 
 // MessagerOptions is the options struct for a messager.
@@ -27,6 +68,7 @@ type MessagerOptions struct {
 	//
 	// Default: nil.
 	Path string
+
 	// PatchPaths specifies one or multiple corresponding patch file paths.
 	// If specified, then main messager will be patched.
 	//
@@ -40,23 +82,6 @@ type MessagerOptions struct {
 // messager-level options.
 type Options struct {
 	BaseOptions
-	// Location represents the collection of time offsets in use in
-	// a geographical area.
-	//
-	// NOTE: only input formats(Excel, CSV, XML, YAML) are supported.
-	//
-	// If the name is "" or "UTC", LoadLocation returns UTC.
-	// If the name is "Local", LoadLocation returns Local.
-	//
-	// Default: "Local".
-	LocationName string
-	// IgnoreUnknownFields signifies whether to ignore unknown JSON fields
-	// during parsing.
-	//
-	// NOTE: only JSON format is supported.
-	//
-	// Default: false.
-	IgnoreUnknownFields bool
 	// SubdirRewrites rewrites subdir paths (relative to workbook name option
 	// in .proto file).
 	//
@@ -64,18 +89,6 @@ type Options struct {
 	//
 	// Default: nil.
 	SubdirRewrites map[string]string
-	// PatchDirs specifies the directory paths for config patching.
-	//
-	// NOTE: only output formats (JSON, Bin, Text) are supported.
-	//
-	// Default: nil.
-	PatchDirs []string
-	// Mode specifies the loading mode for config patching.
-	//
-	// NOTE: only output formats (JSON, Bin, Text) are supported.
-	//
-	// Default: ModeDefault.
-	Mode LoadMode
 	// MessagerOptions maps each messager name to a MessageOptions.
 	// If specified, then the messager will be parsed with the given options
 	// directly.
@@ -94,17 +107,31 @@ const (
 
 // LoadFunc defines a func which loads message's content based on the given
 // path, format, and options.
-type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *Options) error
+type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error
 
-// getLoadFunc returns the load func for the given messager name.
-func (o *Options) getLoadFunc(name string) LoadFunc {
-	if opts := o.MessagerOptions[name]; opts != nil && opts.LoadFunc != nil {
-		return opts.LoadFunc
+// parseMessagerOptions parses messager options with both global-level and
+// messager-level options taken into consideration.
+func parseMessagerOptions(o *Options, name string) *MessagerOptions {
+	var mopts *MessagerOptions
+	if opts := o.MessagerOptions[name]; opts != nil {
+		mopts = opts
+	} else {
+		mopts = &MessagerOptions{}
 	}
-	if o.LoadFunc != nil {
-		return o.LoadFunc
+	if mopts.BaseOptions.IgnoreUnknownFields == nil {
+		mopts.BaseOptions.IgnoreUnknownFields = o.BaseOptions.IgnoreUnknownFields
 	}
-	return defaultLoad
+	if mopts.BaseOptions.LoadFunc == nil {
+		if o.BaseOptions.LoadFunc != nil {
+			mopts.BaseOptions.LoadFunc = o.BaseOptions.LoadFunc
+		} else {
+			mopts.BaseOptions.LoadFunc = defaultLoad
+		}
+	}
+	if mopts.BaseOptions.LocationName == "" {
+		mopts.BaseOptions.LocationName = o.BaseOptions.LocationName
+	}
+	return mopts
 }
 
 // Option is the functional option type.
@@ -113,7 +140,9 @@ type Option func(*Options)
 // newDefault returns a default Options.
 func newDefault() *Options {
 	return &Options{
-		LocationName:    "Local",
+		BaseOptions: BaseOptions{
+			LocationName: "Local",
+		},
 		MessagerOptions: map[string]*MessagerOptions{},
 	}
 }
@@ -145,7 +174,7 @@ func LocationName(name string) Option {
 // IgnoreUnknownFields ignores unknown JSON fields during parsing.
 func IgnoreUnknownFields() Option {
 	return func(opts *Options) {
-		opts.IgnoreUnknownFields = true
+		opts.IgnoreUnknownFields = proto.Bool(true)
 	}
 }
 

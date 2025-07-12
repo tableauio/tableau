@@ -31,11 +31,11 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	}
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
-	load := opts.getLoadFunc(name)
+	mopts := parseMessagerOptions(opts, name)
 	var path string
-	if p := opts.MessagerOptions[name]; p != nil && p.Path != "" {
+	if mopts.Path != "" {
 		// path specified directly, then use it instead of dir.
-		path = p.Path
+		path = mopts.Path
 		fmt = format.GetFormat(path)
 	} else {
 		// path in dir
@@ -43,25 +43,24 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
 	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
-		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
+		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, mopts)
 	}
-	return load(msg, path, fmt, opts)
+	return mopts.LoadFunc(msg, path, fmt, mopts)
 }
 
-func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *Options) error {
+func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, mopts *MessagerOptions) error {
 	name := string(msg.ProtoReflect().Descriptor().Name())
-	load := opts.getLoadFunc(name)
-	if opts.Mode == ModeOnlyMain {
+	if mopts.Mode == ModeOnlyMain {
 		// ignore patch files when ModeOnlyMain specified
-		return load(msg, path, fmt, opts)
+		return mopts.LoadFunc(msg, path, fmt, mopts)
 	}
 	var patchPaths []string
-	if p := opts.MessagerOptions[name]; p != nil && p.PatchPaths != nil {
+	if mopts.PatchPaths != nil {
 		// patch path specified in PatchPaths, then use it instead of PatchDirs.
-		patchPaths = p.PatchPaths
+		patchPaths = mopts.PatchPaths
 	} else {
 		// patch path in PatchDirs
-		for _, patchDir := range opts.PatchDirs {
+		for _, patchDir := range mopts.PatchDirs {
 			patchPaths = append(patchPaths, filepath.Join(patchDir, name+format.Format2Ext(fmt)))
 		}
 	}
@@ -78,32 +77,32 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		}
 	}
 	if len(existedPatchPaths) == 0 {
-		if opts.Mode == ModeOnlyPatch {
+		if mopts.Mode == ModeOnlyPatch {
 			// just returns empty message when ModeOnlyPatch specified but no valid patch file provided.
 			return nil
 		}
 		// no valid patch path provided, then just load from the "main" file.
-		return load(msg, path, fmt, opts)
+		return mopts.LoadFunc(msg, path, fmt, mopts)
 	}
 
 	switch patch {
 	case tableaupb.Patch_PATCH_REPLACE:
 		// just use the last "patch" file
 		patchPath := existedPatchPaths[len(existedPatchPaths)-1]
-		if err := load(msg, patchPath, format.GetFormat(patchPath), opts); err != nil {
+		if err := mopts.LoadFunc(msg, patchPath, format.GetFormat(patchPath), mopts); err != nil {
 			return err
 		}
 	case tableaupb.Patch_PATCH_MERGE:
-		if opts.Mode != ModeOnlyPatch {
+		if mopts.Mode != ModeOnlyPatch {
 			// load msg from the "main" file
-			if err := load(msg, path, fmt, opts); err != nil {
+			if err := mopts.LoadFunc(msg, path, fmt, mopts); err != nil {
 				return err
 			}
 		}
 		patchMsg := msg.ProtoReflect().New().Interface()
 		// load patchMsg from each "patch" file
 		for _, patchPath := range existedPatchPaths {
-			if err := load(patchMsg, patchPath, format.GetFormat(patchPath), opts); err != nil {
+			if err := mopts.LoadFunc(patchMsg, patchPath, format.GetFormat(patchPath), mopts); err != nil {
 				return err
 			}
 			if err := xproto.PatchMessage(msg, patchMsg); err != nil {
@@ -119,7 +118,7 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 
 // defaultLoad is the default [WithLoadFunc] which loads the message's content from
 // the given path, format, and options.
-func defaultLoad(msg proto.Message, path string, fmt format.Format, opts *Options) error {
+func defaultLoad(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
@@ -128,12 +127,12 @@ func defaultLoad(msg proto.Message, path string, fmt format.Format, opts *Option
 }
 
 // Unmarshal unmarshals the message based on the given content, format, and options.
-func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *Options) error {
+func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
 	var unmarshalErr error
 	switch fmt {
 	case format.JSON:
 		unmarshalOpts := protojson.UnmarshalOptions{
-			DiscardUnknown: opts.IgnoreUnknownFields,
+			DiscardUnknown: opts.GetIgnoreUnknownFields(),
 		}
 		unmarshalErr = unmarshalOpts.Unmarshal(content, msg)
 	case format.Text:
