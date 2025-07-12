@@ -40,7 +40,7 @@ type BaseOptions struct {
 	//
 	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
-	// Default: ModeDefault.
+	// Default: ModeAll.
 	Mode LoadMode
 
 	// ReadFunc reads the config file and returns its content.
@@ -100,7 +100,7 @@ type Options struct {
 	// If specified, then the messager will be parsed with the given options
 	// directly.
 	//
-	// Default: nil.
+	// Default: empty.
 	MessagerOptions map[string]*MessagerOptions
 }
 
