@@ -75,8 +75,7 @@ func TestExtractMapFieldProp(t *testing.T) {
 				},
 			},
 			want: &tableaupb.FieldProp{
-				Sequence: proto.Int64(1),
-				Size:     2,
+				Size: 2,
 			},
 		},
 	}

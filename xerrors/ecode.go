@@ -251,13 +251,6 @@ func E2022(fieldName, key any) error {
 	})
 }
 
-// E2023: KeyedList key not unique
-func E2023(key any) error {
-	return renderEcode("E2023", map[string]any{
-		"Key": key,
-	})
-}
-
 // E2024: invalid version pattern.
 func E2024(value string, err error) error {
 	return renderEcode("E2024", map[string]any{
