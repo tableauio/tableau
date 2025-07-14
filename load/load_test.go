@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/testutil"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -250,6 +251,10 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
 				options: []Option{
+					WithLoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+						bytes := []byte(`{"itemMap":{"1":{"id":1,"num":100},"2":{"id":2,"num":200},"3":{"id":3,"num":300}}}`)
+						return Unmarshal(bytes, msg, path, fmt, opts)
+					}),
 					WithMessagerOptions(map[string]*MessagerOptions{
 						"ItemConf": {
 							BaseOptions: BaseOptions{
@@ -293,8 +298,7 @@ func TestLoad(t *testing.T) {
 				}
 			} else {
 				if tt.wantMsg != nil {
-					ok := proto.Equal(tt.args.msg, tt.wantMsg)
-					assert.Equal(t, ok, true)
+					testutil.AssertProtoJSONEq(t, tt.args.msg, tt.wantMsg)
 				}
 			}
 		})
