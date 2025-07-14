@@ -22,19 +22,19 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// Load loads message's content based on the provided dir, format, and options.
+// Load loads message's content based on the given dir, format, and options.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
-	opts := ParseOptions(options...)
+	allOpts := parseOptions(options...)
 	if format.IsInputFormat(fmt) {
-		return loadOrigin(msg, dir, opts)
+		return loadOrigin(msg, dir, allOpts)
 	}
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
-	mopts := parseMessagerOptions(opts, name)
+	opts := parseMessagerOptions(allOpts, name)
 	var path string
-	if mopts.Path != "" {
+	if opts.Path != "" {
 		// path specified directly, then use it instead of dir.
-		path = mopts.Path
+		path = opts.Path
 		fmt = format.GetFormat(path)
 	} else {
 		// path in dir
@@ -42,9 +42,9 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
 	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
-		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, mopts)
+		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
 	}
-	return mopts.LoadFunc(msg, path, fmt, mopts)
+	return opts.LoadFunc(msg, path, fmt, opts)
 }
 
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
@@ -115,8 +115,10 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	return nil
 }
 
-// LoadMessager is the default [LoadFunc] which loads the message's content from
-// the given path, format, and options.
+// LoadMessager is the default [LoadFunc] which loads the message's content
+// based on the given path, format, and options.
+//
+// NOTE: only output formats (JSON, Bin, Text) are supported.
 func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
 	content, err := opts.ReadFunc(path)
 	if err != nil {
@@ -126,6 +128,8 @@ func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *Messa
 }
 
 // Unmarshal unmarshals the message based on the given content, format, and options.
+//
+// NOTE: only output formats (JSON, Bin, Text) are supported.
 func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
 	var unmarshalErr error
 	switch fmt {

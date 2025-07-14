@@ -56,7 +56,8 @@ type BaseOptions struct {
 	LoadFunc LoadFunc
 }
 
-// GetIgnoreUnknownFields returns the IgnoreUnknownFields value.
+// GetIgnoreUnknownFields returns whether to ignore unknown fields when loading
+// JSON.
 func (o *BaseOptions) GetIgnoreUnknownFields() bool {
 	if o.IgnoreUnknownFields == nil {
 		return false
@@ -116,8 +117,10 @@ const (
 // ReadFunc reads the config file and returns its content.
 type ReadFunc func(name string) ([]byte, error)
 
-// LoadFunc defines a func which loads message's content based on the given
+// LoadFunc defines a func which can load message's content based on the given
 // path, format, and options.
+//
+// NOTE: only output formats (JSON, Bin, Text) are supported.
 type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error
 
 // parseMessagerOptions parses messager options with both global-level and
@@ -166,8 +169,8 @@ func newDefault() *Options {
 	}
 }
 
-// ParseOptions parses functional options and merge them to default Options.
-func ParseOptions(setters ...Option) *Options {
+// parseOptions parses functional options and merge them to default Options.
+func parseOptions(setters ...Option) *Options {
 	// Default Options
 	opts := newDefault()
 	for _, setter := range setters {
@@ -264,8 +267,8 @@ func Mode(mode LoadMode) Option {
 }
 
 // WithMessagerOptions sets the messager options.
-func WithMessagerOptions(mopts map[string]*MessagerOptions) Option {
+func WithMessagerOptions(options map[string]*MessagerOptions) Option {
 	return func(opts *Options) {
-		opts.MessagerOptions = mopts
+		opts.MessagerOptions = options
 	}
 }
