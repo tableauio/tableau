@@ -6,8 +6,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/testutil"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -22,10 +24,11 @@ func TestLoad(t *testing.T) {
 		options []Option
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-		errcode string
+		name        string
+		args        args
+		wantMsg     proto.Message
+		wantErr     bool
+		wantErrCode string
 	}{
 		{
 			name: "load-origin",
@@ -87,8 +90,8 @@ func TestLoad(t *testing.T) {
 					IgnoreUnknownFields(),
 				},
 			},
-			wantErr: true,
-			errcode: "E0002",
+			wantErr:     true,
+			wantErrCode: "E0002",
 		},
 		{
 			name: "specified-text-format",
@@ -123,7 +126,22 @@ func TestLoad(t *testing.T) {
 					}),
 				},
 			},
-			wantErr: false,
+			wantMsg: &unittestpb.ItemConf{
+				ItemMap: map[uint32]*unittestpb.Item{
+					1: {
+						Id:  1,
+						Num: 100,
+					},
+					2: {
+						Id:  2,
+						Num: 200,
+					},
+					3: {
+						Id:  3,
+						Num: 300,
+					},
+				},
+			},
 		},
 		{
 			name: "with-paths-bin",
@@ -174,13 +192,120 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
 				options: []Option{
-					LocationName("Local"),
 					WithReadFunc(func(_ string) ([]byte, error) {
-						return []byte(`{"itemMap":{"1":{"id":1,"num":100},"2":{"id":2,"num":200},"3":{"id":3,"num":300}}}`), nil
+						return []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`), nil
 					}),
 				},
 			},
-			wantErr: false,
+			wantMsg: &unittestpb.ItemConf{
+				ItemMap: map[uint32]*unittestpb.Item{
+					10: {
+						Id:  10,
+						Num: 100,
+					},
+					20: {
+						Id:  20,
+						Num: 200,
+					},
+					30: {
+						Id:  30,
+						Num: 300,
+					},
+				},
+			},
+		},
+		{
+			name: "with-load-func",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithLoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+						bytes := []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
+						return Unmarshal(bytes, msg, path, fmt, opts)
+					}),
+				},
+			},
+			wantMsg: &unittestpb.ItemConf{
+				ItemMap: map[uint32]*unittestpb.Item{
+					10: {
+						Id:  10,
+						Num: 100,
+					},
+					20: {
+						Id:  20,
+						Num: 200,
+					},
+					30: {
+						Id:  30,
+						Num: 300,
+					},
+				},
+			},
+		},
+		{
+			name: "with-messager-load-func",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithLoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+						bytes := []byte(`{"itemMap":{"1":{"id":1,"num":100},"2":{"id":2,"num":200},"3":{"id":3,"num":300}}}`)
+						return Unmarshal(bytes, msg, path, fmt, opts)
+					}),
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"ItemConf": {
+							BaseOptions: BaseOptions{
+								LoadFunc: func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+									bytes := []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
+									return Unmarshal(bytes, msg, path, fmt, opts)
+								},
+							},
+						},
+					}),
+				},
+			},
+			wantMsg: &unittestpb.ItemConf{
+				ItemMap: map[uint32]*unittestpb.Item{
+					10: {
+						Id:  10,
+						Num: 100,
+					},
+					20: {
+						Id:  20,
+						Num: 200,
+					},
+					30: {
+						Id:  30,
+						Num: 300,
+					},
+				},
+			},
+		},
+		{
+			name: "with-messager-load-func",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					IgnoreUnknownFields(),
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"ItemConf": {
+							BaseOptions: BaseOptions{
+								LoadFunc: func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+									bytes := []byte(`{"extra": "unknownFields", "itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
+									return Unmarshal(bytes, msg, path, fmt, opts)
+								},
+								IgnoreUnknownFields: proto.Bool(false),
+							},
+						},
+					}),
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -190,19 +315,15 @@ func TestLoad(t *testing.T) {
 				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
+				if tt.wantErrCode != "" {
 					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
+					assert.Equal(t, tt.wantErrCode, desc.ErrCode())
+				}
+			} else {
+				if tt.wantMsg != nil {
+					testutil.AssertProtoJSONEq(t, tt.args.msg, tt.wantMsg)
 				}
 			}
-			// opts := prototext.MarshalOptions{
-			// 	Multiline: true,
-			// 	Indent:    "    ",
-			// }
-			// txt, _ := opts.Marshal(tt.args.msg)
-			// t.Logf("text: %v", string(txt))
-			// json, _ := protojson.Marshal(tt.args.msg)
-			// t.Logf("JSON: %v", string(json))
 		})
 	}
 }

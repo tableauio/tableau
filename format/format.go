@@ -83,11 +83,12 @@ var InputFormats = []Format{Excel, CSV, XML, YAML}
 var OutputFormats = []Format{JSON, Bin, Text}
 
 var inputDocumentFormats = map[Format]bool{
-	YAML: true,
 	XML:  true,
+	YAML: true,
 }
 
-// IsInputFormat checks whether the fmt belongs to [InputFormats], such as Excel.
+// IsInputFormat checks whether the fmt belongs to [InputFormats], such as
+// Excel, CSV, XML, YAML.
 func IsInputFormat(fmt Format) bool {
 	for _, f := range InputFormats {
 		if f == fmt {
@@ -98,7 +99,7 @@ func IsInputFormat(fmt Format) bool {
 }
 
 // IsInputDocumentFormat checks whether the fmt belongs to input document
-// formats, such as yaml.
+// formats, such as XML, YAML.
 func IsInputDocumentFormat(fmt Format) bool {
 	return inputDocumentFormats[fmt]
 }
