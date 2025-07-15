@@ -255,6 +255,11 @@ type ConfInputOption struct {
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
 
+	// Specify rewrite patch dir path (relative to workbook name option in proto file).
+	//
+	// Default: nil.
+	PatchdirRewrites map[string]string `yaml:"patchdirRewrites"`
+
 	// Whether converter will not report an error and abort if a workbook
 	// is not recognized in proto files.
 	//

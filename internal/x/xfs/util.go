@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/tableauio/tableau/format"
@@ -118,6 +119,24 @@ func RewriteSubdir(path string, subdirRewrites map[string]string) string {
 		}
 	}
 	return path
+}
+
+// RewritePatchdir replaces path's subdir part with the given patch dirs.
+func RewritePatchdir(path string, patchdirRewrites map[string]string) (string, *regexp.Regexp) {
+	if len(patchdirRewrites) != 0 {
+		path = CleanSlashPath(path)
+		for old, new := range patchdirRewrites {
+			oldSubdir := CleanSlashPath(old)
+			newSubdir := CleanSlashPath(new)
+			if strings.HasPrefix(path, oldSubdir) {
+				suffix, _ := filepath.Rel(oldSubdir, path)
+				newpath := filepath.Join(newSubdir, "*", suffix)
+				regexPattern := "^" + regexp.QuoteMeta(newSubdir) + `/(.*?)/`
+				return CleanSlashPath(newpath), regexp.MustCompile(regexPattern)
+			}
+		}
+	}
+	return path, nil
 }
 
 // RangeFilesByFormat traveses the given directory with the given format, and
