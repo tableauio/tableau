@@ -284,6 +284,29 @@ func TestLoad(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "with-messager-load-func",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					IgnoreUnknownFields(),
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"ItemConf": {
+							BaseOptions: BaseOptions{
+								LoadFunc: func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+									bytes := []byte(`{"extra": "unknownFields", "itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
+									return Unmarshal(bytes, msg, path, fmt, opts)
+								},
+								IgnoreUnknownFields: proto.Bool(false),
+							},
+						},
+					}),
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
