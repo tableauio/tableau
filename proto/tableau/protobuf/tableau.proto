@@ -71,9 +71,9 @@ message OneofOptions {
 
 message WorkbookOptions {
   // filename with path, e.g.: "relative/path/BookName.suffix" (slash path)
-  string name = 1;   
+  string name = 1;
   // book alias without suffix, e.g.: "BookAlias"
-  string alias = 2;  
+  string alias = 2;
   // Exact row number of column name definition at a worksheet.
   //
   // Default: 1.
@@ -228,11 +228,11 @@ message WorksheetOptions {
   repeated string index = 51;
 
   // Specify loader language options.
-  // Valid keys are: OrderedMap, Index.
+  // Valid keys are: OrderedMap, Index, OrderedIndex.
   // Different kvs must be seperated by ',' and one key value must be seperated
   // by ':'. If one key doesn't exist in map, it means that this loader option
   // is supported in all languages. Valid values are all combinations of "cpp",
-  // "go" with ' ' as seperator.
+  // "go" and "csharp" with ' ' as seperator.
   //
   // Examples:
   //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index
@@ -240,6 +240,10 @@ message WorksheetOptions {
   //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all
   //    languages
   map<string, string> lang_options = 52;
+
+  // Generate OrderedIndex accessers, and multiple index columns are comma-separated.
+  // Formats are same with index.
+  repeated string ordered_index = 53;
 }
 
 message FieldOptions {
