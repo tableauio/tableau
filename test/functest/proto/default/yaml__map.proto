@@ -34,9 +34,9 @@ message YamlMapConf {
     string name = 2 [(tableau.field) = {name:"Name"}];
     int32 num = 3 [(tableau.field) = {name:"Num"}];
   }
-  map<uint32, CustomItem> custom_key_struct_map = 8 [(tableau.field) = {name:"CustomKeyStructMap" key:"@key"}];
+  map<uint32, CustomItem> custom_key_struct_map = 8 [(tableau.field) = {name:"CustomKeyStructMap" key:"CustomKey"}];
   message CustomItem {
-    uint32 custom_key = 1 [(tableau.field) = {name:"@key"}];
+    uint32 custom_key = 1 [(tableau.field) = {name:"CustomKey"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
     int32 num = 3 [(tableau.field) = {name:"Num"}];
   }
