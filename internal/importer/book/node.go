@@ -42,7 +42,6 @@ const (
 	KeywordValue    = types.DefaultDocumentMapValueOptName // @value
 	KeywordIncell   = "@incell"
 	KeywordVariable = "@variable"
-	KeywordKeyname  = "@keyname"
 )
 
 // MetaSign signifies the name starts with leading "@" is meta name.
@@ -137,15 +136,15 @@ func (n *Node) GetMetaTypeNode() *Node {
 	return n.FindChild(KeywordType)
 }
 
-// GetMetaKey returns this node's @key defined in schema sheet.
+// GetMetaKey returns this node's key defined in schema sheet.
 func (n *Node) GetMetaKey() string {
-	// If no children, then just treat value as type name
+	// find @key in children
 	keyNode := n.GetMetaStructNode().FindChild(KeywordKey)
 	if keyNode != nil {
 		return keyNode.Value
 	}
-	// default is "key"
-	return strings.TrimPrefix(KeywordKey, "@")
+	// default
+	return KeywordKey
 }
 
 // GetMetaIncell returns this node's @incell defined in schema sheet.
@@ -158,26 +157,15 @@ func (n *Node) GetMetaIncell() bool {
 	return val == "true"
 }
 
-// GetMetaVariable returns this node's @variable defined in schema sheet.
+// GetMetaVariable returns this node's variable name defined in schema sheet.
 func (n *Node) GetMetaVariable() string {
 	// If no children, then just treat value as variable name
 	keyNode := n.FindChild(KeywordVariable)
 	if keyNode != nil {
 		return keyNode.Value
 	}
-	// default is "name"
+	// default
 	return n.Name
-}
-
-// GetMetaKeyname returns this node's @keyname defined in schema sheet.
-func (n *Node) GetMetaKeyname() string {
-	// If no children, then just treat value as keyname name
-	keyNode := n.GetMetaStructNode().FindChild(KeywordKeyname)
-	if keyNode != nil {
-		return keyNode.Value
-	}
-	// default is "@key"
-	return KeywordKey
 }
 
 // GetMetaStructNode returns this node's @struct node defined in schema sheet.

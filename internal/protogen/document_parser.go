@@ -76,7 +76,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 	typeNode := node.GetMetaTypeNode()
 	typeCell := typeNode.GetValue()
 	variableCell := node.GetMetaVariable()
-	keynameCell := node.GetMetaKeyname()
+	keyCell := node.GetMetaKey()
 	desc := types.MatchMap(typeCell)
 	parsedKeyType := desc.KeyType
 	if types.IsEnum(desc.KeyType) {
@@ -149,9 +149,9 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
-			field.Options.Key = keynameCell
+			field.Options.Key = keyCell
 			// 1. append key to the first value struct field
-			scalarField, err := p.parseBasicField(keynameCell, desc.KeyType+desc.Prop.RawProp(), "")
+			scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.Prop.RawProp(), "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -185,10 +185,10 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 		Name: node.Name,
 		Prop: ExtractMapFieldProp(prop),
 	}
-	field.Options.Key = keynameCell
+	field.Options.Key = keyCell
 	// struct map
 	// auto append key to the first value struct field
-	scalarField, err := p.parseBasicField(keynameCell, desc.KeyType+desc.Prop.RawProp(), "")
+	scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.Prop.RawProp(), "")
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",

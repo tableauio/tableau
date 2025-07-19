@@ -416,10 +416,6 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 						Name:  book.KeywordKey,
 						Value: attrName,
 					},
-					{
-						Name:  book.KeywordKeyname,
-						Value: attrName,
-					},
 				},
 			}
 			bnode.Children = append(bnode.Children, &book.Node{
