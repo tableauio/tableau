@@ -1,8 +1,7 @@
 //   Error handling model:
 // 			1. cause error(nil means no cause) is wrapped by base error with caller stack
 //          2. all errors contain only one caller stack
-//          3. withMessage is an error whitch has a message, which could be infinitely
-// 		       nested with each other
+//          3. withMessage is an error with a message, which could be infinitely nested with each other
 //
 //                                 +---------+
 //                                 |  cause  |
