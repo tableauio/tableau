@@ -159,8 +159,7 @@ func combineKV(keysAndValues ...any) string {
 // Errorf formats according to a format specifier and returns the string
 // as a value that satisfies error.
 // Errorf also records the code and stack trace at the point it was called.
-// func Errorf(code int, format string, args ...interface{}) error {
-func Errorf(format string, args ...interface{}) error {
+func Errorf(format string, args ...any) error {
 	return &withMessage{
 		cause:   &base{stack: callers()},
 		message: combineKV(KeyReason, fmt.Sprintf(format, args...)),
@@ -180,7 +179,7 @@ func ErrorKV(msg string, keysAndValues ...any) error {
 // Wrapf returns an error annotating err with a stack trace
 // at the point Wrapf is called, and the format specifier.
 // If err is nil, Wrapf returns nil.
-func Wrapf(err error, format string, args ...interface{}) error {
+func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}
