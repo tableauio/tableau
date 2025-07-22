@@ -289,7 +289,7 @@ func (x *sheetExporter) exportUnion() error {
 func (x *sheetExporter) exportMessager() error {
 	// log.Debugf("workbook: %s", x.ws.String())
 	if x.be.messagerPatternRegexp != nil && !x.be.messagerPatternRegexp.MatchString(x.ws.Name) {
-		return xerrors.Errorf("messager %s does not match pattern %s", x.ws.Name, x.be.messagerPatternRegexp.String())
+		return xerrors.Errorf("messager %s does not match pattern %q", x.ws.Name, x.be.messagerPatternRegexp.String())
 	}
 	x.g.P("message ", x.ws.Name, " {")
 	x.g.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")

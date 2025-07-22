@@ -100,7 +100,9 @@ func NewDesc(err error) *Desc {
 		kv := strings.SplitN(s, ":", 2)
 		if len(kv) == 2 {
 			key, val := strings.Trim(kv[0], " :"), strings.Trim(kv[1], " :")
-			desc.setField(key, val)
+			if key != "" && val != "" {
+				desc.setField(key, val)
+			}
 		}
 	}
 	return desc
