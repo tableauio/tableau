@@ -1,0 +1,4 @@
+Reward1ID,Reward1Item,Reward2ID,Reward2Item
+"map<uint32, Reward>","[]{uint32 ID,int32 Num}Item",uint32,[]Item
+Reward1 ID,Reward1 items,Reward2 ID,Reward2 items
+1,"1:10,2:20",2,3:30

@@ -11,6 +11,20 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/nesting/ListInMap#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
+message HorizontalListInHMap {
+  option (tableau.worksheet) = {name:"HorizontalListInHMap"};
+
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {name:"Reward" key:"ID" layout:LAYOUT_HORIZONTAL}]; // Reward
+  message Reward {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    repeated Item item_list = 2 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}]; // item
+    message Item {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+      int32 num = 2 [(tableau.field) = {name:"Num"}]; // num
+    }
+  }
+}
+
 message HorizontalListInVerticalMap {
   option (tableau.worksheet) = {name:"HorizontalListInVerticalMap"};
 
@@ -22,6 +36,20 @@ message HorizontalListInVerticalMap {
     message Prop {
       int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
       int64 value = 2 [(tableau.field) = {name:"Value"}]; // value
+    }
+  }
+}
+
+message IncellListInHMap {
+  option (tableau.worksheet) = {name:"IncellListInHMap"};
+
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {name:"Reward" key:"ID" layout:LAYOUT_HORIZONTAL}]; // Reward
+  message Reward {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    repeated Item item_list = 2 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}]; // items
+    message Item {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}];
+      int32 num = 2 [(tableau.field) = {name:"Num"}];
     }
   }
 }
