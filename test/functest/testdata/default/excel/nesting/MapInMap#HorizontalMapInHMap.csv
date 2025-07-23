@@ -1,0 +1,4 @@
+Reward1ID,Reward1Item1ID,Reward1Item1Num,Reward1Item2ID,Reward1Item2Num,Reward2ID,Reward2Item1ID,Reward2Item1Num
+"map<uint32, Reward>","map<uint32, Item>",int32,uint32,int32,uint32,uint32,int32
+Reward1 ID,Reward1 item1 ID,Reward1 item1 num,Reward1 item2 ID,Reward1 item2 num,Reward2 ID,Reward2 item1 ID,Reward2 item1 num
+1,1,10,2,20,2,3,30
