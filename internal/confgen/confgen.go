@@ -45,7 +45,12 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	ctx := context.Background()
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
-	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
+	metasheetName := metasheet.DefaultMetasheetName
+	// use the metasheet name from the proto input settings if provided.
+	if opts.Proto != nil && opts.Proto.Input != nil {
+		metasheetName = opts.Proto.Input.MetasheetName
+	}
+	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: metasheetName})
 
 	g := &Generator{
 		ProtoPackage: protoPackage,
