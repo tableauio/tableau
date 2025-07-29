@@ -111,6 +111,7 @@ func NewTypeInfos(protoPackage string) *TypeInfos {
 	}
 }
 
+// TypeInfos holds all type infos by full name mapping.
 type TypeInfos struct {
 	mu           sync.RWMutex
 	protoPackage string
@@ -121,7 +122,7 @@ type TypeInfos struct {
 func (x *TypeInfos) Put(info *TypeInfo) {
 	x.mu.Lock()
 	defer x.mu.Unlock()
-	log.Debugf("remember new generated predefined type: %v", info)
+	log.Debugf("add new type: %v", info)
 	x.infos[info.FullName] = info
 }
 
@@ -131,8 +132,6 @@ func (x *TypeInfos) Put(info *TypeInfo) {
 // prepended to generate full name. For example: ".ItemType" will be conveted to
 // "<ProtoPackage>.ItemType"
 func (x *TypeInfos) Get(name string) *TypeInfo {
-	x.mu.RLock()
-	defer x.mu.RUnlock()
 	var fullName string
 	if strings.HasPrefix(name, ".") {
 		// prepend default proto package
