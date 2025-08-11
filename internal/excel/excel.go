@@ -64,7 +64,7 @@ func Open(filename string, sheetName string) (*excelize.File, error) {
 		// fmt.Println("existed file: ", filename)
 		wb, err = excelize.OpenFile(filename)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to open file: %s", filename)
+			return nil, xerrors.E3002(err)
 		}
 		wb.NewSheet(sheetName)
 	}

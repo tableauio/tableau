@@ -71,7 +71,7 @@ func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) 
 
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.E3002(err)
 	}
 	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
 	rawDocs, err := extractRawXMLDocuments(ms)
@@ -113,7 +113,7 @@ func readXMLBookWithOnlySchemaSheet(ctx context.Context, filename string, parser
 
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.E3002(err)
 	}
 	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
 	rawDocs, err := extractRawXMLDocuments(ms)
