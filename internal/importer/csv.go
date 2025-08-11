@@ -110,7 +110,7 @@ func readCSVSheet(filename, sheetName string, topN uint) (*book.Sheet, error) {
 func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 	f, err := os.Open(filename)
 	if err != nil {
-		return nil, xerrors.Wrapf(err, "failed to open file: %s", filename)
+		return nil, xerrors.E3002(err)
 	}
 	defer func() {
 		err := f.Close()

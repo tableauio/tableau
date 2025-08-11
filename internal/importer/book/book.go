@@ -215,7 +215,7 @@ func (b *Book) ExportExcel() error {
 	}
 	file, err := excel.Open(filename, b.sheetNames[0])
 	if err != nil {
-		return xerrors.Wrapf(err, "failed to open file %s", filename)
+		return err
 	}
 
 	for _, sheet := range b.GetSheets() {

@@ -23,7 +23,7 @@ type ExcelImporter struct {
 func NewExcelImporter(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*ExcelImporter, error) {
 	file, err := excelize.OpenFile(filename)
 	if err != nil {
-		return nil, xerrors.Wrapf(err, "failed to open file %s", filename)
+		return nil, xerrors.E3002(err)
 	}
 	defer func() {
 		// Close the spreadsheet.
