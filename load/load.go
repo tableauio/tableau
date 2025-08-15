@@ -22,15 +22,20 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// Load loads message's content based on the given dir, format, and options.
+// Load loads message's content based on the given dir, format, and load options.
 func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
-	allOpts := parseOptions(options...)
+	name := string(msg.ProtoReflect().Descriptor().Name())
+	opts := parseMessagerOptions(parseOptions(options...), name)
+	return LoadMessagerInDir(msg, dir, fmt, opts)
+}
+
+// LoadMessagerInDir loads message's content in the given dir, format, and messager options.
+func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
 	if format.IsInputFormat(fmt) {
-		return loadOrigin(msg, dir, allOpts)
+		return loadOrigin(msg, dir, opts)
 	}
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
-	opts := parseMessagerOptions(allOpts, name)
 	var path string
 	if opts.Path != "" {
 		// path specified directly, then use it instead of dir.
@@ -45,6 +50,18 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
 	}
 	return opts.LoadFunc(msg, path, fmt, opts)
+}
+
+// LoadMessager is the default [LoadFunc] which loads the message's content
+// based on the given path, format, and options.
+//
+// NOTE: only output formats (JSON, Bin, Text) are supported.
+func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+	content, err := opts.ReadFunc(path)
+	if err != nil {
+		return xerrors.Wrapf(err, "failed to read file: %v", path)
+	}
+	return Unmarshal(content, msg, path, fmt, opts)
 }
 
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
@@ -115,18 +132,6 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 	return nil
 }
 
-// LoadMessager is the default [LoadFunc] which loads the message's content
-// based on the given path, format, and options.
-//
-// NOTE: only output formats (JSON, Bin, Text) are supported.
-func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-	content, err := opts.ReadFunc(path)
-	if err != nil {
-		return xerrors.Wrapf(err, "failed to read file: %v", path)
-	}
-	return Unmarshal(content, msg, path, fmt, opts)
-}
-
 // Unmarshal unmarshals the message based on the given content, format, and options.
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
@@ -155,7 +160,7 @@ func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format
 
 // loadOrigin loads the origin file (excel/csv/xml/yaml) from the given
 // directory.
-func loadOrigin(msg proto.Message, dir string, opts *Options) error {
+func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 	md := msg.ProtoReflect().Descriptor()
 	protofile, bookOpts := confgen.ParseFileOptions(md.ParentFile())
 	if bookOpts == nil {
