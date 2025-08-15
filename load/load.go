@@ -29,7 +29,7 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 	return LoadMessagerInDir(msg, dir, fmt, opts)
 }
 
-// LoadMessagerInDir loads message's content in the given dir, format, and messager options.
+// LoadMessagerInDir loads message's content in the given dir, based on format and messager options.
 func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, opts)
