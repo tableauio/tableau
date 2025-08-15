@@ -84,7 +84,7 @@ func patchMap(dst, src protoreflect.Map, fd protoreflect.FieldDescriptor) {
 	src.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
 		switch {
 		case fd.Message() != nil:
-			// NOTE: this behavior is different from [proto.Clone]
+			// NOTE: this behavior is different from [proto.Merge]
 			var dstv protoreflect.Value
 			if dst.Has(k) {
 				dstv = dst.Mutable(k)

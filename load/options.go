@@ -54,6 +54,14 @@ type BaseOptions struct {
 	//
 	// Default: [LoadMessager].
 	LoadFunc LoadFunc
+
+	// SubdirRewrites rewrites subdir paths (relative to workbook name option
+	// in .proto file).
+	//
+	// NOTE: only input formats (Excel, CSV, XML, YAML) are supported.
+	//
+	// Default: nil.
+	SubdirRewrites map[string]string
 }
 
 // GetIgnoreUnknownFields returns whether to ignore unknown fields when loading
@@ -90,13 +98,6 @@ type MessagerOptions struct {
 // messager-level options.
 type Options struct {
 	BaseOptions
-	// SubdirRewrites rewrites subdir paths (relative to workbook name option
-	// in .proto file).
-	//
-	// NOTE: only input formats (Excel, CSV, XML, YAML) are supported.
-	//
-	// Default: nil.
-	SubdirRewrites map[string]string
 	// MessagerOptions maps each messager name to a MessageOptions.
 	// If specified, then the messager will be parsed with the given options
 	// directly.
@@ -123,9 +124,9 @@ type ReadFunc func(name string) ([]byte, error)
 // NOTE: only output formats (JSON, Bin, Text) are supported.
 type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error
 
-// parseMessagerOptions parses messager options with both global-level and
+// ParseMessagerOptionsFromOptions parses messager options with both global-level and
 // messager-level options taken into consideration.
-func parseMessagerOptions(o *Options, name string) *MessagerOptions {
+func ParseMessagerOptionsFromOptions(o *Options, name string) *MessagerOptions {
 	var mopts *MessagerOptions
 	if opts := o.MessagerOptions[name]; opts != nil {
 		mopts = opts
@@ -150,6 +151,9 @@ func parseMessagerOptions(o *Options, name string) *MessagerOptions {
 	if mopts.LoadFunc == nil {
 		mopts.LoadFunc = o.LoadFunc
 	}
+	if mopts.SubdirRewrites == nil {
+		mopts.SubdirRewrites = o.SubdirRewrites
+	}
 	return mopts
 }
 
@@ -169,8 +173,8 @@ func newDefault() *Options {
 	}
 }
 
-// parseOptions parses functional options and merge them to default Options.
-func parseOptions(setters ...Option) *Options {
+// ParseOptions parses functional options and merge them to default Options.
+func ParseOptions(setters ...Option) *Options {
 	// Default Options
 	opts := newDefault()
 	for _, setter := range setters {
