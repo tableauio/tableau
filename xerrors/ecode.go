@@ -282,3 +282,10 @@ func E3001(sheetName, bookName string) error {
 		"BookName":  bookName,
 	})
 }
+
+// E3002: failed to open file.
+func E3002(err error) error {
+	return renderEcode("E3002", map[string]any{
+		"Error": err,
+	})
+}
