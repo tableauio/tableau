@@ -137,9 +137,10 @@ func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 			WithParentDir:          s.Meta.WithParentDir,
 			ScatterWithoutBookName: s.Meta.ScatterWithoutBookName,
 			// Loader options:
-			OrderedMap:  s.Meta.OrderedMap,
-			Index:       parseIndexes(s.Meta.Index),
-			LangOptions: s.Meta.LangOptions,
+			OrderedMap:   s.Meta.OrderedMap,
+			Index:        parseIndexes(s.Meta.Index),
+			OrderedIndex: parseIndexes(s.Meta.OrderedIndex),
+			LangOptions:  s.Meta.LangOptions,
 		},
 	}
 }
