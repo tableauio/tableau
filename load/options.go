@@ -159,6 +159,9 @@ type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *Mess
 // messager-level options taken into consideration.
 func ParseMessagerOptions(o *LoadOptions, name string) *MessagerOptions {
 	var mopts MessagerOptions
+	if o == nil {
+		return &mopts
+	}
 	if opts := o.MessagerOptions[name]; opts != nil {
 		mopts = *opts
 	}
