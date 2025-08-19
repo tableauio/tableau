@@ -157,7 +157,7 @@ type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *Mess
 
 // ParseMessagerOptionsByName parses messager options with both global-level and
 // messager-level options taken into consideration.
-func ParseMessagerOptionsByName(o *LoadOptions, name string) *MessagerOptions {
+func (o *LoadOptions) ParseMessagerOptionsByName(name string) *MessagerOptions {
 	var mopts MessagerOptions
 	if o == nil {
 		return &mopts
