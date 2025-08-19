@@ -26,7 +26,8 @@ import (
 func Load(msg proto.Message, dir string, fmt format.Format, options ...LoadOption) error {
 	name := string(msg.ProtoReflect().Descriptor().Name())
 	opts := ParseOptions(options...)
-	return LoadMessagerInDir(msg, dir, fmt, opts.ParseMessagerOptionsByName(name))
+	mopts := opts.ParseMessagerOptionsByName(name)
+	return LoadMessagerInDir(msg, dir, fmt, mopts)
 }
 
 // LoadMessagerInDir loads message's content in the given dir, based on format and messager options.
