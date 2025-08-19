@@ -51,7 +51,7 @@ func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
 	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
-		return loadMessagerWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
+		return LoadMessagerWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
 	}
 	return opts.GetLoadFunc()(msg, path, fmt, opts)
 }
@@ -71,7 +71,10 @@ func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *Messa
 	return Unmarshal(content, msg, path, fmt, opts)
 }
 
-func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
+func LoadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
+	if opts == nil {
+		opts = &MessagerOptions{}
+	}
 	name := string(msg.ProtoReflect().Descriptor().Name())
 	mode := opts.GetMode()
 	loadFunc := opts.GetLoadFunc()
