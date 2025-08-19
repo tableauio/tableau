@@ -264,8 +264,9 @@ func TestSheet_ToWorkseet(t *testing.T) {
 					Sheet: "Sheet",
 					Patch: tableaupb.Patch_PATCH_MERGE,
 					// Loader options:
-					OrderedMap: true,
-					Index:      "ID@Item",
+					OrderedMap:   true,
+					Index:        "ID@Item",
+					OrderedIndex: "ID@Item, Time<ID>@UnlockTime",
 				},
 			},
 			want: &internalpb.Worksheet{
@@ -274,8 +275,9 @@ func TestSheet_ToWorkseet(t *testing.T) {
 					Name:  "Sheet",
 					Patch: tableaupb.Patch_PATCH_MERGE,
 					// Loader options:
-					OrderedMap: true,
-					Index:      parseIndexes("ID@Item"),
+					OrderedMap:   true,
+					Index:        []string{"ID@Item"},
+					OrderedIndex: []string{"ID@Item", "Time<ID>@UnlockTime"},
 				},
 			},
 		},
