@@ -19,14 +19,14 @@ type BaseOptions struct {
 	// If the name is "Local", LoadLocation returns Local.
 	//
 	// Default: "Local".
-	LocationName string
+	LocationName *string
 
 	// IgnoreUnknownFields signifies whether to ignore unknown JSON fields
 	// during parsing.
 	//
 	// NOTE: only JSON format is supported.
 	//
-	// Default: nil.
+	// Default: false.
 	IgnoreUnknownFields *bool
 
 	// PatchDirs specifies the directory paths for config patching.
@@ -41,7 +41,7 @@ type BaseOptions struct {
 	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
 	// Default: ModeAll.
-	Mode LoadMode
+	Mode *LoadMode
 
 	// ReadFunc reads the config file and returns its content.
 	//
@@ -64,6 +64,14 @@ type BaseOptions struct {
 	SubdirRewrites map[string]string
 }
 
+// GetLocationName returns the location name.
+func (o *BaseOptions) GetLocationName() string {
+	if o.LocationName == nil {
+		return "Local"
+	}
+	return *o.LocationName
+}
+
 // GetIgnoreUnknownFields returns whether to ignore unknown fields when loading
 // JSON.
 func (o *BaseOptions) GetIgnoreUnknownFields() bool {
@@ -71,6 +79,30 @@ func (o *BaseOptions) GetIgnoreUnknownFields() bool {
 		return false
 	}
 	return *o.IgnoreUnknownFields
+}
+
+// GetMode returns the loading mode.
+func (o *BaseOptions) GetMode() LoadMode {
+	if o.Mode == nil {
+		return ModeAll
+	}
+	return *o.Mode
+}
+
+// GetReadFunc returns the read function.
+func (o *BaseOptions) GetReadFunc() ReadFunc {
+	if o.ReadFunc == nil {
+		return os.ReadFile
+	}
+	return o.ReadFunc
+}
+
+// GetLoadFunc returns the load function.
+func (o *BaseOptions) GetLoadFunc() LoadFunc {
+	if o.LoadFunc == nil {
+		return LoadMessager
+	}
+	return o.LoadFunc
 }
 
 // MessagerOptions is the options struct for a messager.
@@ -94,9 +126,9 @@ type MessagerOptions struct {
 	PatchPaths []string
 }
 
-// Options is the options struct, which contains both global-level and
+// LoadOptions is the options struct, which contains both global-level and
 // messager-level options.
-type Options struct {
+type LoadOptions struct {
 	BaseOptions
 	// MessagerOptions maps each messager name to a MessageOptions.
 	// If specified, then the messager will be parsed with the given options
@@ -109,8 +141,7 @@ type Options struct {
 type LoadMode int
 
 const (
-	modeNone      LoadMode = iota // none
-	ModeAll                       // Load all related files
+	ModeAll       LoadMode = iota // Load all related files
 	ModeOnlyMain                  // Only load the main file
 	ModeOnlyPatch                 // Only load the patch files
 )
@@ -124,16 +155,14 @@ type ReadFunc func(name string) ([]byte, error)
 // NOTE: only output formats (JSON, Bin, Text) are supported.
 type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error
 
-// ParseMessagerOptionsFromOptions parses messager options with both global-level and
+// ParseMessagerOptions parses messager options with both global-level and
 // messager-level options taken into consideration.
-func ParseMessagerOptionsFromOptions(o *Options, name string) *MessagerOptions {
-	var mopts *MessagerOptions
+func ParseMessagerOptions(o *LoadOptions, name string) *MessagerOptions {
+	var mopts MessagerOptions
 	if opts := o.MessagerOptions[name]; opts != nil {
-		mopts = opts
-	} else {
-		mopts = &MessagerOptions{}
+		mopts = *opts
 	}
-	if mopts.LocationName == "" {
+	if mopts.LocationName == nil {
 		mopts.LocationName = o.LocationName
 	}
 	if mopts.IgnoreUnknownFields == nil {
@@ -142,7 +171,7 @@ func ParseMessagerOptionsFromOptions(o *Options, name string) *MessagerOptions {
 	if mopts.PatchDirs == nil {
 		mopts.PatchDirs = o.PatchDirs
 	}
-	if mopts.Mode == modeNone {
+	if mopts.Mode == nil {
 		mopts.Mode = o.Mode
 	}
 	if mopts.ReadFunc == nil {
@@ -154,29 +183,16 @@ func ParseMessagerOptionsFromOptions(o *Options, name string) *MessagerOptions {
 	if mopts.SubdirRewrites == nil {
 		mopts.SubdirRewrites = o.SubdirRewrites
 	}
-	return mopts
+	return &mopts
 }
 
-// Option is the functional option type.
-type Option func(*Options)
-
-// newDefault returns a default Options.
-func newDefault() *Options {
-	return &Options{
-		BaseOptions: BaseOptions{
-			LocationName: "Local",
-			Mode:         ModeAll,
-			ReadFunc:     os.ReadFile,
-			LoadFunc:     LoadMessager,
-		},
-		MessagerOptions: map[string]*MessagerOptions{},
-	}
-}
+// LoadOptions is the functional option type.
+type LoadOption func(*LoadOptions)
 
 // ParseOptions parses functional options and merge them to default Options.
-func ParseOptions(setters ...Option) *Options {
+func ParseOptions(setters ...LoadOption) *LoadOptions {
 	// Default Options
-	opts := newDefault()
+	opts := &LoadOptions{}
 	for _, setter := range setters {
 		setter(opts)
 	}
@@ -184,37 +200,37 @@ func ParseOptions(setters ...Option) *Options {
 }
 
 // WithReadFunc sets a custom read func.
-func WithReadFunc(readFunc ReadFunc) Option {
-	return func(opts *Options) {
+func WithReadFunc(readFunc ReadFunc) LoadOption {
+	return func(opts *LoadOptions) {
 		opts.ReadFunc = readFunc
 	}
 }
 
 // WithLoadFunc sets a custom load func.
-func WithLoadFunc(loadFunc LoadFunc) Option {
-	return func(opts *Options) {
+func WithLoadFunc(loadFunc LoadFunc) LoadOption {
+	return func(opts *LoadOptions) {
 		opts.LoadFunc = loadFunc
 	}
 }
 
 // LocationName sets TZ location name for parsing datetime format.
-func LocationName(name string) Option {
-	return func(opts *Options) {
-		opts.LocationName = name
+func LocationName(name string) LoadOption {
+	return func(opts *LoadOptions) {
+		opts.LocationName = proto.String(name)
 	}
 }
 
 // IgnoreUnknownFields ignores unknown JSON fields during parsing.
-func IgnoreUnknownFields() Option {
-	return func(opts *Options) {
+func IgnoreUnknownFields() LoadOption {
+	return func(opts *LoadOptions) {
 		opts.IgnoreUnknownFields = proto.Bool(true)
 	}
 }
 
 // SubdirRewrites rewrites subdir paths (relative to workbook name option
 // in .proto file).
-func SubdirRewrites(subdirRewrites map[string]string) Option {
-	return func(opts *Options) {
+func SubdirRewrites(subdirRewrites map[string]string) LoadOption {
+	return func(opts *LoadOptions) {
 		opts.SubdirRewrites = subdirRewrites
 	}
 }
@@ -226,8 +242,11 @@ func SubdirRewrites(subdirRewrites map[string]string) Option {
 // NOTE: only JSON, Bin, and Text formats are supported.
 //
 // Deprecated: use [WithMessagerOptions] instead.
-func Paths(paths map[string]string) Option {
-	return func(opts *Options) {
+func Paths(paths map[string]string) LoadOption {
+	return func(opts *LoadOptions) {
+		if opts.MessagerOptions == nil {
+			opts.MessagerOptions = make(map[string]*MessagerOptions)
+		}
 		for name, path := range paths {
 			if opts.MessagerOptions[name] == nil {
 				opts.MessagerOptions[name] = &MessagerOptions{}
@@ -243,8 +262,11 @@ func Paths(paths map[string]string) Option {
 // NOTE: only JSON, Bin, and Text formats are supported.
 //
 // Deprecated: use [WithMessagerOptions] instead.
-func PatchPaths(paths map[string][]string) Option {
-	return func(opts *Options) {
+func PatchPaths(paths map[string][]string) LoadOption {
+	return func(opts *LoadOptions) {
+		if opts.MessagerOptions == nil {
+			opts.MessagerOptions = make(map[string]*MessagerOptions)
+		}
 		for name, path := range paths {
 			if opts.MessagerOptions[name] == nil {
 				opts.MessagerOptions[name] = &MessagerOptions{}
@@ -255,8 +277,8 @@ func PatchPaths(paths map[string][]string) Option {
 }
 
 // PatchDirs specifies the directory paths for config patching.
-func PatchDirs(dirs ...string) Option {
-	return func(opts *Options) {
+func PatchDirs(dirs ...string) LoadOption {
+	return func(opts *LoadOptions) {
 		opts.PatchDirs = dirs
 	}
 }
@@ -264,15 +286,15 @@ func PatchDirs(dirs ...string) Option {
 // Mode specifies the loading mode for config patching.
 //
 // NOTE: only JSON, Bin, and Text formats are supported.
-func Mode(mode LoadMode) Option {
-	return func(opts *Options) {
-		opts.Mode = mode
+func Mode(mode LoadMode) LoadOption {
+	return func(opts *LoadOptions) {
+		opts.Mode = &mode
 	}
 }
 
 // WithMessagerOptions sets the messager options.
-func WithMessagerOptions(options map[string]*MessagerOptions) Option {
-	return func(opts *Options) {
+func WithMessagerOptions(options map[string]*MessagerOptions) LoadOption {
+	return func(opts *LoadOptions) {
 		opts.MessagerOptions = options
 	}
 }

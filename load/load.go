@@ -23,14 +23,17 @@ import (
 )
 
 // Load loads message's content based on the given dir, format, and load options.
-func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
+func Load(msg proto.Message, dir string, fmt format.Format, options ...LoadOption) error {
 	name := string(msg.ProtoReflect().Descriptor().Name())
-	opts := ParseMessagerOptionsFromOptions(ParseOptions(options...), name)
+	opts := ParseMessagerOptions(ParseOptions(options...), name)
 	return LoadMessagerInDir(msg, dir, fmt, opts)
 }
 
 // LoadMessagerInDir loads message's content in the given dir, based on format and messager options.
 func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
+	if opts == nil {
+		opts = &MessagerOptions{}
+	}
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, opts)
 	}
@@ -49,7 +52,7 @@ func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
 		return loadWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
 	}
-	return opts.LoadFunc(msg, path, fmt, opts)
+	return opts.GetLoadFunc()(msg, path, fmt, opts)
 }
 
 // LoadMessager is the default [LoadFunc] which loads the message's content
@@ -57,7 +60,10 @@ func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
 func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-	content, err := opts.ReadFunc(path)
+	if opts == nil {
+		opts = &MessagerOptions{}
+	}
+	content, err := opts.GetReadFunc()(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
 	}
@@ -66,9 +72,11 @@ func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *Messa
 
 func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
 	name := string(msg.ProtoReflect().Descriptor().Name())
-	if opts.Mode == ModeOnlyMain {
+	mode := opts.GetMode()
+	loadFunc := opts.GetLoadFunc()
+	if mode == ModeOnlyMain {
 		// ignore patch files when ModeOnlyMain specified
-		return opts.LoadFunc(msg, path, fmt, opts)
+		return loadFunc(msg, path, fmt, opts)
 	}
 	var patchPaths []string
 	if opts.PatchPaths != nil {
@@ -93,32 +101,32 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 		}
 	}
 	if len(existedPatchPaths) == 0 {
-		if opts.Mode == ModeOnlyPatch {
+		if mode == ModeOnlyPatch {
 			// just returns empty message when ModeOnlyPatch specified but no valid patch file provided.
 			return nil
 		}
 		// no valid patch path provided, then just load from the "main" file.
-		return opts.LoadFunc(msg, path, fmt, opts)
+		return loadFunc(msg, path, fmt, opts)
 	}
 
 	switch patch {
 	case tableaupb.Patch_PATCH_REPLACE:
 		// just use the last "patch" file
 		patchPath := existedPatchPaths[len(existedPatchPaths)-1]
-		if err := opts.LoadFunc(msg, patchPath, format.GetFormat(patchPath), opts); err != nil {
+		if err := loadFunc(msg, patchPath, format.GetFormat(patchPath), opts); err != nil {
 			return err
 		}
 	case tableaupb.Patch_PATCH_MERGE:
-		if opts.Mode != ModeOnlyPatch {
+		if mode != ModeOnlyPatch {
 			// load msg from the "main" file
-			if err := opts.LoadFunc(msg, path, fmt, opts); err != nil {
+			if err := loadFunc(msg, path, fmt, opts); err != nil {
 				return err
 			}
 		}
 		patchMsg := msg.ProtoReflect().New().Interface()
 		// load patchMsg from each "patch" file
 		for _, patchPath := range existedPatchPaths {
-			if err := opts.LoadFunc(patchMsg, patchPath, format.GetFormat(patchPath), opts); err != nil {
+			if err := loadFunc(patchMsg, patchPath, format.GetFormat(patchPath), opts); err != nil {
 				return err
 			}
 			if err := xproto.PatchMessage(msg, patchMsg); err != nil {
@@ -136,6 +144,9 @@ func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tabl
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
 func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+	if opts == nil {
+		opts = &MessagerOptions{}
+	}
 	var unmarshalErr error
 	switch fmt {
 	case format.JSON:
@@ -193,7 +204,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 
 	sheetInfo := &confgen.SheetInfo{
 		ProtoPackage:    string(md.ParentFile().Package()),
-		LocationName:    opts.LocationName,
+		LocationName:    opts.GetLocationName(),
 		PrimaryBookName: bookOpts.Name,
 		MD:              md,
 		BookOpts:        bookOpts,

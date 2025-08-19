@@ -21,7 +21,7 @@ func TestLoad(t *testing.T) {
 		msg     proto.Message
 		dir     string
 		fmt     format.Format
-		options []Option
+		options []LoadOption
 	}
 	tests := []struct {
 		name        string
@@ -36,7 +36,7 @@ func TestLoad(t *testing.T) {
 				msg:     &unittestpb.ItemConf{},
 				dir:     "../testdata/",
 				fmt:     format.CSV,
-				options: []Option{},
+				options: []LoadOption{},
 			},
 			wantErr: false,
 		},
@@ -46,7 +46,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.CSV,
-				options: []Option{
+				options: []LoadOption{
 					SubdirRewrites(map[string]string{"unittest": "unittest-invalid-dir"}),
 				},
 			},
@@ -58,7 +58,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../",
 				fmt: format.CSV,
-				options: []Option{
+				options: []LoadOption{
 					SubdirRewrites(map[string]string{
 						"unittest/": "testdata/unittest/",
 					}),
@@ -72,7 +72,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					LocationName("Local"),
 					IgnoreUnknownFields(),
 				},
@@ -85,7 +85,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/invalidconf/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					LocationName("Local"),
 					IgnoreUnknownFields(),
 				},
@@ -108,7 +108,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.Bin,
-				options: []Option{
+				options: []LoadOption{
 					LocationName("Local"),
 				},
 			},
@@ -120,7 +120,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					Paths(map[string]string{
 						"ItemConf": "../testdata/unittest/conf/ItemConf.json",
 					}),
@@ -149,7 +149,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					Paths(map[string]string{
 						"ItemConf": "../testdata/unittest/conf/ItemConf.bin",
 					}),
@@ -163,7 +163,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					Paths(map[string]string{
 						"ItemConf": "../testdata/unittest/conf/ItemConf-invalid.json",
 					}),
@@ -177,7 +177,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					Paths(map[string]string{
 						"ItemConf": "../testdata/unittest/Unittest#ItemConf.csv",
 					}),
@@ -191,7 +191,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					WithReadFunc(func(_ string) ([]byte, error) {
 						return []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`), nil
 					}),
@@ -220,7 +220,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					WithLoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
 						bytes := []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
 						return Unmarshal(bytes, msg, path, fmt, opts)
@@ -250,7 +250,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					WithLoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
 						bytes := []byte(`{"itemMap":{"1":{"id":1,"num":100},"2":{"id":2,"num":200},"3":{"id":3,"num":300}}}`)
 						return Unmarshal(bytes, msg, path, fmt, opts)
@@ -290,7 +290,7 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
+				options: []LoadOption{
 					IgnoreUnknownFields(),
 					WithMessagerOptions(map[string]*MessagerOptions{
 						"ItemConf": {
@@ -355,7 +355,7 @@ func TestLoadWithPatch(t *testing.T) {
 		msg     proto.Message
 		dir     string
 		fmt     format.Format
-		options []Option
+		options []LoadOption
 	}
 	tests := []struct {
 		name string
@@ -367,7 +367,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchReplaceConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf/")},
+				options: []LoadOption{PatchDirs("../testdata/unittest/patchconf/")},
 			},
 		},
 		{
@@ -376,7 +376,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchReplaceConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchReplaceConf": {"../testdata/unittest/patchconf/PatchReplaceConf.json"}})},
+				options: []LoadOption{PatchPaths(map[string][]string{"PatchReplaceConf": {"../testdata/unittest/patchconf/PatchReplaceConf.json"}})},
 			},
 		},
 		{
@@ -385,7 +385,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchReplaceConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/not-existed/")},
+				options: []LoadOption{PatchDirs("../testdata/unittest/not-existed/")},
 			},
 		},
 		{
@@ -394,7 +394,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf/")},
+				options: []LoadOption{PatchDirs("../testdata/unittest/patchconf/")},
 			},
 		},
 		{
@@ -403,7 +403,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json"}})},
+				options: []LoadOption{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json"}})},
 			},
 		},
 		{
@@ -412,7 +412,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json"}}), PatchDirs("../testdata/unittest/patchconf2/")},
+				options: []LoadOption{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json"}}), PatchDirs("../testdata/unittest/patchconf2/")},
 			},
 		},
 		{
@@ -421,7 +421,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf2/")},
+				options: []LoadOption{PatchDirs("../testdata/unittest/patchconf2/")},
 			},
 		},
 		{
@@ -430,7 +430,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf2/PatchMergeConf.txt"}})},
+				options: []LoadOption{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf2/PatchMergeConf.txt"}})},
 			},
 		},
 		{
@@ -439,7 +439,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/not-existed/")},
+				options: []LoadOption{PatchDirs("../testdata/unittest/not-existed/")},
 			},
 		},
 		{
@@ -448,7 +448,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.RecursivePatchConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf/")},
+				options: []LoadOption{PatchDirs("../testdata/unittest/patchconf/")},
 			},
 		},
 		{
@@ -457,7 +457,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf/", "../testdata/unittest/patchconf2/")},
+				options: []LoadOption{PatchDirs("../testdata/unittest/patchconf/", "../testdata/unittest/patchconf2/")},
 			},
 		},
 		{
@@ -466,7 +466,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json", "some/path/that/does/not/exist"}})},
+				options: []LoadOption{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json", "some/path/that/does/not/exist"}})},
 			},
 		},
 		{
@@ -475,7 +475,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), Mode(ModeOnlyMain)},
+				options: []LoadOption{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), Mode(ModeOnlyMain)},
 			},
 		},
 		{
@@ -484,7 +484,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), Mode(ModeOnlyPatch)},
+				options: []LoadOption{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), Mode(ModeOnlyPatch)},
 			},
 		},
 		{
@@ -493,7 +493,7 @@ func TestLoadWithPatch(t *testing.T) {
 				msg:     &unittestpb.PatchMergeConf{},
 				dir:     "../testdata/unittest/conf/",
 				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"some/path/that/does/not/exist"}}), Mode(ModeOnlyPatch)},
+				options: []LoadOption{PatchPaths(map[string][]string{"PatchMergeConf": {"some/path/that/does/not/exist"}}), Mode(ModeOnlyPatch)},
 			},
 		},
 	}
