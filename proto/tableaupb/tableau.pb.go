@@ -867,17 +867,26 @@ type WorksheetOptions struct {
 	// Generate OrderedMap accessers or not.
 	OrderedMap bool `protobuf:"varint,50,opt,name=ordered_map,json=orderedMap,proto3" json:"ordered_map,omitempty"`
 	// Generate index accessers, and multiple index columns are comma-separated.
-	// Format: <ColumnName>[@IndexName], if IndexName is not set, it will be this
-	// column’s parent struct type name.
 	//
-	// Composite indexes (or multicolumn indexes) are in the form:
-	// ([column1, column2, column3,...])[@IndexName]
+	// # Single-column index
+	//
+	// Form: Column<ColumnX,ColumnY,...>[@IndexName]
+	//
+	// If IndexName is not set, it will be this column’s parent struct type name.
+	// The columns in the angle brackets `<>` specify the sorting columns, which
+	// the result array of same index key sort by.
+	//
+	// # Multi-column index
+	//
+	// Form: (Column1,Column2,...)<ColumnX,ColumnY,...>[@IndexName]
 	//
 	// Examples:
 	//   - ID
-	//   - ID@Item
+	//   - ID<ID>@Item
 	//   - (ID,Type)
 	//   - (ID,Type)@Item
+	//   - (ID,Type)<ID>@Item
+	//   - (ID,Type)<Type,Priority>@Item
 	//   - ID, (ID,Type)@Item
 	Index []string `protobuf:"bytes,51,rep,name=index,proto3" json:"index,omitempty"`
 	// Specify loader language options.
