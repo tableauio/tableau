@@ -155,9 +155,9 @@ type ReadFunc func(name string) ([]byte, error)
 // NOTE: only output formats (JSON, Bin, Text) are supported.
 type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error
 
-// ParseMessagerOptions parses messager options with both global-level and
+// ParseMessagerOptionsByName parses messager options with both global-level and
 // messager-level options taken into consideration.
-func ParseMessagerOptions(o *LoadOptions, name string) *MessagerOptions {
+func ParseMessagerOptionsByName(o *LoadOptions, name string) *MessagerOptions {
 	var mopts MessagerOptions
 	if o == nil {
 		return &mopts
