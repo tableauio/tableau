@@ -121,8 +121,10 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: []Option{
-					Paths(map[string]string{
-						"ItemConf": "../testdata/unittest/conf/ItemConf.json",
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"ItemConf": {
+							Path: "../testdata/unittest/conf/ItemConf.json",
+						},
 					}),
 				},
 			},
@@ -150,8 +152,10 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: []Option{
-					Paths(map[string]string{
-						"ItemConf": "../testdata/unittest/conf/ItemConf.bin",
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"ItemConf": {
+							Path: "../testdata/unittest/conf/ItemConf.bin",
+						},
 					}),
 				},
 			},
@@ -164,8 +168,10 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: []Option{
-					Paths(map[string]string{
-						"ItemConf": "../testdata/unittest/conf/ItemConf-invalid.json",
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"ItemConf": {
+							Path: "../testdata/unittest/conf/ItemConf-invalid.json",
+						},
 					}),
 				},
 			},
@@ -178,8 +184,10 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: []Option{
-					Paths(map[string]string{
-						"ItemConf": "../testdata/unittest/Unittest#ItemConf.csv",
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"ItemConf": {
+							Path: "../testdata/unittest/Unittest#ItemConf.csv",
+						},
 					}),
 				},
 			},
@@ -330,8 +338,10 @@ func TestLoad(t *testing.T) {
 
 func TestLoadJSON_E0002(t *testing.T) {
 	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
-		Paths(map[string]string{
-			"ItemConf": "../testdata/unittest/invalidconf/ItemConf.json",
+		WithMessagerOptions(map[string]*MessagerOptions{
+			"ItemConf": {
+				Path: "../testdata/unittest/invalidconf/ItemConf.json",
+			},
 		}),
 	)
 	require.Error(t, err, "should return an error")
@@ -340,8 +350,10 @@ func TestLoadJSON_E0002(t *testing.T) {
 	t.Logf("error: %s", desc.String())
 
 	err = Load(&unittestpb.ItemConf{}, "../testdata/", format.Text,
-		Paths(map[string]string{
-			"ItemConf": "../testdata/unittest/invalidconf/ItemConf.txt",
+		WithMessagerOptions(map[string]*MessagerOptions{
+			"ItemConf": {
+				Path: "../testdata/unittest/invalidconf/ItemConf.txt",
+			},
 		}),
 	)
 	require.Error(t, err, "should return an error")
@@ -364,136 +376,212 @@ func TestLoadWithPatch(t *testing.T) {
 		{
 			name: "PatchDirs-replace",
 			args: args{
-				msg:     &unittestpb.PatchReplaceConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf/")},
+				msg: &unittestpb.PatchReplaceConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					PatchDirs("../testdata/unittest/patchconf/"),
+				},
 			},
 		},
 		{
 			name: "PatchPaths-replace",
 			args: args{
-				msg:     &unittestpb.PatchReplaceConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchReplaceConf": {"../testdata/unittest/patchconf/PatchReplaceConf.json"}})},
+				msg: &unittestpb.PatchReplaceConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"PatchReplaceConf": {
+							PatchPaths: []string{"../testdata/unittest/patchconf/PatchReplaceConf.json"},
+						},
+					}),
+				},
 			},
 		},
 		{
 			name: "PatchDirs-replace-not-existed",
 			args: args{
-				msg:     &unittestpb.PatchReplaceConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/not-existed/")},
+				msg: &unittestpb.PatchReplaceConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					PatchDirs("../testdata/unittest/not-existed/"),
+				},
 			},
 		},
 		{
 			name: "PatchDirs-merge-none-map",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf/")},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					PatchDirs("../testdata/unittest/patchconf/"),
+				},
 			},
 		},
 		{
 			name: "PatchPaths-merge-none-map",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json"}})},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"PatchMergeConf": {
+							PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
+						},
+					}),
+				},
 			},
 		},
 		{
 			name: "PatchPaths-with-PatchDirs-merge-none-map",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json"}}), PatchDirs("../testdata/unittest/patchconf2/")},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"PatchMergeConf": {
+							PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
+						},
+					}),
+					PatchDirs("../testdata/unittest/patchconf2/"),
+				},
 			},
 		},
 		{
 			name: "PatchDirs-merge-map",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf2/")},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					PatchDirs("../testdata/unittest/patchconf2/"),
+				},
 			},
 		},
 		{
 			name: "PatchPaths-different-format-merge-map",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf2/PatchMergeConf.txt"}})},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"PatchMergeConf": {
+							PatchPaths: []string{"../testdata/unittest/patchconf2/PatchMergeConf.txt"},
+						},
+					}),
+				},
 			},
 		},
 		{
 			name: "PatchDirs-merge-not-existed",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/not-existed/")},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					PatchDirs("../testdata/unittest/not-existed/"),
+				},
 			},
 		},
 		{
 			name: "Recursive-patch",
 			args: args{
-				msg:     &unittestpb.RecursivePatchConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf/")},
+				msg: &unittestpb.RecursivePatchConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					PatchDirs("../testdata/unittest/patchconf/"),
+				},
 			},
 		},
 		{
 			name: "PatchDirs-merge-multiple-dirs",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchDirs("../testdata/unittest/patchconf/", "../testdata/unittest/patchconf2/")},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					PatchDirs("../testdata/unittest/patchconf/", "../testdata/unittest/patchconf2/"),
+				},
 			},
 		},
 		{
 			name: "PatchPaths-merge-multiple-paths",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json", "some/path/that/does/not/exist"}})},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"PatchMergeConf": {
+							PatchPaths: []string{
+								"../testdata/unittest/patchconf/PatchMergeConf.json",
+								"../testdata/unittest/patchconf2/PatchMergeConf.json",
+								"some/path/that/does/not/exist",
+							},
+						},
+					}),
+				},
 			},
 		},
 		{
 			name: "ModeOnlyMain",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), Mode(ModeOnlyMain)},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"PatchMergeConf": {
+							PatchPaths: []string{
+								"../testdata/unittest/patchconf/PatchMergeConf.json",
+								"../testdata/unittest/patchconf2/PatchMergeConf.json",
+							},
+						},
+					}),
+					Mode(ModeOnlyMain),
+				},
 			},
 		},
 		{
 			name: "ModeOnlyPatch",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"../testdata/unittest/patchconf/PatchMergeConf.json", "../testdata/unittest/patchconf2/PatchMergeConf.json"}}), Mode(ModeOnlyPatch)},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"PatchMergeConf": {
+							PatchPaths: []string{
+								"../testdata/unittest/patchconf/PatchMergeConf.json",
+								"../testdata/unittest/patchconf2/PatchMergeConf.json",
+							},
+						},
+					}),
+					Mode(ModeOnlyPatch),
+				},
 			},
 		},
 		{
 			name: "ModeOnlyPatch-but-no-valid-patch-file",
 			args: args{
-				msg:     &unittestpb.PatchMergeConf{},
-				dir:     "../testdata/unittest/conf/",
-				fmt:     format.JSON,
-				options: []Option{PatchPaths(map[string][]string{"PatchMergeConf": {"some/path/that/does/not/exist"}}), Mode(ModeOnlyPatch)},
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: []Option{
+					WithMessagerOptions(map[string]*MessagerOptions{
+						"PatchMergeConf": {
+							PatchPaths: []string{"some/path/that/does/not/exist"},
+						},
+					}),
+					Mode(ModeOnlyPatch),
+				},
 			},
 		},
 	}
@@ -515,8 +603,10 @@ func TestLoadWithPatch(t *testing.T) {
 
 func TestLoadEmptyJSON_E0002(t *testing.T) {
 	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
-		Paths(map[string]string{
-			"ItemConf": "../testdata/unittest/invalidconf/Empty.json",
+		WithMessagerOptions(map[string]*MessagerOptions{
+			"ItemConf": {
+				Path: "../testdata/unittest/invalidconf/Empty.json",
+			},
 		}),
 	)
 	require.Error(t, err, "should return an error")
@@ -528,8 +618,10 @@ func TestLoadEmptyJSON_E0002(t *testing.T) {
 
 func TestLoadEmptyText(t *testing.T) {
 	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
-		Paths(map[string]string{
-			"ItemConf": "../testdata/unittest/invalidconf/Empty.txt",
+		WithMessagerOptions(map[string]*MessagerOptions{
+			"ItemConf": {
+				Path: "../testdata/unittest/invalidconf/Empty.txt",
+			},
 		}),
 	)
 	require.NoError(t, err, "should return no error")
