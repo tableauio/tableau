@@ -58,15 +58,15 @@ func Open(filename string, sheetName string) (*excelize.File, error) {
 			return nil, xerrors.Wrapf(err, "failed to set doc props: %s", filename)
 		}
 		// The newly created workbook will by default contain a worksheet named `Sheet1`.
-		wb.SetSheetName("Sheet1", sheetName)
-		wb.SetDefaultFont("Courier")
+		_ = wb.SetSheetName("Sheet1", sheetName)
+		_ = wb.SetDefaultFont("Courier")
 	} else {
 		// fmt.Println("existed file: ", filename)
 		wb, err = excelize.OpenFile(filename)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to open file: %s", filename)
 		}
-		wb.NewSheet(sheetName)
+		_, _ = wb.NewSheet(sheetName)
 	}
 	return wb, nil
 }
