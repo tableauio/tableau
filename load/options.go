@@ -170,14 +170,6 @@ type Options struct {
 	MessagerOptions map[string]*MessagerOptions
 }
 
-// GetMessagerOptions returns messager name to a MessageOptions mapping.
-func (o *Options) GetMessagerOptions() map[string]*MessagerOptions {
-	if o == nil {
-		return nil
-	}
-	return o.MessagerOptions
-}
-
 // ParseMessagerOptionsByName parses messager options with both global-level and
 // messager-level options taken into consideration.
 func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
