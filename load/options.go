@@ -238,47 +238,6 @@ func SubdirRewrites(subdirRewrites map[string]string) LoadOption {
 	}
 }
 
-// Paths maps each messager name to a corresponding config file path.
-// If specified, then the main messager will be parsed from the file
-// directly, other than the specified load dir.
-//
-// NOTE: only JSON, Bin, and Text formats are supported.
-//
-// Deprecated: use [WithMessagerOptions] instead.
-func Paths(paths map[string]string) LoadOption {
-	return func(opts *LoadOptions) {
-		if opts.MessagerOptions == nil {
-			opts.MessagerOptions = make(map[string]*MessagerOptions)
-		}
-		for name, path := range paths {
-			if opts.MessagerOptions[name] == nil {
-				opts.MessagerOptions[name] = &MessagerOptions{}
-			}
-			opts.MessagerOptions[name].Path = path
-		}
-	}
-}
-
-// PatchPaths maps each messager name to one or multiple corresponding patch
-// file paths. If specified, then main messager will be patched.
-//
-// NOTE: only JSON, Bin, and Text formats are supported.
-//
-// Deprecated: use [WithMessagerOptions] instead.
-func PatchPaths(paths map[string][]string) LoadOption {
-	return func(opts *LoadOptions) {
-		if opts.MessagerOptions == nil {
-			opts.MessagerOptions = make(map[string]*MessagerOptions)
-		}
-		for name, path := range paths {
-			if opts.MessagerOptions[name] == nil {
-				opts.MessagerOptions[name] = &MessagerOptions{}
-			}
-			opts.MessagerOptions[name].PatchPaths = path
-		}
-	}
-}
-
 // PatchDirs specifies the directory paths for config patching.
 func PatchDirs(dirs ...string) LoadOption {
 	return func(opts *LoadOptions) {
