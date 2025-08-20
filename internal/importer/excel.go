@@ -136,7 +136,7 @@ func readExcelSheets(file *excelize.File, srOpts []*sheetReaderOptions) ([]*book
 // NOTE: If topN is 0, then reads all rows.
 func readExcelSheetRows(f *excelize.File, sheetName string, topN uint) (rows [][]string, err error) {
 	if idx, err := f.GetSheetIndex(sheetName); err != nil {
-		return nil, err
+		return nil, xerrors.Wrapf(err, "failed to get sheet index: %s", sheetName)
 	} else if idx == -1 {
 		return nil, ErrSheetNotFound
 	}
