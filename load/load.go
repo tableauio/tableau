@@ -48,7 +48,7 @@ func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
 	if sheetOpts.GetPatch() != tableaupb.Patch_PATCH_NONE {
-		return LoadMessagerWithPatch(msg, path, fmt, sheetOpts.GetPatch(), opts)
+		return loadWithPatch(msg, path, fmt, sheetOpts.GetPatch(), opts)
 	}
 	return opts.GetLoadFunc()(msg, path, fmt, opts)
 }
@@ -65,7 +65,7 @@ func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *Messa
 	return Unmarshal(content, msg, path, fmt, opts)
 }
 
-func LoadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
+func loadWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
 	name := string(msg.ProtoReflect().Descriptor().Name())
 	mode := opts.GetMode()
 	loadFunc := opts.GetLoadFunc()
@@ -139,9 +139,6 @@ func LoadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
 func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-	if opts == nil {
-		opts = &MessagerOptions{}
-	}
 	var unmarshalErr error
 	switch fmt {
 	case format.JSON:
