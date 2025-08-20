@@ -66,7 +66,7 @@ type BaseOptions struct {
 
 // GetLocationName returns the location name.
 func (o *BaseOptions) GetLocationName() string {
-	if o.LocationName == "" {
+	if o == nil || o.LocationName == "" {
 		return "Local"
 	}
 	return o.LocationName
@@ -75,15 +75,23 @@ func (o *BaseOptions) GetLocationName() string {
 // GetIgnoreUnknownFields returns whether to ignore unknown fields when loading
 // JSON.
 func (o *BaseOptions) GetIgnoreUnknownFields() bool {
-	if o.IgnoreUnknownFields == nil {
+	if o == nil || o.IgnoreUnknownFields == nil {
 		return false
 	}
 	return *o.IgnoreUnknownFields
 }
 
+// GetPatchDirs returns the directory paths for config patching.
+func (o *BaseOptions) GetPatchDirs() []string {
+	if o == nil {
+		return nil
+	}
+	return o.PatchDirs
+}
+
 // GetMode returns the loading mode.
 func (o *BaseOptions) GetMode() LoadMode {
-	if o.Mode == nil {
+	if o == nil || o.Mode == nil {
 		return ModeAll
 	}
 	return *o.Mode
@@ -91,7 +99,7 @@ func (o *BaseOptions) GetMode() LoadMode {
 
 // GetReadFunc returns the read function.
 func (o *BaseOptions) GetReadFunc() ReadFunc {
-	if o.ReadFunc == nil {
+	if o == nil || o.ReadFunc == nil {
 		return os.ReadFile
 	}
 	return o.ReadFunc
@@ -99,10 +107,18 @@ func (o *BaseOptions) GetReadFunc() ReadFunc {
 
 // GetLoadFunc returns the load function.
 func (o *BaseOptions) GetLoadFunc() LoadFunc {
-	if o.LoadFunc == nil {
+	if o == nil || o.LoadFunc == nil {
 		return LoadMessager
 	}
 	return o.LoadFunc
+}
+
+// GetSubdirRewrites returns the subdir path mapping.
+func (o *BaseOptions) GetSubdirRewrites() map[string]string {
+	if o == nil {
+		return nil
+	}
+	return o.SubdirRewrites
 }
 
 // MessagerOptions is the options struct for a messager.
@@ -114,7 +130,7 @@ type MessagerOptions struct {
 	//
 	// NOTE: only output formats(JSON, Bin, Text) are supported.
 	//
-	// Default: nil.
+	// Default: "".
 	Path string
 
 	// PatchPaths specifies one or multiple corresponding patch file paths.
@@ -124,6 +140,22 @@ type MessagerOptions struct {
 	//
 	// Default: nil.
 	PatchPaths []string
+}
+
+// GetPath returns messager's config file path.
+func (o *MessagerOptions) GetPath() string {
+	if o == nil {
+		return ""
+	}
+	return o.Path
+}
+
+// GetPatchPaths returns corresponding patch file paths.
+func (o *MessagerOptions) GetPatchPaths() []string {
+	if o == nil {
+		return nil
+	}
+	return o.PatchPaths
 }
 
 // Options is the options struct, which contains both global-level and
@@ -138,22 +170,13 @@ type Options struct {
 	MessagerOptions map[string]*MessagerOptions
 }
 
-type LoadMode int
-
-const (
-	ModeAll       LoadMode = iota // Load all related files
-	ModeOnlyMain                  // Only load the main file
-	ModeOnlyPatch                 // Only load the patch files
-)
-
-// ReadFunc reads the config file and returns its content.
-type ReadFunc func(name string) ([]byte, error)
-
-// LoadFunc defines a func which can load message's content based on the given
-// path, format, and options.
-//
-// NOTE: only output formats (JSON, Bin, Text) are supported.
-type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error
+// GetMessagerOptions returns messager name to a MessageOptions mapping.
+func (o *Options) GetMessagerOptions() map[string]*MessagerOptions {
+	if o == nil {
+		return nil
+	}
+	return o.MessagerOptions
+}
 
 // ParseMessagerOptionsByName parses messager options with both global-level and
 // messager-level options taken into consideration.
@@ -189,7 +212,24 @@ func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
 	return &mopts
 }
 
-// Options is the functional option type.
+type LoadMode int
+
+const (
+	ModeAll       LoadMode = iota // Load all related files
+	ModeOnlyMain                  // Only load the main file
+	ModeOnlyPatch                 // Only load the patch files
+)
+
+// ReadFunc reads the config file and returns its content.
+type ReadFunc func(name string) ([]byte, error)
+
+// LoadFunc defines a func which can load message's content based on the given
+// path, format, and options.
+//
+// NOTE: only output formats (JSON, Bin, Text) are supported.
+type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error
+
+// Option is the functional option type.
 type Option func(*Options)
 
 // ParseOptions parses functional options and merge them to default Options.

@@ -32,26 +32,23 @@ func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) e
 
 // LoadMessagerInDir loads message's content in the given dir, based on format and messager options.
 func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
-	if opts == nil {
-		opts = &MessagerOptions{}
-	}
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, opts)
 	}
 	md := msg.ProtoReflect().Descriptor()
 	name := string(md.Name())
 	var path string
-	if opts.Path != "" {
+	if opts.GetPath() != "" {
 		// path specified directly, then use it instead of dir.
-		path = opts.Path
+		path = opts.GetPath()
 		fmt = format.GetFormat(path)
 	} else {
 		// path in dir
 		path = filepath.Join(dir, name+format.Format2Ext(fmt))
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
-	if sheetOpts.Patch != tableaupb.Patch_PATCH_NONE {
-		return LoadMessagerWithPatch(msg, path, fmt, sheetOpts.Patch, opts)
+	if sheetOpts.GetPatch() != tableaupb.Patch_PATCH_NONE {
+		return LoadMessagerWithPatch(msg, path, fmt, sheetOpts.GetPatch(), opts)
 	}
 	return opts.GetLoadFunc()(msg, path, fmt, opts)
 }
@@ -61,9 +58,6 @@ func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
 func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-	if opts == nil {
-		opts = &MessagerOptions{}
-	}
 	content, err := opts.GetReadFunc()(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
@@ -72,9 +66,6 @@ func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *Messa
 }
 
 func LoadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
-	if opts == nil {
-		opts = &MessagerOptions{}
-	}
 	name := string(msg.ProtoReflect().Descriptor().Name())
 	mode := opts.GetMode()
 	loadFunc := opts.GetLoadFunc()
@@ -83,12 +74,12 @@ func LoadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 		return loadFunc(msg, path, fmt, opts)
 	}
 	var patchPaths []string
-	if opts.PatchPaths != nil {
+	if opts.GetPatchPaths() != nil {
 		// patch path specified in PatchPaths, then use it instead of PatchDirs.
-		patchPaths = opts.PatchPaths
+		patchPaths = opts.GetPatchPaths()
 	} else {
 		// patch path in PatchDirs
-		for _, patchDir := range opts.PatchDirs {
+		for _, patchDir := range opts.GetPatchDirs() {
 			patchPaths = append(patchPaths, filepath.Join(patchDir, name+format.Format2Ext(fmt)))
 		}
 	}
@@ -182,12 +173,15 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 		return xerrors.Errorf("workbook options not found of protofile: %v", protofile)
 	}
 	// rewrite subdir
-	rewrittenWorkbookName := xfs.RewriteSubdir(bookOpts.Name, opts.SubdirRewrites)
+	bookName := bookOpts.GetName()
+	subdirRewrites := opts.GetSubdirRewrites()
+	rewrittenWorkbookName := xfs.RewriteSubdir(bookName, subdirRewrites)
 	wbPath := filepath.Join(dir, rewrittenWorkbookName)
 	log.Debugf("load origin file: %v", wbPath)
 	// get sheet name
 	_, sheetOpts := confgen.ParseMessageOptions(md)
-	sheets := []string{sheetOpts.Name}
+	sheetName := sheetOpts.GetName()
+	sheets := []string{sheetName}
 
 	self, err := importer.New(
 		context.Background(),
@@ -199,7 +193,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 	}
 
 	// get merger importer infos
-	impInfos, err := importer.GetMergerImporters(context.Background(), dir, bookOpts.Name, sheetOpts.Name, sheetOpts.Merger, opts.SubdirRewrites)
+	impInfos, err := importer.GetMergerImporters(context.Background(), dir, bookName, sheetName, sheetOpts.GetMerger(), subdirRewrites)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to get merger importer infos for %s", wbPath)
 	}
@@ -209,13 +203,13 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 	sheetInfo := &confgen.SheetInfo{
 		ProtoPackage:    string(md.ParentFile().Package()),
 		LocationName:    opts.GetLocationName(),
-		PrimaryBookName: bookOpts.Name,
+		PrimaryBookName: bookName,
 		MD:              md,
 		BookOpts:        bookOpts,
 		SheetOpts:       sheetOpts,
 		ExtInfo: &confgen.SheetParserExtInfo{
 			InputDir:       dir,
-			SubdirRewrites: opts.SubdirRewrites,
+			SubdirRewrites: subdirRewrites,
 			PRFiles:        protoregistry.GlobalFiles,
 			BookFormat:     self.Format(),
 		},
