@@ -154,7 +154,7 @@ func TestLoad(t *testing.T) {
 				options: []Option{
 					WithMessagerOptions(map[string]*MessagerOptions{
 						"ItemConf": {
-							Path: "../testdata/unittest/conf/ItemConf.bin",
+							Path: "../testdata/unittest/conf/ItemConf.binpb",
 						},
 					}),
 				},
@@ -352,7 +352,7 @@ func TestLoadJSON_E0002(t *testing.T) {
 	err = Load(&unittestpb.ItemConf{}, "../testdata/", format.Text,
 		WithMessagerOptions(map[string]*MessagerOptions{
 			"ItemConf": {
-				Path: "../testdata/unittest/invalidconf/ItemConf.txt",
+				Path: "../testdata/unittest/invalidconf/ItemConf.txtpb",
 			},
 		}),
 	)
@@ -472,7 +472,7 @@ func TestLoadWithPatch(t *testing.T) {
 				options: []Option{
 					WithMessagerOptions(map[string]*MessagerOptions{
 						"PatchMergeConf": {
-							PatchPaths: []string{"../testdata/unittest/patchconf2/PatchMergeConf.txt"},
+							PatchPaths: []string{"../testdata/unittest/patchconf2/PatchMergeConf.txtpb"},
 						},
 					}),
 				},
@@ -620,7 +620,7 @@ func TestLoadEmptyText(t *testing.T) {
 	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
 		WithMessagerOptions(map[string]*MessagerOptions{
 			"ItemConf": {
-				Path: "../testdata/unittest/invalidconf/Empty.txt",
+				Path: "../testdata/unittest/invalidconf/Empty.txtpb",
 			},
 		}),
 	)
