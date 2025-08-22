@@ -171,7 +171,10 @@ func (t *Table) ExportCSV(writer io.Writer) error {
 
 // ExportExcel exports Table to excel sheet.
 func (t *Table) ExportExcel(file *excelize.File, sheetName string) error {
-	_, _ = file.NewSheet(sheetName)
+	_, err := file.NewSheet(sheetName)
+	if err != nil {
+		return xerrors.Wrapf(err, "failed to create new sheet %s", sheetName)
+	}
 	// TODO: clean up the sheet by using RemoveRow API.
 	for nrow, row := range t.Rows {
 		// file.SetRowHeight(s.Name, nrow, 20)
