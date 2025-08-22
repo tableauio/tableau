@@ -27,7 +27,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 type Generator struct {
@@ -41,8 +40,7 @@ type Generator struct {
 	OutputOpt    *options.ProtoOutputOption
 
 	// internal
-	protofiles *protoregistry.Files // all parsed imported proto file descriptors.
-	typeInfos  *xproto.TypeInfos    // predefined type infos
+	typeInfos *xproto.TypeInfos // predefined type infos
 
 	cacheMu         sync.RWMutex                 // guard fields below
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
@@ -66,7 +64,6 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
 		ctx:          ctx,
-		protofiles:   &protoregistry.Files{},
 		typeInfos:    xproto.NewTypeInfos(protoPackage),
 
 		cachedImporters: make(map[string]importer.Importer),
@@ -102,7 +99,6 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	if err != nil {
 		return err
 	}
-	gen.protofiles = protoRegistryFiles
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
 }
