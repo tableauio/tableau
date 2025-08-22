@@ -32,7 +32,7 @@ func TestStore(t *testing.T) {
 			args: args{
 				msg: itemConf,
 				dir: "_out/",
-				fmt: "json",
+				fmt: format.JSON,
 				options: []Option{
 					Pretty(true),
 					Filter(nil),            // just for test coverage
@@ -47,7 +47,7 @@ func TestStore(t *testing.T) {
 			args: args{
 				msg: itemConf,
 				dir: "_out/subdir/",
-				fmt: "json",
+				fmt: format.JSON,
 				options: []Option{
 					Name("ItemConfAlias"),
 					UseProtoNames(true),
@@ -60,7 +60,7 @@ func TestStore(t *testing.T) {
 			args: args{
 				msg: itemConf,
 				dir: "_out/",
-				fmt: "txt",
+				fmt: format.Text,
 				options: []Option{
 					Pretty(true),
 				},

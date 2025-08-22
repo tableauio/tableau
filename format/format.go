@@ -14,8 +14,8 @@ const (
 	YAML  Format = "yaml"
 	// output formats
 	JSON Format = "json"
-	Bin  Format = "bin"
-	Text Format = "txt"
+	Bin  Format = "binpb"
+	Text Format = "txtpb"
 )
 
 // File format extension
@@ -28,8 +28,8 @@ const (
 	YAMLExt  string = ".yaml"
 	// output formats
 	JSONExt string = ".json"
-	BinExt  string = ".bin"
-	TextExt string = ".txt"
+	BinExt  string = ".binpb"
+	TextExt string = ".txtpb"
 )
 
 // GetFormat returns the file's format by filename extension.
