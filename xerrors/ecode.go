@@ -282,3 +282,17 @@ func E3001(sheetName, bookName string) error {
 		"BookName":  bookName,
 	})
 }
+
+// E3002: failed to open file.
+func E3002(err error) error {
+	return renderEcode("E3002", map[string]any{
+		"Error": err,
+	})
+}
+
+// E3003: CSV workbook glob pattern matches no files.
+func E3003(glob string) error {
+	return renderEcode("E3003", map[string]any{
+		"Glob": glob,
+	})
+}

@@ -121,3 +121,11 @@ E3001:
   desc: no worksheet found in workbook
   text: worksheet "{{.SheetName}}" not found in workbook "{{.BookName}}"
   help: add proper worksheet "{{.SheetName}}" to workbook "{{.BookName}}"
+E3002:
+  desc: failed to open file
+  text: "{{.Error}}"
+  help: guarantee the workbook file exists
+E3003:
+  desc: CSV workbook glob pattern matches no files
+  text: 'no files found for workbook glob "{{.Glob}}"'
+  help: guarantee the workbook glob pattern matches at least one file

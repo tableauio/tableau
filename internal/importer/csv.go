@@ -110,7 +110,7 @@ func readCSVSheet(filename, sheetName string, topN uint) (*book.Sheet, error) {
 func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 	f, err := os.Open(filename)
 	if err != nil {
-		return nil, xerrors.Wrapf(err, "failed to open file: %s", filename)
+		return nil, xerrors.E3002(err)
 	}
 	defer func() {
 		err := f.Close()
@@ -158,7 +158,7 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string, metasheetNa
 		return nil, xerrors.Wrapf(err, "failed to glob %s", globFilename)
 	}
 	if len(matches) == 0 {
-		return nil, xerrors.Errorf("no matching files found for %s", globFilename)
+		return nil, xerrors.E3003(globFilename)
 	}
 
 	// NOTE: keep the order of sheets

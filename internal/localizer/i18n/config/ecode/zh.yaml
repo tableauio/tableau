@@ -121,3 +121,11 @@ E3001:
   desc: no worksheet found in workbook
   text: 工作簿 "{{.BookName}}" 中不存在工作表 "{{.SheetName}}"
   help: 将合适的工作表 "{{.SheetName}}" 添加到工作簿 "{{.BookName}}"
+E3002:
+  desc: failed to open file
+  text: "{{.Error}}"
+  help: 确保工作簿文件存在
+E3003:
+  desc: CSV workbook glob pattern matches no files
+  text: '工作簿通配符 "{{.Glob}}" 无法匹配到任何文件'
+  help: 确保工作簿通配符匹配到文件

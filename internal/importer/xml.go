@@ -47,7 +47,7 @@ func NewXMLImporter(ctx context.Context, filename string, sheets []string, parse
 	if mode == Protogen {
 		book, err = readXMLBookWithOnlySchemaSheet(ctx, filename, parser)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to read xml book: %s", filename)
+			return nil, err
 		}
 		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
@@ -55,7 +55,7 @@ func NewXMLImporter(ctx context.Context, filename string, sheets []string, parse
 	} else {
 		book, err = readXMLBook(ctx, filename, parser)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to read xml book: %s", filename)
+			return nil, err
 		}
 	}
 
@@ -71,7 +71,7 @@ func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) 
 
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.E3002(err)
 	}
 	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
 	rawDocs, err := extractRawXMLDocuments(ms)
@@ -113,7 +113,7 @@ func readXMLBookWithOnlySchemaSheet(ctx context.Context, filename string, parser
 
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.E3002(err)
 	}
 	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
 	rawDocs, err := extractRawXMLDocuments(ms)
@@ -127,7 +127,7 @@ func readXMLBookWithOnlySchemaSheet(ctx context.Context, filename string, parser
 		}
 		sheet, err := parseXMLSheet(doc, Protogen, metasheet.FromContext(ctx).Name)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "file: %s", filename)
+			return nil, xerrors.Wrapf(err, "failed to parse xml sheet: %s, filename: %s", doc.Root.Name, filename)
 		}
 		newBook.AddSheet(sheet)
 	}

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 )
@@ -70,6 +72,7 @@ func TestNewYAMLImporter(t *testing.T) {
 		args    args
 		want    *YAMLImporter
 		wantErr bool
+		errCode string
 	}{
 		{
 			name: "Test.yaml",
@@ -93,6 +96,7 @@ func TestNewYAMLImporter(t *testing.T) {
 				parser:   nil,
 			},
 			wantErr: true,
+			errCode: "E3002",
 		},
 		{
 			name: "NotSupportAliasNode.yaml",
@@ -119,8 +123,10 @@ func TestNewYAMLImporter(t *testing.T) {
 				t.Errorf("NewYAMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != nil {
+			if err == nil {
 				fmt.Println(got.String())
+			} else if tt.errCode != "" {
+				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errCode)
 			}
 		})
 	}

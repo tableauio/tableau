@@ -27,7 +27,7 @@ func NewYAMLImporter(ctx context.Context, filename string, sheetNames []string, 
 	if mode == Protogen {
 		book, err = readYAMLBookWithOnlySchemaSheet(ctx, filename, parser)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to read yaml book: %s", filename)
+			return nil, err
 		}
 		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
@@ -35,7 +35,7 @@ func NewYAMLImporter(ctx context.Context, filename string, sheetNames []string, 
 	} else {
 		book, err = readYAMLBook(ctx, filename, parser)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to read yaml book: %s", filename)
+			return nil, err
 		}
 	}
 
@@ -50,7 +50,7 @@ func readYAMLBook(ctx context.Context, filename string, parser book.SheetParser)
 	newBook := book.NewBook(ctx, bookName, filename, parser)
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.E3002(err)
 	}
 	// parse all documents in a file
 	decoder := yaml.NewDecoder(file)
