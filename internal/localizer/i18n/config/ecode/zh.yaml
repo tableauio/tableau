@@ -124,4 +124,4 @@ E3001:
 E3002:
   desc: failed to open file
   text: "{{.Error}}"
-  help: 确保指定的工作簿路径存在
+  help: 确保工作簿文件存在
