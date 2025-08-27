@@ -158,7 +158,7 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string, metasheetNa
 		return nil, xerrors.Wrapf(err, "failed to glob %s", globFilename)
 	}
 	if len(matches) == 0 {
-		return nil, xerrors.Errorf("no matching files found for %s", globFilename)
+		return nil, xerrors.E3003(globFilename)
 	}
 
 	// NOTE: keep the order of sheets

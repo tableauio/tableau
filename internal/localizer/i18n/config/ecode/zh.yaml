@@ -125,3 +125,7 @@ E3002:
   desc: failed to open file
   text: "{{.Error}}"
   help: 确保工作簿文件存在
+E3003:
+  desc: CSV workbook glob pattern matches no files
+  text: '工作簿通配符 "{{.Glob}}" 无法匹配到任何文件'
+  help: 确保工作簿通配符匹配到文件

@@ -24,7 +24,7 @@ func TestNewExcelImporter(t *testing.T) {
 		args       args
 		wantSheets []*book.Sheet
 		wantErr    bool
-		errcode    string
+		errCode    string
 	}{
 		{
 			name: "normal",
@@ -43,14 +43,14 @@ func TestNewExcelImporter(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "normal",
+			name: "E3002",
 			args: args{
 				ctx:      context.Background(),
 				filename: "testdata/Test_NotFound.xlsx",
 			},
 			wantSheets: nil,
 			wantErr:    true,
-			errcode:    "E3002",
+			errCode:    "E3002",
 		},
 	}
 	for _, tt := range tests {
@@ -65,7 +65,7 @@ func TestNewExcelImporter(t *testing.T) {
 					t.Errorf("NewExcelImporter() = %v, want %v", got.GetSheets(), tt.wantSheets)
 				}
 			} else {
-				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errcode)
+				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errCode)
 			}
 		})
 	}

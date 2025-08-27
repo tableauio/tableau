@@ -67,7 +67,6 @@ func Open(filename string, sheetName string) (*excelize.File, error) {
 			return nil, xerrors.Wrapf(err, "failed to set default font")
 		}
 	} else {
-		// fmt.Println("existed file: ", filename)
 		wb, err = excelize.OpenFile(filename)
 		if err != nil {
 			return nil, xerrors.E3002(err)

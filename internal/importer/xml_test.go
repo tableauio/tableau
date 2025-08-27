@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/subchen/go-xmldom"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
+	"github.com/tableauio/tableau/xerrors"
 )
 
 func Test_inspectXMLNode(t *testing.T) {
@@ -69,6 +71,7 @@ func TestNewXMLImporter(t *testing.T) {
 		args    args
 		want    *XMLImporter
 		wantErr bool
+		errCode string
 	}{
 		{
 			name: "not-exist",
@@ -78,6 +81,15 @@ func TestNewXMLImporter(t *testing.T) {
 				parser:   &TestSheetParser{},
 			},
 			wantErr: true,
+		},
+		{
+			name: "not-exist",
+			args: args{
+				filename: "testdata/not-exist.xml",
+				parser:   &TestSheetParser{},
+			},
+			wantErr: true,
+			errCode: "E3002",
 		},
 		{
 			name: "Test.xml",
@@ -121,8 +133,10 @@ func TestNewXMLImporter(t *testing.T) {
 				t.Errorf("NewXMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != nil {
+			if err == nil {
 				fmt.Println(got.String())
+			} else if tt.errCode != "" {
+				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errCode)
 			}
 		})
 	}
