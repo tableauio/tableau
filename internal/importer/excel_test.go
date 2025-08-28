@@ -80,31 +80,40 @@ func Test_readExcelSheetRows(t *testing.T) {
 		panic(err)
 	}
 
+	SetCellValue := func(cell string, value any) {
+		err := f.SetCellValue(sheetName, cell, value)
+		assert.NoError(t, err)
+	}
+
+	SetStyle := func(topLeftCell string, bottomRightCell string, style excelize.Style) {
+		s, err := f.NewStyle(&style)
+		assert.NoError(t, err)
+		err = f.SetCellStyle(sheetName, topLeftCell, bottomRightCell, s)
+		assert.NoError(t, err)
+	}
+
 	// Refer to https://xuri.me/excelize/en/style.html#number_format
 	// number format with one thousand separator (,)
-	intStyle, _ := f.NewStyle(&excelize.Style{NumFmt: 3}) // #,##0
-	f.SetCellStyle(sheetName, "A1", "A4", intStyle)
-	f.SetCellValue(sheetName, "A1", int32(10001000))
-	f.SetCellValue(sheetName, "A2", uint32(10001000))
-	f.SetCellValue(sheetName, "A3", int64(10001000))
-	f.SetCellValue(sheetName, "A4", uint64(10001000))
+	SetStyle("A1", "A4", excelize.Style{NumFmt: 3}) // #,##0
+	SetCellValue("A1", int32(10001000))
+	SetCellValue("A2", uint32(10001000))
+	SetCellValue("A3", int64(10001000))
+	SetCellValue("A4", uint64(10001000))
 
 	// float number with two decimal places
-	floatStyle, _ := f.NewStyle(&excelize.Style{NumFmt: 4}) // #,##0.00
-	f.SetCellStyle(sheetName, "A5", "A6", floatStyle)
-	f.SetCellValue(sheetName, "A5", float32(100.12345))
-	f.SetCellValue(sheetName, "A6", float64(10001000.12345))
+	SetStyle("A5", "A6", excelize.Style{NumFmt: 4}) // #,##0.00
+	SetCellValue("A5", float32(100.12345))
+	SetCellValue("A6", float64(10001000.12345))
 
-	f.SetCellValue(sheetName, "A7", "string")
-	f.SetCellValue(sheetName, "A8", []byte("bytes"))
-	f.SetCellValue(sheetName, "A9", true)
-	f.SetCellValue(sheetName, "A10", false)
+	SetCellValue("A7", "string")
+	SetCellValue("A8", []byte("bytes"))
+	SetCellValue("A9", true)
+	SetCellValue("A10", false)
 
 	// datetime with custom format
 	customFormat := "m/d/yyyy hh:mm"
-	datetimeStyle, _ := f.NewStyle(&excelize.Style{CustomNumFmt: &customFormat})
-	f.SetCellStyle(sheetName, "A11", "A11", datetimeStyle)
-	f.SetCellValue(sheetName, "A11", "2025-12-01 05:59:59")
+	SetStyle("A11", "A11", excelize.Style{CustomNumFmt: &customFormat})
+	SetCellValue("A11", "2025-12-01 05:59:59")
 
 	type args struct {
 		f         *excelize.File
