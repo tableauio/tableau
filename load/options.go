@@ -64,63 +64,6 @@ type BaseOptions struct {
 	SubdirRewrites map[string]string
 }
 
-// GetLocationName returns the location name.
-func (o *BaseOptions) GetLocationName() string {
-	if o == nil || o.LocationName == "" {
-		return "Local"
-	}
-	return o.LocationName
-}
-
-// GetIgnoreUnknownFields returns whether to ignore unknown fields when loading
-// JSON.
-func (o *BaseOptions) GetIgnoreUnknownFields() bool {
-	if o == nil || o.IgnoreUnknownFields == nil {
-		return false
-	}
-	return *o.IgnoreUnknownFields
-}
-
-// GetPatchDirs returns the directory paths for config patching.
-func (o *BaseOptions) GetPatchDirs() []string {
-	if o == nil {
-		return nil
-	}
-	return o.PatchDirs
-}
-
-// GetMode returns the loading mode.
-func (o *BaseOptions) GetMode() LoadMode {
-	if o == nil || o.Mode == nil {
-		return ModeAll
-	}
-	return *o.Mode
-}
-
-// GetReadFunc returns the read function.
-func (o *BaseOptions) GetReadFunc() ReadFunc {
-	if o == nil || o.ReadFunc == nil {
-		return os.ReadFile
-	}
-	return o.ReadFunc
-}
-
-// GetLoadFunc returns the load function.
-func (o *BaseOptions) GetLoadFunc() LoadFunc {
-	if o == nil || o.LoadFunc == nil {
-		return LoadMessager
-	}
-	return o.LoadFunc
-}
-
-// GetSubdirRewrites returns the subdir path mapping.
-func (o *BaseOptions) GetSubdirRewrites() map[string]string {
-	if o == nil {
-		return nil
-	}
-	return o.SubdirRewrites
-}
-
 // MessagerOptions is the options struct for a messager.
 type MessagerOptions struct {
 	BaseOptions
@@ -140,6 +83,63 @@ type MessagerOptions struct {
 	//
 	// Default: nil.
 	PatchPaths []string
+}
+
+// GetLocationName returns the location name.
+func (o *MessagerOptions) GetLocationName() string {
+	if o == nil || o.LocationName == "" {
+		return "Local"
+	}
+	return o.LocationName
+}
+
+// GetIgnoreUnknownFields returns whether to ignore unknown fields when loading
+// JSON.
+func (o *MessagerOptions) GetIgnoreUnknownFields() bool {
+	if o == nil || o.IgnoreUnknownFields == nil {
+		return false
+	}
+	return *o.IgnoreUnknownFields
+}
+
+// GetPatchDirs returns the directory paths for config patching.
+func (o *MessagerOptions) GetPatchDirs() []string {
+	if o == nil {
+		return nil
+	}
+	return o.PatchDirs
+}
+
+// GetMode returns the loading mode.
+func (o *MessagerOptions) GetMode() LoadMode {
+	if o == nil || o.Mode == nil {
+		return ModeAll
+	}
+	return *o.Mode
+}
+
+// GetReadFunc returns the read function.
+func (o *MessagerOptions) GetReadFunc() ReadFunc {
+	if o == nil || o.ReadFunc == nil {
+		return os.ReadFile
+	}
+	return o.ReadFunc
+}
+
+// GetLoadFunc returns the load function.
+func (o *MessagerOptions) GetLoadFunc() LoadFunc {
+	if o == nil || o.LoadFunc == nil {
+		return LoadMessager
+	}
+	return o.LoadFunc
+}
+
+// GetSubdirRewrites returns the subdir path mapping.
+func (o *MessagerOptions) GetSubdirRewrites() map[string]string {
+	if o == nil {
+		return nil
+	}
+	return o.SubdirRewrites
 }
 
 // GetPath returns messager's config file path.

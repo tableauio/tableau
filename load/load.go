@@ -22,14 +22,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// Load loads message's content based on the given dir, format, and load options.
-func Load(msg proto.Message, dir string, fmt format.Format, options ...Option) error {
-	name := string(msg.ProtoReflect().Descriptor().Name())
-	opts := ParseOptions(options...)
-	mopts := opts.ParseMessagerOptionsByName(name)
-	return LoadMessagerInDir(msg, dir, fmt, mopts)
-}
-
 // LoadMessagerInDir loads message's content in the given dir, based on format and messager options.
 func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
 	if format.IsInputFormat(fmt) {

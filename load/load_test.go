@@ -16,12 +16,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func mode(v LoadMode) *LoadMode { return &v }
+
 func TestLoad(t *testing.T) {
 	type args struct {
 		msg     proto.Message
 		dir     string
 		fmt     format.Format
-		options []Option
+		options *MessagerOptions
 	}
 	tests := []struct {
 		name        string
@@ -31,12 +33,22 @@ func TestLoad(t *testing.T) {
 		wantErrCode string
 	}{
 		{
+			name: "nil",
+			args: args{
+				msg:     &unittestpb.ItemConf{},
+				dir:     "../testdata/",
+				fmt:     format.CSV,
+				options: nil,
+			},
+			wantErr: false,
+		},
+		{
 			name: "load-origin",
 			args: args{
 				msg:     &unittestpb.ItemConf{},
 				dir:     "../testdata/",
 				fmt:     format.CSV,
-				options: []Option{},
+				options: &MessagerOptions{},
 			},
 			wantErr: false,
 		},
@@ -46,8 +58,10 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.CSV,
-				options: []Option{
-					SubdirRewrites(map[string]string{"unittest": "unittest-invalid-dir"}),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						SubdirRewrites: map[string]string{"unittest": "unittest-invalid-dir"},
+					},
 				},
 			},
 			wantErr: true,
@@ -58,10 +72,10 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../",
 				fmt: format.CSV,
-				options: []Option{
-					SubdirRewrites(map[string]string{
-						"unittest/": "testdata/unittest/",
-					}),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						SubdirRewrites: map[string]string{"unittest/": "testdata/unittest/"},
+					},
 				},
 			},
 			wantErr: false,
@@ -72,9 +86,11 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					LocationName("Local"),
-					IgnoreUnknownFields(),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						LocationName:        "Local",
+						IgnoreUnknownFields: proto.Bool(true),
+					},
 				},
 			},
 			wantErr: false,
@@ -85,9 +101,11 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/invalidconf/",
 				fmt: format.JSON,
-				options: []Option{
-					LocationName("Local"),
-					IgnoreUnknownFields(),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						LocationName:        "Local",
+						IgnoreUnknownFields: proto.Bool(true),
+					},
 				},
 			},
 			wantErr:     true,
@@ -108,8 +126,10 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.Bin,
-				options: []Option{
-					LocationName("Local"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						LocationName: "Local",
+					},
 				},
 			},
 			wantErr: false,
@@ -120,12 +140,8 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"ItemConf": {
-							Path: "../testdata/unittest/conf/ItemConf.json",
-						},
-					}),
+				options: &MessagerOptions{
+					Path: "../testdata/unittest/conf/ItemConf.json",
 				},
 			},
 			wantMsg: &unittestpb.ItemConf{
@@ -151,12 +167,8 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"ItemConf": {
-							Path: "../testdata/unittest/conf/ItemConf.binpb",
-						},
-					}),
+				options: &MessagerOptions{
+					Path: "../testdata/unittest/conf/ItemConf.binpb",
 				},
 			},
 			wantErr: false,
@@ -167,12 +179,8 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"ItemConf": {
-							Path: "../testdata/unittest/conf/ItemConf-invalid.json",
-						},
-					}),
+				options: &MessagerOptions{
+					Path: "../testdata/unittest/conf/ItemConf-invalid.json",
 				},
 			},
 			wantErr: true,
@@ -183,12 +191,8 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"ItemConf": {
-							Path: "../testdata/unittest/Unittest#ItemConf.csv",
-						},
-					}),
+				options: &MessagerOptions{
+					Path: "../testdata/unittest/Unittest#ItemConf.csv",
 				},
 			},
 			wantErr: true,
@@ -199,10 +203,12 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithReadFunc(func(_ string) ([]byte, error) {
-						return []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`), nil
-					}),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						ReadFunc: func(_ string) ([]byte, error) {
+							return []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`), nil
+						},
+					},
 				},
 			},
 			wantMsg: &unittestpb.ItemConf{
@@ -228,11 +234,13 @@ func TestLoad(t *testing.T) {
 				msg: &unittestpb.ItemConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithLoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-						bytes := []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
-						return Unmarshal(bytes, msg, path, fmt, opts)
-					}),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						LoadFunc: func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+							bytes := []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
+							return Unmarshal(bytes, msg, path, fmt, opts)
+						},
+					},
 				},
 			},
 			wantMsg: &unittestpb.ItemConf{
@@ -251,74 +259,11 @@ func TestLoad(t *testing.T) {
 					},
 				},
 			},
-		},
-		{
-			name: "with-messager-load-func",
-			args: args{
-				msg: &unittestpb.ItemConf{},
-				dir: "../testdata/unittest/conf/",
-				fmt: format.JSON,
-				options: []Option{
-					WithLoadFunc(func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-						bytes := []byte(`{"itemMap":{"1":{"id":1,"num":100},"2":{"id":2,"num":200},"3":{"id":3,"num":300}}}`)
-						return Unmarshal(bytes, msg, path, fmt, opts)
-					}),
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"ItemConf": {
-							BaseOptions: BaseOptions{
-								LoadFunc: func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-									bytes := []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
-									return Unmarshal(bytes, msg, path, fmt, opts)
-								},
-							},
-						},
-					}),
-				},
-			},
-			wantMsg: &unittestpb.ItemConf{
-				ItemMap: map[uint32]*unittestpb.Item{
-					10: {
-						Id:  10,
-						Num: 100,
-					},
-					20: {
-						Id:  20,
-						Num: 200,
-					},
-					30: {
-						Id:  30,
-						Num: 300,
-					},
-				},
-			},
-		},
-		{
-			name: "with-messager-load-func",
-			args: args{
-				msg: &unittestpb.ItemConf{},
-				dir: "../testdata/unittest/conf/",
-				fmt: format.JSON,
-				options: []Option{
-					IgnoreUnknownFields(),
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"ItemConf": {
-							BaseOptions: BaseOptions{
-								LoadFunc: func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-									bytes := []byte(`{"extra": "unknownFields", "itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
-									return Unmarshal(bytes, msg, path, fmt, opts)
-								},
-								IgnoreUnknownFields: proto.Bool(false),
-							},
-						},
-					}),
-				},
-			},
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Load(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options...)
+			err := LoadMessagerInDir(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -337,24 +282,20 @@ func TestLoad(t *testing.T) {
 }
 
 func TestLoadJSON_E0002(t *testing.T) {
-	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
-		WithMessagerOptions(map[string]*MessagerOptions{
-			"ItemConf": {
-				Path: "../testdata/unittest/invalidconf/ItemConf.json",
-			},
-		}),
+	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
+		&MessagerOptions{
+			Path: "../testdata/unittest/invalidconf/ItemConf.json",
+		},
 	)
 	require.Error(t, err, "should return an error")
 	desc := xerrors.NewDesc(err)
 	require.Equal(t, "E0002", desc.ErrCode())
 	t.Logf("error: %s", desc.String())
 
-	err = Load(&unittestpb.ItemConf{}, "../testdata/", format.Text,
-		WithMessagerOptions(map[string]*MessagerOptions{
-			"ItemConf": {
-				Path: "../testdata/unittest/invalidconf/ItemConf.txtpb",
-			},
-		}),
+	err = LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.Text,
+		&MessagerOptions{
+			Path: "../testdata/unittest/invalidconf/ItemConf.txtpb",
+		},
 	)
 	require.Error(t, err, "should return an error")
 	desc = xerrors.NewDesc(err)
@@ -367,7 +308,7 @@ func TestLoadWithPatch(t *testing.T) {
 		msg     proto.Message
 		dir     string
 		fmt     format.Format
-		options []Option
+		options *MessagerOptions
 	}
 	tests := []struct {
 		name string
@@ -379,8 +320,10 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchReplaceConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					PatchDirs("../testdata/unittest/patchconf/"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						PatchDirs: []string{"../testdata/unittest/patchconf/"},
+					},
 				},
 			},
 		},
@@ -390,12 +333,8 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchReplaceConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"PatchReplaceConf": {
-							PatchPaths: []string{"../testdata/unittest/patchconf/PatchReplaceConf.json"},
-						},
-					}),
+				options: &MessagerOptions{
+					PatchPaths: []string{"../testdata/unittest/patchconf/PatchReplaceConf.json"},
 				},
 			},
 		},
@@ -405,8 +344,10 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchReplaceConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					PatchDirs("../testdata/unittest/not-existed/"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						PatchDirs: []string{"../testdata/unittest/not-existed/"},
+					},
 				},
 			},
 		},
@@ -416,8 +357,10 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					PatchDirs("../testdata/unittest/patchconf/"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						PatchDirs: []string{"../testdata/unittest/patchconf/"},
+					},
 				},
 			},
 		},
@@ -427,12 +370,8 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"PatchMergeConf": {
-							PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
-						},
-					}),
+				options: &MessagerOptions{
+					PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
 				},
 			},
 		},
@@ -442,13 +381,11 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"PatchMergeConf": {
-							PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
-						},
-					}),
-					PatchDirs("../testdata/unittest/patchconf2/"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						PatchDirs: []string{"../testdata/unittest/patchconf2/"},
+					},
+					PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
 				},
 			},
 		},
@@ -458,8 +395,10 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					PatchDirs("../testdata/unittest/patchconf2/"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						PatchDirs: []string{"../testdata/unittest/patchconf2/"},
+					},
 				},
 			},
 		},
@@ -469,12 +408,8 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"PatchMergeConf": {
-							PatchPaths: []string{"../testdata/unittest/patchconf2/PatchMergeConf.txtpb"},
-						},
-					}),
+				options: &MessagerOptions{
+					PatchPaths: []string{"../testdata/unittest/patchconf2/PatchMergeConf.txtpb"},
 				},
 			},
 		},
@@ -484,8 +419,10 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					PatchDirs("../testdata/unittest/not-existed/"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						PatchDirs: []string{"../testdata/unittest/not-existed/"},
+					},
 				},
 			},
 		},
@@ -495,8 +432,10 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.RecursivePatchConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					PatchDirs("../testdata/unittest/patchconf/"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						PatchDirs: []string{"../testdata/unittest/patchconf/"},
+					},
 				},
 			},
 		},
@@ -506,8 +445,13 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					PatchDirs("../testdata/unittest/patchconf/", "../testdata/unittest/patchconf2/"),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						PatchDirs: []string{
+							"../testdata/unittest/patchconf/",
+							"../testdata/unittest/patchconf2/",
+						},
+					},
 				},
 			},
 		},
@@ -517,16 +461,12 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"PatchMergeConf": {
-							PatchPaths: []string{
-								"../testdata/unittest/patchconf/PatchMergeConf.json",
-								"../testdata/unittest/patchconf2/PatchMergeConf.json",
-								"some/path/that/does/not/exist",
-							},
-						},
-					}),
+				options: &MessagerOptions{
+					PatchPaths: []string{
+						"../testdata/unittest/patchconf/PatchMergeConf.json",
+						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+						"some/path/that/does/not/exist",
+					},
 				},
 			},
 		},
@@ -536,16 +476,14 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"PatchMergeConf": {
-							PatchPaths: []string{
-								"../testdata/unittest/patchconf/PatchMergeConf.json",
-								"../testdata/unittest/patchconf2/PatchMergeConf.json",
-							},
-						},
-					}),
-					Mode(ModeOnlyMain),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						Mode: mode(ModeOnlyMain),
+					},
+					PatchPaths: []string{
+						"../testdata/unittest/patchconf/PatchMergeConf.json",
+						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+					},
 				},
 			},
 		},
@@ -555,16 +493,14 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"PatchMergeConf": {
-							PatchPaths: []string{
-								"../testdata/unittest/patchconf/PatchMergeConf.json",
-								"../testdata/unittest/patchconf2/PatchMergeConf.json",
-							},
-						},
-					}),
-					Mode(ModeOnlyPatch),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						Mode: mode(ModeOnlyPatch),
+					},
+					PatchPaths: []string{
+						"../testdata/unittest/patchconf/PatchMergeConf.json",
+						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+					},
 				},
 			},
 		},
@@ -574,20 +510,18 @@ func TestLoadWithPatch(t *testing.T) {
 				msg: &unittestpb.PatchMergeConf{},
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
-				options: []Option{
-					WithMessagerOptions(map[string]*MessagerOptions{
-						"PatchMergeConf": {
-							PatchPaths: []string{"some/path/that/does/not/exist"},
-						},
-					}),
-					Mode(ModeOnlyPatch),
+				options: &MessagerOptions{
+					BaseOptions: BaseOptions{
+						Mode: mode(ModeOnlyPatch),
+					},
+					PatchPaths: []string{"some/path/that/does/not/exist"},
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Load(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options...)
+			err := LoadMessagerInDir(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options)
 			require.NoError(t, err)
 			json, err := protojson.Marshal(tt.args.msg)
 			require.NoError(t, err)
@@ -602,12 +536,10 @@ func TestLoadWithPatch(t *testing.T) {
 }
 
 func TestLoadEmptyJSON_E0002(t *testing.T) {
-	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
-		WithMessagerOptions(map[string]*MessagerOptions{
-			"ItemConf": {
-				Path: "../testdata/unittest/invalidconf/Empty.json",
-			},
-		}),
+	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
+		&MessagerOptions{
+			Path: "../testdata/unittest/invalidconf/Empty.json",
+		},
 	)
 	require.Error(t, err, "should return an error")
 	desc := xerrors.NewDesc(err)
@@ -617,12 +549,10 @@ func TestLoadEmptyJSON_E0002(t *testing.T) {
 }
 
 func TestLoadEmptyText(t *testing.T) {
-	err := Load(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
-		WithMessagerOptions(map[string]*MessagerOptions{
-			"ItemConf": {
-				Path: "../testdata/unittest/invalidconf/Empty.txtpb",
-			},
-		}),
+	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
+		&MessagerOptions{
+			Path: "../testdata/unittest/invalidconf/Empty.txtpb",
+		},
 	)
 	require.NoError(t, err, "should return no error")
 }
