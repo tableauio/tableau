@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/xerrors"
+	"github.com/xuri/excelize/v2"
 )
 
 func TestNewExcelImporter(t *testing.T) {
@@ -67,6 +69,138 @@ func TestNewExcelImporter(t *testing.T) {
 			} else {
 				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errCode)
 			}
+		})
+	}
+}
+
+func Test_readExcelSheetRows(t *testing.T) {
+	sheetName := "Sheet1"
+	f, err := excel.Open("testdata/RawCellValue.xlsx", sheetName)
+	if err != nil {
+		panic(err)
+	}
+
+	SetCellValue := func(cell string, value any) {
+		err := f.SetCellValue(sheetName, cell, value)
+		assert.NoError(t, err)
+	}
+
+	SetStyle := func(topLeftCell string, bottomRightCell string, style excelize.Style) {
+		s, err := f.NewStyle(&style)
+		assert.NoError(t, err)
+		err = f.SetCellStyle(sheetName, topLeftCell, bottomRightCell, s)
+		assert.NoError(t, err)
+	}
+
+	// Refer to https://xuri.me/excelize/en/style.html#number_format
+	// number format with one thousand separator (,)
+	SetStyle("A1", "A4", excelize.Style{NumFmt: 3}) // #,##0
+	SetCellValue("A1", int32(10001000))
+	SetCellValue("A2", uint32(10001000))
+	SetCellValue("A3", int64(10001000))
+	SetCellValue("A4", uint64(10001000))
+
+	// float number with two decimal places
+	SetStyle("A5", "A6", excelize.Style{NumFmt: 4}) // #,##0.00
+	SetCellValue("A5", float32(100.12345))
+	SetCellValue("A6", float64(10001000.12345))
+
+	SetCellValue("A7", "string")
+	SetCellValue("A8", []byte("bytes"))
+	SetCellValue("A9", true)
+	SetCellValue("A10", false)
+
+	// datetime with custom format
+	customFormat := "m/d/yyyy hh:mm"
+	SetStyle("A11", "A11", excelize.Style{CustomNumFmt: &customFormat})
+	SetCellValue("A11", "2025-12-01 05:59:59")
+
+	type args struct {
+		f         *excelize.File
+		sheetName string
+		topN      uint
+		opts      []excelize.Options
+	}
+	tests := []struct {
+		name     string
+		args     args
+		wantRows [][]string
+		wantErr  bool
+	}{
+		{
+			name: "all rows in formatted value",
+			args: args{
+				f:         f,
+				sheetName: sheetName,
+				topN:      0,
+				opts:      nil,
+			},
+			wantRows: [][]string{
+				{"10,001,000"},
+				{"10,001,000"},
+				{"10,001,000"},
+				{"10,001,000"},
+				{"100.12"},
+				{"10,001,000.12"},
+				{"string"},
+				{"bytes"},
+				{"TRUE"},
+				{"FALSE"},
+				{"2025-12-01 05:59:59"}, // Why not "12/1/2025 05:59" ?
+			},
+			wantErr: false,
+		},
+		{
+			name: "all rows in raw cell value",
+			args: args{
+				f:         f,
+				sheetName: sheetName,
+				topN:      0,
+				opts: []excelize.Options{
+					{RawCellValue: true},
+				},
+			},
+			wantRows: [][]string{
+				{"10001000"},
+				{"10001000"},
+				{"10001000"},
+				{"10001000"},
+				{"100.12345"},
+				{"10001000.12345"},
+				{"string"},
+				{"bytes"},
+				{"1"},
+				{"0"},
+				{"2025-12-01 05:59:59"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "top 3 rows in raw cell value",
+			args: args{
+				f:         f,
+				sheetName: sheetName,
+				topN:      3,
+				opts: []excelize.Options{
+					{RawCellValue: true},
+				},
+			},
+			wantRows: [][]string{
+				{"10001000"},
+				{"10001000"},
+				{"10001000"},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRows, err := readExcelSheetRows(tt.args.f, tt.args.sheetName, tt.args.topN, tt.args.opts...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("readExcelSheetRows() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.wantRows, gotRows)
 		})
 	}
 }
