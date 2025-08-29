@@ -9,7 +9,7 @@ import (
 
 func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 	type args struct {
-		o    *Options
+		o    []Option
 		name string
 	}
 	tests := []struct {
@@ -28,10 +28,8 @@ func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 		{
 			name: "base",
 			args: args{
-				o: &Options{
-					BaseOptions: BaseOptions{
-						IgnoreUnknownFields: proto.Bool(true),
-					},
+				o: []Option{
+					IgnoreUnknownFields(),
 				},
 				name: "ItemConf",
 			},
@@ -44,17 +42,15 @@ func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 		{
 			name: "override",
 			args: args{
-				o: &Options{
-					BaseOptions: BaseOptions{
-						IgnoreUnknownFields: proto.Bool(true),
-					},
-					MessagerOptions: map[string]*MessagerOptions{
+				o: []Option{
+					IgnoreUnknownFields(),
+					WithMessagerOptions(map[string]*MessagerOptions{
 						"ItemConf": {
 							BaseOptions: BaseOptions{
 								IgnoreUnknownFields: proto.Bool(false),
 							},
 						},
-					},
+					}),
 				},
 				name: "ItemConf",
 			},
@@ -67,7 +63,8 @@ func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.args.o.ParseMessagerOptionsByName(tt.args.name); !reflect.DeepEqual(got, tt.want) {
+			opts := ParseOptions(tt.args.o...)
+			if got := opts.ParseMessagerOptionsByName(tt.args.name); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Options.ParseMessagerOptionsByName() = %v, want %v", got, tt.want)
 			}
 		})
