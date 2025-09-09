@@ -33,8 +33,8 @@ func Postion(row, col int) string {
 
 func Open(filename string, sheetName string) (*excelize.File, error) {
 	var wb *excelize.File
-	if _, err := os.Stat(filename); !os.IsNotExist(err) {
-		os.Remove(filename)
+	if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {
+		return nil, xerrors.Wrapf(err, "failed to remove old file: %s", filename)
 	}
 	wb = excelize.NewFile()
 	t := time.Now()
