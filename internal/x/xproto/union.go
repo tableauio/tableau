@@ -28,16 +28,16 @@ func ExtractUnionDescriptor(md protoreflect.MessageDescriptor) *UnionDescriptor 
 	var desc UnionDescriptor
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
-		if fd.Kind() == protoreflect.EnumKind {
+		if fd.Kind() == protoreflect.EnumKind && fd.ContainingOneof() == nil {
 			desc.Type = fd
-		} else if fd.Kind() == protoreflect.MessageKind {
-			if fd.ContainingOneof() != nil {
-				desc.Value = fd.ContainingOneof()
-			}
+			break
 		}
-		if desc.Type != nil && desc.Value != nil {
-			return &desc
-		}
+	}
+	if md.Oneofs().Len() == 1 {
+		desc.Value = md.Oneofs().Get(0)
+	}
+	if desc.Type != nil && desc.Value != nil {
+		return &desc
 	}
 	return nil
 }

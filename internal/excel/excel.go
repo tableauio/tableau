@@ -33,48 +33,39 @@ func Postion(row, col int) string {
 
 func Open(filename string, sheetName string) (*excelize.File, error) {
 	var wb *excelize.File
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		// fmt.Println("create file: ", filename)
-		wb = excelize.NewFile()
-		t := time.Now()
-		datetime := t.Format(time.RFC3339)
-		err := wb.SetDocProps(&excelize.DocProperties{
-			Category:       "category",
-			ContentStatus:  "Draft",
-			Created:        datetime,
-			Creator:        "Tableau",
-			Description:    "This file was created by Tableau",
-			Identifier:     "xlsx",
-			Keywords:       "Spreadsheet",
-			LastModifiedBy: "Tableau",
-			Modified:       datetime,
-			Revision:       "0",
-			Subject:        "Configuration",
-			Title:          filepath.Base(filename),
-			Language:       "en-US",
-			Version:        "1.0.0",
-		})
-		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to set doc props: %s", filename)
-		}
-		// The newly created workbook will by default contain a worksheet named `Sheet1`.
-		err = wb.SetSheetName("Sheet1", sheetName)
-		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to set sheet name: %s", sheetName)
-		}
-		err = wb.SetDefaultFont("Courier")
-		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to set default font")
-		}
-	} else {
-		wb, err = excelize.OpenFile(filename)
-		if err != nil {
-			return nil, xerrors.E3002(err)
-		}
-		_, err = wb.NewSheet(sheetName)
-		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to create sheet: %s", sheetName)
-		}
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		os.Remove(filename)
+	}
+	wb = excelize.NewFile()
+	t := time.Now()
+	datetime := t.Format(time.RFC3339)
+	err := wb.SetDocProps(&excelize.DocProperties{
+		Category:       "category",
+		ContentStatus:  "Draft",
+		Created:        datetime,
+		Creator:        "Tableau",
+		Description:    "This file was created by Tableau",
+		Identifier:     "xlsx",
+		Keywords:       "Spreadsheet",
+		LastModifiedBy: "Tableau",
+		Modified:       datetime,
+		Revision:       "0",
+		Subject:        "Configuration",
+		Title:          filepath.Base(filename),
+		Language:       "en-US",
+		Version:        "1.0.0",
+	})
+	if err != nil {
+		return nil, xerrors.Wrapf(err, "failed to set doc props: %s", filename)
+	}
+	// The newly created workbook will by default contain a worksheet named `Sheet1`.
+	err = wb.SetSheetName("Sheet1", sheetName)
+	if err != nil {
+		return nil, xerrors.Wrapf(err, "failed to set sheet name: %s", sheetName)
+	}
+	err = wb.SetDefaultFont("Courier")
+	if err != nil {
+		return nil, xerrors.Wrapf(err, "failed to set default font")
 	}
 	return wb, nil
 }

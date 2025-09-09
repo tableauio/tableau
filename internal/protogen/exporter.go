@@ -234,10 +234,14 @@ func (x *sheetExporter) exportUnion() error {
 
 	for _, field := range x.ws.Fields {
 		ename := "TYPE_" + strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(field.Name)
-		if len(field.Fields) == 0 {
+		typ := field.Name
+		if field.FullType != "" {
+			typ = field.FullType
+		}
+		if len(field.Fields) == 0 && field.Type == "" {
 			x.g.P("    // No field bound to enum value: ", ename, ".")
 		} else {
-			x.g.P("    ", strings.TrimSpace(field.Name), " ", strcase.FromContext(x.be.gen.ctx).ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
+			x.g.P("    ", typ, " ", strcase.FromContext(x.be.gen.ctx).ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
 		}
 	}
 	x.g.P(`  }`)
@@ -262,7 +266,11 @@ func (x *sheetExporter) exportUnion() error {
 		if len(msgField.Fields) == 0 {
 			continue
 		}
-		x.g.P("  message ", strings.TrimSpace(msgField.Name), " {")
+		typ := msgField.Name
+		if msgField.Type != "" {
+			typ = msgField.Type
+		}
+		x.g.P("  message ", typ, " {")
 		// generate the fields
 		depth := 2
 		tagid := 1

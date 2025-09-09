@@ -163,5 +163,6 @@ message UnionDescriptor {
     string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     string alias = 3 [(tableau.field) = {name:"Alias" prop:{unique:true}}];
     repeated string fields = 4 [(tableau.field) = {name:"Field" layout:LAYOUT_HORIZONTAL prop:{fixed:true}}];
+    string type = 5 [(tableau.field) = {name:"Type" prop:{optional:true}}];
   }
 }
