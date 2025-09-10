@@ -1,17 +1,14 @@
 package store
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/bytedance/sonic"
 	"github.com/bytedance/sonic/ast"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/xerrors"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Format a timestamp to the desired string format
@@ -22,11 +19,9 @@ func formatTimestamp(ts string, loc *time.Location) string {
 	}
 	localTime := t.In(loc)
 	formatted := localTime.Format(time.RFC3339Nano)
-	if err := protojson.Unmarshal(
-		fmt.Appendf(nil, `"%s"`, formatted),
-		&timestamppb.Timestamp{},
-	); err != nil {
-		return ts // return the original string if parsing fails
+	_, err = time.Parse(time.RFC3339Nano, formatted)
+	if err != nil {
+		return ts // Return the original string if parsing fails
 	}
 	return formatted
 }
