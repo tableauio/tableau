@@ -18,12 +18,11 @@ func formatTimestamp(ts string, loc *time.Location) string {
 		return ts // Return the original string if parsing fails
 	}
 	localTime := t.In(loc)
-	formatted := localTime.Format(time.RFC3339Nano)
-	_, err = time.Parse(time.RFC3339Nano, formatted)
-	if err != nil {
-		return ts // Return the original string if parsing fails
+	// google.protobuf.Timestamp range is 0001-01-01T00:00:00Z to 9999-12-31T23:59:59Z
+	if localTime.Year() < 1 || localTime.Year() > 9999 {
+		return ts
 	}
-	return formatted
+	return localTime.Format(time.RFC3339Nano)
 }
 
 // processWhenEmitTimezones emits timestamp in string format with timezones
