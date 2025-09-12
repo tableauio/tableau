@@ -31,6 +31,7 @@ func Postion(row, col int) string {
 	return fmt.Sprintf("%s%d", LetterAxis(col), row+1)
 }
 
+// Open opens a new file. If the file already exists,  it will be removed firstly.
 func Open(filename string, sheetName string) (*excelize.File, error) {
 	var wb *excelize.File
 	if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {

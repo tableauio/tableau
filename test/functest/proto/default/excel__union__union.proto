@@ -106,6 +106,7 @@ message UnionTypedTarget {
     Player player = 4; // Bound to enum value: TYPE_PLAYER.
     Player friend = 5; // Bound to enum value: TYPE_FRIEND.
     CustomMonster monster = 6; // Bound to enum value: TYPE_MONSTER.
+    CustomMonster boss = 7; // Bound to enum value: TYPE_BOSS.
   }
 
   enum Type {
@@ -116,6 +117,7 @@ message UnionTypedTarget {
     TYPE_PLAYER = 4 [(tableau.evalue).name = "Player"]; // Player
     TYPE_FRIEND = 5 [(tableau.evalue).name = "Friend"]; // Friend
     TYPE_MONSTER = 6 [(tableau.evalue).name = "Monster"]; // Monster
+    TYPE_BOSS = 7 [(tableau.evalue).name = "Boss"]; // Boss
   }
 
   message Player {

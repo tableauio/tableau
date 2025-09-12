@@ -35,6 +35,13 @@
                 "health": 2000,
                 "attack": 100
             }
+        },
+        {
+            "type": "TYPE_BOSS",
+            "boss": {
+                "health": 20000,
+                "attack": 200
+            }
         }
     ]
 }
