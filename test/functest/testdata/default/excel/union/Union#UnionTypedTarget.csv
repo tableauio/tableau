@@ -9,4 +9,4 @@ Friend,Friend,Player,,,,Bound to reused struct
 Monster,Monster,CustomMonster,"Health
 int32","Attack
 int32",,Bound to locally defined struct with custom name
-Boss,Boss,CustomMonster,,,,
+Boss,Boss,CustomMonster,,,,Bound to reused struct with custom name
