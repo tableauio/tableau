@@ -1,0 +1,10 @@
+Type,Field1,Field2
+[.UnionTypedTarget]enum<.UnionTypedTarget.Type>,union,union
+Target type,Target field1,Target field2
+Fruit,Orange,
+Point,10,
+Item,1001,10
+Player,1,Tom
+Friend,2,Jerry
+Monster,2000,100
+Boss,20000,200

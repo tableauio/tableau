@@ -1,0 +1,12 @@
+Name,Alias,Type,Field1,Field2,Field3,#Note
+Fruit,Fruit,enum<.FruitType>,,,,Bound to predefined enum
+Point,Point,int32,,,,Bound to scalar
+Item,Item,.Item,,,,Bound to predefined struct
+Player,Player,,"ID
+uint32","Name
+string",,Bound to locally defined struct
+Friend,Friend,Player,,,,Bound to reused struct
+Monster,Monster,CustomMonster,"Health
+int32","Attack
+int32",,Bound to locally defined struct with custom name
+Boss,Boss,CustomMonster,,,,Bound to reused struct with custom name

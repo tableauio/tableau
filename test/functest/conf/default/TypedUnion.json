@@ -1,0 +1,47 @@
+{
+    "unionTypedTargetList": [
+        {
+            "type": "TYPE_FRUIT",
+            "fruit": "FRUIT_TYPE_ORANGE"
+        },
+        {
+            "type": "TYPE_POINT",
+            "point": 10
+        },
+        {
+            "type": "TYPE_ITEM",
+            "item": {
+                "id": 1001,
+                "num": 10
+            }
+        },
+        {
+            "type": "TYPE_PLAYER",
+            "player": {
+                "id": 1,
+                "name": "Tom"
+            }
+        },
+        {
+            "type": "TYPE_FRIEND",
+            "friend": {
+                "id": 2,
+                "name": "Jerry"
+            }
+        },
+        {
+            "type": "TYPE_MONSTER",
+            "monster": {
+                "health": 2000,
+                "attack": 100
+            }
+        },
+        {
+            "type": "TYPE_BOSS",
+            "boss": {
+                "health": 20000,
+                "attack": 200
+            }
+        }
+    ]
+}

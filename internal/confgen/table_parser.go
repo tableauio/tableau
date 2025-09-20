@@ -699,37 +699,53 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 	}
 	fieldValue := msg.NewField(valueFD)
 	if valueFD.Kind() != protoreflect.MessageKind {
-		return false, xerrors.Errorf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
-	}
-	// MUST be message type.
-	md := valueFD.Message()
-	fieldMsg := fieldValue.Message()
-	for i := 0; i < md.Fields().Len(); i++ {
-		fd := md.Fields().Get(i)
-		valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+		// just parse field 1 for scalar types.
+		valColName := prefix + unionDesc.ValueFieldName() + "1"
 		err := func() error {
-			subField := sp.parseFieldDescriptor(fd)
-			defer subField.release()
-			// incell scalar
-			cell, err := rc.Cell(valColName, sp.IsFieldOptional(subField))
+			cell, err := rc.Cell(valColName, false)
 			if err != nil {
 				return err
 			}
-			crossCellDataList := []string{cell.Data}
-			if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
-				for j := 1; j < fieldCount; j++ {
-					colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
-					c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
-					if err != nil {
-						break
-					}
-					crossCellDataList = append(crossCellDataList, c.Data)
-				}
+			fieldValue, present, err = sp.parseFieldValue(valueFD, cell.Data, nil)
+			if err != nil {
+				return err
 			}
-			return sp.parseUnionMessageField(subField, fieldMsg, cardPrefix, crossCellDataList)
+			return nil
 		}()
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
+		}
+	} else {
+		// parse all fields for message types.
+		md := valueFD.Message()
+		fieldMsg := fieldValue.Message()
+		for i := 0; i < md.Fields().Len(); i++ {
+			fd := md.Fields().Get(i)
+			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+			err := func() error {
+				subField := sp.parseFieldDescriptor(fd)
+				defer subField.release()
+				// incell scalar
+				cell, err := rc.Cell(valColName, sp.IsFieldOptional(subField))
+				if err != nil {
+					return err
+				}
+				crossCellDataList := []string{cell.Data}
+				if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
+					for j := 1; j < fieldCount; j++ {
+						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+						c, err := rc.Cell(colName, sp.IsFieldOptional(subField))
+						if err != nil {
+							break
+						}
+						crossCellDataList = append(crossCellDataList, c.Data)
+					}
+				}
+				return sp.parseUnionMessageField(subField, fieldMsg, cardPrefix, crossCellDataList)
+			}()
+			if err != nil {
+				return false, xerrors.WrapKV(err, rc.CellDebugKV(valColName)...)
+			}
 		}
 	}
 	msg.Set(valueFD, fieldValue)

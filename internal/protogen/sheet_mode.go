@@ -220,6 +220,15 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 			Name:   strings.TrimSpace(value.Name),
 			Alias:  strings.TrimSpace(value.Alias),
 		}
+		if typ := strings.TrimSpace(value.Type); typ != "" {
+			typeDesc, err := parseTypeDescriptor(gen.typeInfos, typ)
+			if err != nil {
+				return xerrors.Wrapf(err, "failed to parse union type %s of sheet: %s", typ, sheet.Name)
+			}
+			field.Type = typeDesc.Name
+			field.FullType = typeDesc.FullName
+		}
+
 		// create a book parser
 		bp := newTableParser("union", "", "", gen)
 
