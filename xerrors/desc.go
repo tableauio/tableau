@@ -95,12 +95,14 @@ func NewDesc(err error) *Desc {
 		fields: map[string]any{},
 	}
 
+	// NOTE: In the splits slice, the latter key-value pairs will overwrite
+	// earlier ones if they have the same key, so the last one wins.
 	splits := strings.Split(err.Error(), "|")
 	for _, s := range splits {
 		kv := strings.SplitN(s, ":", 2)
 		if len(kv) == 2 {
 			key, val := strings.Trim(kv[0], " :"), strings.Trim(kv[1], " :")
-			if key != "" && val != "" {
+			if key != "" {
 				desc.setField(key, val)
 			}
 		}
