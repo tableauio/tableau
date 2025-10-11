@@ -248,7 +248,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	}
 	valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, newPrefix, newCardPrefix)
 	if err != nil {
-		return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+		return false, err
 	}
 	if !keyPresent && !valuePresent {
 		// key and value are both not present.
@@ -305,7 +305,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			tempCheckMapValue := reflectMap.NewValue()
 			valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, elemPrefix, newCardPrefix)
 			if err != nil {
-				return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
+				return false, err
 			}
 			if valuePresent {
 				return false, xerrors.WrapKV(xerrors.E2017(xproto.GetFieldTypeName(field.fd)), rc.CellDebugKV(keyColName)...)
