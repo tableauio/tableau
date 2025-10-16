@@ -1,0 +1,4 @@
+ID,Name,Prop1ID,Prop1Flavor
+"map<uint32, Item>",[Reward]string|{optional:true},[Prop]uint32|{optional:true},string
+Item ID,Reward name,Prop 1 ID,Prop 1 flavor
+1,Peach,1,sour

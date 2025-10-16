@@ -277,7 +277,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 	newPrefix := prefix + field.opts.Name
 	detectedSize := rc.GetCellCountWithPrefix(newPrefix)
 	if detectedSize <= 0 {
-		return false, xerrors.Errorf("no cell found with digit suffix")
+		return false, xerrors.Errorf("no cell found with digit suffix for horizontal map field")
 	}
 	fixedSize := fieldprop.GetSize(field.opts.Prop, detectedSize)
 	size := detectedSize
@@ -492,8 +492,8 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 	}
 	newPrefix := prefix + field.opts.Name
 	detectedSize := rc.GetCellCountWithPrefix(newPrefix)
-	if detectedSize <= 0 {
-		return false, xerrors.Errorf("no cell found with digit suffix")
+	if detectedSize <= 0 && !sp.IsFieldOptional(field) {
+		return false, xerrors.Errorf("no cell found with digit suffix for horizontal list field")
 	}
 	fixedSize := fieldprop.GetSize(field.opts.Prop, detectedSize)
 	size := detectedSize
