@@ -5,10 +5,26 @@ syntax = "proto3";
 
 package protoconf;
 
+import "google/protobuf/duration.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/fieldprop/Optional#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+
+message FieldPropOptional {
+  option (tableau.worksheet) = {name:"FieldPropOptional" merger:"Optional*.csv#FieldPropOptional2" merger:"Optional*.csv#FieldPropOptional3"};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    Prop prop = 2 [(tableau.field) = {name:"Prop" prop:{optional:true}}];
+    message Prop {
+      uint32 id = 1 [(tableau.field) = {name:"ID" prop:{optional:true}}]; // Prop ID
+      string flavor = 2 [(tableau.field) = {name:"Flavor" prop:{optional:true}}]; // Prop flavor
+      google.protobuf.Duration duration = 3 [(tableau.field) = {name:"Duration" prop:{optional:true}}]; // Prop duration
+    }
+  }
+}
 
 message FieldPropOptionalList {
   option (tableau.worksheet) = {name:"FieldPropOptionalList" merger:"Optional*.csv#FieldPropOptionalList2" merger:"Optional*.csv#FieldPropOptionalList3" merger:"Optional*.csv#FieldPropOptionalList4"};

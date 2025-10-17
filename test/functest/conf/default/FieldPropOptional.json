@@ -1,0 +1,24 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "prop": {
+                "id": 10,
+                "flavor": "sour",
+                "duration": "86400s"
+            }
+        },
+        "2": {
+            "id": 2,
+            "prop": {
+                "id": 20,
+                "flavor": "",
+                "duration": null
+            }
+        },
+        "3": {
+            "id": 3,
+            "prop": null
+        }
+    }
+}
