@@ -1,4 +1,4 @@
 Param1,Param2,Param3,Time1,Time2,Time3
-"[]int32|{range:""1,~"" refer:""ItemConf.ID,EquipConf.ID""}",int32,int32,[]datetime,datetime,datetime
+[]int32,int32,int32,[]datetime,datetime,datetime
 Param1 value,Param2 value,Param3 value,Time1 value,Time2 value,Time3 value
 1,2,1001,2024-10-01 10:10:10,2025-10-01 10:10:10,2026-10-01 10:10:10

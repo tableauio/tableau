@@ -1,0 +1,4 @@
+ID1,ID2,ID3
+"[]int32|refer:""ItemConf.ID,EquipConf.ID""}",int32,int32
+ID 1,ID 2,ID 3
+1,2,1001
