@@ -1,0 +1,4 @@
+ID,Name,Prop1ID,Prop1Flavor
+"map<uint32, Item>","map<string, Reward>|{optional:true}","map<uint32, Prop>|{optional:true}",string
+Item ID,Reward name,Prop 1 ID,Prop 1 flavor
+2,Peach,1,sour

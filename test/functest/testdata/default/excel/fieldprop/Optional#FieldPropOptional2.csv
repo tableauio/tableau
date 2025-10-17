@@ -1,0 +1,4 @@
+ID,PropID
+"map<uint32, Item>",{Prop}uint32|{optional:true}
+Item ID,Prop ID
+2,20
