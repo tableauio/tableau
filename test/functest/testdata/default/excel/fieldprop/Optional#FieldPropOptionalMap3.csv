@@ -1,0 +1,4 @@
+ID,Name
+"map<uint32, Item>","map<string, Reward>|{optional:true}"
+Item ID,Reward name
+3,Orange

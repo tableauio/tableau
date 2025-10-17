@@ -1,0 +1,55 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "rewardMap": {
+                "Apple": {
+                    "name": "Apple",
+                    "propMap": {
+                        "1": {
+                            "id": 1,
+                            "flavor": "sour"
+                        },
+                        "2": {
+                            "id": 2,
+                            "flavor": "sweet"
+                        }
+                    },
+                    "bonusIdMap": {
+                        "1": 10,
+                        "2": 20
+                    }
+                }
+            }
+        },
+        "2": {
+            "id": 2,
+            "rewardMap": {
+                "Peach": {
+                    "name": "Peach",
+                    "propMap": {
+                        "1": {
+                            "id": 1,
+                            "flavor": "sour"
+                        }
+                    },
+                    "bonusIdMap": {}
+                }
+            }
+        },
+        "3": {
+            "id": 3,
+            "rewardMap": {
+                "Orange": {
+                    "name": "Orange",
+                    "propMap": {},
+                    "bonusIdMap": {}
+                }
+            }
+        },
+        "4": {
+            "id": 4,
+            "rewardMap": {}
+        }
+    }
+}

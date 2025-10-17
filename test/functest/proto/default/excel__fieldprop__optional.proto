@@ -28,3 +28,22 @@ message FieldPropOptionalList {
     }
   }
 }
+
+message FieldPropOptionalMap {
+  option (tableau.worksheet) = {name:"FieldPropOptionalMap" merger:"Optional*.csv#FieldPropOptionalMap2" merger:"Optional*.csv#FieldPropOptionalMap3" merger:"Optional*.csv#FieldPropOptionalMap4"};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    map<string, Reward> reward_map = 2 [(tableau.field) = {key:"Name" layout:LAYOUT_VERTICAL prop:{optional:true}}];
+    message Reward {
+      string name = 1 [(tableau.field) = {name:"Name" prop:{optional:true}}]; // Reward name
+      map<uint32, Prop> prop_map = 2 [(tableau.field) = {name:"Prop" key:"ID" layout:LAYOUT_HORIZONTAL prop:{optional:true}}]; // Prop
+      message Prop {
+        uint32 id = 1 [(tableau.field) = {name:"ID" prop:{optional:true}}]; // ID
+        string flavor = 2 [(tableau.field) = {name:"Flavor"}]; // flavor
+      }
+      map<uint32, int32> bonus_id_map = 3 [(tableau.field) = {name:"BonusID" layout:LAYOUT_INCELL prop:{optional:true}}]; // Bonus ID 1
+    }
+  }
+}
