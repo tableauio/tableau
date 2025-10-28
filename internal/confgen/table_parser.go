@@ -143,8 +143,8 @@ func (sp *tableParser) parseMessage(parentField *Field, msg protoreflect.Message
 		err := func() error {
 			// TODO(performance): cache the parsed field for reuse, as each table row will be parsed repeatedly.
 			field := sp.parseFieldDescriptor(fd)
-			defer field.release()
 			field.mergeParentFieldProp(parentField)
+			defer field.release()
 			newCardPrefix := cardPrefix + "." + string(fd.Name())
 			fieldPresent, err := sp.parseField(field, msg, rc, prefix, newCardPrefix)
 			if err != nil {
@@ -733,8 +733,8 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
 			err := func() error {
 				subField := sp.parseFieldDescriptor(fd)
-				defer subField.release()
 				subField.mergeParentFieldProp(field)
+				defer subField.release()
 				// incell scalar
 				cell, err := rc.Cell(valColName, sp.IsFieldOptional(subField))
 				if err != nil {

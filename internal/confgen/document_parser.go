@@ -41,8 +41,8 @@ func (sp *documentParser) parseMessage(parentField *Field, msg protoreflect.Mess
 		fd := md.Fields().Get(i)
 		err := func() error {
 			field := sp.parseFieldDescriptor(fd)
-			defer field.release()
 			field.mergeParentFieldProp(parentField)
+			defer field.release()
 			var fieldNode *book.Node
 			if md.FullName() == xproto.MetabookFullName {
 				// NOTE: this is a workaround specially for parsing metabook.

@@ -812,17 +812,26 @@ func (sp *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.
 		md := structValue.Message().Descriptor()
 		for i := 0; i < md.Fields().Len() && i < len(splits); i++ {
 			fd := md.Fields().Get(i)
-			// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
 			rawValue := splits[i]
-			value, fieldPresent, err := sp.parseFieldValue(fd, rawValue, nil)
+			err := func() error {
+				subField := sp.parseFieldDescriptor(fd)
+				subField.mergeParentFieldProp(field)
+				defer subField.release()
+				// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
+				value, fieldPresent, err := sp.parseFieldValue(fd, rawValue, subField.opts.Prop)
+				if err != nil {
+					return err
+				}
+				structValue.Message().Set(fd, value)
+				if fieldPresent {
+					// The struct is treated as present as long as one field is present.
+					present = true
+					structValue.Message().Set(fd, value)
+				}
+				return nil
+			}()
 			if err != nil {
 				return false, err
-			}
-			structValue.Message().Set(fd, value)
-			if fieldPresent {
-				// The struct is treated as present as long as one field is present.
-				present = true
-				structValue.Message().Set(fd, value)
 			}
 		}
 		return present, nil
