@@ -48,6 +48,18 @@ type Field struct {
 	opts   *tableaupb.FieldOptions
 }
 
+// mergeParentFieldProp merges parent field's prop.
+func (f *Field) mergeParentFieldProp(parent *Field) {
+	if parent != nil && parent.opts != nil {
+		if parent.opts.Prop.GetOptional() {
+			if f.opts.Prop == nil {
+				f.opts.Prop = &tableaupb.FieldProp{}
+			}
+			f.opts.Prop.Optional = true
+		}
+	}
+}
+
 // release returns back `opts` field to pool.
 func (f *Field) release() {
 	// return back to pool

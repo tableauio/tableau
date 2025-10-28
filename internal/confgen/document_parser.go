@@ -27,7 +27,7 @@ func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error
 	// get the first child (map node) in document
 	child := sheet.Document.Children[0]
 	msg := protomsg.ProtoReflect()
-	_, err := sp.parseMessage(msg, child, "")
+	_, err := sp.parseMessage(nil, msg, child, "")
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeySheetName, sheet.Name)
 	}
@@ -35,13 +35,14 @@ func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error
 }
 
 // parseMessage parses all fields of a protobuf message.
-func (sp *documentParser) parseMessage(msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+func (sp *documentParser) parseMessage(parentField *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		err := func() error {
 			field := sp.parseFieldDescriptor(fd)
 			defer field.release()
+			field.mergeParentFieldProp(parentField)
 			var fieldNode *book.Node
 			if md.FullName() == xproto.MetabookFullName {
 				// NOTE: this is a workaround specially for parsing metabook.
@@ -185,7 +186,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 					newMapValue = reflectMap.NewValue()
 				}
 				newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
-				valuePresent, err := sp.parseMessage(newMapValue.Message(), elemNode, newCardPrefix)
+				valuePresent, err := sp.parseMessage(field, newMapValue.Message(), elemNode, newCardPrefix)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
@@ -347,7 +348,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 				if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
 				} else {
-					elemPresent, err = sp.parseMessage(elemValue.Message(), elemNode, newCardPrefix)
+					elemPresent, err = sp.parseMessage(field, elemValue.Message(), elemNode, newCardPrefix)
 				}
 			} else {
 				// cross-cell scalar list
@@ -415,7 +416,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 		structValue, present, err = sp.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
 	} else {
 		// cross-cell struct
-		present, err = sp.parseMessage(structValue.Message(), node.StructNode(), cardPrefix)
+		present, err = sp.parseMessage(field, structValue.Message(), node.StructNode(), cardPrefix)
 	}
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)

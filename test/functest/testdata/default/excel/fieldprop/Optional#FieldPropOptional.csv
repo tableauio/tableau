@@ -1,4 +1,4 @@
-ID,PropID,PropFlavor,PropDuration
-"map<uint32, Item>",{Prop}uint32|{optional:true},string|{optional:true},duration|{optional:true}
-Item ID,Prop ID,Prop flavor,Prop duration
-1,10,sour,24h
+ID,PropID,PropFlavor,PropDuration,PropValue
+"map<uint32, Item>",{Prop}uint32|{optional:true},string|{optional:true},duration|{optional:true},int32
+Item ID,Prop ID,Prop flavor,Prop duration,Prop value
+1,10,sour,24h,99

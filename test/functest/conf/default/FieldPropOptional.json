@@ -5,7 +5,8 @@
             "prop": {
                 "id": 10,
                 "flavor": "sour",
-                "duration": "86400s"
+                "duration": "86400s",
+                "value": 99
             }
         },
         "2": {
@@ -13,7 +14,8 @@
             "prop": {
                 "id": 20,
                 "flavor": "",
-                "duration": null
+                "duration": null,
+                "value": 0
             }
         },
         "3": {
