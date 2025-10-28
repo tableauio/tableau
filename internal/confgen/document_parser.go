@@ -310,7 +310,7 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 			return xerrors.WrapKV(xerrors.E2005(key))
 		}
 		newMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
+		valuePresent, err := sp.parseIncellStruct(field, newMapValue, mapItemData, field.subsep)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugKV()...)
 		}
@@ -411,7 +411,7 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		present, err = sp.parseIncellStruct(structValue, node.ScalarValue(), field.opts.GetProp().GetForm(), field.sep)
+		present, err = sp.parseIncellStruct(field, structValue, node.ScalarValue(), field.sep)
 	} else if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 		structValue, present, err = sp.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
 	} else {

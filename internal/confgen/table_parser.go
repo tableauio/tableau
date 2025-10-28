@@ -529,7 +529,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 			} else if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 				// horizontal incell-struct list
 				if cell, err = rc.Cell(elemPrefix, sp.IsFieldOptional(field)); err == nil {
-					elemPresent, err = sp.parseIncellStruct(elemValue, cell.Data, field.opts.GetProp().GetForm(), field.sep)
+					elemPresent, err = sp.parseIncellStruct(field, elemValue, cell.Data, field.sep)
 				}
 			} else {
 				// horizontal struct list
@@ -626,7 +626,7 @@ func (sp *tableParser) parseStructField(field *Field, msg protoreflect.Message, 
 	} else if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
 		if cell, err = rc.Cell(newPrefix, sp.IsFieldOptional(field)); err == nil {
-			present, err = sp.parseIncellStruct(structValue, cell.Data, field.opts.GetProp().GetForm(), field.sep)
+			present, err = sp.parseIncellStruct(field, structValue, cell.Data, field.sep)
 		}
 	} else {
 		// cross-cell struct

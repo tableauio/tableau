@@ -493,7 +493,7 @@ func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, re
 		}
 
 		newMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
+		valuePresent, err := sp.parseIncellStruct(field, newMapValue, mapItemData, field.subsep)
 		if err != nil {
 			return err
 		}
@@ -747,7 +747,7 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, card
 		var elemPresent bool
 		if fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(fd.Message().FullName()) {
 			elemValue = list.NewElement()
-			elemPresent, err = sp.parseIncellStruct(elemValue, elem, fdopts.GetProp().GetForm(), sep)
+			elemPresent, err = sp.parseIncellStruct(field, elemValue, elem, sep)
 		} else {
 			elemValue, elemPresent, err = sp.parseFieldValue(fd, elem, fdopts.Prop)
 		}
@@ -792,11 +792,11 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, card
 	return list.Len() != 0, nil
 }
 
-func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellData string, form tableaupb.Form, sep string) (present bool, err error) {
+func (sp *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.Value, cellData string, sep string) (present bool, err error) {
 	if cellData == "" {
 		return false, nil
 	}
-	switch form {
+	switch field.opts.GetProp().GetForm() {
 	case tableaupb.Form_FORM_TEXT:
 		if err := prototext.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
 			return false, xerrors.Errorf("unmarshal from text failed: %v", err)
@@ -813,8 +813,8 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 		for i := 0; i < md.Fields().Len() && i < len(splits); i++ {
 			fd := md.Fields().Get(i)
 			// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
-			incell := splits[i]
-			value, fieldPresent, err := sp.parseFieldValue(fd, incell, nil)
+			rawValue := splits[i]
+			value, fieldPresent, err := sp.parseFieldValue(fd, rawValue, nil)
 			if err != nil {
 				return false, err
 			}
@@ -864,7 +864,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		} else {
 			// incell struct
 			fieldValue = msg.NewField(field.fd)
-			present, err = sp.parseIncellStruct(fieldValue, dataList[0], field.opts.GetProp().GetForm(), field.sep)
+			present, err = sp.parseIncellStruct(field, fieldValue, dataList[0], field.sep)
 		}
 	} else {
 		fieldValue, present, err = sp.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
