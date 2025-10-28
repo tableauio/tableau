@@ -820,7 +820,7 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 			}
 			structValue.Message().Set(fd, value)
 			if fieldPresent {
-				// The struct is treated as present only if one field is present.
+				// The struct is treated as present as long as one field is present.
 				present = true
 				structValue.Message().Set(fd, value)
 			}

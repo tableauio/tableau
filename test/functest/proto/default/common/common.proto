@@ -23,7 +23,7 @@ enum FruitFlavor {
 
 message Item {
   int32 id = 1 [(tableau.field).name = "ID"];
-  int32 num = 2 [(tableau.field).name = "Num"];
+  int32 num = 2 [(tableau.field) = {name: "Num" prop:{range:"1,~"}}];
 }
 
 message Vector3 {
