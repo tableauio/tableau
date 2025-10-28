@@ -22,6 +22,7 @@ message FieldPropOptional {
       uint32 id = 1 [(tableau.field) = {name:"ID" prop:{optional:true}}]; // Prop ID
       string flavor = 2 [(tableau.field) = {name:"Flavor" prop:{optional:true}}]; // Prop flavor
       google.protobuf.Duration duration = 3 [(tableau.field) = {name:"Duration" prop:{optional:true}}]; // Prop duration
+      int32 value = 4 [(tableau.field) = {name:"Value"}]; // Prop value
     }
   }
 }

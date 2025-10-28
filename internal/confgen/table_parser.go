@@ -69,7 +69,7 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
-			_, err := sp.parseMessage(msg, curr, "", "")
+			_, err := sp.parseMessage(nil, msg, curr, "", "")
 			if err != nil {
 				return err
 			}
@@ -121,7 +121,7 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 			}
 			curr.SetColumnLookupTable(sp.lookupTable)
-			_, err := sp.parseMessage(msg, curr, "", "")
+			_, err := sp.parseMessage(nil, msg, curr, "", "")
 			if err != nil {
 				return err
 			}
@@ -136,7 +136,7 @@ func (sp *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 }
 
 // parseMessage parses all fields of a protobuf message.
-func (sp *tableParser) parseMessage(msg protoreflect.Message, rc *book.RowCells, prefix, cardPrefix string) (present bool, err error) {
+func (sp *tableParser) parseMessage(parentField *Field, msg protoreflect.Message, rc *book.RowCells, prefix, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
@@ -144,6 +144,7 @@ func (sp *tableParser) parseMessage(msg protoreflect.Message, rc *book.RowCells,
 			// TODO(performance): cache the parsed field for reuse, as each table row will be parsed repeatedly.
 			field := sp.parseFieldDescriptor(fd)
 			defer field.release()
+			field.mergeParentFieldProp(parentField)
 			newCardPrefix := cardPrefix + "." + string(fd.Name())
 			fieldPresent, err := sp.parseField(field, msg, rc, prefix, newCardPrefix)
 			if err != nil {
@@ -218,7 +219,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 	// value must be empty if key not present
 	if !keyPresent && reflectMap.Has(newMapKey) {
 		tempCheckMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, newPrefix, newCardPrefix)
+		valuePresent, err := sp.parseMessage(field, tempCheckMapValue.Message(), rc, newPrefix, newCardPrefix)
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
@@ -246,7 +247,7 @@ func (sp *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Mess
 		}
 		newMapValue = reflectMap.NewValue()
 	}
-	valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, newPrefix, newCardPrefix)
+	valuePresent, err := sp.parseMessage(field, newMapValue.Message(), rc, newPrefix, newCardPrefix)
 	if err != nil {
 		return false, err
 	}
@@ -307,7 +308,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 		// value must be empty if key not present
 		if !keyPresent && reflectMap.Has(newMapKey) {
 			tempCheckMapValue := reflectMap.NewValue()
-			valuePresent, err := sp.parseMessage(tempCheckMapValue.Message(), rc, elemPrefix, newCardPrefix)
+			valuePresent, err := sp.parseMessage(field, tempCheckMapValue.Message(), rc, elemPrefix, newCardPrefix)
 			if err != nil {
 				return false, err
 			}
@@ -335,7 +336,7 @@ func (sp *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Me
 			}
 			newMapValue = reflectMap.NewValue()
 		}
-		valuePresent, err := sp.parseMessage(newMapValue.Message(), rc, elemPrefix, newCardPrefix)
+		valuePresent, err := sp.parseMessage(field, newMapValue.Message(), rc, elemPrefix, newCardPrefix)
 		if err != nil {
 			return false, xerrors.WrapKV(err, rc.CellDebugKV(keyColName)...)
 		}
@@ -455,7 +456,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		}
 		// For KeyedList, use key but not len(list) as cardinality
 		newCardPrefix := cardPrefix + "." + escapeMapKey(key)
-		present, err := sp.parseMessage(elemValue.Message(), rc, newPrefix, newCardPrefix)
+		present, err := sp.parseMessage(field, elemValue.Message(), rc, newPrefix, newCardPrefix)
 		if err != nil {
 			return false, err
 		}
@@ -470,7 +471,7 @@ func (sp *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mes
 		}
 	} else {
 		// cross-cell struct list
-		elemPresent, err = sp.parseMessage(elemValue.Message(), rc, newPrefix, newCardPrefix)
+		elemPresent, err = sp.parseMessage(field, elemValue.Message(), rc, newPrefix, newCardPrefix)
 		if err != nil {
 			return false, xerrors.Wrapf(err, "failed to parse cross-cell struct list")
 		}
@@ -532,7 +533,7 @@ func (sp *tableParser) parseHorizontalListField(field *Field, msg protoreflect.M
 				}
 			} else {
 				// horizontal struct list
-				elemPresent, err = sp.parseMessage(elemValue.Message(), rc, elemPrefix, newCardPrefix)
+				elemPresent, err = sp.parseMessage(field, elemValue.Message(), rc, elemPrefix, newCardPrefix)
 			}
 			// TODO: support horizontal KeyedList
 		} else {
@@ -629,7 +630,7 @@ func (sp *tableParser) parseStructField(field *Field, msg protoreflect.Message, 
 		}
 	} else {
 		// cross-cell struct
-		present, err = sp.parseMessage(structValue.Message(), rc, newPrefix, cardPrefix)
+		present, err = sp.parseMessage(field, structValue.Message(), rc, newPrefix, cardPrefix)
 	}
 
 	if err != nil {
@@ -733,6 +734,7 @@ func (sp *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field,
 			err := func() error {
 				subField := sp.parseFieldDescriptor(fd)
 				defer subField.release()
+				subField.mergeParentFieldProp(field)
 				// incell scalar
 				cell, err := rc.Cell(valColName, sp.IsFieldOptional(subField))
 				if err != nil {

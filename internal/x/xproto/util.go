@@ -3,8 +3,15 @@ package xproto
 import (
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+// Clone returns a deep copy of m. If the top-level message is invalid, it
+// returns an invalid message as well.
+func Clone[T proto.Message](m T) T {
+	return proto.Clone(m).(T)
+}
 
 // GetFieldTypeName parses and returns correct field type name in desired
 // format from field descriptor.
