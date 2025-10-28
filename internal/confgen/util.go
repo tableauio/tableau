@@ -87,7 +87,7 @@ func (sp *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fi
 		layout = fieldOpts.Layout
 		sep = fieldOpts.Prop.GetSep()
 		subsep = fieldOpts.Prop.GetSubsep()
-		prop = fieldOpts.Prop
+		prop = xproto.Clone(fieldOpts.Prop)
 	} else {
 		// default processing
 		if fd.IsList() {
