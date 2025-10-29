@@ -67,9 +67,9 @@ func (f *Field) release() {
 }
 
 // TODO: use sync.Map to cache *Field for reuse, e.g.: treat key as fd.FullName().
-func (sp *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
+func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
 	// default value
-	name := strcase.FromContext(sp.ctx).ToCamel(string(fd.FullName().Name()))
+	name := strcase.FromContext(p.ctx).ToCamel(string(fd.FullName().Name()))
 	note := ""
 	span := tableaupb.Span_SPAN_DEFAULT
 	key := ""
@@ -100,10 +100,10 @@ func (sp *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fi
 		}
 	}
 	if sep == "" {
-		sep = sp.GetSep()
+		sep = p.GetSep()
 	}
 	if subsep == "" {
-		subsep = sp.GetSubsep()
+		subsep = p.GetSubsep()
 	}
 
 	// get from pool

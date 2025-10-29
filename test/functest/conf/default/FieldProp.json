@@ -22,7 +22,11 @@
                 2,
                 3
             ],
-            "optionalBonusId": 0
+            "optionalBonusId": 0,
+            "incellStruct": {
+                "id": 10,
+                "num": 1
+            }
         }
     }
 }

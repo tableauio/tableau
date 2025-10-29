@@ -312,89 +312,89 @@ func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName stri
 }
 
 // reset resets the runtime data of sheet parser for reuse
-func (sp *sheetParser) reset() {
-	sp.names = nil
-	sp.types = nil
-	sp.lookupTable = book.ColumnLookupTable{}
-	sp.cards = map[string]*cardInfo{}
+func (p *sheetParser) reset() {
+	p.names = nil
+	p.types = nil
+	p.lookupTable = book.ColumnLookupTable{}
+	p.cards = map[string]*cardInfo{}
 }
 
 // GetSep returns sheet-level separator.
-func (sp *sheetParser) GetSep() string {
+func (p *sheetParser) GetSep() string {
 	// sheet-level
-	if sp.sheetOpts.Sep != "" {
-		return sp.sheetOpts.Sep
+	if p.sheetOpts.Sep != "" {
+		return p.sheetOpts.Sep
 	}
 	// book-level
-	if sp.bookOpts.Sep != "" {
-		return sp.bookOpts.Sep
+	if p.bookOpts.Sep != "" {
+		return p.bookOpts.Sep
 	}
 	// default
 	return options.DefaultSep
 }
 
 // GetSubsep returns sheet-level subseparator.
-func (sp *sheetParser) GetSubsep() string {
+func (p *sheetParser) GetSubsep() string {
 	// sheet-level
-	if sp.sheetOpts.Subsep != "" {
-		return sp.sheetOpts.Subsep
+	if p.sheetOpts.Subsep != "" {
+		return p.sheetOpts.Subsep
 	}
 	// book-level
-	if sp.bookOpts.Subsep != "" {
-		return sp.bookOpts.Subsep
+	if p.bookOpts.Subsep != "" {
+		return p.bookOpts.Subsep
 	}
 	// default
 	return options.DefaultSubsep
 }
 
 // GetBookFormat returns workbook format related to this sheet.
-func (sp *sheetParser) GetBookFormat() format.Format {
-	if sp.extInfo == nil {
+func (p *sheetParser) GetBookFormat() format.Format {
+	if p.extInfo == nil {
 		return format.UnknownFormat
 	}
-	return sp.extInfo.BookFormat
+	return p.extInfo.BookFormat
 }
 
 // IsTable checks whether the sheet format is a table sheet.
-func (sp *sheetParser) IsTable() bool {
-	return sp.GetBookFormat() == format.Excel || sp.GetBookFormat() == format.CSV
+func (p *sheetParser) IsTable() bool {
+	return p.GetBookFormat() == format.Excel || p.GetBookFormat() == format.CSV
 }
 
 // IsFieldOptional returns whether this field is optional (field name existence).
 //   - table formats (Excel/CSV): field's column can be absent.
 //   - document formats (XML/YAML): field's name can be absent.
-func (sp *sheetParser) IsFieldOptional(field *Field) bool {
-	return sp.sheetOpts.GetOptional() || field.opts.GetProp().GetOptional()
+func (p *sheetParser) IsFieldOptional(field *Field) bool {
+	return p.sheetOpts.GetOptional() || field.opts.GetProp().GetOptional()
 }
 
-func (sp *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
-	defer sp.reset()
+func (p *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+	defer p.reset()
 	if sheet.Document != nil {
-		docParser := &documentParser{sheetParser: sp}
+		docParser := &documentParser{sheetParser: p}
 		return docParser.Parse(protomsg, sheet)
 	}
-	tableParser := &tableParser{sheetParser: sp}
+	tableParser := &tableParser{sheetParser: p}
 	return tableParser.Parse(protomsg, sheet)
 }
 
-func (sp *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
+func (p *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	// keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
 	if valueFd.Kind() != protoreflect.MessageKind {
-		return sp.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
+		return p.parseIncellMapWithSimpleKV(field, reflectMap, cellData)
 	}
 
 	if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
 		return xerrors.Errorf("map value type is not KV struct, and is not supported")
 	}
-	return sp.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
+	return p.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
 }
 
 // parseIncellMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
 // For example:
 //   - map<int32, int32>
 //   - map<int32, EnumType>
-func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
+func (p *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
 		return nil
 	}
@@ -412,7 +412,7 @@ func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap proto
 		}
 		key, value := kv[0], kv[1]
 
-		fieldValue, keyPresent, err := sp.parseFieldValue(keyFd, key, field.opts.Prop)
+		fieldValue, keyPresent, err := p.parseFieldValue(keyFd, key, field.opts.Prop)
 		if err != nil {
 			return err
 		}
@@ -423,7 +423,7 @@ func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap proto
 			return xerrors.WrapKV(xerrors.E2005(key))
 		}
 		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
-		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value, nil)
+		fieldValue, valuePresent, err := p.parseFieldValue(valueFd, value, nil)
 		if err != nil {
 			return err
 		}
@@ -466,7 +466,7 @@ func (sp *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap proto
 //		FruitType key = 1 [(tableau.field) = {name:"Key"}];
 //		FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
 //	}
-func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
+func (p *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
 		return nil
 	}
@@ -483,7 +483,7 @@ func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, re
 		}
 		keyData := kv[0]
 
-		newMapKey, keyPresent, err := sp.parseMapKey(field, reflectMap, keyData)
+		newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, keyData)
 		if err != nil {
 			return err
 		}
@@ -493,7 +493,7 @@ func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, re
 		}
 
 		newMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parseIncellStruct(newMapValue, mapItemData, field.opts.GetProp().GetForm(), field.subsep)
+		valuePresent, err := p.parseIncellStruct(field, newMapValue, mapItemData, field.subsep)
 		if err != nil {
 			return err
 		}
@@ -508,7 +508,7 @@ func (sp *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, re
 	return nil
 }
 
-func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, cellData string) (mapKey protoreflect.MapKey, present bool, err error) {
+func (p *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, cellData string) (mapKey protoreflect.MapKey, present bool, err error) {
 	var keyFd protoreflect.FieldDescriptor
 
 	md := reflectMap.NewValue().Message().Descriptor()
@@ -528,14 +528,14 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 	}
 	var fieldValue protoreflect.Value
 	if keyFd.Kind() == protoreflect.EnumKind {
-		fieldValue, present, err = sp.parseFieldValue(keyFd, cellData, field.opts.Prop)
+		fieldValue, present, err = p.parseFieldValue(keyFd, cellData, field.opts.Prop)
 		if err != nil {
 			return mapKey, false, err
 		}
 		v := protoreflect.ValueOfInt32(int32(fieldValue.Enum()))
 		mapKey = v.MapKey()
 	} else {
-		fieldValue, present, err = sp.parseFieldValue(keyFd, cellData, field.opts.Prop)
+		fieldValue, present, err = p.parseFieldValue(keyFd, cellData, field.opts.Prop)
 		if err != nil {
 			return mapKey, false, xerrors.WrapKV(err)
 		}
@@ -544,23 +544,23 @@ func (sp *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, ce
 	return mapKey, present, nil
 }
 
-func (sp *sheetParser) checkMapKeyUnique(field *Field, keyData string) error {
-	return sp.checkKeyUnique(field.fd.MapValue().Message(), field.opts, keyData)
+func (p *sheetParser) checkMapKeyUnique(field *Field, keyData string) error {
+	return p.checkKeyUnique(field.fd.MapValue().Message(), field.opts, keyData)
 }
 
-func (sp *sheetParser) checkListKeyUnique(field *Field, keyData string) error {
-	return sp.checkKeyUnique(field.fd.Message(), field.opts, keyData)
+func (p *sheetParser) checkListKeyUnique(field *Field, keyData string) error {
+	return p.checkKeyUnique(field.fd.Message(), field.opts, keyData)
 }
 
-func (sp *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string) error {
-	fd := sp.findFieldByName(md, fdOpts.Key)
+func (p *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string) error {
+	fd := p.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
 		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
 	}
-	keyField := sp.parseFieldDescriptor(fd)
+	keyField := p.parseFieldDescriptor(fd)
 	defer keyField.release()
 	if fieldprop.RequireUnique(keyField.opts.Prop) ||
-		(!fieldprop.HasUnique(keyField.opts.Prop) && sp.deduceKeyUnique(fdOpts.Layout, md)) {
+		(!fieldprop.HasUnique(keyField.opts.Prop) && p.deduceKeyUnique(fdOpts.Layout, md)) {
 		return xerrors.Wrap(xerrors.E2005(keyData))
 	}
 	return nil
@@ -581,8 +581,8 @@ func (sp *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts 
 //   - Map/KeyedList layout is incell.
 //   - Map/KeyedList nesting map or list with different layout (vertical or horizontal).
 //   - Map/KeyedList nesting no map or list.
-func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoreflect.MessageDescriptor) bool {
-	if !sp.IsTable() {
+func (p *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoreflect.MessageDescriptor) bool {
+	if !p.IsTable() {
 		return true
 	}
 	layout := parseTableMapLayout(fieldLayout)
@@ -593,7 +593,7 @@ func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoref
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		if fd.IsMap() || fd.IsList() {
-			childField := sp.parseFieldDescriptor(fd)
+			childField := p.parseFieldDescriptor(fd)
 			defer childField.release()
 			childLayout := parseTableMapLayout(childField.opts.Layout)
 			if childLayout == layout {
@@ -606,20 +606,20 @@ func (sp *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protoref
 	return true
 }
 
-func (sp *sheetParser) checkMapKeySequence(field *Field, reflectMap protoreflect.Map, keyData string, merged bool) error {
-	return sp.checkKeySequence(field.fd.MapValue().Message(), field.opts, keyData, int64(reflectMap.Len()), merged)
+func (p *sheetParser) checkMapKeySequence(field *Field, reflectMap protoreflect.Map, keyData string, merged bool) error {
+	return p.checkKeySequence(field.fd.MapValue().Message(), field.opts, keyData, int64(reflectMap.Len()), merged)
 }
 
-func (sp *sheetParser) checkListKeySequence(field *Field, reflectList protoreflect.List, keyData string, merged bool) error {
-	return sp.checkKeySequence(field.fd.Message(), field.opts, keyData, int64(reflectList.Len()), merged)
+func (p *sheetParser) checkListKeySequence(field *Field, reflectList protoreflect.List, keyData string, merged bool) error {
+	return p.checkKeySequence(field.fd.Message(), field.opts, keyData, int64(reflectList.Len()), merged)
 }
 
-func (sp *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string, valueCount int64, merged bool) error {
-	fd := sp.findFieldByName(md, fdOpts.Key)
+func (p *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string, valueCount int64, merged bool) error {
+	fd := p.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
 		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
 	}
-	keyField := sp.parseFieldDescriptor(fd)
+	keyField := p.parseFieldDescriptor(fd)
 	defer keyField.release()
 	if !fieldprop.RequireSequence(keyField.opts.Prop) {
 		// do not require sequence
@@ -648,8 +648,8 @@ func (sp *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpt
 // # Performance improvement
 //
 //  1. parse sub fields metadata only once, and cache it for later use.
-//  2. cache the field's values in map for speeding up checking.
-func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValue protoreflect.Value) (string, error) {
+//  2. cache the field's values in map to speed up checking.
+func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValue protoreflect.Value) (string, error) {
 	if field.fd.IsMap() {
 		if field.fd.MapValue().Kind() != protoreflect.MessageKind || xproto.IsUnionField(field.fd.MapValue()) {
 			// no need to check
@@ -663,7 +663,7 @@ func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newVal
 	} else {
 		return "", xerrors.Errorf("field %s is not map or list", field.fd.FullName())
 	}
-	info := sp.cards[cardPrefix]
+	info := p.cards[cardPrefix]
 	if info == nil {
 		// parse sub fields metadata only once, and cache it for later use
 		md := newValue.Message().Descriptor()
@@ -673,7 +673,8 @@ func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newVal
 		}
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
-			subField := sp.parseFieldDescriptor(fd)
+			subField := p.parseFieldDescriptor(fd)
+			subField.mergeParentFieldProp(field)
 			defer subField.release()
 			if subField.opts.GetName() == field.opts.GetKey() {
 				// key field not checked
@@ -683,7 +684,7 @@ func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newVal
 				info.uniqueFields[subField.opts.GetName()] = &uniqueField{
 					fd:       subField.fd,
 					values:   map[string]bool{},
-					optional: sp.IsFieldOptional(subField),
+					optional: p.IsFieldOptional(subField),
 				}
 			}
 			if fieldprop.RequireSequence(subField.opts.Prop) {
@@ -694,7 +695,7 @@ func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newVal
 			}
 		}
 		// add new unique value
-		sp.cards[cardPrefix] = info
+		p.cards[cardPrefix] = info
 	}
 	for name, field := range info.uniqueFields {
 		if field.optional && !newValue.Message().Has(field.fd) {
@@ -723,14 +724,14 @@ func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newVal
 	return "", nil
 }
 
-func (sp *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) (present bool, err error) {
+func (p *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) (present bool, err error) {
 	splits := strings.Split(elemData, field.sep)
-	return sp.parseListElems(field, list, cardPrefix, field.subsep, splits)
+	return p.parseListElems(field, list, cardPrefix, field.subsep, splits)
 }
 
 // parseListElems parses the given string slice to a list. Each elem's
 // corresponding type can be: scalar, enum, well-known, and struct.
-func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, cardPrefix string, sep string, elemDataList []string) (present bool, err error) {
+func (p *sheetParser) parseListElems(field *Field, list protoreflect.List, cardPrefix string, sep string, elemDataList []string) (present bool, err error) {
 	fd := field.fd
 	fdopts := field.opts
 	detectedSize := len(elemDataList)
@@ -747,9 +748,9 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, card
 		var elemPresent bool
 		if fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(fd.Message().FullName()) {
 			elemValue = list.NewElement()
-			elemPresent, err = sp.parseIncellStruct(elemValue, elem, fdopts.GetProp().GetForm(), sep)
+			elemPresent, err = p.parseIncellStruct(field, elemValue, elem, sep)
 		} else {
-			elemValue, elemPresent, err = sp.parseFieldValue(fd, elem, fdopts.Prop)
+			elemValue, elemPresent, err = p.parseFieldValue(fd, elem, fdopts.Prop)
 		}
 		if err != nil {
 			return false, err
@@ -777,7 +778,7 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, card
 			}
 		}
 		// check list elem's sub-field prop
-		_, err := sp.checkSubFieldProp(field, cardPrefix, elemValue)
+		_, err := p.checkSubFieldProp(field, cardPrefix, elemValue)
 		if err != nil {
 			return false, err
 		}
@@ -792,11 +793,11 @@ func (sp *sheetParser) parseListElems(field *Field, list protoreflect.List, card
 	return list.Len() != 0, nil
 }
 
-func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellData string, form tableaupb.Form, sep string) (present bool, err error) {
+func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.Value, cellData string, sep string) (present bool, err error) {
 	if cellData == "" {
 		return false, nil
 	}
-	switch form {
+	switch field.opts.GetProp().GetForm() {
 	case tableaupb.Form_FORM_TEXT:
 		if err := prototext.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
 			return false, xerrors.Errorf("unmarshal from text failed: %v", err)
@@ -812,24 +813,32 @@ func (sp *sheetParser) parseIncellStruct(structValue protoreflect.Value, cellDat
 		md := structValue.Message().Descriptor()
 		for i := 0; i < md.Fields().Len() && i < len(splits); i++ {
 			fd := md.Fields().Get(i)
-			// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
-			incell := splits[i]
-			value, fieldPresent, err := sp.parseFieldValue(fd, incell, nil)
+			rawValue := splits[i]
+			err := func() error {
+				subField := p.parseFieldDescriptor(fd)
+				subField.mergeParentFieldProp(field)
+				defer subField.release()
+				// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
+				value, fieldPresent, err := p.parseFieldValue(fd, rawValue, subField.opts.Prop)
+				if err != nil {
+					return err
+				}
+				if fieldPresent {
+					// The struct is treated as present as long as one field is present.
+					present = true
+					structValue.Message().Set(fd, value)
+				}
+				return nil
+			}()
 			if err != nil {
 				return false, err
-			}
-			structValue.Message().Set(fd, value)
-			if fieldPresent {
-				// The struct is treated as present only if one field is present.
-				present = true
-				structValue.Message().Set(fd, value)
 			}
 		}
 		return present, nil
 	}
 }
 
-func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cardPrefix string, dataList []string) (err error) {
+func (p *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cardPrefix string, dataList []string) (err error) {
 	if len(dataList) == 0 {
 		return xerrors.Errorf("union field data not provided")
 	}
@@ -838,7 +847,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 	if field.fd.IsMap() {
 		// incell map
 		fieldValue = msg.NewField(field.fd)
-		err := sp.parseIncellMap(field, fieldValue.Map(), dataList[0])
+		err := p.parseIncellMap(field, fieldValue.Map(), dataList[0])
 		if err != nil {
 			return err
 		}
@@ -851,23 +860,23 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 		list := fieldValue.List()
 		switch field.opts.GetLayout() {
 		case tableaupb.Layout_LAYOUT_INCELL, tableaupb.Layout_LAYOUT_DEFAULT:
-			present, err = sp.parseIncellList(field, list, cardPrefix, dataList[0])
+			present, err = p.parseIncellList(field, list, cardPrefix, dataList[0])
 		case tableaupb.Layout_LAYOUT_HORIZONTAL:
-			present, err = sp.parseListElems(field, list, cardPrefix, field.sep, dataList)
+			present, err = p.parseListElems(field, list, cardPrefix, field.sep, dataList)
 		default:
 			return xerrors.Errorf("union list field has illegal layout: %s", field.opts.GetLayout())
 		}
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 			// well-known message
-			fieldValue, present, err = sp.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
+			fieldValue, present, err = p.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
 		} else {
 			// incell struct
 			fieldValue = msg.NewField(field.fd)
-			present, err = sp.parseIncellStruct(fieldValue, dataList[0], field.opts.GetProp().GetForm(), field.sep)
+			present, err = p.parseIncellStruct(field, fieldValue, dataList[0], field.sep)
 		}
 	} else {
-		fieldValue, present, err = sp.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
+		fieldValue, present, err = p.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
 	}
 	if err != nil {
 		return err
@@ -878,7 +887,7 @@ func (sp *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mes
 	return nil
 }
 
-func (sp *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData string, form tableaupb.Form) (present bool, err error) {
+func (p *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData string, form tableaupb.Form) (present bool, err error) {
 	if cellData == "" {
 		return false, nil
 	}
@@ -903,8 +912,8 @@ func (sp *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData
 //   - Scalar types
 //   - Enum types
 //   - Well-known types
-func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, fprop *tableaupb.FieldProp) (v protoreflect.Value, present bool, err error) {
-	v, present, err = xproto.ParseFieldValue(fd, rawValue, sp.LocationName, fprop)
+func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, fprop *tableaupb.FieldProp) (v protoreflect.Value, present bool, err error) {
+	v, present, err = xproto.ParseFieldValue(fd, rawValue, p.LocationName, fprop)
 	if err != nil {
 		return v, present, err
 	}
@@ -920,15 +929,15 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 		}
 		// check refer
 		// NOTE: if use NewSheetParser, sp.extInfo is nil, which means SheetParserExtInfo is not provided.
-		if fprop.Refer != "" && sp.extInfo != nil {
+		if fprop.Refer != "" && p.extInfo != nil {
 			input := &fieldprop.Input{
-				ProtoPackage:   sp.ProtoPackage,
-				InputDir:       sp.extInfo.InputDir,
-				SubdirRewrites: sp.extInfo.SubdirRewrites,
-				PRFiles:        sp.extInfo.PRFiles,
+				ProtoPackage:   p.ProtoPackage,
+				InputDir:       p.extInfo.InputDir,
+				SubdirRewrites: p.extInfo.SubdirRewrites,
+				PRFiles:        p.extInfo.PRFiles,
 				Present:        present,
 			}
-			ok, err := fieldprop.InReferredSpace(sp.ctx, fprop, rawValue, input)
+			ok, err := fieldprop.InReferredSpace(p.ctx, fprop, rawValue, input)
 			if err != nil {
 				return v, present, err
 			}
@@ -941,10 +950,10 @@ func (sp *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue
 	return v, present, err
 }
 
-func (sp *sheetParser) findFieldByName(md protoreflect.MessageDescriptor, name string) protoreflect.FieldDescriptor {
+func (p *sheetParser) findFieldByName(md protoreflect.MessageDescriptor, name string) protoreflect.FieldDescriptor {
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
-		field := sp.parseFieldDescriptor(fd)
+		field := p.parseFieldDescriptor(fd)
 		defer field.release()
 		if field.opts.Name == name {
 			return fd

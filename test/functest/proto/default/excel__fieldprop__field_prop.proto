@@ -30,6 +30,7 @@ message FieldProp {
     int32 buff_id_1 = 4 [(tableau.field) = {name:"BuffID1"}, json_name="buff_id_1"]; // Buff ID 1
     repeated uint32 award_id_list = 5 [(tableau.field) = {name:"AwardID" layout:LAYOUT_INCELL prop:{refer:"ItemConf.ID"}}]; // Award ID list
     uint32 optional_bonus_id = 6 [(tableau.field) = {name:"OptionalBonusID" prop:{refer:"ItemConf.ID"}}]; // Optional bonus ID
+    protoconf.Item incell_struct = 7 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}]; // Incell struct
   }
 }
 
