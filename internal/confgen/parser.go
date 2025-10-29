@@ -648,7 +648,7 @@ func (sp *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpt
 // # Performance improvement
 //
 //  1. parse sub fields metadata only once, and cache it for later use.
-//  2. cache the field's values in map for speeding up checking.
+//  2. cache the field's values in map to speed up checking.
 func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValue protoreflect.Value) (string, error) {
 	if field.fd.IsMap() {
 		if field.fd.MapValue().Kind() != protoreflect.MessageKind || xproto.IsUnionField(field.fd.MapValue()) {
@@ -674,6 +674,7 @@ func (sp *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newVal
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
 			subField := sp.parseFieldDescriptor(fd)
+			subField.mergeParentFieldProp(field)
 			defer subField.release()
 			if subField.opts.GetName() == field.opts.GetKey() {
 				// key field not checked
@@ -822,7 +823,6 @@ func (sp *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.
 				if err != nil {
 					return err
 				}
-				structValue.Message().Set(fd, value)
 				if fieldPresent {
 					// The struct is treated as present as long as one field is present.
 					present = true

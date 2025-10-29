@@ -504,6 +504,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 		valNode := node.FindChild(valNodeName)
 		err := func() error {
 			subField := sp.parseFieldDescriptor(fd)
+			subField.mergeParentFieldProp(field)
 			defer subField.release()
 			if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
 				// if this field has a default value, use virtual node
