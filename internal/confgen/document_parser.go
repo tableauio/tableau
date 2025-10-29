@@ -19,7 +19,7 @@ type documentParser struct {
 	*sheetParser
 }
 
-func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	if len(sheet.Document.Children) != 1 {
 		return xerrors.ErrorKV("document should have and only have one child (map node)",
 			xerrors.KeySheetName, sheet.Name)
@@ -27,7 +27,7 @@ func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error
 	// get the first child (map node) in document
 	child := sheet.Document.Children[0]
 	msg := protomsg.ProtoReflect()
-	_, err := sp.parseMessage(nil, msg, child, "")
+	_, err := p.parseMessage(nil, msg, child, "")
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeySheetName, sheet.Name)
 	}
@@ -35,12 +35,12 @@ func (sp *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error
 }
 
 // parseMessage parses all fields of a protobuf message.
-func (sp *documentParser) parseMessage(parentField *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		err := func() error {
-			field := sp.parseFieldDescriptor(fd)
+			field := p.parseFieldDescriptor(fd)
 			field.mergeParentFieldProp(parentField)
 			defer field.release()
 			var fieldNode *book.Node
@@ -67,7 +67,7 @@ func (sp *documentParser) parseMessage(parentField *Field, msg protoreflect.Mess
 					}
 				}
 				if fieldNode == nil {
-					if sp.IsFieldOptional(field) {
+					if p.IsFieldOptional(field) {
 						// field not found and is optional, just return nil.
 						return nil
 					}
@@ -81,7 +81,7 @@ func (sp *documentParser) parseMessage(parentField *Field, msg protoreflect.Mess
 				}
 			}
 			newCardPrefix := cardPrefix + "." + string(fd.Name())
-			fieldPresent, err := sp.parseField(field, msg, fieldNode, newCardPrefix)
+			fieldPresent, err := p.parseField(field, msg, fieldNode, newCardPrefix)
 			if err != nil {
 				return xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
@@ -101,23 +101,23 @@ func (sp *documentParser) parseMessage(parentField *Field, msg protoreflect.Mess
 	return present, nil
 }
 
-func (sp *documentParser) parseField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+func (p *documentParser) parseField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	// log.Debug(field.fd.ContainingMessage().FullName())
 	if field.fd.IsMap() {
-		return sp.parseMapField(field, msg, node, cardPrefix)
+		return p.parseMapField(field, msg, node, cardPrefix)
 	} else if field.fd.IsList() {
-		return sp.parseListField(field, msg, node, cardPrefix)
+		return p.parseListField(field, msg, node, cardPrefix)
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		if xproto.IsUnionField(field.fd) {
-			return sp.parseUnionField(field, msg, node, cardPrefix)
+			return p.parseUnionField(field, msg, node, cardPrefix)
 		}
-		return sp.parseStructField(field, msg, node, cardPrefix)
+		return p.parseStructField(field, msg, node, cardPrefix)
 	} else {
-		return sp.parseScalarField(field, msg, node)
+		return p.parseScalarField(field, msg, node)
 	}
 }
 
-func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	prefValue := msg.Mutable(field.fd)
 	reflectMap := prefValue.Map()
 	// keyFd := field.fd.MapKey()
@@ -125,14 +125,14 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 
 	if field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL {
 		// incell map
-		err = sp.parseIncellMap(field, reflectMap, node.ScalarValue())
+		err = p.parseIncellMap(field, reflectMap, node.ScalarValue())
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
 	} else if valueFd.Kind() != protoreflect.MessageKind ||
 		field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// scalar map (key can be enum)
-		err = sp.parseScalarMap(field, reflectMap, node)
+		err = p.parseScalarMap(field, reflectMap, node)
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -162,7 +162,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				default:
 					return false, xerrors.ErrorKV("should not reach here", node.DebugKV()...)
 				}
-				newMapKey, keyPresent, err := sp.parseMapKey(field, reflectMap, keyData)
+				newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, keyData)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
@@ -170,23 +170,23 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				newMapKeyExisted := reflectMap.Has(newMapKey)
 				if newMapKeyExisted {
 					// check map key unique
-					if err := sp.checkMapKeyUnique(field, keyData); err != nil {
+					if err := p.checkMapKeyUnique(field, keyData); err != nil {
 						return false, xerrors.WrapKV(err, node.DebugKV()...)
 					}
 					// check map key sequence
-					if err := sp.checkMapKeySequence(field, reflectMap, keyData, true); err != nil {
+					if err := p.checkMapKeySequence(field, reflectMap, keyData, true); err != nil {
 						return false, xerrors.WrapKV(err, node.DebugKV()...)
 					}
 					newMapValue = reflectMap.Mutable(newMapKey)
 				} else {
 					// check map key sequence
-					if err := sp.checkMapKeySequence(field, reflectMap, keyData, false); err != nil {
+					if err := p.checkMapKeySequence(field, reflectMap, keyData, false); err != nil {
 						return false, xerrors.WrapKV(err, node.DebugKV()...)
 					}
 					newMapValue = reflectMap.NewValue()
 				}
 				newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
-				valuePresent, err := sp.parseMessage(field, newMapValue.Message(), elemNode, newCardPrefix)
+				valuePresent, err := p.parseMessage(field, newMapValue.Message(), elemNode, newCardPrefix)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
@@ -197,7 +197,7 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 				}
 				if !newMapKeyExisted {
 					// check map value's sub-field prop
-					dupName, err := sp.checkSubFieldProp(field, cardPrefix, newMapValue)
+					dupName, err := p.checkSubFieldProp(field, cardPrefix, newMapValue)
 					if err != nil {
 						return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
 					}
@@ -218,24 +218,24 @@ func (sp *documentParser) parseMapField(field *Field, msg protoreflect.Message, 
 	return present, nil
 }
 
-func (sp *documentParser) parseScalarMap(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
+func (p *documentParser) parseScalarMap(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
 	// keyFd := field.fd.MapKey()
 	valueFd := field.fd.MapValue()
 	if valueFd.Kind() != protoreflect.MessageKind {
-		return sp.parseScalarMapWithSimpleKV(field, reflectMap, node)
+		return p.parseScalarMapWithSimpleKV(field, reflectMap, node)
 	}
 
 	if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
 		return xerrors.Errorf("map value type is not KV struct, and is not supported")
 	}
-	return sp.parseScalarMapWithValueAsSimpleKVMessage(field, reflectMap, node)
+	return p.parseScalarMapWithValueAsSimpleKVMessage(field, reflectMap, node)
 }
 
 // parseScalarMapWithSimpleKV parses simple incell map with key as scalar type and value as scalar or enum type.
 // For example:
 //   - map<int32, int32>
 //   - map<int32, EnumType>
-func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
+func (p *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
 	// If s does not contain sep and sep is not empty, Split returns a
 	// slice of length 1 whose only element is s.
 	keyFd := field.fd.MapKey()
@@ -243,7 +243,7 @@ func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap pr
 	for _, elemNode := range node.Children {
 		key, value := elemNode.Name, elemNode.Value
 
-		fieldValue, keyPresent, err := sp.parseFieldValue(keyFd, key, field.opts.Prop)
+		fieldValue, keyPresent, err := p.parseFieldValue(keyFd, key, field.opts.Prop)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
@@ -254,7 +254,7 @@ func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap pr
 			return xerrors.WrapKV(xerrors.E2005(key))
 		}
 		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
-		fieldValue, valuePresent, err := sp.parseFieldValue(valueFd, value, nil)
+		fieldValue, valuePresent, err := p.parseFieldValue(valueFd, value, nil)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugKV()...)
 		}
@@ -295,13 +295,13 @@ func (sp *documentParser) parseScalarMapWithSimpleKV(field *Field, reflectMap pr
 //		FruitType key = 1 [(tableau.field) = {name:"Key"}];
 //		FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
 //	}
-func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
+func (p *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, node *book.Node) (err error) {
 	// If s does not contain sep and sep is not empty, Split returns a
 	// slice of length 1 whose only element is s.
 	for _, elemNode := range node.Children {
 		key, value := elemNode.Name, elemNode.Value
 		mapItemData := strings.Join([]string{key, value}, field.subsep)
-		newMapKey, keyPresent, err := sp.parseMapKey(field, reflectMap, key)
+		newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, key)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
@@ -310,7 +310,7 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 			return xerrors.WrapKV(xerrors.E2005(key))
 		}
 		newMapValue := reflectMap.NewValue()
-		valuePresent, err := sp.parseIncellStruct(field, newMapValue, mapItemData, field.subsep)
+		valuePresent, err := p.parseIncellStruct(field, newMapValue, mapItemData, field.subsep)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugKV()...)
 		}
@@ -323,7 +323,7 @@ func (sp *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field,
 	return nil
 }
 
-func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+func (p *documentParser) parseListField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	// Mutable returns a mutable reference to a composite type.
 	newValue := msg.Mutable(field.fd)
 	list := newValue.List()
@@ -331,7 +331,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
 		// node of XML scalar list with only 1 element is just like an incell list
 		node.Kind == book.ScalarNode:
-		present, err = sp.parseIncellList(field, list, cardPrefix, node.ScalarValue())
+		present, err = p.parseIncellList(field, list, cardPrefix, node.ScalarValue())
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -342,24 +342,24 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 			newCardPrefix := cardPrefix + "." + strconv.Itoa(list.Len())
 			if xproto.IsUnionField(field.fd) {
 				// cross-cell union list
-				elemPresent, err = sp.parseUnionMessage(field, elemValue.Message(), elemNode, newCardPrefix)
+				elemPresent, err = p.parseUnionMessage(field, elemValue.Message(), elemNode, newCardPrefix)
 			} else if field.fd.Kind() == protoreflect.MessageKind {
 				// cross-cell struct list
 				if types.IsWellKnownMessage(field.fd.Message().FullName()) {
-					elemValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
+					elemValue, elemPresent, err = p.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
 				} else {
-					elemPresent, err = sp.parseMessage(field, elemValue.Message(), elemNode, newCardPrefix)
+					elemPresent, err = p.parseMessage(field, elemValue.Message(), elemNode, newCardPrefix)
 				}
 			} else {
 				// cross-cell scalar list
-				elemValue, elemPresent, err = sp.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
+				elemValue, elemPresent, err = p.parseFieldValue(field.fd, elemNode.Value, field.opts.Prop)
 			}
 			if err != nil {
 				return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 			}
 			if elemPresent {
 				// check list elem's sub-field prop
-				_, err := sp.checkSubFieldProp(field, cardPrefix, elemValue)
+				_, err := p.checkSubFieldProp(field, cardPrefix, elemValue)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
@@ -377,7 +377,7 @@ func (sp *documentParser) parseListField(field *Field, msg protoreflect.Message,
 	return present, nil
 }
 
-func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	var structValue protoreflect.Value
 	if msg.Has(field.fd) {
 		// Get it if this field is populated. It will be overwritten if present.
@@ -387,9 +387,9 @@ func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message
 	}
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		present, err = sp.parseIncellUnion(structValue, node.ScalarValue(), field.opts.GetProp().GetForm())
+		present, err = p.parseIncellUnion(structValue, node.ScalarValue(), field.opts.GetProp().GetForm())
 	} else {
-		present, err = sp.parseUnionMessage(field, structValue.Message(), node.StructNode(), cardPrefix)
+		present, err = p.parseUnionMessage(field, structValue.Message(), node.StructNode(), cardPrefix)
 	}
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
@@ -400,7 +400,7 @@ func (sp *documentParser) parseUnionField(field *Field, msg protoreflect.Message
 	return
 }
 
-func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+func (p *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	var structValue protoreflect.Value
 	if msg.Has(field.fd) {
 		// Get it if this field is populated. It will be overwritten if present.
@@ -411,12 +411,12 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
-		present, err = sp.parseIncellStruct(field, structValue, node.ScalarValue(), field.sep)
+		present, err = p.parseIncellStruct(field, structValue, node.ScalarValue(), field.sep)
 	} else if types.IsWellKnownMessage(field.fd.Message().FullName()) {
-		structValue, present, err = sp.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
+		structValue, present, err = p.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
 	} else {
 		// cross-cell struct
-		present, err = sp.parseMessage(field, structValue.Message(), node.StructNode(), cardPrefix)
+		present, err = p.parseMessage(field, structValue.Message(), node.StructNode(), cardPrefix)
 	}
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
@@ -427,10 +427,10 @@ func (sp *documentParser) parseStructField(field *Field, msg protoreflect.Messag
 	return
 }
 
-func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
+func (p *documentParser) parseScalarField(field *Field, msg protoreflect.Message, node *book.Node) (present bool, err error) {
 	var newValue protoreflect.Value
 	// FIXME(wenchy): treat any scalar field's present as true if this field's key exists?
-	newValue, present, err = sp.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
+	newValue, present, err = p.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
 	if err != nil {
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
@@ -440,14 +440,14 @@ func (sp *documentParser) parseScalarField(field *Field, msg protoreflect.Messag
 	return
 }
 
-func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
+func (p *documentParser) parseUnionMessage(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	unionDesc := xproto.ExtractUnionDescriptor(field.fd.Message())
 	if unionDesc == nil {
 		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
 	}
 
 	// parse union type
-	typeNodeName := strcase.FromContext(sp.ctx).ToCamel(unionDesc.TypeName())
+	typeNodeName := strcase.FromContext(p.ctx).ToCamel(unionDesc.TypeName())
 	typeNode := node.FindChild(typeNodeName)
 	if typeNode == nil && xproto.GetFieldDefaultValue(unionDesc.Type) != "" {
 		// if this field has a default value, use virtual node
@@ -457,7 +457,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 		}
 	}
 	if typeNode == nil {
-		if sp.IsFieldOptional(field) {
+		if p.IsFieldOptional(field) {
 			// field not found and is optional, just return nil.
 			return false, nil
 		}
@@ -471,7 +471,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 	}
 
 	var typeVal protoreflect.Value
-	typeVal, present, err = sp.parseFieldValue(unionDesc.Type, typeNode.Value, nil)
+	typeVal, present, err = p.parseFieldValue(unionDesc.Type, typeNode.Value, nil)
 	if err != nil {
 		return false, xerrors.WrapKV(err, typeNode.DebugNameKV()...)
 	}
@@ -503,7 +503,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 		valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
 		valNode := node.FindChild(valNodeName)
 		err := func() error {
-			subField := sp.parseFieldDescriptor(fd)
+			subField := p.parseFieldDescriptor(fd)
 			subField.mergeParentFieldProp(field)
 			defer subField.release()
 			if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
@@ -514,7 +514,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 				}
 			}
 			if valNode == nil {
-				if sp.IsFieldOptional(subField) {
+				if p.IsFieldOptional(subField) {
 					// field not found and is optional, just return nil.
 					return nil
 				}
@@ -537,7 +537,7 @@ func (sp *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messa
 					crossNodeValues = append(crossNodeValues, node.Value)
 				}
 			}
-			return sp.parseUnionMessageField(subField, fieldMsg, cardPrefix, crossNodeValues)
+			return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, crossNodeValues)
 		}()
 		if err != nil {
 			return false, xerrors.WrapKV(err, valNode.DebugNameKV()...)
