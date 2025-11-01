@@ -162,7 +162,7 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 		if err != nil {
 			return DefaultBoolValue, false, xerrors.E2013(value, err)
 		}
-		return pref.ValueOfBool(val), true, xerrors.E2013(value, err)
+		return pref.ValueOfBool(val), true, nil
 
 	case pref.FloatKind:
 		value := getTrimmedValue()

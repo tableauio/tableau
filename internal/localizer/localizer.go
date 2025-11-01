@@ -40,7 +40,7 @@ type Localizer struct {
 	*i18n.Bundle
 }
 
-// NewLocalizer returns a new Localizer that looks up messages in the bundle
+// NewLocalizer creates a new Localizer that looks up messages in the bundle
 // according to the language preferences in langs.
 //
 // TODO: support language preferences in langs.

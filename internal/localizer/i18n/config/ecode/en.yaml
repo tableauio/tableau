@@ -2,36 +2,65 @@
 E0001:
   desc: sheet not found in book
   text: sheet "{{.SheetName}}" not found in book "{{.BookName}}"
+  fields:
+    - SheetName: string
+    - BookName: string
 E0002:
   desc: cannot unmarshal file content to given proto.Message
   text: 'failed to unmarshal file "{{.Filename}}" to message "{{.MessageName}}": {{.Error}}{{.Lines}}'
   help: check the file content format is correct
+  fields:
+    - Filename: string
+    - MessageName: string
+    - Error: error
+    - Lines: string
 E0003:
   desc: duplicate column name
   text: duplicate column name "{{.Name}}" in both "{{.Position1}}" and "{{.Position2}}"
   help: rename column name and keep sure it is unique in name row
+  fields:
+    - Name: string
+    - Position1: string
+    - Position2: string
 # [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2000:
   desc: integer overflow
   text: 'value "{{.Value}}" is outside of range [{{.Min}},{{.Max}}] of type {{.Type}}'
   help: check field value and make sure it in representable range
+  fields:
+    - Type: string
+    - Value: string
+    - Min: any
+    - Max: any
 E2001:
   desc: field prop "refer" not configured correctly
   text: in configured refer "{{.Refer}}", message "{{.MessageName}}" is not found
   help: 'try using format with sheet alias: "SheetName(SheetAlias).ColumnName"'
+  fields:
+    - Refer: string
+    - MessageName: string
 E2002:
   desc: field value not in referred space
   text: value "{{.Value}}" not in referred space "{{.Refer}}"
   help: guarantee value "{{.Value}}" was configured in referred space "{{.Refer}}" ahead
+  fields:
+    - Value: string
+    - Refer: string
 E2003:
   desc: illegal sequence number
   text: 'value "{{.Value}}" does not meet sequence requirement: "sequence:{{.Sequence}}"'
   help: 'prop "sequence:{{.Sequence}}" requires value starts from "{{.Sequence}}" and increases monotonically'
+  fields:
+    - Value: string
+    - Sequence: int64
 E2004:
   desc: value is out of range
   text: 'value "{{.Value}}" is out of range [{{.Range}}]'
   help: change value and make sure it's in range
+  fields:
+    - Value: any
+    - Range: string
 E2005:
   desc: map or keyed-list key not unique
   text: map or keyed-list key "{{.Key}}" already exists
@@ -52,6 +81,9 @@ E2009:
   desc: duplicate key exists in different sheets
   text: 'field {{.FieldName}} has duplicate key "{{.Key}}"'
   help: key must not be duplicate when merge multiple sheets
+  fields:
+    - Key: any
+    - FieldName: string
 E2010:
   desc: union type has no corresponding value field
   text: 'union type "{{.TypeValue}}" has no corresponding value field with number "{{.FieldNumber}}"'
@@ -64,6 +96,10 @@ E2012:
   desc: invalid syntax of numerical value
   text: '"{{.Value}}" cannot be parsed to numerical type "{{.FieldType}}", {{.Error}}'
   help: fill cell data with valid syntax of numerical type "{{.FieldType}}"
+  fields:
+    - FieldType: any
+    - Value: any
+    - Error: error
 E2013:
   desc: invalid syntax of boolean value
   text: '"{{.Value}}" cannot be parsed to boolean type, {{.Error}}'
@@ -72,30 +108,47 @@ E2014:
   desc: sheet column not found
   text: sheet column "{{.Column}}" not found
   help: add column "{{.Column}}"
+  fields:
+    - Column: string
 E2015:
   desc: referred sheet column not found
   text: referred sheet column "{{.Column}}" not found in workbook "{{.BookName}}", worksheet "{{.SheetName}}"
   help: change "refer" prop or add referred sheet column "{{.Column}}"
+  fields:
+    - Column: string
+    - BookName: string
+    - SheetName: string
 E2016:
   desc: list elements are not present continuously
   text: the {{.FirstNonePresentIndex}}-th element is not present, but the subsequent {{.NextPresentIndex}}-th element is present
   help: ensure all subsequent elements after the first none-present element are not present
+  fields:
+    - FirstNonePresentIndex: int
+    - NextPresentIndex: int
 E2017:
   desc: map contains multiple empty keys
   text: '"{{.MapType}}" contains multiple empty keys'
   help: ensure there is at most one empty key in map, or assign them explicitly if you need multiple zero-value keys
+  fields:
+    - MapType: string
 E2018:
   desc: map key not exists
   text: 'map key field "{{.KeyName}}" not exists'
   help: ensure the key field is set in elements of map
+  fields:
+    - KeyName: string
 E2019:
   desc: invalid fraction pattern
   text: '"{{.Value}}" cannot be parsed by pattern: "N/D", {{.Error}}'
   help: "available patterns: 5, 5/6, 10%, 10‰, 10‱"
+  fields:
+    - Value: string
 E2020:
   desc: invalid comparator pattern
   text: '"{{.Value}}" cannot be parsed by pattern: "<CompareOperator><Fraction>", {{.Error}}'
   help: "available patterns: ==5, !=5, <3/5, <=10%, >10‰, >=10‱"
+  fields:
+    - Value: string
 E2021:
   desc: duplicate enum value alias
   text: 'in enum {{.EnumType}} definition, {{.EnumValue1}} and {{.EnumValue2}} have duplicate value alias "{{.Alias}}"'
@@ -104,23 +157,38 @@ E2022:
   desc: sub-field's value not unique in map values or list elements
   text: value "{{.Key}}" of sub-field "{{.FieldName}}" duplicates in map values or list elements
   help: ensure value of sub-field "{{.FieldName}}" is unique in map values or list elements
+  fields:
+    - FieldName: string
+    - Key: any
 E2024:
   desc: invalid version pattern
   text: '"{{.Value}}" cannot be parsed into dotted-decimal format, {{.Error}}'
   help: "ensure version pattern is: <MAJOR>.<MINOR>.<PATCH>[.<OTHER>]..."
+  fields:
+    - Value: string
+    - Error: error
 E2025:
   desc: version value mismatches pattern
   text: 'version "{{.Value}}" mismatches dotted-decimal pattern "{{.Pattern}}"'
   help: "ensure the version value match the pattern and all decimal values are valid"
+  fields:
+    - Value: string
+    - Pattern: string
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
   text: no workbook file found in pattern "{{.Pattern}}" with sheet specifier "{{.SheetSpecifier}}"
   help: guarantee sheet specifier in format "<BookNameGlob>[#SheetName]"
+  fields:
+    - SheetSpecifier: string
+    - Pattern: string
 E3001:
   desc: no worksheet found in workbook
   text: worksheet "{{.SheetName}}" not found in workbook "{{.BookName}}"
   help: add proper worksheet "{{.SheetName}}" to workbook "{{.BookName}}"
+  fields:
+    - SheetName: string
+    - BookName: string
 E3002:
   desc: failed to open file
   text: "{{.Error}}"
@@ -129,3 +197,5 @@ E3003:
   desc: CSV workbook glob pattern matches no files
   text: 'no files found for workbook glob "{{.Glob}}"'
   help: guarantee the workbook glob pattern matches at least one file
+  fields:
+    - Glob: string

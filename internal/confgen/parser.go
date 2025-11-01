@@ -704,7 +704,7 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 		}
 		valStr := newValue.Message().Get(field.fd).String()
 		if field.values[valStr] {
-			return name, xerrors.E2022(field.fd.Name(), valStr)
+			return name, xerrors.E2022(string(field.fd.Name()), valStr)
 		}
 		// add new unique value
 		field.values[valStr] = true
