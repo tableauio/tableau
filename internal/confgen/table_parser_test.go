@@ -38,7 +38,7 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no duplicate key",
@@ -99,7 +99,7 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2005",
+			err:     xerrors.ErrE2005,
 		},
 		{
 			name:   "duplicate col name",
@@ -115,7 +115,7 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E0003",
+			err:     xerrors.ErrE0003,
 		},
 		{
 			name:   "duplicate empty col name",
@@ -140,10 +140,7 @@ func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -158,7 +155,7 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no empty key",
@@ -204,7 +201,7 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2017",
+			err:     xerrors.ErrE2017,
 		},
 	}
 	for _, tt := range tests {
@@ -214,10 +211,7 @@ func TestTableParser_parseVerticalMapWithEmptyKey(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -232,7 +226,7 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no empty row",
@@ -302,10 +296,7 @@ func TestTableParser_parseVerticalMapWithEmptyRow(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -320,7 +311,7 @@ func TestTableParser_parseHorizontalMapWithDuplicateKey(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no duplicate key",
@@ -349,7 +340,7 @@ func TestTableParser_parseHorizontalMapWithDuplicateKey(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2005",
+			err:     xerrors.ErrE2005,
 		},
 	}
 	for _, tt := range tests {
@@ -359,10 +350,7 @@ func TestTableParser_parseHorizontalMapWithDuplicateKey(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -377,7 +365,7 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no empty key",
@@ -420,7 +408,7 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2017",
+			err:     xerrors.ErrE2017,
 		},
 	}
 	for _, tt := range tests {
@@ -430,10 +418,7 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -675,7 +660,7 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no duplicate key",
@@ -706,7 +691,7 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name:   "duplicate name",
@@ -722,7 +707,7 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 	}
 	for _, tt := range tests {
@@ -732,10 +717,7 @@ func TestTableParser_parseVerticalUniqueFieldStructList(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -750,7 +732,7 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no duplicate key",
@@ -787,7 +769,7 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name:   "duplicate sub name",
@@ -806,7 +788,7 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name:   "duplicate sub id",
@@ -825,7 +807,7 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2005",
+			err:     xerrors.ErrE2005,
 		},
 		{
 			name:   "duplicate incell map key",
@@ -839,7 +821,7 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2005",
+			err:     xerrors.ErrE2005,
 		},
 	}
 	for _, tt := range tests {
@@ -849,10 +831,7 @@ func TestTableParser_parseVerticalUniqueFieldStructMap(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -867,7 +846,7 @@ func TestTableParser_parseVerticalSequenceFieldStructList(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "in sequence",
@@ -898,7 +877,7 @@ func TestTableParser_parseVerticalSequenceFieldStructList(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2003",
+			err:     xerrors.ErrE2003,
 		},
 		{
 			name:   "num not sequence",
@@ -914,7 +893,7 @@ func TestTableParser_parseVerticalSequenceFieldStructList(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2003",
+			err:     xerrors.ErrE2003,
 		},
 	}
 	for _, tt := range tests {
@@ -924,10 +903,7 @@ func TestTableParser_parseVerticalSequenceFieldStructList(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -942,7 +918,7 @@ func TestTableParser_parseVerticalSequenceFieldStructMap(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "in sequence",
@@ -979,7 +955,7 @@ func TestTableParser_parseVerticalSequenceFieldStructMap(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2003",
+			err:     xerrors.ErrE2003,
 		},
 		{
 			name:   "sub id not sequence",
@@ -997,7 +973,7 @@ func TestTableParser_parseVerticalSequenceFieldStructMap(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2003",
+			err:     xerrors.ErrE2003,
 		},
 	}
 	for _, tt := range tests {
@@ -1007,10 +983,7 @@ func TestTableParser_parseVerticalSequenceFieldStructMap(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -1025,7 +998,7 @@ func TestTableParser_parseVerticalSequenceFieldKeyedList(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "sequence conditions met",
@@ -1064,7 +1037,7 @@ func TestTableParser_parseVerticalSequenceFieldKeyedList(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2003",
+			err:     xerrors.ErrE2003,
 		},
 	}
 	for _, tt := range tests {
@@ -1074,10 +1047,7 @@ func TestTableParser_parseVerticalSequenceFieldKeyedList(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}

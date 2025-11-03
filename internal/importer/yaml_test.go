@@ -72,7 +72,7 @@ func TestNewYAMLImporter(t *testing.T) {
 		args    args
 		want    *YAMLImporter
 		wantErr bool
-		errCode string
+		err     error
 	}{
 		{
 			name: "Test.yaml",
@@ -96,7 +96,7 @@ func TestNewYAMLImporter(t *testing.T) {
 				parser:   nil,
 			},
 			wantErr: true,
-			errCode: "E3002",
+			err:     xerrors.ErrE3002,
 		},
 		{
 			name: "NotSupportAliasNode.yaml",
@@ -125,8 +125,8 @@ func TestNewYAMLImporter(t *testing.T) {
 			}
 			if err == nil {
 				fmt.Println(got.String())
-			} else if tt.errCode != "" {
-				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errCode)
+			} else if tt.err != nil {
+				assert.ErrorIs(t, err, tt.err)
 			}
 		})
 	}

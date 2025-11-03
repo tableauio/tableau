@@ -36,6 +36,8 @@ import (
 	"io"
 )
 
+const sep = "|" // separator for error messages and key-value pairs
+
 // base is an error which has a cause error and caller stack
 type base struct {
 	cause error
@@ -86,7 +88,7 @@ func (w *withMessage) Error() string {
 	content := w.message
 	if w.cause != nil {
 		// don't use %+v to avoid printing duplicated stack
-		content += ": " + w.cause.Error()
+		content += sep + w.cause.Error()
 	}
 	return content
 }
@@ -97,6 +99,7 @@ func (w *withMessage) Unwrap() error { return w.cause }
 func (w *withMessage) Cause() error { return w.cause }
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
+
 	content := w.message
 	switch verb {
 	case 'v':
@@ -104,15 +107,26 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 			if w.cause != nil {
 				cause := fmt.Sprintf("%+v", w.cause)
 				if cause != "" {
-					content += ": " + cause
+					content += sep + cause
 				}
 			}
 		}
 		fallthrough
-	case 's':
-		_, _ = io.WriteString(s, content)
-	case 'q':
-		_, _ = fmt.Fprintf(s, "%q", content)
+	default:
+		if w.cause != nil {
+			cause := fmt.Sprintf("%s", w.cause)
+			if cause != "" {
+				content += sep + cause
+			}
+		}
+		format := "%s"
+		switch verb {
+		case 's':
+			format = "%s"
+		case 'q':
+			format = "%q"
+		}
+		_, _ = fmt.Fprintf(s, format, content)
 	}
 }
 

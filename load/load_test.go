@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/testutil"
@@ -26,11 +25,11 @@ func TestLoad(t *testing.T) {
 		options *MessagerOptions
 	}
 	tests := []struct {
-		name        string
-		args        args
-		wantMsg     proto.Message
-		wantErr     bool
-		wantErrCode string
+		name    string
+		args    args
+		wantMsg proto.Message
+		wantErr bool
+		err     error
 	}{
 		{
 			name: "nil",
@@ -108,8 +107,8 @@ func TestLoad(t *testing.T) {
 					},
 				},
 			},
-			wantErr:     true,
-			wantErrCode: "E0002",
+			wantErr: true,
+			err:     xerrors.ErrE0002,
 		},
 		{
 			name: "specified-text-format",
@@ -268,9 +267,8 @@ func TestLoad(t *testing.T) {
 				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.wantErrCode != "" {
-					desc := xerrors.NewDesc(err)
-					assert.Equal(t, tt.wantErrCode, desc.ErrCode())
+				if tt.err != nil {
+					require.ErrorIs(t, err, tt.err)
 				}
 			} else {
 				if tt.wantMsg != nil {
@@ -288,9 +286,8 @@ func TestLoadJSON_E0002(t *testing.T) {
 		},
 	)
 	require.Error(t, err, "should return an error")
-	desc := xerrors.NewDesc(err)
-	require.Equal(t, "E0002", desc.ErrCode())
-	t.Logf("error: %s", desc.String())
+	require.ErrorIs(t, err, xerrors.ErrE0002)
+	t.Logf("error: %s", xerrors.NewDesc(err).String())
 
 	err = LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.Text,
 		&MessagerOptions{
@@ -298,9 +295,8 @@ func TestLoadJSON_E0002(t *testing.T) {
 		},
 	)
 	require.Error(t, err, "should return an error")
-	desc = xerrors.NewDesc(err)
-	require.Equal(t, "E0002", desc.ErrCode())
-	t.Logf("error: %s", desc.String())
+	require.ErrorIs(t, err, xerrors.ErrE0002)
+	t.Logf("error: %s", xerrors.NewDesc(err).String())
 }
 
 func TestLoadWithPatch(t *testing.T) {
@@ -541,11 +537,8 @@ func TestLoadEmptyJSON_E0002(t *testing.T) {
 			Path: "../testdata/unittest/invalidconf/Empty.json",
 		},
 	)
-	require.Error(t, err, "should return an error")
-	desc := xerrors.NewDesc(err)
-	require.Equal(t, "E0002", desc.ErrCode())
-	require.Contains(t, desc.GetValue(xerrors.KeyReason), fileContentIsEmpty)
-	t.Logf("error: %s", desc.String())
+	require.ErrorIs(t, err, xerrors.ErrE0002)
+	require.Contains(t, xerrors.NewDesc(err).GetValue(xerrors.KeyReason), fileContentIsEmpty)
 }
 
 func TestLoadEmptyText(t *testing.T) {

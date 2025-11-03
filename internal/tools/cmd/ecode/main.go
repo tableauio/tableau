@@ -76,6 +76,12 @@ func main() {
 	p.P()
 	re1 := regexp.MustCompile(`\{\{\.?(.+?)\}\}`)
 
+	// generate ecode variables
+	for _, name := range slices.Sorted(maps.Keys(config)) {
+		item := config[name]
+		p.P("var Err", name, " = newEcode(\"", name, "\", `", item.Desc, "`)")
+	}
+	// generate ecode functions
 	for _, name := range slices.Sorted(maps.Keys(config)) {
 		item := config[name]
 		var fieldNames []string
@@ -116,7 +122,10 @@ func main() {
 		}
 		genEcode(p, name, item.Desc, fds)
 	}
-	p.SaveWithGoFormat(savePath)
+	err = p.SaveWithGoFormat(savePath)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func genEcode(p *printer.Printer, name, desc string, fds []*FieldDesc) {
@@ -143,7 +152,7 @@ func genEcode(p *printer.Printer, name, desc string, fds []*FieldDesc) {
 		p.P("		return nil")
 		p.P("	}")
 	}
-	p.P("	return renderEcode(\"", name, "\", map[string]any{")
+	p.P("	return renderEcode(Err", name, ", map[string]any{")
 	for _, fd := range fds {
 		p.P("		\"", fd.Name, "\": ", fd.goName, ",")
 	}

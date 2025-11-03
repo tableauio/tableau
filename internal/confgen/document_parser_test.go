@@ -31,7 +31,7 @@ func TestDocParser_parseFieldNotFound(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no duplicate key",
@@ -120,7 +120,7 @@ func TestDocParser_parseFieldNotFound(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2014",
+			err:     xerrors.ErrE2014,
 		},
 	}
 	for _, tt := range tests {
@@ -130,10 +130,7 @@ func TestDocParser_parseFieldNotFound(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -148,7 +145,7 @@ func TestDocParser_parseDocumentUniqueFieldStructList(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no duplicate key",
@@ -305,7 +302,7 @@ func TestDocParser_parseDocumentUniqueFieldStructList(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name:   "duplicate name",
@@ -384,7 +381,7 @@ func TestDocParser_parseDocumentUniqueFieldStructList(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 	}
 	for _, tt := range tests {
@@ -394,10 +391,8 @@ func TestDocParser_parseDocumentUniqueFieldStructList(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %+v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				t.Logf("err: %+v", err)
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -412,7 +407,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "no duplicate key",
@@ -631,7 +626,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name:   "duplicate section name",
@@ -741,7 +736,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name:   "duplicate chapter id",
@@ -851,7 +846,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2005",
+			err:     xerrors.ErrE2005,
 		},
 		{
 			name:   "duplicate scalar map key",
@@ -891,7 +886,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2005",
+			err:     xerrors.ErrE2005,
 		},
 		{
 			name:   "duplicate incell map key",
@@ -917,7 +912,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2005",
+			err:     xerrors.ErrE2005,
 		},
 		{
 			name:   "card prefix uniqueness",
@@ -1102,10 +1097,7 @@ func TestDocParser_parseDocumentUniqueFieldStructMap(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %+v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}
@@ -1120,7 +1112,7 @@ func TestDocParser_parseSequenceUniqueFieldStructList(t *testing.T) {
 		parser  *sheetParser
 		args    args
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name:   "in sequence",
@@ -1277,7 +1269,7 @@ func TestDocParser_parseSequenceUniqueFieldStructList(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			errcode: "E2003",
+			err:     xerrors.ErrE2003,
 		},
 	}
 	for _, tt := range tests {
@@ -1287,10 +1279,7 @@ func TestDocParser_parseSequenceUniqueFieldStructList(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %+v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}

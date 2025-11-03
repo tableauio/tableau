@@ -145,7 +145,7 @@ func TestNewCSVImporter(t *testing.T) {
 		args       args
 		wantSheets []*book.Sheet
 		wantErr    bool
-		errCode    string
+		err        error
 	}{
 		{
 			name: "normal",
@@ -171,7 +171,7 @@ func TestNewCSVImporter(t *testing.T) {
 			},
 			wantSheets: nil,
 			wantErr:    true,
-			errCode:    "E3003",
+			err:        xerrors.ErrE3003,
 		},
 	}
 	for _, tt := range tests {
@@ -186,7 +186,7 @@ func TestNewCSVImporter(t *testing.T) {
 					t.Errorf("NewCSVImporter() = %v, want %v", got.GetSheets(), tt.wantSheets)
 				}
 			} else {
-				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errCode)
+				assert.ErrorIs(t, err, tt.err)
 			}
 		})
 	}

@@ -3,6 +3,8 @@ package xerrors
 import (
 	"fmt"
 	"strings"
+
+	"github.com/tableauio/tableau/internal/localizer"
 )
 
 const (
@@ -97,7 +99,7 @@ func NewDesc(err error) *Desc {
 
 	// NOTE: In the splits slice, the latter key-value pairs will overwrite
 	// earlier ones if they have the same key, so the last one wins.
-	splits := strings.Split(err.Error(), "|")
+	splits := strings.Split(err.Error(), sep)
 	for _, s := range splits {
 		kv := strings.SplitN(s, ":", 2)
 		if len(kv) == 2 {
@@ -170,4 +172,17 @@ func (d *Desc) DebugString() string {
 
 func (d *Desc) GetValue(key string) any {
 	return d.fields[key]
+}
+
+func renderSummary(module string, data map[string]any) string {
+	return localizer.Default.RenderMessage(module, data)
+}
+
+func renderEcode(ecode *ecode, data any) error {
+	detail := localizer.Default.RenderEcode(ecode.code, data)
+	return WrapKV(ecode,
+		KeyReason, detail.Text,
+		keyErrCode, detail.Ecode,
+		keyErrDesc, detail.Desc,
+		keyHelp, detail.Help)
 }

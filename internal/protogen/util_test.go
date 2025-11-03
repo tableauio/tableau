@@ -115,11 +115,11 @@ func Test_genProtoFilePath(t *testing.T) {
 func Test_wrapDebugErr(t *testing.T) {
 	testTransposeSheetHeader := &tableHeader{
 		Header: &parseroptions.Header{
-			NameRow:  1,
-			TypeRow:  2,
-			NoteRow:  3,
+			NameRow: 1,
+			TypeRow: 2,
+			NoteRow: 3,
 		},
-		transpose: true,
+		transpose:   true,
 		nameRowData: []string{"ID", "Value", "", "Kind"},
 		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
 		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
@@ -136,8 +136,8 @@ func Test_wrapDebugErr(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		errcode string
 		wantErr bool
+		err     error
 	}{
 		{
 			name: "E0001",
@@ -148,7 +148,7 @@ func Test_wrapDebugErr(t *testing.T) {
 				sh:        testSheetHeader,
 				cursor:    0,
 			},
-			errcode: "E0001",
+			err:     xerrors.ErrE0001,
 			wantErr: true,
 		},
 		{
@@ -160,7 +160,7 @@ func Test_wrapDebugErr(t *testing.T) {
 				sh:        testTransposeSheetHeader,
 				cursor:    0,
 			},
-			errcode: "E0001",
+			err:     xerrors.ErrE0001,
 			wantErr: true,
 		},
 	}
@@ -171,8 +171,8 @@ func Test_wrapDebugErr(t *testing.T) {
 				t.Errorf("wrapDebugErr() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
+				require.ErrorIs(t, err, tt.err)
 				desc := xerrors.NewDesc(err)
-				require.Equal(t, desc.ErrCode(), tt.errcode)
 				require.Equal(t, desc.GetValue(xerrors.KeyBookName), tt.args.bookName)
 				require.Equal(t, desc.GetValue(xerrors.KeySheetName), tt.args.sheetName)
 			}
