@@ -3,8 +3,6 @@ package xerrors
 import (
 	"fmt"
 	"strings"
-
-	"github.com/tableauio/tableau/internal/localizer"
 )
 
 const (
@@ -174,15 +172,3 @@ func (d *Desc) GetValue(key string) any {
 	return d.fields[key]
 }
 
-func renderSummary(module string, data map[string]any) string {
-	return localizer.Default.RenderMessage(module, data)
-}
-
-func renderEcode(ecode *ecode, data any) error {
-	detail := localizer.Default.RenderEcode(ecode.code, data)
-	return WrapKV(ecode,
-		KeyReason, detail.Text,
-		keyErrCode, detail.Ecode,
-		keyErrDesc, detail.Desc,
-		keyHelp, detail.Help)
-}

@@ -22,4 +22,9 @@ func TestEcode(t *testing.T) {
 	e2003 := E2003("1", 3)
 	assertEcode(t, e2003, "E2003", `illegal sequence number`, `value "1" does not meet sequence requirement: "sequence:3"`, `prop "sequence:3" requires value starts from "3" and increases monotonically`)
 	assert.True(t, errors.Is(WrapKV(e2003, "key", "value"), ErrE2003))
+	// TODO: add test for stacktrace levels
+	t.Logf("%+v", ErrorKV("test", "key", "value"))
+	t.Logf("%+v", Errorf("test: %s:%s", "key", "value"))
+	t.Logf("%+v", WrapKV(ErrE2003, "key", "value"))
+	t.Logf("%+v", Wrapf(ErrE2003, "key:%s", "value"))
 }

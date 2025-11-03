@@ -34,6 +34,8 @@ package xerrors
 import (
 	"fmt"
 	"io"
+
+	"github.com/tableauio/tableau/internal/localizer"
 )
 
 const sep = "|" // separator for error messages and key-value pairs
@@ -132,7 +134,7 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 
 // withStack add a caller stack to given error,
 // but directly return if stack already wrapped.
-func withStack(err error) error {
+func withStack(skip int, err error) error {
 	if err == nil {
 		return nil
 	}
@@ -140,7 +142,7 @@ func withStack(err error) error {
 	if cerr == nil {
 		return &base{
 			cause: err,
-			stack: callers(),
+			stack: callers(2 + skip),
 		}
 	}
 
@@ -148,11 +150,11 @@ func withStack(err error) error {
 	if !ok || berr == nil {
 		return &base{
 			cause: err,
-			stack: callers(),
+			stack: callers(1 + skip),
 		}
 	}
 	if berr.stack == nil {
-		berr.stack = callers()
+		berr.stack = callers(1 + skip)
 	}
 	return err
 }
@@ -174,7 +176,7 @@ func combineKV(keysAndValues ...any) string {
 // Errorf also records the code and stack trace at the point it was called.
 func Errorf(format string, args ...any) error {
 	return &withMessage{
-		cause:   &base{stack: callers()},
+		cause:   &base{stack: callers(2)},
 		message: combineKV(KeyReason, fmt.Sprintf(format, args...)),
 	}
 }
@@ -184,7 +186,7 @@ func Errorf(format string, args ...any) error {
 // ErrorKV also records the stack trace at the point it was called.
 func ErrorKV(msg string, keysAndValues ...any) error {
 	return &withMessage{
-		cause:   &base{stack: callers()},
+		cause:   &base{stack: callers(2)},
 		message: combineKV(keysAndValues...) + combineKV(KeyReason, msg),
 	}
 }
@@ -196,7 +198,7 @@ func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}
-	err = withStack(err)
+	err = withStack(2, err)
 	return &withMessage{
 		cause:   err,
 		message: fmt.Sprintf(format, args...),
@@ -210,7 +212,7 @@ func WrapKV(err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
 	}
-	err = withStack(err)
+	err = withStack(2, err)
 	return &withMessage{
 		cause:   err,
 		message: combineKV(keysAndValues...),
@@ -221,6 +223,24 @@ func WrapKV(err error, keysAndValues ...any) error {
 // If err is nil, Wrap returns nil.
 func Wrap(err error) error {
 	return Wrapf(err, "")
+}
+
+func renderSummary(module string, data map[string]any) string {
+	return localizer.Default.RenderMessage(module, data)
+}
+
+func renderEcode(ecode *ecode, data any) error {
+	detail := localizer.Default.RenderEcode(ecode.code, data)
+	err := withStack(3, ecode)
+	return &withMessage{
+		cause: err,
+		message: combineKV(
+			KeyReason, detail.Text,
+			keyErrCode, detail.Ecode,
+			keyErrDesc, detail.Desc,
+			keyHelp, detail.Help,
+		),
+	}
 }
 
 // Cause returns the underlying cause of the error, if possible.

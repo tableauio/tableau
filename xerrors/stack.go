@@ -160,10 +160,13 @@ func (s *stack) StackTrace() StackTrace {
 	return f
 }
 
-func callers() *stack {
+// The argument skip is the number of stack frames to skip before recording in
+// pc, with 0 identifying the frame for callers itself and 1 identifying the
+// caller of callers
+func callers(skip int) *stack {
 	const depth = 32
 	var pcs [depth]uintptr
-	n := runtime.Callers(3, pcs[:])
+	n := runtime.Callers(1+skip, pcs[:])
 	var st stack = pcs[0:n]
 	return &st
 }
