@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
@@ -272,7 +273,7 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 						{Number: 3, Name: "ITEM_TYPE_BOX", Alias: "Box"},
 					},
 				},
-				g: NewGeneratedBuf(),
+				p: printer.New(),
 				be: &bookExporter{
 					gen: &Generator{
 						ctx: context.Background(),
@@ -305,7 +306,7 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 						{Number: 1, Name: "ITEM_TYPE_BOX", Alias: "Box"},
 					},
 				},
-				g: NewGeneratedBuf(),
+				p: printer.New(),
 				be: &bookExporter{
 					gen: &Generator{
 						ctx: context.Background(),
@@ -323,7 +324,7 @@ func Test_sheetExporter_exportEnum(t *testing.T) {
 				t.Errorf("sheetExporter.exportEnum() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err == nil {
-				assert.Equal(t, tt.want, tt.x.g.String())
+				assert.Equal(t, tt.want, tt.x.p.String())
 			}
 		})
 	}
@@ -350,7 +351,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
 					},
 				},
-				g:              NewGeneratedBuf(),
+				p:              printer.New(),
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),
 			},
@@ -371,7 +372,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 			if err := tt.x.exportStruct(); (err != nil) != tt.wantErr {
 				t.Errorf("sheetExporter.exportStruct() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			assert.Equal(t, tt.want, tt.x.g.String())
+			assert.Equal(t, tt.want, tt.x.p.String())
 		})
 	}
 }
@@ -404,7 +405,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 						},
 					},
 				},
-				g: NewGeneratedBuf(),
+				p: printer.New(),
 				be: &bookExporter{
 					gen: &Generator{
 						ctx: context.Background(),
@@ -444,7 +445,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			if err := tt.x.exportUnion(); (err != nil) != tt.wantErr {
 				t.Errorf("sheetExporter.exportUnion() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			assert.Equal(t, tt.want, tt.x.g.String())
+			assert.Equal(t, tt.want, tt.x.p.String())
 		})
 	}
 }
@@ -465,7 +466,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
 					},
 				},
-				g: NewGeneratedBuf(),
+				p: printer.New(),
 				be: &bookExporter{
 					gen:                   &Generator{},
 					messagerPatternRegexp: regexp.MustCompile(`Conf$`),
@@ -491,7 +492,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
 					},
 				},
-				g: NewGeneratedBuf(),
+				p: printer.New(),
 				be: &bookExporter{
 					gen:                   &Generator{},
 					messagerPatternRegexp: regexp.MustCompile(`Data$`),
@@ -507,7 +508,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 			if err := tt.x.exportMessager(); (err != nil) != tt.wantErr {
 				t.Errorf("sheetExporter.exportMessager() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			assert.Equal(t, tt.want, tt.x.g.String())
+			assert.Equal(t, tt.want, tt.x.p.String())
 		})
 	}
 }
