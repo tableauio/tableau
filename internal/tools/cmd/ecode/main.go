@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/tableauio/tableau/internal/localizer/i18n"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/strcase"
 	"golang.org/x/exp/maps"
@@ -16,37 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Config = map[string]Body
-
-type Body struct {
-	Desc   string  `yaml:"desc"`
-	Text   string  `yaml:"text"`
-	Help   string  `yaml:"help"`
-	Fields []Field `yaml:"fields"`
-}
-
-// Field maps field name -> field type
-type Field map[string]string
-
-func (f Field) Validate() bool {
-	return len(f) == 1 && f.Name() != "" && f.Type() != ""
-}
-
-// Name returns the field name.
-func (f Field) Name() string {
-	for k := range f {
-		return k
-	}
-	return ""
-}
-
-// Type returns the field type.
-func (f Field) Type() string {
-	for _, v := range f {
-		return v
-	}
-	return ""
-}
+type Config = map[string]i18n.EcodeDetail
 
 type FieldDesc struct {
 	Name   string

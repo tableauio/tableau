@@ -40,10 +40,9 @@ func (l Bundle) RenderEcode(ecode string, data any) *EcodeDetail {
 		panic(fmt.Sprintf("ecode %s not found", ecode))
 	}
 	return &EcodeDetail{
-		Ecode: ecode,
-		Desc:  rawDetail.Desc,
-		Text:  render(rawDetail.Text, data),
-		Help:  render(rawDetail.Help, data),
+		Desc: rawDetail.Desc,
+		Text: render(rawDetail.Text, data),
+		Help: render(rawDetail.Help, data),
 	}
 }
 
@@ -57,14 +56,38 @@ func (l Bundle) RenderMessage(key string, data any) string {
 
 // See https://rustc-dev-guide.rust-lang.org/diagnostics.html
 type EcodeDetail struct {
-	Ecode string // error code like: EXXXX
-	Desc  string `yaml:"desc"` // basic description
-	Text  string `yaml:"text"` // error text
-	Help  string `yaml:"help"` // fix suggestion
+	Desc   string       `yaml:"desc"`
+	Text   string       `yaml:"text"`
+	Help   string       `yaml:"help"`
+	Fields []EcodeField `yaml:"fields"`
+}
+
+// EcodeField maps field name -> field type
+type EcodeField map[string]string
+
+func (f EcodeField) Validate() bool {
+	return len(f) == 1 && f.Name() != "" && f.Type() != ""
+}
+
+// Name returns the field name.
+func (f EcodeField) Name() string {
+	for k := range f {
+		return k
+	}
+	return ""
+}
+
+// Type returns the field type.
+func (f EcodeField) Type() string {
+	for _, v := range f {
+		return v
+	}
+	return ""
 }
 
 // ecode -> ecode detail
 type ecodeMap map[string]EcodeDetail
+
 // ID -> message
 type messageMap map[string]string
 

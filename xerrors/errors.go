@@ -236,7 +236,7 @@ func renderEcode(ecode *ecode, data any) error {
 		cause: err,
 		message: combineKV(
 			KeyReason, detail.Text,
-			keyErrCode, detail.Ecode,
+			keyErrCode, ecode.code,
 			keyErrDesc, detail.Desc,
 			keyHelp, detail.Help,
 		),
