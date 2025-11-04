@@ -4,14 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"go/token"
-	"maps"
 	"os"
 	"regexp"
-	"slices"
+	"sort"
 	"strings"
 
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/strcase"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 )
 
@@ -76,13 +77,16 @@ func main() {
 	p.P()
 	re1 := regexp.MustCompile(`\{\{\.?(.+?)\}\}`)
 
+	sortedKeys := maps.Keys(config)
+	sort.Strings(sortedKeys)
+
 	// generate ecode variables
-	for _, name := range slices.Sorted(maps.Keys(config)) {
+	for _, name := range sortedKeys {
 		item := config[name]
 		p.P("var Err", name, " = newEcode(\"", name, "\", `", item.Desc, "`)")
 	}
 	// generate ecode functions
-	for _, name := range slices.Sorted(maps.Keys(config)) {
+	for _, name := range sortedKeys {
 		item := config[name]
 		var fieldNames []string
 		matches1 := re1.FindAllStringSubmatch(item.Text, -1)
