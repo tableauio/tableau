@@ -2,6 +2,7 @@ package printer
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/format"
 	"os"
@@ -29,7 +30,10 @@ func (p *Printer) P(v ...any) {
 	for _, x := range v {
 		fmt.Fprint(&p.buf, x)
 	}
-	fmt.Fprintln(&p.buf)
+	_, err := fmt.Fprintln(&p.buf)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Bytes returns the bytes content of printer.
@@ -57,12 +61,14 @@ func (p *Printer) SaveWithGoFormat(filename string) error {
 	return save(filename, formatted)
 }
 
-func save(filename string, content []byte) error {
+func save(filename string, content []byte) (err error) {
 	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.Join(err, f.Close())
+	}()
 	_, err = f.Write(content)
 	return err
 }
