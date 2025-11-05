@@ -129,14 +129,12 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 			}
 			content += cause
 		}
-		format := "%s"
 		switch verb {
 		case 's':
-			format = "%s"
+			_, _ = io.WriteString(s, content)
 		case 'q':
-			format = "%q"
+			_, _ = fmt.Fprintf(s, "%q", content)
 		}
-		_, _ = fmt.Fprintf(s, format, content)
 	}
 }
 
