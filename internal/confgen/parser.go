@@ -561,7 +561,7 @@ func (p *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *
 	defer keyField.release()
 	if fieldprop.RequireUnique(keyField.opts.Prop) ||
 		(!fieldprop.HasUnique(keyField.opts.Prop) && p.deduceKeyUnique(fdOpts.Layout, md)) {
-		return xerrors.Wrap(xerrors.E2005(keyData))
+		return xerrors.E2005(keyData)
 	}
 	return nil
 }
@@ -760,7 +760,7 @@ func (p *sheetParser) parseListElems(field *Field, list protoreflect.List, cardP
 			// Guarantee all the remaining elements are not present,
 			// otherwise report error!
 			if elemPresent {
-				return false, xerrors.Wrap(xerrors.E2016(firstNonePresentIndex, i))
+				return false, xerrors.E2016(firstNonePresentIndex, i)
 			}
 			continue
 		}

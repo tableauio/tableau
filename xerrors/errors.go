@@ -206,9 +206,8 @@ func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}
-	err = withStack(2, err)
 	return &withMessage{
-		cause:   err,
+		cause:   withStack(2, err),
 		message: fmt.Sprintf(format, args...),
 	}
 }
@@ -220,9 +219,8 @@ func WrapKV(err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
 	}
-	err = withStack(2, err)
 	return &withMessage{
-		cause:   err,
+		cause:   withStack(2, err),
 		message: combineKV(keysAndValues...),
 	}
 }
@@ -230,7 +228,13 @@ func WrapKV(err error, keysAndValues ...any) error {
 // Wrap annotates err with a stack trace at the point Wrap was called.
 // If err is nil, Wrap returns nil.
 func Wrap(err error) error {
-	return Wrapf(err, "")
+	if err == nil {
+		return nil
+	}
+	return &withMessage{
+		cause:   withStack(2, err),
+		message: "",
+	}
 }
 
 // Cause returns the underlying cause of the error, if possible.
@@ -272,7 +276,7 @@ func newEcode(code, desc string) *ecode {
 }
 
 func (e *ecode) Error() string {
-	if e.code == "" {
+	if e == nil || e.code == "" {
 		return ""
 	}
 	return fmt.Sprintf("%s: %s", e.code, e.desc)

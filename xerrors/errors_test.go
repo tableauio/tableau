@@ -1,71 +1,109 @@
 package xerrors
 
 import (
-	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+var nilEcode *ecode
+
+func assertError(t *testing.T, err error, errstr string, stackRegex string) {
+	require.EqualValues(t, errstr, err.Error())
+	require.EqualValues(t, errstr, fmt.Sprintf("%s", err))
+	require.EqualValues(t, fmt.Sprintf("%q", errstr), fmt.Sprintf("%q", err))
+	// error with stack
+	errstrWithStack := fmt.Sprintf("%+v", err)
+	regexErrstr := strings.ReplaceAll(errstr, `|`, `\|`) + `\|?`
+	require.Regexp(t, `(?s)^`+regexErrstr+stackRegex, errstrWithStack)
+}
+
 func TestErrorf(t *testing.T) {
-	type args struct {
-		code int
-	}
+	err := Errorf("msg %d", 111)
+	assertError(t, err, "|Reason: msg 111", `\s+[^\n]*TestErrorf.*?errors_test`)
+
+	err1 := fmt.Errorf("base error")
+	err2 := Wrapf(err1, "wrap error")
+	assertError(t, err2, "wrap error|base error", `\s+[^\n]*TestErrorf.*?errors_test`)
+}
+
+func TestWrapf(t *testing.T) {
 	tests := []struct {
-		name string
-		args args
+		name   string
+		err    error
+		errstr string
 	}{
 		{
-			name: "with stack",
-			args: args{
-				code: -1,
-			},
+			name:   "fmt.Errorf",
+			err:    Wrapf(fmt.Errorf("fmt.Errorf %d", 1), "Wrapf %d", 2),
+			errstr: "Wrapf 2|fmt.Errorf 1",
+		},
+		{
+			name:   "fmt.Errorf with two Wrapf",
+			err:    Wrapf(Wrapf(fmt.Errorf("fmt.Errorf %d", 1), "Wrapf %d", 2), "Wrapf %d", 3),
+			errstr: "Wrapf 3|Wrapf 2|fmt.Errorf 1",
+		},
+		{
+			name:   "Errof",
+			err:    Wrapf(Errorf("Errorf 1"), "Wrapf 2"),
+			errstr: "Wrapf 2|Reason: Errorf 1",
+		},
+		{
+			name:   "Errorf with two Wrapf",
+			err:    Wrapf(Wrapf(Errorf("Errorf 1"), "Wrapf 2"), "Wrapf 3"),
+			errstr: "Wrapf 3|Wrapf 2|Reason: Errorf 1",
+		},
+		{
+			name:   "ErrorKV",
+			err:    Wrapf(ErrorKV("ErrorKV 1", "key", "val"), "Wrapf %d", 2),
+			errstr: "Wrapf 2|key: val|Reason: ErrorKV 1",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// err := Errorf(tt.args.code, "add some msg %d", 111)
-			err := Errorf("add some msg %d", 111)
-			t.Logf("err: %+v", err)
-			t.Logf("err: %s", err)
+			assertError(t, tt.err, tt.errstr, `\s+[^\n]*TestWrapf.*?errors_test`)
 		})
 	}
 }
 
-func TestWrapf(t *testing.T) {
-	type args struct {
-		err error
-	}
+func TestWrap(t *testing.T) {
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name   string
+		err    error
+		errstr string
 	}{
 		{
-			name: "with stack",
-			args: args{
-				err: Errorf("some error %d", 111),
-			},
+			name:   "nil ecode",
+			err:    Wrap(nilEcode),
+			errstr: "",
 		},
 		{
-			name: "fmt.Errorf",
-			args: args{
-				err: Wrapf(fmt.Errorf("fmt.Errorf"), "wrapf"),
-			},
+			name:   "fmt.Errorf",
+			err:    Wrap(fmt.Errorf("fmt.Errorf")),
+			errstr: "|fmt.Errorf",
 		},
 		{
-			name: "Errorf",
-			args: args{
-				err: Wrapf(Wrapf(Errorf("Errorf"), "Wrapf"), "wrapf"),
-			},
+			name:   "fmt.Errorf with two Wrap",
+			err:    Wrap(Wrap(fmt.Errorf("fmt.Errorf"))),
+			errstr: "|fmt.Errorf",
+		},
+		{
+			name:   "Errof",
+			err:    Wrap(Errorf("Errorf")),
+			errstr: "|Reason: Errorf",
+		},
+		{
+			name:   "Errorf with two Wrap",
+			err:    Wrap(Wrap(Errorf("Errorf"))),
+			errstr: "|Reason: Errorf",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := Wrapf(tt.args.err, "add some msg %d", 111)
-			t.Logf("err: %+v", err)
-			t.Logf("err: %s", err)
+			assertError(t, tt.err, tt.errstr, `\s+[^\n]*TestWrap.*?errors_test`)
 		})
 	}
 }
@@ -83,33 +121,5 @@ func TestEcode(t *testing.T) {
 	}
 	e2003 := E2003("1", 3)
 	assertEcode(e2003, "E2003", `illegal sequence number`, `value "1" does not meet sequence requirement: "sequence:3"`, `prop "sequence:3" requires value starts from "3" and increases monotonically`)
-	assert.True(t, errors.Is(WrapKV(e2003, "key", "value"), ErrE2003))
-}
-
-func TestEcodeStack(t *testing.T) {
-	// TODO: add test for stacktrace levels
-	// t.Logf("%+v", ErrorKV("test", "key", "value"))
-	// t.Logf("%+v", Errorf("test: %s:%s", "key", "value"))
-	// t.Logf("%+v", WrapKV(ErrE2003, "key", "value"))
-	t.Logf("%+v", Wrapf(Wrapf(ErrE2003, "msg1"), "msg2"))
-}
-
-func Test_abc(t *testing.T) {
-	err := E2003("1", 3)
-	t.Logf("err: %+v\n", err)
-
-	err2 := WrapKV(err,
-		KeyModule, ModuleConf,
-		KeyBookName, "mybook",
-		KeySheetName, "mysheet",
-		KeyPBMessage, "mymessage",
-	)
-	t.Logf("err2: %v\n", err2)
-	t.Logf("err2: %+v\n", err2)
-
-	err3 := Wrapf(err2,
-		"Test_abc failed",
-	)
-	t.Logf("err3: %v\n", err3)
-	t.Logf("err3: %+v\n", err3)
+	assert.ErrorIs(t, WrapKV(e2003, "key", "value"), ErrE2003)
 }
