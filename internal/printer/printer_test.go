@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	os.MkdirAll("_out", xfs.DefaultDirPerm)
+	_ = os.MkdirAll("_out", xfs.DefaultDirPerm)
 }
 
 func TestPrinter(t *testing.T) {
