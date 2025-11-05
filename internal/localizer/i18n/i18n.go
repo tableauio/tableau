@@ -18,40 +18,82 @@ import (
 //go:embed config
 var localeFS embed.FS
 
+var DefaultLang language.Tag = language.English
+
 // Initialize a slice which holds supported languages.
 var languages = []string{"en", "zh"}
 
-var bundles map[string]*Bundle
+type I18N struct {
+	bundles map[string]*Bundle // lang -> *Bundle
+}
 
-// NewBundle returns a bundle with a default language and a default set of plural rules.
-func NewBundle(defaultLang language.Tag) *Bundle {
-	return bundles[defaultLang.String()]
+func (i *I18N) Get(lang language.Tag) *Bundle {
+	return i.bundles[lang.String()]
+}
+
+func (i *I18N) GetDefault() *Bundle {
+	return i.bundles[DefaultLang.String()]
+}
+
+func (i *I18N) RenderEcode(lang language.Tag, ecode string, data any) *EcodeDetail {
+	bundle := i.Get(lang)
+	if bundle == nil {
+		panic(fmt.Sprintf("language %q not supported", lang))
+	}
+	detail, err := bundle.RenderEcode(ecode, data)
+	if err != nil {
+		// fallback to default language
+		detail, err = i.GetDefault().RenderEcode(ecode, data)
+		if err != nil {
+			panic(err)
+		}
+		return detail
+	}
+	return detail
+}
+
+func (i I18N) RenderMessage(lang language.Tag, key string, data any) string {
+	bundle := i.Get(lang)
+	if bundle == nil {
+		panic(fmt.Sprintf("language %q not supported", lang))
+	}
+	text, err := bundle.RenderMessage(key, data)
+	if err != nil {
+		// fallback to default language
+		text, err = i.GetDefault().RenderMessage(key, data)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return render(text, data)
 }
 
 type Bundle struct {
-	lang     string
-	ecodes   ecodeMap
-	messages messageMap
+	lang string
+	// ecode -> ecode detail
+	ecodes map[string]EcodeDetail
+	// ID -> message
+	messages map[string]string
 }
 
-func (l Bundle) RenderEcode(ecode string, data any) *EcodeDetail {
-	rawDetail, ok := l.ecodes[ecode]
+func (b Bundle) RenderEcode(ecode string, data any) (*EcodeDetail, error) {
+	rawDetail, ok := b.ecodes[ecode]
 	if !ok {
-		panic(fmt.Sprintf("ecode %s not found", ecode))
+		return nil, fmt.Errorf("render ecode: ecode %s not found", ecode)
 	}
 	return &EcodeDetail{
 		Desc: rawDetail.Desc,
 		Text: render(rawDetail.Text, data),
 		Help: render(rawDetail.Help, data),
-	}
+	}, nil
 }
 
-func (l Bundle) RenderMessage(key string, data any) string {
-	text, ok := l.messages[key]
+func (b Bundle) RenderMessage(key string, data any) (string, error) {
+	text, ok := b.messages[key]
 	if !ok {
-		panic(fmt.Sprintf("key %s not found", key))
+		return "", fmt.Errorf("render message: key %s not found", key)
 	}
-	return render(text, data)
+	return render(text, data), nil
 }
 
 // See https://rustc-dev-guide.rust-lang.org/diagnostics.html
@@ -85,14 +127,10 @@ func (f EcodeField) Type() string {
 	return ""
 }
 
-// ecode -> ecode detail
-type ecodeMap map[string]EcodeDetail
-
-// ID -> message
-type messageMap map[string]string
+var Default *I18N
 
 func init() {
-	bundles = make((map[string]*Bundle))
+	Default = &I18N{bundles: map[string]*Bundle{}}
 	for _, lang := range languages {
 		// init ecode
 		filename := "config/ecode/" + lang + ".yaml"
@@ -100,7 +138,7 @@ func init() {
 		if err != nil {
 			panic(err)
 		}
-		var ecodes ecodeMap
+		var ecodes map[string]EcodeDetail
 		if err := yaml.Unmarshal(data, &ecodes); err != nil {
 			panic(err)
 		}
@@ -111,12 +149,12 @@ func init() {
 		if err != nil {
 			panic(err)
 		}
-		var messages messageMap
+		var messages map[string]string
 		if err := yaml.Unmarshal(data, &messages); err != nil {
 			panic(err)
 		}
 
-		bundles[lang] = &Bundle{
+		Default.bundles[lang] = &Bundle{
 			lang:     lang,
 			ecodes:   ecodes,
 			messages: messages,
@@ -125,7 +163,7 @@ func init() {
 }
 
 func render(text string, data any) string {
-	tmpl, err := template.New("ERROR").Parse(text)
+	tmpl, err := template.New("i18n").Parse(text)
 	if err != nil {
 		panic(err)
 	}

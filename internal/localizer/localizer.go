@@ -10,40 +10,37 @@ import (
 var Default *Localizer
 
 func init() {
-	// init default language as English.
-	err := setLang(language.English)
-	if err != nil {
-		panic(err)
-	}
+	// init default localizer.
+	Default = NewLocalizer(i18n.DefaultLang)
 }
 
-// SetLang sets the default language
-func SetLang(defaultLang string) error {
-	tag, err := language.Parse(defaultLang)
+// SetLang sets the preferred language
+func SetLang(lang string) error {
+	langTag, err := language.Parse(lang)
 	if err != nil {
 		return err
 	}
-	return setLang(tag)
-}
-
-// setLang sets the default language
-func setLang(defaultLang language.Tag) error {
-	bundle := i18n.NewBundle(defaultLang)
-	if bundle == nil {
-		return fmt.Errorf("bundle of lang %s not found", defaultLang)
+	if i18n.Default.Get(langTag) == nil {
+		return fmt.Errorf("language %q not supported", lang)
 	}
-	Default = NewLocalizer(bundle)
+	Default = NewLocalizer(langTag)
 	return nil
 }
 
 type Localizer struct {
-	*i18n.Bundle
+	lang language.Tag
 }
 
 // NewLocalizer creates a new Localizer that looks up messages in the bundle
-// according to the language preferences in langs.
-//
-// TODO: support language preferences in langs.
-func NewLocalizer(bundle *i18n.Bundle, langs ...string) *Localizer {
-	return &Localizer{bundle}
+// according to the language preferences.
+func NewLocalizer(lang language.Tag) *Localizer {
+	return &Localizer{lang: lang}
+}
+
+func (l Localizer) RenderEcode(ecode string, data any) *i18n.EcodeDetail {
+	return i18n.Default.RenderEcode(l.lang, ecode, data)
+}
+
+func (l *Localizer) RenderMessage(key string, data any) string {
+	return i18n.Default.RenderMessage(l.lang, key, data)
 }
