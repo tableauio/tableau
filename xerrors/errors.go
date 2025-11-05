@@ -34,6 +34,7 @@ package xerrors
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/tableauio/tableau/internal/localizer"
 )
@@ -90,7 +91,11 @@ func (w *withMessage) Error() string {
 	content := w.message
 	if w.cause != nil {
 		// don't use %+v to avoid printing duplicated stack
-		content += sep + w.cause.Error()
+		cause := w.cause.Error()
+		if cause != "" && !strings.HasPrefix(cause, sep) {
+			content += sep
+		}
+		content += cause
 	}
 	return content
 }
@@ -101,25 +106,28 @@ func (w *withMessage) Unwrap() error { return w.cause }
 func (w *withMessage) Cause() error { return w.cause }
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
-
 	content := w.message
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
 			if w.cause != nil {
 				cause := fmt.Sprintf("%+v", w.cause)
-				if cause != "" {
-					content += sep + cause
+				if cause != "" && !strings.HasPrefix(cause, sep) {
+					content += sep
 				}
+				content += cause
 			}
+			_, _ = io.WriteString(s, content)
+			return
 		}
 		fallthrough
 	default:
 		if w.cause != nil {
 			cause := fmt.Sprintf("%s", w.cause)
-			if cause != "" {
-				content += sep + cause
+			if cause != "" && !strings.HasPrefix(cause, sep) {
+				content += sep
 			}
+			content += cause
 		}
 		format := "%s"
 		switch verb {
@@ -225,24 +233,6 @@ func Wrap(err error) error {
 	return Wrapf(err, "")
 }
 
-func renderSummary(module string, data map[string]any) string {
-	return localizer.Default.RenderMessage(module, data)
-}
-
-func renderEcode(ecode *ecode, data any) error {
-	detail := localizer.Default.RenderEcode(ecode.code, data)
-	err := withStack(3, ecode)
-	return &withMessage{
-		cause: err,
-		message: combineKV(
-			KeyReason, detail.Text,
-			keyErrCode, ecode.code,
-			keyErrDesc, detail.Desc,
-			keyHelp, detail.Help,
-		),
-	}
-}
-
 // Cause returns the underlying cause of the error, if possible.
 // An error value has a cause if it implements the following
 // interface:
@@ -254,17 +244,59 @@ func renderEcode(ecode *ecode, data any) error {
 // If the error does not implement Cause, the original error will
 // be returned. If the error is nil, nil will be returned without further
 // investigation.
-type xcauser interface {
+type causer interface {
 	Cause() error
 }
 
 func Cause(err error) error {
 	for err != nil {
-		cause, ok := err.(xcauser)
+		cause, ok := err.(causer)
 		if !ok {
 			break
 		}
 		err = cause.Cause()
 	}
 	return err
+}
+
+type ecode struct {
+	code string
+	desc string
+}
+
+func newEcode(code, desc string) *ecode {
+	return &ecode{
+		code: code,
+		desc: desc,
+	}
+}
+
+func (e *ecode) Error() string {
+	if e.code == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s: %s", e.code, e.desc)
+}
+
+func (e *ecode) Is(target error) bool {
+	t, ok := target.(*ecode)
+	return ok && e.code == t.code
+}
+
+func renderSummary(module string, kv map[string]any) string {
+	return localizer.Default.RenderMessage(module, kv)
+}
+
+func renderEcode(ecode *ecode, kv map[string]any) error {
+	detail := localizer.Default.RenderEcode(ecode.code, kv)
+	err := withStack(3, ecode)
+	return &withMessage{
+		cause: err,
+		message: combineKV(
+			KeyReason, detail.Text,
+			keyErrCode, ecode.code,
+			keyErrDesc, detail.Desc,
+			keyHelp, detail.Help,
+		),
+	}
 }
