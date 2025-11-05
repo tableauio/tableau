@@ -199,6 +199,18 @@ func ErrorKV(msg string, keysAndValues ...any) error {
 	}
 }
 
+// Wrap annotates err with a stack trace at the point Wrap was called.
+// If err is nil, Wrap returns nil.
+func Wrap(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &withMessage{
+		cause:   withStack(2, err),
+		message: "",
+	}
+}
+
 // Wrapf returns an error annotating err with a stack trace
 // at the point Wrapf is called, and the format specifier.
 // If err is nil, Wrapf returns nil.
@@ -222,18 +234,6 @@ func WrapKV(err error, keysAndValues ...any) error {
 	return &withMessage{
 		cause:   withStack(2, err),
 		message: combineKV(keysAndValues...),
-	}
-}
-
-// Wrap annotates err with a stack trace at the point Wrap was called.
-// If err is nil, Wrap returns nil.
-func Wrap(err error) error {
-	if err == nil {
-		return nil
-	}
-	return &withMessage{
-		cause:   withStack(2, err),
-		message: "",
 	}
 }
 

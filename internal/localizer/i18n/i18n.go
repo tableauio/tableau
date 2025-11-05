@@ -19,9 +19,17 @@ import (
 var localeFS embed.FS
 
 var DefaultLang language.Tag = language.English
+var supportedLangs = []language.Tag{language.English, language.Chinese}
 
-// Initialize a slice which holds supported languages.
-var languages = []string{"en", "zh"}
+var Default *I18N
+
+func init() {
+	bundles, err := loadBundles(supportedLangs)
+	if err != nil {
+		panic(err)
+	}
+	Default = &I18N{bundles: bundles}
+}
 
 type I18N struct {
 	bundles map[string]*Bundle // lang -> *Bundle
@@ -69,7 +77,7 @@ func (i I18N) RenderMessage(lang language.Tag, key string, data any) string {
 }
 
 type Bundle struct {
-	lang string
+	lang language.Tag
 	// ecode -> ecode detail
 	ecodes map[string]EcodeDetail
 	// ID -> message
@@ -127,39 +135,38 @@ func (f EcodeField) Type() string {
 	return ""
 }
 
-var Default *I18N
-
-func init() {
-	Default = &I18N{bundles: map[string]*Bundle{}}
-	for _, lang := range languages {
-		// init ecode
-		filename := "config/ecode/" + lang + ".yaml"
+func loadBundles(langs []language.Tag) (map[string]*Bundle, error) {
+	bundles := map[string]*Bundle{}
+	for _, lang := range langs {
+		// load ecodes
+		filename := "config/ecode/" + lang.String() + ".yaml"
 		data, err := localeFS.ReadFile(filename)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		var ecodes map[string]EcodeDetail
 		if err := yaml.Unmarshal(data, &ecodes); err != nil {
-			panic(err)
+			return nil, err
 		}
 
-		// init message
-		filename = "config/message/" + lang + ".yaml"
+		// load messages
+		filename = "config/message/" + lang.String() + ".yaml"
 		data, err = localeFS.ReadFile(filename)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		var messages map[string]string
 		if err := yaml.Unmarshal(data, &messages); err != nil {
-			panic(err)
+			return nil, err
 		}
 
-		Default.bundles[lang] = &Bundle{
+		bundles[lang.String()] = &Bundle{
 			lang:     lang,
 			ecodes:   ecodes,
 			messages: messages,
 		}
 	}
+	return bundles, nil
 }
 
 func render(text string, data any) string {
