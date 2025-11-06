@@ -111,7 +111,7 @@ func loadConfig(path string) Config {
 func loadOtherLangConfigs(path string) map[string]Config {
 	otherLangConfigs := map[string]Config{} // lang path -> Config
 	dir := filepath.Dir(path)
-	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -126,6 +126,9 @@ func loadOtherLangConfigs(path string) map[string]Config {
 		}
 		return nil
 	})
+	if err != nil {
+		panic(err)
+	}
 	return otherLangConfigs
 }
 
