@@ -610,7 +610,7 @@ func Test_parseVersion(t *testing.T) {
 		args    args
 		wantV   *tableaupb.Version
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name: "default pattern",
@@ -659,7 +659,7 @@ func Test_parseVersion(t *testing.T) {
 				value:   "1.0.0.0",
 			},
 			wantErr: true,
-			errcode: "E2025",
+			err:     xerrors.ErrE2025,
 		},
 		{
 			name: "negative pattern decimal",
@@ -668,7 +668,7 @@ func Test_parseVersion(t *testing.T) {
 				value:   "1.0.0",
 			},
 			wantErr: true,
-			errcode: "E2024",
+			err:     xerrors.ErrE2024,
 		},
 		{
 			name: "negative version decimal",
@@ -677,7 +677,7 @@ func Test_parseVersion(t *testing.T) {
 				value:   "1.-1.0",
 			},
 			wantErr: true,
-			errcode: "E2024",
+			err:     xerrors.ErrE2024,
 		},
 		{
 			name: "pattern decimal max uint32",
@@ -698,7 +698,7 @@ func Test_parseVersion(t *testing.T) {
 				value:   "1.0.0",
 			},
 			wantErr: true,
-			errcode: "E2024",
+			err:     xerrors.ErrE2024,
 		},
 		{
 			name: "pattern decimal product exceeds max uint64",
@@ -707,7 +707,7 @@ func Test_parseVersion(t *testing.T) {
 				value:   "1.0.0",
 			},
 			wantErr: true,
-			errcode: "E2024",
+			err:     xerrors.ErrE2024,
 		},
 	}
 	for _, tt := range tests {
@@ -721,10 +721,7 @@ func Test_parseVersion(t *testing.T) {
 				t.Errorf("parseVersion() = %v, want %v", gotV, tt.wantV)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
-				}
+				require.ErrorIs(t, err, tt.err)
 			}
 		})
 	}

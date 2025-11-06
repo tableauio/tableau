@@ -26,7 +26,7 @@ func TestNewExcelImporter(t *testing.T) {
 		args       args
 		wantSheets []*book.Sheet
 		wantErr    bool
-		errCode    string
+		err        error
 	}{
 		{
 			name: "normal",
@@ -52,7 +52,7 @@ func TestNewExcelImporter(t *testing.T) {
 			},
 			wantSheets: nil,
 			wantErr:    true,
-			errCode:    "E3002",
+			err:        xerrors.ErrE3002,
 		},
 	}
 	for _, tt := range tests {
@@ -67,7 +67,7 @@ func TestNewExcelImporter(t *testing.T) {
 					t.Errorf("NewExcelImporter() = %v, want %v", got.GetSheets(), tt.wantSheets)
 				}
 			} else {
-				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errCode)
+				assert.ErrorIs(t, err, tt.err)
 			}
 		})
 	}

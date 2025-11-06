@@ -1,8 +1,6 @@
 package protogen
 
 import (
-	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,35 +71,6 @@ func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 
 func genProtoFilePath(bookName, suffix string) string {
 	return bookName + suffix + ".proto"
-}
-
-type GeneratedBuf struct {
-	buf bytes.Buffer
-}
-
-// NewGeneratedFile creates a new generated file with the given filename.
-func NewGeneratedBuf() *GeneratedBuf {
-	return &GeneratedBuf{}
-}
-
-// P prints a line to the generated output. It converts each parameter to a
-// string following the same rules as fmt.Print. It never inserts spaces
-// between parameters.
-func (g *GeneratedBuf) P(v ...any) {
-	for _, x := range v {
-		fmt.Fprint(&g.buf, x)
-	}
-	fmt.Fprintln(&g.buf)
-}
-
-// Content returns the contents of the generated file.
-func (g *GeneratedBuf) Content() []byte {
-	return g.buf.Bytes()
-}
-
-// String returns the string content of the generated file.
-func (g *GeneratedBuf) String() string {
-	return g.buf.String()
 }
 
 func wrapDebugErr(err error, bookName, sheetName string, header *tableHeader, cursor int) error {

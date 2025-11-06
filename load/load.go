@@ -148,7 +148,7 @@ func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format
 	if unmarshalErr != nil {
 		lines := extractLinesOnUnmarshalError(unmarshalErr, fmt, content)
 		fullName := msg.ProtoReflect().Descriptor().FullName()
-		return xerrors.E0002(path, string(fullName), unmarshalErr.Error(), lines)
+		return xerrors.E0002(path, string(fullName), unmarshalErr, lines)
 	}
 	return nil
 }

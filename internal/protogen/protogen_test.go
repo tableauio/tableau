@@ -184,7 +184,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 		args    args
 		want    []*internalpb.Worksheet
 		wantErr bool
-		errcode string
+		err     error
 	}{
 		{
 			name: "MODE_ENUM_TYPE",
@@ -287,7 +287,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name: "MODE_ENUM_TYPE dup zero number",
@@ -306,7 +306,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name: "MODE_ENUM_TYPE dup name",
@@ -325,7 +325,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name: "MODE_ENUM_TYPE dup alias",
@@ -344,7 +344,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name: "MODE_ENUM_TYPE_MULTI",
@@ -495,7 +495,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name: "MODE_STRUCT_TYPE_MULTI",
@@ -784,7 +784,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name: "MODE_UNION_TYPE dup name",
@@ -801,7 +801,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name: "MODE_UNION_TYPE dup alias",
@@ -818,7 +818,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 					}),
 			},
 			wantErr: true,
-			errcode: "E2022",
+			err:     xerrors.ErrE2022,
 		},
 		{
 			name: "MODE_UNION_TYPE_MULTI",
@@ -1005,9 +1005,8 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 				t.Errorf("Generator.parseSpecialSheetMode() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				if tt.errcode != "" {
-					desc := xerrors.NewDesc(err)
-					require.Equal(t, tt.errcode, desc.ErrCode())
+				if tt.err != nil {
+					require.ErrorIs(t, err, tt.err)
 				}
 			} else if len(got) != len(tt.want) {
 				t.Errorf("Generator.parseSpecialSheetMode() size = %v, want size %v", len(got), len(tt.want))

@@ -71,7 +71,7 @@ func TestNewXMLImporter(t *testing.T) {
 		args    args
 		want    *XMLImporter
 		wantErr bool
-		errCode string
+		err     error
 	}{
 		{
 			name: "not-exist",
@@ -89,7 +89,7 @@ func TestNewXMLImporter(t *testing.T) {
 				parser:   &TestSheetParser{},
 			},
 			wantErr: true,
-			errCode: "E3002",
+			err:     xerrors.ErrE3002,
 		},
 		{
 			name: "Test.xml",
@@ -135,8 +135,8 @@ func TestNewXMLImporter(t *testing.T) {
 			}
 			if err == nil {
 				fmt.Println(got.String())
-			} else if tt.errCode != "" {
-				assert.Equal(t, xerrors.NewDesc(err).ErrCode(), tt.errCode)
+			} else if tt.err != nil {
+				assert.ErrorIs(t, err, tt.err)
 			}
 		})
 	}

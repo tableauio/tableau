@@ -11,7 +11,8 @@ import (
 )
 
 // LetterAxis generate the corresponding column letter position.
-// index: 0-based.
+//
+// NOTE: index is 0-based.
 func LetterAxis(index int) string {
 	var (
 		colCode = ""
@@ -26,12 +27,13 @@ func LetterAxis(index int) string {
 
 // Postion generate the position (e.g.: A1) in a sheet.
 //
-// NOTE: row and col both are 0-based.
+// NOTE: row and col are both 0-based.
 func Postion(row, col int) string {
 	return fmt.Sprintf("%s%d", LetterAxis(col), row+1)
 }
 
-// Open opens a new file. If the file already exists,  it will be removed firstly.
+// Open opens a new excel file. If the file already exists, it will be removed
+// firstly.
 func Open(filename string, sheetName string) (*excelize.File, error) {
 	var wb *excelize.File
 	if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {

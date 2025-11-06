@@ -1,9 +1,10 @@
 package zapdriver
 
 import (
+	"errors"
+
 	"github.com/tableauio/tableau/log/core"
 	"github.com/tableauio/tableau/log/driver"
-	"go.uber.org/multierr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -187,7 +188,7 @@ type invalidPairs []invalidPair
 func (ps invalidPairs) MarshalLogArray(enc zapcore.ArrayEncoder) error {
 	var err error
 	for i := range ps {
-		err = multierr.Append(err, enc.AppendObject(ps[i]))
+		err = errors.Join(err, enc.AppendObject(ps[i]))
 	}
 	return err
 }
