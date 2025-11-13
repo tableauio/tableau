@@ -137,7 +137,9 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 
 // parseMessage parses all fields of a protobuf message.
 func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message, rc *book.RowCells, prefix, cardPrefix string) (present bool, err error) {
-	if rc.Ignored() {
+	if ignored, err := rc.Ignored(); err != nil {
+		return false, err
+	} else if ignored {
 		// ignore this row
 		return false, nil
 	}

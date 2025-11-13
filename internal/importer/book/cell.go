@@ -264,12 +264,21 @@ func (r *RowCells) GetCellCountWithPrefix(prefix string) int {
 	return size
 }
 
-func (r *RowCells) Ignored() bool {
-	if cell, err := r.Cell("#IGNORE", false); err == nil {
-		if ok, _ := xproto.ParseBool(cell.Data); ok {
-			// ignore this row
-			return true
-		}
+func (r *RowCells) Ignored() (bool, error) {
+	cell, err := r.Cell("#IGNORE", false)
+	if err != nil {
+		// cell not exist
+		return false, nil
 	}
-	return false
+	value := strings.TrimSpace(cell.Data)
+	if value == "" {
+		// value not present
+		return false, nil
+	}
+	ok, err := xproto.ParseBool(value)
+	if err != nil {
+		// illegal bool value
+		return false, err
+	}
+	return ok, nil
 }
