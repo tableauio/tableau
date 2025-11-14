@@ -60,13 +60,14 @@ type RowCells struct {
 	lookupTable ColumnLookupTable // name -> column index
 }
 
-func NewRowCells(row int, prev *RowCells, sheetName string) *RowCells {
+func NewRowCells(row int, prev *RowCells, sheetName string, lookupTable ColumnLookupTable) *RowCells {
 	return &RowCells{
 		SheetName: sheetName,
 		prev:      prev,
 
-		Row:   row,
-		cells: make(map[int]*RowCell),
+		Row:         row,
+		cells:       make(map[int]*RowCell),
+		lookupTable: lookupTable,
 	}
 }
 
@@ -86,7 +87,7 @@ func init() {
 	}
 }
 
-func newRowCell(col int, name, typ *string, data string) *RowCell {
+func newRowCell(col int, name, typ string, data string) *RowCell {
 	cell := cellPool.Get().(*RowCell)
 	// set
 	cell.Col = col
@@ -102,25 +103,19 @@ func freeRowCell(cell *RowCell) {
 }
 
 type RowCell struct {
-	Col           int     // cell column index (0-based)
-	Name          *string // cell name
-	Type          *string // cell type
-	Data          string  // cell data
-	autoPopulated bool    // auto-populated
+	Col           int    // cell column index (0-based)
+	Name          string // cell name
+	Type          string // cell type
+	Data          string // cell data
+	autoPopulated bool   // auto-populated
 }
 
 func (r *RowCell) GetName() string {
-	if r.Name == nil {
-		return ""
-	}
-	return *r.Name
+	return r.Name
 }
 
 func (r *RowCell) GetType() string {
-	if r.Type == nil {
-		return ""
-	}
-	return *r.Type
+	return r.Type
 }
 
 func (r *RowCells) Cell(name string, optional bool) (*RowCell, error) {
@@ -189,8 +184,7 @@ func (r *RowCells) CellDebugKV(name string) []any {
 // column name -> column index (started with 0)
 type ColumnLookupTable = map[string]int
 
-func (r *RowCells) SetColumnLookupTable(table ColumnLookupTable) (bool, error) {
-	r.lookupTable = table
+func (r *RowCells) Ignored() (bool, error) {
 	// check if this row is ignored
 	if ignoredCol, ok := r.lookupTable["#IGNORE"]; ok {
 		cell := r.cells[ignoredCol]
@@ -209,7 +203,7 @@ func (r *RowCells) SetColumnLookupTable(table ColumnLookupTable) (bool, error) {
 	return false, nil
 }
 
-func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulateKey bool) {
+func (r *RowCells) NewCell(col int, name, typ string, data string, needPopulateKey bool) {
 	cell := newRowCell(col, name, typ, data)
 	// TODO: Parser(first-pass), check if this sheet is nested.
 	if needPopulateKey && cell.Data == "" {
