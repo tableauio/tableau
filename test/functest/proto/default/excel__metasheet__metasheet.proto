@@ -26,8 +26,11 @@ message Index {
 message Transpose {
   option (tableau.worksheet) = {name:"Transpose" transpose:true};
 
-  int32 id = 1 [(tableau.field) = {name:"ID"}]; // Hero's ID
-  string name = 2 [(tableau.field) = {name:"Name"}]; // Hero's name
-  string desc = 3 [(tableau.field) = {name:"Desc"}]; // Hero's description
-  repeated int32 skill_list = 4 [(tableau.field) = {name:"Skill" layout:LAYOUT_INCELL}]; // Hero's skills
+  map<int32, Hero> hero_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Hero {
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Hero's ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Hero's name
+    string desc = 3 [(tableau.field) = {name:"Desc"}]; // Hero's description
+    repeated int32 skill_list = 4 [(tableau.field) = {name:"Skill" layout:LAYOUT_INCELL}]; // Hero's skills
+  }
 }
