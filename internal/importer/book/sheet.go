@@ -114,18 +114,22 @@ func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 		Name: s.GetProtoName(),
 		Note: "", // NOTE: maybe will be used in the future
 		Options: &tableaupb.WorksheetOptions{
-			Name:                   s.GetDataName(),
-			Namerow:                s.Meta.Namerow,
-			Typerow:                s.Meta.Typerow,
-			Noterow:                s.Meta.Noterow,
-			Datarow:                s.Meta.Datarow,
-			Transpose:              s.Meta.Transpose,
-			Labels:                 s.Meta.Labels,
-			Nameline:               s.Meta.Nameline,
-			Typeline:               s.Meta.Typeline,
-			Nested:                 s.Meta.Nested,
+			Name: s.GetDataName(),
+
+			Namerow: s.Meta.Namerow,
+			Typerow: s.Meta.Typerow,
+			Noterow: s.Meta.Noterow,
+			Datarow: s.Meta.Datarow,
+
+			Nameline: s.Meta.Nameline,
+			Typeline: s.Meta.Typeline,
+			Noteline: s.Meta.Noteline,
+
 			Sep:                    s.Meta.Sep,
 			Subsep:                 s.Meta.Subsep,
+			Nested:                 s.Meta.Nested,
+			Transpose:              s.Meta.Transpose,
+			Labels:                 s.Meta.Labels,
 			Merger:                 s.Meta.Merger,
 			AdjacentKey:            s.Meta.AdjacentKey,
 			FieldPresence:          s.Meta.FieldPresence,

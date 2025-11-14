@@ -23,6 +23,16 @@ message Index {
   }
 }
 
+message RowAndLine {
+  option (tableau.worksheet) = {name:"RowAndLine" namerow:1 typerow:1 noterow:1 datarow:2 nameline:1 typeline:2 noteline:3};
+
+  map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item name
+  }
+}
+
 message Transpose {
   option (tableau.worksheet) = {name:"Transpose" transpose:true};
 
