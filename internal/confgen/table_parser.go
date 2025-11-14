@@ -68,8 +68,17 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 					p.lookupTable[name] = row
 				}
 			}
-			curr.SetColumnLookupTable(p.lookupTable)
-			_, err := p.parseMessage(nil, msg, curr, "", "")
+			ignored, err := curr.SetColumnLookupTable(p.lookupTable)
+			if err != nil {
+				return err
+			}
+			if ignored {
+				// ignore this row
+				curr.Free()
+				continue
+			}
+
+			_, err = p.parseMessage(nil, msg, curr, "", "")
 			if err != nil {
 				return err
 			}
@@ -120,8 +129,17 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 					p.lookupTable[name] = col
 				}
 			}
-			curr.SetColumnLookupTable(p.lookupTable)
-			_, err := p.parseMessage(nil, msg, curr, "", "")
+			ignored, err := curr.SetColumnLookupTable(p.lookupTable)
+			if err != nil {
+				return err
+			}
+			if ignored {
+				// ignore this row
+				curr.Free()
+				continue
+			}
+
+			_, err = p.parseMessage(nil, msg, curr, "", "")
 			if err != nil {
 				return err
 			}
@@ -137,12 +155,6 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 
 // parseMessage parses all fields of a protobuf message.
 func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message, rc *book.RowCells, prefix, cardPrefix string) (present bool, err error) {
-	if ignored, err := rc.Ignored(); err != nil {
-		return false, err
-	} else if ignored {
-		// ignore this row
-		return false, nil
-	}
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)

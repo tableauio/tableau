@@ -189,8 +189,24 @@ func (r *RowCells) CellDebugKV(name string) []any {
 // column name -> column index (started with 0)
 type ColumnLookupTable = map[string]int
 
-func (r *RowCells) SetColumnLookupTable(table ColumnLookupTable) {
+func (r *RowCells) SetColumnLookupTable(table ColumnLookupTable) (bool, error) {
 	r.lookupTable = table
+	// check if this row is ignored
+	if ignoredCol, ok := r.lookupTable["#IGNORE"]; ok {
+		cell := r.cells[ignoredCol]
+		value := strings.TrimSpace(cell.Data)
+		if value == "" {
+			// value not present
+			return false, nil
+		}
+		ignored, err := xproto.ParseBool(value)
+		if err != nil {
+			// illegal bool value
+			return false, err
+		}
+		return ignored, nil
+	}
+	return false, nil
 }
 
 func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulateKey bool) {
@@ -262,23 +278,4 @@ func (r *RowCells) GetCellCountWithPrefix(prefix string) int {
 		}
 	}
 	return size
-}
-
-func (r *RowCells) Ignored() (bool, error) {
-	cell, err := r.Cell("#IGNORE", false)
-	if err != nil {
-		// cell not exist
-		return false, nil
-	}
-	value := strings.TrimSpace(cell.Data)
-	if value == "" {
-		// value not present
-		return false, nil
-	}
-	ok, err := xproto.ParseBool(value)
-	if err != nil {
-		// illegal bool value
-		return false, err
-	}
-	return ok, nil
 }
