@@ -2,13 +2,18 @@ package confgen
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"github.com/tableauio/tableau/xerrors"
+	"google.golang.org/protobuf/proto"
 )
 
 func newDocParserForTest() *sheetParser {
@@ -20,6 +25,74 @@ func newDocParserForTest() *sheetParser {
 			SubdirRewrites: map[string]string{},
 			BookFormat:     format.YAML,
 		})
+}
+
+func TestTableParser_parseDocumentMetasheet(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		wantMsg proto.Message
+	}{
+		{
+			name:    "parse yaml metasheet",
+			parser:  newDocParserForTest(),
+			args:    args{path: "./testdata/Metasheet.yaml"},
+			wantErr: false,
+			wantMsg: &internalpb.Metabook{
+				MetasheetMap: map[string]*internalpb.Metasheet{
+					"HeroConf": {
+						Sheet: "HeroConf",
+					},
+					"ItemConf": {
+						Sheet:      "ItemConf",
+						Alias:      "ItemAliasConf",
+						OrderedMap: true,
+					},
+				},
+			},
+		},
+		{
+			name:    "parse xml metasheet",
+			parser:  newDocParserForTest(),
+			args:    args{path: "./testdata/Metasheet.xml"},
+			wantErr: false,
+			wantMsg: &internalpb.Metabook{
+				MetasheetMap: map[string]*internalpb.Metasheet{
+					"ItemConf": {
+						Sheet:      "ItemConf",
+						OrderedMap: true,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			imp, err := importer.New(context.Background(), tt.args.path, importer.Parser(tt.parser))
+			if err != nil {
+				t.Fatal(err)
+			}
+			sheet := imp.GetSheet(metasheet.DefaultMetasheetName)
+			if sheet == nil {
+				t.Fatalf("metasheet not found")
+			}
+			msg := &internalpb.Metabook{}
+			err = tt.parser.Parse(msg, sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %s, wantErr %v", xerrors.NewDesc(err), tt.wantErr)
+			}
+			fmt.Println("sheet:", sheet)
+			fmt.Println("metabook:", msg)
+			if !proto.Equal(msg, tt.wantMsg) {
+				t.Errorf("\ngotMsg: %v\nwantMsg: %v", msg, tt.wantMsg)
+			}
+		})
+	}
 }
 
 func TestDocParser_parseFieldNotFound(t *testing.T) {

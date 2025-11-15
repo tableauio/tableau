@@ -2,15 +2,12 @@ package confgen
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
@@ -27,6 +24,48 @@ func newTableParserForTest() *sheetParser {
 			SubdirRewrites: map[string]string{},
 			BookFormat:     format.CSV,
 		})
+}
+
+func TestTableParser_parseTableMetasheet(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		err     error
+	}{
+		{
+			name:   "no empty row",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"@TABLEAU",
+					[][]string{
+						{"Sheet", "OrderedMap", "Mode"},
+						{"Item", "", ""},
+						{"Enum", "MODE_ENUM_TYPE", ""},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2013,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&internalpb.Metasheet{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				// t.Logf("err: %v", xerrors.NewDesc(err))
+				require.Equal(t, xerrors.ModuleConf, xerrors.NewDesc(err).GetValue(xerrors.KeyModule))
+				require.ErrorIs(t, err, tt.err)
+			}
+		})
+	}
 }
 
 func TestTableParser_parseVerticalMapWithDuplicateKey(t *testing.T) {
@@ -419,88 +458,6 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 			}
 			if err != nil {
 				require.ErrorIs(t, err, tt.err)
-			}
-		})
-	}
-}
-
-func TestTableParser_parseDocumentMetasheet(t *testing.T) {
-	type args struct {
-		path string
-	}
-	tests := []struct {
-		name    string
-		parser  *sheetParser
-		args    args
-		wantErr bool
-		wantMsg proto.Message
-	}{
-		{
-			name: "parse yaml metasheet",
-			parser: NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
-				book.MetabookOptions(),
-				book.MetasheetOptions(context.Background()),
-				&SheetParserExtInfo{
-					InputDir:       "",
-					SubdirRewrites: map[string]string{},
-					BookFormat:     format.YAML,
-				}),
-			args:    args{path: "./testdata/Metasheet.yaml"},
-			wantErr: false,
-			wantMsg: &internalpb.Metabook{
-				MetasheetMap: map[string]*internalpb.Metasheet{
-					"HeroConf": {
-						Sheet: "HeroConf",
-					},
-					"ItemConf": {
-						Sheet:      "ItemConf",
-						Alias:      "ItemAliasConf",
-						OrderedMap: true,
-					},
-				},
-			},
-		},
-		{
-			name: "parse xml metasheet",
-			parser: NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
-				book.MetabookOptions(),
-				book.MetasheetOptions(context.Background()),
-				&SheetParserExtInfo{
-					InputDir:       "",
-					SubdirRewrites: map[string]string{},
-					BookFormat:     format.XML,
-				}),
-			args:    args{path: "./testdata/Metasheet.xml"},
-			wantErr: false,
-			wantMsg: &internalpb.Metabook{
-				MetasheetMap: map[string]*internalpb.Metasheet{
-					"ItemConf": {
-						Sheet:      "ItemConf",
-						OrderedMap: true,
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			imp, err := importer.New(context.Background(), tt.args.path, importer.Parser(tt.parser))
-			if err != nil {
-				t.Fatal(err)
-			}
-			sheet := imp.GetSheet(metasheet.DefaultMetasheetName)
-			if sheet == nil {
-				t.Fatalf("metasheet not found")
-			}
-			msg := &internalpb.Metabook{}
-			err = tt.parser.Parse(msg, sheet)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("sheetParser.Parse() error = %s, wantErr %v", xerrors.NewDesc(err), tt.wantErr)
-			}
-			fmt.Println("sheet:", sheet)
-			fmt.Println("metabook:", msg)
-			if !proto.Equal(msg, tt.wantMsg) {
-				t.Errorf("\ngotMsg: %v\nwantMsg: %v", msg, tt.wantMsg)
 			}
 		})
 	}

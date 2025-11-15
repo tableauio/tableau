@@ -158,13 +158,13 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*ValueSpac
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
 	primaryImporter, err := importer.New(ctx, absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
-		return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
+		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName)
 	}
 
 	// get merger importer infos
 	impInfos, err := importer.GetMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
-		return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, bookName)
+		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName)
 	}
 
 	// append self

@@ -109,7 +109,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 	allImpInfos := append(impInfos, importer.ImporterInfo{Importer: mainImpInfo})
 	protomsg, err := ParseMessage(info, allImpInfos...)
 	if err != nil {
-		return err
+		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
 	// exported conf name pattern is : [ParentDir/]<SheetName>
 	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
@@ -137,14 +137,13 @@ type oneMsg struct {
 func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Message, error) {
 	if len(impInfos) == 0 {
 		return nil, xerrors.ErrorKV("no importer to be parsed",
-			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 			xerrors.KeySheetName, info.SheetOpts.Name,
 			xerrors.KeyPBMessage, string(info.MD.Name()))
 	} else if len(impInfos) == 1 {
 		protomsg, err := parseMessageFromOneImporter(info, impInfos[0])
 		if err != nil {
-			return nil, xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+			return nil, err
 		}
 		return protomsg, nil
 	}
@@ -174,7 +173,6 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 	}
 	if err := eg.Wait(); err != nil {
 		return nil, xerrors.WrapKV(err,
-			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 			xerrors.KeyPrimarySheetName, info.SheetOpts.Name)
 	}
@@ -194,7 +192,6 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 						bookNames := prevMsg.bookName + ", " + msg.bookName
 						sheetNames := prevMsg.sheetName + ", " + msg.sheetName
 						return nil, xerrors.WrapKV(err,
-							xerrors.KeyModule, xerrors.ModuleConf,
 							xerrors.KeyBookName, bookNames,
 							xerrors.KeySheetName, sheetNames,
 							xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -202,7 +199,6 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 				}
 			}
 			return nil, xerrors.WrapKV(err,
-				xerrors.KeyModule, xerrors.ModuleConf,
 				xerrors.KeyBookName, msg.bookName,
 				xerrors.KeySheetName, msg.sheetName,
 				xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -367,8 +363,13 @@ func (p *sheetParser) IsFieldOptional(field *Field) bool {
 	return p.sheetOpts.GetOptional() || field.opts.GetProp().GetOptional()
 }
 
-func (p *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
-	defer p.reset()
+func (p *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) (err error) {
+	defer func() {
+		p.reset()
+		if err != nil {
+			err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		}
+	}()
 	if sheet.Document != nil {
 		docParser := &documentParser{sheetParser: p}
 		return docParser.Parse(protomsg, sheet)
