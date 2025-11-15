@@ -24,13 +24,13 @@ type tableParser struct {
 func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	if p.sheetOpts.Transpose {
 		// interchange the rows and columns
-		return p.parse(protomsg, sheet, sheet.Table.RowSize(), sheet.Table.BeginCol, sheet.Table.EndCol, sheet.Table.BeginRow, sheet.Table.EndRow, sheet.Table.TransponseCell)
+		return p.parse(protomsg, sheet, sheet.Table.RowSize(), sheet.Table.BeginCol, sheet.Table.EndCol, sheet.Table.BeginRow, sheet.Table.EndRow, sheet.Table.TransponseCell, excel.TransposePosition)
 	} else {
-		return p.parse(protomsg, sheet, sheet.Table.ColSize(), sheet.Table.BeginRow, sheet.Table.EndRow, sheet.Table.BeginCol, sheet.Table.EndCol, sheet.Table.Cell)
+		return p.parse(protomsg, sheet, sheet.Table.ColSize(), sheet.Table.BeginRow, sheet.Table.EndRow, sheet.Table.BeginCol, sheet.Table.EndCol, sheet.Table.Cell, excel.Position)
 	}
 }
 
-func (p *tableParser) parse(protomsg proto.Message, sheet *book.Sheet, colSize int, beginRow, endRow, beginCol, endCol func() int, cell func(int, int) (string, error)) error {
+func (p *tableParser) parse(protomsg proto.Message, sheet *book.Sheet, colSize int, beginRow, endRow, beginCol, endCol func() int, cell func(int, int) (string, error), pos func(int, int) string) error {
 	msg := protomsg.ProtoReflect()
 	header := parseroptions.MergeHeader(p.sheetOpts, p.bookOpts, nil)
 	nameRow := beginRow() + header.NameRow - 1
@@ -44,7 +44,7 @@ func (p *tableParser) parse(protomsg proto.Message, sheet *book.Sheet, colSize i
 		// parse names
 		nameCell, err := cell(nameRow, col)
 		if err != nil {
-			return xerrors.WrapKV(err)
+			return xerrors.WrapKV(err, pos(nameRow, col))
 		}
 		name := book.ExtractFromCell(nameCell, header.NameLine)
 		p.names[col] = name
@@ -54,7 +54,7 @@ func (p *tableParser) parse(protomsg proto.Message, sheet *book.Sheet, colSize i
 			}
 			// parse lookup table
 			if foundCol, ok := p.lookupTable[name]; ok {
-				return xerrors.E0003(name, excel.Postion(nameRow, foundCol), excel.Postion(nameRow, col))
+				return xerrors.E0003(name, pos(nameRow, foundCol), pos(nameRow, col))
 			}
 			p.lookupTable[name] = col
 		}

@@ -25,11 +25,18 @@ func LetterAxis(index int) string {
 	return colCode + string(key+int32(index)%26)
 }
 
-// Postion generate the position (e.g.: A1) in a sheet.
+// Position generate the position (row, col) (e.g.: A1) in a sheet.
 //
 // NOTE: row and col are both 0-based.
-func Postion(row, col int) string {
+func Position(row, col int) string {
 	return fmt.Sprintf("%s%d", LetterAxis(col), row+1)
+}
+
+// TransposePosition generate the position (col, row) (e.g.: A1) in a sheet.
+//
+// NOTE: row and col are both 0-based.
+func TransposePosition(col, row int) string {
+	return Position(row, col)
 }
 
 // Open opens a new excel file. If the file already exists, it will be removed

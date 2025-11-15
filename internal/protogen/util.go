@@ -76,9 +76,9 @@ func genProtoFilePath(bookName, suffix string) string {
 func wrapDebugErr(err error, bookName, sheetName string, header *tableHeader, cursor int) error {
 	getCellPos := func(row int) string {
 		if header.transpose {
-			return excel.Postion(cursor, row-1)
+			return excel.Position(cursor, row-1)
 		}
-		return excel.Postion(row-1, cursor)
+		return excel.Position(row-1, cursor)
 	}
 	return xerrors.WrapKV(err,
 		xerrors.KeyBookName, bookName,

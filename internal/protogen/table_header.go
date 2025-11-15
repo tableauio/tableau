@@ -66,11 +66,11 @@ func (t *tableHeader) checkNameConflicts(name string, cursor int) error {
 		return nil
 	}
 	if foundCursor != cursor {
-		position1 := excel.Postion(t.NameRow-1, foundCursor)
-		position2 := excel.Postion(t.NameRow-1, cursor)
+		position1 := excel.Position(t.NameRow-1, foundCursor)
+		position2 := excel.Position(t.NameRow-1, cursor)
 		if t.transpose {
-			position1 = excel.Postion(foundCursor, t.NameRow-1)
-			position2 = excel.Postion(cursor, t.NameRow-1)
+			position1 = excel.Position(foundCursor, t.NameRow-1)
+			position2 = excel.Position(cursor, t.NameRow-1)
 		}
 		return xerrors.E0003(name, position1, position2)
 	}

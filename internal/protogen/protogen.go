@@ -443,21 +443,21 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 				nameCol := sheet.Table.BeginCol() + tableHeader.NameRow - 1
 				nameCell, err := sheet.Table.Cell(row, nameCol)
 				if err != nil {
-					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Postion(row, nameCol))
+					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Position(row, nameCol))
 				}
 				tableHeader.nameRowData = append(tableHeader.nameRowData, nameCell)
 
 				typeCol := sheet.Table.BeginCol() + tableHeader.TypeRow - 1
 				typeCell, err := sheet.Table.Cell(row, typeCol)
 				if err != nil {
-					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyTypeCellPos, excel.Postion(row, typeCol))
+					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyTypeCellPos, excel.Position(row, typeCol))
 				}
 				tableHeader.typeRowData = append(tableHeader.typeRowData, typeCell)
 
 				noteCol := sheet.Table.BeginCol() + tableHeader.NoteRow - 1
 				noteCell, err := sheet.Table.Cell(row, noteCol)
 				if err != nil {
-					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNoteCellPos, excel.Postion(row, noteCol))
+					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNoteCellPos, excel.Position(row, noteCol))
 				}
 				tableHeader.noteRowData = append(tableHeader.noteRowData, noteCell)
 			}
