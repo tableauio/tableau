@@ -30,8 +30,8 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 		// namerow: name column
 		// [datarow, MaxCol]: data column
 		// kvRow := make(map[string]string)
-		p.names = make(map[int]string, sheet.Table.RowSize())
-		p.types = make(map[int]string, sheet.Table.RowSize())
+		p.names = make([]string, sheet.Table.RowSize())
+		p.types = make([]string, sheet.Table.RowSize())
 		p.lookupTable = make(book.ColumnLookupTable, sheet.Table.RowSize())
 		nameCol := sheet.Table.BeginCol() + header.NameRow - 1
 		typeCol := sheet.Table.BeginCol() + header.TypeRow - 1
@@ -43,8 +43,8 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				return xerrors.WrapKV(err)
 			}
 			name := book.ExtractFromCell(nameCell, header.NameLine)
+			p.names[row] = name
 			if name != "" {
-				p.names[row] = name
 				// parse lookup table
 				if foundRow, ok := p.lookupTable[name]; ok {
 					return xerrors.E0003(name, excel.Postion(foundRow, nameCol), excel.Postion(row, nameCol))
@@ -66,7 +66,7 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
-				curr.NewCell(row, p.names[row], p.types[row], data, p.sheetOpts.AdjacentKey)
+				curr.NewCell(row, &p.names[row], &p.types[row], data, p.sheetOpts.AdjacentKey)
 			}
 			ignored, err := curr.Ignored()
 			if err != nil {
@@ -94,8 +94,8 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	} else {
 		// namerow: name row
 		// [datarow, MaxRow]: data row
-		p.names = make(map[int]string, sheet.Table.ColSize())
-		p.types = make(map[int]string, sheet.Table.ColSize())
+		p.names = make([]string, sheet.Table.ColSize())
+		p.types = make([]string, sheet.Table.ColSize())
 		p.lookupTable = make(book.ColumnLookupTable, sheet.Table.ColSize())
 		nameRow := sheet.Table.BeginRow() + header.NameRow - 1
 		typeRow := sheet.Table.BeginRow() + header.TypeRow - 1
@@ -107,8 +107,8 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				return xerrors.WrapKV(err)
 			}
 			name := book.ExtractFromCell(nameCell, header.NameLine)
+			p.names[col] = name
 			if name != "" {
-				p.names[col] = name
 				// parse lookup table
 				if foundCol, ok := p.lookupTable[name]; ok {
 					return xerrors.E0003(name, excel.Postion(nameRow, foundCol), excel.Postion(nameRow, col))
@@ -130,7 +130,7 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				if err != nil {
 					return xerrors.WrapKV(err)
 				}
-				curr.NewCell(col, p.names[col], p.types[col], data, p.sheetOpts.AdjacentKey)
+				curr.NewCell(col, &p.names[col], &p.types[col], data, p.sheetOpts.AdjacentKey)
 			}
 			ignored, err := curr.Ignored()
 			if err != nil {

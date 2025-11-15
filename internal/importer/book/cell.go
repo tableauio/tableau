@@ -87,7 +87,7 @@ func init() {
 	}
 }
 
-func newRowCell(col int, name, typ string, data string) *RowCell {
+func newRowCell(col int, name, typ *string, data string) *RowCell {
 	cell := cellPool.Get().(*RowCell)
 	// set
 	cell.Col = col
@@ -103,19 +103,25 @@ func freeRowCell(cell *RowCell) {
 }
 
 type RowCell struct {
-	Col           int    // cell column index (0-based)
-	Name          string // cell name
-	Type          string // cell type
-	Data          string // cell data
-	autoPopulated bool   // auto-populated
+	Col           int     // cell column index (0-based)
+	Name          *string // cell name, use ptr to avoid copy for each cell
+	Type          *string // cell type, use ptr to avoid copy for each cell
+	Data          string  // cell data
+	autoPopulated bool    // auto-populated
 }
 
 func (r *RowCell) GetName() string {
-	return r.Name
+	if r.Name == nil {
+		return ""
+	}
+	return *r.Name
 }
 
 func (r *RowCell) GetType() string {
-	return r.Type
+	if r.Type == nil {
+		return ""
+	}
+	return *r.Type
 }
 
 func (r *RowCells) Cell(name string, optional bool) (*RowCell, error) {
@@ -203,7 +209,7 @@ func (r *RowCells) Ignored() (bool, error) {
 	return false, nil
 }
 
-func (r *RowCells) NewCell(col int, name, typ string, data string, needPopulateKey bool) {
+func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulateKey bool) {
 	cell := newRowCell(col, name, typ, data)
 	// TODO: Parser(first-pass), check if this sheet is nested.
 	if needPopulateKey && cell.Data == "" {
