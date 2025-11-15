@@ -40,7 +40,56 @@ func ExtractFromCell(cell string, line int) string {
 	return ""
 }
 
-type RowCells struct {
+var cellPool *sync.Pool
+
+func init() {
+	cellPool = &sync.Pool{
+		New: func() any {
+			return new(Cell)
+		},
+	}
+}
+
+func newCell(col int, name, typ *string, data string) *Cell {
+	cell := cellPool.Get().(*Cell)
+	// set
+	cell.Col = col
+	cell.Name = name
+	cell.Type = typ
+	cell.Data = data
+	cell.autoPopulated = false
+	return cell
+}
+
+func freeCell(cell *Cell) {
+	cellPool.Put(cell)
+}
+
+// Cell represents a cell in the row of sheet.
+type Cell struct {
+	Col           int     // cell column index (0-based)
+	Name          *string // cell name, use ptr to avoid copy for each cell
+	Type          *string // cell type, use ptr to avoid copy for each cell
+	Data          string  // cell data
+	autoPopulated bool    // auto-populated
+}
+
+func (c *Cell) GetName() string {
+	if c.Name == nil {
+		return ""
+	}
+	return *c.Name
+}
+
+func (c *Cell) GetType() string {
+	if c.Type == nil {
+		return ""
+	}
+	return *c.Type
+}
+
+// Row represents a row in the sheet.
+type Row struct {
 	// The previous row cells is for auto-populating the currernt row's missing data.
 	// So user need not fill the duplicate map key for easy use and clear reading.
 	//
@@ -53,85 +102,41 @@ type RowCells struct {
 	// *MISSING-KEY*		CollectionConf
 
 	SheetName string
-	prev      *RowCells
+	prev      *Row
 
 	Row         int               // row number
-	cells       map[int]*RowCell  // column index (started with 0) -> RowCell
+	cells       map[int]*Cell     // column index (started with 0) -> Cell
 	lookupTable ColumnLookupTable // name -> column index
 }
 
-func NewRowCells(row int, prev *RowCells, sheetName string, lookupTable ColumnLookupTable) *RowCells {
-	return &RowCells{
+// NewRow creates a new row.
+func NewRow(row int, prev *Row, sheetName string, lookupTable ColumnLookupTable) *Row {
+	return &Row{
 		SheetName: sheetName,
 		prev:      prev,
 
 		Row:         row,
-		cells:       make(map[int]*RowCell),
+		cells:       make(map[int]*Cell),
 		lookupTable: lookupTable,
 	}
 }
 
-func (rc *RowCells) Free() {
-	for _, cell := range rc.cells {
-		freeRowCell(cell)
+// Free frees the row.
+func (r *Row) Free() {
+	for _, cell := range r.cells {
+		freeCell(cell)
 	}
 }
 
-var cellPool *sync.Pool
-
-func init() {
-	cellPool = &sync.Pool{
-		New: func() any {
-			return new(RowCell)
-		},
-	}
-}
-
-func newRowCell(col int, name, typ *string, data string) *RowCell {
-	cell := cellPool.Get().(*RowCell)
-	// set
-	cell.Col = col
-	cell.Name = name
-	cell.Type = typ
-	cell.Data = data
-	cell.autoPopulated = false
-	return cell
-}
-
-func freeRowCell(cell *RowCell) {
-	cellPool.Put(cell)
-}
-
-type RowCell struct {
-	Col           int     // cell column index (0-based)
-	Name          *string // cell name, use ptr to avoid copy for each cell
-	Type          *string // cell type, use ptr to avoid copy for each cell
-	Data          string  // cell data
-	autoPopulated bool    // auto-populated
-}
-
-func (r *RowCell) GetName() string {
-	if r.Name == nil {
-		return ""
-	}
-	return *r.Name
-}
-
-func (r *RowCell) GetType() string {
-	if r.Type == nil {
-		return ""
-	}
-	return *r.Type
-}
-
-func (r *RowCells) Cell(name string, optional bool) (*RowCell, error) {
-	var cell *RowCell
+// Cell returns the cell with the given name.
+func (r *Row) Cell(name string, optional bool) (*Cell, error) {
+	var cell *Cell
 	col, ok := r.lookupTable[name]
 	if ok {
 		cell = r.cells[col]
 	} else if optional {
 		// if optional, return an empty cell.
-		cell = &RowCell{
+		cell = &Cell{
 			Col:  -1,
 			Data: "",
 		}
@@ -142,7 +147,7 @@ func (r *RowCells) Cell(name string, optional bool) (*RowCell, error) {
 	return cell, nil
 }
 
-func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowCell) {
+func (r *Row) findCellRangeWithNamePrefix(prefix string) (left, right *Cell) {
 	minCol, maxCol := -1, -1
 	for _, cell := range r.cells {
 		if strings.HasPrefix(cell.GetName(), prefix) {
@@ -160,10 +165,11 @@ func (r *RowCells) findCellRangeWithNamePrefix(prefix string) (left, right *RowC
 	return r.cells[minCol], r.cells[maxCol]
 }
 
-func (r *RowCells) CellDebugKV(name string) []any {
+// CellDebugKV returns a list of key-value pairs for debugging.
+func (r *Row) CellDebugKV(name string) []any {
 	col := "?"
 	data := ""
-	rc, err := r.Cell(name, false)
+	cell, err := r.Cell(name, false)
 	if err != nil {
 		left, right := r.findCellRangeWithNamePrefix(name)
 		if left != nil && right != nil {
@@ -171,11 +177,11 @@ func (r *RowCells) CellDebugKV(name string) []any {
 			data = fmt.Sprintf("[%s...%s]", left.Data, right.Data)
 		}
 	} else {
-		data = rc.Data
-		if rc.autoPopulated {
+		data = cell.Data
+		if cell.autoPopulated {
 			data += "~"
 		}
-		col = excel.LetterAxis(rc.Col)
+		col = excel.LetterAxis(cell.Col)
 	}
 	pos := fmt.Sprintf("%s%d", col, r.Row+1)
 
@@ -194,7 +200,7 @@ type ColumnLookupTable = map[string]int
 const MacroIgnore = "#IGNORE" // bool: whether to ignore row
 
 // Ignored checkes whether this row is ignored.
-func (r *RowCells) Ignored() (bool, error) {
+func (r *Row) Ignored() (bool, error) {
 	if ignoreCol, ok := r.lookupTable[MacroIgnore]; ok {
 		value := strings.TrimSpace(r.cells[ignoreCol].Data)
 		if value == "" {
@@ -209,8 +215,9 @@ func (r *RowCells) Ignored() (bool, error) {
 	return false, nil
 }
 
-func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulateKey bool) {
-	cell := newRowCell(col, name, typ, data)
+// AddCell adds a cell to the row.
+func (r *Row) AddCell(col int, name, typ *string, data string, needPopulateKey bool) {
+	cell := newCell(col, name, typ, data)
 	// TODO: Parser(first-pass), check if this sheet is nested.
 	if needPopulateKey && cell.Data == "" {
 		if (types.IsMap(cell.GetType()) || types.IsKeyedList(cell.GetType())) && r.prev != nil {
@@ -257,7 +264,8 @@ func (r *RowCells) NewCell(col int, name, typ *string, data string, needPopulate
 	r.cells[col] = cell
 }
 
-func (r *RowCells) GetCellCountWithPrefix(prefix string) int {
+// GetCellCountWithPrefix returns the cell count with the given prefix.
+func (r *Row) GetCellCountWithPrefix(prefix string) int {
 	// log.Debug("name prefix: ", prefix)
 	size := 0
 	for _, cell := range r.cells {
