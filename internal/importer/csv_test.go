@@ -116,6 +116,17 @@ func Test_readCSVRows(t *testing.T) {
 				{"1", "Pike"},
 			},
 		},
+		{
+			name: "read-UTF8-BOM",
+			args: args{
+				filename: "testdata/Test#UTF8-BOM.csv",
+				topN:     2,
+			},
+			wantRows: [][]string{
+				{"ID", "Name"},
+				{"1", "苹果"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

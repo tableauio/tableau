@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
 	"io"
@@ -15,6 +16,10 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 )
+
+// BOM stands for byte-order mark.
+// Refer: https://en.wikipedia.org/wiki/Byte_order_mark.
+var BOM = []byte{0xEF, 0xBB, 0xBF}
 
 // CSVImporter recognizes pattern: "<BookName>#<SheetName>.csv"
 type CSVImporter struct {
@@ -108,18 +113,16 @@ func readCSVSheet(filename, sheetName string, topN uint) (*book.Sheet, error) {
 }
 
 func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
-	f, err := os.Open(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, xerrors.E3002(err)
 	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Panicf("failed to close file: %s", filename)
-		}
-	}()
-
-	r := csv.NewReader(f)
+	// check and strip BOM
+	hasBOM := bytes.HasPrefix(data, BOM)
+	if hasBOM {
+		data = data[3:]
+	}
+	r := csv.NewReader(bytes.NewReader(data))
 
 	// topN: 0 means read all rows
 	if topN == 0 {
