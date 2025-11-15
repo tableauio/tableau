@@ -127,7 +127,7 @@ func (t *Table) FindBlockEndRow(startRow int) int {
 	return t.EndRow()
 }
 
-// Cell returns the cell at (row, col).
+// Cell returns the cell value at (row, col).
 func (t *Table) Cell(row, col int) (string, error) {
 	if row < t.BeginRow() || row >= t.EndRow() {
 		return "", xerrors.Errorf("cell row %d out of range", row)
@@ -140,6 +140,11 @@ func (t *Table) Cell(row, col int) (string, error) {
 		return "", nil
 	}
 	return t.Rows[row][col], nil
+}
+
+// TransponseCell returns the cell value at (col, row).
+func (t *Table) TransponseCell(col, row int) (string, error) {
+	return t.Cell(row, col)
 }
 
 // String converts Table to CSV string. It is mainly used for debugging.

@@ -22,145 +22,81 @@ type tableParser struct {
 }
 
 func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
-	// log.Debugf("parse sheet: %s", sheet.Name)
-	msg := protomsg.ProtoReflect()
-	header := parseroptions.MergeHeader(p.sheetOpts, p.bookOpts, nil)
 	if p.sheetOpts.Transpose {
 		// interchange the rows and columns
-		// namerow: name column
-		// [datarow, MaxCol]: data column
-		// kvRow := make(map[string]string)
-		p.names = make([]string, sheet.Table.RowSize())
-		p.types = make([]string, sheet.Table.RowSize())
-		p.lookupTable = make(book.ColumnLookupTable, sheet.Table.RowSize())
-		nameCol := sheet.Table.BeginCol() + header.NameRow - 1
-		typeCol := sheet.Table.BeginCol() + header.TypeRow - 1
-		dataCol := sheet.Table.BeginCol() + header.DataRow - 1
-		hasIgnoreRow := false
-		for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
-			// parse names
-			nameCell, err := sheet.Table.Cell(row, nameCol)
-			if err != nil {
-				return xerrors.WrapKV(err)
-			}
-			name := book.ExtractFromCell(nameCell, header.NameLine)
-			p.names[row] = name
-			if name != "" {
-				if name == book.MacroIgnore {
-					hasIgnoreRow = true
-				}
-				// parse lookup table
-				if foundRow, ok := p.lookupTable[name]; ok {
-					return xerrors.E0003(name, excel.Postion(foundRow, nameCol), excel.Postion(row, nameCol))
-				}
-				p.lookupTable[name] = row
-			}
-			// parse types
-			typeCell, err := sheet.Table.Cell(row, typeCol)
-			if err != nil {
-				return xerrors.WrapKV(err)
-			}
-			p.types[row] = book.ExtractFromCell(typeCell, header.TypeLine)
-		}
-		var prev *book.RowCells
-		for col := dataCol; col < sheet.Table.EndCol(); col++ {
-			curr := book.NewRowCells(col, prev, sheet.Name, p.lookupTable)
-			for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
-				data, err := sheet.Table.Cell(row, col)
-				if err != nil {
-					return xerrors.WrapKV(err)
-				}
-				curr.NewCell(row, &p.names[row], &p.types[row], data, p.sheetOpts.AdjacentKey)
-			}
-			if hasIgnoreRow {
-				ignored, err := curr.Ignored()
-				if err != nil {
-					return err
-				}
-				if ignored {
-					curr.Free()
-					continue
-				}
-			}
-			_, err := p.parseMessage(nil, msg, curr, "", "")
-			if err != nil {
-				return err
-			}
-			if prev != nil {
-				prev.Free()
-			}
-			prev = curr
-		}
-		if prev != nil {
-			prev.Free()
-		}
+		return p.parse(protomsg, sheet, sheet.Table.RowSize(), sheet.Table.BeginCol, sheet.Table.EndCol, sheet.Table.BeginRow, sheet.Table.EndRow, sheet.Table.TransponseCell)
 	} else {
-		// namerow: name row
-		// [datarow, MaxRow]: data row
-		p.names = make([]string, sheet.Table.ColSize())
-		p.types = make([]string, sheet.Table.ColSize())
-		p.lookupTable = make(book.ColumnLookupTable, sheet.Table.ColSize())
-		nameRow := sheet.Table.BeginRow() + header.NameRow - 1
-		typeRow := sheet.Table.BeginRow() + header.TypeRow - 1
-		dataRow := sheet.Table.BeginRow() + header.DataRow - 1
-		hasIgnoreCol := false
-		for col := sheet.Table.BeginCol(); col < sheet.Table.EndCol(); col++ {
-			// parse names
-			nameCell, err := sheet.Table.Cell(nameRow, col)
-			if err != nil {
-				return xerrors.WrapKV(err)
-			}
-			name := book.ExtractFromCell(nameCell, header.NameLine)
-			p.names[col] = name
-			if name != "" {
-				if name == book.MacroIgnore {
-					hasIgnoreCol = true
-				}
-				// parse lookup table
-				if foundCol, ok := p.lookupTable[name]; ok {
-					return xerrors.E0003(name, excel.Postion(nameRow, foundCol), excel.Postion(nameRow, col))
-				}
-				p.lookupTable[name] = col
-			}
-			// parse types
-			typeCell, err := sheet.Table.Cell(typeRow, col)
-			if err != nil {
-				return xerrors.WrapKV(err)
-			}
-			p.types[col] = book.ExtractFromCell(typeCell, header.TypeLine)
+		return p.parse(protomsg, sheet, sheet.Table.ColSize(), sheet.Table.BeginRow, sheet.Table.EndRow, sheet.Table.BeginCol, sheet.Table.EndCol, sheet.Table.Cell)
+	}
+}
+
+func (p *tableParser) parse(protomsg proto.Message, sheet *book.Sheet, colSize int, beginRow, endRow, beginCol, endCol func() int, cell func(int, int) (string, error)) error {
+	msg := protomsg.ProtoReflect()
+	header := parseroptions.MergeHeader(p.sheetOpts, p.bookOpts, nil)
+	nameRow := beginRow() + header.NameRow - 1
+	typeRow := beginRow() + header.TypeRow - 1
+	dataRow := beginRow() + header.DataRow - 1
+	p.names = make([]string, colSize)
+	p.types = make([]string, colSize)
+	p.lookupTable = make(book.ColumnLookupTable, colSize)
+	hasIgnoreCol := false
+	for col := beginCol(); col < endCol(); col++ {
+		// parse names
+		nameCell, err := cell(nameRow, col)
+		if err != nil {
+			return xerrors.WrapKV(err)
 		}
-		var prev *book.RowCells
-		for row := dataRow; row < sheet.Table.EndRow(); row++ {
-			curr := book.NewRowCells(row, prev, sheet.Name, p.lookupTable)
-			for col := sheet.Table.BeginCol(); col < sheet.Table.EndCol(); col++ {
-				data, err := sheet.Table.Cell(row, col)
-				if err != nil {
-					return xerrors.WrapKV(err)
-				}
-				curr.NewCell(col, &p.names[col], &p.types[col], data, p.sheetOpts.AdjacentKey)
+		name := book.ExtractFromCell(nameCell, header.NameLine)
+		p.names[col] = name
+		if name != "" {
+			if name == book.MacroIgnore {
+				hasIgnoreCol = true
 			}
-			if hasIgnoreCol {
-				ignored, err := curr.Ignored()
-				if err != nil {
-					return err
-				}
-				if ignored {
-					curr.Free()
-					continue
-				}
+			// parse lookup table
+			if foundCol, ok := p.lookupTable[name]; ok {
+				return xerrors.E0003(name, excel.Postion(nameRow, foundCol), excel.Postion(nameRow, col))
 			}
-			_, err := p.parseMessage(nil, msg, curr, "", "")
+			p.lookupTable[name] = col
+		}
+		// parse types
+		typeCell, err := cell(typeRow, col)
+		if err != nil {
+			return xerrors.WrapKV(err)
+		}
+		p.types[col] = book.ExtractFromCell(typeCell, header.TypeLine)
+	}
+	var prev *book.RowCells
+	// [datarow, endRow]: data rows
+	for row := dataRow; row < endRow(); row++ {
+		curr := book.NewRowCells(row, prev, sheet.Name, p.lookupTable)
+		for col := beginCol(); col < endCol(); col++ {
+			data, err := cell(row, col)
+			if err != nil {
+				return xerrors.WrapKV(err)
+			}
+			curr.NewCell(col, &p.names[col], &p.types[col], data, p.sheetOpts.AdjacentKey)
+		}
+		if hasIgnoreCol {
+			ignored, err := curr.Ignored()
 			if err != nil {
 				return err
 			}
-			if prev != nil {
-				prev.Free()
+			if ignored {
+				curr.Free()
+				continue
 			}
-			prev = curr
+		}
+		_, err := p.parseMessage(nil, msg, curr, "", "")
+		if err != nil {
+			return err
 		}
 		if prev != nil {
 			prev.Free()
 		}
+		prev = curr
+	}
+	if prev != nil {
+		prev.Free()
 	}
 	return nil
 }
