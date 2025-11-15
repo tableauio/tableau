@@ -190,19 +190,19 @@ func (r *RowCells) CellDebugKV(name string) []any {
 // column name -> column index (started with 0)
 type ColumnLookupTable = map[string]int
 
+// Macro command definitions
+const MacroIgnore = "#IGNORE" // bool: whether to ignore row
+
+// Ignored checkes whether this row is ignored.
 func (r *RowCells) Ignored() (bool, error) {
-	// check if this row is ignored
-	if ignoredCol, ok := r.lookupTable["#IGNORE"]; ok {
-		cell := r.cells[ignoredCol]
-		value := strings.TrimSpace(cell.Data)
+	if ignoreCol, ok := r.lookupTable[MacroIgnore]; ok {
+		value := strings.TrimSpace(r.cells[ignoreCol].Data)
 		if value == "" {
-			// value not present
 			return false, nil
 		}
 		ignored, err := xproto.ParseBool(value)
 		if err != nil {
-			// illegal bool value
-			return false, err
+			return false, xerrors.WrapKV(err, r.CellDebugKV(MacroIgnore)...)
 		}
 		return ignored, nil
 	}

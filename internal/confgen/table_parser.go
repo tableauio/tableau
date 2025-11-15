@@ -36,6 +36,7 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 		nameCol := sheet.Table.BeginCol() + header.NameRow - 1
 		typeCol := sheet.Table.BeginCol() + header.TypeRow - 1
 		dataCol := sheet.Table.BeginCol() + header.DataRow - 1
+		hasIgnoreRow := false
 		for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
 			// parse names
 			nameCell, err := sheet.Table.Cell(row, nameCol)
@@ -45,6 +46,9 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 			name := book.ExtractFromCell(nameCell, header.NameLine)
 			p.names[row] = name
 			if name != "" {
+				if name == book.MacroIgnore {
+					hasIgnoreRow = true
+				}
 				// parse lookup table
 				if foundRow, ok := p.lookupTable[name]; ok {
 					return xerrors.E0003(name, excel.Postion(foundRow, nameCol), excel.Postion(row, nameCol))
@@ -68,21 +72,20 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 				curr.NewCell(row, &p.names[row], &p.types[row], data, p.sheetOpts.AdjacentKey)
 			}
-			ignored, err := curr.Ignored()
+			if hasIgnoreRow {
+				ignored, err := curr.Ignored()
+				if err != nil {
+					return err
+				}
+				if ignored {
+					curr.Free()
+					continue
+				}
+			}
+			_, err := p.parseMessage(nil, msg, curr, "", "")
 			if err != nil {
 				return err
 			}
-			if ignored {
-				// ignore this row
-				curr.Free()
-				continue
-			}
-
-			_, err = p.parseMessage(nil, msg, curr, "", "")
-			if err != nil {
-				return err
-			}
-
 			if prev != nil {
 				prev.Free()
 			}
@@ -100,6 +103,7 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 		nameRow := sheet.Table.BeginRow() + header.NameRow - 1
 		typeRow := sheet.Table.BeginRow() + header.TypeRow - 1
 		dataRow := sheet.Table.BeginRow() + header.DataRow - 1
+		hasIgnoreCol := false
 		for col := sheet.Table.BeginCol(); col < sheet.Table.EndCol(); col++ {
 			// parse names
 			nameCell, err := sheet.Table.Cell(nameRow, col)
@@ -109,6 +113,9 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 			name := book.ExtractFromCell(nameCell, header.NameLine)
 			p.names[col] = name
 			if name != "" {
+				if name == book.MacroIgnore {
+					hasIgnoreCol = true
+				}
 				// parse lookup table
 				if foundCol, ok := p.lookupTable[name]; ok {
 					return xerrors.E0003(name, excel.Postion(nameRow, foundCol), excel.Postion(nameRow, col))
@@ -132,21 +139,20 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 				}
 				curr.NewCell(col, &p.names[col], &p.types[col], data, p.sheetOpts.AdjacentKey)
 			}
-			ignored, err := curr.Ignored()
+			if hasIgnoreCol {
+				ignored, err := curr.Ignored()
+				if err != nil {
+					return err
+				}
+				if ignored {
+					curr.Free()
+					continue
+				}
+			}
+			_, err := p.parseMessage(nil, msg, curr, "", "")
 			if err != nil {
 				return err
 			}
-			if ignored {
-				// ignore this row
-				curr.Free()
-				continue
-			}
-
-			_, err = p.parseMessage(nil, msg, curr, "", "")
-			if err != nil {
-				return err
-			}
-
 			if prev != nil {
 				prev.Free()
 			}
