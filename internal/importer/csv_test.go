@@ -66,6 +66,10 @@ func Test_parseCSVBookReaderOptions(t *testing.T) {
 						Name:     "Item",
 						Filename: "testdata/Test#Item.csv",
 					},
+					{
+						Name:     "UTF8-BOM",
+						Filename: "testdata/Test#UTF8-BOM.csv",
+					},
 				},
 			},
 			wantErr: false,
