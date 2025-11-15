@@ -43,7 +43,7 @@ E2006:
 E2007:
   desc: invalid datetime format
   text: '"{{.Value}}" 是无效的日期时间(datetime)格式, {{.Error}}'
-  help: '请遵循日期时间(datetime)格式: "yyyy-MM-dd HH:mm:ss", 示例: "2020-01-01 01:00:00"'
+  help: '请遵循日期时间格式: "yyyy-MM-dd HH:mm:ss" 或 RFC3339, 示例: "2020-01-01 01:00:00" 或 "2020-01-01T01:00:00+08:00"'
 E2008:
   desc: invalid duration format
   text: '"{{.Value}}" 是无效的时间段(duration)格式, {{.Error}}'

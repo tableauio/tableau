@@ -1,3 +1,4 @@
-Sheet,Transpose,Index,LangOptions
-Transpose,true,,
-Index,,"ID, (ID,Name)@SpecialItem","Index:cpp go,OrderedMap:cpp"
+Sheet,Transpose,Index,LangOptions,Namerow,Typerow,Noterow,Datarow,Nameline,Typeline,Noteline
+Transpose,true,,,,,,,,,
+Index,,"ID, (ID,Name)@SpecialItem","Index:cpp go,OrderedMap:cpp",,,,,,,
+RowAndLine,,,,1,1,1,2,1,2,3

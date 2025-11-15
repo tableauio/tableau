@@ -72,7 +72,7 @@ E2006:
 E2007:
   desc: invalid datetime format
   text: '"{{.Value}}" is invalid datetime format, {{.Error}}'
-  help: 'follow datetime format: "yyyy-MM-dd HH:mm:ss", e.g.: "2020-01-01 01:00:00"'
+  help: 'follow datetime format: "yyyy-MM-dd HH:mm:ss" or RFC3339, e.g.: "2020-01-01 01:00:00" or "2020-01-01T01:00:00+08:00"'
 E2008:
   desc: invalid duration format
   text: '"{{.Value}}" is invalid duration format, {{.Error}}'
