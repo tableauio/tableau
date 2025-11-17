@@ -48,6 +48,33 @@ func NewValueSpace() *ValueSpace {
 	}
 }
 
+func (v *ValueSpace) AddFromTable(header *parseroptions.Header, table book.Tabler, columnName, bookName, sheetName string) error {
+	foundColumn := -1
+	nameRow := table.BeginRow() + header.NameRow - 1
+	for col := table.BeginCol(); col < table.EndCol(); col++ {
+		nameCell, err := table.Cell(nameRow, col)
+		if err != nil {
+			return xerrors.WrapKV(err)
+		}
+		name := book.ExtractFromCell(nameCell, header.NameLine)
+		if name == columnName {
+			foundColumn = col
+			break
+		}
+	}
+	if foundColumn < 0 {
+		return xerrors.E2015(columnName, bookName, sheetName)
+	}
+	for row := table.BeginRow() + header.DataRow - 1; row < table.EndRow(); row++ {
+		data, err := table.Cell(row, foundColumn)
+		if err != nil {
+			return xerrors.WrapKV(err)
+		}
+		v.Add(data)
+	}
+	return nil
+}
+
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
 		references: make(map[string]*ValueSpace),
@@ -185,31 +212,12 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*ValueSpac
 		}
 
 		if sheetOpts.Transpose {
-			// TODO: transpose
+			err = valueSpace.AddFromTable(header, sheet.Table.Transpose(), referInfo.Column, bookName, sheetName)
 		} else {
-			foundColumn := -1
-			nameRow := sheet.Table.BeginRow() + header.NameRow - 1
-			for col := sheet.Table.BeginCol(); col < sheet.Table.EndCol(); col++ {
-				nameCell, err := sheet.Table.Cell(nameRow, col)
-				if err != nil {
-					return nil, xerrors.WrapKV(err)
-				}
-				name := book.ExtractFromCell(nameCell, header.NameLine)
-				if name == referInfo.Column {
-					foundColumn = col
-					break
-				}
-			}
-			if foundColumn < 0 {
-				return nil, xerrors.E2015(referInfo.Column, bookName, sheetName)
-			}
-			for row := sheet.Table.BeginRow() + header.DataRow - 1; row < sheet.Table.EndRow(); row++ {
-				data, err := sheet.Table.Cell(row, foundColumn)
-				if err != nil {
-					return nil, xerrors.WrapKV(err)
-				}
-				valueSpace.Add(data)
-			}
+			err = valueSpace.AddFromTable(header, sheet.Table, referInfo.Column, bookName, sheetName)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 

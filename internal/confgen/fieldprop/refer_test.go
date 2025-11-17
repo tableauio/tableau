@@ -144,6 +144,42 @@ func TestInReferredSpace(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
+		{
+			name: "in referred value space(transposed)",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Refer: "Transpose.Name",
+				},
+				cellData: "Robin",
+				input: &Input{
+					ProtoPackage:   "unittest",
+					InputDir:       "../../../testdata",
+					SubdirRewrites: nil,
+					PRFiles:        protoregistry.GlobalFiles,
+					Present:        true,
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "not referred value space(transposed)",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Refer: "Transpose.Name",
+				},
+				cellData: "Thomas",
+				input: &Input{
+					ProtoPackage:   "unittest",
+					InputDir:       "../../../testdata",
+					SubdirRewrites: nil,
+					PRFiles:        protoregistry.GlobalFiles,
+					Present:        true,
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

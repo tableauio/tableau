@@ -5,6 +5,7 @@ import (
 
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func TestHasUnique(t *testing.T) {
@@ -210,6 +211,91 @@ func TestCheckPresence(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := CheckPresence(tt.args.prop, tt.args.present); (err != nil) != tt.wantErr {
 				t.Errorf("CheckPresence() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestCheckInRange(t *testing.T) {
+	type args struct {
+		prop      *tableaupb.FieldProp
+		fieldKind protoreflect.Kind
+		value     protoreflect.Value
+		present   bool
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "without-prop",
+			args: args{
+				present: false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "without-prop-present-set",
+			args: args{
+				prop:    &tableaupb.FieldProp{},
+				present: true,
+			},
+			wantErr: false,
+		},
+		{
+			name: "in-range",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Range: "1,~",
+				},
+				fieldKind: protoreflect.Int32Kind,
+				value:     protoreflect.ValueOfInt32(1),
+				present:   true,
+			},
+			wantErr: false,
+		},
+		{
+			name: "out-of-range",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Range: "1,2",
+				},
+				fieldKind: protoreflect.Int32Kind,
+				value:     protoreflect.ValueOfInt32(3),
+				present:   true,
+			},
+			wantErr: true,
+		},
+		{
+			name: "unrecognized-range-pattern",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Range: "1,2,3",
+				},
+				fieldKind: protoreflect.Int32Kind,
+				value:     protoreflect.ValueOfInt32(3),
+				present:   true,
+			},
+			wantErr: true,
+		},
+		{
+			name: "unsupported-kind",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Range: "a,z",
+				},
+				fieldKind: protoreflect.StringKind,
+				value:     protoreflect.ValueOfString("b"),
+				present:   true,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CheckInRange(tt.args.prop, tt.args.fieldKind, tt.args.value, tt.args.present); (err != nil) != tt.wantErr {
+				t.Errorf("CheckInRange() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

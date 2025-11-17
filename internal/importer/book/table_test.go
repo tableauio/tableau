@@ -102,3 +102,43 @@ func TestTable_FindBlockEndRow(t *testing.T) {
 		})
 	}
 }
+
+func TestTable_Position(t *testing.T) {
+	type args struct {
+		row int
+		col int
+	}
+	tests := []struct {
+		name  string
+		table Tabler
+		args  args
+		want  string
+	}{
+		{
+			name:  "table",
+			table: &Table{},
+			args: args{
+				row: 0,
+				col: 4,
+			},
+			want: "E1",
+		},
+		{
+			name:  "transposed table",
+			table: &TransposedTable{},
+			args: args{
+				row: 0,
+				col: 4,
+			},
+			want: "A5",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.table.Position(tt.args.row, tt.args.col)
+			if got != tt.want {
+				t.Errorf("Position() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

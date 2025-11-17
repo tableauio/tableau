@@ -3,6 +3,7 @@ package protogen
 import (
 	"testing"
 
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 )
 
@@ -15,6 +16,7 @@ func init() {
 			TypeRow: 2,
 			NoteRow: 3,
 		},
+		Positioner:  &book.Table{},
 		nameRowData: []string{"ID", "Value", "", "Kind"},
 		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
 		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
@@ -199,6 +201,7 @@ func Test_tableHeader_checkNameConflicts(t *testing.T) {
 			TypeRow: 2,
 			NoteRow: 3,
 		},
+		Positioner:  &book.Table{},
 		nameRowData: []string{"ID", "ID", "", "Kind"},
 		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
 		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
@@ -213,7 +216,7 @@ func Test_tableHeader_checkNameConflicts(t *testing.T) {
 			TypeRow: 2,
 			NoteRow: 3,
 		},
-		transpose:   true,
+		Positioner:  &book.TransposedTable{},
 		nameRowData: []string{"ID", "ID", "", "Kind"},
 		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
 		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},

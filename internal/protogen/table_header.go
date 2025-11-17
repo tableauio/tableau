@@ -1,7 +1,6 @@
 package protogen
 
 import (
-	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/options"
@@ -9,9 +8,13 @@ import (
 	"github.com/tableauio/tableau/xerrors"
 )
 
+type Positioner interface {
+	Position(row, col int) string
+}
+
 type tableHeader struct {
 	*parseroptions.Header
-	transpose bool
+	Positioner
 
 	nameRowData []string
 	typeRowData []string
@@ -21,10 +24,18 @@ type tableHeader struct {
 	validNames map[string]int // none-empty valid names: name -> cursor
 }
 
-func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption) *tableHeader {
+func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption, table *book.Table) *tableHeader {
+	header := parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts)
+	var t book.Tabler = table
+	if sheetOpts.Transpose {
+		t = table.Transpose()
+	}
 	return &tableHeader{
-		Header:    parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts),
-		transpose: sheetOpts.Transpose,
+		Header:      header,
+		Positioner:  t,
+		nameRowData: t.GetRow(t.BeginRow() + header.NameRow - 1),
+		typeRowData: t.GetRow(t.BeginRow() + header.TypeRow - 1),
+		noteRowData: t.GetRow(t.BeginRow() + header.NoteRow - 1),
 	}
 }
 
@@ -66,12 +77,8 @@ func (t *tableHeader) checkNameConflicts(name string, cursor int) error {
 		return nil
 	}
 	if foundCursor != cursor {
-		position1 := excel.Position(t.NameRow-1, foundCursor)
-		position2 := excel.Position(t.NameRow-1, cursor)
-		if t.transpose {
-			position1 = excel.Position(foundCursor, t.NameRow-1)
-			position2 = excel.Position(cursor, t.NameRow-1)
-		}
+		position1 := t.Position(t.NameRow-1, foundCursor)
+		position2 := t.Position(t.NameRow-1, cursor)
 		return xerrors.E0003(name, position1, position2)
 	}
 	return nil

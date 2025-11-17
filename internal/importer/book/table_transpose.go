@@ -35,3 +35,7 @@ func (t *TransposedTable) Cell(row, col int) (string, error) {
 func (t *TransposedTable) Position(row, col int) string {
 	return t.table.Position(col, row)
 }
+
+func (t *TransposedTable) GetRow(row int) []string {
+	return t.table.getCol(row)
+}

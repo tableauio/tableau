@@ -18,6 +18,7 @@ type Tabler interface {
 	RowSize() int
 	ColSize() int
 	Cell(row, col int) (string, error)
+	GetRow(row int) []string
 	Position(row, col int) string
 }
 
@@ -109,6 +110,23 @@ func (t *Table) GetRow(row int) []string {
 		return nil
 	}
 	return t.Rows[row]
+}
+
+// getCol returns the column data by column index (started with 0). It will
+// return nil if not found.
+func (t *Table) getCol(col int) []string {
+	if col >= t.maxCol {
+		return nil
+	}
+	var data []string
+	for _, row := range t.Rows {
+		if col >= len(row) {
+			data = append(data, "")
+		} else {
+			data = append(data, row[col])
+		}
+	}
+	return data
 }
 
 // IsRowEmpty checks whether the whole row is empty.

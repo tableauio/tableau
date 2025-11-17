@@ -26,7 +26,7 @@ func RequireSequence(prop *tableaupb.FieldProp) bool {
 }
 
 // CheckInRange checks whether the value is in the range.
-func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value, present bool) error {
+func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value protoreflect.Value, present bool) error {
 	if prop == nil || strings.TrimSpace(prop.Range) == "" {
 		return nil
 	}
@@ -35,10 +35,13 @@ func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, va
 		return nil
 	}
 	splits := strings.SplitN(prop.Range, ",", 2)
+	if len(splits) != 2 {
+		return xerrors.Errorf(`invalid field prop range: %q, which should follow the pattern: "left,right"`, prop.Range)
+	}
 	leftStr := strings.TrimSpace(splits[0])
 	rightStr := strings.TrimSpace(splits[1])
 
-	switch fd.Kind() {
+	switch fieldKind {
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
 		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
 		v := value.Int()
@@ -101,6 +104,8 @@ func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, va
 				return xerrors.E2004(v, prop.Range)
 			}
 		}
+	default:
+		return xerrors.Errorf("unsupported field kind: %s", fieldKind)
 	}
 	return nil
 }
