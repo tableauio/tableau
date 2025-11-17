@@ -40,7 +40,7 @@ func ExtractFromCell(cell string, line int) string {
 	return ""
 }
 
-type ColumnInfo struct {
+type Column struct {
 	Col  int    // column index (0-based)
 	Name string // column name
 	Type string // column type
@@ -56,10 +56,10 @@ func init() {
 	}
 }
 
-func newCell(colInfo *ColumnInfo, data string) *Cell {
+func newCell(col *Column, data string) *Cell {
 	cell := cellPool.Get().(*Cell)
 	// set
-	cell.ColumnInfo = colInfo
+	cell.Column = col
 	cell.Data = data
 	cell.autoPopulated = false
 	return cell
@@ -71,20 +71,20 @@ func freeCell(cell *Cell) {
 
 // Cell represents a cell in the row of sheet.
 type Cell struct {
-	*ColumnInfo
+	*Column
 	Data          string // cell data
 	autoPopulated bool   // auto-populated
 }
 
 func (c *Cell) GetName() string {
-	if c.ColumnInfo == nil {
+	if c.Column == nil {
 		return ""
 	}
 	return c.Name
 }
 
 func (c *Cell) GetType() string {
-	if c.ColumnInfo == nil {
+	if c.Column == nil {
 		return ""
 	}
 	return c.Type
@@ -139,8 +139,8 @@ func (r *Row) Cell(name string, optional bool) (*Cell, error) {
 	} else if optional {
 		// if optional, return an empty cell.
 		cell = &Cell{
-			ColumnInfo: &ColumnInfo{Col: -1},
-			Data:       "",
+			Column: &Column{Col: -1},
+			Data:   "",
 		}
 	}
 	if cell == nil {
@@ -218,8 +218,8 @@ func (r *Row) Ignored() (bool, error) {
 }
 
 // AddCell adds a cell to the row.
-func (r *Row) AddCell(colInfo *ColumnInfo, data string, needPopulateKey bool) {
-	cell := newCell(colInfo, data)
+func (r *Row) AddCell(col *Column, data string, needPopulateKey bool) {
+	cell := newCell(col, data)
 	// TODO: Parser(first-pass), check if this sheet is nested.
 	if needPopulateKey && cell.Data == "" {
 		if (types.IsMap(cell.GetType()) || types.IsKeyedList(cell.GetType())) && r.prev != nil {
@@ -253,7 +253,7 @@ func (r *Row) AddCell(colInfo *ColumnInfo, data string, needPopulateKey bool) {
 
 			if needPopulate {
 				if prevCell, err := r.prev.Cell(cell.GetName(), false); err != nil {
-					log.Errorf("failed to find prev cell for name: %s, row: %d", colInfo.Name, r.Row)
+					log.Errorf("failed to find prev cell for name: %s, row: %d", col.Name, r.Row)
 				} else {
 					cell.Data = prevCell.Data
 					cell.autoPopulated = true
@@ -263,7 +263,7 @@ func (r *Row) AddCell(colInfo *ColumnInfo, data string, needPopulateKey bool) {
 	}
 
 	// add new cell
-	r.cells[colInfo.Col] = cell
+	r.cells[col.Col] = cell
 }
 
 // GetCellCountWithPrefix returns the cell count with the given prefix.

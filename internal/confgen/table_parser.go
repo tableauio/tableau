@@ -35,7 +35,7 @@ func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book
 	nameRow := table.BeginRow() + header.NameRow - 1
 	typeRow := table.BeginRow() + header.TypeRow - 1
 	dataRow := table.BeginRow() + header.DataRow - 1
-	p.columnInfos = make(map[int]*book.ColumnInfo, table.ColSize())
+	p.columns = make(map[int]*book.Column, table.ColSize())
 	p.lookupTable = make(book.ColumnLookupTable, table.ColSize())
 	hasIgnoreCol := false
 	for col := table.BeginCol(); col < table.EndCol(); col++ {
@@ -61,7 +61,7 @@ func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book
 			return xerrors.WrapKV(err)
 		}
 		typ := book.ExtractFromCell(typeCell, header.TypeLine)
-		p.columnInfos[col] = &book.ColumnInfo{
+		p.columns[col] = &book.Column{
 			Col:  col,
 			Name: name,
 			Type: typ,
@@ -76,7 +76,7 @@ func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book
 			if err != nil {
 				return xerrors.WrapKV(err)
 			}
-			curr.AddCell(p.columnInfos[col], data, p.sheetOpts.AdjacentKey)
+			curr.AddCell(p.columns[col], data, p.sheetOpts.AdjacentKey)
 		}
 		if hasIgnoreCol {
 			ignored, err := curr.Ignored()
