@@ -19,7 +19,6 @@ type Tabler interface {
 	ColSize() int
 	Cell(row, col int) (string, error)
 	GetRow(row int) []string
-	GetCol(col int) []string
 	Position(row, col int) string
 }
 
@@ -113,9 +112,9 @@ func (t *Table) GetRow(row int) []string {
 	return t.Rows[row]
 }
 
-// GetCol returns the column data by column index (started with 0). It will
+// getCol returns the column data by column index (started with 0). It will
 // return nil if not found.
-func (t *Table) GetCol(col int) []string {
+func (t *Table) getCol(col int) []string {
 	if col >= t.maxCol {
 		return nil
 	}

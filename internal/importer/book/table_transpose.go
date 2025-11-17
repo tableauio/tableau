@@ -37,9 +37,5 @@ func (t *TransposedTable) Position(row, col int) string {
 }
 
 func (t *TransposedTable) GetRow(row int) []string {
-	return t.table.GetCol(row)
-}
-
-func (t *TransposedTable) GetCol(col int) []string {
-	return t.table.GetRow(col)
+	return t.table.getCol(row)
 }

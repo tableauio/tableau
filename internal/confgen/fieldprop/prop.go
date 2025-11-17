@@ -26,7 +26,7 @@ func RequireSequence(prop *tableaupb.FieldProp) bool {
 }
 
 // CheckInRange checks whether the value is in the range.
-func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, value protoreflect.Value, present bool) error {
+func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value protoreflect.Value, present bool) error {
 	if prop == nil || strings.TrimSpace(prop.Range) == "" {
 		return nil
 	}
@@ -41,7 +41,7 @@ func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, va
 	leftStr := strings.TrimSpace(splits[0])
 	rightStr := strings.TrimSpace(splits[1])
 
-	switch fd.Kind() {
+	switch fieldKind {
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
 		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
 		v := value.Int()

@@ -923,7 +923,7 @@ func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue 
 			return v, present, err
 		}
 		// check range
-		if err := fieldprop.CheckInRange(fprop, fd, v, present); err != nil {
+		if err := fieldprop.CheckInRange(fprop, fd.Kind(), v, present); err != nil {
 			return v, present, err
 		}
 		// check refer
