@@ -11,7 +11,6 @@ import (
 type tableHeader struct {
 	*parseroptions.Header
 	table book.Tabler
-	// transpose bool
 
 	nameRowData []string
 	typeRowData []string

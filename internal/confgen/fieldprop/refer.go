@@ -212,9 +212,12 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*ValueSpac
 		}
 
 		if sheetOpts.Transpose {
-			valueSpace.AddFromTable(header, sheet.Table.Transpose(), referInfo.Column, bookName, sheetName)
+			err = valueSpace.AddFromTable(header, sheet.Table.Transpose(), referInfo.Column, bookName, sheetName)
 		} else {
-			valueSpace.AddFromTable(header, sheet.Table, referInfo.Column, bookName, sheetName)
+			err = valueSpace.AddFromTable(header, sheet.Table, referInfo.Column, bookName, sheetName)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
