@@ -28,6 +28,12 @@ func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.W
 	}
 }
 
+func (t *tableHeader) fillRowData(table book.Tabler) {
+	t.nameRowData = table.GetRow(table.BeginRow() + t.NameRow - 1)
+	t.typeRowData = table.GetRow(table.BeginRow() + t.TypeRow - 1)
+	t.noteRowData = table.GetRow(table.BeginRow() + t.NoteRow - 1)
+}
+
 // getValidNameCell try best to get a none-empty cell, starting from
 // the specified cursor. Current and subsequent empty cells are skipped
 // to find the first none-empty name cell.

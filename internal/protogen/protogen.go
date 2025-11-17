@@ -10,7 +10,6 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
-	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
@@ -439,32 +438,9 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		tableHeader := newTableHeader(ws.Options, bookOpts, gen.InputOpt.Header)
 		// transpose or not
 		if ws.Options.Transpose {
-			for row := sheet.Table.BeginRow(); row < sheet.Table.EndRow(); row++ {
-				nameCol := sheet.Table.BeginCol() + tableHeader.NameRow - 1
-				nameCell, err := sheet.Table.Cell(row, nameCol)
-				if err != nil {
-					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNameCellPos, excel.Position(row, nameCol))
-				}
-				tableHeader.nameRowData = append(tableHeader.nameRowData, nameCell)
-
-				typeCol := sheet.Table.BeginCol() + tableHeader.TypeRow - 1
-				typeCell, err := sheet.Table.Cell(row, typeCol)
-				if err != nil {
-					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyTypeCellPos, excel.Position(row, typeCol))
-				}
-				tableHeader.typeRowData = append(tableHeader.typeRowData, typeCell)
-
-				noteCol := sheet.Table.BeginCol() + tableHeader.NoteRow - 1
-				noteCell, err := sheet.Table.Cell(row, noteCol)
-				if err != nil {
-					return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName, xerrors.KeyNoteCellPos, excel.Position(row, noteCol))
-				}
-				tableHeader.noteRowData = append(tableHeader.noteRowData, noteCell)
-			}
+			tableHeader.fillRowData(sheet.Table.Transpose())
 		} else {
-			tableHeader.nameRowData = sheet.Table.GetRow(sheet.Table.BeginRow() + tableHeader.NameRow - 1)
-			tableHeader.typeRowData = sheet.Table.GetRow(sheet.Table.BeginRow() + tableHeader.TypeRow - 1)
-			tableHeader.noteRowData = sheet.Table.GetRow(sheet.Table.BeginRow() + tableHeader.NoteRow - 1)
+			tableHeader.fillRowData(sheet.Table)
 		}
 
 		// Two-pass flow:
