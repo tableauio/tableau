@@ -8,9 +8,13 @@ import (
 	"github.com/tableauio/tableau/xerrors"
 )
 
+type Positioner interface {
+	Position(row, col int) string
+}
+
 type tableHeader struct {
 	*parseroptions.Header
-	table book.Tabler
+	Positioner
 
 	nameRowData []string
 	typeRowData []string
@@ -21,17 +25,18 @@ type tableHeader struct {
 }
 
 func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption, table *book.Table) *tableHeader {
-	header := &tableHeader{
-		Header: parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts),
-		table:  table,
-	}
+	header := parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts)
+	var t book.Tabler = table
 	if sheetOpts.Transpose {
-		header.table = table.Transpose()
+		t = table.Transpose()
 	}
-	header.nameRowData = header.table.GetRow(header.table.BeginRow() + header.NameRow - 1)
-	header.typeRowData = header.table.GetRow(header.table.BeginRow() + header.TypeRow - 1)
-	header.noteRowData = header.table.GetRow(header.table.BeginRow() + header.NoteRow - 1)
-	return header
+	return &tableHeader{
+		Header:      header,
+		Positioner:  t,
+		nameRowData: t.GetRow(t.BeginRow() + header.NameRow - 1),
+		typeRowData: t.GetRow(t.BeginRow() + header.TypeRow - 1),
+		noteRowData: t.GetRow(t.BeginRow() + header.NoteRow - 1),
+	}
 }
 
 // getValidNameCell try best to get a none-empty cell, starting from
@@ -77,10 +82,6 @@ func (t *tableHeader) checkNameConflicts(name string, cursor int) error {
 		return xerrors.E0003(name, position1, position2)
 	}
 	return nil
-}
-
-func (t *tableHeader) Position(row, col int) string {
-	return t.table.Position(row, col)
 }
 
 func getCell(row []string, cursor int, line int) string {

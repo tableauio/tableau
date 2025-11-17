@@ -120,7 +120,7 @@ func Test_wrapDebugErr(t *testing.T) {
 			TypeRow: 2,
 			NoteRow: 3,
 		},
-		table:       &book.TransposedTable{},
+		Positioner:  &book.TransposedTable{},
 		nameRowData: []string{"ID", "Value", "", "Kind"},
 		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
 		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
