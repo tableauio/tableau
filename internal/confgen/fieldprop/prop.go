@@ -35,6 +35,9 @@ func CheckInRange(prop *tableaupb.FieldProp, fd protoreflect.FieldDescriptor, va
 		return nil
 	}
 	splits := strings.SplitN(prop.Range, ",", 2)
+	if len(splits) < 2 {
+		return xerrors.Errorf("invalid range expression without ',' as seperator: %s", prop.Range)
+	}
 	leftStr := strings.TrimSpace(splits[0])
 	rightStr := strings.TrimSpace(splits[1])
 

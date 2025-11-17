@@ -40,6 +40,12 @@ func ExtractFromCell(cell string, line int) string {
 	return ""
 }
 
+type ColumnInfo struct {
+	Col  int    // column index (0-based)
+	Name string // column name
+	Type string // column type
+}
+
 var cellPool *sync.Pool
 
 func init() {
@@ -50,12 +56,10 @@ func init() {
 	}
 }
 
-func newCell(col int, name, typ *string, data string) *Cell {
+func newCell(colInfo *ColumnInfo, data string) *Cell {
 	cell := cellPool.Get().(*Cell)
 	// set
-	cell.Col = col
-	cell.Name = name
-	cell.Type = typ
+	cell.ColumnInfo = colInfo
 	cell.Data = data
 	cell.autoPopulated = false
 	return cell
@@ -67,25 +71,23 @@ func freeCell(cell *Cell) {
 
 // Cell represents a cell in the row of sheet.
 type Cell struct {
-	Col           int     // cell column index (0-based)
-	Name          *string // cell name, use ptr to avoid copy for each cell
-	Type          *string // cell type, use ptr to avoid copy for each cell
-	Data          string  // cell data
-	autoPopulated bool    // auto-populated
+	*ColumnInfo
+	Data          string // cell data
+	autoPopulated bool   // auto-populated
 }
 
 func (c *Cell) GetName() string {
-	if c.Name == nil {
+	if c.ColumnInfo == nil {
 		return ""
 	}
-	return *c.Name
+	return c.Name
 }
 
 func (c *Cell) GetType() string {
-	if c.Type == nil {
+	if c.ColumnInfo == nil {
 		return ""
 	}
-	return *c.Type
+	return c.Type
 }
 
 // Row represents a row in the sheet.
@@ -137,8 +139,8 @@ func (r *Row) Cell(name string, optional bool) (*Cell, error) {
 	} else if optional {
 		// if optional, return an empty cell.
 		cell = &Cell{
-			Col:  -1,
-			Data: "",
+			ColumnInfo: &ColumnInfo{Col: -1},
+			Data:       "",
 		}
 	}
 	if cell == nil {
@@ -216,8 +218,8 @@ func (r *Row) Ignored() (bool, error) {
 }
 
 // AddCell adds a cell to the row.
-func (r *Row) AddCell(col int, name, typ *string, data string, needPopulateKey bool) {
-	cell := newCell(col, name, typ, data)
+func (r *Row) AddCell(colInfo *ColumnInfo, data string, needPopulateKey bool) {
+	cell := newCell(colInfo, data)
 	// TODO: Parser(first-pass), check if this sheet is nested.
 	if needPopulateKey && cell.Data == "" {
 		if (types.IsMap(cell.GetType()) || types.IsKeyedList(cell.GetType())) && r.prev != nil {
@@ -251,7 +253,7 @@ func (r *Row) AddCell(col int, name, typ *string, data string, needPopulateKey b
 
 			if needPopulate {
 				if prevCell, err := r.prev.Cell(cell.GetName(), false); err != nil {
-					log.Errorf("failed to find prev cell for name: %s, row: %d", name, r.Row)
+					log.Errorf("failed to find prev cell for name: %s, row: %d", colInfo.Name, r.Row)
 				} else {
 					cell.Data = prevCell.Data
 					cell.autoPopulated = true
@@ -261,7 +263,7 @@ func (r *Row) AddCell(col int, name, typ *string, data string, needPopulateKey b
 	}
 
 	// add new cell
-	r.cells[col] = cell
+	r.cells[colInfo.Col] = cell
 }
 
 // GetCellCountWithPrefix returns the cell count with the given prefix.
