@@ -38,7 +38,7 @@ func TestTableParser_parseTableMetasheet(t *testing.T) {
 		err     error
 	}{
 		{
-			name:   "no empty row",
+			name:   "E2013: invalid syntax of boolean value",
 			parser: newTableParserForTest(),
 			args: args{
 				sheet: book.NewTableSheet(
