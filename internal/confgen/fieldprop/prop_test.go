@@ -289,7 +289,7 @@ func TestCheckInRange(t *testing.T) {
 				value:     protoreflect.ValueOfString("b"),
 				present:   true,
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

@@ -104,6 +104,8 @@ func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value 
 				return xerrors.E2004(v, prop.Range)
 			}
 		}
+	default:
+		return xerrors.Errorf("unsupported field kind: %s", fieldKind)
 	}
 	return nil
 }
