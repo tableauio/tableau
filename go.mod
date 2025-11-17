@@ -1,6 +1,6 @@
 module github.com/tableauio/tableau
 
-go 1.20
+go 1.24.0
 
 require (
 	github.com/bytedance/sonic v1.13.2
@@ -14,8 +14,8 @@ require (
 	github.com/xuri/excelize/v2 v2.9.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
-	golang.org/x/sync v0.8.0
-	golang.org/x/text v0.19.0
+	golang.org/x/sync v0.17.0
+	golang.org/x/text v0.30.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
