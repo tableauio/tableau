@@ -1,7 +1,6 @@
 package protogen
 
 import (
-	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/options"
@@ -11,7 +10,8 @@ import (
 
 type tableHeader struct {
 	*parseroptions.Header
-	transpose bool
+	table book.Tabler
+	// transpose bool
 
 	nameRowData []string
 	typeRowData []string
@@ -21,17 +21,18 @@ type tableHeader struct {
 	validNames map[string]int // none-empty valid names: name -> cursor
 }
 
-func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption) *tableHeader {
-	return &tableHeader{
-		Header:    parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts),
-		transpose: sheetOpts.Transpose,
+func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption, table *book.Table) *tableHeader {
+	header := &tableHeader{
+		Header: parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts),
+		table:  table,
 	}
-}
-
-func (t *tableHeader) fillRowData(table book.Tabler) {
-	t.nameRowData = table.GetRow(table.BeginRow() + t.NameRow - 1)
-	t.typeRowData = table.GetRow(table.BeginRow() + t.TypeRow - 1)
-	t.noteRowData = table.GetRow(table.BeginRow() + t.NoteRow - 1)
+	if sheetOpts.Transpose {
+		header.table = table.Transpose()
+	}
+	header.nameRowData = header.table.GetRow(header.table.BeginRow() + header.NameRow - 1)
+	header.typeRowData = header.table.GetRow(header.table.BeginRow() + header.TypeRow - 1)
+	header.noteRowData = header.table.GetRow(header.table.BeginRow() + header.NoteRow - 1)
+	return header
 }
 
 // getValidNameCell try best to get a none-empty cell, starting from
@@ -72,15 +73,15 @@ func (t *tableHeader) checkNameConflicts(name string, cursor int) error {
 		return nil
 	}
 	if foundCursor != cursor {
-		position1 := excel.Position(t.NameRow-1, foundCursor)
-		position2 := excel.Position(t.NameRow-1, cursor)
-		if t.transpose {
-			position1 = excel.Position(foundCursor, t.NameRow-1)
-			position2 = excel.Position(cursor, t.NameRow-1)
-		}
+		position1 := t.Position(t.NameRow-1, foundCursor)
+		position2 := t.Position(t.NameRow-1, cursor)
 		return xerrors.E0003(name, position1, position2)
 	}
 	return nil
+}
+
+func (t *tableHeader) Position(row, col int) string {
+	return t.table.Position(row, col)
 }
 
 func getCell(row []string, cursor int, line int) string {

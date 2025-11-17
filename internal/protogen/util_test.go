@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/xerrors"
 )
@@ -119,7 +120,7 @@ func Test_wrapDebugErr(t *testing.T) {
 			TypeRow: 2,
 			NoteRow: 3,
 		},
-		transpose:   true,
+		table:       &book.TransposedTable{},
 		nameRowData: []string{"ID", "Value", "", "Kind"},
 		typeRowData: []string{"map<int32, Item>", "int32", "", "int32"},
 		noteRowData: []string{"Item's ID", "Item's value", "", "Item's kind"},
