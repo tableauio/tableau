@@ -66,6 +66,10 @@ func Test_parseCSVBookReaderOptions(t *testing.T) {
 						Name:     "Item",
 						Filename: "testdata/Test#Item.csv",
 					},
+					{
+						Name:     "UTF8-BOM",
+						Filename: "testdata/Test#UTF8-BOM.csv",
+					},
 				},
 			},
 			wantErr: false,
@@ -114,6 +118,17 @@ func Test_readCSVRows(t *testing.T) {
 			wantRows: [][]string{
 				{"ID", "Name"},
 				{"1", "Pike"},
+			},
+		},
+		{
+			name: "read-UTF8-BOM",
+			args: args{
+				filename: "testdata/Test#UTF8-BOM.csv",
+				topN:     2,
+			},
+			wantRows: [][]string{
+				{"ID", "Name"},
+				{"1", "苹果"},
 			},
 		},
 	}

@@ -68,7 +68,7 @@ func genProto(logLevel, logMode string) error {
 						Sep:     ",",
 						Subsep:  ":",
 					},
-					Subdirs: []string{"excel", "xml", "yaml"},
+					Subdirs: []string{"excel", "csv", "xml", "yaml"},
 				},
 				Output: &options.ProtoOutputOption{
 					FilenameWithSubdirPrefix: true,
