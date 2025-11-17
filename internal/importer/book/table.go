@@ -5,9 +5,21 @@ import (
 	"encoding/csv"
 	"io"
 
+	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/xerrors"
 	"github.com/xuri/excelize/v2"
 )
+
+type Tabler interface {
+	BeginRow() int
+	EndRow() int
+	BeginCol() int
+	EndCol() int
+	RowSize() int
+	ColSize() int
+	Cell(row, col int) (string, error)
+	Position(row, col int) string
+}
 
 // Table represents a 2D array table.
 type Table struct {
@@ -142,11 +154,6 @@ func (t *Table) Cell(row, col int) (string, error) {
 	return t.Rows[row][col], nil
 }
 
-// TransponseCell returns the cell value at (col, row).
-func (t *Table) TransponseCell(col, row int) (string, error) {
-	return t.Cell(row, col)
-}
-
 // String converts Table to CSV string. It is mainly used for debugging.
 func (t *Table) String() string {
 	var buffer bytes.Buffer
@@ -203,4 +210,12 @@ func (t *Table) ExportExcel(file *excelize.File, sheetName string) error {
 		}
 	}
 	return nil
+}
+
+func (t *Table) Position(row, col int) string {
+	return excel.Position(row, col)
+}
+
+func (t *Table) Transpose() *TransposedTable {
+	return &TransposedTable{table: t}
 }

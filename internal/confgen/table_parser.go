@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
-	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/strcase"
@@ -24,27 +23,27 @@ type tableParser struct {
 func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	if p.sheetOpts.Transpose {
 		// interchange the rows and columns
-		return p.parse(protomsg, sheet, sheet.Table.RowSize(), sheet.Table.BeginCol, sheet.Table.EndCol, sheet.Table.BeginRow, sheet.Table.EndRow, sheet.Table.TransponseCell, excel.TransposePosition)
+		return p.parse(protomsg, sheet.Name, sheet.Table.Transpose())
 	} else {
-		return p.parse(protomsg, sheet, sheet.Table.ColSize(), sheet.Table.BeginRow, sheet.Table.EndRow, sheet.Table.BeginCol, sheet.Table.EndCol, sheet.Table.Cell, excel.Position)
+		return p.parse(protomsg, sheet.Name, sheet.Table)
 	}
 }
 
-func (p *tableParser) parse(protomsg proto.Message, sheet *book.Sheet, colSize int, beginRow, endRow, beginCol, endCol func() int, cell func(int, int) (string, error), pos func(int, int) string) error {
+func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book.Tabler) error {
 	msg := protomsg.ProtoReflect()
 	header := parseroptions.MergeHeader(p.sheetOpts, p.bookOpts, nil)
-	nameRow := beginRow() + header.NameRow - 1
-	typeRow := beginRow() + header.TypeRow - 1
-	dataRow := beginRow() + header.DataRow - 1
-	p.names = make([]string, colSize)
-	p.types = make([]string, colSize)
-	p.lookupTable = make(book.ColumnLookupTable, colSize)
+	nameRow := table.BeginRow() + header.NameRow - 1
+	typeRow := table.BeginRow() + header.TypeRow - 1
+	dataRow := table.BeginRow() + header.DataRow - 1
+	p.names = make([]string, table.ColSize())
+	p.types = make([]string, table.ColSize())
+	p.lookupTable = make(book.ColumnLookupTable, table.ColSize())
 	hasIgnoreCol := false
-	for col := beginCol(); col < endCol(); col++ {
+	for col := table.BeginCol(); col < table.EndCol(); col++ {
 		// parse names
-		nameCell, err := cell(nameRow, col)
+		nameCell, err := table.Cell(nameRow, col)
 		if err != nil {
-			return xerrors.WrapKV(err, pos(nameRow, col))
+			return xerrors.WrapKV(err, table.Position(nameRow, col))
 		}
 		name := book.ExtractFromCell(nameCell, header.NameLine)
 		p.names[col] = name
@@ -54,12 +53,12 @@ func (p *tableParser) parse(protomsg proto.Message, sheet *book.Sheet, colSize i
 			}
 			// parse lookup table
 			if foundCol, ok := p.lookupTable[name]; ok {
-				return xerrors.E0003(name, pos(nameRow, foundCol), pos(nameRow, col))
+				return xerrors.E0003(name, table.Position(nameRow, foundCol), table.Position(nameRow, col))
 			}
 			p.lookupTable[name] = col
 		}
 		// parse types
-		typeCell, err := cell(typeRow, col)
+		typeCell, err := table.Cell(typeRow, col)
 		if err != nil {
 			return xerrors.WrapKV(err)
 		}
@@ -67,10 +66,10 @@ func (p *tableParser) parse(protomsg proto.Message, sheet *book.Sheet, colSize i
 	}
 	var prev *book.Row
 	// [datarow, endRow]: data rows
-	for row := dataRow; row < endRow(); row++ {
-		curr := book.NewRow(row, prev, sheet.Name, p.lookupTable)
-		for col := beginCol(); col < endCol(); col++ {
-			data, err := cell(row, col)
+	for row := dataRow; row < table.EndRow(); row++ {
+		curr := book.NewRow(row, prev, sheetName, p.lookupTable)
+		for col := table.BeginCol(); col < table.EndCol(); col++ {
+			data, err := table.Cell(row, col)
 			if err != nil {
 				return xerrors.WrapKV(err)
 			}
