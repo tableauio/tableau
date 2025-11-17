@@ -255,9 +255,9 @@ type sheetParser struct {
 	extInfo      *SheetParserExtInfo
 
 	// cached names and types
-	names       []string               // names[col] -> name
-	types       []string               // types[col] -> name
-	lookupTable book.ColumnLookupTable // column name -> column index (started with 0)
+	names       []string               // column names
+	types       []string               // column types
+	lookupTable book.ColumnLookupTable // column name -> column index (0 based)
 
 	// cached maps and lists with cardinality
 	cards map[string]*cardInfo // map/list field card prefix -> cardInfo
@@ -313,9 +313,9 @@ func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName stri
 
 // reset resets the runtime data of sheet parser for reuse
 func (p *sheetParser) reset() {
-	p.names = nil
-	p.types = nil
-	p.lookupTable = book.ColumnLookupTable{}
+	p.names = nil // TODO: use clear after go1.21
+	p.types = nil // TODO: use clear after go1.21
+	p.lookupTable = nil
 	p.cards = map[string]*cardInfo{}
 }
 

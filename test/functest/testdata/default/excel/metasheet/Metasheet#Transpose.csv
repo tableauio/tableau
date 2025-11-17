@@ -1,4 +1,5 @@
-ID,int32,Hero's ID,123
-Name,string,Hero's name,Robin
-Desc,string,Hero's description,A big hero!
-Skill,[]int32,Hero's skills,"100,101,102"
+ID,"map<int32,Hero>",Hero's ID,123,456,789
+Name,string,Hero's name,Robin,Superman,Thanos
+Desc,string,Hero's description,A big hero!,A small hero!,An evil hero!
+Skill,[]int32,Hero's skills,"100,101,102","200,201,202","300,301,302"
+#IGNORE,,,,TRUE,
