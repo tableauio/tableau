@@ -101,7 +101,7 @@ func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book
 }
 
 // parseMessage parses all fields of a protobuf message.
-func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message, rc *book.Row, prefix, cardPrefix string) (present bool, err error) {
+func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
@@ -111,7 +111,7 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 			field.mergeParentFieldProp(parentField)
 			defer field.release()
 			newCardPrefix := cardPrefix + "." + string(fd.Name())
-			fieldPresent, err := p.parseField(field, msg, rc, prefix, newCardPrefix)
+			fieldPresent, err := p.parseField(field, msg, r, prefix, newCardPrefix)
 			if err != nil {
 				return xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, xproto.GetFieldTypeName(fd),
@@ -131,35 +131,35 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 	return present, nil
 }
 
-func (p *tableParser) parseField(field *Field, msg protoreflect.Message, rc *book.Row, prefix, cardPrefix string) (present bool, err error) {
+func (p *tableParser) parseField(field *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	// log.Debug(field.fd.ContainingMessage().FullName())
 	if field.fd.IsMap() {
-		return p.parseMapField(field, msg, rc, prefix, cardPrefix)
+		return p.parseMapField(field, msg, r, prefix, cardPrefix)
 	} else if field.fd.IsList() {
-		return p.parseListField(field, msg, rc, prefix, cardPrefix)
+		return p.parseListField(field, msg, r, prefix, cardPrefix)
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		if xproto.IsUnionField(field.fd) {
-			return p.parseUnionField(field, msg, rc, prefix, cardPrefix)
+			return p.parseUnionField(field, msg, r, prefix, cardPrefix)
 		}
-		return p.parseStructField(field, msg, rc, prefix, cardPrefix)
+		return p.parseStructField(field, msg, r, prefix, cardPrefix)
 	} else {
-		return p.parseScalarField(field, msg, rc, prefix)
+		return p.parseScalarField(field, msg, r, prefix)
 	}
 }
 
-func (p *tableParser) parseMapField(field *Field, msg protoreflect.Message, rc *book.Row, prefix, cardPrefix string) (present bool, err error) {
+func (p *tableParser) parseMapField(field *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	layout := parseTableMapLayout(field.opts.GetLayout())
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		// map default layout treated as virtical
-		return p.parseVerticalMapField(field, msg, rc, prefix, cardPrefix)
+		return p.parseVerticalMapField(field, msg, r, prefix, cardPrefix)
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
-		return p.parseHorizontalMapField(field, msg, rc, prefix, cardPrefix)
+		return p.parseHorizontalMapField(field, msg, r, prefix, cardPrefix)
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// NOTE(Wenchy): Even though named as incell, it still can merge
 		// multiple vertical/horizontal cells if provided, as map is a
 		// composite type with cardinality. In practice, it is a very useful.
-		return p.parseIncellMapField(field, msg, rc, prefix)
+		return p.parseIncellMapField(field, msg, r, prefix)
 	default:
 		return false, xerrors.Errorf("unknown layout: %v", layout)
 	}
@@ -352,19 +352,19 @@ func (p *tableParser) parseIncellMapField(field *Field, msg protoreflect.Message
 	return msg.Has(field.fd), nil
 }
 
-func (p *tableParser) parseListField(field *Field, msg protoreflect.Message, rc *book.Row, prefix, cardPrefix string) (present bool, err error) {
+func (p *tableParser) parseListField(field *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	layout := parseTableListLayout(field.opts.GetLayout())
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
-		return p.parseVerticalListField(field, msg, rc, prefix, cardPrefix)
+		return p.parseVerticalListField(field, msg, r, prefix, cardPrefix)
 	case tableaupb.Layout_LAYOUT_HORIZONTAL, tableaupb.Layout_LAYOUT_DEFAULT:
 		// list default layout treated as horizontal
-		return p.parseHorizontalListField(field, msg, rc, prefix, cardPrefix)
+		return p.parseHorizontalListField(field, msg, r, prefix, cardPrefix)
 	case tableaupb.Layout_LAYOUT_INCELL:
 		// NOTE(Wenchy): Even though named as incell, it still can merge
 		// multiple vertical/horizontal cells if provided, as list is a
 		// composite type with cardinality. In practice, it is a very useful.
-		return p.parseIncellListField(field, msg, rc, prefix, cardPrefix)
+		return p.parseIncellListField(field, msg, r, prefix, cardPrefix)
 	default:
 		return false, xerrors.Errorf("unknown layout: %v", layout)
 	}
