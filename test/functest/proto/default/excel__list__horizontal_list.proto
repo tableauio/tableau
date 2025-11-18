@@ -6,7 +6,7 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
-import "common/union.proto";
+import "excel__union__union.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
@@ -92,9 +92,14 @@ message HorizontalStructList {
 message HorizontalUnionList {
   option (tableau.worksheet) = {name:"HorizontalUnionList"};
 
-  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  repeated protoconf.Target target_list = 1 [(tableau.field) = {name:"Target" layout:LAYOUT_HORIZONTAL}];
+}
+
+message HorizontalWrappedUnionList {
+  option (tableau.worksheet) = {name:"HorizontalWrappedUnionList"};
+
+  repeated Task task_list = 1 [(tableau.field) = {name:"Task" layout:LAYOUT_HORIZONTAL}];
   message Task {
-    int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
-    repeated union.Target target_list = 2 [(tableau.field) = {name:"Target" layout:LAYOUT_HORIZONTAL}];
+    protoconf.Target target = 1 [(tableau.field) = {name:"Target"}];
   }
 }

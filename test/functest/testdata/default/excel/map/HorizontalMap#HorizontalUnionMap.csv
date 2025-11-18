@@ -1,4 +1,4 @@
 Target1Type,Target1Field1,Target1Field2,Target2Type,Target2Field1,Target2Field2,Target3Type,Target3Field1,Target3Field2
-[.Target]enum<.Target.Type>,union,union,enum<.Target.Type>,union,union,enum<.Target.Type>,union,union
+"map<enum<.Target.Type>, .Target>",union,union,enum<.Target.Type>,union,union,enum<.Target.Type>,union,union
 Target type,Target field1,Target field2,Target type,Target field1,Target field2,Target type,Target field1,Target field2
 Player,1,Mike,Pawn,10,,Boss,200,100

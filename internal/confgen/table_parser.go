@@ -106,6 +106,9 @@ func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book
 // parseMessage parses all fields of a protobuf message.
 func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
+	if xproto.IsUnion(md) {
+		return p.parseUnionMessage(msg, parentField, r, prefix, cardPrefix)
+	}
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		err := func() error {
@@ -641,9 +644,9 @@ func (p *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r 
 }
 
 func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
-	unionDesc := xproto.ExtractUnionDescriptor(field.fd.Message())
+	unionDesc := xproto.ExtractUnionDescriptor(msg.Descriptor())
 	if unionDesc == nil {
-		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
+		return false, xerrors.Errorf("illegal definition of union: %s", msg.Descriptor().FullName())
 	}
 
 	// parse union type

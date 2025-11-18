@@ -6,6 +6,7 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "excel__union__union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -40,5 +41,21 @@ message VerticalStructMap {
     uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item’s ID
     string name = 2 [(tableau.field) = {name:"Name"}]; // Item’s name
     string desc = 3 [(tableau.field) = {name:"Desc"}]; // Item’s desc
+  }
+}
+
+message VerticalUnionMap {
+  option (tableau.worksheet) = {name:"VerticalUnionMap"};
+
+  map<int32, protoconf.Target> target_map = 1 [(tableau.field) = {key:"Type" layout:LAYOUT_VERTICAL}];
+}
+
+message VerticalWrappedUnionMap {
+  option (tableau.worksheet) = {name:"VerticalWrappedUnionMap"};
+
+  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Task {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    protoconf.Target target = 2 [(tableau.field) = {name:"Target"}];
   }
 }
