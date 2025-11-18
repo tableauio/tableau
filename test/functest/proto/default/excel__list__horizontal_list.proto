@@ -98,8 +98,8 @@ message HorizontalUnionList {
 message HorizontalWrappedUnionList {
   option (tableau.worksheet) = {name:"HorizontalWrappedUnionList"};
 
-  repeated Wrapper wrapper_list = 1 [(tableau.field) = {name:"Wrapper" layout:LAYOUT_HORIZONTAL}];
-  message Wrapper {
+  repeated Task task_list = 1 [(tableau.field) = {name:"Task" layout:LAYOUT_HORIZONTAL}];
+  message Task {
     protoconf.Target target = 1 [(tableau.field) = {name:"Target"}];
   }
 }

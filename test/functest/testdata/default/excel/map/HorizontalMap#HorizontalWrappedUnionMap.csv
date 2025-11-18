@@ -1,0 +1,4 @@
+Task1ID,Task1TargetType,Task1TargetField1,Task1TargetField2,Task2ID,Task2TargetType,Task2TargetField1,Task2TargetField2,Task3ID,Task3TargetType,Task3TargetField1,Task3TargetField2
+"map<int32, Task>",{.Target}enum<.Target.Type>,union,union,int32,enum<.Target.Type>,union,union,int32,enum<.Target.Type>,union,union
+ID,Target type,Target field1,Target field2,ID,Target type,Target field1,Target field2,ID,Target type,Target field1,Target field2
+1,Player,1,Mike,2,Pawn,10,,3,Boss,200,100

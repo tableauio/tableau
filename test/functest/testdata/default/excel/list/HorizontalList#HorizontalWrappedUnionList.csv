@@ -1,4 +1,4 @@
-Wrapper1TargetType,Wrapper1TargetField1,Wrapper1TargetField2,Wrapper2TargetType,Wrapper2TargetField1,Wrapper2TargetField2,Wrapper3TargetType,Wrapper3TargetField1,Wrapper3TargetField2
-[Wrapper]{.Target}enum<.Target.Type>,union,union,enum<.Target.Type>,union,union,enum<.Target.Type>,union,union
+Task1TargetType,Task1TargetField1,Task1TargetField2,Task2TargetType,Task2TargetField1,Task2TargetField2,Task3TargetType,Task3TargetField1,Task3TargetField2
+[Task]{.Target}enum<.Target.Type>,union,union,enum<.Target.Type>,union,union,enum<.Target.Type>,union,union
 Target type,Target field1,Target field2,Target type,Target field1,Target field2,Target type,Target field1,Target field2
 Player,1,Mike,Pawn,10,,Boss,200,100

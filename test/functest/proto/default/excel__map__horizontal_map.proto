@@ -6,6 +6,7 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "excel__union__union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -38,5 +39,21 @@ message HorizontalStructMap {
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
     string name = 2 [(tableau.field) = {name:"Name"}]; // name
+  }
+}
+
+message HorizontalUnionMap {
+  option (tableau.worksheet) = {name:"HorizontalUnionMap"};
+
+  map<int32, protoconf.Target> target_map = 1 [(tableau.field) = {name:"Target" key:"Type" layout:LAYOUT_HORIZONTAL}];
+}
+
+message HorizontalWrappedUnionMap {
+  option (tableau.worksheet) = {name:"HorizontalWrappedUnionMap"};
+
+  map<int32, Task> task_map = 1 [(tableau.field) = {name:"Task" key:"ID" layout:LAYOUT_HORIZONTAL}];
+  message Task {
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    protoconf.Target target = 2 [(tableau.field) = {name:"Target"}];
   }
 }
