@@ -86,6 +86,6 @@ message VerticalWrappedUnionList {
 
   repeated Task task_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   message Task {
-    protoconf.Target task_target = 1 [(tableau.field) = {name:"TaskTarget"}];
+    protoconf.Target target = 1 [(tableau.field) = {name:"Target"}];
   }
 }

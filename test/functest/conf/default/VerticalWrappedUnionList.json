@@ -1,7 +1,7 @@
 {
     "taskList": [
         {
-            "taskTarget": {
+            "target": {
                 "type": "TYPE_PLAYER",
                 "player": {
                     "id": 1,
@@ -10,7 +10,7 @@
             }
         },
         {
-            "taskTarget": {
+            "target": {
                 "type": "TYPE_PAWN",
                 "pawn": {
                     "count": 10
@@ -18,7 +18,7 @@
             }
         },
         {
-            "taskTarget": {
+            "target": {
                 "type": "TYPE_BOSS",
                 "boss": {
                     "health": 200,

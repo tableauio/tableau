@@ -1,4 +1,4 @@
-TaskTargetType,TaskTargetField1,TaskTargetField2
+TargetType,TargetField1,TargetField2
 [Task]{.Target}enum<.Target.Type>,union,union
 Target type,Target field1,Target field2
 Player,1,Mike
