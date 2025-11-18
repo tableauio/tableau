@@ -1,0 +1,9 @@
+Name,Alias,Field1,Field2
+Player,Player,"ID
+uint32","Name
+string"
+Pawn,Pawn,"Count
+int32",
+Boss,Boss,"Health
+int32","Attack
+int32"

@@ -49,7 +49,6 @@ func Test_CompareGeneratedJSON(t *testing.T) {
 func Test_CSV2Excel(t *testing.T) {
 	for _, dir := range excelDirs {
 		err := xfs.RangeFilesByFormat(dir, format.CSV, func(bookPath string) error {
-			// log.Printf("path: %s", bookPath)
 			imp, err := importer.NewCSVImporter(context.Background(), bookPath, nil, nil, 0, false)
 			if err != nil {
 				return err
@@ -63,7 +62,6 @@ func Test_CSV2Excel(t *testing.T) {
 func Test_Excel2CSV(t *testing.T) {
 	for _, dir := range excelDirs {
 		err := xfs.RangeFilesByFormat(dir, format.Excel, func(bookPath string) error {
-			// log.Printf("path: %s", bookPath)
 			imp, err := importer.NewExcelImporter(context.Background(), bookPath, nil, nil, 0, false)
 			if err != nil {
 				return err

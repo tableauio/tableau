@@ -1,0 +1,6 @@
+TargetType,TargetField1,TargetField2
+[Target]{.Target}enum<union.Target.Type>,union,union
+Target type,Target field1,Target field2
+Player,1,Mike
+Pawn,10,
+Boss,200,100

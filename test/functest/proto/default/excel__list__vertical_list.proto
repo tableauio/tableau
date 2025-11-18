@@ -7,6 +7,7 @@ package protoconf;
 
 import "common/common.proto";
 import "common/union.proto";
+import "excel__union__union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -77,5 +78,14 @@ message VerticalStructList {
 message VerticalUnionList {
   option (tableau.worksheet) = {name:"VerticalUnionList"};
 
-  repeated union.Target target_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  repeated protoconf.Target target_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+}
+
+message VerticalWrappedUnionList {
+  option (tableau.worksheet) = {name:"VerticalWrappedUnionList"};
+
+  repeated Target target_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  message Target {
+    protoconf.Target target = 1 [(tableau.field) = {name:"Target"}];
+  }
 }

@@ -45,6 +45,38 @@ message PredefinedUnion {
   }
 }
 
+message Target {
+  option (tableau.union) = {name:"Target"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    Player player = 1; // Bound to enum value: TYPE_PLAYER.
+    Pawn pawn = 2; // Bound to enum value: TYPE_PAWN.
+    Boss boss = 3; // Bound to enum value: TYPE_BOSS.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PLAYER = 1 [(tableau.evalue).name = "Player"]; // Player
+    TYPE_PAWN = 2 [(tableau.evalue).name = "Pawn"]; // Pawn
+    TYPE_BOSS = 3 [(tableau.evalue).name = "Boss"]; // Boss
+  }
+
+  message Player {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+  message Pawn {
+    int32 count = 1 [(tableau.field) = {name:"Count"}];
+  }
+  message Boss {
+    int32 health = 1 [(tableau.field) = {name:"Health"}];
+    int32 attack = 2 [(tableau.field) = {name:"Attack"}];
+  }
+}
+
 message TypedUnion {
   option (tableau.worksheet) = {name:"TypedUnion"};
 
@@ -127,15 +159,5 @@ message UnionTypedTarget {
   message CustomMonster {
     int32 health = 1 [(tableau.field) = {name:"Health"}];
     int32 attack = 2 [(tableau.field) = {name:"Attack"}];
-  }
-}
-
-message VerticalPredefinedUnionList {
-  option (tableau.worksheet) = {name:"VerticalPredefinedUnionList"};
-
-  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message Task {
-    int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
-    repeated union.Target target_list = 2 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
   }
 }
