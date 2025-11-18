@@ -1,0 +1,24 @@
+{
+    "targetMap": {
+        "1": {
+            "type": "TYPE_PLAYER",
+            "player": {
+                "id": 1,
+                "name": "Mike"
+            }
+        },
+        "2": {
+            "type": "TYPE_PAWN",
+            "pawn": {
+                "count": 10
+            }
+        },
+        "3": {
+            "type": "TYPE_BOSS",
+            "boss": {
+                "health": 200,
+                "attack": 100
+            }
+        }
+    }
+}

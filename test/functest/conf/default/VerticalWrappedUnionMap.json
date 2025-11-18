@@ -1,0 +1,33 @@
+{
+    "taskMap": {
+        "1": {
+            "id": 1,
+            "target": {
+                "type": "TYPE_PLAYER",
+                "player": {
+                    "id": 1,
+                    "name": "Mike"
+                }
+            }
+        },
+        "2": {
+            "id": 2,
+            "target": {
+                "type": "TYPE_PAWN",
+                "pawn": {
+                    "count": 10
+                }
+            }
+        },
+        "3": {
+            "id": 3,
+            "target": {
+                "type": "TYPE_BOSS",
+                "boss": {
+                    "health": 200,
+                    "attack": 100
+                }
+            }
+        }
+    }
+}

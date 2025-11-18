@@ -1,5 +1,5 @@
 Type,Field1,Field2
-[.Target]enum<.Target.Type>,union,union
+"map<enum<.Target.Type>, .Target>",union,union
 Target type,Target field1,Target field2
 Player,1,Mike
 Pawn,10,
