@@ -1,0 +1,4 @@
+Wrapper1TargetType,Wrapper1TargetField1,Wrapper1TargetField2,Wrapper2TargetType,Wrapper2TargetField1,Wrapper2TargetField2,Wrapper3TargetType,Wrapper3TargetField1,Wrapper3TargetField2
+[Wrapper]{.Target}enum<.Target.Type>,union,union,enum<.Target.Type>,union,union,enum<.Target.Type>,union,union
+Target type,Target field1,Target field2,Target type,Target field1,Target field2,Target type,Target field1,Target field2
+Player,1,Mike,Pawn,10,,Boss,200,100
