@@ -129,3 +129,13 @@ message UnionTypedTarget {
     int32 attack = 2 [(tableau.field) = {name:"Attack"}];
   }
 }
+
+message VerticalPredefinedUnionList {
+  option (tableau.worksheet) = {name:"VerticalPredefinedUnionList"};
+
+  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Task {
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    repeated union.Target target_list = 2 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  }
+}

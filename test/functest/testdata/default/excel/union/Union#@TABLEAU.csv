@@ -5,3 +5,4 @@ UnionFieldCapTarget,FieldCapTarget,MODE_UNION_TYPE
 FieldCapUnion,,
 UnionTypedTarget,,MODE_UNION_TYPE
 TypedUnion,,
+VerticalPredefinedUnionList,,
