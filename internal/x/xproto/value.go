@@ -387,38 +387,73 @@ func parseDuration(val string) (time.Duration, error) {
 //   - N‱: per ten thounsand, e.g.: 10‱
 //   - N/D: 3/4
 //   - N: 3 is same to 3/1
+//   - N(float): 0.01 is same to 1/100, 0.001 is same to 1/0100, 0.0001 is same to 1/10000
 func parseFraction(md pref.MessageDescriptor, value string) (v pref.Value, present bool, err error) {
-	var numStr string
-	var den int32
-	if strings.HasSuffix(value, "%") {
-		numStr = strings.TrimSuffix(value, "%")
-		den = 100
-	} else if strings.HasSuffix(value, "‰") {
-		numStr = strings.TrimSuffix(value, "‰")
-		den = 1000
-	} else if strings.HasSuffix(value, "‱") {
-		numStr = strings.TrimSuffix(value, "‱")
-		den = 10000
-	} else if strings.Contains(value, "/") {
-		splits := strings.SplitN(value, "/", 2)
-		numStr = splits[0]
-		denStr := splits[1]
-		den, err = parseInt32(denStr)
+	newFraction := func(num, den int32) (v pref.Value, present bool, err error) {
+		msg := dynamicpb.NewMessage(md)
+		msg.Set(md.Fields().ByName("num"), pref.ValueOfInt32(num))
+		msg.Set(md.Fields().ByName("den"), pref.ValueOfInt32(den))
+		return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
+	}
+	newFraction2 := func(numStr string, den int32) (v pref.Value, present bool, err error) {
+		num, err := parseInt32(numStr)
 		if err != nil {
 			return DefaultFractionValue, false, xerrors.E2019(value, err)
 		}
+		return newFraction(num, den)
+	}
+
+	if strings.HasSuffix(value, "%") {
+		numStr := strings.TrimSuffix(value, "%")
+		return newFraction2(numStr, 100)
+	} else if strings.HasSuffix(value, "‰") {
+		numStr := strings.TrimSuffix(value, "‰")
+		return newFraction2(numStr, 1000)
+	} else if strings.HasSuffix(value, "‱") {
+		numStr := strings.TrimSuffix(value, "‱")
+		return newFraction2(numStr, 10000)
+	} else if strings.Contains(value, "/") {
+		splits := strings.SplitN(value, "/", 2)
+		numStr := splits[0]
+		denStr := splits[1]
+		den, err := parseInt32(denStr)
+		if err != nil {
+			return DefaultFractionValue, false, xerrors.E2019(value, err)
+		}
+		return newFraction2(numStr, den)
+	} else if strings.Contains(value, ".") {
+		floatVal, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return DefaultFractionValue, false, xerrors.E2019(value, err)
+		}
+		// by default, treat the denominator as 10000 in floating-point number.
+		var den int32 = 10000
+		num64 := int64(floatVal * float64(den))
+		if num64 == 0 {
+			return DefaultFractionValue, false, xerrors.E2019(value, fmt.Errorf("parsed value is 0/%d in floating-point number", den))
+		}
+		if num64 < math.MinInt32 || num64 > math.MaxInt32 {
+			return DefaultFractionValue, false, xerrors.E2000("int32", value, math.MinInt32, math.MaxInt32)
+		}
+		num := int32(num64)
+		// adjust the proximal denominator
+		if num%10000 == 0 {
+			den = 1
+			num = num / 10000
+		} else if num%1000 == 0 {
+			den = 10
+			num = num / 1000
+		} else if num%100 == 0 {
+			den = 100
+			num = num / 100
+		} else if num%10 == 0 {
+			den = 1000
+			num = num / 10
+		}
+		return newFraction(num, den)
 	} else {
-		numStr = value
-		den = 1
+		return newFraction2(value, 1)
 	}
-	num, err := parseInt32(numStr)
-	if err != nil {
-		return DefaultFractionValue, false, xerrors.E2019(value, err)
-	}
-	msg := dynamicpb.NewMessage(md)
-	msg.Set(md.Fields().ByName("num"), pref.ValueOfInt32(num))
-	msg.Set(md.Fields().ByName("den"), pref.ValueOfInt32(den))
-	return pref.ValueOfMessage(msg.ProtoReflect()), true, nil
 }
 
 func parseComparator(md pref.MessageDescriptor, value string) (v pref.Value, present bool, err error) {
@@ -580,9 +615,6 @@ func parseInt32(value string) (int32, error) {
 	val, err := strconv.ParseInt(value, 10, 32)
 	if err != nil {
 		return 0, err
-	}
-	if val < math.MinInt32 || val > math.MaxInt32 {
-		return 0, xerrors.E2000("int32", value, math.MinInt32, math.MaxInt32)
 	}
 	return int32(val), nil
 }
