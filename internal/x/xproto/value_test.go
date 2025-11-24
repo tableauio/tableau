@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -374,6 +375,7 @@ func Test_parseFraction(t *testing.T) {
 		args    args
 		wantF   *tableaupb.Fraction
 		wantErr bool
+		err     error
 	}{
 		{
 			name: "percentage",
@@ -445,6 +447,72 @@ func Test_parseFraction(t *testing.T) {
 				Den: 10,
 			},
 		},
+		{
+			name: "float-10.0",
+			args: args{
+				value: "10.0",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 10,
+				Den: 1,
+			},
+		},
+		{
+			name: "float-0.1",
+			args: args{
+				value: "0.1",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 1,
+				Den: 10,
+			},
+		},
+		{
+			name: "float-0.01",
+			args: args{
+				value: "0.01",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 1,
+				Den: 100,
+			},
+		},
+		{
+			name: "float-0.001",
+			args: args{
+				value: "0.001",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 1,
+				Den: 1000,
+			},
+		},
+		{
+			name: "float-0.0001",
+			args: args{
+				value: "0.0001",
+			},
+			wantF: &tableaupb.Fraction{
+				Num: 1,
+				Den: 10000,
+			},
+		},
+		{
+			name: "float-0.00001",
+			args: args{
+				value: "0.00001",
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2019,
+		},
+		{
+			name: "float->MaxInt32",
+			args: args{
+				value: "2147483647.1",
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2000,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -455,6 +523,9 @@ func Test_parseFraction(t *testing.T) {
 			}
 			if err == nil && !gotF.Equal(pref.ValueOfMessage(tt.wantF.ProtoReflect())) {
 				t.Errorf("parseFraction() = %v, want %v", gotF, tt.wantF)
+			}
+			if tt.wantErr {
+				assert.ErrorIs(t, err, tt.err)
 			}
 		})
 	}

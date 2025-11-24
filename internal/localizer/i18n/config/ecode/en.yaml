@@ -140,7 +140,7 @@ E2018:
 E2019:
   desc: invalid fraction pattern
   text: '"{{.Value}}" cannot be parsed by pattern: "N/D", {{.Error}}'
-  help: "available patterns: 5, 5/6, 10%, 10‰, 10‱"
+  help: "available patterns: 0.5, 5, 5/6, 10%, 10‰, 10‱"
   fields:
     - Value: string
 E2020:
