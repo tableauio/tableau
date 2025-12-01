@@ -25,6 +25,11 @@ func RequireSequence(prop *tableaupb.FieldProp) bool {
 	return prop != nil && prop.Sequence != nil
 }
 
+// RequireOrder checks whether the field's order property is set explicitly.
+func RequireOrder(prop *tableaupb.FieldProp) bool {
+	return prop != nil && prop.Order != tableaupb.Order_ORDER_NONE
+}
+
 // CheckInRange checks whether the value is in the range.
 func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value protoreflect.Value, present bool) error {
 	if prop == nil || strings.TrimSpace(prop.Range) == "" {

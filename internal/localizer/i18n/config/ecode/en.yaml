@@ -174,6 +174,14 @@ E2025:
   fields:
     - Value: string
     - Pattern: string
+E2026:
+  desc: illegal unordered number
+  text: 'value "{{.Value}}" does not meet order requirement: "{{if .Ascending}}>{{else}}<{{end}}{{.LastValue}}"'
+  help: 'prop "ordered:{{if .Ascending}}ORDER_ASC{{else}}ORDER_DESC{{end}}" requires value {{if .Ascending}}increases{{else}}decreases{{end}} monotonically'
+  fields:
+    - Value: string
+    - Ascending: bool
+    - LastValue: int64
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

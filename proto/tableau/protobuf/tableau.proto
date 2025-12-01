@@ -222,7 +222,7 @@ message WorksheetOptions {
   // The columns in the angle brackets `<>` specify the sorting columns, which
   // the result array of same index key sort by.
   //
-  // Multi-column index 
+  // Multi-column index
   //
   // Form: (Column1,Column2,...)<ColumnX,ColumnY,...>[@IndexName]
   //
@@ -357,6 +357,8 @@ message FieldProp {
   //
   // TODO: use cases for more field types.
   string pattern = 16;
+  // Ensure this field's value is in an ascending or descending order.
+  Order order = 17;
 }
 
 // Layout of list and map.
@@ -428,4 +430,11 @@ enum Patch {
   //  - unknown: The unknown fields of src are appended to the unknown
   //     fields of dst.
   PATCH_MERGE = 2;
+}
+
+// Field value order.
+enum Order {
+  ORDER_NONE = 0;
+  ORDER_ASC = 1;   // ascending
+  ORDER_DESC = 2;  // descending
 }

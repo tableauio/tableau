@@ -29,6 +29,7 @@ var ErrE2021 = newEcode("E2021", `duplicate enum value alias`)
 var ErrE2022 = newEcode("E2022", `sub-field's value not unique in map values or list elements`)
 var ErrE2024 = newEcode("E2024", `invalid version pattern`)
 var ErrE2025 = newEcode("E2025", `version value mismatches pattern`)
+var ErrE2026 = newEcode("E2026", `illegal unordered number`)
 var ErrE3000 = newEcode("E3000", `no workbook file found about sheet specifier`)
 var ErrE3001 = newEcode("E3001", `no worksheet found in workbook`)
 var ErrE3002 = newEcode("E3002", `failed to open file`)
@@ -281,6 +282,15 @@ func E2025(value string, pattern string) error {
 	return renderEcode(ErrE2025, map[string]any{
 		"Value":   value,
 		"Pattern": pattern,
+	})
+}
+
+// E2026: illegal unordered number
+func E2026(value string, ascending bool, lastValue int64) error {
+	return renderEcode(ErrE2026, map[string]any{
+		"Value":     value,
+		"Ascending": ascending,
+		"LastValue": lastValue,
 	})
 }
 
