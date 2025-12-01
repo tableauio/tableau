@@ -113,9 +113,9 @@ E2025:
   text: '版本号 "{{.Value}}" 与点分十进制格式 "{{.Pattern}}" 不匹配'
   help: "确保输入的版本号与版本号格式匹配, 且每个十进制数值均合法"
 E2026:
-  desc: illegal unordered number
-  text: '值 "{{.Value}}" 不符合顺序 "{{if .Ascending}}>{{else}}<{{end}}{{.LastValue}}" 要求'
-  help: '顺序 "ordered:{{if .Ascending}}ORDER_ASC{{else}}ORDER_DESC{{end}}" 要求值单调递{{if .Ascending}}增{{else}}减{{end}}'
+  desc: illegally ordered number
+  text: '值 "{{.Value}}" 不符合有序 "{{if .Ascending}}>{{else}}<{{end}}{{.LastValue}}" 要求'
+  help: '有序 "order:{{if .Ascending}}ORDER_ASC{{else}}ORDER_DESC{{end}}" 要求值单调递{{if .Ascending}}增{{else}}减{{end}}'
   fields:
     - Value: string
     - Ascending: bool

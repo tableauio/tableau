@@ -175,9 +175,9 @@ E2025:
     - Value: string
     - Pattern: string
 E2026:
-  desc: illegal unordered number
+  desc: illegally ordered number
   text: 'value "{{.Value}}" does not meet order requirement: "{{if .Ascending}}>{{else}}<{{end}}{{.LastValue}}"'
-  help: 'prop "ordered:{{if .Ascending}}ORDER_ASC{{else}}ORDER_DESC{{end}}" requires value {{if .Ascending}}increases{{else}}decreases{{end}} monotonically'
+  help: 'prop "order:{{if .Ascending}}ORDER_ASC{{else}}ORDER_DESC{{end}}" requires value {{if .Ascending}}increases{{else}}decreases{{end}} monotonically'
   fields:
     - Value: string
     - Ascending: bool
