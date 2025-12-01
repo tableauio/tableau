@@ -743,12 +743,9 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 		if err != nil {
 			return "", xerrors.Wrapf(err, "failed to parse integer: %q", valStr)
 		}
-		if field.currValue == nil {
-			field.currValue = proto.Int64(val)
-			continue
-		}
-		if field.order == tableaupb.Order_ORDER_ASC && val <= *field.currValue ||
-			field.order == tableaupb.Order_ORDER_DESC && val >= *field.currValue {
+		if field.currValue != nil &&
+			(field.order == tableaupb.Order_ORDER_ASC && val <= *field.currValue ||
+				field.order == tableaupb.Order_ORDER_DESC && val >= *field.currValue) {
 			return name, xerrors.E2026(valStr, field.order == tableaupb.Order_ORDER_ASC, *field.currValue)
 		}
 		field.currValue = proto.Int64(val)
