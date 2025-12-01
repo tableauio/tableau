@@ -158,9 +158,9 @@ func extractFieldNames(detail i18n.EcodeDetail) []string {
 				parsePipeNode(n.Pipe)
 			case *parse.IfNode:
 				parsePipeNode(n.Pipe)
-				walkNodes(n.BranchNode.List.Nodes)
-				if n.BranchNode.ElseList != nil {
-					walkNodes(n.BranchNode.ElseList.Nodes)
+				walkNodes(n.List.Nodes)
+				if n.ElseList != nil {
+					walkNodes(n.ElseList.Nodes)
 				}
 			default:
 				// no need to support *parse.RangeNode, *parse.WithNode or case *parse.ListNode for now
