@@ -435,6 +435,8 @@ enum Patch {
 // Field value order.
 enum Order {
   ORDER_NONE = 0;
-  ORDER_ASC = 1;   // ascending
-  ORDER_DESC = 2;  // descending
+  ORDER_ASC = 1;            // ascending: >=
+  ORDER_DESC = 2;           // descending: <=
+  ORDER_STRICTLY_ASC = 3;   // ascending: >
+  ORDER_STRICTLY_DESC = 4;  // descending: <
 }

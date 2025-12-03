@@ -283,7 +283,7 @@ type sequenceField struct {
 type orderField struct {
 	fd        protoreflect.FieldDescriptor
 	order     tableaupb.Order
-	currValue *int64
+	currValue protoreflect.Value
 }
 
 // SheetParserExtInfo is the extended info for refer check and so on.
@@ -738,17 +738,11 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 		field.valueCount++
 	}
 	for name, field := range info.orderFields {
-		valStr := newValue.Message().Get(field.fd).String()
-		val, err := strconv.ParseInt(newValue.Message().Get(field.fd).String(), 10, 64)
-		if err != nil {
-			return "", xerrors.Wrapf(err, "failed to parse integer: %q", valStr)
+		val := newValue.Message().Get(field.fd)
+		if oldVal, newVal, ok := xproto.CheckOrdered(field.fd, field.currValue, val, field.order); !ok {
+			return name, xerrors.E2026(oldVal, newVal, field.order)
 		}
-		if field.currValue != nil &&
-			(field.order == tableaupb.Order_ORDER_ASC && val <= *field.currValue ||
-				field.order == tableaupb.Order_ORDER_DESC && val >= *field.currValue) {
-			return name, xerrors.E2026(valStr, field.order == tableaupb.Order_ORDER_ASC, *field.currValue)
-		}
-		field.currValue = proto.Int64(val)
+		field.currValue = val
 	}
 	return "", nil
 }

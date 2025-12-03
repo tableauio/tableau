@@ -176,12 +176,12 @@ E2025:
     - Pattern: string
 E2026:
   desc: illegally ordered number
-  text: 'value "{{.Value}}" does not meet order requirement: "{{if .Ascending}}>{{else}}<{{end}}{{.LastValue}}"'
-  help: 'prop "order:{{if .Ascending}}ORDER_ASC{{else}}ORDER_DESC{{end}}" requires value {{if .Ascending}}increases{{else}}decreases{{end}} monotonically'
+  text: 'value "{{.Value}}" does not meet order requirement: "{{if eq .Order 1}}>={{else if eq .Order 2}}<={{else if eq .Order 3}}>{{else if eq .Order 4}}<{{end}}{{.LastValue}}"'
+  help: 'prop "order:{{if eq .Order 1}}ORDER_ASC{{else if eq .Order 2}}ORDER_DESC{{else if eq .Order 3}}ORDER_STRICTLY_ASC{{else if eq .Order 4}}ORDER_STRICTLY_DESC{{end}}" requires value {{if eq .Order 1}}increases{{else if eq .Order 2}}decreases{{else if eq .Order 3}}increases strictly{{else if eq .Order 4}}decreases strictly{{end}} monotonically'
   fields:
-    - Value: string
-    - Ascending: bool
-    - LastValue: int64
+    - Value: any
+    - LastValue: any
+    - Order: github.com/tableauio/tableau/proto/tableaupb.Order
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

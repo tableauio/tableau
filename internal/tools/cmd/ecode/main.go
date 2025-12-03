@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"text/template"
 	"text/template/parse"
 
 	"github.com/tableauio/tableau/internal/localizer/i18n"
@@ -45,6 +46,26 @@ func main() {
 
 	sortedKeys := maps.Keys(config)
 	sort.Strings(sortedKeys)
+
+	// generate imports
+	importMap := map[string]struct{}{}
+	for _, item := range config {
+		for _, field := range item.Fields {
+			if importPath := field.ImportPath(); importPath != "" {
+				importMap[importPath] = struct{}{}
+			}
+		}
+	}
+	if len(importMap) > 0 {
+		imports := maps.Keys(importMap)
+		slices.Sort(imports)
+		p.P("import (")
+		for _, imp := range imports {
+			p.P(`"`, imp, `"`)
+		}
+		p.P(")")
+		p.P()
+	}
 
 	// generate ecode variables
 	for _, name := range sortedKeys {
@@ -135,10 +156,7 @@ func loadOtherLangConfigs(path string) map[string]Config {
 func extractFieldNames(detail i18n.EcodeDetail) []string {
 	templateStr := detail.Desc + detail.Text + detail.Help
 	var fieldNames []string
-	tree, err := parse.New("i18n").Parse(templateStr, "", "", make(map[string]*parse.Tree))
-	if err != nil {
-		panic(err)
-	}
+	tree := template.Must(template.New("i18n").Parse(templateStr))
 	parsePipeNode := func(node *parse.PipeNode) {
 		if len(node.Cmds) > 0 {
 			for _, arg := range node.Cmds[0].Args {

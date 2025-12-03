@@ -1,6 +1,7 @@
 package xproto
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"strconv"
@@ -617,4 +618,71 @@ func parseInt32(value string) (int32, error) {
 		return 0, err
 	}
 	return int32(val), nil
+}
+
+func CheckOrdered(fd pref.FieldDescriptor, oldVal, newVal pref.Value, order tableaupb.Order) (any, any, bool) {
+	if !oldVal.IsValid() {
+		return nil, nil, true
+	}
+	switch fd.Kind() {
+	case pref.Int32Kind, pref.Sint32Kind, pref.Sfixed32Kind,
+		pref.Int64Kind, pref.Sint64Kind, pref.Sfixed64Kind:
+		parsedOldVal, parsedNewVal := oldVal.Int(), newVal.Int()
+		return parsedOldVal, parsedNewVal, checkOrdered(parsedOldVal, parsedNewVal, order)
+	case pref.Uint32Kind, pref.Fixed32Kind,
+		pref.Uint64Kind, pref.Fixed64Kind:
+		parsedOldVal, parsedNewVal := oldVal.Uint(), newVal.Uint()
+		return parsedOldVal, parsedNewVal, checkOrdered(parsedOldVal, parsedNewVal, order)
+	case pref.FloatKind, pref.DoubleKind:
+		parsedOldVal, parsedNewVal := oldVal.Float(), newVal.Float()
+		return parsedOldVal, parsedNewVal, checkOrdered(parsedOldVal, parsedNewVal, order)
+	case pref.StringKind:
+		parsedOldVal, parsedNewVal := oldVal.String(), newVal.String()
+		return parsedOldVal, parsedNewVal, checkOrdered(parsedOldVal, parsedNewVal, order)
+	case pref.EnumKind:
+		parsedOldVal, parsedNewVal := oldVal.Enum(), newVal.Enum()
+		return parsedOldVal, parsedNewVal, checkOrdered(parsedOldVal, parsedNewVal, order)
+	case pref.MessageKind:
+		md := fd.Message()
+		msgName := md.FullName()
+		switch msgName {
+		case types.WellKnownMessageTimestamp:
+			oldMsg := oldVal.Message().Interface().(*dynamicpb.Message)
+			newMsg := newVal.Message().Interface().(*dynamicpb.Message)
+			oldTime := time.Unix(oldMsg.Get(md.Fields().ByName("seconds")).Int(), oldMsg.Get(md.Fields().ByName("nanos")).Int())
+			newTime := time.Unix(newMsg.Get(md.Fields().ByName("seconds")).Int(), newMsg.Get(md.Fields().ByName("nanos")).Int())
+			return oldTime, newTime, checkTimeOrdered(timestamppb.New(oldTime), timestamppb.New(newTime), order)
+		}
+	}
+	return nil, nil, true
+}
+
+func checkOrdered[T cmp.Ordered](oldVal, newVal T, order tableaupb.Order) bool {
+	switch order {
+	case tableaupb.Order_ORDER_ASC:
+		return oldVal <= newVal
+	case tableaupb.Order_ORDER_DESC:
+		return oldVal >= newVal
+	case tableaupb.Order_ORDER_STRICTLY_ASC:
+		return oldVal < newVal
+	case tableaupb.Order_ORDER_STRICTLY_DESC:
+		return oldVal > newVal
+	default:
+		return true
+	}
+}
+
+func checkTimeOrdered(oldVal, newVal *timestamppb.Timestamp, order tableaupb.Order) bool {
+	switch order {
+	case tableaupb.Order_ORDER_ASC:
+		return !oldVal.AsTime().After(newVal.AsTime())
+	case tableaupb.Order_ORDER_DESC:
+		return !oldVal.AsTime().Before(newVal.AsTime())
+	case tableaupb.Order_ORDER_STRICTLY_ASC:
+		return oldVal.AsTime().Before(newVal.AsTime())
+	case tableaupb.Order_ORDER_STRICTLY_DESC:
+		return oldVal.AsTime().After(newVal.AsTime())
+	default:
+		return true
+	}
 }
