@@ -331,8 +331,8 @@ const (
 	Order_ORDER_NONE          Order = 0
 	Order_ORDER_ASC           Order = 1 // ascending: >=
 	Order_ORDER_DESC          Order = 2 // descending: <=
-	Order_ORDER_STRICTLY_ASC  Order = 3 // ascending: >
-	Order_ORDER_STRICTLY_DESC Order = 4 // descending: <
+	Order_ORDER_STRICTLY_ASC  Order = 3 // strictly ascending: >
+	Order_ORDER_STRICTLY_DESC Order = 4 // strictly descending: <
 )
 
 // Enum value maps for Order.
