@@ -106,40 +106,35 @@ func (w *withMessage) Unwrap() error { return w.cause }
 func (w *withMessage) Cause() error { return w.cause }
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
-	content := w.message
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			if w.cause != nil {
-				cause := fmt.Sprintf("%+v", w.cause)
-				if cause != "" && !strings.HasPrefix(cause, sep) {
-					content += sep
-				}
-				content += cause
-			}
-			_, _ = io.WriteString(s, content)
-			return
-		}
-		fallthrough
-	default:
+	formatContent := func(format string) string {
+		content := w.message
 		if w.cause != nil {
-			cause := fmt.Sprintf("%s", w.cause)
+			cause := fmt.Sprintf(format, w.cause)
 			if cause != "" && !strings.HasPrefix(cause, sep) {
 				content += sep
 			}
 			content += cause
 		}
-		switch verb {
-		case 's':
-			_, _ = io.WriteString(s, content)
-		case 'q':
-			_, _ = fmt.Fprintf(s, "%q", content)
+		return content
+	}
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			_, _ = io.WriteString(s, formatContent("%+v"))
+			return
 		}
+		fallthrough
+	case 's':
+		_, _ = io.WriteString(s, formatContent("%s"))
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", formatContent("%s"))
 	}
 }
 
-// withStack add a caller stack to given error,
-// but directly return if stack already wrapped.
+// withStack add a caller stack to given error, but directly return if stack
+// already wrapped.
+//
+// NOTE: skip == 0 means the caller of withStack is the first frame shown.
 func withStack(skip int, err error) error {
 	if err == nil {
 		return nil
@@ -148,7 +143,7 @@ func withStack(skip int, err error) error {
 	if cerr == nil {
 		return &base{
 			cause: err,
-			stack: callers(2 + skip),
+			stack: callers(1 + skip),
 		}
 	}
 
@@ -182,7 +177,7 @@ func combineKV(keysAndValues ...any) string {
 // Errorf also records the code and stack trace at the point it was called.
 func Errorf(format string, args ...any) error {
 	return &withMessage{
-		cause:   &base{stack: callers(2)},
+		cause:   &base{stack: callers(1)},
 		message: combineKV(KeyReason, fmt.Sprintf(format, args...)),
 	}
 }
@@ -192,7 +187,7 @@ func Errorf(format string, args ...any) error {
 // ErrorKV also records the stack trace at the point it was called.
 func ErrorKV(msg string, keysAndValues ...any) error {
 	return &withMessage{
-		cause:   &base{stack: callers(2)},
+		cause:   &base{stack: callers(1)},
 		message: combineKV(keysAndValues...) + combineKV(KeyReason, msg),
 	}
 }
@@ -204,7 +199,7 @@ func Wrap(err error) error {
 		return nil
 	}
 	return &withMessage{
-		cause:   withStack(2, err),
+		cause:   withStack(1, err),
 		message: "",
 	}
 }
@@ -217,7 +212,7 @@ func Wrapf(err error, format string, args ...any) error {
 		return nil
 	}
 	return &withMessage{
-		cause:   withStack(2, err),
+		cause:   withStack(1, err),
 		message: fmt.Sprintf(format, args...),
 	}
 }
@@ -230,7 +225,7 @@ func WrapKV(err error, keysAndValues ...any) error {
 		return nil
 	}
 	return &withMessage{
-		cause:   withStack(2, err),
+		cause:   withStack(1, err),
 		message: combineKV(keysAndValues...),
 	}
 }
@@ -291,7 +286,7 @@ func renderSummary(module string, kv map[string]any) string {
 
 func renderEcode(ecode *ecode, kv map[string]any) error {
 	detail := localizer.Default.RenderEcode(ecode.code, kv)
-	err := withStack(3, ecode)
+	err := withStack(2, ecode)
 	return &withMessage{
 		cause: err,
 		message: combineKV(
