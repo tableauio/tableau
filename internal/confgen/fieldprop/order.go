@@ -1,11 +1,11 @@
 package fieldprop
 
 import (
+	"cmp"
 	"time"
 
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -48,7 +48,7 @@ func CheckOrder(fd protoreflect.FieldDescriptor, oldVal, newVal protoreflect.Val
 	return nil, nil, true
 }
 
-func checkOrder[T constraints.Ordered](oldVal, newVal T, order tableaupb.Order) bool {
+func checkOrder[T cmp.Ordered](oldVal, newVal T, order tableaupb.Order) bool {
 	switch order {
 	case tableaupb.Order_ORDER_ASC:
 		return oldVal <= newVal
