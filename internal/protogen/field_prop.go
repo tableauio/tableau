@@ -98,6 +98,7 @@ func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Optional: prop.Optional,
 		Patch:    prop.Patch,
 		Pattern:  prop.Pattern,
+		Order:    prop.Order,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

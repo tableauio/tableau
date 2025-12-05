@@ -26,6 +26,6 @@ message ItemConf {
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID" prop:{sequence:1}}]; // Item ID
-    int32 num = 2 [(tableau.field) = {name:"Num"}]; // Item num
+    int32 num = 2 [(tableau.field) = {name:"Num" prop:{order:ORDER_ASC}}]; // Item num
   }
 }

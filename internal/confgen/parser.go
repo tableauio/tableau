@@ -263,6 +263,8 @@ type cardInfo struct {
 	uniqueFields map[string]*uniqueField
 	// option field name -> sequenceField
 	sequenceFields map[string]*sequenceField
+	// option field name -> orderField
+	orderFields map[string]*orderField
 }
 
 type uniqueField struct {
@@ -276,6 +278,12 @@ type sequenceField struct {
 	fd         protoreflect.FieldDescriptor
 	sequence   int64
 	valueCount int64 // value count in sequence
+}
+
+type orderField struct {
+	fd        protoreflect.FieldDescriptor
+	order     tableaupb.Order
+	currValue protoreflect.Value
 }
 
 // SheetParserExtInfo is the extended info for refer check and so on.
@@ -669,27 +677,36 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 		info = &cardInfo{
 			uniqueFields:   map[string]*uniqueField{},
 			sequenceFields: map[string]*sequenceField{},
+			orderFields:    map[string]*orderField{},
 		}
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
 			subField := p.parseFieldDescriptor(fd)
 			subField.mergeParentFieldProp(field)
 			defer subField.release()
-			if subField.opts.GetName() == field.opts.GetKey() {
+			name := subField.opts.GetName()
+			if name == field.opts.GetKey() {
 				// key field not checked
 				continue
 			}
-			if fieldprop.RequireUnique(subField.opts.Prop) {
-				info.uniqueFields[subField.opts.GetName()] = &uniqueField{
+			prop := subField.opts.GetProp()
+			if fieldprop.RequireUnique(prop) {
+				info.uniqueFields[name] = &uniqueField{
 					fd:       subField.fd,
 					values:   map[string]bool{},
 					optional: p.IsFieldOptional(subField),
 				}
 			}
-			if fieldprop.RequireSequence(subField.opts.Prop) {
-				info.sequenceFields[subField.opts.GetName()] = &sequenceField{
+			if fieldprop.RequireSequence(prop) {
+				info.sequenceFields[name] = &sequenceField{
 					fd:       subField.fd,
-					sequence: subField.opts.Prop.GetSequence(),
+					sequence: prop.GetSequence(),
+				}
+			}
+			if fieldprop.RequireOrder(prop) {
+				info.orderFields[name] = &orderField{
+					fd:    subField.fd,
+					order: prop.GetOrder(),
 				}
 			}
 		}
@@ -719,6 +736,13 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 		}
 		// increase value count in sequence
 		field.valueCount++
+	}
+	for name, field := range info.orderFields {
+		val := newValue.Message().Get(field.fd)
+		if prevValue, value, ok := fieldprop.CheckOrder(field.fd, field.currValue, val, field.order); !ok {
+			return name, xerrors.E2026(value, prevValue, field.order.String())
+		}
+		field.currValue = val
 	}
 	return "", nil
 }
