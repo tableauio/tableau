@@ -739,8 +739,8 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 	}
 	for name, field := range info.orderFields {
 		val := newValue.Message().Get(field.fd)
-		if lastValue, value, ok := fieldprop.CheckOrder(field.fd, field.currValue, val, field.order); !ok {
-			return name, xerrors.E2026(value, lastValue, field.order.String())
+		if prevValue, value, ok := fieldprop.CheckOrder(field.fd, field.currValue, val, field.order); !ok {
+			return name, xerrors.E2026(value, prevValue, field.order.String())
 		}
 		field.currValue = val
 	}

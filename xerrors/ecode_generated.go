@@ -286,10 +286,10 @@ func E2025(value string, pattern string) error {
 }
 
 // E2026: illegally ordered number
-func E2026(value any, lastValue any, order string) error {
+func E2026(value any, prevValue any, order string) error {
 	return renderEcode(ErrE2026, map[string]any{
 		"Value":     value,
-		"LastValue": lastValue,
+		"PrevValue": prevValue,
 		"Order":     order,
 	})
 }

@@ -176,11 +176,11 @@ E2025:
     - Pattern: string
 E2026:
   desc: illegally ordered number
-  text: 'value "{{.Value}}" does not meet order requirement: "{{if eq .Order "ORDER_ASC"}}>={{else if eq .Order "ORDER_DESC"}}<={{else if eq .Order "ORDER_STRICTLY_ASC"}}>{{else if eq .Order "ORDER_STRICTLY_DESC"}}<{{end}}{{.LastValue}}"'
+  text: 'value "{{.Value}}" does not meet order requirement: "{{if eq .Order "ORDER_ASC"}}>={{else if eq .Order "ORDER_DESC"}}<={{else if eq .Order "ORDER_STRICTLY_ASC"}}>{{else if eq .Order "ORDER_STRICTLY_DESC"}}<{{end}}{{.PrevValue}}"'
   help: 'prop "order:{{.Order}}" requires value {{if eq .Order "ORDER_ASC"}}increases{{else if eq .Order "ORDER_DESC"}}decreases{{else if eq .Order "ORDER_STRICTLY_ASC"}}increases strictly{{else if eq .Order "ORDER_STRICTLY_DESC"}}decreases strictly{{end}} monotonically'
   fields:
     - Value: any
-    - LastValue: any
+    - PrevValue: any
     - Order: string
 # [3000, 3999]: importer error
 E3000:

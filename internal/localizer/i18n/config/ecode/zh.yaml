@@ -114,11 +114,11 @@ E2025:
   help: "确保输入的版本号与版本号格式匹配, 且每个十进制数值均合法"
 E2026:
   desc: illegally ordered number
-  text: '值 "{{.Value}}" 不符合有序 "{{if eq .Order "ORDER_ASC"}}>={{else if eq .Order "ORDER_DESC"}}<={{else if eq .Order "ORDER_STRICTLY_ASC"}}>{{else if eq .Order "ORDER_STRICTLY_DESC"}}<{{end}}{{.LastValue}}" 要求'
+  text: '值 "{{.Value}}" 不符合有序 "{{if eq .Order "ORDER_ASC"}}>={{else if eq .Order "ORDER_DESC"}}<={{else if eq .Order "ORDER_STRICTLY_ASC"}}>{{else if eq .Order "ORDER_STRICTLY_DESC"}}<{{end}}{{.PrevValue}}" 要求'
   help: '有序 "order:{{.Order}}" 要求值{{if eq .Order "ORDER_ASC"}}单调递增{{else if eq .Order "ORDER_DESC"}}单调递减{{else if eq .Order "ORDER_STRICTLY_ASC"}}严格单调递增{{else if eq .Order "ORDER_STRICTLY_DESC"}}严格单调递增{{end}}'
   fields:
     - Value: any
-    - LastValue: any
+    - PrevValue: any
     - Order: string
 # [3000, 3999]: importer error
 E3000:
