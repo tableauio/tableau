@@ -7,9 +7,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
+	"text/template"
+	"text/template/parse"
 
 	"github.com/tableauio/tableau/internal/localizer/i18n"
 	"github.com/tableauio/tableau/internal/printer"
@@ -45,6 +46,26 @@ func main() {
 
 	sortedKeys := maps.Keys(config)
 	sort.Strings(sortedKeys)
+
+	// generate imports
+	importMap := map[string]struct{}{}
+	for _, item := range config {
+		for _, field := range item.Fields {
+			if importPath := field.ImportPath(); importPath != "" {
+				importMap[importPath] = struct{}{}
+			}
+		}
+	}
+	if len(importMap) > 0 {
+		imports := maps.Keys(importMap)
+		slices.Sort(imports)
+		p.P("import (")
+		for _, imp := range imports {
+			p.P(`"`, imp, `"`)
+		}
+		p.P(")")
+		p.P()
+	}
 
 	// generate ecode variables
 	for _, name := range sortedKeys {
@@ -133,20 +154,38 @@ func loadOtherLangConfigs(path string) map[string]Config {
 }
 
 func extractFieldNames(detail i18n.EcodeDetail) []string {
-	re1 := regexp.MustCompile(`\{\{\.?(.+?)\}\}`)
+	templateStr := detail.Desc + detail.Text + detail.Help
 	var fieldNames []string
-	matches1 := re1.FindAllStringSubmatch(detail.Text, -1)
-	for _, m := range matches1 {
-		if !slices.Contains(fieldNames, m[1]) {
-			fieldNames = append(fieldNames, m[1])
+	tmpl := template.Must(template.New("i18n").Parse(templateStr))
+	parsePipeNode := func(node *parse.PipeNode) {
+		if len(node.Cmds) > 0 {
+			for _, arg := range node.Cmds[0].Args {
+				if field, ok := arg.(*parse.FieldNode); ok && len(field.Ident) == 1 {
+					if !slices.Contains(fieldNames, field.Ident[0]) {
+						fieldNames = append(fieldNames, field.Ident[0])
+					}
+				}
+			}
 		}
 	}
-	matches2 := re1.FindAllStringSubmatch(detail.Desc, -1)
-	for _, m := range matches2 {
-		if !slices.Contains(fieldNames, m[1]) {
-			fieldNames = append(fieldNames, m[1])
+	var walkNodes func([]parse.Node)
+	walkNodes = func(nodes []parse.Node) {
+		for _, node := range nodes {
+			switch n := node.(type) {
+			case *parse.ActionNode:
+				parsePipeNode(n.Pipe)
+			case *parse.IfNode:
+				parsePipeNode(n.Pipe)
+				walkNodes(n.List.Nodes)
+				if n.ElseList != nil {
+					walkNodes(n.ElseList.Nodes)
+				}
+			default:
+				// no need to support *parse.RangeNode, *parse.WithNode or case *parse.ListNode for now
+			}
 		}
 	}
+	walkNodes(tmpl.Root.Nodes)
 	return fieldNames
 }
 

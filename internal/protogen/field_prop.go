@@ -82,7 +82,8 @@ func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 
 // ExtractScalarFieldProp extracts the specified props which the scalar field recognizes.
 //
-// FIXME(wenchy): wellknown type fields should also be supported.
+// FIXME(wenchy): wellknown type fields should also be supported. In fact, it's
+// supported now, but it's not well tested and documented.
 func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil
@@ -98,6 +99,7 @@ func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Optional: prop.Optional,
 		Patch:    prop.Patch,
 		Pattern:  prop.Pattern,
+		Order:    prop.Order,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

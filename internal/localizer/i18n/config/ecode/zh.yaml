@@ -112,6 +112,14 @@ E2025:
   desc: version value mismatches pattern
   text: '版本号 "{{.Value}}" 与点分十进制格式 "{{.Pattern}}" 不匹配'
   help: "确保输入的版本号与版本号格式匹配, 且每个十进制数值均合法"
+E2026:
+  desc: illegally ordered values
+  text: '上一个值 "{{.PrevValue}}" 和当前值 "{{.Value}}" 不满足有序性约束 "order:{{.Order}}"'
+  help: '有序性 "order:{{.Order}}" 要求值{{if eq .Order "ORDER_ASC"}}单调递增{{else if eq .Order "ORDER_DESC"}}单调递减{{else if eq .Order "ORDER_STRICTLY_ASC"}}严格单调递增{{else if eq .Order "ORDER_STRICTLY_DESC"}}严格单调递减{{end}}'
+  fields:
+    - Value: any
+    - PrevValue: any
+    - Order: string
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

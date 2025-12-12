@@ -62,6 +62,18 @@ func Test_EcodeField(t *testing.T) {
 	assert.Equal(t, "SheetName", field.Name())
 	assert.Equal(t, "string", field.Type())
 
+	field2 := EcodeField{"Time": "time.Time"}
+	assert.True(t, field2.Validate())
+	assert.Equal(t, "Time", field2.Name())
+	assert.Equal(t, "time.Time", field2.Type())
+	assert.Equal(t, "time", field2.ImportPath())
+
+	field3 := EcodeField{"DateTime": "google.golang.org/protobuf/types/known/timestamppb.Timestamp"}
+	assert.True(t, field3.Validate())
+	assert.Equal(t, "DateTime", field3.Name())
+	assert.Equal(t, "timestamppb.Timestamp", field3.Type())
+	assert.Equal(t, "google.golang.org/protobuf/types/known/timestamppb", field3.ImportPath())
+
 	invalidField := EcodeField{}
 	invalidField1 := EcodeField{"SheetName": ""}
 	invalidField2 := EcodeField{"": "string"}

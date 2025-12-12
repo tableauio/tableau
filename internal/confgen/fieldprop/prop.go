@@ -17,12 +17,17 @@ func HasUnique(prop *tableaupb.FieldProp) bool {
 
 // RequireUnique checks whether the field's unique property is set explicitly.
 func RequireUnique(prop *tableaupb.FieldProp) bool {
-	return prop != nil && prop.Unique != nil && prop.GetUnique()
+	return prop.GetUnique()
 }
 
 // RequireSequence checks whether the field's sequence property is set explicitly.
 func RequireSequence(prop *tableaupb.FieldProp) bool {
 	return prop != nil && prop.Sequence != nil
+}
+
+// RequireOrder checks whether the field's order property is set explicitly.
+func RequireOrder(prop *tableaupb.FieldProp) bool {
+	return prop.GetOrder() != tableaupb.Order_ORDER_NONE
 }
 
 // CheckInRange checks whether the value is in the range.

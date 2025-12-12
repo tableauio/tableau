@@ -174,6 +174,14 @@ E2025:
   fields:
     - Value: string
     - Pattern: string
+E2026:
+  desc: illegally ordered values
+  text: 'previous value "{{.PrevValue}}" and current value "{{.Value}}" is not in "order:{{.Order}}"'
+  help: 'prop "order:{{.Order}}" requires value {{if eq .Order "ORDER_ASC"}}increases{{else if eq .Order "ORDER_DESC"}}decreases{{else if eq .Order "ORDER_STRICTLY_ASC"}}increases strictly{{else if eq .Order "ORDER_STRICTLY_DESC"}}decreases strictly{{end}} monotonically'
+  fields:
+    - Value: any
+    - PrevValue: any
+    - Order: string
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

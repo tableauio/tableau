@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"golang.org/x/text/language"
@@ -130,7 +131,18 @@ func (f EcodeField) Name() string {
 // Type returns the field type.
 func (f EcodeField) Type() string {
 	for _, v := range f {
-		return v
+		splits := strings.Split(v, "/")
+		return splits[len(splits)-1]
+	}
+	return ""
+}
+
+// ImportPath returns the import path.
+func (f EcodeField) ImportPath() string {
+	for _, v := range f {
+		if idx := strings.LastIndex(v, "."); idx != -1 {
+			return v[:idx]
+		}
 	}
 	return ""
 }

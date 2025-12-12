@@ -78,12 +78,12 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	return bp
 }
 
-// parseBasicField parses scalar or enum type.
+// parseBasicField parses scalar, enum, and wellknown message types.
 func (p *bookParser) parseBasicField(name, typ, note string) (*internalpb.Field, error) {
 	return parseBasicField(p.gen.ctx, p.gen.typeInfos, name, typ, note)
 }
 
-// parseBasicField parses scalar or enum type.
+// parseBasicField parses scalar, enum, and wellknown message types.
 func parseBasicField(ctx context.Context, typeInfos *xproto.TypeInfos, name, typ, note string) (*internalpb.Field, error) {
 	var prop types.PropDescriptor
 	// enum syntax pattern

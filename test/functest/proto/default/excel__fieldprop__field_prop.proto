@@ -6,6 +6,8 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -39,6 +41,18 @@ message FieldPropForm {
 
   protoconf.Transform transform_1 = 1 [(tableau.field) = {name:"Transform1" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}]; // Box transform1
   protoconf.Transform transform_2 = 2 [(tableau.field) = {name:"Transform2" span:SPAN_INNER_CELL prop:{form:FORM_JSON}}]; // Box transform2
+}
+
+message FieldPropOrder {
+  option (tableau.worksheet) = {name:"FieldPropOrder"};
+
+  map<int32, Player> player_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Player {
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Player's ID
+    int32 score = 2 [(tableau.field) = {name:"Score" prop:{order:ORDER_DESC}}]; // Player's Score
+    google.protobuf.Timestamp time = 3 [(tableau.field) = {name:"Time" prop:{order:ORDER_STRICTLY_ASC}}]; // Player's Time
+    google.protobuf.Duration duration = 4 [(tableau.field) = {name:"Duration" prop:{order:ORDER_STRICTLY_DESC}}]; // Player's duration
+  }
 }
 
 message FieldPropRefer {
