@@ -1,7 +1,7 @@
-ID,Time,Score
-"map<int32,Player>",datetime|{order:ORDER_STRICTLY_ASC},int32|{order:ORDER_DESC}
-Player's ID,Player's Time,Player's Score
-1,2020-01-01 10:25:00,100
-2,2021-01-01 10:25:00,90
-3,2022-01-01 10:25:00,90
-4,2023-01-01 10:25:00,80
+ID,Score,Time,Duration
+"map<int32,Player>",int32|{order:ORDER_DESC},datetime|{order:ORDER_STRICTLY_ASC},duration|{order:ORDER_STRICTLY_DESC}
+Player's ID,Player's Score,Player's Time,Player's duration
+1,100,2020-01-01 10:25:00,4m1s
+2,90,2021-01-01 10:25:00,3m1s
+3,90,2022-01-01 10:25:00,2m1s
+4,80,2023-01-01 10:25:00,1m1s

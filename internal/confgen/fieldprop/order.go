@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
@@ -36,16 +37,30 @@ func CheckOrder(fd protoreflect.FieldDescriptor, oldVal, newVal protoreflect.Val
 		md := fd.Message()
 		msgName := md.FullName()
 		switch msgName {
-		// TODO: also support check WellKnownMessageDuration
 		case types.WellKnownMessageTimestamp:
-			oldMsg := oldVal.Message().Interface().(*dynamicpb.Message)
-			newMsg := newVal.Message().Interface().(*dynamicpb.Message)
-			oldTime := time.Unix(oldMsg.Get(md.Fields().ByName("seconds")).Int(), oldMsg.Get(md.Fields().ByName("nanos")).Int())
-			newTime := time.Unix(newMsg.Get(md.Fields().ByName("seconds")).Int(), newMsg.Get(md.Fields().ByName("nanos")).Int())
+			parseTime := func(val protoreflect.Value) time.Time {
+				msg := val.Message().Interface().(*dynamicpb.Message)
+				return time.Unix(msg.Get(md.Fields().ByName("seconds")).Int(), msg.Get(md.Fields().ByName("nanos")).Int())
+			}
+			oldTime, newTime := parseTime(oldVal), parseTime(newVal)
 			return oldTime, newTime, isTimeOrdered(oldTime, newTime, order)
+
+		case types.WellKnownMessageDuration:
+			parseDuration := func(val protoreflect.Value) time.Duration {
+				msg := val.Message().Interface().(*dynamicpb.Message)
+				return time.Second*time.Duration(msg.Get(md.Fields().ByName("seconds")).Int()) + time.Nanosecond*time.Duration(msg.Get(md.Fields().ByName("nanos")).Int())
+			}
+			oldDuration, newDuration := parseDuration(oldVal), parseDuration(newVal)
+			return oldDuration, newDuration, isOrdered(oldDuration, newDuration, order)
+
+		default:
+			log.Warnf("not supported to check field prop order of message type: %s", msgName)
+			return nil, nil, true
 		}
+	default:
+		log.Warnf("not supported to check field prop order of kind: %s", fd.Kind())
+		return nil, nil, true
 	}
-	return nil, nil, true
 }
 
 func isOrdered[T cmp.Ordered](oldVal, newVal T, order tableaupb.Order) bool {

@@ -8,18 +8,12 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func TestCheckOrder(t *testing.T) {
-	timestampFD := (&unittestpb.PatchMergeConf_Time{}).ProtoReflect().Descriptor().Fields().Get(0)
-	newTimestamp := func(seconds int64) protoreflect.Value {
-		md := (&timestamppb.Timestamp{}).ProtoReflect().Descriptor()
-		msg := dynamicpb.NewMessage(md)
-		msg.Set(md.Fields().ByName("seconds"), protoreflect.ValueOfInt64(seconds))
-		return protoreflect.ValueOfMessage(msg.ProtoReflect())
-	}
+func TestCheckOrder_scalar(t *testing.T) {
 	type args struct {
 		fd     protoreflect.FieldDescriptor
 		oldVal protoreflect.Value
@@ -161,6 +155,35 @@ func TestCheckOrder(t *testing.T) {
 			},
 			want: true,
 		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, _, got := CheckOrder(tt.args.fd, tt.args.oldVal, tt.args.newVal, tt.args.order); got != tt.want {
+				t.Errorf("CheckOrder() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCheckOrder_timestamp(t *testing.T) {
+	timestampFD := (&unittestpb.PatchMergeConf_Time{}).ProtoReflect().Descriptor().Fields().Get(0)
+	newTimestamp := func(seconds int64) protoreflect.Value {
+		md := (&timestamppb.Timestamp{}).ProtoReflect().Descriptor()
+		msg := dynamicpb.NewMessage(md)
+		msg.Set(md.Fields().ByName("seconds"), protoreflect.ValueOfInt64(seconds))
+		return protoreflect.ValueOfMessage(msg.ProtoReflect())
+	}
+	type args struct {
+		fd     protoreflect.FieldDescriptor
+		oldVal protoreflect.Value
+		newVal protoreflect.Value
+		order  tableaupb.Order
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
 		{
 			name: "asc timestamp: equal",
 			args: args{
@@ -277,6 +300,155 @@ func TestCheckOrder(t *testing.T) {
 				fd:     timestampFD,
 				oldVal: newTimestamp(20000),
 				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_STRICTLY_DESC,
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, _, got := CheckOrder(tt.args.fd, tt.args.oldVal, tt.args.newVal, tt.args.order); got != tt.want {
+				t.Errorf("CheckOrder() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCheckOrder_duration(t *testing.T) {
+	durationFD := (&unittestpb.PatchMergeConf_Time{}).ProtoReflect().Descriptor().Fields().Get(1)
+	newDuration := func(seconds int64) protoreflect.Value {
+		md := (&durationpb.Duration{}).ProtoReflect().Descriptor()
+		msg := dynamicpb.NewMessage(md)
+		msg.Set(md.Fields().ByName("seconds"), protoreflect.ValueOfInt64(seconds))
+		return protoreflect.ValueOfMessage(msg.ProtoReflect())
+	}
+	type args struct {
+		fd     protoreflect.FieldDescriptor
+		oldVal protoreflect.Value
+		newVal protoreflect.Value
+		order  tableaupb.Order
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "asc duration: equal",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(10000),
+				newVal: newDuration(10000),
+				order:  tableaupb.Order_ORDER_ASC,
+			},
+			want: true,
+		},
+		{
+			name: "asc duration: greater",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(10000),
+				newVal: newDuration(20000),
+				order:  tableaupb.Order_ORDER_ASC,
+			},
+			want: true,
+		},
+		{
+			name: "asc duration: less",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(20000),
+				newVal: newDuration(10000),
+				order:  tableaupb.Order_ORDER_ASC,
+			},
+			want: false,
+		},
+		{
+			name: "strictly asc duration: equal",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(10000),
+				newVal: newDuration(10000),
+				order:  tableaupb.Order_ORDER_STRICTLY_ASC,
+			},
+			want: false,
+		},
+		{
+			name: "strictly asc duration: greater",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(10000),
+				newVal: newDuration(20000),
+				order:  tableaupb.Order_ORDER_STRICTLY_ASC,
+			},
+			want: true,
+		},
+		{
+			name: "strictly asc duration: less",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(20000),
+				newVal: newDuration(10000),
+				order:  tableaupb.Order_ORDER_STRICTLY_ASC,
+			},
+			want: false,
+		},
+		{
+			name: "desc duration: equal",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(10000),
+				newVal: newDuration(10000),
+				order:  tableaupb.Order_ORDER_DESC,
+			},
+			want: true,
+		},
+		{
+			name: "desc duration: greater",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(10000),
+				newVal: newDuration(20000),
+				order:  tableaupb.Order_ORDER_DESC,
+			},
+			want: false,
+		},
+		{
+			name: "desc duration: less",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(20000),
+				newVal: newDuration(10000),
+				order:  tableaupb.Order_ORDER_DESC,
+			},
+			want: true,
+		},
+		{
+			name: "strictly desc duration: equal",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(10000),
+				newVal: newDuration(10000),
+				order:  tableaupb.Order_ORDER_STRICTLY_DESC,
+			},
+			want: false,
+		},
+		{
+			name: "strictly desc duration: greater",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(10000),
+				newVal: newDuration(20000),
+				order:  tableaupb.Order_ORDER_STRICTLY_DESC,
+			},
+			want: false,
+		},
+		{
+			name: "strictly desc duration: less",
+			args: args{
+				fd:     durationFD,
+				oldVal: newDuration(20000),
+				newVal: newDuration(10000),
 				order:  tableaupb.Order_ORDER_STRICTLY_DESC,
 			},
 			want: true,
