@@ -357,7 +357,7 @@ message FieldProp {
   //
   // TODO: use cases for more field types.
   string pattern = 16;
-  // Ensure this field's value is in an ascending or descending order.
+  // Ensure this field's value is in order.
   Order order = 17;
 }
 

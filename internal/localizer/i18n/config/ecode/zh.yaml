@@ -113,9 +113,9 @@ E2025:
   text: '版本号 "{{.Value}}" 与点分十进制格式 "{{.Pattern}}" 不匹配'
   help: "确保输入的版本号与版本号格式匹配, 且每个十进制数值均合法"
 E2026:
-  desc: illegally ordered number
-  text: '值 "{{.Value}}" 不符合有序 "{{if eq .Order "ORDER_ASC"}}>={{else if eq .Order "ORDER_DESC"}}<={{else if eq .Order "ORDER_STRICTLY_ASC"}}>{{else if eq .Order "ORDER_STRICTLY_DESC"}}<{{end}}{{.PrevValue}}" 要求'
-  help: '有序 "order:{{.Order}}" 要求值{{if eq .Order "ORDER_ASC"}}单调递增{{else if eq .Order "ORDER_DESC"}}单调递减{{else if eq .Order "ORDER_STRICTLY_ASC"}}严格单调递增{{else if eq .Order "ORDER_STRICTLY_DESC"}}严格单调递增{{end}}'
+  desc: illegally ordered values
+  text: '上一个值 "{{.PrevValue}}" 和当前值 "{{.Value}}" 不满足有序性约束 "order:{{.Order}}"'
+  help: '有序性 "order:{{.Order}}" 要求值{{if eq .Order "ORDER_ASC"}}单调递增{{else if eq .Order "ORDER_DESC"}}单调递减{{else if eq .Order "ORDER_STRICTLY_ASC"}}严格单调递增{{else if eq .Order "ORDER_STRICTLY_DESC"}}严格单调递减{{end}}'
   fields:
     - Value: any
     - PrevValue: any

@@ -156,7 +156,7 @@ func loadOtherLangConfigs(path string) map[string]Config {
 func extractFieldNames(detail i18n.EcodeDetail) []string {
 	templateStr := detail.Desc + detail.Text + detail.Help
 	var fieldNames []string
-	tree := template.Must(template.New("i18n").Parse(templateStr))
+	tmpl := template.Must(template.New("i18n").Parse(templateStr))
 	parsePipeNode := func(node *parse.PipeNode) {
 		if len(node.Cmds) > 0 {
 			for _, arg := range node.Cmds[0].Args {
@@ -185,7 +185,7 @@ func extractFieldNames(detail i18n.EcodeDetail) []string {
 			}
 		}
 	}
-	walkNodes(tree.Root.Nodes)
+	walkNodes(tmpl.Root.Nodes)
 	return fieldNames
 }
 

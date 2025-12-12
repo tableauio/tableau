@@ -2,6 +2,7 @@ package fieldprop
 
 import (
 	"testing"
+	"time"
 
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
@@ -12,6 +13,13 @@ import (
 )
 
 func TestCheckOrder(t *testing.T) {
+	timestampFD := (&unittestpb.PatchMergeConf_Time{}).ProtoReflect().Descriptor().Fields().Get(0)
+	newTimestamp := func(seconds int64) protoreflect.Value {
+		md := (&timestamppb.Timestamp{}).ProtoReflect().Descriptor()
+		msg := dynamicpb.NewMessage(md)
+		msg.Set(md.Fields().ByName("seconds"), protoreflect.ValueOfInt64(seconds))
+		return protoreflect.ValueOfMessage(msg.ProtoReflect())
+	}
 	type args struct {
 		fd     protoreflect.FieldDescriptor
 		oldVal protoreflect.Value
@@ -154,22 +162,122 @@ func TestCheckOrder(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "asc time",
+			name: "asc timestamp: equal",
 			args: args{
-				fd: (&unittestpb.PatchMergeConf_Time{}).ProtoReflect().Descriptor().Fields().Get(0),
-				oldVal: protoreflect.ValueOfMessage(func() protoreflect.Message {
-					md := (&timestamppb.Timestamp{}).ProtoReflect().Descriptor()
-					msg := dynamicpb.NewMessage(md)
-					msg.Set(md.Fields().ByName("seconds"), protoreflect.ValueOfInt64(10000))
-					return msg.ProtoReflect()
-				}()),
-				newVal: protoreflect.ValueOfMessage(func() protoreflect.Message {
-					md := (&timestamppb.Timestamp{}).ProtoReflect().Descriptor()
-					msg := dynamicpb.NewMessage(md)
-					msg.Set(md.Fields().ByName("seconds"), protoreflect.ValueOfInt64(20000))
-					return msg.ProtoReflect()
-				}()),
-				order: tableaupb.Order_ORDER_ASC,
+				fd:     timestampFD,
+				oldVal: newTimestamp(10000),
+				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_ASC,
+			},
+			want: true,
+		},
+		{
+			name: "asc timestamp: greater",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(10000),
+				newVal: newTimestamp(20000),
+				order:  tableaupb.Order_ORDER_ASC,
+			},
+			want: true,
+		},
+		{
+			name: "asc timestamp: less",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(20000),
+				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_ASC,
+			},
+			want: false,
+		},
+		{
+			name: "strictly asc timestamp: equal",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(10000),
+				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_STRICTLY_ASC,
+			},
+			want: false,
+		},
+		{
+			name: "strictly asc timestamp: greater",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(10000),
+				newVal: newTimestamp(20000),
+				order:  tableaupb.Order_ORDER_STRICTLY_ASC,
+			},
+			want: true,
+		},
+		{
+			name: "strictly asc timestamp: less",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(20000),
+				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_STRICTLY_ASC,
+			},
+			want: false,
+		},
+		{
+			name: "desc timestamp: equal",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(10000),
+				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_DESC,
+			},
+			want: true,
+		},
+		{
+			name: "desc timestamp: greater",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(10000),
+				newVal: newTimestamp(20000),
+				order:  tableaupb.Order_ORDER_DESC,
+			},
+			want: false,
+		},
+		{
+			name: "desc timestamp: less",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(20000),
+				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_DESC,
+			},
+			want: true,
+		},
+		{
+			name: "strictly desc timestamp: equal",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(10000),
+				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_STRICTLY_DESC,
+			},
+			want: false,
+		},
+		{
+			name: "strictly desc timestamp: greater",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(10000),
+				newVal: newTimestamp(20000),
+				order:  tableaupb.Order_ORDER_STRICTLY_DESC,
+			},
+			want: false,
+		},
+		{
+			name: "strictly desc timestamp: less",
+			args: args{
+				fd:     timestampFD,
+				oldVal: newTimestamp(20000),
+				newVal: newTimestamp(10000),
+				order:  tableaupb.Order_ORDER_STRICTLY_DESC,
 			},
 			want: true,
 		},
@@ -178,6 +286,109 @@ func TestCheckOrder(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if _, _, got := CheckOrder(tt.args.fd, tt.args.oldVal, tt.args.newVal, tt.args.order); got != tt.want {
 				t.Errorf("CheckOrder() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_isTimeOrdered(t *testing.T) {
+	tests := []struct {
+		name   string
+		oldVal time.Time
+		newVal time.Time
+		order  tableaupb.Order
+		want   bool
+	}{
+		{
+			name:   "asc: equal",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			order:  tableaupb.Order_ORDER_ASC,
+			want:   true,
+		},
+		{
+			name:   "asc: greater",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 1, time.Local),
+			order:  tableaupb.Order_ORDER_ASC,
+			want:   true,
+		},
+		{
+			name:   "asc: less",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 1, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			order:  tableaupb.Order_ORDER_ASC,
+			want:   false,
+		},
+		{
+			name:   "strictly asc: equal",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			order:  tableaupb.Order_ORDER_STRICTLY_ASC,
+			want:   false,
+		},
+		{
+			name:   "strictly asc: greater",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 1, time.Local),
+			order:  tableaupb.Order_ORDER_STRICTLY_ASC,
+			want:   true,
+		},
+		{
+			name:   "strictly asc: less",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 1, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			order:  tableaupb.Order_ORDER_ASC,
+			want:   false,
+		},
+		{
+			name:   "desc: equal",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			order:  tableaupb.Order_ORDER_DESC,
+			want:   true,
+		},
+		{
+			name:   "desc: greater",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 1, time.Local),
+			order:  tableaupb.Order_ORDER_DESC,
+			want:   false,
+		},
+		{
+			name:   "desc: less",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 1, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			order:  tableaupb.Order_ORDER_DESC,
+			want:   true,
+		},
+		{
+			name:   "strictly desc: equal",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			order:  tableaupb.Order_ORDER_STRICTLY_DESC,
+			want:   false,
+		},
+		{
+			name:   "strictly desc: greater",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 1, time.Local),
+			order:  tableaupb.Order_ORDER_STRICTLY_DESC,
+			want:   false,
+		},
+		{
+			name:   "strictly desc: less",
+			oldVal: time.Date(2020, 1, 1, 0, 0, 0, 1, time.Local),
+			newVal: time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+			order:  tableaupb.Order_ORDER_DESC,
+			want:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isTimeOrdered(tt.oldVal, tt.newVal, tt.order)
+			if tt.want != got {
+				t.Errorf("isTimeOrdered() = %v, want %v", got, tt.want)
 			}
 		})
 	}

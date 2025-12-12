@@ -1365,7 +1365,7 @@ type FieldProp struct {
 	//
 	// TODO: use cases for more field types.
 	Pattern string `protobuf:"bytes,16,opt,name=pattern,proto3" json:"pattern,omitempty"`
-	// Ensure this field's value is in an ascending or descending order.
+	// Ensure this field's value is in order.
 	Order Order `protobuf:"varint,17,opt,name=order,proto3,enum=tableau.Order" json:"order,omitempty"`
 }
 

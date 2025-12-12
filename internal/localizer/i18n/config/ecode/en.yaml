@@ -175,8 +175,8 @@ E2025:
     - Value: string
     - Pattern: string
 E2026:
-  desc: illegally ordered number
-  text: 'value "{{.Value}}" does not meet order requirement: "{{if eq .Order "ORDER_ASC"}}>={{else if eq .Order "ORDER_DESC"}}<={{else if eq .Order "ORDER_STRICTLY_ASC"}}>{{else if eq .Order "ORDER_STRICTLY_DESC"}}<{{end}}{{.PrevValue}}"'
+  desc: illegally ordered values
+  text: 'previous value "{{.PrevValue}}" and current value "{{.Value}}" is not in "order:{{.Order}}"'
   help: 'prop "order:{{.Order}}" requires value {{if eq .Order "ORDER_ASC"}}increases{{else if eq .Order "ORDER_DESC"}}decreases{{else if eq .Order "ORDER_STRICTLY_ASC"}}increases strictly{{else if eq .Order "ORDER_STRICTLY_DESC"}}decreases strictly{{end}} monotonically'
   fields:
     - Value: any
