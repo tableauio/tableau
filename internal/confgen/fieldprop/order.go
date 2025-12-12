@@ -11,6 +11,8 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
+// CheckOrder checks whether the given field values are ordered. If not
+// ordered, it will return the parsed old and new values for debugging.
 func CheckOrder(fd protoreflect.FieldDescriptor, oldVal, newVal protoreflect.Value, order tableaupb.Order) (any, any, bool) {
 	if !oldVal.IsValid() {
 		return nil, nil, true
@@ -58,7 +60,7 @@ func CheckOrder(fd protoreflect.FieldDescriptor, oldVal, newVal protoreflect.Val
 			return nil, nil, true
 		}
 	default:
-		log.Warnf("not supported to check field prop order of kind: %s", fd.Kind())
+		log.Warnf("not supported to check field prop order of kind: %s at %s", fd.Kind(), fd.FullName())
 		return nil, nil, true
 	}
 }
