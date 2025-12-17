@@ -12,7 +12,7 @@ option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/fieldprop/Optional#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
 message FieldPropOptional {
-  option (tableau.worksheet) = {name:"FieldPropOptional" merger:"Optional*.csv#FieldPropOptional2" merger:"Optional*.csv#FieldPropOptional3"};
+  option (tableau.worksheet) = {name:"FieldPropOptional" merger:"#FieldPropOptional2" merger:"#FieldPropOptional3"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -28,7 +28,7 @@ message FieldPropOptional {
 }
 
 message FieldPropOptionalList {
-  option (tableau.worksheet) = {name:"FieldPropOptionalList" merger:"Optional*.csv#FieldPropOptionalList2" merger:"Optional*.csv#FieldPropOptionalList3" merger:"Optional*.csv#FieldPropOptionalList4"};
+  option (tableau.worksheet) = {name:"FieldPropOptionalList" merger:"#FieldPropOptionalList2" merger:"#FieldPropOptionalList3" merger:"#FieldPropOptionalList4"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
@@ -47,7 +47,7 @@ message FieldPropOptionalList {
 }
 
 message FieldPropOptionalMap {
-  option (tableau.worksheet) = {name:"FieldPropOptionalMap" merger:"Optional*.csv#FieldPropOptionalMap2" merger:"Optional*.csv#FieldPropOptionalMap3" merger:"Optional*.csv#FieldPropOptionalMap4"};
+  option (tableau.worksheet) = {name:"FieldPropOptionalMap" merger:"#FieldPropOptionalMap2" merger:"#FieldPropOptionalMap3" merger:"#FieldPropOptionalMap4"};
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {

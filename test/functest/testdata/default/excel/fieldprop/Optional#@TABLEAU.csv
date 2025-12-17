@@ -1,4 +1,4 @@
 Sheet,Merger
-FieldPropOptional,"Optional*.csv#FieldPropOptional2,Optional*.csv#FieldPropOptional3"
-FieldPropOptionalList,"Optional*.csv#FieldPropOptionalList2,Optional*.csv#FieldPropOptionalList3,Optional*.csv#FieldPropOptionalList4"
-FieldPropOptionalMap,"Optional*.csv#FieldPropOptionalMap2,Optional*.csv#FieldPropOptionalMap3,Optional*.csv#FieldPropOptionalMap4"
+FieldPropOptional,"#FieldPropOptional2,#FieldPropOptional3"
+FieldPropOptionalList,"#FieldPropOptionalList2,#FieldPropOptionalList3,#FieldPropOptionalList4"
+FieldPropOptionalMap,"#FieldPropOptionalMap2,#FieldPropOptionalMap3,#FieldPropOptionalMap4"
