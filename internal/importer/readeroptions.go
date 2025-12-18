@@ -1,7 +1,6 @@
 package importer
 
 import (
-	"path/filepath"
 	"slices"
 )
 
@@ -32,11 +31,5 @@ func NeedSheet(sheetName string, wantSheetNames []string) bool {
 		// read all sheets if wantSheetNames not set.
 		return true
 	}
-	return slices.ContainsFunc(wantSheetNames, func(wantSheetName string) bool {
-		if wantSheetName == sheetName {
-			return true
-		}
-		match, _ := filepath.Match(wantSheetName, sheetName)
-		return match
-	})
+	return slices.Contains(wantSheetNames, sheetName)
 }
