@@ -235,11 +235,19 @@ type SheetInfo struct {
 }
 
 func (si *SheetInfo) HasScatter() bool {
-	return si.SheetOpts != nil && len(si.SheetOpts.Scatter) != 0
+	return len(si.SheetOpts.GetScatter()) != 0
 }
 
 func (si *SheetInfo) HasMerger() bool {
-	return si.SheetOpts != nil && len(si.SheetOpts.Merger) != 0
+	return len(si.SheetOpts.GetMerger()) != 0
+}
+
+func (si *SheetInfo) BookName() string {
+	return si.PrimaryBookName
+}
+
+func (si *SheetInfo) SheetName() string {
+	return si.SheetOpts.GetName()
 }
 
 type sheetParser struct {

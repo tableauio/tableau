@@ -21,11 +21,12 @@ type YAMLImporter struct {
 	*book.Book
 }
 
-func NewYAMLImporter(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*YAMLImporter, error) {
+func NewYAMLImporter(ctx context.Context, filename string, setters ...Option) (*YAMLImporter, error) {
+	opts := parseOptions(setters...)
 	var book *book.Book
 	var err error
-	if mode == Protogen {
-		book, err = readYAMLBookWithOnlySchemaSheet(ctx, filename, parser)
+	if opts.Mode == Protogen {
+		book, err = readYAMLBookWithOnlySchemaSheet(ctx, filename, opts.Parser)
 		if err != nil {
 			return nil, err
 		}
@@ -33,7 +34,7 @@ func NewYAMLImporter(ctx context.Context, filename string, sheetNames []string, 
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	} else {
-		book, err = readYAMLBook(ctx, filename, parser)
+		book, err = readYAMLBook(ctx, filename, opts.Parser)
 		if err != nil {
 			return nil, err
 		}

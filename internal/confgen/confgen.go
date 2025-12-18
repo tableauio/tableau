@@ -212,12 +212,12 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				return xerrors.ErrorKV("option Scatter and Merger cannot be both set at one sheet",
 					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
-			err := gen.processScatter(imp, sheetInfo, rewrittenWorkbookName, sheetName)
+			err := gen.processScatter(imp, sheetInfo)
 			if err != nil {
 				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
 		} else {
-			err := gen.processMerger(imp, sheetInfo, rewrittenWorkbookName, sheetName)
+			err := gen.processMerger(imp, sheetInfo)
 			if err != nil {
 				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
 			}
@@ -235,8 +235,8 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	return nil
 }
 
-func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, workbookName, sheetName string) error {
-	importers, err := importer.GetScatterImporters(gen.ctx, gen.InputDir, workbookName, sheetName, sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
+func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo) error {
+	importers, err := importer.GetScatterImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
@@ -248,8 +248,8 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 	return nil
 }
 
-func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, workbookName, sheetName string) error {
-	importers, err := importer.GetMergerImporters(gen.ctx, gen.InputDir, workbookName, sheetName, sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
+func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo) error {
+	importers, err := importer.GetMergerImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 func TestCSVImporter_ExportExcel(t *testing.T) {
-	importer, _ := NewCSVImporter(context.Background(), "testdata/Test#Test.csv", nil, nil, 0, false)
+	importer, _ := NewCSVImporter(context.Background(), "testdata/Test#Test.csv")
 	tests := []struct {
 		name    string
 		x       *CSVImporter
@@ -148,12 +148,9 @@ func Test_readCSVRows(t *testing.T) {
 
 func TestNewCSVImporter(t *testing.T) {
 	type args struct {
-		ctx        context.Context
-		filename   string
-		sheetNames []string
-		parser     book.SheetParser
-		mode       ImporterMode
-		cloned     bool
+		ctx      context.Context
+		filename string
+		setters  []Option
 	}
 	tests := []struct {
 		name       string
@@ -165,9 +162,9 @@ func TestNewCSVImporter(t *testing.T) {
 		{
 			name: "normal",
 			args: args{
-				ctx:        context.Background(),
-				filename:   "testdata/Test#*.csv",
-				sheetNames: []string{"Item"},
+				ctx:      context.Background(),
+				filename: "testdata/Test#*.csv",
+				setters:  []Option{Sheets([]string{"Item"})},
 			},
 			wantSheets: []*book.Sheet{
 				book.NewTableSheet("Item", [][]string{
@@ -191,7 +188,7 @@ func TestNewCSVImporter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewCSVImporter(tt.args.ctx, tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
+			got, err := NewCSVImporter(tt.args.ctx, tt.args.filename, tt.args.setters...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewCSVImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -14,7 +14,7 @@ import (
 func init() {
 	err := xfs.RangeFilesByFormat("./testdata", format.CSV, func(bookPath string) error {
 		// log.Printf("path: %s", bookPath)
-		imp, err := NewCSVImporter(context.Background(), bookPath, nil, nil, 0, false)
+		imp, err := NewCSVImporter(context.Background(), bookPath)
 		if err != nil {
 			return err
 		}
