@@ -130,26 +130,15 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 	primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
 	log.Debugf("rewrittenAbsWorkbookName: %s", primaryBookPath)
 	fmt := format.GetFormat(primaryBookPath)
-
-	var (
-		matches []string
-		err     error
-	)
-	if bookNameGlob != "" {
-		pattern := xfs.Join(filepath.Dir(primaryBookPath), bookNameGlob)
-		matches, err = filepath.Glob(pattern)
-		if err != nil {
-			return nil, "", xerrors.Wrapf(err, "failed to glob pattern: %s", pattern)
-		}
-		if len(matches) == 0 {
-			err := xerrors.E3000(sheetSpecifier, pattern)
-			return nil, "", xerrors.WrapKV(err, xerrors.KeyPrimaryBookName, primaryBookName)
-		}
-	} else {
-		// use primary book path if book name glob not specified
-		matches = []string{primaryBookPath}
+	pattern := xfs.Join(filepath.Dir(primaryBookPath), bookNameGlob)
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, "", xerrors.Wrapf(err, "failed to glob pattern: %s", pattern)
 	}
-
+	if len(matches) == 0 {
+		err := xerrors.E3000(sheetSpecifier, pattern)
+		return nil, "", xerrors.WrapKV(err, xerrors.KeyPrimaryBookName, primaryBookName)
+	}
 	for _, match := range matches {
 		path := match
 		if fmt == format.CSV {
