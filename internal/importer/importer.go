@@ -37,17 +37,16 @@ type Importer interface {
 
 // New creates a new importer.
 func New(ctx context.Context, filename string, setters ...Option) (Importer, error) {
-	opts := parseOptions(setters...)
 	fmt := format.GetFormat(filename)
 	switch fmt {
 	case format.Excel:
-		return NewExcelImporter(ctx, filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
+		return NewExcelImporter(ctx, filename, setters...)
 	case format.CSV:
-		return NewCSVImporter(ctx, filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
+		return NewCSVImporter(ctx, filename, setters...)
 	case format.XML:
-		return NewXMLImporter(ctx, filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
+		return NewXMLImporter(ctx, filename, setters...)
 	case format.YAML:
-		return NewYAMLImporter(ctx, filename, opts.Sheets, opts.Parser, opts.Mode, opts.Cloned)
+		return NewYAMLImporter(ctx, filename, setters...)
 	default:
 		return nil, xerrors.Errorf("unsupported format: %v", fmt)
 	}

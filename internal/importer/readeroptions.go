@@ -1,5 +1,10 @@
 package importer
 
+import (
+	"path/filepath"
+	"slices"
+)
+
 type bookReaderOptions struct {
 	Name          string // book name without suffix
 	Filename      string // book filename with path
@@ -27,10 +32,11 @@ func NeedSheet(sheetName string, wantSheetNames []string) bool {
 		// read all sheets if wantSheetNames not set.
 		return true
 	}
-	for _, name := range wantSheetNames {
-		if name == sheetName {
+	return slices.ContainsFunc(wantSheetNames, func(wantSheetName string) bool {
+		if wantSheetName == sheetName {
 			return true
 		}
-	}
-	return false
+		match, _ := filepath.Match(wantSheetName, sheetName)
+		return match
+	})
 }

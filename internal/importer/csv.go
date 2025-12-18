@@ -26,25 +26,26 @@ type CSVImporter struct {
 	*book.Book
 }
 
-func NewCSVImporter(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*CSVImporter, error) {
-	brOpts, err := parseCSVBookReaderOptions(filename, sheetNames, metasheet.FromContext(ctx).Name)
+func NewCSVImporter(ctx context.Context, filename string, setters ...Option) (*CSVImporter, error) {
+	opts := parseOptions(setters...)
+	brOpts, err := parseCSVBookReaderOptions(filename, opts.Sheets, metasheet.FromContext(ctx).Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if mode == Protogen {
-		err := adjustCSVTopN(ctx, brOpts, parser, cloned)
+	if opts.Mode == Protogen {
+		err := adjustCSVTopN(ctx, brOpts, opts.Parser, opts.Cloned)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 		}
 	}
 
-	book, err := readCSVBook(ctx, brOpts, parser)
+	book, err := readCSVBook(ctx, brOpts, opts.Parser)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to read csv book: %s", filename)
 	}
 
-	if mode == Protogen {
+	if opts.Mode == Protogen {
 		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}

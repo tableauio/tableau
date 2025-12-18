@@ -20,7 +20,8 @@ type ExcelImporter struct {
 	*book.Book
 }
 
-func NewExcelImporter(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*ExcelImporter, error) {
+func NewExcelImporter(ctx context.Context, filename string, setters ...Option) (*ExcelImporter, error) {
+	opts := parseOptions(setters...)
 	file, err := excelize.OpenFile(filename)
 	if err != nil {
 		return nil, xerrors.E3002(err)
@@ -32,24 +33,24 @@ func NewExcelImporter(ctx context.Context, filename string, sheetNames []string,
 		}
 	}()
 
-	brOpts, err := parseExcelBookReaderOptions(filename, file, sheetNames)
+	brOpts, err := parseExcelBookReaderOptions(filename, file, opts.Sheets)
 	if err != nil {
 		return nil, err
 	}
 
-	if mode == Protogen {
-		err := adjustExcelTopN(ctx, file, brOpts, parser, cloned)
+	if opts.Mode == Protogen {
+		err := adjustExcelTopN(ctx, file, brOpts, opts.Parser, opts.Cloned)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 		}
 	}
 
-	book, err := readExcelBook(ctx, file, brOpts, parser, excelize.Options{RawCellValue: true})
+	book, err := readExcelBook(ctx, file, brOpts, opts.Parser, excelize.Options{RawCellValue: true})
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 	}
 
-	if mode == Protogen {
+	if opts.Mode == Protogen {
 		if err := book.ParseMetaAndPurge(); err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}

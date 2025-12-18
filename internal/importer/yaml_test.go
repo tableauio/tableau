@@ -61,11 +61,8 @@ func (p *TestSheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) error
 
 func TestNewYAMLImporter(t *testing.T) {
 	type args struct {
-		filename   string
-		sheetNames []string
-		parser     book.SheetParser
-		mode       ImporterMode
-		cloned     bool
+		filename string
+		setters  []Option
 	}
 	tests := []struct {
 		name    string
@@ -78,22 +75,22 @@ func TestNewYAMLImporter(t *testing.T) {
 			name: "Test.yaml",
 			args: args{
 				filename: "testdata/Test.yaml",
-				parser:   nil,
 			},
 		},
 		{
 			name: "TestTemplate.yaml",
 			args: args{
 				filename: "testdata/TestTemplate.yaml",
-				mode:     Protogen,
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Mode(Protogen),
+					Parser(&TestSheetParser{}),
+				},
 			},
 		},
 		{
 			name: "not-exist.yaml",
 			args: args{
 				filename: "testdata/not-exist.yaml",
-				parser:   nil,
 			},
 			wantErr: true,
 			err:     xerrors.ErrE3002,
@@ -102,8 +99,10 @@ func TestNewYAMLImporter(t *testing.T) {
 			name: "NotSupportAliasNode.yaml",
 			args: args{
 				filename: "testdata/NotSupportAliasNode.yaml",
-				mode:     Protogen,
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Mode(Protogen),
+					Parser(&TestSheetParser{}),
+				},
 			},
 			wantErr: true,
 		},
@@ -111,14 +110,16 @@ func TestNewYAMLImporter(t *testing.T) {
 			name: "NotSupportAliasNode.yaml",
 			args: args{
 				filename: "testdata/NotSupportAliasNode.yaml",
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Parser(&TestSheetParser{}),
+				},
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewYAMLImporter(context.Background(), tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
+			got, err := NewYAMLImporter(context.Background(), tt.args.filename, tt.args.setters...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewYAMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return

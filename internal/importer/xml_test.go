@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/subchen/go-xmldom"
-	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/xerrors"
 )
@@ -60,11 +59,8 @@ func Test_inspectXMLNode(t *testing.T) {
 
 func TestNewXMLImporter(t *testing.T) {
 	type args struct {
-		filename   string
-		sheetNames []string
-		parser     book.SheetParser
-		mode       ImporterMode
-		cloned     bool
+		filename string
+		setters  []Option
 	}
 	tests := []struct {
 		name    string
@@ -77,8 +73,10 @@ func TestNewXMLImporter(t *testing.T) {
 			name: "not-exist",
 			args: args{
 				filename: "testdata/not-exist.xml",
-				mode:     Protogen,
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Mode(Protogen),
+					Parser(&TestSheetParser{}),
+				},
 			},
 			wantErr: true,
 		},
@@ -86,7 +84,9 @@ func TestNewXMLImporter(t *testing.T) {
 			name: "not-exist",
 			args: args{
 				filename: "testdata/not-exist.xml",
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Parser(&TestSheetParser{}),
+				},
 			},
 			wantErr: true,
 			err:     xerrors.ErrE3002,
@@ -95,16 +95,20 @@ func TestNewXMLImporter(t *testing.T) {
 			name: "Test.xml",
 			args: args{
 				filename: "testdata/Test.xml",
-				mode:     Protogen,
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Mode(Protogen),
+					Parser(&TestSheetParser{}),
+				},
 			},
 		},
 		{
 			name: "InvalidMeta1.xml",
 			args: args{
 				filename: "testdata/InvalidMeta1.xml",
-				mode:     Protogen,
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Mode(Protogen),
+					Parser(&TestSheetParser{}),
+				},
 			},
 			wantErr: true,
 		},
@@ -112,8 +116,10 @@ func TestNewXMLImporter(t *testing.T) {
 			name: "InvalidMeta2.xml",
 			args: args{
 				filename: "testdata/InvalidMeta2.xml",
-				mode:     Protogen,
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Mode(Protogen),
+					Parser(&TestSheetParser{}),
+				},
 			},
 			wantErr: true,
 		},
@@ -121,14 +127,16 @@ func TestNewXMLImporter(t *testing.T) {
 			name: "InvalidMeta2.xml",
 			args: args{
 				filename: "testdata/InvalidMeta2.xml",
-				parser:   &TestSheetParser{},
+				setters: []Option{
+					Parser(&TestSheetParser{}),
+				},
 			},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewXMLImporter(context.Background(), tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
+			got, err := NewXMLImporter(context.Background(), tt.args.filename, tt.args.setters...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewXMLImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return

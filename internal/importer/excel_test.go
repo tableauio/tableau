@@ -14,12 +14,9 @@ import (
 
 func TestNewExcelImporter(t *testing.T) {
 	type args struct {
-		ctx        context.Context
-		filename   string
-		sheetNames []string
-		parser     book.SheetParser
-		mode       ImporterMode
-		cloned     bool
+		ctx      context.Context
+		filename string
+		setters  []Option
 	}
 	tests := []struct {
 		name       string
@@ -31,9 +28,9 @@ func TestNewExcelImporter(t *testing.T) {
 		{
 			name: "normal",
 			args: args{
-				ctx:        context.Background(),
-				filename:   "testdata/Test.xlsx",
-				sheetNames: []string{"Item"},
+				ctx:      context.Background(),
+				filename: "testdata/Test.xlsx",
+				setters:  []Option{Sheets([]string{"Item"})},
 			},
 			wantSheets: []*book.Sheet{
 				book.NewTableSheet("Item", [][]string{
@@ -57,7 +54,7 @@ func TestNewExcelImporter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewExcelImporter(tt.args.ctx, tt.args.filename, tt.args.sheetNames, tt.args.parser, tt.args.mode, tt.args.cloned)
+			got, err := NewExcelImporter(tt.args.ctx, tt.args.filename, tt.args.setters...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewExcelImporter() error = %v, wantErr %v", err, tt.wantErr)
 				return

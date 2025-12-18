@@ -41,11 +41,12 @@ func init() {
 	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`)                // e.g.: >int32|{range:"1,~"}</
 }
 
-func NewXMLImporter(ctx context.Context, filename string, sheets []string, parser book.SheetParser, mode ImporterMode, cloned bool) (*XMLImporter, error) {
+func NewXMLImporter(ctx context.Context, filename string, setters ...Option) (*XMLImporter, error) {
+	opts := parseOptions(setters...)
 	var book *book.Book
 	var err error
-	if mode == Protogen {
-		book, err = readXMLBookWithOnlySchemaSheet(ctx, filename, parser)
+	if opts.Mode == Protogen {
+		book, err = readXMLBookWithOnlySchemaSheet(ctx, filename, opts.Parser)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +54,7 @@ func NewXMLImporter(ctx context.Context, filename string, sheets []string, parse
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	} else {
-		book, err = readXMLBook(ctx, filename, parser)
+		book, err = readXMLBook(ctx, filename, opts.Parser)
 		if err != nil {
 			return nil, err
 		}
