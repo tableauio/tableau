@@ -28,6 +28,7 @@ func init() {
 		driver: zapdriver.New(zap.NewDevelopmentConfig(), zap.AddCallerSkip(4)),
 	}
 	gOpts = &Options{}
+	atomicLevel = zap.NewAtomicLevelAt(zap.DebugLevel)
 }
 
 func Init(opts *Options) error {
