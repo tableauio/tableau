@@ -126,14 +126,11 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			return xerrors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
 		// NOTE: one book may relate to multiple primary books
-		for _, fds := range primaryBookInfo.books {
-			fds := fds // NOTE: go1.22 fixes loopvar problem
-			for _, fd := range fds {
-				fd := fd
-				eg.Go(func() error {
-					return gen.convert(prFiles, fd, sheetName)
-				})
-			}
+		for _, fd := range primaryBookInfo.fds {
+			fd := fd // TODO: go1.22 fixes loopvar problem
+			eg.Go(func() error {
+				return gen.convert(prFiles, fd, sheetName)
+			})
 		}
 	}
 	return eg.Wait()
