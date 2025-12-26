@@ -159,7 +159,7 @@ func genConf(logLevel, logMode string) error {
 			&options.ConfOption{
 				Input: &options.ConfInputOption{
 					ProtoPaths: []string{"./_proto/default/"},
-					ProtoFiles: []string{"./_proto/default/*.proto", "./_proto/default/custom/*.proto"},
+					ProtoFiles: []string{"./_proto/default/*.proto", "./_proto/default/common/*.proto", "./_proto/default/custom/*.proto"},
 					Formats: []format.Format{
 						// format.Excel,
 						format.CSV,

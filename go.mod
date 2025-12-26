@@ -13,7 +13,6 @@ require (
 	github.com/subchen/go-xmldom v1.1.2
 	github.com/xuri/excelize/v2 v2.9.0
 	go.uber.org/zap v1.24.0
-	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
 	golang.org/x/sync v0.8.0
 	golang.org/x/text v0.19.0
 	google.golang.org/protobuf v1.34.2

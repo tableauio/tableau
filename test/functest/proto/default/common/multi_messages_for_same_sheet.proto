@@ -1,0 +1,31 @@
+// clang-format off
+
+syntax = "proto3";
+
+package protoconf;
+
+import "tableau/protobuf/tableau.proto";
+
+option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
+option (tableau.workbook) = {name:"excel/metasheet/CustomMetasheetName#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+
+message CommonItemFull {
+  option (tableau.worksheet) = {name:"Item" namerow:1 nameline:1};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item Name
+    string desc = 3 [(tableau.field) = {name:"Desc"}]; // Item Description
+  }
+}
+
+message CommonLite {
+  option (tableau.worksheet) = {name:"Item" namerow:1 typerow:1 nameline:1 typeline:2};
+
+  repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item Name
+  }
+}
