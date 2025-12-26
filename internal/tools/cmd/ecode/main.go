@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"go/token"
 	"io/fs"
-	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -44,7 +43,11 @@ func main() {
 	p.P("package xerrors")
 	p.P()
 
-	sortedKeys := maps.Keys(config)
+	// TODO(go1.23): sortedKeys := maps.Keys(config)
+	var sortedKeys []string
+	for key := range config {
+		sortedKeys = append(sortedKeys, key)
+	}
 	sort.Strings(sortedKeys)
 
 	// generate imports
@@ -57,7 +60,11 @@ func main() {
 		}
 	}
 	if len(importMap) > 0 {
-		imports := maps.Keys(importMap)
+		// TODO(go1.23): sortedKeys := maps.Keys(importMap)
+		var imports []string
+		for imp := range importMap {
+			imports = append(imports, imp)
+		}
 		slices.Sort(imports)
 		p.P("import (")
 		for _, imp := range imports {
