@@ -17,6 +17,7 @@ import (
 var defaultLogger *Logger
 
 var gOpts *Options
+var atomicLevel zap.AtomicLevel
 
 func init() {
 	defaultLogger = &Logger{
@@ -27,20 +28,20 @@ func init() {
 		driver: zapdriver.New(zap.NewDevelopmentConfig(), zap.AddCallerSkip(4)),
 	}
 	gOpts = &Options{}
+	atomicLevel = zap.NewAtomicLevelAt(zap.DebugLevel)
 }
 
 func Init(opts *Options) error {
 	gOpts = opts // remember as global options.
 
-	zapLogger, err := zapdriver.NewLogger(opts.Mode, opts.Level, opts.Filename, opts.Sink)
+	logger, err := zapdriver.NewLogger(opts.Mode, opts.Level, opts.Filename, opts.Sink)
 	if err != nil {
 		return err
 	}
-	var zapLevel zapcore.Level
-	if err := zapLevel.UnmarshalText([]byte(opts.Level)); err != nil {
+	if err := atomicLevel.UnmarshalText([]byte(opts.Level)); err != nil {
 		return fmt.Errorf("illegal log level: %s", opts.Level)
 	}
-	SetDriver(zapdriver.NewWithLogger(zapLevel, zapLogger))
+	SetDriver(zapdriver.NewWithLogger(atomicLevel, logger))
 	return nil
 }
 
@@ -50,6 +51,10 @@ func Mode() string {
 
 func Level() string {
 	return gOpts.Level
+}
+
+func LevelEnabled(lvl zapcore.Level) bool {
+	return atomicLevel.Enabled(lvl)
 }
 
 func SetDriver(driver driver.Driver) {

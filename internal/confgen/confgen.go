@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -116,7 +117,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		relCleanSlashPath := xfs.CleanSlashPath(bookName)
 		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
-		primaryBookIndexInfo, ok := bookIndexes[relCleanSlashPath]
+		primaryBookInfo, ok := bookIndexes[relCleanSlashPath]
 		if !ok {
 			if gen.InputOpt.IgnoreUnknownWorkbook {
 				log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)
@@ -125,8 +126,8 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			return xerrors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
 		// NOTE: one book may relate to multiple primary books
-		for _, fd := range primaryBookIndexInfo.books {
-			fd := fd
+		for _, fd := range primaryBookInfo.fds {
+			fd := fd // TODO: go1.22 fixes loopvar problem
 			eg.Go(func() error {
 				return gen.convert(prFiles, fd, sheetName)
 			})
@@ -137,7 +138,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 
 // convert a workbook related to parameter fd, and only convert the
 // specified worksheet if the input parameter worksheetName is not empty.
-func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.FileDescriptor, worksheetName string) (err error) {
+func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.FileDescriptor, specifiedSheetName string) (err error) {
 	bookBeginTime := time.Now()
 	_, workbook := ParseFileOptions(fd)
 	if workbook == nil {
@@ -160,9 +161,8 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	absWbPath := filepath.Join(gen.InputDir, rewrittenWorkbookName)
 	log.Debugf("proto: %s, workbook options: %s", fd.Path(), workbook)
 
-	var sheets []string
-	// sheet name -> message name
-	sheetMap := map[string]*SheetInfo{}
+	var sheetNames []string
+	var sheets []*SheetInfo
 	fileOpts := fd.Options().(*descriptorpb.FileOptions)
 	bookOpts := proto.GetExtension(fileOpts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
 	msgs := fd.Messages()
@@ -170,36 +170,41 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		md := msgs.Get(i)
 		opts := md.Options().(*descriptorpb.MessageOptions)
 		sheetOpts := proto.GetExtension(opts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
-		if sheetOpts != nil {
-			sheetMap[sheetOpts.Name] = &SheetInfo{
-				ProtoPackage:    gen.ProtoPackage,
-				LocationName:    gen.LocationName,
-				PrimaryBookName: rewrittenWorkbookName,
-				MD:              md,
-				BookOpts:        bookOpts,
-				SheetOpts:       sheetOpts,
-				ExtInfo: &SheetParserExtInfo{
-					InputDir:       gen.InputDir,
-					SubdirRewrites: gen.InputOpt.SubdirRewrites,
-					PRFiles:        prFiles,
-					BookFormat:     workbookFormat,
-					DryRun:         gen.OutputOpt.DryRun,
-				},
-			}
-			sheets = append(sheets, sheetOpts.Name)
+		if sheetOpts == nil {
+			continue // skip non-sheet
+		}
+		sheets = append(sheets, &SheetInfo{
+			ProtoPackage:    gen.ProtoPackage,
+			LocationName:    gen.LocationName,
+			PrimaryBookName: rewrittenWorkbookName,
+			MD:              md,
+			BookOpts:        bookOpts,
+			SheetOpts:       sheetOpts,
+			ExtInfo: &SheetParserExtInfo{
+				InputDir:       gen.InputDir,
+				SubdirRewrites: gen.InputOpt.SubdirRewrites,
+				PRFiles:        prFiles,
+				BookFormat:     workbookFormat,
+				DryRun:         gen.OutputOpt.DryRun,
+			},
+		})
+		// NOTE: one sheet may be generated to multiple messages (e.g.: full version and lite version) in the same workbook.
+		if !slices.Contains(sheetNames, sheetOpts.Name) {
+			sheetNames = append(sheetNames, sheetOpts.Name)
 		}
 	}
 
-	imp, err := importer.New(gen.ctx, absWbPath, importer.Sheets(sheets), importer.Mode(importer.Confgen))
+	imp, err := importer.New(gen.ctx, absWbPath, importer.Sheets(sheetNames), importer.Mode(importer.Confgen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
 	worksheetFound := false
-	for sheetName, sheetInfo := range sheetMap {
+	for _, sheetInfo := range sheets {
+		sheetName := sheetInfo.SheetName()
 		sheetBeginTime := time.Now()
-		if worksheetName != "" {
-			if worksheetName != sheetName {
+		if specifiedSheetName != "" {
+			if specifiedSheetName != sheetName {
 				continue
 			}
 			worksheetFound = true
@@ -210,27 +215,27 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		if sheetInfo.HasScatter() {
 			if sheetInfo.HasMerger() {
 				return xerrors.ErrorKV("option Scatter and Merger cannot be both set at one sheet",
-					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
+					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, specifiedSheetName)
 			}
 			err := gen.processScatter(imp, sheetInfo)
 			if err != nil {
-				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
+				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, specifiedSheetName)
 			}
 		} else {
 			err := gen.processMerger(imp, sheetInfo)
 			if err != nil {
-				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, worksheetName)
+				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, specifiedSheetName)
 			}
 		}
 
 		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
 		gen.PerfStats.Store(sheetInfo.MD.Name(), seconds)
 	}
-	if worksheetName != "" && !worksheetFound {
-		return xerrors.ErrorKV(fmt.Sprintf("worksheet not found: %s", worksheetName),
+	if specifiedSheetName != "" && !worksheetFound {
+		return xerrors.ErrorKV(fmt.Sprintf("worksheet not found: %s", specifiedSheetName),
 			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyBookName, workbook.Name,
-			xerrors.KeySheetName, worksheetName)
+			xerrors.KeySheetName, specifiedSheetName)
 	}
 	return nil
 }

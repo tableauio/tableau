@@ -8,10 +8,13 @@ import (
 
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
+
+const customMetasheetName = "@TABLEAU_CUSTOM"
 
 func genProto(logLevel, logMode string) error {
 	// prepare output common dir
@@ -41,58 +44,65 @@ func genProto(logLevel, logMode string) error {
 		}
 	}
 
-	err = tableau.GenProto(
-		"protoconf",
-		"./testdata/default",
-		defaultOutdir,
-		options.Proto(
-			&options.ProtoOption{
-				Input: &options.ProtoInputOption{
-					ProtoPaths: []string{defaultOutdir},
-					ProtoFiles: []string{
-						"common/base.proto",
-						"common/common.proto",
-						"common/union.proto",
+	genDefault := func(metasheetName, outdir string) error {
+		return tableau.GenProto(
+			"protoconf",
+			"./testdata/default",
+			outdir,
+			options.Proto(
+				&options.ProtoOption{
+					Input: &options.ProtoInputOption{
+						ProtoPaths: []string{defaultOutdir},
+						ProtoFiles: []string{
+							"common/base.proto",
+							"common/common.proto",
+							"common/union.proto",
+						},
+						Formats: []format.Format{
+							// format.Excel,
+							format.CSV,
+							format.XML,
+							format.YAML,
+						},
+						Header: &options.HeaderOption{
+							NameRow: 1,
+							TypeRow: 2,
+							NoteRow: 3,
+							DataRow: 4,
+							Sep:     ",",
+							Subsep:  ":",
+						},
+						Subdirs:       []string{"excel", "csv", "xml", "yaml"},
+						MetasheetName: metasheetName,
 					},
-					Formats: []format.Format{
-						// format.Excel,
-						format.CSV,
-						format.XML,
-						format.YAML,
+					Output: &options.ProtoOutputOption{
+						FilenameWithSubdirPrefix: true,
+						FileOptions: map[string]string{
+							"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+						},
+						EnumValueWithPrefix: true,
 					},
-					Header: &options.HeaderOption{
-						NameRow: 1,
-						TypeRow: 2,
-						NoteRow: 3,
-						DataRow: 4,
-						Sep:     ",",
-						Subsep:  ":",
-					},
-					Subdirs: []string{"excel", "csv", "xml", "yaml"},
 				},
-				Output: &options.ProtoOutputOption{
-					FilenameWithSubdirPrefix: true,
-					FileOptions: map[string]string{
-						"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
-					},
-					EnumValueWithPrefix: true,
+			),
+			options.Log(
+				&log.Options{
+					Level: logLevel,
+					Mode:  logMode,
 				},
-			},
-		),
-		options.Log(
-			&log.Options{
-				Level: logLevel,
-				Mode:  logMode,
-			},
-		),
-		options.Acronyms(map[string]string{
-			"K8s":          "k8s",
-			"APIV3":        "apiv3",
-			`(\d)[vV](\d)`: "${1}v${2}",
-		}),
-		// options.Lang("zh"),
-	)
-	if err != nil {
+			),
+			options.Acronyms(map[string]string{
+				"K8s":          "k8s",
+				"APIV3":        "apiv3",
+				`(\d)[vV](\d)`: "${1}v${2}",
+			}),
+			// options.Lang("zh"),
+		)
+	}
+
+	if err = genDefault(metasheet.DefaultMetasheetName, defaultOutdir); err != nil {
+		return err
+	}
+	if err = genDefault(customMetasheetName, defaultOutdir+"/custom"); err != nil {
 		return err
 	}
 
@@ -120,7 +130,7 @@ func genProto(logLevel, logMode string) error {
 						Subsep:   ":",
 					},
 					Subdirs:       []string{"excel"},
-					MetasheetName: "@TABLEAU_CUSTOM",
+					MetasheetName: customMetasheetName,
 				},
 				Output: &options.ProtoOutputOption{
 					FilenameWithSubdirPrefix: true,
@@ -149,7 +159,7 @@ func genConf(logLevel, logMode string) error {
 			&options.ConfOption{
 				Input: &options.ConfInputOption{
 					ProtoPaths: []string{"./_proto/default/"},
-					ProtoFiles: []string{"./_proto/default/*.proto"},
+					ProtoFiles: []string{"./_proto/default/*.proto", "./_proto/default/common/*.proto", "./_proto/default/custom/*.proto"},
 					Formats: []format.Format{
 						// format.Excel,
 						format.CSV,

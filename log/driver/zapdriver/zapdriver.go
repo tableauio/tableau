@@ -16,7 +16,7 @@ const (
 
 type ZapDriver struct {
 	logger *zap.Logger
-	level  zapcore.Level
+	level  zap.AtomicLevel
 }
 
 // SkipUntilTrueCaller is the skip level which prints out the actual caller instead of slf4go or slf4go-zap wrappers
@@ -35,11 +35,11 @@ func New(config zap.Config, opts ...zap.Option) *ZapDriver {
 	}
 	return &ZapDriver{
 		logger: logger,
-		level:  config.Level.Level(),
+		level:  config.Level,
 	}
 }
 
-func NewWithLogger(level zapcore.Level, logger *zap.Logger) *ZapDriver {
+func NewWithLogger(level zap.AtomicLevel, logger *zap.Logger) *ZapDriver {
 	return &ZapDriver{
 		logger: logger,
 		level:  level,
@@ -151,7 +151,7 @@ func (d *ZapDriver) Print(r *core.Record) {
 }
 
 func (d *ZapDriver) GetLevel(logger string) core.Level {
-	switch d.level {
+	switch d.level.Level() {
 	case zap.DebugLevel:
 		return core.DebugLevel
 	case zap.InfoLevel:

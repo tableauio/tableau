@@ -90,6 +90,7 @@ func Exists(path string) (bool, error) {
 }
 
 // HasSubdirPrefix returns whether the given path has the given prefix.
+// NOTE: Empty subdirs mean all subdirs, so it will also return true.
 func HasSubdirPrefix(path string, subdirs []string) bool {
 	if len(subdirs) != 0 {
 		path = CleanSlashPath(path)

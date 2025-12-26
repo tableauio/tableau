@@ -122,8 +122,8 @@ type ProtoInputOption struct {
 	// nil).
 	//
 	// Default: nil.
-
 	Formats []format.Format `yaml:"formats"`
+	
 	// Specify only these subdirs (relative to input dir) to be processed.
 	//
 	// Default: nil.

@@ -1,0 +1,8 @@
+"ID
+[Item]uint32","Name
+string",Desc
+"map<uint32, Item>",string,string
+Item ID,Item Name,Item Description
+1,Apple,A kind of delicious fruit.
+2,Orange,A kind of sour fruit.
+3,Banana,A kind of calorie-rich fruit
