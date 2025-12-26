@@ -151,13 +151,19 @@ func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string
 	return xfs.Join(dir, tokens[0]), "", nil
 }
 
-type bookIndexInfo struct {
-	books map[string]protoreflect.FileDescriptor // primary book name -> fd
+// primaryBookInfo represents the primary workbook info.
+// Due to Merge/Scatter, one workbook may relate to multiple primary workbooks.
+type primaryBookInfo struct {
+	// primary workbook name -> one or multiple file descriptors, as one
+	// workbook may be generated to multiple proto files with different
+	// messagers (e.g: full version with all columns and lite version with
+	// fewer columns).
+	books map[string][]protoreflect.FileDescriptor
 }
 
-// buildWorkbookIndex builds the secondary workbook name (including self) -> primary workbook info indexes.
-func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirRewrites map[string]string, prFiles *protoregistry.Files) (bookIndexes map[string]*bookIndexInfo, err error) {
-	bookIndexes = map[string]*bookIndexInfo{} // init
+// buildWorkbookIndex builds all workbook names (includes primary and secondary) to primary workbook info indexes.
+func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirRewrites map[string]string, prFiles *protoregistry.Files) (bookIndexes map[string]*primaryBookInfo, err error) {
+	bookIndexes = map[string]*primaryBookInfo{} // init
 	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(protoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
@@ -170,14 +176,14 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 				return true
 			}
 			// add self: rewrite subdir
-			rewrittenWorkbookName := xfs.RewriteSubdir(workbook.Name, subdirRewrites)
-			if bookIndexes[rewrittenWorkbookName] == nil {
-				bookIndexes[rewrittenWorkbookName] = &bookIndexInfo{
-					books: make(map[string]protoreflect.FileDescriptor),
+			rewrittenBookName := xfs.RewriteSubdir(workbook.Name, subdirRewrites)
+			if bookIndexes[rewrittenBookName] == nil {
+				bookIndexes[rewrittenBookName] = &primaryBookInfo{
+					books: make(map[string][]protoreflect.FileDescriptor),
 				}
 			}
-			bookIndexes[rewrittenWorkbookName].books[workbook.Name] = fd
-			// merger or scatter (only one can be set at once)
+			bookIndexes[rewrittenBookName].books[workbook.Name] = append(bookIndexes[rewrittenBookName].books[workbook.Name], fd)
+			// Merger/Scatter (only one can be set at once)
 			msgs := fd.Messages()
 			for i := 0; i < msgs.Len(); i++ {
 				md := msgs.Get(i)
@@ -198,11 +204,11 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 					}
 					for relBookPath := range relBookPaths {
 						if bookIndexes[relBookPath] == nil {
-							bookIndexes[relBookPath] = &bookIndexInfo{
-								books: make(map[string]protoreflect.FileDescriptor),
+							bookIndexes[relBookPath] = &primaryBookInfo{
+								books: make(map[string][]protoreflect.FileDescriptor),
 							}
 						}
-						bookIndexes[relBookPath].books[workbook.Name] = fd
+						bookIndexes[relBookPath].books[workbook.Name] = append(bookIndexes[relBookPath].books[workbook.Name], fd)
 					}
 				}
 			}

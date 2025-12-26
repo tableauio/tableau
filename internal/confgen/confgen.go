@@ -116,7 +116,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		relCleanSlashPath := xfs.CleanSlashPath(bookName)
 		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
-		primaryBookIndexInfo, ok := bookIndexes[relCleanSlashPath]
+		primaryBookInfo, ok := bookIndexes[relCleanSlashPath]
 		if !ok {
 			if gen.InputOpt.IgnoreUnknownWorkbook {
 				log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)
@@ -125,11 +125,14 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			return xerrors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
 		// NOTE: one book may relate to multiple primary books
-		for _, fd := range primaryBookIndexInfo.books {
-			fd := fd
-			eg.Go(func() error {
-				return gen.convert(prFiles, fd, sheetName)
-			})
+		for _, fds := range primaryBookInfo.books {
+			fds := fds // NOTE: go1.22 fixes loopvar problem
+			for _, fd := range fds {
+				fd := fd
+				eg.Go(func() error {
+					return gen.convert(prFiles, fd, sheetName)
+				})
+			}
 		}
 	}
 	return eg.Wait()
