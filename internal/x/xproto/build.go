@@ -1,12 +1,12 @@
 package xproto
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/desc/protoparse"
+	"github.com/bufbuild/protocompile"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
@@ -16,23 +16,27 @@ import (
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // ParseProtos parses the proto paths and proto files to desc.FileDescriptor slices.
 func ParseProtos(protoPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
 	log.Debugf("proto paths: %v", protoPaths)
 	log.Debugf("proto files: %v", protoFiles)
-	parser := &protoparse.Parser{
-		ImportPaths:  protoPaths,
-		LookupImport: desc.LoadFileDescriptor,
+	compiler := protocompile.Compiler{
+		Resolver: protocompile.CompositeResolver{
+			protocompile.ResolverFunc(resolveGlobalFiles),
+			&protocompile.SourceResolver{
+				ImportPaths: protoPaths,
+			},
+		},
+		MaxParallelism: 1,
 	}
-
-	fileDescs, err := parser.ParseFiles(protoFiles...)
+	results, err := compiler.Compile(context.Background(), protoFiles...)
 	if err != nil {
-		return nil, xerrors.Wrapf(err, "failed to ParseFiles from proto files")
+		return nil, err
 	}
-	fds := desc.ToFileDescriptorSet(fileDescs...)
-	files, err := protodesc.NewFiles(fds)
+	files, err := protodesc.NewFiles(&descriptorpb.FileDescriptorSet{File: convert(results)})
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to creates a new protoregistry.Files from the provided FileDescriptorSet message")
 	}

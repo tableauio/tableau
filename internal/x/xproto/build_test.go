@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jhump/protoreflect/desc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/types"
@@ -22,10 +21,8 @@ func TestParseProtos(t *testing.T) {
 		filenames   []string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    []*desc.FileDescriptor
-		wantErr bool
+		name string
+		args args
 	}{
 		// TODO: Add test cases.
 		{
