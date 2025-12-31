@@ -16,7 +16,6 @@ import (
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
-	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // ParseProtos parses the proto paths and proto files to desc.FileDescriptor slices.
@@ -36,7 +35,7 @@ func ParseProtos(protoPaths []string, protoFiles ...string) (*protoregistry.File
 	if err != nil {
 		return nil, err
 	}
-	files, err := protodesc.NewFiles(&descriptorpb.FileDescriptorSet{File: convert(results)})
+	files, err := protodesc.NewFiles(convert(results))
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to creates a new protoregistry.Files from the provided FileDescriptorSet message")
 	}

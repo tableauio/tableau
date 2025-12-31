@@ -11,6 +11,8 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
+type fileDescriptorProtoMap map[string]*descriptorpb.FileDescriptorProto // file path -> file desc proto
+
 func resolveGlobalFiles(path string) (protocompile.SearchResult, error) {
 	fd, err := protoregistry.GlobalFiles.FindFileByPath(path)
 	if err != nil {
@@ -19,40 +21,43 @@ func resolveGlobalFiles(path string) (protocompile.SearchResult, error) {
 	return protocompile.SearchResult{Desc: fd}, nil
 }
 
-func convert(results linker.Files) []*descriptorpb.FileDescriptorProto {
-	mp := map[string]*descriptorpb.FileDescriptorProto{}
+func convert(results linker.Files) *descriptorpb.FileDescriptorSet {
+	fdpMap := make(fileDescriptorProtoMap)
 	for _, res := range results {
-		convertOne(res, mp)
+		convertOne(res, fdpMap)
 	}
-	fdps := make([]*descriptorpb.FileDescriptorProto, 0, len(mp))
-	for _, fdp := range mp {
+	fdps := make([]*descriptorpb.FileDescriptorProto, 0, len(fdpMap))
+	for _, fdp := range fdpMap {
 		fdps = append(fdps, fdp)
 	}
-	return fdps
+	return &descriptorpb.FileDescriptorSet{File: fdps}
 }
 
-func convertOne(d protoreflect.FileDescriptor, mp map[string]*descriptorpb.FileDescriptorProto) {
-	if _, ok := mp[d.Path()]; ok {
+func convertOne(d protoreflect.FileDescriptor, fdpMap fileDescriptorProtoMap) {
+	if _, ok := fdpMap[d.Path()]; ok {
+		// skip duplicate conversion
 		return
 	}
 	fdp := protoutil.ProtoFromFileDescriptor(d)
 	removeDynamicExtensionsFromProto(fdp)
-	mp[d.Path()] = fdp
+	fdpMap[d.Path()] = fdp
+	// convert imports recursively
 	imports := d.Imports()
 	for i := 0; i < imports.Len(); i++ {
-		convertOne(imports.Get(i).FileDescriptor, mp)
+		convertOne(imports.Get(i).FileDescriptor, fdpMap)
 	}
 }
 
 func removeDynamicExtensionsFromProto(fd *descriptorpb.FileDescriptorProto) {
 	// protocompile returns descriptors with dynamic extension fields for custom options.
-	// But protoparse only used known custom options and everything else defined in the
-	// sources would be stored as unrecognized fields. So to bridge the difference in
-	// behavior, we need to remove custom options from the given file and add them back
-	// via serializing-then-de-serializing them back into the options messages. That way,
+	// But tableau only uses known custom options (*tableaupb.UnionOptions rather than
+	// *dynamicpb.Message for example). So to bridge the difference in behavior, we need
+	// to remove custom options from the given file and add them back via
+	// serializing-then-de-serializing them back into the options messages. That way,
 	// statically known options will be properly typed and others will be unrecognized.
 	//
-	// Refer: https://github.com/jhump/protoreflect/blob/v1.17.0/desc/protoparse/parser.go#L724
+	// Refer:
+	//   https://github.com/jhump/protoreflect/blob/v1.17.0/desc/protoparse/parser.go#L724
 	fd.Options = removeDynamicExtensionsFromOptions(fd.Options)
 	_ = walk.DescriptorProtos(fd, func(_ protoreflect.FullName, msg proto.Message) error {
 		switch msg := msg.(type) {
@@ -76,11 +81,6 @@ func removeDynamicExtensionsFromProto(fd *descriptorpb.FileDescriptorProto) {
 		}
 		return nil
 	})
-}
-
-type fieldValue struct {
-	fd  protoreflect.FieldDescriptor
-	val protoreflect.Value
 }
 
 func removeDynamicExtensionsFromOptions[O proto.Message](opts O) O {
