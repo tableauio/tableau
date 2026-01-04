@@ -195,6 +195,48 @@ func TestFormatWrappedNew(t *testing.T) {
 	}
 }
 
+func TestFormatWrapKV(t *testing.T) {
+	tests := []struct {
+		error
+		format string
+		want   []string
+	}{
+		{
+			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
+			"%s",
+			[]string{"|k1: v1|k2: v2|EOF"},
+		},
+		{
+			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
+			"%v",
+			[]string{"|k1: v1|k2: v2|EOF"},
+		},
+		{
+			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
+			"%+v",
+			[]string{"|k1: v1|k2: v2|EOF @xerrors/format_test.go:215 @testing/testing.go:1690 @runtime/asm_amd64.s:1700"},
+		},
+		{
+			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
+			"%#v",
+			[]string{"|k1: v1|k2: v2|EOF",
+				"github.com/tableauio/tableau/xerrors.TestFormatWrapKV\n" +
+					"\t.+/xerrors/format_test.go:220"},
+		},
+		{
+			WrapKV(New("error"), "k1", "v1", "k2", "v2"),
+			"%#v",
+			[]string{"|k1: v1|k2: v2|Reason: error",
+				"github.com/tableauio/tableau/xerrors.TestFormatWrapKV\n" +
+					"\t.+/xerrors/format_test.go:227"},
+		},
+	}
+
+	for i, tt := range tests {
+		testFormatCompleteCompare(t, i, tt.error, tt.format, tt.want, true)
+	}
+}
+
 func testFormatRegexp(t *testing.T, n int, arg any, format, want string) {
 	t.Helper()
 	got := fmt.Sprintf(format, arg)
