@@ -32,7 +32,7 @@ func TestFrameFormat(t *testing.T) {
 		"@xerrors/stack_test.go",
 	}, {
 		initpc,
-		"%#s",
+		"%+s",
 		"github.com/tableauio/tableau/xerrors.init\n" +
 			"\t.+/xerrors/stack_test.go",
 	}, {
@@ -79,7 +79,7 @@ func TestFrameFormat(t *testing.T) {
 		"stack_test.go:10",
 	}, {
 		initpc,
-		"%#v",
+		"%+v",
 		"github.com/tableauio/tableau/xerrors.init\n" +
 			"\t.+/xerrors/stack_test.go:10",
 	}, {
@@ -163,12 +163,12 @@ func TestStackTrace(t *testing.T) {
 	for i, tt := range tests {
 		var base *base
 		if !errors.As(tt.err, &base) {
-			t.Errorf("expected %#v to match the base error", tt.err)
+			t.Errorf("expected %+v to match the base error", tt.err)
 			continue
 		}
 		st := base.StackTrace()
 		for j, want := range tt.want {
-			testFormatRegexp(t, i, st[j], "%#v", want)
+			testFormatRegexp(t, i, st[j], "%+v", want)
 		}
 	}
 }
@@ -199,7 +199,7 @@ func TestStackTraceFormat(t *testing.T) {
 		},
 		{
 			nil,
-			"%#v",
+			"%+v",
 			"",
 		},
 		{
@@ -214,7 +214,7 @@ func TestStackTraceFormat(t *testing.T) {
 		},
 		{
 			make(StackTrace, 0),
-			"%#v",
+			"%+v",
 			"",
 		},
 		{
@@ -224,12 +224,12 @@ func TestStackTraceFormat(t *testing.T) {
 		},
 		{
 			stackTrace()[:2],
-			"%v",
+			"%#v",
 			`\[@xerrors/stack_test.go:179 @xerrors/stack_test.go:226\]`,
 		},
 		{
 			stackTrace()[:2],
-			"%#v",
+			"%+v",
 			"\n" +
 				"github.com/tableauio/tableau/xerrors.stackTrace\n" +
 				"\t.+/xerrors/stack_test.go:179\n" +
@@ -238,7 +238,7 @@ func TestStackTraceFormat(t *testing.T) {
 		},
 		{
 			stackTrace()[:2],
-			"%+v",
+			"%#v",
 			`[@xerrors/stack_test.go:179, @xerrors/stack_test.go:240]`,
 		},
 	}
@@ -306,17 +306,17 @@ func Test_withStack(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.want == nil {
 				if tt.args.err != nil {
-					t.Errorf("expected nil, got %#v", tt.args.err)
+					t.Errorf("expected nil, got %+v", tt.args.err)
 				}
 				return
 			}
 			var base *base
 			if !errors.As(tt.args.err, &base) {
-				t.Errorf("expected %#v to match the base error", tt.args.err)
+				t.Errorf("expected %+v to match the base error", tt.args.err)
 			}
 			st := base.StackTrace()
 			for j, want := range tt.want {
-				testFormatRegexp(t, 0, st[j], "%#v", want)
+				testFormatRegexp(t, 0, st[j], "%+v", want)
 			}
 		})
 	}

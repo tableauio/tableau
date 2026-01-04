@@ -16,7 +16,7 @@ func assertError(t *testing.T, err error, errstr string, stackRegex string) {
 	require.EqualValues(t, errstr, fmt.Sprintf("%s", err))
 	require.EqualValues(t, fmt.Sprintf("%q", errstr), fmt.Sprintf("%q", err))
 	// error with stack
-	errstrWithStack := fmt.Sprintf("%#v", err)
+	errstrWithStack := fmt.Sprintf("%+v", err)
 	regexErrstr := strings.ReplaceAll(errstr, `|`, `\|`) + `\|?`
 	require.Regexp(t, `(?s)^`+regexErrstr+stackRegex, errstrWithStack)
 }

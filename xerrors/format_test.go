@@ -24,7 +24,7 @@ func TestFormatNew(t *testing.T) {
 		"error",
 	}, {
 		New("error"),
-		"%#v",
+		"%+v",
 		"error\n" +
 			"github.com/tableauio/tableau/xerrors.TestFormatNew\n" +
 			"\t.+/xerrors/format_test.go:26",
@@ -54,7 +54,7 @@ func TestFormatNewf(t *testing.T) {
 		"error",
 	}, {
 		Newf("newf: %s", "error"),
-		"%#v",
+		"%+v",
 		"error\n" +
 			"github.com/tableauio/tableau/xerrors.TestFormatNewf\n" +
 			"\t.+/xerrors/format_test.go:56",
@@ -83,7 +83,7 @@ func TestFormatWrap(t *testing.T) {
 		},
 		{
 			Wrap(New("error")),
-			"%#v",
+			"%+v",
 			"error\n" +
 				"github.com/tableauio/tableau/xerrors.TestFormatWrap\n" +
 				"\t.+/xerrors/format_test.go:85",
@@ -100,14 +100,14 @@ func TestFormatWrap(t *testing.T) {
 		},
 		{
 			Wrapf(io.EOF, "error1"),
-			"%#v",
+			"%+v",
 			"error1|EOF\n" +
 				"github.com/tableauio/tableau/xerrors.TestFormatWrap\n" +
 				"\t.+/xerrors/format_test.go:102",
 		},
 		{
 			Wrap(Wrap(io.EOF)),
-			"%#v",
+			"%+v",
 			"EOF\n" +
 				"github.com/tableauio/tableau/xerrors.TestFormatWrap\n" +
 				"\t.+/xerrors/format_test.go:109\n",
@@ -142,7 +142,7 @@ func TestFormatWrapf(t *testing.T) {
 		},
 		{
 			Wrapf(io.EOF, "error%d", 2),
-			"%#v",
+			"%+v",
 			"error2|EOF\n" +
 				"github.com/tableauio/tableau/xerrors.TestFormatWrapf\n" +
 				"\t.+/xerrors/format_test.go:144",
@@ -159,7 +159,7 @@ func TestFormatWrapf(t *testing.T) {
 		},
 		{
 			Wrapf(New("error"), "error%d", 2),
-			"%#v",
+			"%+v",
 			"error2|Reason: error\n" +
 				"github.com/tableauio/tableau/xerrors.TestFormatWrapf\n" +
 				"\t.+/xerrors/format_test.go:161",
@@ -182,7 +182,7 @@ func TestFormatWrappedNew(t *testing.T) {
 		want   string
 	}{{
 		wrappedNew("error"),
-		"%#v",
+		"%+v",
 		"|Reason: error\n" +
 			"github.com/tableauio/tableau/xerrors.wrappedNew\n" +
 			"\t.+/xerrors/format_test.go:175\n" +
@@ -214,21 +214,16 @@ func TestFormatWrapKV(t *testing.T) {
 		{
 			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
 			"%+v",
-			[]string{"|k1: v1|k2: v2|EOF @xerrors/format_test.go:215 @testing/testing.go:1690 @runtime/asm_amd64.s:1700"},
-		},
-		{
-			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
-			"%#v",
 			[]string{"|k1: v1|k2: v2|EOF",
 				"github.com/tableauio/tableau/xerrors.TestFormatWrapKV\n" +
-					"\t.+/xerrors/format_test.go:220"},
+					"\t.+/xerrors/format_test.go:215"},
 		},
 		{
 			WrapKV(New("error"), "k1", "v1", "k2", "v2"),
-			"%#v",
+			"%+v",
 			[]string{"|k1: v1|k2: v2|Reason: error",
 				"github.com/tableauio/tableau/xerrors.TestFormatWrapKV\n" +
-					"\t.+/xerrors/format_test.go:227"},
+					"\t.+/xerrors/format_test.go:222"},
 		},
 	}
 
@@ -330,7 +325,7 @@ func parseBlocks(input string, detectStackboundaries bool) ([]string, error) {
 	return blocks, nil
 }
 
-func testFormatCompleteCompare(t *testing.T, n int, arg interface{}, format string, want []string, detectStackBoundaries bool) {
+func testFormatCompleteCompare(t *testing.T, n int, arg any, format string, want []string, detectStackBoundaries bool) {
 	gotStr := fmt.Sprintf(format, arg)
 
 	got, err := parseBlocks(gotStr, detectStackBoundaries)

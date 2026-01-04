@@ -92,14 +92,14 @@ func (f Frame) name() string {
 //
 // Format accepts flags that alter the printing of some verbs, as follows:
 //
-//	%#s   function name and path of source file relative to the compile time
+//	%+s   function name and path of source file relative to the compile time
 //	      GOPATH separated by \n\t (<funcname>\n\t<path>)
-//	%#v   equivalent to %#s:%d
+//	%+v   equivalent to %+s:%d
 func (f Frame) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 's':
 		switch {
-		case s.Flag('#'):
+		case s.Flag('+'):
 			_, _ = io.WriteString(s, f.name())
 			_, _ = io.WriteString(s, "\n\t")
 			_, _ = io.WriteString(s, f.file())
@@ -127,12 +127,12 @@ type StackTrace []Frame
 //
 // Format accepts flags that alter the printing of some verbs, as follows:
 //
-//	%#v   Prints filename, function, and line number for each Frame in the stack.
+//	%+v   Prints filename, function, and line number for each Frame in the stack.
 func (st StackTrace) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		switch {
-		case s.Flag('#'):
+		case s.Flag('+'):
 			for _, f := range st {
 				_, _ = io.WriteString(s, "\n")
 				f.Format(s, verb)
@@ -165,18 +165,10 @@ func (s *stack) Format(st fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		switch {
-		case st.Flag('#'):
+		case st.Flag('+'):
 			for _, pc := range *s {
 				f := Frame(pc)
-				_, _ = fmt.Fprintf(st, "\n%#v", f)
-			}
-		case st.Flag('+'):
-			for i, pc := range *s {
-				if i >= 3 { // truncation after 3 frames
-					break
-				}
-				f := Frame(pc)
-				_, _ = fmt.Fprintf(st, " %+v", f)
+				_, _ = fmt.Fprintf(st, "\n%+v", f)
 			}
 		default:
 		}
