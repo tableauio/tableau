@@ -167,13 +167,13 @@ func (p *tableParser) parseMapField(field *Field, msg protoreflect.Message, r *b
 		// composite type with cardinality. In practice, it is a very useful.
 		return p.parseIncellMapField(field, msg, r, prefix)
 	default:
-		return false, xerrors.Errorf("unknown layout: %v", layout)
+		return false, xerrors.Newf("unknown layout: %v", layout)
 	}
 }
 
 func (p *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	if field.fd.MapValue().Kind() != protoreflect.MessageKind {
-		return false, xerrors.Errorf("vertical map value as scalar type is not supported")
+		return false, xerrors.Newf("vertical map value as scalar type is not supported")
 	}
 	newPrefix := prefix + field.opts.Name
 	keyColName := newPrefix + field.opts.Key
@@ -239,7 +239,7 @@ func (p *tableParser) parseVerticalMapField(field *Field, msg protoreflect.Messa
 
 func (p *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	if field.fd.MapValue().Kind() != protoreflect.MessageKind {
-		return false, xerrors.Errorf("horizontal map value as scalar type is not supported")
+		return false, xerrors.Newf("horizontal map value as scalar type is not supported")
 	}
 	if msg.Has(field.fd) {
 		// When the map's layout is horizontal, skip if it was already populated.
@@ -253,7 +253,7 @@ func (p *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Mes
 			// map field not found and is optional, just return false, nil.
 			return false, nil
 		}
-		return false, xerrors.Errorf("no cell found with digit suffix for horizontal map field")
+		return false, xerrors.Newf("no cell found with digit suffix for horizontal map field")
 	}
 	fixedSize := fieldprop.GetSize(field.opts.Prop, detectedSize)
 	size := detectedSize
@@ -316,7 +316,7 @@ func (p *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Mes
 			// Check that no empty item is existed in between, so we should guarantee
 			// that all the remaining items are not present, otherwise report error!
 			if keyPresent || valuePresent {
-				return false, xerrors.ErrorKV("map items are not present continuously", r.CellDebugKV(keyColName)...)
+				return false, xerrors.NewKV("map items are not present continuously", r.CellDebugKV(keyColName)...)
 			}
 			continue
 		}
@@ -346,7 +346,7 @@ func (p *tableParser) parseIncellMapField(field *Field, msg protoreflect.Message
 			err = p.parseIncellMapWithSimpleKV(field, reflectMap, cell.Data)
 		} else {
 			if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
-				err = xerrors.Errorf("map value type is not KV struct, and is not supported")
+				err = xerrors.Newf("map value type is not KV struct, and is not supported")
 			} else {
 				err = p.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cell.Data)
 			}
@@ -372,13 +372,13 @@ func (p *tableParser) parseListField(field *Field, msg protoreflect.Message, r *
 		// composite type with cardinality. In practice, it is a very useful.
 		return p.parseIncellListField(field, msg, r, prefix, cardPrefix)
 	default:
-		return false, xerrors.Errorf("unknown layout: %v", layout)
+		return false, xerrors.Newf("unknown layout: %v", layout)
 	}
 }
 
 func (p *tableParser) parseVerticalListField(field *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	if field.fd.Kind() != protoreflect.MessageKind {
-		return false, xerrors.Errorf("vertical list element as scalar type is not supported")
+		return false, xerrors.Newf("vertical list element as scalar type is not supported")
 	}
 	list := msg.Mutable(field.fd).List()
 	elemPresent := false
@@ -392,7 +392,7 @@ func (p *tableParser) parseVerticalListField(field *Field, msg protoreflect.Mess
 		md := elemValue.Message().Descriptor()
 		fd := p.findFieldByName(md, field.opts.Key)
 		if fd == nil {
-			return false, xerrors.ErrorKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), r.CellDebugKV(keyColName)...)
+			return false, xerrors.NewKV(fmt.Sprintf("key field not found in proto definition: %s", field.opts.Key), r.CellDebugKV(keyColName)...)
 		}
 		cell, err := r.Cell(keyColName, p.IsFieldOptional(field))
 		if err != nil {
@@ -473,7 +473,7 @@ func (p *tableParser) parseHorizontalListField(field *Field, msg protoreflect.Me
 			// list field not found and is optional, just return false, nil.
 			return false, nil
 		}
-		return false, xerrors.Errorf("no cell found with digit suffix for horizontal list field")
+		return false, xerrors.Newf("no cell found with digit suffix for horizontal list field")
 	}
 	fixedSize := fieldprop.GetSize(field.opts.Prop, detectedSize)
 	size := detectedSize
@@ -646,7 +646,7 @@ func (p *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r 
 func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
 	unionDesc := xproto.ExtractUnionDescriptor(msg.Descriptor())
 	if unionDesc == nil {
-		return false, xerrors.Errorf("illegal definition of union: %s", msg.Descriptor().FullName())
+		return false, xerrors.Newf("illegal definition of union: %s", msg.Descriptor().FullName())
 	}
 
 	// parse union type

@@ -54,7 +54,7 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 			return xerrors.Wrapf(err, "failed to export %s to Bin", name)
 		}
 	default:
-		return xerrors.Errorf("unknown output format: %v", fmt)
+		return xerrors.Newf("unknown output format: %v", fmt)
 	}
 
 	fpath := filepath.Join(dir, filename)
@@ -66,7 +66,7 @@ func Store(msg proto.Message, dir string, fmt format.Format, options ...Option) 
 	// write file
 	err = os.WriteFile(fpath, out, xfs.DefaultFilePerm)
 	if err != nil {
-		return xerrors.Errorf(`write file "%s" failed: %s`, fpath, err)
+		return xerrors.Newf(`write file "%s" failed: %s`, fpath, err)
 	}
 	// out.WriteTo(os.Stdout)
 	log.Infof("%15s: %s", "generated conf", filename)

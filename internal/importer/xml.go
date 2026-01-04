@@ -223,7 +223,7 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		if typeAttr := node.GetAttribute(atTypeDisplacement); typeAttr != nil {
 			// predefined struct
 			if len(node.Attributes) != 1 || len(node.Children) != 0 || node.Text != "" {
-				return xerrors.Errorf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)
+				return xerrors.Newf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)
 			}
 			bnode.Kind = book.MapNode
 			bnode.Children = append(bnode.Children, &book.Node{
@@ -262,7 +262,7 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			if child.Text != "" {
 				// child with text is regarded as an attribute
 				if len(child.Attributes) != 0 || len(child.Children) != 0 {
-					return xerrors.Errorf("node contains text so attributes and children must be empty|name: %s", child.Name)
+					return xerrors.Newf("node contains text so attributes and children must be empty|name: %s", child.Name)
 				}
 				_, err := parseXMLAttribute(curBNode, child.Name, child.Text, false)
 				if err != nil {
@@ -338,7 +338,7 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 				bnode.Children = append(bnode.Children, existingBnode)
 			}
 			if existingBnode.Kind != book.ListNode {
-				return xerrors.Errorf("children name confilcts with attributes|name: %s", node.Name)
+				return xerrors.Newf("children name confilcts with attributes|name: %s", node.Name)
 			}
 			subNode.Name = ""
 			existingBnode.Children = append(existingBnode.Children, subNode)
@@ -406,7 +406,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 			return bnode, nil
 		default:
 			if !isFirstAttr {
-				return nil, xerrors.Errorf("vertical map not supported on non-first attributes")
+				return nil, xerrors.Newf("vertical map not supported on non-first attributes")
 			}
 			// vertical map
 			curBNode = &book.Node{

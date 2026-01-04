@@ -121,7 +121,7 @@ func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 			}
 		}
 	default:
-		return xerrors.Errorf("unknown patch type: %v", patch)
+		return xerrors.Newf("unknown patch type: %v", patch)
 	}
 	log.Debugf("patched(%s) %s by %v: %s", patch, name, existedPatchPaths, msg)
 	return nil
@@ -143,7 +143,7 @@ func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format
 	case format.Bin:
 		unmarshalErr = proto.Unmarshal(content, msg)
 	default:
-		return xerrors.Errorf("unknown format: %v", fmt)
+		return xerrors.Newf("unknown format: %v", fmt)
 	}
 	if unmarshalErr != nil {
 		lines := extractLinesOnUnmarshalError(unmarshalErr, fmt, content)
@@ -159,7 +159,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 	md := msg.ProtoReflect().Descriptor()
 	protofile, bookOpts := confgen.ParseFileOptions(md.ParentFile())
 	if bookOpts == nil {
-		return xerrors.Errorf("workbook options not found of protofile: %v", protofile)
+		return xerrors.Newf("workbook options not found of protofile: %v", protofile)
 	}
 	// rewrite subdir
 	bookName := bookOpts.GetName()

@@ -160,10 +160,10 @@ func (t *Table) FindBlockEndRow(startRow int) int {
 // Cell returns the cell value at (row, col).
 func (t *Table) Cell(row, col int) (string, error) {
 	if row < t.BeginRow() || row >= t.EndRow() {
-		return "", xerrors.Errorf("cell row %d out of range", row)
+		return "", xerrors.Newf("cell row %d out of range", row)
 	}
 	if col < t.BeginCol() || col >= t.EndCol() {
-		return "", xerrors.Errorf("cell col %d out of range", col)
+		return "", xerrors.Newf("cell col %d out of range", col)
 	}
 	// NOTE: different row may have different length.
 	if col >= len(t.Rows[row]) {

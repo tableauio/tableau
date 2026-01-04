@@ -201,7 +201,7 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 		log.Warnf("logic should not reach scalar node(%d:%d), value: %v, maybe encounter an empty document", node.Line, node.Column, node.Value)
 		return nil
 	default:
-		return xerrors.Errorf("unknown yaml node(%d:%d) kind: %v, value: %v", node.Line, node.Column, node.Kind, node.Value)
+		return xerrors.Newf("unknown yaml node(%d:%d) kind: %v, value: %v", node.Line, node.Column, node.Kind, node.Value)
 	}
 }
 

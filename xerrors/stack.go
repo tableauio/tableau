@@ -3,11 +3,12 @@ package xerrors
 import (
 	"fmt"
 	"io"
-	"path"
 	"runtime"
 	"strconv"
 	"strings"
 )
+
+const unknown = "unknown"
 
 // Frame represents a program counter inside a stack frame.
 // For historical reasons if Frame is interpreted as a uintptr
@@ -23,10 +24,43 @@ func (f Frame) pc() uintptr { return uintptr(f) - 1 }
 func (f Frame) file() string {
 	fn := runtime.FuncForPC(f.pc())
 	if fn == nil {
-		return "unknown"
+		return unknown
 	}
 	file, _ := fn.FileLine(f.pc())
 	return file
+}
+
+// trimmedFile returns a package/file description of the caller,
+// preserving only the leaf directory name and file name.
+//
+// Refer to https://github.com/uber-go/zap/blob/v1.27.1/zapcore/entry.go#L100
+func (f Frame) trimmedFile() string {
+	// nb. To make sure we trim the path correctly on Windows too, we
+	// counter-intuitively need to use '/' and *not* os.PathSeparator here,
+	// because the path given originates from Go stdlib, specifically
+	// runtime.Caller() which (as of Mar/17) returns forward slashes even on
+	// Windows.
+	//
+	// See https://github.com/golang/go/issues/3335
+	// and https://github.com/golang/go/issues/18151
+	//
+	// for discussion on the issue on Go side.
+	//
+	// Find the last separator.
+	//
+	file := f.file()
+	idx := strings.LastIndexByte(file, '/')
+	if idx == -1 {
+		return file
+	}
+	// Find the penultimate separator.
+	idx = strings.LastIndexByte(file[:idx], '/')
+	if idx == -1 {
+		return file
+	}
+	// Keep everything after the penultimate separator,
+	// and prepend it with '@'.
+	return "@" + file[idx+1:]
 }
 
 // line returns the line number of source code of the
@@ -44,7 +78,7 @@ func (f Frame) line() int {
 func (f Frame) name() string {
 	fn := runtime.FuncForPC(f.pc())
 	if fn == nil {
-		return "unknown"
+		return unknown
 	}
 	return fn.Name()
 }
@@ -70,7 +104,7 @@ func (f Frame) Format(s fmt.State, verb rune) {
 			_, _ = io.WriteString(s, "\n\t")
 			_, _ = io.WriteString(s, f.file())
 		default:
-			_, _ = io.WriteString(s, path.Base(f.file()))
+			_, _ = io.WriteString(s, f.trimmedFile())
 		}
 	case 'd':
 		_, _ = io.WriteString(s, strconv.Itoa(f.line()))
@@ -81,16 +115,6 @@ func (f Frame) Format(s fmt.State, verb rune) {
 		_, _ = io.WriteString(s, ":")
 		f.Format(s, 'd')
 	}
-}
-
-// MarshalText formats a stacktrace Frame as a text string. The output is the
-// same as that of fmt.Sprintf("%+v", f), but without newlines or tabs.
-func (f Frame) MarshalText() ([]byte, error) {
-	name := f.name()
-	if name == "unknown" {
-		return []byte(name), nil
-	}
-	return []byte(fmt.Sprintf("%s %s:%d", name, f.file(), f.line())), nil
 }
 
 // StackTrace is stack of Frames from innermost (newest) to outermost (oldest).
@@ -113,8 +137,6 @@ func (st StackTrace) Format(s fmt.State, verb rune) {
 				_, _ = io.WriteString(s, "\n")
 				f.Format(s, verb)
 			}
-		case s.Flag('#'):
-			_, _ = fmt.Fprintf(s, "%#v", []Frame(st))
 		default:
 			st.formatSlice(s, verb)
 		}
@@ -148,25 +170,28 @@ func (s *stack) Format(st fmt.State, verb rune) {
 				f := Frame(pc)
 				_, _ = fmt.Fprintf(st, "\n%+v", f)
 			}
+		default:
 		}
+	default:
 	}
 }
 
 func (s *stack) StackTrace() StackTrace {
 	f := make([]Frame, len(*s))
-	for i := 0; i < len(f); i++ {
+	for i := range f {
 		f[i] = Frame((*s)[i])
 	}
 	return f
 }
 
 // The argument skip is the number of stack frames to skip before recording in
-// pc, with 0 identifying the frame for callers itself and 1 identifying the
-// caller of callers
+// pc, skip == 0 means the caller of callers is the first frame shown.
 func callers(skip int) *stack {
 	const depth = 32
 	var pcs [depth]uintptr
-	n := runtime.Callers(1+skip, pcs[:])
+	// skip runtime.Callers and this function itself
+	skip += 2
+	n := runtime.Callers(skip, pcs[:])
 	var st stack = pcs[0:n]
 	return &st
 }

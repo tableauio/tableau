@@ -136,7 +136,7 @@ type oneMsg struct {
 // can call `xerrors.NewDesc(err)“ to print the pretty error message.
 func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Message, error) {
 	if len(impInfos) == 0 {
-		return nil, xerrors.ErrorKV("no importer to be parsed",
+		return nil, xerrors.NewKV("no importer to be parsed",
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 			xerrors.KeySheetName, info.SheetOpts.Name,
 			xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -400,7 +400,7 @@ func (p *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, 
 	}
 
 	if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
-		return xerrors.Errorf("map value type is not KV struct, and is not supported")
+		return xerrors.Newf("map value type is not KV struct, and is not supported")
 	}
 	return p.parseIncellMapWithValueAsSimpleKVMessage(field, reflectMap, cellData)
 }
@@ -539,7 +539,7 @@ func (p *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, cel
 		}
 	}
 	if keyFd == nil {
-		return mapKey, false, xerrors.Errorf("opts.Key %s not found in map value-type definition", field.opts.Key)
+		return mapKey, false, xerrors.Newf("opts.Key %s not found in map value-type definition", field.opts.Key)
 	}
 	var fieldValue protoreflect.Value
 	if keyFd.Kind() == protoreflect.EnumKind {
@@ -570,7 +570,7 @@ func (p *sheetParser) checkListKeyUnique(field *Field, keyData string) error {
 func (p *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string) error {
 	fd := p.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
-		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
+		return xerrors.Newf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
 	}
 	keyField := p.parseFieldDescriptor(fd)
 	defer keyField.release()
@@ -632,7 +632,7 @@ func (p *sheetParser) checkListKeySequence(field *Field, reflectList protoreflec
 func (p *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string, valueCount int64, merged bool) error {
 	fd := p.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
-		return xerrors.Errorf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
+		return xerrors.Newf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
 	}
 	keyField := p.parseFieldDescriptor(fd)
 	defer keyField.release()
@@ -676,7 +676,7 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 			return "", nil
 		}
 	} else {
-		return "", xerrors.Errorf("field %s is not map or list", field.fd.FullName())
+		return "", xerrors.Newf("field %s is not map or list", field.fd.FullName())
 	}
 	info := p.cards[cardPrefix]
 	if info == nil {
@@ -831,12 +831,12 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 	switch field.opts.GetProp().GetForm() {
 	case tableaupb.Form_FORM_TEXT:
 		if err := prototext.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
-			return false, xerrors.Errorf("unmarshal from text failed: %v", err)
+			return false, xerrors.Newf("unmarshal from text failed: %v", err)
 		}
 		return true, nil
 	case tableaupb.Form_FORM_JSON:
 		if err := protojson.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
-			return false, xerrors.Errorf("unmarshal from JSON failed: %v", err)
+			return false, xerrors.Newf("unmarshal from JSON failed: %v", err)
 		}
 		return true, nil
 	default:
@@ -871,7 +871,7 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 
 func (p *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cardPrefix string, dataList []string) (err error) {
 	if len(dataList) == 0 {
-		return xerrors.Errorf("union field data not provided")
+		return xerrors.Newf("union field data not provided")
 	}
 	var present bool
 	var fieldValue protoreflect.Value
@@ -895,7 +895,7 @@ func (p *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mess
 		case tableaupb.Layout_LAYOUT_HORIZONTAL:
 			present, err = p.parseListElems(field, list, cardPrefix, field.sep, dataList)
 		default:
-			return xerrors.Errorf("union list field has illegal layout: %s", field.opts.GetLayout())
+			return xerrors.Newf("union list field has illegal layout: %s", field.opts.GetLayout())
 		}
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		if types.IsWellKnownMessage(field.fd.Message().FullName()) {
@@ -925,16 +925,16 @@ func (p *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData 
 	switch form {
 	case tableaupb.Form_FORM_TEXT:
 		if err := prototext.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
-			return false, xerrors.Errorf("unmarshal from text failed: %v", err)
+			return false, xerrors.Newf("unmarshal from text failed: %v", err)
 		}
 		return true, nil
 	case tableaupb.Form_FORM_JSON:
 		if err := protojson.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {
-			return false, xerrors.Errorf("unmarshal from JSON failed: %v", err)
+			return false, xerrors.Newf("unmarshal from JSON failed: %v", err)
 		}
 		return true, nil
 	default:
-		return false, xerrors.Errorf("illegal cell data form: %s", form.String())
+		return false, xerrors.Newf("illegal cell data form: %s", form.String())
 	}
 }
 

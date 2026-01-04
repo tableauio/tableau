@@ -48,7 +48,7 @@ func New(ctx context.Context, filename string, setters ...Option) (Importer, err
 	case format.YAML:
 		return NewYAMLImporter(ctx, filename, setters...)
 	default:
-		return nil, xerrors.Errorf("unsupported format: %v", fmt)
+		return nil, xerrors.Newf("unsupported format: %v", fmt)
 	}
 }
 

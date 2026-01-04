@@ -154,7 +154,7 @@ func readCSVRows(filename string, topN uint) (rows [][]string, err error) {
 func parseCSVBookReaderOptions(filename string, sheetNames []string, metasheetName string) (*bookReaderOptions, error) {
 	bookName, _, err := xfs.ParseCSVFilenamePattern(filename)
 	if err != nil {
-		return nil, xerrors.Errorf("cannot parse the book name from filename: %s", filename)
+		return nil, xerrors.Newf("cannot parse the book name from filename: %s", filename)
 	}
 	globFilename := xfs.GenCSVBooknamePattern(filepath.Dir(filename), bookName)
 	matches, err := filepath.Glob(globFilename)
@@ -180,7 +180,7 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string, metasheetNa
 		filename := val.(string)
 		_, sheetName, err := xfs.ParseCSVFilenamePattern(filename)
 		if err != nil {
-			return nil, xerrors.Errorf("cannot parse the book name from filename: %s", filename)
+			return nil, xerrors.Newf("cannot parse the book name from filename: %s", filename)
 		}
 		if NeedSheet(sheetName, sheetNames) {
 			shReaderOpt := &sheetReaderOptions{

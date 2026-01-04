@@ -143,7 +143,7 @@ func parseTypeDescriptor(typeInfos *xproto.TypeInfos, rawType string) (*types.De
 				Kind:       typeInfo.Kind,
 			}, nil
 		} else {
-			return nil, xerrors.Errorf("predefined type not found: %s", rawType)
+			return nil, xerrors.Newf("predefined type not found: %s", rawType)
 		}
 	}
 	return types.ParseTypeDescriptor(rawType), nil
@@ -163,7 +163,7 @@ func parseIncellStruct(structType string) ([]string, error) {
 	for _, pair := range strings.Split(structType, ",") {
 		kv := strings.Split(strings.TrimSpace(pair), " ")
 		if len(kv) != 2 {
-			return nil, xerrors.Errorf("illegal type-variable pair: %v in incell struct: %s", pair, structType)
+			return nil, xerrors.Newf("illegal type-variable pair: %v in incell struct: %s", pair, structType)
 		}
 		fieldPairs = append(fieldPairs, kv...)
 	}

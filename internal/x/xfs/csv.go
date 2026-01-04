@@ -15,7 +15,7 @@ func ParseCSVFilenamePattern(filename string) (bookName, sheetName string, err e
 	if len(splits) == 2 {
 		return CleanSlashPath(splits[0]), splits[1], nil
 	}
-	return "", "", xerrors.Errorf("cannot parse the book name and sheet name from filename: %s", filename)
+	return "", "", xerrors.Newf("cannot parse the book name and sheet name from filename: %s", filename)
 }
 
 func GenCSVBooknamePattern(dir, bookName string) string {

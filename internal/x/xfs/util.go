@@ -165,7 +165,7 @@ func RangeFilesByFormat(dir string, fmt format.Format, callback func(bookPath st
 				return err
 			}
 		default:
-			return xerrors.Errorf("unknown fommat: %s", fmt)
+			return xerrors.Newf("unknown fommat: %s", fmt)
 		}
 	}
 	return nil

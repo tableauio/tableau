@@ -22,12 +22,12 @@ func assertError(t *testing.T, err error, errstr string, stackRegex string) {
 }
 
 func TestErrorf(t *testing.T) {
-	err := Errorf("msg %d", 111)
+	err := Newf("msg %d", 111)
 	assertError(t, err, "|Reason: msg 111", `\s+[^\n]*TestErrorf.*?errors_test`)
 }
 
 func TestErrorKV(t *testing.T) {
-	err := ErrorKV("msg", "key", "val", "key2", "val2")
+	err := NewKV("msg", "key", "val", "key2", "val2")
 	assertError(t, err, "|key: val|key2: val2|Reason: msg", `\s+[^\n]*TestErrorKV.*?errors_test`)
 }
 
@@ -54,17 +54,17 @@ func TestWrap(t *testing.T) {
 		},
 		{
 			name:   "Errof",
-			err:    Wrap(Errorf("Errorf")),
+			err:    Wrap(Newf("Errorf")),
 			errstr: "|Reason: Errorf",
 		},
 		{
 			name:   "Errorf with two Wrap",
-			err:    Wrap(Wrap(Errorf("Errorf"))),
+			err:    Wrap(Wrap(Newf("Errorf"))),
 			errstr: "|Reason: Errorf",
 		},
 		{
 			name:   "ErrorKV",
-			err:    Wrap(ErrorKV("ErrorKV 1", "key", "val")),
+			err:    Wrap(NewKV("ErrorKV 1", "key", "val")),
 			errstr: "|key: val|Reason: ErrorKV 1",
 		},
 	}
@@ -93,17 +93,17 @@ func TestWrapf(t *testing.T) {
 		},
 		{
 			name:   "Errof",
-			err:    Wrapf(Errorf("Errorf 1"), "Wrapf 2"),
+			err:    Wrapf(Newf("Errorf 1"), "Wrapf 2"),
 			errstr: "Wrapf 2|Reason: Errorf 1",
 		},
 		{
 			name:   "Errorf with two Wrapf",
-			err:    Wrapf(Wrapf(Errorf("Errorf 1"), "Wrapf 2"), "Wrapf 3"),
+			err:    Wrapf(Wrapf(Newf("Errorf 1"), "Wrapf 2"), "Wrapf 3"),
 			errstr: "Wrapf 3|Wrapf 2|Reason: Errorf 1",
 		},
 		{
 			name:   "ErrorKV",
-			err:    Wrapf(ErrorKV("ErrorKV 1", "key", "val"), "Wrapf %d", 2),
+			err:    Wrapf(NewKV("ErrorKV 1", "key", "val"), "Wrapf %d", 2),
 			errstr: "Wrapf 2|key: val|Reason: ErrorKV 1",
 		},
 	}
@@ -132,17 +132,17 @@ func TestWrapKV(t *testing.T) {
 		},
 		{
 			name:   "Errof",
-			err:    WrapKV(Errorf("Errorf 1"), "key", "val"),
+			err:    WrapKV(Newf("Errorf 1"), "key", "val"),
 			errstr: "|key: val|Reason: Errorf 1",
 		},
 		{
 			name:   "Errorf with two WrapKV",
-			err:    WrapKV(WrapKV(Errorf("Errorf 1"), "key", "val"), "key2", "val2"),
+			err:    WrapKV(WrapKV(Newf("Errorf 1"), "key", "val"), "key2", "val2"),
 			errstr: "|key2: val2|key: val|Reason: Errorf 1",
 		},
 		{
 			name:   "ErrorKV",
-			err:    WrapKV(ErrorKV("ErrorKV 1", "key", "val"), "key2", "val2"),
+			err:    WrapKV(NewKV("ErrorKV 1", "key", "val"), "key2", "val2"),
 			errstr: "|key2: val2|key: val|Reason: ErrorKV 1",
 		},
 	}
