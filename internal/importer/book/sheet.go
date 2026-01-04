@@ -26,7 +26,7 @@ type Sheet struct {
 	Name string
 	// Table represents the data structure of 2D flat table formats.
 	// E.g.: Excel, CSV.
-	Table *Table
+	Table Tabler
 	// Document represents the data structure of tree document formats.
 	// E.g.: XML, YAML.
 	Document *Node
@@ -36,10 +36,10 @@ type Sheet struct {
 }
 
 // NewTableSheet creates a new Sheet with a table.
-func NewTableSheet(name string, rows [][]string, setters ...TableOption) *Sheet {
+func NewTableSheet(name string, rows [][]string) *Sheet {
 	return &Sheet{
 		Name:  name,
-		Table: NewTable(rows, setters...),
+		Table: NewTable(rows),
 	}
 }
 

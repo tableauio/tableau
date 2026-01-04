@@ -552,7 +552,11 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 				blockBeginRow := row
 				blockEndRow := sheet.Table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(sheet.Name, sheet.Table.Rows, book.Rows(blockBeginRow, blockEndRow))
+				subSheet := &book.Sheet{
+					Name:  sheet.Name,
+					Table: sheet.Table.SubTable(book.Rows(blockBeginRow, blockEndRow)),
+					Meta:  sheet.Meta,
+				}
 				if err := extractStructTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
 					return err
 				}
@@ -577,7 +581,11 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 				blockBeginRow := row
 				blockEndRow := sheet.Table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(sheet.Name, sheet.Table.Rows, book.Rows(blockBeginRow, blockEndRow))
+				subSheet := &book.Sheet{
+					Name:  sheet.Name,
+					Table: sheet.Table.SubTable(book.Rows(blockBeginRow, blockEndRow)),
+					Meta:  sheet.Meta,
+				}
 				if err := extractUnionTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
 					return err
 				}
@@ -623,7 +631,11 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				blockEndRow := sheet.Table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(subWs.Name, sheet.Table.Rows, book.Rows(blockBeginRow, blockEndRow))
+				subSheet := &book.Sheet{
+					Name:  sheet.Name,
+					Table: sheet.Table.SubTable(book.Rows(blockBeginRow, blockEndRow)),
+					Meta:  sheet.Meta,
+				}
 				if err := parseEnumType(subWs, subSheet, parser, gen); err != nil {
 					return nil, err
 				}
@@ -654,7 +666,11 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				blockEndRow := sheet.Table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(subWs.Name, sheet.Table.Rows, book.Rows(blockBeginRow, blockEndRow))
+				subSheet := &book.Sheet{
+					Name:  sheet.Name,
+					Table: sheet.Table.SubTable(book.Rows(blockBeginRow, blockEndRow)),
+					Meta:  sheet.Meta,
+				}
 				if err := parseStructType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}
@@ -685,7 +701,11 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				blockEndRow := sheet.Table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := book.NewTableSheet(subWs.Name, sheet.Table.Rows, book.Rows(blockBeginRow, blockEndRow))
+				subSheet := &book.Sheet{
+					Name:  sheet.Name,
+					Table: sheet.Table.SubTable(book.Rows(blockBeginRow, blockEndRow)),
+					Meta:  sheet.Meta,
+				}
 				if err := parseUnionType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}

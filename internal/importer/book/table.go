@@ -20,6 +20,14 @@ type Tabler interface {
 	Cell(row, col int) (string, error)
 	GetRow(row int) []string
 	Position(row, col int) string
+	String() string
+
+	Transpose() Tabler
+	FindBlockEndRow(startRow int) int
+	SubTable(setters ...TableOption) Tabler
+
+	ExportCSV(writer io.Writer) error
+	ExportExcel(file *excelize.File, sheetName string) error
 }
 
 // Table represents a 2D array table.
@@ -30,7 +38,7 @@ type Table struct {
 }
 
 // NewTable creates a new Table.
-func NewTable(rows [][]string, setters ...TableOption) *Table {
+func NewTable(rows [][]string) *Table {
 	maxRow := len(rows)
 	maxCol := 0
 	// NOTE: different rows may have different lengths,
@@ -45,7 +53,6 @@ func NewTable(rows [][]string, setters ...TableOption) *Table {
 		Rows:   rows,
 		maxRow: maxRow,
 		maxCol: maxCol,
-		opts:   *parseTableOptions(setters...),
 	}
 }
 
@@ -129,8 +136,8 @@ func (t *Table) getCol(col int) []string {
 	return data
 }
 
-// IsRowEmpty checks whether the whole row is empty.
-func (t *Table) IsRowEmpty(row int) bool {
+// isRowEmpty checks whether the whole row is empty.
+func (t *Table) isRowEmpty(row int) bool {
 	if row >= len(t.Rows) {
 		return true
 	}
@@ -150,11 +157,36 @@ func (t *Table) IsRowEmpty(row int) bool {
 // are seperated by one or more empty rows.
 func (t *Table) FindBlockEndRow(startRow int) int {
 	for row := startRow; row < t.EndRow(); row++ {
-		if t.IsRowEmpty(row) {
+		if t.isRowEmpty(row) {
 			return row
 		}
 	}
 	return t.EndRow()
+}
+
+// isColEmpty checks whether the whole col is empty.
+func (t *Table) isColEmpty(col int) bool {
+	for _, row := range t.Rows {
+		if col < len(row) && row[col] != "" {
+			return false
+		}
+	}
+	return true
+}
+
+// findBlockEndCol finds the end col (col after the last non-empty col) of
+// the block. If the start col is empty, it will just return the start col.
+// Otherwise, it will return past-the-last non-empty col.
+//
+// NOTE: A block is a series of contiguous non-empty cols. So different blocks
+// are seperated by one or more empty cols.
+func (t *Table) findBlockEndCol(startCol int) int {
+	for col := startCol; col < t.EndCol(); col++ {
+		if t.isColEmpty(col) {
+			return col
+		}
+	}
+	return t.EndCol()
 }
 
 // Cell returns the cell value at (row, col).
@@ -234,6 +266,15 @@ func (t *Table) Position(row, col int) string {
 	return excel.Position(row, col)
 }
 
-func (t *Table) Transpose() *TransposedTable {
+func (t *Table) Transpose() Tabler {
 	return &TransposedTable{table: t}
+}
+
+func (t *Table) SubTable(setters ...TableOption) Tabler {
+	return &Table{
+		Rows:   t.Rows,
+		maxCol: t.maxCol,
+		maxRow: t.maxRow,
+		opts:   *parseTableOptions(setters...),
+	}
 }
