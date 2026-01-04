@@ -1,21 +1,21 @@
-Tree,Tree note
-Name,Type
-ID,uint32
-Num,int32
-,
-Pet,Pet note
-Name,Type
-Kind,int32
-Tip,[]string
-,
-,
-,
-FruitShop,FruitShop note
-Name,Type
-FruitType,enum<.FruitType>
-Prop,"map<int32, string>"
-,
-ColumnDisorderedStruct,ColumnDisorderedStruct note
-Type,Name
-int32,ID
-string,Name
+Tree,Tree note,
+Name,Type,
+ID,uint32,
+Num,int32,
+,,
+Pet,Pet note,
+Name,Type,Note
+Kind,int32,Pet's kind
+Tip,[]string,Pet's tips
+,,
+,,
+,,
+FruitShop,FruitShop note,
+Name,Type,
+FruitType,enum<.FruitType>,
+Prop,"map<int32, string>",
+,,
+ColumnDisorderedStruct,ColumnDisorderedStruct note,
+Type,Name,
+int32,ID,
+string,Name,

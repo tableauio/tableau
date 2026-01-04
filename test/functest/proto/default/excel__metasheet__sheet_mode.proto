@@ -100,8 +100,8 @@ message Tree {
 message Pet {
   option (tableau.struct) = {name:"StructType" note:"Pet note"};
 
-  int32 kind = 1 [(tableau.field) = {name:"Kind"}];
-  repeated string tip_list = 2 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}];
+  int32 kind = 1 [(tableau.field) = {name:"Kind"}]; // Pet's kind
+  repeated string tip_list = 2 [(tableau.field) = {name:"Tip" layout:LAYOUT_INCELL}]; // Pet's tips
 }
 
 message FruitShop {
