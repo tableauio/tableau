@@ -8,80 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xproto/protoc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/dynamicpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-func TestParseProtos(t *testing.T) {
-	type args struct {
-		ImportPaths []string
-		filenames   []string
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		// TODO: Add test cases.
-		{
-			name: "test1",
-			args: args{
-				ImportPaths: []string{
-					"../../proto", // tableau
-				},
-				filenames: []string{
-					"tableau/protobuf/unittest/unittest.proto",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			files, err := ParseProtos(tt.args.ImportPaths, tt.args.filenames...)
-			if err != nil {
-				t.Errorf("parseProtos() error = %v", err)
-			}
-			t.Logf("parsed proto files: %+v", files)
-		})
-	}
-}
-
-func TestNewFiles(t *testing.T) {
-	type args struct {
-		protoPaths        []string
-		protoFiles        []string
-		excludeProtoFiles []string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "test1",
-			args: args{
-				protoPaths: []string{
-					"../../proto", // tableau
-				},
-				protoFiles: []string{
-					"../../proto/tableau/protobuf/unittest/*.proto",
-				},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewFiles(tt.args.protoPaths, tt.args.protoFiles, tt.args.excludeProtoFiles...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewFiles() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
 
 func Test_extractTypeInfosFromMessage(t *testing.T) {
 	desc1, err := protoregistry.GlobalFiles.FindDescriptorByName("unittest.Item")
@@ -259,7 +192,7 @@ func TestCloneWellknownTypes(t *testing.T) {
 	filenames := []string{
 		"tableau/protobuf/unittest/unittest.proto",
 	}
-	files, err := ParseProtos(importPaths, filenames...)
+	files, err := protoc.ParseProtos(importPaths, filenames...)
 	if err != nil {
 		t.Errorf("parseProtos() error = %v", err)
 	}

@@ -1,17 +1,79 @@
-package xproto
+package protoc
 
 import (
+	"context"
+	"path/filepath"
+	"strings"
+
 	"github.com/bufbuild/protocompile"
 	"github.com/bufbuild/protocompile/linker"
 	"github.com/bufbuild/protocompile/protoutil"
 	"github.com/bufbuild/protocompile/walk"
+	"github.com/tableauio/tableau/internal/x/xfs"
+	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 type fileDescriptorProtoMap map[string]*descriptorpb.FileDescriptorProto // file path -> file desc proto
+
+// NewFiles creates a new protoregistry.Files from the provided proto paths, files, and excluded proto files.
+func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...string) (*protoregistry.Files, error) {
+	parsedExcludedProtoFiles := map[string]bool{}
+	for _, filename := range excludedProtoFiles {
+		matches, err := filepath.Glob(filename)
+		if err != nil {
+			return nil, xerrors.Wrapf(err, "failed to glob files in %s", filename)
+		}
+		for _, match := range matches {
+			cleanSlashPath := xfs.CleanSlashPath(match)
+			parsedExcludedProtoFiles[cleanSlashPath] = true
+		}
+	}
+	var parsedProtoFiles []string
+	for _, filename := range protoFiles {
+		matches, err := filepath.Glob(filename)
+		if err != nil {
+			return nil, xerrors.Wrapf(err, "failed to glob files in %s", filename)
+		}
+		for _, match := range matches {
+			cleanSlashPath := xfs.CleanSlashPath(match)
+			if !parsedExcludedProtoFiles[cleanSlashPath] {
+				for _, protoPath := range protoPaths {
+					cleanProtoPath := xfs.CleanSlashPath(protoPath) + "/"
+					cleanSlashPath = strings.TrimPrefix(cleanSlashPath, cleanProtoPath)
+				}
+				parsedProtoFiles = append(parsedProtoFiles, cleanSlashPath)
+			}
+		}
+	}
+	log.Debugf("proto files: %v", parsedProtoFiles)
+	return ParseProtos(protoPaths, parsedProtoFiles...)
+}
+
+// ParseProtos parses the proto paths and proto files to protoregistry.Files.
+func ParseProtos(protoPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
+	log.Debugf("proto paths: %v", protoPaths)
+	log.Debugf("proto files: %v", protoFiles)
+	compiler := protocompile.Compiler{
+		Resolver: protocompile.CompositeResolver{
+			protocompile.ResolverFunc(resolveGlobalFiles),
+			&protocompile.SourceResolver{
+				ImportPaths: protoPaths,
+			},
+		},
+		MaxParallelism: 1,
+	}
+	results, err := compiler.Compile(context.Background(), protoFiles...)
+	if err != nil {
+		return nil, err
+	}
+	return protodesc.NewFiles(toFDS(results))
+}
 
 func resolveGlobalFiles(path string) (protocompile.SearchResult, error) {
 	fd, err := protoregistry.GlobalFiles.FindFileByPath(path)
@@ -21,10 +83,11 @@ func resolveGlobalFiles(path string) (protocompile.SearchResult, error) {
 	return protocompile.SearchResult{Desc: fd}, nil
 }
 
-func convert(results linker.Files) *descriptorpb.FileDescriptorSet {
+// toFDS converts linker.Files to *descriptorpb.FileDescriptorSet.
+func toFDS(results linker.Files) *descriptorpb.FileDescriptorSet {
 	fdpMap := make(fileDescriptorProtoMap)
 	for _, res := range results {
-		convertOne(res, fdpMap)
+		convertFile(res, fdpMap)
 	}
 	fdps := make([]*descriptorpb.FileDescriptorProto, 0, len(fdpMap))
 	for _, fdp := range fdpMap {
@@ -33,7 +96,7 @@ func convert(results linker.Files) *descriptorpb.FileDescriptorSet {
 	return &descriptorpb.FileDescriptorSet{File: fdps}
 }
 
-func convertOne(d protoreflect.FileDescriptor, fdpMap fileDescriptorProtoMap) {
+func convertFile(d protoreflect.FileDescriptor, fdpMap fileDescriptorProtoMap) {
 	if _, ok := fdpMap[d.Path()]; ok {
 		// skip duplicate conversion
 		return
@@ -44,7 +107,7 @@ func convertOne(d protoreflect.FileDescriptor, fdpMap fileDescriptorProtoMap) {
 	// convert imports recursively
 	imports := d.Imports()
 	for i := 0; i < imports.Len(); i++ {
-		convertOne(imports.Get(i).FileDescriptor, fdpMap)
+		convertFile(imports.Get(i).FileDescriptor, fdpMap)
 	}
 }
 
@@ -59,7 +122,7 @@ func removeDynamicExtensionsFromProto(fd *descriptorpb.FileDescriptorProto) {
 	// Refer:
 	//   https://github.com/jhump/protoreflect/blob/v1.17.0/desc/protoparse/parser.go#L724
 	fd.Options = removeDynamicExtensionsFromOptions(fd.Options)
-	_ = walk.DescriptorProtos(fd, func(_ protoreflect.FullName, msg proto.Message) error {
+	err := walk.DescriptorProtos(fd, func(_ protoreflect.FullName, msg proto.Message) error {
 		switch msg := msg.(type) {
 		case *descriptorpb.DescriptorProto:
 			msg.Options = removeDynamicExtensionsFromOptions(msg.Options)
@@ -81,6 +144,9 @@ func removeDynamicExtensionsFromProto(fd *descriptorpb.FileDescriptorProto) {
 		}
 		return nil
 	})
+	if err != nil {
+		log.Warnf("walk descriptor protos failed: %v", err)
+	}
 }
 
 func removeDynamicExtensionsFromOptions[O proto.Message](opts O) O {
@@ -98,7 +164,17 @@ func removeOne(opts protoreflect.Message) {
 		return true
 	})
 	// serialize only these custom options
-	data, _ := proto.MarshalOptions{AllowPartial: true}.Marshal(dynamicOpts.Interface())
+	data, err := proto.MarshalOptions{AllowPartial: true}.Marshal(dynamicOpts.Interface())
+	if err != nil {
+		// oh, well... can't fix this one
+		log.Warnf("marshal dynamic options failed: %v", err)
+		return
+	}
 	// and then replace values by clearing these custom options and deserializing
-	_ = proto.UnmarshalOptions{AllowPartial: true, Merge: true}.Unmarshal(data, opts.Interface())
+	err = proto.UnmarshalOptions{AllowPartial: true, Merge: true}.Unmarshal(data, opts.Interface())
+	if err != nil {
+		// oh, well... can't fix this one
+		log.Warnf("unmarshal dynamic options failed: %v", err)
+		return
+	}
 }
