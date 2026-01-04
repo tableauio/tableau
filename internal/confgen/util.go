@@ -12,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/internal/x/xproto/protoc"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -257,7 +258,7 @@ func loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles
 		log.Debugf("use already injected protoregistry.GlobalFiles")
 		return protoregistry.GlobalFiles, nil
 	}
-	return xproto.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
+	return protoc.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
 }
 
 // storeMessage stores a message to one or multiple file formats.

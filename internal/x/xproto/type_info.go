@@ -1,100 +1,16 @@
 package xproto
 
 import (
-	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/tableauio/tableau/internal/types"
-	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
-
-// ParseProtos parses the proto paths and proto files to desc.FileDescriptor slices.
-func ParseProtos(protoPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
-	log.Debugf("proto paths: %v", protoPaths)
-	log.Debugf("proto files: %v", protoFiles)
-	parser := &protoparse.Parser{
-		ImportPaths:  protoPaths,
-		LookupImport: desc.LoadFileDescriptor,
-	}
-
-	fileDescs, err := parser.ParseFiles(protoFiles...)
-	if err != nil {
-		return nil, xerrors.Wrapf(err, "failed to ParseFiles from proto files")
-	}
-	fds := desc.ToFileDescriptorSet(fileDescs...)
-	files, err := protodesc.NewFiles(fds)
-	if err != nil {
-		return nil, xerrors.Wrapf(err, "failed to creates a new protoregistry.Files from the provided FileDescriptorSet message")
-	}
-	return files, nil
-}
-
-// NewFiles creates a new protoregistry.Files from the proto paths and proto Gob filenames.
-func NewFiles(protoPaths []string, protoFiles []string, excludeProtoFiles ...string) (*protoregistry.Files, error) {
-	parsedExcludedProtoFiles := map[string]bool{}
-	for _, filename := range excludeProtoFiles {
-		matches, err := filepath.Glob(filename)
-		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to glob files in %s", filename)
-		}
-		for _, match := range matches {
-			cleanSlashPath := xfs.CleanSlashPath(match)
-			parsedExcludedProtoFiles[cleanSlashPath] = true
-		}
-	}
-	var parsedProtoFiles []string
-	for _, filename := range protoFiles {
-		matches, err := filepath.Glob(filename)
-		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to glob files in %s", filename)
-		}
-		for _, match := range matches {
-			cleanSlashPath := xfs.CleanSlashPath(match)
-			if !parsedExcludedProtoFiles[cleanSlashPath] {
-				for _, protoPath := range protoPaths {
-					cleanProtoPath := xfs.CleanSlashPath(protoPath) + "/"
-					cleanSlashPath = strings.TrimPrefix(cleanSlashPath, cleanProtoPath)
-				}
-				parsedProtoFiles = append(parsedProtoFiles, cleanSlashPath)
-			}
-		}
-
-		// for _, originMatch := range matches {
-		// 	match, err := filepath.Abs(originMatch)
-		// 	if err != nil {
-		// 		return nil, xerrors.Wrapf(err, "failed to get absolute path for %s", match)
-		// 	}
-		// 	cleanSlashPath := xfs.CleanSlashPath(match)
-		// 	for _, importPath := range protoPaths {
-		// 		importPath, err := filepath.Abs(importPath)
-		// 		if err != nil {
-		// 			return nil, xerrors.Wrapf(err, "failed to get absolute path for %s", importPath)
-		// 		}
-		// 		importCleanSlashPath := xfs.CleanSlashPath(importPath)
-		// 		if !strings.HasPrefix(cleanSlashPath, importCleanSlashPath) {
-		// 			log.Debugf("add proto file: %s", originMatch)
-		// 			parsedProtoFiles = append(parsedProtoFiles, originMatch)
-		// 		} else {
-		// 			parsedProtoFiles = append(parsedProtoFiles, strings.TrimPrefix(cleanSlashPath, importCleanSlashPath+"/"))
-		// 		}
-		// 	}
-		// }
-	}
-
-	log.Debugf("proto files: %v", parsedProtoFiles)
-
-	return ParseProtos(protoPaths, parsedProtoFiles...)
-}
 
 type TypeInfo struct {
 	FullName       protoreflect.FullName

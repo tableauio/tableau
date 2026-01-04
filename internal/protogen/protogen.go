@@ -18,6 +18,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/internal/x/xproto/protoc"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -92,7 +93,7 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 		}
 	}
 	// parse custom imported proto files
-	protoRegistryFiles, err := xproto.ParseProtos(
+	protoRegistryFiles, err := protoc.ParseProtos(
 		gen.InputOpt.ProtoPaths,
 		protoFiles...)
 	if err != nil {
