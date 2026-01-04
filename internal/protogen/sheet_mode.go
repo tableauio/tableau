@@ -129,7 +129,7 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 	for _, field := range desc.Fields {
 		shHeader.nameRowData = append(shHeader.nameRowData, strings.TrimSpace(field.Name))
 		shHeader.typeRowData = append(shHeader.typeRowData, field.Type)
-		shHeader.noteRowData = append(shHeader.noteRowData, "")
+		shHeader.noteRowData = append(shHeader.noteRowData, strings.TrimSpace(field.Note))
 	}
 	var parsed bool
 	var err error

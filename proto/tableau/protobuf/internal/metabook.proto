@@ -145,6 +145,7 @@ message StructDescriptor {
   message Field {
     string name = 1 [(tableau.field) = {name:"Name" prop:{unique:true}}];
     string type = 2 [(tableau.field) = {name:"Type"}];
+    string note = 3 [(tableau.field) = {name:"Note" prop:{optional:true}}];
   }
 }
 
