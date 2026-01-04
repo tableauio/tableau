@@ -393,7 +393,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			field.Fields = append(field.Fields, scalarField)
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
-		return cursor, xerrors.Errorf("should not reach default layout: %v", layout)
+		return cursor, xerrors.Newf("should not reach default layout: %v", layout)
 	}
 
 	return cursor, nil
@@ -610,7 +610,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				field.Predefined = tempField.Predefined
 				field.Options.Span = tempField.Options.Span
 			} else {
-				return cursor, xerrors.Errorf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
+				return cursor, xerrors.Newf("failed to parse list inner cell element, name cell: %s, type cell: %s", nameCell, typeCell)
 			}
 		} else {
 			// cross cell element
@@ -718,7 +718,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 			field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
-		return cursor, xerrors.Errorf("should not reach default layout: %s", layout)
+		return cursor, xerrors.Newf("should not reach default layout: %s", layout)
 	}
 	return cursor, nil
 }
@@ -809,13 +809,13 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 			fullMsgName := protoreflect.FullName(field.FullType)
 			typeInfo := p.gen.typeInfos.GetByFullName(fullMsgName)
 			if typeInfo == nil {
-				return cursor, xerrors.ErrorKV(fmt.Sprintf("predefined type not found: %v", fullMsgName),
+				return cursor, xerrors.NewKV(fmt.Sprintf("predefined type not found: %v", fullMsgName),
 					xerrors.KeyPBFieldType, desc.StructType,
 					xerrors.KeyPBFieldOpts, desc.Prop.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
 			}
 			if typeInfo.FirstFieldOptionName == "" {
-				return cursor, xerrors.ErrorKV(fmt.Sprintf("predefined type's first field option name not set: %v", fullMsgName),
+				return cursor, xerrors.NewKV(fmt.Sprintf("predefined type's first field option name not set: %v", fullMsgName),
 					xerrors.KeyPBFieldType, desc.StructType,
 					xerrors.KeyPBFieldOpts, desc.Prop.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)

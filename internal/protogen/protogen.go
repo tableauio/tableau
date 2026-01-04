@@ -353,7 +353,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 
 		// log.Debugf("dump document:\n%s", sheet.String())
 		if len(sheet.Document.Children) != 1 {
-			return xerrors.Errorf("document should have and only have one child (map node), sheet: %s", sheet.Name)
+			return xerrors.Newf("document should have and only have one child (map node), sheet: %s", sheet.Name)
 		}
 		// get the first child (map node) in document
 		child := sheet.Document.Children[0]
@@ -584,7 +584,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 			}
 		}
 	default:
-		return xerrors.Errorf("unknown mode: %v", mode)
+		return xerrors.Newf("unknown mode: %v", mode)
 	}
 	return nil
 }
@@ -694,6 +694,6 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		}
 		return worksheets, nil
 	default:
-		return nil, xerrors.Errorf("unknown mode: %v", mode)
+		return nil, xerrors.Newf("unknown mode: %v", mode)
 	}
 }

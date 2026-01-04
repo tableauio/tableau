@@ -123,7 +123,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 				log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)
 				continue
 			}
-			return xerrors.Errorf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
+			return xerrors.Newf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
 		}
 		// NOTE: one book may relate to multiple primary books
 		for _, fd := range primaryBookInfo.fds {
@@ -214,7 +214,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 
 		if sheetInfo.HasScatter() {
 			if sheetInfo.HasMerger() {
-				return xerrors.ErrorKV("option Scatter and Merger cannot be both set at one sheet",
+				return xerrors.NewKV("option Scatter and Merger cannot be both set at one sheet",
 					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, specifiedSheetName)
 			}
 			err := gen.processScatter(imp, sheetInfo)
@@ -232,7 +232,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		gen.PerfStats.Store(sheetInfo.MD.Name(), seconds)
 	}
 	if specifiedSheetName != "" && !worksheetFound {
-		return xerrors.ErrorKV(fmt.Sprintf("worksheet not found: %s", specifiedSheetName),
+		return xerrors.NewKV(fmt.Sprintf("worksheet not found: %s", specifiedSheetName),
 			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyBookName, workbook.Name,
 			xerrors.KeySheetName, specifiedSheetName)

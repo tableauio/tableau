@@ -261,13 +261,13 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			}
 			return parseVersion(fd.Message(), value, fprop.GetPattern())
 		default:
-			return pref.Value{}, false, xerrors.Errorf("not supported message type: %s", msgName)
+			return pref.Value{}, false, xerrors.Newf("not supported message type: %s", msgName)
 		}
 	// case pref.GroupKind:
 	// 	log.Panicf("not supported key type: %s", fd.Kind().String())
 	// 	return pref.Value{}
 	default:
-		return pref.Value{}, false, xerrors.Errorf("not supported scalar type: %s", fd.Kind().String())
+		return pref.Value{}, false, xerrors.Newf("not supported scalar type: %s", fd.Kind().String())
 	}
 }
 
@@ -360,7 +360,7 @@ func parseDuration(val string) (time.Duration, error) {
 			// "HHmmss" -> "<HH>h<mm>m<ss>s", e.g.: "101010" -> "10h10m10s"
 			val = val[0:2] + "h" + val[2:4] + "m" + val[4:] + "s"
 		default:
-			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HHmmss" or "HHmm"`)
+			return time.Duration(0), xerrors.Newf(`invalid time format, please follow format like: "HHmmss" or "HHmm"`)
 		}
 	} else if strings.Contains(val, ":") {
 		// TODO: check hour < 24, minute < 60, second < 60
@@ -373,7 +373,7 @@ func parseDuration(val string) (time.Duration, error) {
 			// "HH:mm:ss" -> "<HH>h<mm>m<ss>s", e.g.: "10:10:10" -> "10h10m10s"
 			val = splits[0] + "h" + splits[1] + "m" + splits[2] + "s"
 		default:
-			return time.Duration(0), xerrors.Errorf(`invalid time format, please follow format like: "HH:mm:ss" or "HH:mm"`)
+			return time.Duration(0), xerrors.Newf(`invalid time format, please follow format like: "HH:mm:ss" or "HH:mm"`)
 		}
 
 	}
@@ -594,7 +594,7 @@ func patternToSlice(pattern string) ([]uint32, error) {
 	for _, v := range patternSlice {
 		multiplier := uint64(v) + 1
 		if product > math.MaxUint64/multiplier {
-			return nil, xerrors.E2024(pattern, xerrors.Errorf("product of all pattern decimals overflow uint64"))
+			return nil, xerrors.E2024(pattern, xerrors.Newf("product of all pattern decimals overflow uint64"))
 		}
 		product *= multiplier
 	}

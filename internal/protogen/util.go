@@ -60,7 +60,7 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {
 	relativeDir, err := filepath.Rel(rootdir, dir)
 	if err != nil {
-		return "", xerrors.Errorf("failed to get relative path from %s to %s: %s", rootdir, dir, err)
+		return "", xerrors.Newf("failed to get relative path from %s to %s: %s", rootdir, dir, err)
 	}
 	// relative slash separated path
 	relativePath := filepath.Join(relativeDir, filename)

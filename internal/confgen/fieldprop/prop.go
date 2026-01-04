@@ -41,7 +41,7 @@ func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value 
 	}
 	splits := strings.SplitN(prop.Range, ",", 2)
 	if len(splits) != 2 {
-		return xerrors.Errorf(`invalid field prop range: %q, which should follow the pattern: "left,right"`, prop.Range)
+		return xerrors.Newf(`invalid field prop range: %q, which should follow the pattern: "left,right"`, prop.Range)
 	}
 	leftStr := strings.TrimSpace(splits[0])
 	rightStr := strings.TrimSpace(splits[1])
@@ -53,7 +53,7 @@ func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value 
 		if leftStr != "~" {
 			left, err := strconv.ParseInt(leftStr, 10, 64)
 			if err != nil {
-				return xerrors.Errorf("invalid range left: %s", prop.Range)
+				return xerrors.Newf("invalid range left: %s", prop.Range)
 			}
 			if v < left {
 				return xerrors.E2004(v, prop.Range)
@@ -62,7 +62,7 @@ func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value 
 		if rightStr != "~" {
 			right, err := strconv.ParseInt(rightStr, 10, 64)
 			if err != nil {
-				return xerrors.Errorf("invalid range right: %s", prop.Range)
+				return xerrors.Newf("invalid range right: %s", prop.Range)
 			}
 			if v > right {
 				return xerrors.E2004(v, prop.Range)
@@ -74,7 +74,7 @@ func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value 
 		if leftStr != "~" {
 			left, err := strconv.ParseUint(leftStr, 10, 64)
 			if err != nil {
-				return xerrors.Errorf("invalid range(left): %s", prop.Range)
+				return xerrors.Newf("invalid range(left): %s", prop.Range)
 			}
 			if v < left {
 				return xerrors.E2004(v, prop.Range)
@@ -83,7 +83,7 @@ func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value 
 		if rightStr != "~" {
 			right, err := strconv.ParseUint(rightStr, 10, 64)
 			if err != nil {
-				return xerrors.Errorf("invalid range right: %s", prop.Range)
+				return xerrors.Newf("invalid range right: %s", prop.Range)
 			}
 			if v > right {
 				return xerrors.E2004(v, prop.Range)
@@ -94,7 +94,7 @@ func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value 
 		if leftStr != "~" {
 			left, err := strconv.ParseFloat(leftStr, 64)
 			if err != nil {
-				return xerrors.Errorf("invalid range left: %s", prop.Range)
+				return xerrors.Newf("invalid range left: %s", prop.Range)
 			}
 			if v < left {
 				return xerrors.E2004(v, prop.Range)
@@ -103,14 +103,14 @@ func CheckInRange(prop *tableaupb.FieldProp, fieldKind protoreflect.Kind, value 
 		if rightStr != "~" {
 			right, err := strconv.ParseFloat(rightStr, 64)
 			if err != nil {
-				return xerrors.Errorf("invalid range right: %s", prop.Range)
+				return xerrors.Newf("invalid range right: %s", prop.Range)
 			}
 			if v > right {
 				return xerrors.E2004(v, prop.Range)
 			}
 		}
 	default:
-		return xerrors.Errorf("unsupported field kind: %s", fieldKind)
+		return xerrors.Newf("unsupported field kind: %s", fieldKind)
 	}
 	return nil
 }

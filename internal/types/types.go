@@ -287,7 +287,7 @@ func (x *PropDescriptor) FieldProp() (*tableaupb.FieldProp, error) {
 	}
 	fieldProp := &tableaupb.FieldProp{}
 	if err := prototext.Unmarshal([]byte(x.Text), fieldProp); err != nil {
-		return nil, xerrors.ErrorKV(fmt.Sprintf("failed to parse field prop: %s", err), xerrors.KeyPBFieldOpts, x.Text)
+		return nil, xerrors.NewKV(fmt.Sprintf("failed to parse field prop: %s", err), xerrors.KeyPBFieldOpts, x.Text)
 	}
 	return fieldProp, nil
 }

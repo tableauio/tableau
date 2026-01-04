@@ -3,11 +3,12 @@ package xerrors
 import (
 	"fmt"
 	"io"
-	"path"
 	"runtime"
 	"strconv"
 	"strings"
 )
+
+const unknown = "unknown"
 
 // Frame represents a program counter inside a stack frame.
 // For historical reasons if Frame is interpreted as a uintptr
@@ -23,10 +24,43 @@ func (f Frame) pc() uintptr { return uintptr(f) - 1 }
 func (f Frame) file() string {
 	fn := runtime.FuncForPC(f.pc())
 	if fn == nil {
-		return "unknown"
+		return unknown
 	}
 	file, _ := fn.FileLine(f.pc())
 	return file
+}
+
+// trimmedFile returns a package/file description of the caller,
+// preserving only the leaf directory name and file name.
+//
+// Refer to https://github.com/uber-go/zap/blob/v1.27.1/zapcore/entry.go#L100
+func (f Frame) trimmedFile() string {
+	// nb. To make sure we trim the path correctly on Windows too, we
+	// counter-intuitively need to use '/' and *not* os.PathSeparator here,
+	// because the path given originates from Go stdlib, specifically
+	// runtime.Caller() which (as of Mar/17) returns forward slashes even on
+	// Windows.
+	//
+	// See https://github.com/golang/go/issues/3335
+	// and https://github.com/golang/go/issues/18151
+	//
+	// for discussion on the issue on Go side.
+	//
+	// Find the last separator.
+	//
+	file := f.file()
+	idx := strings.LastIndexByte(file, '/')
+	if idx == -1 {
+		return file
+	}
+	// Find the penultimate separator.
+	idx = strings.LastIndexByte(file[:idx], '/')
+	if idx == -1 {
+		return file
+	}
+	// Keep everything after the penultimate separator,
+	// and prepend it with '@'.
+	return "@" + file[idx+1:]
 }
 
 // line returns the line number of source code of the
@@ -44,7 +78,7 @@ func (f Frame) line() int {
 func (f Frame) name() string {
 	fn := runtime.FuncForPC(f.pc())
 	if fn == nil {
-		return "unknown"
+		return unknown
 	}
 	return fn.Name()
 }
@@ -58,19 +92,19 @@ func (f Frame) name() string {
 //
 // Format accepts flags that alter the printing of some verbs, as follows:
 //
-//	%+s   function name and path of source file relative to the compile time
+//	%#s   function name and path of source file relative to the compile time
 //	      GOPATH separated by \n\t (<funcname>\n\t<path>)
-//	%+v   equivalent to %+s:%d
+//	%#v   equivalent to %#s:%d
 func (f Frame) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 's':
 		switch {
-		case s.Flag('+'):
+		case s.Flag('#'):
 			_, _ = io.WriteString(s, f.name())
 			_, _ = io.WriteString(s, "\n\t")
 			_, _ = io.WriteString(s, f.file())
 		default:
-			_, _ = io.WriteString(s, path.Base(f.file()))
+			_, _ = io.WriteString(s, f.trimmedFile())
 		}
 	case 'd':
 		_, _ = io.WriteString(s, strconv.Itoa(f.line()))
@@ -83,16 +117,6 @@ func (f Frame) Format(s fmt.State, verb rune) {
 	}
 }
 
-// MarshalText formats a stacktrace Frame as a text string. The output is the
-// same as that of fmt.Sprintf("%+v", f), but without newlines or tabs.
-func (f Frame) MarshalText() ([]byte, error) {
-	name := f.name()
-	if name == "unknown" {
-		return []byte(name), nil
-	}
-	return []byte(fmt.Sprintf("%s %s:%d", name, f.file(), f.line())), nil
-}
-
 // StackTrace is stack of Frames from innermost (newest) to outermost (oldest).
 type StackTrace []Frame
 
@@ -103,18 +127,16 @@ type StackTrace []Frame
 //
 // Format accepts flags that alter the printing of some verbs, as follows:
 //
-//	%+v   Prints filename, function, and line number for each Frame in the stack.
+//	%#v   Prints filename, function, and line number for each Frame in the stack.
 func (st StackTrace) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		switch {
-		case s.Flag('+'):
+		case s.Flag('#'):
 			for _, f := range st {
 				_, _ = io.WriteString(s, "\n")
 				f.Format(s, verb)
 			}
-		case s.Flag('#'):
-			_, _ = fmt.Fprintf(s, "%#v", []Frame(st))
 		default:
 			st.formatSlice(s, verb)
 		}
@@ -143,18 +165,28 @@ func (s *stack) Format(st fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		switch {
-		case st.Flag('+'):
+		case st.Flag('#'):
 			for _, pc := range *s {
 				f := Frame(pc)
-				_, _ = fmt.Fprintf(st, "\n%+v", f)
+				_, _ = fmt.Fprintf(st, "\n%#v", f)
 			}
+		case st.Flag('+'):
+			for i, pc := range *s {
+				if i >= 3 { // truncation after 3 frames
+					break
+				}
+				f := Frame(pc)
+				_, _ = fmt.Fprintf(st, " %+v", f)
+			}
+		default:
 		}
+	default:
 	}
 }
 
 func (s *stack) StackTrace() StackTrace {
 	f := make([]Frame, len(*s))
-	for i := 0; i < len(f); i++ {
+	for i := range f {
 		f[i] = Frame((*s)[i])
 	}
 	return f

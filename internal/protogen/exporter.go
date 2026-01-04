@@ -113,7 +113,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 			return xerrors.WrapKV(err)
 		} else {
 			if existed {
-				return xerrors.Errorf("file already exists: %s", path)
+				return xerrors.Newf("file already exists: %s", path)
 			}
 		}
 	}
@@ -164,7 +164,7 @@ func (x *sheetExporter) export() error {
 	case tableaupb.Mode_MODE_UNION_TYPE, tableaupb.Mode_MODE_UNION_TYPE_MULTI:
 		return x.exportUnion()
 	default:
-		return xerrors.Errorf("unknown mode: %v", mode)
+		return xerrors.Newf("unknown mode: %v", mode)
 	}
 }
 
@@ -183,7 +183,7 @@ func (x *sheetExporter) exportEnum() error {
 			x.p.P("  ", ename, " = 0;")
 		}
 		if field.Number == 0 && i != 0 {
-			return xerrors.Errorf("zero enum value must be the first one, but found at enum value row: %d", i+1)
+			return xerrors.Newf("zero enum value must be the first one, but found at enum value row: %d", i+1)
 		}
 		note := ""
 		if field.Alias != "" {
@@ -297,7 +297,7 @@ func (x *sheetExporter) exportUnion() error {
 func (x *sheetExporter) exportMessager() error {
 	// log.Debugf("workbook: %s", x.ws.String())
 	if x.be.messagerPatternRegexp != nil && !x.be.messagerPatternRegexp.MatchString(x.ws.Name) {
-		return xerrors.Errorf("messager %s does not match pattern %q", x.ws.Name, x.be.messagerPatternRegexp.String())
+		return xerrors.Newf("messager %s does not match pattern %q", x.ws.Name, x.be.messagerPatternRegexp.String())
 	}
 	x.p.P("message ", x.ws.Name, " {")
 	x.p.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")

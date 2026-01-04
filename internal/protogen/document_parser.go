@@ -336,7 +336,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 			return err
 		}
 		if fieldPairs == nil {
-			err := xerrors.Errorf("no fields defined in inner cell struct")
+			err := xerrors.Newf("no fields defined in inner cell struct")
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.StructType,
 				xerrors.KeyPBFieldOpts, desc.Prop.Text)

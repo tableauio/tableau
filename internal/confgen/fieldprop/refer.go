@@ -135,7 +135,7 @@ func (r *ReferDesc) GetMessageName() string {
 func parseRefer(text string) (*ReferDesc, error) {
 	match := referRegexp.FindStringSubmatch(text)
 	if match == nil {
-		return nil, xerrors.Errorf("invalid refer pattern: %s", text)
+		return nil, xerrors.Newf("invalid refer pattern: %s", text)
 	}
 	desc := &ReferDesc{}
 	for i, name := range referRegexp.SubexpNames() {

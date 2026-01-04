@@ -23,7 +23,7 @@ func TestNewDesc(t *testing.T) {
 		{
 			name: "general error",
 			args: args{
-				err: ErrorKV("some error",
+				err: NewKV("some error",
 					KeyPBFieldType, "Item",
 					KeyPBFieldOpts, "{unique: true}"),
 			},

@@ -21,7 +21,7 @@ type documentParser struct {
 
 func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 	if len(sheet.Document.Children) != 1 {
-		return xerrors.ErrorKV("document should have and only have one child (map node)",
+		return xerrors.NewKV("document should have and only have one child (map node)",
 			xerrors.KeySheetName, sheet.Name)
 	}
 	// get the first child (map node) in document
@@ -160,7 +160,7 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 					}
 					keyData = keyNode.Value
 				default:
-					return false, xerrors.ErrorKV("should not reach here", node.DebugKV()...)
+					return false, xerrors.NewKV("should not reach here", node.DebugKV()...)
 				}
 				newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, keyData)
 				if err != nil {
@@ -205,7 +205,7 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 				reflectMap.Set(newMapKey, newMapValue)
 			}
 		} else {
-			return false, xerrors.ErrorKV("should not reach here", node.DebugKV()...)
+			return false, xerrors.NewKV("should not reach here", node.DebugKV()...)
 		}
 	}
 
@@ -226,7 +226,7 @@ func (p *documentParser) parseScalarMap(field *Field, reflectMap protoreflect.Ma
 	}
 
 	if !types.CheckMessageWithOnlyKVFields(valueFd.Message()) {
-		return xerrors.Errorf("map value type is not KV struct, and is not supported")
+		return xerrors.Newf("map value type is not KV struct, and is not supported")
 	}
 	return p.parseScalarMapWithValueAsSimpleKVMessage(field, reflectMap, node)
 }
@@ -443,7 +443,7 @@ func (p *documentParser) parseScalarField(field *Field, msg protoreflect.Message
 func (p *documentParser) parseUnionMessage(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	unionDesc := xproto.ExtractUnionDescriptor(field.fd.Message())
 	if unionDesc == nil {
-		return false, xerrors.Errorf("illegal definition of union: %s", field.fd.Message().FullName())
+		return false, xerrors.Newf("illegal definition of union: %s", field.fd.Message().FullName())
 	}
 
 	// parse union type
@@ -493,7 +493,7 @@ func (p *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messag
 	}
 	fieldValue := msg.NewField(valueFD)
 	if valueFD.Kind() != protoreflect.MessageKind {
-		return false, xerrors.Errorf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
+		return false, xerrors.Newf("union value (oneof) as scalar type not supported: %s", valueFD.FullName())
 	}
 	// MUST be message type.
 	md := valueFD.Message()

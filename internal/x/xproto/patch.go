@@ -27,7 +27,7 @@ import (
 func PatchMessage(dst, src proto.Message) error {
 	dstMsg, srcMsg := dst.ProtoReflect(), src.ProtoReflect()
 	if dstMsg.Descriptor().FullName() != srcMsg.Descriptor().FullName() {
-		return xerrors.Errorf("dst %s and src %s are not messages with the same descriptor",
+		return xerrors.Newf("dst %s and src %s are not messages with the same descriptor",
 			dstMsg.Descriptor().FullName(),
 			srcMsg.Descriptor().FullName())
 	}
