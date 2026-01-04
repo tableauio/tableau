@@ -1,0 +1,7 @@
+ActivityTarget,Name,SignIn,Task
+ActivityTarget note,Alias,SignIn,Task
+,Field1,"Begin
+datetime","HiddenOnFinish
+bool"
+,Field2,"End
+datetime",
