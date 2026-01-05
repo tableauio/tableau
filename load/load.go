@@ -72,22 +72,19 @@ func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 	} else {
 		// patch path in PatchDirs
 		for _, patchDir := range opts.GetPatchDirs() {
-			patchPaths = append(patchPaths, filepath.Join(patchDir, name+format.Format2Ext(fmt)))
+			patchPath := filepath.Join(patchDir, name+format.Format2Ext(fmt))
+			// check if patch file exists
+			exists, err := xfs.Exists(patchPath)
+			if err != nil {
+				return xerrors.Wrapf(err, "failed to check file existence: %s", patchPath)
+			}
+			if exists {
+				patchPaths = append(patchPaths, patchPath)
+			}
 		}
 	}
 
-	// check existence of each patch path
-	var existedPatchPaths []string
-	for _, patchPath := range patchPaths {
-		existed, err := xfs.Exists(patchPath)
-		if err != nil {
-			return xerrors.Wrapf(err, "failed to check file existence: %s", patchPath)
-		}
-		if existed {
-			existedPatchPaths = append(existedPatchPaths, patchPath)
-		}
-	}
-	if len(existedPatchPaths) == 0 {
+	if len(patchPaths) == 0 {
 		if mode == ModeOnlyPatch {
 			// just returns empty message when ModeOnlyPatch specified but no valid patch file provided.
 			return nil
@@ -99,7 +96,7 @@ func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 	switch patch {
 	case tableaupb.Patch_PATCH_REPLACE:
 		// just use the last "patch" file
-		patchPath := existedPatchPaths[len(existedPatchPaths)-1]
+		patchPath := patchPaths[len(patchPaths)-1]
 		if err := loadFunc(msg, patchPath, format.GetFormat(patchPath), opts); err != nil {
 			return err
 		}
@@ -112,7 +109,7 @@ func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 		}
 		patchMsg := msg.ProtoReflect().New().Interface()
 		// load patchMsg from each "patch" file
-		for _, patchPath := range existedPatchPaths {
+		for _, patchPath := range patchPaths {
 			if err := loadFunc(patchMsg, patchPath, format.GetFormat(patchPath), opts); err != nil {
 				return err
 			}
@@ -123,7 +120,7 @@ func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 	default:
 		return xerrors.Newf("unknown patch type: %v", patch)
 	}
-	log.Debugf("patched(%s) %s by %v: %s", patch, name, existedPatchPaths, msg)
+	log.Debugf("patched(%s) %s by %v: %s", patch, name, patchPaths, msg)
 	return nil
 }
 
