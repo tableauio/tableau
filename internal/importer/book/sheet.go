@@ -26,7 +26,7 @@ type Sheet struct {
 	Name string
 	// Table represents the data structure of 2D flat table formats.
 	// E.g.: Excel, CSV.
-	Table Tabler
+	Table *Table
 	// Document represents the data structure of tree document formats.
 	// E.g.: XML, YAML.
 	Document *Node
@@ -48,6 +48,15 @@ func NewDocumentSheet(name string, doc *Node) *Sheet {
 	return &Sheet{
 		Name:     name,
 		Document: doc,
+	}
+}
+
+// SubSheet creates a new subSheet with the specified options.
+func (s *Sheet) SubSheet(setters ...TableOption) *Sheet {
+	return &Sheet{
+		Name:  s.Name,
+		Table: s.Tabler().SubTable(setters...),
+		Meta:  s.Meta,
 	}
 }
 
@@ -78,6 +87,16 @@ func (s *Sheet) String() string {
 		return s.Table.String()
 	} else {
 		return "empty: no table or document"
+	}
+}
+
+func (s *Sheet) Tabler() Tabler {
+	if s.Table == nil {
+		return nil
+	} else if s.Meta.GetTranspose() {
+		return s.Table.Transpose()
+	} else {
+		return s.Table
 	}
 }
 

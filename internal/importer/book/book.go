@@ -200,9 +200,6 @@ func (b *Book) ParseMetaAndPurge() (err error) {
 		}
 		reservedSheetNames = append(reservedSheetNames, sheetName)
 		sheet.Meta = sheetMeta
-		if sheetMeta.GetTranspose() {
-			sheet.Table = sheet.Table.Transpose()
-		}
 	}
 	// NOTE: only reserve the sheets that are specified in metasheet
 	b.Squeeze(reservedSheetNames)

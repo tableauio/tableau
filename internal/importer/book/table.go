@@ -20,14 +20,8 @@ type Tabler interface {
 	Cell(row, col int) (string, error)
 	GetRow(row int) []string
 	Position(row, col int) string
-	String() string
-
-	Transpose() Tabler
 	FindBlockEndRow(startRow int) int
-	SubTable(setters ...TableOption) Tabler
-
-	ExportCSV(writer io.Writer) error
-	ExportExcel(file *excelize.File, sheetName string) error
+	SubTable(setters ...TableOption) *Table
 }
 
 // Table represents a 2D array table.
@@ -270,7 +264,7 @@ func (t *Table) Transpose() Tabler {
 	return &TransposedTable{table: t}
 }
 
-func (t *Table) SubTable(setters ...TableOption) Tabler {
+func (t *Table) SubTable(setters ...TableOption) *Table {
 	return &Table{
 		Rows:   t.Rows,
 		maxCol: t.maxCol,
