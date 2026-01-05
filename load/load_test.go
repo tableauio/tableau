@@ -309,6 +309,7 @@ func TestLoadWithPatch(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
+		wantErr bool
 	}{
 		{
 			name: "PatchDirs-replace",
@@ -461,7 +462,6 @@ func TestLoadWithPatch(t *testing.T) {
 					PatchPaths: []string{
 						"../testdata/unittest/patchconf/PatchMergeConf.json",
 						"../testdata/unittest/patchconf2/PatchMergeConf.json",
-						"some/path/that/does/not/exist",
 					},
 				},
 			},
@@ -513,11 +513,16 @@ func TestLoadWithPatch(t *testing.T) {
 					PatchPaths: []string{"some/path/that/does/not/exist"},
 				},
 			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := LoadMessagerInDir(tt.args.msg, tt.args.dir, tt.args.fmt, tt.args.options)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			json, err := protojson.Marshal(tt.args.msg)
 			require.NoError(t, err)
