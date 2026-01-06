@@ -21,12 +21,16 @@ type tableParser struct {
 }
 
 func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
+	var table book.Tabler
 	if p.sheetOpts.Transpose {
-		// interchange the rows and columns
-		return p.parse(protomsg, sheet.Name, sheet.Table.Transpose())
+		// NOTE: we cannot use sheet.Tabler(), because the sheet meta is
+		// [internalpb.Metasheet] from metasheet in Excel/CSV, not
+		// [tableaupb.WorksheetOptions] from protobuf message options in proto file.
+		table = sheet.Table.Transpose()
 	} else {
-		return p.parse(protomsg, sheet.Name, sheet.Table)
+		table = sheet.Table
 	}
+	return p.parse(protomsg, sheet.Name, table)
 }
 
 func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book.Tabler) error {

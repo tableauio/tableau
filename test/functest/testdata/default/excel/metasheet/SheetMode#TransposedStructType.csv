@@ -1,0 +1,3 @@
+RobotAttribute,Name,ID,Name,Server1Type,Server1Scene,Version
+RobotAttribute note,Type,int32,string|{unique:true},[Server][]enum<.ServerType>,"[]{int64 SceneID, int64 Weight}Scene|{subsep:"",""}","version|{pattern:""99.999.99.999""}"
+,Note,Robot ID,Robot Name,Robot Server Types,Robot Server Scenes,Robot Version

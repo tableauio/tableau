@@ -39,3 +39,19 @@ func (t *TransposedTable) Position(row, col int) string {
 func (t *TransposedTable) GetRow(row int) []string {
 	return t.table.getCol(row)
 }
+
+func (t *TransposedTable) FindBlockEndRow(startRow int) int {
+	return t.table.findBlockEndCol(startRow)
+}
+
+func (t *TransposedTable) SubTable(options ...TableOption) *Table {
+	opts := parseTableOptions(options...)
+	opts.BeginCol, opts.BeginRow = opts.BeginRow, opts.BeginCol
+	opts.EndCol, opts.EndRow = opts.EndRow, opts.EndCol
+	return &Table{
+		Rows:   t.table.Rows,
+		maxCol: t.table.maxCol,
+		maxRow: t.table.maxRow,
+		opts:   *opts,
+	}
+}

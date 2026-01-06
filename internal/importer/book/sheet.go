@@ -36,10 +36,10 @@ type Sheet struct {
 }
 
 // NewTableSheet creates a new Sheet with a table.
-func NewTableSheet(name string, rows [][]string, setters ...TableOption) *Sheet {
+func NewTableSheet(name string, rows [][]string) *Sheet {
 	return &Sheet{
 		Name:  name,
-		Table: NewTable(rows, setters...),
+		Table: NewTable(rows),
 	}
 }
 
@@ -48,6 +48,15 @@ func NewDocumentSheet(name string, doc *Node) *Sheet {
 	return &Sheet{
 		Name:     name,
 		Document: doc,
+	}
+}
+
+// SubTableSheet creates a new sub table sheet with the specified options.
+func (s *Sheet) SubTableSheet(options ...TableOption) *Sheet {
+	return &Sheet{
+		Name:  s.Name,
+		Table: s.Tabler().SubTable(options...),
+		Meta:  s.Meta,
 	}
 }
 
@@ -66,7 +75,6 @@ func (s *Sheet) ParseMetasheet(parser SheetParser) (*internalpb.Metabook, error)
 
 // String returns the string representation of the Sheet, mainly
 // for debugging.
-//
 //   - Table: CSV form
 //   - Document: hierachy form
 func (s *Sheet) String() string {
@@ -78,6 +86,21 @@ func (s *Sheet) String() string {
 		return s.Table.String()
 	} else {
 		return "empty: no table or document"
+	}
+}
+
+// Tabler returns the table of the Sheet.
+// If the sheet is not a table, returns nil.
+// If the sheet is transposed, returns the transposed table, otherwise returns
+// the original table.
+func (s *Sheet) Tabler() Tabler {
+	if s.Table == nil {
+		return nil
+	}
+	if s.Meta.GetTranspose() {
+		return s.Table.Transpose()
+	} else {
+		return s.Table
 	}
 }
 

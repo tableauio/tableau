@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-var testTable *Table
+var testTable, testTable2 *Table
 
 func init() {
 	testTable = NewTable([][]string{
@@ -14,8 +14,13 @@ func init() {
 		{"31", "32", "33"},
 		{"41", "42"},
 	})
+	testTable2 = NewTable([][]string{
+		{"1", "11", "", "31", "41"},
+		{"2", "12", "", "32", "42"},
+		{"3", "13", "", "33"},
+	})
 }
-func TestTable_IsRowEmpty(t *testing.T) {
+func TestTable_isRowEmpty(t *testing.T) {
 	type args struct {
 		row int
 	}
@@ -52,8 +57,8 @@ func TestTable_IsRowEmpty(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.table.IsRowEmpty(tt.args.row); got != tt.want {
-				t.Errorf("Table.IsRowEmpty() = %v, want %v", got, tt.want)
+			if got := tt.table.isRowEmpty(tt.args.row); got != tt.want {
+				t.Errorf("Table.isRowEmpty() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -98,6 +103,94 @@ func TestTable_FindBlockEndRow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.tr.FindBlockEndRow(tt.args.startRow); got != tt.want {
 				t.Errorf("Table.FindBlockEndRow() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTable_isColEmpty(t *testing.T) {
+	type args struct {
+		col int
+	}
+	tests := []struct {
+		name  string
+		table *Table
+		args  args
+		want  bool
+	}{
+		{
+			name:  "empty-col",
+			table: testTable2,
+			args: args{
+				col: 2,
+			},
+			want: true,
+		},
+		{
+			name:  "not-found-empty-col",
+			table: testTable2,
+			args: args{
+				col: 999,
+			},
+			want: true,
+		},
+		{
+			name:  "none-empty-col",
+			table: testTable2,
+			args: args{
+				col: 0,
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.table.isColEmpty(tt.args.col); got != tt.want {
+				t.Errorf("Table.isColEmpty() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTable_findBlockEndCol(t *testing.T) {
+	type args struct {
+		startCol int
+	}
+	tests := []struct {
+		name string
+		tr   *Table
+		args args
+		want int
+	}{
+		{
+			name: "find-block-end-col",
+			tr:   testTable2,
+			args: args{
+				startCol: 0,
+			},
+			want: 2,
+		},
+		{
+			name: "start-col-is-empty",
+			tr:   testTable2,
+			args: args{
+				startCol: 2,
+			},
+			want: 2,
+		},
+		{
+			name: "last-col-not-empty",
+			tr:   testTable2,
+			args: args{
+				startCol: 3,
+			},
+			want: 5,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.tr.findBlockEndCol(tt.args.startCol); got != tt.want {
+				t.Errorf("Table.findBlockEndCol() = %v, want %v", got, tt.want)
 			}
 		})
 	}

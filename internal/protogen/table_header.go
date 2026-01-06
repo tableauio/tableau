@@ -24,12 +24,8 @@ type tableHeader struct {
 	validNames map[string]int // none-empty valid names: name -> cursor
 }
 
-func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption, table *book.Table) *tableHeader {
+func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption, t book.Tabler) *tableHeader {
 	header := parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts)
-	var t book.Tabler = table
-	if sheetOpts.Transpose {
-		t = table.Transpose()
-	}
 	return &tableHeader{
 		Header:      header,
 		Positioner:  t,

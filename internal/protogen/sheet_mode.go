@@ -23,11 +23,12 @@ const (
 	colFieldPrefix = "Field"  // name of column field prefix "Field"
 )
 
-// extractSheetBlockTypeRow find the first none-empty column as "name", and then
-// the subsequent column as "note" if provided.
-func extractSheetBlockTypeRow(cols []string) (name, note string, err error) {
+// extractTableBlockTypeRow find the first non-empty column as
+// the enum/struct/union type "name", and then the subsequent column
+// as "note" if provided.
+func extractTableBlockTypeRow(cols []string) (name, note string, err error) {
 	if len(cols) == 0 || cols[0] == "" {
-		err = fmt.Errorf("name cell not found in struct type name row")
+		err = fmt.Errorf("enum/struct/union name cell not found in table block type row")
 		return
 	}
 	name = cols[0]

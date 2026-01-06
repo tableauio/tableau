@@ -9,6 +9,7 @@ import "common/common.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
+import "tableau/protobuf/wellknown.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
@@ -126,6 +127,67 @@ message StructTypeReuseInBook {
     uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Reward ID
     protoconf.Pet pet = 2 [(tableau.field) = {name:"Pet"}];
     protoconf.TaskReward task_reward = 3 [(tableau.field) = {name:"TaskReward"}];
+  }
+}
+
+// HeroType note
+enum HeroType {
+  option (tableau.etype) = {name:"TransposedEnumType" note:"HeroType note"};
+
+  HERO_TYPE_INVALID = 0;
+  HERO_TYPE_ZEUS = 1 [(tableau.evalue).name = "Lord of Heaven"]; // Lord of Heaven
+  HERO_TYPE_LUNA = 2 [(tableau.evalue).name = "Moon Rider"]; // Moon Rider
+}
+
+// WeaponType note
+enum WeaponType {
+  option (tableau.etype) = {name:"TransposedEnumType" note:"WeaponType note"};
+
+  WEAPON_TYPE_INVALID = 0;
+  WEAPON_TYPE_BKB = 1 [(tableau.evalue).name = "Black King Bar"]; // Black King Bar
+  WEAPON_TYPE_MKB = 2 [(tableau.evalue).name = "Monkey King Bar"]; // Monkey King Bar
+}
+
+message RobotAttribute {
+  option (tableau.struct) = {name:"TransposedStructType" note:"RobotAttribute note"};
+
+  int32 id = 1 [(tableau.field) = {name:"ID"}]; // Robot ID
+  string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}]; // Robot Name
+  repeated Server server_list = 3 [(tableau.field) = {name:"Server" layout:LAYOUT_HORIZONTAL}];
+  message Server {
+    repeated protoconf.ServerType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}]; // Robot Server Types
+    repeated Scene scene_list = 2 [(tableau.field) = {name:"Scene" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{subsep:","}}]; // Robot Server Scenes
+    message Scene {
+      int64 scene_id = 1 [(tableau.field) = {name:"SceneID"}];
+      int64 weight = 2 [(tableau.field) = {name:"Weight"}];
+    }
+  }
+  tableau.Version version = 4 [(tableau.field) = {name:"Version" prop:{pattern:"99.999.99.999"}}]; // Robot Version
+}
+
+message ActivityTarget {
+  option (tableau.union) = {name:"TransposedUnionType" note:"ActivityTarget note"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {note:"ActivityTarget note" field:"Field"};
+
+    SignIn sign_in = 1; // Bound to enum value: TYPE_SIGN_IN.
+    Task task = 2; // Bound to enum value: TYPE_TASK.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_SIGN_IN = 1 [(tableau.evalue).name = "SignIn"]; // SignIn
+    TYPE_TASK = 2 [(tableau.evalue).name = "Task"]; // Task
+  }
+
+  message SignIn {
+    google.protobuf.Timestamp begin = 1 [(tableau.field) = {name:"Begin"}];
+    google.protobuf.Timestamp end = 2 [(tableau.field) = {name:"End"}];
+  }
+  message Task {
+    bool hidden_on_finish = 1 [(tableau.field) = {name:"HiddenOnFinish"}];
   }
 }
 
