@@ -51,8 +51,8 @@ func NewDocumentSheet(name string, doc *Node) *Sheet {
 	}
 }
 
-// SubSheet creates a new sub-sheet with the specified options.
-func (s *Sheet) SubSheet(options ...TableOption) *Sheet {
+// SubTableSheet creates a new sub table sheet with the specified options.
+func (s *Sheet) SubTableSheet(options ...TableOption) *Sheet {
 	return &Sheet{
 		Name:  s.Name,
 		Table: s.Tabler().SubTable(options...),
@@ -75,8 +75,8 @@ func (s *Sheet) ParseMetasheet(parser SheetParser) (*internalpb.Metabook, error)
 
 // String returns the string representation of the Sheet, mainly
 // for debugging.
-//  - Table: CSV form
-//  - Document: hierachy form
+//   - Table: CSV form
+//   - Document: hierachy form
 func (s *Sheet) String() string {
 	if s.Document != nil {
 		var buffer bytes.Buffer

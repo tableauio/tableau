@@ -282,7 +282,7 @@ func (t *Table) Position(row, col int) string {
 	return excel.Position(row, col)
 }
 
-// Transpose transposes the table.
+// Transpose interchanges the rows and columns of the table.
 func (t *Table) Transpose() *TransposedTable {
 	return &TransposedTable{table: t}
 }

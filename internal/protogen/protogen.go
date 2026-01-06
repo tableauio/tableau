@@ -554,7 +554,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 				blockBeginRow := row
 				blockEndRow := table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := sheet.SubSheet(book.Rows(blockBeginRow, blockEndRow))
+				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
 				if err := extractStructTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
 					return err
 				}
@@ -579,7 +579,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 				blockBeginRow := row
 				blockEndRow := table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := sheet.SubSheet(book.Rows(blockBeginRow, blockEndRow))
+				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
 				if err := extractUnionTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
 					return err
 				}
@@ -627,7 +627,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				blockEndRow := table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := sheet.SubSheet(book.Rows(blockBeginRow, blockEndRow))
+				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
 				if err := parseEnumType(subWs, subSheet, parser, gen); err != nil {
 					return nil, err
 				}
@@ -658,7 +658,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				blockEndRow := table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := sheet.SubSheet(book.Rows(blockBeginRow, blockEndRow))
+				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
 				if err := parseStructType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}
@@ -689,7 +689,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				}
 				blockEndRow := table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
-				subSheet := sheet.SubSheet(book.Rows(blockBeginRow, blockEndRow))
+				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
 				if err := parseUnionType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
 					return nil, err
 				}
