@@ -5,7 +5,7 @@ type TableOptions struct {
 	BeginCol, EndCol int
 }
 
-// Option is the functional option type.
+// TableOption is the functional option type for table.
 type TableOption func(*TableOptions)
 
 // Rows sets the table-occupied row range of the whole sheet: [begin, end).
@@ -24,9 +24,9 @@ func Cols(begin, end int) TableOption {
 	}
 }
 
-func parseTableOptions(setters ...TableOption) *TableOptions {
+func parseTableOptions(options ...TableOption) *TableOptions {
 	opts := &TableOptions{}
-	for _, setter := range setters {
+	for _, setter := range options {
 		setter(opts)
 	}
 	return opts

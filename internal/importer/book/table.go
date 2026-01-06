@@ -11,17 +11,36 @@ import (
 )
 
 type Tabler interface {
+	// BeginRow returns the begin row of this table.
 	BeginRow() int
+	// EndRow returns the end row (row after the last row) of this table.
 	EndRow() int
+	// BeginCol returns the begin column of this table.
 	BeginCol() int
+	// EndCol returns the end column (column after the last column) of this table.
 	EndCol() int
+	// RowSize returns the row size of this table.
 	RowSize() int
+	// ColSize returns the column size of this table.
 	ColSize() int
+	// Cell returns the cell value at (row, col).
 	Cell(row, col int) (string, error)
+	// GetRow returns the row data by row index (started with 0). It will return
+	// nil if not found.
 	GetRow(row int) []string
+	// Position generate the position (row, col) (e.g.: A1) in a sheet.
+	//
+	// NOTE: row and col are both 0-based.
 	Position(row, col int) string
+	// FindBlockEndRow finds the end row (row after the last non-empty row) of
+	// the block. If the start row is empty, it will just return the start row.
+	// Otherwise, it will return past-the-last non-empty row.
+	//
+	// NOTE: A block is a series of contiguous non-empty rows. So different blocks
+	// are seperated by one or more empty rows.
 	FindBlockEndRow(startRow int) int
-	SubTable(setters ...TableOption) *Table
+	// SubTable creates a sub-table of the table with specified options.
+	SubTable(options ...TableOption) *Table
 }
 
 // Table represents a 2D array table.
@@ -50,7 +69,7 @@ func NewTable(rows [][]string) *Table {
 	}
 }
 
-// BeginRow returns the begin row of the given block.
+// BeginRow returns the begin row of this table.
 func (t *Table) BeginRow() int {
 	if t.opts.BeginRow >= 0 {
 		return t.opts.BeginRow
@@ -58,7 +77,7 @@ func (t *Table) BeginRow() int {
 	return 0
 }
 
-// EndRow returns the end row (row after the last row) of the given block.
+// EndRow returns the end row (row after the last row) of this table.
 //
 // For loop example:
 //
@@ -72,7 +91,7 @@ func (t *Table) EndRow() int {
 	return t.maxRow
 }
 
-// BeginCol returns the begin column of the given block.
+// BeginCol returns the begin column of this table.
 func (t *Table) BeginCol() int {
 	if t.opts.BeginCol >= 0 {
 		return t.opts.BeginCol
@@ -80,7 +99,7 @@ func (t *Table) BeginCol() int {
 	return 0
 }
 
-// EndCol returns the end column (column after the last column) of the given block.
+// EndCol returns the end column (column after the last column) of this table.
 //
 // For loop example:
 //
@@ -94,12 +113,12 @@ func (t *Table) EndCol() int {
 	return t.maxCol
 }
 
-// RowSize returns the row size of the given block.
+// RowSize returns the row size of this table.
 func (t *Table) RowSize() int {
 	return t.EndRow() - t.BeginRow()
 }
 
-// ColSize returns the column size of the given block.
+// ColSize returns the column size of this table.
 func (t *Table) ColSize() int {
 	return t.EndCol() - t.BeginCol()
 }
@@ -256,19 +275,24 @@ func (t *Table) ExportExcel(file *excelize.File, sheetName string) error {
 	return nil
 }
 
+// Position generate the position (row, col) (e.g.: A1) in a sheet.
+//
+// NOTE: row and col are both 0-based.
 func (t *Table) Position(row, col int) string {
 	return excel.Position(row, col)
 }
 
-func (t *Table) Transpose() Tabler {
+// Transpose transposes the table.
+func (t *Table) Transpose() *TransposedTable {
 	return &TransposedTable{table: t}
 }
 
-func (t *Table) SubTable(setters ...TableOption) *Table {
+// SubTable creates a sub-table of the table with specified options.
+func (t *Table) SubTable(options ...TableOption) *Table {
 	return &Table{
 		Rows:   t.Rows,
 		maxCol: t.maxCol,
 		maxRow: t.maxRow,
-		opts:   *parseTableOptions(setters...),
+		opts:   *parseTableOptions(options...),
 	}
 }

@@ -44,8 +44,8 @@ func (t *TransposedTable) FindBlockEndRow(startRow int) int {
 	return t.table.findBlockEndCol(startRow)
 }
 
-func (t *TransposedTable) SubTable(setters ...TableOption) *Table {
-	opts := parseTableOptions(setters...)
+func (t *TransposedTable) SubTable(options ...TableOption) *Table {
+	opts := parseTableOptions(options...)
 	opts.BeginCol, opts.BeginRow = opts.BeginRow, opts.BeginCol
 	opts.EndCol, opts.EndRow = opts.EndRow, opts.EndCol
 	return &Table{
