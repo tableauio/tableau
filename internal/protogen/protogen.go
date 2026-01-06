@@ -522,7 +522,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 					continue
 				}
 				typeRow := table.GetRow(row - 1)
-				typeName, _, err := extractSheetBlockTypeRow(typeRow)
+				typeName, _, err := extractTableBlockTypeRow(typeRow)
 				if err != nil {
 					return xerrors.Wrapf(err, "failed to parse enum type block, sheet: %s, row: %d", sheet.Name, row)
 				}
@@ -547,7 +547,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 					continue
 				}
 				typeRow := table.GetRow(row - 1)
-				typeName, _, err := extractSheetBlockTypeRow(typeRow)
+				typeName, _, err := extractTableBlockTypeRow(typeRow)
 				if err != nil {
 					return xerrors.Wrapf(err, "failed to parse struct type block at row: %d, sheet: %s", row, sheet.Name)
 				}
@@ -572,7 +572,7 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 					continue
 				}
 				typeRow := table.GetRow(row - 1)
-				typeName, _, err := extractSheetBlockTypeRow(typeRow)
+				typeName, _, err := extractTableBlockTypeRow(typeRow)
 				if err != nil {
 					return xerrors.Wrapf(err, "failed to parse union type block, sheet: %s, row: %d", sheet.Name, row)
 				}
@@ -621,7 +621,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				typeRow := table.GetRow(row - 1)
 				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
-				subWs.Name, subWs.Note, err = extractSheetBlockTypeRow(typeRow)
+				subWs.Name, subWs.Note, err = extractTableBlockTypeRow(typeRow)
 				if err != nil {
 					return nil, xerrors.Wrapf(err, "failed to extract enum type block at row: %d, sheet: %s", row, sheet.Name)
 				}
@@ -652,7 +652,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				typeRow := table.GetRow(row - 1)
 				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
-				subWs.Name, subWs.Note, err = extractSheetBlockTypeRow(typeRow)
+				subWs.Name, subWs.Note, err = extractTableBlockTypeRow(typeRow)
 				if err != nil {
 					return nil, xerrors.Wrapf(err, "failed to extract struct type block at row: %d, sheet: %s", row, sheet.Name)
 				}
@@ -683,7 +683,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 				typeRow := table.GetRow(row - 1)
 				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
-				subWs.Name, subWs.Note, err = extractSheetBlockTypeRow(typeRow)
+				subWs.Name, subWs.Note, err = extractTableBlockTypeRow(typeRow)
 				if err != nil {
 					return nil, xerrors.Wrapf(err, "failed to extract union type block at row: %d, sheet: %s", row, sheet.Name)
 				}

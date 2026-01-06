@@ -28,7 +28,7 @@ type Tabler interface {
 	// GetRow returns the row data by row index (started with 0). It will return
 	// nil if not found.
 	GetRow(row int) []string
-	// Position generate the position (row, col) (e.g.: A1) in a sheet.
+	// Position generate the position (row, col) (e.g.: A1) in a table.
 	//
 	// NOTE: row and col are both 0-based.
 	Position(row, col int) string
@@ -177,7 +177,7 @@ func (t *Table) FindBlockEndRow(startRow int) int {
 	return t.EndRow()
 }
 
-// isColEmpty checks whether the whole col is empty.
+// isColEmpty checks whether the whole column is empty.
 func (t *Table) isColEmpty(col int) bool {
 	for _, row := range t.Rows {
 		if col < len(row) && row[col] != "" {
@@ -275,7 +275,7 @@ func (t *Table) ExportExcel(file *excelize.File, sheetName string) error {
 	return nil
 }
 
-// Position generate the position (row, col) (e.g.: A1) in a sheet.
+// Position generate the position (row, col) (e.g.: A1) in a table.
 //
 // NOTE: row and col are both 0-based.
 func (t *Table) Position(row, col int) string {
@@ -287,7 +287,7 @@ func (t *Table) Transpose() *TransposedTable {
 	return &TransposedTable{table: t}
 }
 
-// SubTable creates a sub-table of the table with specified options.
+// SubTable creates a sub table of the table with specified options.
 func (t *Table) SubTable(options ...TableOption) *Table {
 	return &Table{
 		Rows:   t.Rows,
