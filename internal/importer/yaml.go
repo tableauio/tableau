@@ -70,9 +70,7 @@ func readYAMLBook(ctx context.Context, filename string, sheetNames []string, par
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
-		if ok, err := checkSheetWanted(sheet.Name, sheetNames); err != nil {
-			return nil, xerrors.Wrapf(err, "failed to check sheet wanted: %s, sheetNames: %v", sheet.Name, sheetNames)
-		} else if ok {
+		if wantSheet(sheet.Name, sheetNames) {
 			newBook.AddSheet(sheet)
 		}
 	}

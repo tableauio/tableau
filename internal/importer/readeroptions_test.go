@@ -7,7 +7,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 )
 
-func Test_checkSheetWanted(t *testing.T) {
+func Test_wantSheet(t *testing.T) {
 	type args struct {
 		sheetName      string
 		wantSheetNames []string
@@ -59,8 +59,8 @@ func Test_checkSheetWanted(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, err := checkSheetWanted(tt.args.sheetName, tt.args.wantSheetNames); err == nil && got != tt.want {
-				t.Errorf("checkSheetWanted() = %v, want %v", got, tt.want)
+			if got := wantSheet(tt.args.sheetName, tt.args.wantSheetNames); got != tt.want {
+				t.Errorf("wantSheet() = %v, want %v", got, tt.want)
 			}
 		})
 	}

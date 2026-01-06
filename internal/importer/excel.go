@@ -179,9 +179,7 @@ func parseExcelBookReaderOptions(filename string, file *excelize.File, sheetName
 		Filename: filename,
 	}
 	for _, sheetName := range file.GetSheetList() {
-		if ok, err := checkSheetWanted(sheetName, sheetNames); err != nil {
-			return nil, xerrors.Wrapf(err, "failed to check sheet wanted: %s, sheetNames: %v", sheetName, sheetNames)
-		} else if ok {
+		if wantSheet(sheetName, sheetNames) {
 			shReaderOpt := &sheetReaderOptions{
 				Filename: filename,
 				Name:     sheetName,

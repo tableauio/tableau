@@ -57,51 +57,22 @@ type ImporterInfo struct {
 	SpecifiedSheetName string // Empty means no sheet specified.
 }
 
-// GetScatterImporters parses and returns all related importer infos.
-//  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
-//  2. exclude primary sheet, and auto filter out duplicate importers
-//  3. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+// GetScatterImporters parses and returns all related importer infos for scatter.
 func GetScatterImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
-	var importerInfos []ImporterInfo
-	books := map[string][]string{} // relative book path -> sheet name patterns
-	for _, specifier := range sheetSpecifiers {
-		relBookPaths, sheetNamePattern, err := ResolveSheetSpecifier(inputDir, primaryBookName, specifier, subdirRewrites)
-		if err != nil {
-			return nil, xerrors.WrapKV(err, xerrors.KeyPrimarySheetName, primarySheetName)
-		}
-		if sheetNamePattern == "" {
-			sheetNamePattern = primarySheetName
-		}
-		for relBookPath := range relBookPaths {
-			books[relBookPath] = append(books[relBookPath], sheetNamePattern)
-		}
-	}
-
-	for relBookPath, sheetNamePatterns := range books {
-		log.Infof("%15s: %s#%s", "scatter sheet", relBookPath, sheetNamePatterns)
-		path := filepath.Join(inputDir, relBookPath)
-		rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
-		primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
-		importer, err := New(ctx, path, Sheets(sheetNamePatterns), Cloned(primaryBookPath))
-		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to create importer: %s", path)
-		}
-		for _, sheet := range importer.GetSheets() {
-			if xfs.IsSamePath(path, primaryBookPath) && sheet.Name == primarySheetName {
-				continue // skip primary sheet
-			}
-			importerInfos = append(importerInfos, ImporterInfo{Importer: importer, SpecifiedSheetName: sheet.Name})
-		}
-	}
-	return importerInfos, nil
+	return getSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "scatter sheet")
 }
 
-// GetMergerImporters parses and returns all related importer infos.
+// GetMergerImporters parses and returns all related importer infos for merger.
+func GetMergerImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
+	return getSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "merge sheet")
+}
+
+// getSheetSpecifierImporters parses and returns all related importer infos.
 //  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 //  2. support filepath.Match pattern for worksheet name, see https://pkg.go.dev/path/filepath#Match
 //  3. exclude primary sheet, and auto filter out duplicate importers
-//  4. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
-func GetMergerImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
+//  4. special process for CSV filename pattern: "<BookNamePattern>#<SheetNamePattern>.csv"
+func getSheetSpecifierImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string, kind string) ([]ImporterInfo, error) {
 	var importerInfos []ImporterInfo
 	books := map[string][]string{} // relative book path -> sheet name patterns
 	for _, specifier := range sheetSpecifiers {
@@ -116,9 +87,8 @@ func GetMergerImporters(ctx context.Context, inputDir, primaryBookName, primaryS
 			books[relBookPath] = append(books[relBookPath], sheetNamePattern)
 		}
 	}
-
 	for relBookPath, sheetNamePatterns := range books {
-		log.Infof("%15s: %s#%s", "merge sheet", relBookPath, sheetNamePatterns)
+		log.Infof("%15s: %s#%s", kind, relBookPath, sheetNamePatterns)
 		path := filepath.Join(inputDir, relBookPath)
 		rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 		primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
@@ -139,7 +109,7 @@ func GetMergerImporters(ctx context.Context, inputDir, primaryBookName, primaryS
 
 // ResolveSheetSpecifier resolves and returns all related workbook paths and sheet names.
 //  1. support filepath.Glob pattern for workbook file, see https://pkg.go.dev/path/filepath#Glob
-//  2. special process for CSV filename pattern: "<BookName>#<SheetName>.csv"
+//  2. special process for CSV filename pattern: "<BookNamePattern>#<SheetNamePattern>.csv"
 func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier string, subdirRewrites map[string]string) (relBookPaths map[string]bool, sheetNamePattern string, err error) {
 	relBookPaths = map[string]bool{}
 	bookNamePattern, sheetNamePattern := parseSheetSpecifier(sheetSpecifier)
@@ -169,10 +139,6 @@ func ResolveSheetSpecifier(inputDir, primaryBookName string, sheetSpecifier stri
 				return
 			}
 		}
-		// if sheetNamePattern == "" && xfs.IsSamePath(path, primaryBookPath) {
-		// 	// sheet name not specified, so exclude self
-		// 	continue
-		// }
 		var secondaryBookPath string
 		secondaryBookPath, err = xfs.Rel(inputDir, path)
 		if err != nil {
