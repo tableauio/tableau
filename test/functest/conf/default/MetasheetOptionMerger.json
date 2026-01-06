@@ -19,6 +19,11 @@
             "id": 10,
             "name": "Marsh",
             "difficulty": 1000
+        },
+        "20": {
+            "id": 20,
+            "name": "Rainforest",
+            "difficulty": 2000
         }
     }
 }

@@ -35,6 +35,7 @@ type sheetExporter struct {
 
 }
 
+// NewSheetExporter creates a new sheet exporter.
 func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheetExporter {
 	return &sheetExporter{
 		OutputDir: outputDir,
@@ -42,7 +43,8 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheet
 	}
 }
 
-// ScatterAndExport parse multiple importer infos into separate protomsgs, then export each other.
+// ScatterAndExport parses multiple importer infos into standalone protomsgs,
+// then export them to standalone files.
 func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 	mainImpInfo importer.ImporterInfo,
 	impInfos ...importer.ImporterInfo) error {
@@ -101,7 +103,8 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 	return eg.Wait()
 }
 
-// MergeAndExport parse multiple importer infos and merge into one protomsg, then export it.
+// MergeAndExport parses multiple importer infos and merges them into one
+// protomsg, then exports it to a unified file.
 func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 	mainImpInfo importer.ImporterInfo,
 	impInfos ...importer.ImporterInfo) error {

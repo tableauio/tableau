@@ -16,7 +16,7 @@ const (
 )
 
 type Options struct {
-	Sheets          []string         // sheet names to import
+	Sheets          []string         // sheet name patterns (by filepath.Match) to import
 	Parser          book.SheetParser // parser to parse the worksheet
 	Mode            ImporterMode     // importer mode
 	Cloned          bool             // this book cloned (same schema different data) from the main book
@@ -26,24 +26,28 @@ type Options struct {
 // Option is the functional option type.
 type Option func(*Options)
 
+// Sheets specifies sheet name patterns (by filepath.Match) to import.
 func Sheets(sheets []string) Option {
 	return func(opts *Options) {
 		opts.Sheets = sheets
 	}
 }
 
+// Parser specifies parser to parse the worksheet.
 func Parser(parser book.SheetParser) Option {
 	return func(opts *Options) {
 		opts.Parser = parser
 	}
 }
 
+// Mode specifies importer mode.
 func Mode(m ImporterMode) Option {
 	return func(opts *Options) {
 		opts.Mode = m
 	}
 }
 
+// Cloned specifies this book cloned (same schema different data) from the main book.
 func Cloned(primaryBookName string) Option {
 	return func(opts *Options) {
 		opts.Cloned = true

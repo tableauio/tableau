@@ -7,7 +7,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 )
 
-func TestNeedSheet(t *testing.T) {
+func Test_wantSheet(t *testing.T) {
 	type args struct {
 		sheetName      string
 		wantSheetNames []string
@@ -18,7 +18,7 @@ func TestNeedSheet(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "empty-wantSheetNames",
+			name: "empty-wantSheetNames-and-wantSheetPattern",
 			args: args{
 				sheetName: "Sheet1",
 			},
@@ -33,6 +33,14 @@ func TestNeedSheet(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "in-wantSheetNames-pattern",
+			args: args{
+				sheetName:      "Sheet1",
+				wantSheetNames: []string{"sheet", "Sheet*"},
+			},
+			want: true,
+		},
+		{
 			name: "not-in-wantSheetNames",
 			args: args{
 				sheetName:      "ItemConf",
@@ -40,11 +48,19 @@ func TestNeedSheet(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "not-in-wantSheetNames-pattern",
+			args: args{
+				sheetName:      "ItemConf",
+				wantSheetNames: []string{"Sheet*"},
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NeedSheet(tt.args.sheetName, tt.args.wantSheetNames); got != tt.want {
-				t.Errorf("NeedSheet() = %v, want %v", got, tt.want)
+			if got := wantSheet(tt.args.sheetName, tt.args.wantSheetNames); got != tt.want {
+				t.Errorf("wantSheet() = %v, want %v", got, tt.want)
 			}
 		})
 	}

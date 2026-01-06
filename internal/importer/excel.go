@@ -179,7 +179,7 @@ func parseExcelBookReaderOptions(filename string, file *excelize.File, sheetName
 		Filename: filename,
 	}
 	for _, sheetName := range file.GetSheetList() {
-		if NeedSheet(sheetName, sheetNames) {
+		if wantSheet(sheetName, sheetNames) {
 			shReaderOpt := &sheetReaderOptions{
 				Filename: filename,
 				Name:     sheetName,
