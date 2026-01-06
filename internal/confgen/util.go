@@ -155,7 +155,7 @@ func parseBookSpecifier(bookSpecifier string) (bookName string, sheetName string
 
 // primaryBookInfo represents the primary workbook info.
 type primaryBookInfo struct {
-	//  1. Due to Merge/Scatter, one workbook may relate to multiple primary workbooks.
+	//  1. Due to Merger/Scatter, one workbook may relate to multiple primary workbooks.
 	//  2. One primary workbook may generate multiple proto files with different
 	// 	   messagers (e.g: full version with all columns and lite version with
 	// 	   fewer columns).

@@ -35,7 +35,7 @@ func Test_inspectXMLNode(t *testing.T) {
 </RankConf>
 `)
 	// protogen
-	ms := splitXMLMetasheet(string(data), metasheet.DefaultMetasheetName)
+	ms := extractXMLMetasheetInComment(string(data), metasheet.DefaultMetasheetName)
 	rawDocs, err := extractRawXMLDocuments(ms)
 	require.NoError(t, err)
 	for _, rawDoc := range rawDocs {

@@ -1,0 +1,9 @@
+{
+    "zoneMap": {
+        "20": {
+            "id": 20,
+            "name": "Rainforest",
+            "difficulty": 2000
+        }
+    }
+}

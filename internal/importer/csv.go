@@ -182,7 +182,9 @@ func parseCSVBookReaderOptions(filename string, sheetNames []string, metasheetNa
 		if err != nil {
 			return nil, xerrors.Newf("cannot parse the book name from filename: %s", filename)
 		}
-		if NeedSheet(sheetName, sheetNames) {
+		if ok, err := checkSheetWanted(sheetName, sheetNames); err != nil {
+			return nil, xerrors.Wrapf(err, "failed to check sheet wanted: %s, sheetNames: %v", sheetName, sheetNames)
+		} else if ok {
 			shReaderOpt := &sheetReaderOptions{
 				Filename: filename,
 				Name:     sheetName,

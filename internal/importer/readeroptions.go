@@ -1,7 +1,7 @@
 package importer
 
 import (
-	"slices"
+	"path/filepath"
 )
 
 type bookReaderOptions struct {
@@ -26,10 +26,19 @@ func (b *bookReaderOptions) GetMetasheet() *sheetReaderOptions {
 	return nil
 }
 
-func NeedSheet(sheetName string, wantSheetNames []string) bool {
+func checkSheetWanted(sheetName string, wantSheetNames []string) (bool, error) {
 	if len(wantSheetNames) == 0 {
 		// read all sheets if wantSheetNames not set.
-		return true
+		return true, nil
 	}
-	return slices.Contains(wantSheetNames, sheetName)
+	for _, wantSheetName := range wantSheetNames {
+		matched, err := filepath.Match(wantSheetName, sheetName)
+		if err != nil {
+			return false, err
+		}
+		if matched {
+			return true, nil
+		}
+	}
+	return false, nil
 }

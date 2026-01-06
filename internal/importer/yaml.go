@@ -34,7 +34,7 @@ func NewYAMLImporter(ctx context.Context, filename string, setters ...Option) (*
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	} else {
-		book, err = readYAMLBook(ctx, filename, opts.Parser)
+		book, err = readYAMLBook(ctx, filename, opts.Sheets, opts.Parser)
 		if err != nil {
 			return nil, err
 		}
@@ -46,7 +46,7 @@ func NewYAMLImporter(ctx context.Context, filename string, setters ...Option) (*
 	}, nil
 }
 
-func readYAMLBook(ctx context.Context, filename string, parser book.SheetParser) (*book.Book, error) {
+func readYAMLBook(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser) (*book.Book, error) {
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(ctx, bookName, filename, parser)
 	file, err := os.Open(filename)
@@ -70,7 +70,11 @@ func readYAMLBook(ctx context.Context, filename string, parser book.SheetParser)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
-		newBook.AddSheet(sheet)
+		if ok, err := checkSheetWanted(sheet.Name, sheetNames); err != nil {
+			return nil, xerrors.Wrapf(err, "failed to check sheet wanted: %s, sheetNames: %v", sheet.Name, sheetNames)
+		} else if ok {
+			newBook.AddSheet(sheet)
+		}
 	}
 	return newBook, nil
 }

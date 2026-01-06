@@ -54,7 +54,7 @@ func NewXMLImporter(ctx context.Context, filename string, setters ...Option) (*X
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet")
 		}
 	} else {
-		book, err = readXMLBook(ctx, filename, opts.Parser)
+		book, err = readXMLBook(ctx, filename, opts.Sheets, opts.Parser)
 		if err != nil {
 			return nil, err
 		}
@@ -66,7 +66,7 @@ func NewXMLImporter(ctx context.Context, filename string, setters ...Option) (*X
 	}, nil
 }
 
-func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) (*book.Book, error) {
+func readXMLBook(ctx context.Context, filename string, sheetNames []string, parser book.SheetParser) (*book.Book, error) {
 	bookName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
 	newBook := book.NewBook(ctx, bookName, filename, parser)
 
@@ -74,8 +74,9 @@ func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) 
 	if err != nil {
 		return nil, xerrors.E3002(err)
 	}
-	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
-	rawDocs, err := extractRawXMLDocuments(ms)
+	// 1. parse metasheet in the xml comment
+	msContent := extractXMLMetasheetInComment(string(content), metasheet.FromContext(ctx).Name)
+	rawDocs, err := extractRawXMLDocuments(msContent)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +89,14 @@ func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) 
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
-		newBook.AddSheet(sheet)
+		if ok, err := checkSheetWanted(sheet.Name, sheetNames); err != nil {
+			return nil, xerrors.Wrapf(err, "failed to check sheet wanted: %s, sheetNames: %v", sheet.Name, sheetNames)
+		} else if ok {
+			newBook.AddSheet(sheet)
+		}
 	}
+
+	// 2. parse data sheet in the xml content
 	rawDocs, err = extractRawXMLDocuments(string(content))
 	if err != nil {
 		return nil, err
@@ -103,7 +110,11 @@ func readXMLBook(ctx context.Context, filename string, parser book.SheetParser) 
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "file: %s", filename)
 		}
-		newBook.AddSheet(sheet)
+		if ok, err := checkSheetWanted(sheet.Name, sheetNames); err != nil {
+			return nil, xerrors.Wrapf(err, "failed to check sheet wanted: %s, sheetNames: %v", sheet.Name, sheetNames)
+		} else if ok {
+			newBook.AddSheet(sheet)
+		}
 	}
 	return newBook, nil
 }
@@ -116,8 +127,8 @@ func readXMLBookWithOnlySchemaSheet(ctx context.Context, filename string, parser
 	if err != nil {
 		return nil, xerrors.E3002(err)
 	}
-	ms := splitXMLMetasheet(string(content), metasheet.FromContext(ctx).Name)
-	rawDocs, err := extractRawXMLDocuments(ms)
+	msContent := extractXMLMetasheetInComment(string(content), metasheet.FromContext(ctx).Name)
+	rawDocs, err := extractRawXMLDocuments(msContent)
 	if err != nil {
 		return nil, err
 	}
@@ -593,8 +604,8 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 	}
 }
 
-// splitXMLMetasheet splits metasheet from xml notes
-func splitXMLMetasheet(content string, metasheetName string) string {
+// extractXMLMetasheetInComment extracts metasheet content from the top xml comment.
+func extractXMLMetasheetInComment(content string, metasheetName string) string {
 	// metasheet regexp, e.g.:
 	// <!--
 	// <@TABLEAU>
