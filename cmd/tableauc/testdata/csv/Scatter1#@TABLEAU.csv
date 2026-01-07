@@ -1,2 +1,2 @@
 Sheet,Scatter
-ScatterZone,Scatter*.csv
+ScatterZone,"Scatter*.csv,Scatter*.csv#ScatterZone"

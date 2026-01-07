@@ -7,8 +7,12 @@ import (
 	"github.com/tableauio/tableau/internal/protogen"
 )
 
+const version = "0.15.0" // version of tableau
+const revisionSize = 7
+
 // VersionInfo holds versions of tableau's main modules and VCS info.
 type VersionInfo struct {
+	Version         string // version of tableau
 	ProtogenVersion string // version of protogen module
 	ConfgenVersion  string // version of confgen module
 	// VCS info
@@ -17,11 +21,10 @@ type VersionInfo struct {
 	Experimental string
 }
 
-const RevisionSize = 7
-
 // GetVersionInfo returns VersionInfo of tableau.
 func GetVersionInfo() *VersionInfo {
 	info := &VersionInfo{
+		Version:         version,
 		ProtogenVersion: protogen.Version,
 		ConfgenVersion:  confgen.Version,
 	}
@@ -30,8 +33,8 @@ func GetVersionInfo() *VersionInfo {
 			switch setting.Key {
 			case "vcs.revision":
 				info.Revision = setting.Value
-				if len(info.Revision) >= RevisionSize {
-					info.Revision = info.Revision[:RevisionSize]
+				if len(info.Revision) >= revisionSize {
+					info.Revision = info.Revision[:revisionSize]
 				}
 			case "vcs.time":
 				info.Time = setting.Value

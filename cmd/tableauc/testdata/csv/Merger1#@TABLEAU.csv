@@ -1,2 +1,2 @@
 Sheet,Merger
-MergerZone,Merger*.csv
+MergerZone,"Merger*.csv,Merger*.csv#MergerZone"

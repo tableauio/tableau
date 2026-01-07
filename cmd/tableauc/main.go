@@ -15,7 +15,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const version = "0.14.3"
 const (
 	ModeDefault = "default" // generate both proto and conf files
 	ModeProto   = "proto"   // generate proto files only
@@ -50,7 +49,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "Input directory, default is current directory.")
 	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "Output directory, default is current directory.")
 	rootCmd.Flags().StringVarP(&confOutputSubdir, "conf-output-subdir", "", "", "Conf output sub-directory, set it to override conf.output.subdir.")
-	rootCmd.Flags().StringSliceVarP(&confOutputFormats, "conf-output-formats", "", nil, "Available format: json, bin, and text, set it to override conf.output.formats.")
+	rootCmd.Flags().StringSliceVarP(&confOutputFormats, "conf-output-formats", "", nil, "Available format: json, binpb, and txtpb, set it to override conf.output.formats.")
 	rootCmd.Flags().BoolVarP(&confInputIgnoreUnknownWorkbook, "conf-input-ignore-unknown-workbook", "", false, `Whether converter will not report an error and abort if a workbook
 is not recognized in proto files.`)
 
@@ -187,13 +186,13 @@ func ShowConfigSample() error {
 }
 
 func genVersion() string {
-	verInfo := tableau.GetVersionInfo()
-	ver := version + "\n"
+	info := tableau.GetVersionInfo()
+	ver := info.Version + "\n"
 	ver += "Details:\n"
-	ver += fmt.Sprintf(" %-16s %s\n", "Git commit:", verInfo.Revision)
-	ver += fmt.Sprintf(" %-16s %s\n", "Commit time:", verInfo.Time)
-	ver += fmt.Sprintf(" %-16s %s\n", "Protogen:", verInfo.ProtogenVersion)
-	ver += fmt.Sprintf(" %-16s %s\n", "Confgen:", verInfo.ConfgenVersion)
-	ver += fmt.Sprintf(" %-16s %s\n", "Experimental:", verInfo.Experimental)
+	ver += fmt.Sprintf(" %-16s %s\n", "Git commit:", info.Revision)
+	ver += fmt.Sprintf(" %-16s %s\n", "Commit time:", info.Time)
+	ver += fmt.Sprintf(" %-16s %s\n", "Protogen:", info.ProtogenVersion)
+	ver += fmt.Sprintf(" %-16s %s\n", "Confgen:", info.ConfgenVersion)
+	ver += fmt.Sprintf(" %-16s %s\n", "Experimental:", info.Experimental)
 	return ver
 }
