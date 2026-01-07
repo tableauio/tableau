@@ -124,7 +124,7 @@ E2026:
 E3000:
   desc: no workbook file found about sheet specifier
   text: 解析工作表指示器 "{{.SheetSpecifier}}" 时, 模式 "{{.Pattern}}" 找不到工作簿文件
-  help: 确保工作表指示器格式输入合法 "<BookNameGlob>[#SheetName]"
+  help: 确保工作表指示器格式输入合法 "<BookNamePattern>[#SheetNamePattern]"
 E3001:
   desc: no worksheet found in workbook
   text: 工作簿 "{{.BookName}}" 中不存在工作表 "{{.SheetName}}"

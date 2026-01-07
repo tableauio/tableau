@@ -186,7 +186,7 @@ E2026:
 E3000:
   desc: no workbook file found about sheet specifier
   text: no workbook file found in pattern "{{.Pattern}}" with sheet specifier "{{.SheetSpecifier}}"
-  help: guarantee sheet specifier in format "<BookNameGlob>[#SheetName]"
+  help: guarantee sheet specifier in format "<BookNamePattern>[#SheetNamePattern]"
   fields:
     - SheetSpecifier: string
     - Pattern: string

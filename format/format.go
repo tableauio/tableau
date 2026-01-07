@@ -12,7 +12,7 @@ const (
 	CSV   Format = "csv"
 	XML   Format = "xml"
 	YAML  Format = "yaml"
-	// output formats
+	// output formats, see https://protobuf.dev/programming-guides/techniques/#suffixes
 	JSON Format = "json"
 	Bin  Format = "binpb"
 	Text Format = "txtpb"
@@ -26,7 +26,7 @@ const (
 	CSVExt   string = ".csv"
 	XMLExt   string = ".xml"
 	YAMLExt  string = ".yaml"
-	// output formats
+	// output formats, see https://protobuf.dev/programming-guides/techniques/#suffixes
 	JSONExt string = ".json"
 	BinExt  string = ".binpb"
 	TextExt string = ".txtpb"

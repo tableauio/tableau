@@ -220,7 +220,7 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 		for k, v := range bookIndexes {
 			for _, fd := range v.fds {
 				_, workbook := ParseFileOptions(fd)
-				log.Debugf("primary book index: %s -> %s (%s)", k, workbook.GetName(), fd.FullName())
+				log.Debugf("primary book index: %s -> %s (%s)", k, workbook.GetName(), fd.Path())
 			}
 		}
 	}
