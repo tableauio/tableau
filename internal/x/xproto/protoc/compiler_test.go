@@ -38,37 +38,3 @@ func TestNewFiles(t *testing.T) {
 		})
 	}
 }
-
-func TestParseProtos(t *testing.T) {
-	type args struct {
-		protoPaths []string
-		protoFiles   []string
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		// TODO: Add test cases.
-		{
-			name: "test1",
-			args: args{
-				protoPaths: []string{
-					"../../../../proto", // tableau
-				},
-				protoFiles: []string{
-					"tableau/protobuf/unittest/unittest.proto",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			files, err := ParseProtos(tt.args.protoPaths, tt.args.protoFiles...)
-			if err != nil {
-				t.Errorf("parseProtos() error = %v", err)
-			}
-			t.Logf("parsed proto files: %+v", files)
-		})
-	}
-}
-

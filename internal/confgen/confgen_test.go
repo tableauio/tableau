@@ -43,7 +43,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 					&options.ConfOption{
 						Input: &options.ConfInputOption{
 							ProtoPaths: []string{"../../test/functest/proto/default"},
-							ProtoFiles: []string{"../../test/functest/proto/default/*.proto"},
+							ProtoFiles: []string{"../../test/functest/proto/default/*.proto", "../../test/functest/proto/default/**/*.proto"},
 							Formats: []format.Format{
 								// format.Excel,
 								format.CSV,
