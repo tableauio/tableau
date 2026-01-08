@@ -83,9 +83,9 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 						Input: &options.ProtoInputOption{
 							ProtoPaths: []string{outdir},
 							ProtoFiles: []string{
-								"common/base.proto",
-								"common/common.proto",
-								"common/union.proto",
+								filepath.Join(outdir, "common/base.proto"),
+								filepath.Join(outdir, "common/common.proto"),
+								filepath.Join(outdir, "common/union.proto"),
 							},
 							Formats: []format.Format{
 								format.YAML, format.CSV,
@@ -112,9 +112,9 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 						Input: &options.ProtoInputOption{
 							ProtoPaths: []string{outdir},
 							ProtoFiles: []string{
-								"common/base.proto",
-								"common/common.proto",
-								"common/union.proto",
+								filepath.Join(outdir, "common/base.proto"),
+								filepath.Join(outdir, "common/common.proto"),
+								filepath.Join(outdir, "common/union.proto"),
 							},
 							Formats: []format.Format{
 								format.YAML, format.CSV,
@@ -141,9 +141,9 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 						Input: &options.ProtoInputOption{
 							ProtoPaths: []string{outdir},
 							ProtoFiles: []string{
-								"common/base.proto",
-								"common/common.proto",
-								"common/union.proto",
+								filepath.Join(outdir, "common/base.proto"),
+								filepath.Join(outdir, "common/common.proto"),
+								filepath.Join(outdir, "common/union.proto"),
 							},
 							Formats: []format.Format{
 								format.YAML, format.CSV,
