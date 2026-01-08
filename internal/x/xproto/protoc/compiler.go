@@ -2,8 +2,10 @@ package protoc
 
 import (
 	"context"
+	"io"
+	"io/fs"
+	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/bufbuild/protocompile"
 	"github.com/bufbuild/protocompile/linker"
@@ -17,13 +19,19 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	_ "github.com/tableauio/tableau/proto/tableaupb"
 )
 
 type fileDescriptorProtoMap map[string]*descriptorpb.FileDescriptorProto // file path -> file desc proto
 
 // NewFiles creates a new protoregistry.Files from the provided proto paths, files, and excluded proto files.
 func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...string) (*protoregistry.Files, error) {
-	parsedExcludedProtoFiles := map[string]bool{}
+	cleanSlashProtoPaths := make([]string, len(protoPaths))
+	for i, protoPath := range protoPaths {
+		cleanSlashProtoPaths[i] = xfs.CleanSlashPath(protoPath)
+	}
+	parsedExcludedProtoFiles := make(map[string]bool)
 	for _, filename := range excludedProtoFiles {
 		matches, err := filepath.Glob(filename)
 		if err != nil {
@@ -34,7 +42,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 			parsedExcludedProtoFiles[cleanSlashPath] = true
 		}
 	}
-	var parsedProtoFiles []string
+	parsedProtoFiles := make(map[string]string) // full path -> rel path
 	for _, filename := range protoFiles {
 		matches, err := filepath.Glob(filename)
 		if err != nil {
@@ -43,27 +51,42 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 		for _, match := range matches {
 			cleanSlashPath := xfs.CleanSlashPath(match)
 			if !parsedExcludedProtoFiles[cleanSlashPath] {
-				for _, protoPath := range protoPaths {
-					cleanProtoPath := xfs.CleanSlashPath(protoPath) + "/"
-					cleanSlashPath = strings.TrimPrefix(cleanSlashPath, cleanProtoPath)
-				}
-				parsedProtoFiles = append(parsedProtoFiles, cleanSlashPath)
+				rel := rel(cleanSlashPath, cleanSlashProtoPaths)
+				parsedProtoFiles[cleanSlashPath] = rel
 			}
 		}
 	}
-	log.Debugf("proto files: %v", parsedProtoFiles)
-	return ParseProtos(protoPaths, parsedProtoFiles...)
+	return parseProtos(protoPaths, parsedProtoFiles)
 }
 
-// ParseProtos parses the proto paths and proto files to protoregistry.Files.
-func ParseProtos(protoPaths []string, protoFiles ...string) (*protoregistry.Files, error) {
+func rel(filename string, protoPaths []string) string {
+	for _, protoPath := range protoPaths {
+		if rel, err := filepath.Rel(protoPath, filename); err == nil {
+			return rel
+		}
+	}
+	return filename
+}
+
+// parseProtos parses the proto paths and proto files to protoregistry.Files.
+func parseProtos(protoPaths []string, protoFilesMap map[string]string) (*protoregistry.Files, error) {
 	log.Debugf("proto paths: %v", protoPaths)
-	log.Debugf("proto files: %v", protoFiles)
+	log.Debugf("proto files: %v", protoFilesMap)
+	var protoFiles []string
+	for _, path := range protoFilesMap {
+		protoFiles = append(protoFiles, path)
+	}
 	compiler := protocompile.Compiler{
 		Resolver: protocompile.CompositeResolver{
 			protocompile.ResolverFunc(resolveGlobalFiles),
 			&protocompile.SourceResolver{
 				ImportPaths: protoPaths,
+				Accessor: func(path string) (io.ReadCloser, error) {
+					if _, ok := protoFilesMap[path]; !ok {
+						return nil, fs.ErrNotExist
+					}
+					return os.Open(path)
+				},
 			},
 		},
 		MaxParallelism: 1,

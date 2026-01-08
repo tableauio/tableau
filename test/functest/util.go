@@ -54,9 +54,9 @@ func genProto(logLevel, logMode string) error {
 					Input: &options.ProtoInputOption{
 						ProtoPaths: []string{defaultOutdir},
 						ProtoFiles: []string{
-							"common/base.proto",
-							"common/common.proto",
-							"common/union.proto",
+							filepath.Join(defaultOutdir, "common/base.proto"),
+							filepath.Join(defaultOutdir, "common/common.proto"),
+							filepath.Join(defaultOutdir, "common/union.proto"),
 						},
 						Formats: []format.Format{
 							// format.Excel,

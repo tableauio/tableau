@@ -114,6 +114,9 @@ type ProtoInputOption struct {
 	// The enums and messages in ProtoFiles can be used in Excel/CSV/XML/YAML
 	// as common types.
 	//
+	// NOTE: Glob patterns are supported, which can specify sets
+	// of filenames with wildcard characters.
+	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
 
@@ -123,7 +126,7 @@ type ProtoInputOption struct {
 	//
 	// Default: nil.
 	Formats []format.Format `yaml:"formats"`
-	
+
 	// Specify only these subdirs (relative to input dir) to be processed.
 	//
 	// Default: nil.
@@ -222,10 +225,8 @@ type ConfInputOption struct {
 
 	// The files to be parsed to generate configurations.
 	//
-	// NOTE:
-	//  - Recognize "*.proto" pattern if not set (value is nil).
-	//  - Glob patterns are supported, which can specify sets
-	//    of filenames with wildcard characters.
+	// NOTE: Glob patterns are supported, which can specify sets
+	// of filenames with wildcard characters.
 	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
