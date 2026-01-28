@@ -165,6 +165,10 @@ func (l *Logger) log(lvl core.Level, format string, fmtArgs []any, kvs []any) {
 	// 	return
 	// }
 
+	if l.driver == nil {
+		return
+	}
+
 	r := &core.Record{
 		Level:  lvl,
 		Format: &format,
