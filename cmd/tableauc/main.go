@@ -11,7 +11,6 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/xerrors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -154,10 +153,7 @@ func genConf(workbooks []string, config *options.Options) error {
 }
 
 func logError(mode string, err error) {
-	if log.Mode() == log.ModeFull {
-		log.Errorf("generate %s file failed: %+v", mode, err)
-	}
-	log.Errorf("Error: %s", xerrors.NewDesc(err))
+	log.Errorf("generate %s file failed: %+v", mode, err)
 }
 
 func loadConfig(path string) (*options.Options, error) {

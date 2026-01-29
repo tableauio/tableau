@@ -1,60 +1,23 @@
-// Refer:
-//
-//	https://github.com/go-eden/slf4go
-//	https://github.com/go-eden/slf4go-zap
 package log
 
 import (
-	"fmt"
-
-	"github.com/tableauio/tableau/log/core"
-	"github.com/tableauio/tableau/log/driver"
 	"github.com/tableauio/tableau/log/driver/zapdriver"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-var defaultLogger *Logger
-
-var gOpts *Options
-var atomicLevel zap.AtomicLevel
-
-func init() {
-	defaultLogger = &Logger{
-		level: core.DebugLevel,
-	}
-	gOpts = &Options{}
-	atomicLevel = zap.NewAtomicLevelAt(zap.DebugLevel)
-}
+var defaultLogger LoggerIface = zap.NewNop().Sugar()
 
 func Init(opts *Options) error {
-	gOpts = opts // remember as global options.
-
 	logger, err := zapdriver.NewLogger(opts.Mode, opts.Level, opts.Filename, opts.Sink)
 	if err != nil {
 		return err
 	}
-	if err := atomicLevel.UnmarshalText([]byte(opts.Level)); err != nil {
-		return fmt.Errorf("illegal log level: %s", opts.Level)
-	}
-	SetDriver(zapdriver.NewWithLogger(atomicLevel, logger))
+	SetLogger(logger.Sugar())
 	return nil
 }
 
-func Mode() string {
-	return gOpts.Mode
-}
-
-func Level() string {
-	return gOpts.Level
-}
-
-func LevelEnabled(lvl zapcore.Level) bool {
-	return atomicLevel.Enabled(lvl)
-}
-
-func SetDriver(driver driver.Driver) {
-	defaultLogger.driver = driver
+func SetLogger(logger LoggerIface) {
+	defaultLogger = logger
 }
 
 // Debug uses fmt.Sprint to construct and log a message.

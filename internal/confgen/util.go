@@ -18,7 +18,6 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/store"
 	"github.com/tableauio/tableau/xerrors"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -216,12 +215,10 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 		return nil, err
 	}
 	// debugging
-	if log.LevelEnabled(zap.DebugLevel) {
-		for k, v := range bookIndexes {
-			for _, fd := range v.fds {
-				_, workbook := ParseFileOptions(fd)
-				log.Debugf("primary book index: %s -> %s (%s)", k, workbook.GetName(), fd.Path())
-			}
+	for k, v := range bookIndexes {
+		for _, fd := range v.fds {
+			_, workbook := ParseFileOptions(fd)
+			log.Debugf("primary book index: %s -> %s (%s)", k, workbook.GetName(), fd.Path())
 		}
 	}
 	return bookIndexes, nil
