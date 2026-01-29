@@ -18,8 +18,3 @@ type Options struct {
 	// Default: "CONSOLE".
 	Sink string
 }
-
-const (
-	ModeSimple = "SIMPLE"
-	ModeFull   = "FULL"
-)

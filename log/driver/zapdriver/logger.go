@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tableauio/tableau/log/core"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -18,19 +17,18 @@ var modeMap = map[string]LogModeEncoder{
 
 // Init set the log options for debugging.
 func NewLogger(mode, level, filename, sink string) (*zap.Logger, error) {
-	sinkType, err := core.GetSinkType(sink)
-	if err != nil {
-		return nil, err
-	}
-	switch sinkType {
-	case core.SinkFile:
+	switch sink {
+	case "FILE":
 		return newFileLogger(mode, level, filename)
-	case core.SinkMulti:
+	case "MULTI":
 		return newMultiLogger(mode, level, filename)
 	default:
 		return newConsoleLogger(mode, level)
 	}
 }
+
+// SkipUntilTrueCaller is the skip level which prints out the actual caller instead of slf4go or slf4go-zap wrappers
+const SkipUntilTrueCaller = 4
 
 // newConsoleLogger set the console log level and mode for debugging.
 func newConsoleLogger(mode, level string) (*zap.Logger, error) {

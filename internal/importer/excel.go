@@ -28,8 +28,9 @@ func NewExcelImporter(ctx context.Context, filename string, setters ...Option) (
 	}
 	defer func() {
 		// Close the spreadsheet.
-		if err := file.Close(); err != nil {
-			log.Error(err)
+		err := file.Close()
+		if err != nil {
+			log.Panicf("failed to close file: %s", filename)
 		}
 	}()
 

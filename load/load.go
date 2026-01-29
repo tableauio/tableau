@@ -120,7 +120,7 @@ func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 	default:
 		return xerrors.Newf("unknown patch type: %v", patch)
 	}
-	log.Debugf("patched(%s) %s by %v: %s", patch, name, patchPaths, msg)
+	log.Debugf("patched(%s) %s by %v", patch, name, patchPaths)
 	return nil
 }
 
