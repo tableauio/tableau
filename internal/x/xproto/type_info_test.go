@@ -187,12 +187,12 @@ func TestTypeInfos_Get(t *testing.T) {
 
 func TestCloneWellknownTypes(t *testing.T) {
 	importPaths := []string{
-		"../../proto", // tableau
+		"../../../proto", // tableau
 	}
 	filenames := []string{
-		"tableau/protobuf/unittest/unittest.proto",
+		"../../../proto/tableau/protobuf/unittest/unittest.proto",
 	}
-	files, err := protoc.ParseProtos(importPaths, filenames...)
+	files, err := protoc.NewFiles(importPaths, filenames)
 	if err != nil {
 		t.Errorf("parseProtos() error = %v", err)
 	}
