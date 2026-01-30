@@ -225,8 +225,10 @@ type ConfInputOption struct {
 
 	// The files to be parsed to generate configurations.
 	//
-	// NOTE: Glob patterns are supported, which can specify sets
-	// of filenames with wildcard characters.
+	// NOTE:
+	//  - Recognize "*.proto" pattern if not set (value is nil).
+	//  - Glob patterns are supported, which can specify sets
+	//    of filenames with wildcard characters.
 	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
