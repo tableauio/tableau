@@ -62,7 +62,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 func rel(filename string, protoPaths []string) string {
 	for _, protoPath := range protoPaths {
 		if rel, err := filepath.Rel(protoPath, filename); err == nil {
-			return rel
+			return xfs.CleanSlashPath(rel)
 		}
 	}
 	return filename
@@ -82,7 +82,7 @@ func parseProtos(protoPaths []string, protoFilesMap map[string]string) (*protore
 			&protocompile.SourceResolver{
 				ImportPaths: protoPaths,
 				Accessor: func(path string) (io.ReadCloser, error) {
-					if _, ok := protoFilesMap[path]; !ok {
+					if _, ok := protoFilesMap[xfs.CleanSlashPath(path)]; !ok {
 						return nil, fs.ErrNotExist
 					}
 					return os.Open(path)
