@@ -13,7 +13,7 @@ import (
 
 var parsers = map[string]jsonparser.Parser{
 	"fastjson": jsonparser.Fastjson,
-	"sonic":    jsonparser.Sonic,
+	// "sonic":    jsonparser.Sonic,
 }
 
 func Test_processWhenEmitTimezones(t *testing.T) {
