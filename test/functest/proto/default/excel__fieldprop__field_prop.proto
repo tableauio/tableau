@@ -6,6 +6,7 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "common/union.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
@@ -74,6 +75,7 @@ message FieldPropPresent {
     }
     repeated int32 hero_list = 5 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL prop:{present:true}}]; // Player's Hero list
     map<string, int32> attr_map = 6 [(tableau.field) = {name:"Attr" layout:LAYOUT_INCELL prop:{present:true}}]; // Player's Attr map
+    union.Target target = 7 [(tableau.field) = {name:"Target" span:SPAN_INNER_CELL prop:{form:FORM_TEXT present:true}}]; // Player's Target
   }
 }
 
