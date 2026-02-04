@@ -1,0 +1,88 @@
+{
+    "playerMap": {
+        "1": {
+            "id": 1,
+            "score": 100,
+            "timespan": {
+                "begin": "2020-01-01T10:25:00+08:00",
+                "duration": "241s"
+            },
+            "info": {
+                "level": 1,
+                "exp": 10
+            },
+            "heroList": [
+                1
+            ],
+            "attrMap": {
+                "hp": 10
+            }
+        },
+        "2": {
+            "id": 2,
+            "score": 90,
+            "timespan": {
+                "begin": "2021-01-01T10:25:00+08:00",
+                "duration": "181s"
+            },
+            "info": {
+                "level": 2,
+                "exp": 20
+            },
+            "heroList": [
+                1,
+                2
+            ],
+            "attrMap": {
+                "atk": 20,
+                "hp": 10
+            }
+        },
+        "3": {
+            "id": 3,
+            "score": 90,
+            "timespan": {
+                "begin": "2022-01-01T10:25:00+08:00",
+                "duration": "121s"
+            },
+            "info": {
+                "level": 3,
+                "exp": 30
+            },
+            "heroList": [
+                1,
+                2,
+                3
+            ],
+            "attrMap": {
+                "atk": 20,
+                "def": 30,
+                "hp": 10
+            }
+        },
+        "4": {
+            "id": 4,
+            "score": 90,
+            "timespan": {
+                "begin": "2023-01-01T10:25:00+08:00",
+                "duration": "61s"
+            },
+            "info": {
+                "level": 4,
+                "exp": 40
+            },
+            "heroList": [
+                1,
+                2,
+                3,
+                4
+            ],
+            "attrMap": {
+                "atk": 20,
+                "crit": 40,
+                "def": 30,
+                "hp": 10
+            }
+        }
+    }
+}

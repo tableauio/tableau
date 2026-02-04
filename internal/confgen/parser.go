@@ -408,6 +408,10 @@ func (p *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, 
 //   - map<int32, EnumType>
 func (p *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
+		// check presence
+		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
+			return err
+		}
 		return nil
 	}
 	// If s does not contain sep and sep is not empty, Split returns a
@@ -480,6 +484,10 @@ func (p *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protor
 //	}
 func (p *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
+		// check presence
+		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
+			return err
+		}
 		return nil
 	}
 	// If s does not contain sep and sep is not empty, Split returns a
@@ -753,6 +761,11 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 }
 
 func (p *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) (present bool, err error) {
+	if elemData == "" { // check presence
+		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
+			return false, err
+		}
+	}
 	splits := strings.Split(elemData, field.sep)
 	return p.parseListElems(field, list, cardPrefix, field.subsep, splits)
 }
@@ -823,6 +836,10 @@ func (p *sheetParser) parseListElems(field *Field, list protoreflect.List, cardP
 
 func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.Value, cellData string, sep string) (present bool, err error) {
 	if cellData == "" {
+		// check presence
+		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
+			return false, err
+		}
 		return false, nil
 	}
 	switch field.opts.GetProp().GetForm() {
@@ -915,10 +932,14 @@ func (p *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mess
 	return nil
 }
 
-func (p *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData string, form tableaupb.Form) (present bool, err error) {
+func (p *sheetParser) parseIncellUnion(field *Field, structValue protoreflect.Value, cellData string) (present bool, err error) {
 	if cellData == "" {
+		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
+			return false, err
+		}
 		return false, nil
 	}
+	form := field.opts.GetProp().GetForm()
 	switch form {
 	case tableaupb.Form_FORM_TEXT:
 		if err := prototext.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {

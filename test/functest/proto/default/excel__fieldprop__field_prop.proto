@@ -55,6 +55,28 @@ message FieldPropOrder {
   }
 }
 
+message FieldPropPresent {
+  option (tableau.worksheet) = {name:"FieldPropPresent"};
+
+  map<int32, Player> player_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Player {
+    int32 id = 1 [(tableau.field) = {name:"ID"}]; // Player's ID
+    int32 score = 2 [(tableau.field) = {name:"Score"}]; // Player's Score
+    Timespan timespan = 3 [(tableau.field) = {name:"Timespan" prop:{present:true}}];
+    message Timespan {
+      google.protobuf.Timestamp begin = 1 [(tableau.field) = {name:"Begin" prop:{present:true}}]; // Player's Time
+      google.protobuf.Duration duration = 2 [(tableau.field) = {name:"Duration"}]; // Player's duration
+    }
+    Info info = 4 [(tableau.field) = {name:"Info" span:SPAN_INNER_CELL prop:{present:true}}]; // Player's Info
+    message Info {
+      int32 level = 1 [(tableau.field) = {name:"Level"}];
+      int32 exp = 2 [(tableau.field) = {name:"Exp"}];
+    }
+    repeated int32 hero_list = 5 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL prop:{present:true}}]; // Player's Hero list
+    map<string, int32> attr_map = 6 [(tableau.field) = {name:"Attr" layout:LAYOUT_INCELL prop:{present:true}}]; // Player's Attr map
+  }
+}
+
 message FieldPropRange {
   option (tableau.worksheet) = {name:"FieldPropRange"};
 

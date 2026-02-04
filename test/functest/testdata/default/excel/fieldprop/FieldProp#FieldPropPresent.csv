@@ -1,0 +1,11 @@
+ID,Score,TimespanBegin,TimespanDuration,Info,Hero,Attr,#IGNORE
+"map<int32,Player>",int32,{Timespan}datetime|{present:true},duration,"{int32 Level,int32 Exp}Info|{present:true}",[]int32|{present:true},"map<string,int32>|{present:true}",
+Player's ID,Player's Score,Player's Time,Player's duration,Player's Info,Player's Hero list,Player's Attr map,
+1,100,2020-01-01 10:25:00,4m1s,"1,10",1,hp:10,
+2,90,2021-01-01 10:25:00,3m1s,"2,20","1,2","hp:10,atk:20",
+3,90,2022-01-01 10:25:00,2m1s,"3,30","1,2,3","hp:10,atk:20,def:30",
+4,90,2023-01-01 10:25:00,1m1s,"4,40","1,2,3,4","hp:10,atk:20,def:30,crit:40",
+5,100,,4m1s,"1,10",1,hp:10,1
+6,90,2021-01-01 10:25:00,3m1s,,"1,2","hp:10,atk:20",1
+7,90,2022-01-01 10:25:00,2m1s,"3,30",,"hp:10,atk:20,def:30",1
+8,90,2023-01-01 10:25:00,1m1s,"4,40","1,2,3,4",,1
