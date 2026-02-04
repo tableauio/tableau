@@ -93,9 +93,9 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 		}
 	}
 	// parse custom imported proto files
-	protoRegistryFiles, err := protoc.ParseProtos(
+	protoRegistryFiles, err := protoc.NewFiles(
 		gen.InputOpt.ProtoPaths,
-		protoFiles...)
+		protoFiles)
 	if err != nil {
 		return err
 	}

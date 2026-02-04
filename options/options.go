@@ -114,6 +114,9 @@ type ProtoInputOption struct {
 	// The enums and messages in ProtoFiles can be used in Excel/CSV/XML/YAML
 	// as common types.
 	//
+	// NOTE: Glob patterns are supported, which can specify sets
+	// of filenames with wildcard characters.
+	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
 
@@ -123,7 +126,7 @@ type ProtoInputOption struct {
 	//
 	// Default: nil.
 	Formats []format.Format `yaml:"formats"`
-	
+
 	// Specify only these subdirs (relative to input dir) to be processed.
 	//
 	// Default: nil.
@@ -213,9 +216,10 @@ type ConfOption struct {
 
 // Input options for generating conf files.
 type ConfInputOption struct {
-	// The proto paths are used to search for dependencies that are referenced in import
-	// statements in proto source files. If no import paths are provided then
-	// "." (current directory) is assumed to be the only import path.
+	// The proto paths are used to search for dependencies that are referenced
+	// in import statements in proto source files. If no import paths are
+	// provided then "." (current directory) is assumed to be the only import
+	// path.
 	//
 	// Default: nil.
 	ProtoPaths []string `yaml:"protoPaths"`
@@ -223,17 +227,19 @@ type ConfInputOption struct {
 	// The files to be parsed to generate configurations.
 	//
 	// NOTE:
-	//  - Recognize "*.proto" pattern if not set (value is nil).
-	//  - Glob patterns are supported, which can specify sets
-	//    of filenames with wildcard characters.
+	//  - By default, recognize "*.proto" pattern if not set.
+	//  - Glob patterns are supported, which can specify sets of filenames with
+	//    wildcard characters. Double asterisk (**) for recursive globbing is
+	//    not supported.
 	//
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
 
 	// The files not to be parsed to generate configurations.
 	//
-	// NOTE: Glob patterns are supported, which can specify sets
-	// of filenames with wildcard characters.
+	// NOTE: Glob patterns are supported, which can specify sets of filenames
+	// with wildcard characters. Double asterisk (**) for recursive globbing
+	// is not supported.
 	//
 	// Default: nil.
 	ExcludedProtoFiles []string `yaml:"excludedProtoFiles"`
