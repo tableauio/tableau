@@ -3,9 +3,8 @@ package store
 import (
 	"time"
 
-	"github.com/bytedance/sonic"
-	"github.com/bytedance/sonic/ast"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/store/jsonparser"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -47,29 +46,29 @@ func formatTimestamp(ts string, loc *time.Location) string {
 //   - https://pkg.go.dev/google.golang.org/protobuf/types/known/timestamppb#hdr-JSON_Mapping-Timestamp
 //   - https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp
 //   - RFC 3339: https://tools.ietf.org/html/rfc3339
-func processWhenEmitTimezones(msg proto.Message, jsonStr string, locationName string, useProtoNames bool) (string, error) {
+func processWhenEmitTimezones(msg proto.Message, jsonStr string, parser jsonparser.Parser, locationName string, useProtoNames bool) (string, error) {
 	loc, err := time.LoadLocation(locationName)
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
-	root, err := sonic.Get([]byte(jsonStr))
+	root, err := parser.Parse(jsonStr)
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
-	err = convertJSONTimestamp(msg.ProtoReflect(), &root, loc, useProtoNames)
+	err = convertJSONTimestamp(msg.ProtoReflect(), root, loc, useProtoNames)
 	if err != nil {
 		return "", xerrors.Wrap(err)
 	}
-	return root.Raw()
+	return root.String()
 }
 
-func convertJSONTimestamp(msg protoreflect.Message, node *ast.Node, loc *time.Location, useProtoNames bool) error {
+func convertJSONTimestamp(msg protoreflect.Message, node jsonparser.Node, loc *time.Location, useProtoNames bool) error {
 	if msg.Descriptor().FullName() == types.WellKnownMessageTimestamp {
 		raw, err := node.StrictString()
 		if err != nil {
 			return err
 		}
-		*node = ast.NewString(formatTimestamp(raw, loc))
+		node.SetString(formatTimestamp(raw, loc))
 		return nil
 	}
 	// See https://github.com/protocolbuffers/protobuf-go/blob/v1.34.2/encoding/protojson/encode.go#L262

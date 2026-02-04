@@ -6,9 +6,15 @@ import (
 	"time"
 
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
+	"github.com/tableauio/tableau/store/jsonparser"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+var parsers = map[string]jsonparser.Parser{
+	"fastjson": jsonparser.Fastjson,
+	"sonic":    jsonparser.Sonic,
+}
 
 func Test_processWhenEmitTimezones(t *testing.T) {
 	type args struct {
@@ -235,13 +241,17 @@ func Test_processWhenEmitTimezones(t *testing.T) {
 				t.Errorf("MarshalToJSON() error = %v", err)
 				return
 			}
-			got, err := processWhenEmitTimezones(tt.args.message, string(json), tt.args.locationName, tt.args.useProtoNames)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("processWhenEmitTimezones() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("processWhenEmitTimezones() = %v, want %v", got, tt.want)
+			for name, parser := range parsers {
+				t.Run(name, func(t *testing.T) {
+					got, err := processWhenEmitTimezones(tt.args.message, string(json), parser, tt.args.locationName, tt.args.useProtoNames)
+					if (err != nil) != tt.wantErr {
+						t.Errorf("processWhenEmitTimezones() error = %v, wantErr %v", err, tt.wantErr)
+						return
+					}
+					if got != tt.want {
+						t.Errorf("processWhenEmitTimezones() = %v, want %v", got, tt.want)
+					}
+				})
 			}
 		})
 	}
@@ -263,82 +273,30 @@ func prepare(size int) (proto.Message, string) {
 	return message, string(json)
 }
 
-func Benchmark_regexp1(b *testing.B) {
-	_, json := prepare(1)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
-	}
-}
-func Benchmark_regexp10(b *testing.B) {
-	_, json := prepare(10)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
-	}
-}
-func Benchmark_regexp100(b *testing.B) {
-	_, json := prepare(100)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
-	}
-}
-func Benchmark_regexp1000(b *testing.B) {
-	_, json := prepare(1000)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
+var sizes = []int{1, 10, 100, 1000, 10000, 100000}
+
+func Benchmark_regexp(b *testing.B) {
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("%d", size), func(b *testing.B) {
+			_, json := prepare(size)
+			for i := 0; i < b.N; i++ {
+				_, _ = processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
+			}
+		})
 	}
 }
 
-func Benchmark_regexp10000(b *testing.B) {
-	_, json := prepare(10000)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
-	}
-}
-
-func Benchmark_regexp100000(b *testing.B) {
-	_, json := prepare(100000)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezonesByRegexp(json, "Asia/Shanghai")
-	}
-}
-
-func Benchmark_sonic1(b *testing.B) {
-	message, json := prepare(1)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
-	}
-}
-func Benchmark_sonic10(b *testing.B) {
-	message, json := prepare(10)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
-	}
-}
-
-func Benchmark_sonic100(b *testing.B) {
-	message, json := prepare(100)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
-	}
-}
-
-func Benchmark_sonic1000(b *testing.B) {
-	message, json := prepare(1000)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
-	}
-}
-
-func Benchmark_sonic10000(b *testing.B) {
-	message, json := prepare(10000)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
-	}
-}
-
-func Benchmark_sonic100000(b *testing.B) {
-	message, json := prepare(100000)
-	for i := 0; i < b.N; i++ {
-		_, _ = processWhenEmitTimezones(message, json, "Asia/Shanghai", true)
+func Benchmark_jsonparser(b *testing.B) {
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("%d", size), func(b *testing.B) {
+			message, json := prepare(size)
+			for name, parser := range parsers {
+				b.Run(name, func(b *testing.B) {
+					for i := 0; i < b.N; i++ {
+						_, _ = processWhenEmitTimezones(message, json, parser, "Asia/Shanghai", true)
+					}
+				})
+			}
+		})
 	}
 }

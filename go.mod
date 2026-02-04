@@ -11,6 +11,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/subchen/go-xmldom v1.1.2
+	github.com/valyala/fastjson v1.6.7
 	github.com/xuri/excelize/v2 v2.9.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/sync v0.8.0
