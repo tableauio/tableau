@@ -12,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/protogen/parseroptions"
 	"github.com/tableauio/tableau/internal/x/xfs"
+	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
@@ -49,7 +50,7 @@ func NewValueSpace() *ValueSpace {
 }
 
 func (v *ValueSpace) AddFromTable(header *parseroptions.Header, table book.Tabler, columnName, bookName, sheetName string) error {
-	foundColumn := -1
+	foundColumn, ignoreColumn := -1, -1
 	nameRow := table.BeginRow() + header.NameRow - 1
 	for col := table.BeginCol(); col < table.EndCol(); col++ {
 		nameCell, err := table.Cell(nameRow, col)
@@ -57,15 +58,33 @@ func (v *ValueSpace) AddFromTable(header *parseroptions.Header, table book.Table
 			return xerrors.WrapKV(err)
 		}
 		name := book.ExtractFromCell(nameCell, header.NameLine)
+		if name == book.MacroIgnore {
+			ignoreColumn = col
+		}
 		if name == columnName {
 			foundColumn = col
-			break
 		}
 	}
 	if foundColumn < 0 {
 		return xerrors.E2015(columnName, bookName, sheetName)
 	}
 	for row := table.BeginRow() + header.DataRow - 1; row < table.EndRow(); row++ {
+		if ignoreColumn > 0 {
+			value, err := table.Cell(row, ignoreColumn)
+			if err != nil {
+				return xerrors.WrapKV(err)
+			}
+			value = strings.TrimSpace(value)
+			if value != "" {
+				ignored, err := xproto.ParseBool(value)
+				if err != nil {
+					return xerrors.WrapKV(err)
+				}
+				if ignored {
+					continue
+				}
+			}
+		}
 		data, err := table.Cell(row, foundColumn)
 		if err != nil {
 			return xerrors.WrapKV(err)
