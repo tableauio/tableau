@@ -1,6 +1,7 @@
-ID,Damage
-"map<uint32, Item>|{unique:true}",int32
-Equip ID,Equip damage
-1000,100
-1001,200
-1002,300
+ID,Damage,#IGNORE
+"map<uint32, Item>|{unique:true}",int32,
+Equip ID,Equip damage,
+1000,100,
+1001,200,
+1002,300,
+1003,400,1

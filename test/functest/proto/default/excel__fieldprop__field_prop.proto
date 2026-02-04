@@ -55,10 +55,22 @@ message FieldPropOrder {
   }
 }
 
+message FieldPropRange {
+  option (tableau.worksheet) = {name:"FieldPropRange"};
+
+  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL prop:{range:"1,10"}}]; // ID
+}
+
 message FieldPropRefer {
   option (tableau.worksheet) = {name:"FieldPropRefer"};
 
-  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_HORIZONTAL}]; // ID
+  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_HORIZONTAL prop:{refer:"ItemConf.ID,EquipConf.ID"}}]; // ID
+}
+
+message FieldPropReferIgnored {
+  option (tableau.worksheet) = {name:"FieldPropReferIgnored"};
+
+  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL prop:{refer:"EquipConf.ID"}}]; // ID
 }
 
 message FieldPropSep {
