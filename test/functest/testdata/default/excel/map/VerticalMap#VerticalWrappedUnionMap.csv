@@ -1,4 +1,4 @@
-ID,TargetType,TargetField1,TargetField2
+ID,TargetTypeType,TargetTypeField1,TargetTypeField2
 "map<int32, Task>",{.Target}enum<.Target.Type>,union,union
 ,Target type,Target field1,Target field2
 1,Player,1,Mike

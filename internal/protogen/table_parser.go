@@ -820,7 +820,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 					xerrors.KeyPBFieldOpts, desc.Prop.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
 			}
-			if index := strings.Index(trimmedNameCell, typeInfo.FirstFieldOptionName); index != -1 {
+			if index := strings.LastIndex(trimmedNameCell, typeInfo.FirstFieldOptionName); index != -1 {
 				structName = trimmedNameCell[:index]
 			}
 		}

@@ -2,7 +2,7 @@
     "taskMap": {
         "1": {
             "id": 1,
-            "target": {
+            "targetType": {
                 "type": "TYPE_PLAYER",
                 "player": {
                     "id": 1,
@@ -12,7 +12,7 @@
         },
         "2": {
             "id": 2,
-            "target": {
+            "targetType": {
                 "type": "TYPE_PAWN",
                 "pawn": {
                     "count": 10
@@ -21,7 +21,7 @@
         },
         "3": {
             "id": 3,
-            "target": {
+            "targetType": {
                 "type": "TYPE_BOSS",
                 "boss": {
                     "health": 200,

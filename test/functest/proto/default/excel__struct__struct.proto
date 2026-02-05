@@ -69,3 +69,9 @@ message PredefinedInCellStruct {
     base.Property prop = 2 [(tableau.field) = {name:"Prop" span:SPAN_INNER_CELL}]; // Item property
   }
 }
+
+message PredefinedStructTypeInfo {
+  option (tableau.worksheet) = {name:"PredefinedStructTypeInfo"};
+
+  protoconf.LimitTimeItem reward = 1 [(tableau.field) = {name:"Reward"}];
+}
