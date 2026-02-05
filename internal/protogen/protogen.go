@@ -81,16 +81,7 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 		importProtos[path] = true
 	}
 	if useGeneratedProtos {
-		files, err := os.ReadDir(outdir)
-		if err != nil {
-			return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
-		}
-		for _, file := range files {
-			if strings.HasSuffix(file.Name(), ".proto") &&
-				!importProtos[file.Name()] {
-				protoFiles = append(protoFiles, file.Name())
-			}
-		}
+		protoFiles = append(protoFiles, xfs.CleanSlashPath(filepath.Join(outdir, "*.proto")))
 	}
 	// parse custom imported proto files
 	protoRegistryFiles, err := protoc.NewFiles(
