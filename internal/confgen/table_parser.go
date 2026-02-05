@@ -36,75 +36,10 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book.Tabler) error {
 	msg := protomsg.ProtoReflect()
 	header := parseroptions.MergeHeader(p.sheetOpts, p.bookOpts, nil)
-	nameRow := table.BeginRow() + header.NameRow - 1
-	typeRow := table.BeginRow() + header.TypeRow - 1
-	dataRow := table.BeginRow() + header.DataRow - 1
-	p.columns = make(map[int]*book.Column, table.ColSize())
-	p.lookupTable = make(book.ColumnLookupTable, table.ColSize())
-	hasIgnoreCol := false
-	for col := table.BeginCol(); col < table.EndCol(); col++ {
-		// parse names
-		nameCell, err := table.Cell(nameRow, col)
-		if err != nil {
-			return xerrors.WrapKV(err, table.Position(nameRow, col))
-		}
-		name := book.ExtractFromCell(nameCell, header.NameLine)
-		if name != "" {
-			if name == book.MacroIgnore {
-				hasIgnoreCol = true
-			}
-			// parse lookup table
-			if foundCol, ok := p.lookupTable[name]; ok {
-				return xerrors.E0003(name, table.Position(nameRow, foundCol), table.Position(nameRow, col))
-			}
-			p.lookupTable[name] = col
-		}
-		// parse types
-		typeCell, err := table.Cell(typeRow, col)
-		if err != nil {
-			return xerrors.WrapKV(err)
-		}
-		typ := book.ExtractFromCell(typeCell, header.TypeLine)
-		p.columns[col] = &book.Column{
-			Col:  col,
-			Name: name,
-			Type: typ,
-		}
-	}
-	var prev *book.Row
-	// [datarow, endRow]: data rows
-	for row := dataRow; row < table.EndRow(); row++ {
-		curr := book.NewRow(row, prev, sheetName, p.lookupTable)
-		for col := table.BeginCol(); col < table.EndCol(); col++ {
-			data, err := table.Cell(row, col)
-			if err != nil {
-				return xerrors.WrapKV(err)
-			}
-			curr.AddCell(p.columns[col], data, p.sheetOpts.AdjacentKey)
-		}
-		if hasIgnoreCol {
-			ignored, err := curr.Ignored()
-			if err != nil {
-				return err
-			}
-			if ignored {
-				curr.Free()
-				continue
-			}
-		}
-		_, err := p.parseMessage(nil, msg, curr, "", "")
-		if err != nil {
-			return err
-		}
-		if prev != nil {
-			prev.Free()
-		}
-		prev = curr
-	}
-	if prev != nil {
-		prev.Free()
-	}
-	return nil
+	return header.RangeTableDataRows(table, sheetName, p.sheetOpts.AdjacentKey, func(r *book.Row) error {
+		_, err := p.parseMessage(nil, msg, r, "", "")
+		return err
+	})
 }
 
 // parseMessage parses all fields of a protobuf message.
