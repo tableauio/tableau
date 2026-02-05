@@ -1,0 +1,4 @@
+RewardItemItemID,RewardItemItemNum,RewardItemRarity,RewardBegin 
+{.LimitTimeItem}{.SpecialItem}{.Item}int32,int32,int32,datetime 
+,," ",
+1,2,3,2021-01-01 00:00:00 

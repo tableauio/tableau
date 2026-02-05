@@ -98,20 +98,7 @@ func extractTypeInfosFromMessage(md protoreflect.MessageDescriptor, typeInfos *T
 		return
 	}
 	// find first field option name
-	firstFieldOptionName := ""
-	if IsUnion(md) {
-		desc := ExtractUnionDescriptor(md)
-		if desc != nil {
-			// union's first field is enum type field.
-			fieldOpts := proto.GetExtension(desc.Type.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
-			firstFieldOptionName = fieldOpts.GetName()
-		}
-	} else if md.Fields().Len() != 0 {
-		// struct's first field
-		fd := md.Fields().Get(0)
-		fieldOpts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
-		firstFieldOptionName = fieldOpts.GetName()
-	}
+	firstFieldOptionName := parseFirstFieldOptionName(md)
 	info := &TypeInfo{
 		FullName:             md.FullName(),
 		ParentFilename:       md.ParentFile().Path(),
@@ -134,4 +121,25 @@ func extractTypeInfosFromMessage(md protoreflect.MessageDescriptor, typeInfos *T
 		subMD := md.Messages().Get(i)
 		extractTypeInfosFromMessage(subMD, typeInfos)
 	}
+}
+
+func parseFirstFieldOptionName(md protoreflect.MessageDescriptor) string {
+	firstFieldOptionName := ""
+	if IsUnion(md) {
+		desc := ExtractUnionDescriptor(md)
+		if desc != nil {
+			// union's first field is enum type field.
+			fieldOpts := proto.GetExtension(desc.Type.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+			firstFieldOptionName = fieldOpts.GetName()
+		}
+	} else if md.Fields().Len() != 0 {
+		// struct's first field
+		fd := md.Fields().Get(0)
+		fieldOpts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+		firstFieldOptionName = fieldOpts.GetName()
+		if childMd := fd.Message(); childMd != nil && fieldOpts.GetSpan() != tableaupb.Span_SPAN_INNER_CELL {
+			firstFieldOptionName += parseFirstFieldOptionName(childMd)
+		}
+	}
+	return firstFieldOptionName
 }

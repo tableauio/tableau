@@ -23,7 +23,20 @@ enum FruitFlavor {
 
 message Item {
   int32 id = 1 [(tableau.field).name = "ID"];
-  int32 num = 2 [(tableau.field) = {name: "Num" prop:{range:"1,~"}}];
+  int32 num = 2 [(tableau.field) = {
+    name: "Num"
+    prop: { range: "1,~" }
+  }];
+}
+
+message SpecialItem {
+  Item item = 1 [(tableau.field).name = "Item"];
+  int32 rarity = 2 [(tableau.field) = { name: "Rarity" }];
+}
+
+message LimitTimeItem {
+  SpecialItem item = 1 [(tableau.field).name = "Item"];
+  google.protobuf.Timestamp begin = 2 [(tableau.field) = { name: "Begin" }];
 }
 
 message Vector3 {
@@ -70,7 +83,7 @@ message Duration {
   google.protobuf.Timestamp begin = 2 [(tableau.field) = { name: "Begin" }];
   google.protobuf.Timestamp end = 3 [(tableau.field) = { name: "End" }];
   int32 delayed_days = 4 [(tableau.field) = { name: "DelayedDays" }];
-  repeated int32 params = 5 [(tableau.field) = {name:"Params" layout:LAYOUT_INCELL}];
+  repeated int32 params = 5 [(tableau.field) = { name: "Params" layout: LAYOUT_INCELL }];
 }
 
 enum DurationType {
