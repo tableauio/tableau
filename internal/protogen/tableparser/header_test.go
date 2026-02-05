@@ -1,4 +1,4 @@
-package parseroptions
+package tableparser
 
 import (
 	"reflect"
@@ -236,7 +236,7 @@ func TestMergeHeader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := MergeHeader(tt.args.sheetOpts, tt.args.bookOpts, tt.args.globalOpts); !reflect.DeepEqual(got, tt.want) {
+			if got := NewHeader(tt.args.sheetOpts, tt.args.bookOpts, tt.args.globalOpts); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MergeHeader() = %v, want %v", got, tt.want)
 			}
 		})

@@ -10,7 +10,7 @@ import (
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/protogen/tableparser"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -48,8 +48,8 @@ func NewValueSpace() *ValueSpace {
 	}
 }
 
-func (v *ValueSpace) AddFromTable(header *parseroptions.Header, table book.Tabler, columnName, bookName, sheetName string) error {
-	return header.RangeTableDataRows(table, sheetName, false, func(r *book.Row) error {
+func (v *ValueSpace) AddFromTable(header *tableparser.Header, table book.Tabler, columnName, bookName, sheetName string) error {
+	return tableparser.RangeDataRows(table, header, sheetName, false, func(r *book.Row) error {
 		cell, err := r.Cell(columnName, false)
 		if err != nil {
 			return xerrors.E2015(columnName, bookName, sheetName)
@@ -180,7 +180,7 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*ValueSpac
 
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})
-	header := parseroptions.MergeHeader(sheetOpts, bookOpts, nil)
+	header := tableparser.NewHeader(sheetOpts, bookOpts, nil)
 	// new empty referred value space set
 	valueSpace := NewValueSpace()
 	for _, impInfo := range impInfos {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/protogen/tableparser"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -35,8 +35,8 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 
 func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book.Tabler) error {
 	msg := protomsg.ProtoReflect()
-	header := parseroptions.MergeHeader(p.sheetOpts, p.bookOpts, nil)
-	return header.RangeTableDataRows(table, sheetName, p.sheetOpts.AdjacentKey, func(r *book.Row) error {
+	header := tableparser.NewHeader(p.sheetOpts, p.bookOpts, nil)
+	return tableparser.RangeDataRows(table, header, sheetName, p.sheetOpts.AdjacentKey, func(r *book.Row) error {
 		_, err := p.parseMessage(nil, msg, r, "", "")
 		return err
 	})

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/protogen/tableparser"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -122,7 +122,7 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 	}
 	bp := newTableParser("struct", "", "", gen)
 	shHeader := &tableHeader{
-		Header: &parseroptions.Header{
+		Header: &tableparser.Header{
 			NameRow: 1,
 			TypeRow: 2,
 		},
@@ -234,7 +234,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		bp := newTableParser("union", "", "", gen)
 
 		shHeader := &tableHeader{
-			Header: &parseroptions.Header{
+			Header: &tableparser.Header{
 				NameRow:  1,
 				TypeRow:  1,
 				NameLine: 1,
@@ -249,7 +249,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		var err error
 		for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
 			subField := &internalpb.Field{}
-			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "", parseroptions.Mode(tableaupb.Mode_MODE_UNION_TYPE))
+			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "", tableparser.Mode(tableaupb.Mode_MODE_UNION_TYPE))
 			if err != nil {
 				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 			}

@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/protogen/tableparser"
 )
 
 var testSheetHeader *tableHeader
 
 func init() {
 	testSheetHeader = &tableHeader{
-		Header: &parseroptions.Header{
+		Header: &tableparser.Header{
 			NameRow: 1,
 			TypeRow: 2,
 			NoteRow: 3,
@@ -196,7 +196,7 @@ func Test_getCell(t *testing.T) {
 
 func Test_tableHeader_checkNameConflicts(t *testing.T) {
 	testSheetHeader := &tableHeader{
-		Header: &parseroptions.Header{
+		Header: &tableparser.Header{
 			NameRow: 1,
 			TypeRow: 2,
 			NoteRow: 3,
@@ -211,7 +211,7 @@ func Test_tableHeader_checkNameConflicts(t *testing.T) {
 	}
 
 	testTransposeSheetHeader := &tableHeader{
-		Header: &parseroptions.Header{
+		Header: &tableparser.Header{
 			NameRow: 1,
 			TypeRow: 2,
 			NoteRow: 3,
