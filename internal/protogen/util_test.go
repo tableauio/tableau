@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/protogen/tableparser"
+	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/xerrors"
 )
 

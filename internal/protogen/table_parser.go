@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
-	"github.com/tableauio/tableau/internal/protogen/tableparser"
+	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"

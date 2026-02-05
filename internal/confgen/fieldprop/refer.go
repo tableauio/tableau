@@ -10,7 +10,7 @@ import (
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/protogen/tableparser"
+	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"

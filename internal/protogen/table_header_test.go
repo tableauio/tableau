@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/protogen/tableparser"
+	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 )
 
 var testSheetHeader *tableHeader
