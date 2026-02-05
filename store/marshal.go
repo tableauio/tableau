@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/protocolbuffers/txtpbfmt/parser"
+	"github.com/tableauio/tableau/store/jsonparser"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -75,7 +76,7 @@ func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 	}
 	// process when use timezones
 	if options.EmitTimezones {
-		result, err := processWhenEmitTimezones(msg, string(messageJSON), options.LocationName, options.UseProtoNames)
+		result, err := processWhenEmitTimezones(msg, string(messageJSON), jsonparser.Fastjson, options.LocationName, options.UseProtoNames)
 		if err != nil {
 			return nil, err
 		}
