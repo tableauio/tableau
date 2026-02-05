@@ -281,6 +281,12 @@ type ConfOutputOption struct {
 	// Default: nil.
 	Formats []format.Format
 
+	// Specify generated conf file formats in messager level. This overrides
+	// Formats option.
+	//
+	// Default: nil.
+	MessagerFormats map[string][]format.Format `yaml:"messagerFormats"`
+
 	// Output pretty format of JSON and Text, with multiline and indent.
 	//
 	// Default: false.
