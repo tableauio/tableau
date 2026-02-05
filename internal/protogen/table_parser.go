@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
-	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/log"
@@ -56,7 +56,7 @@ func (p *tableParser) GetProtoFilePath() string {
 	return genProtoFilePath(p.wb.Name, p.gen.OutputOpt.FilenameSuffix)
 }
 
-func (p *tableParser) parseField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...parseroptions.Option) (cur int, parsed bool, err error) {
+func (p *tableParser) parseField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...tableparser.Option) (cur int, parsed bool, err error) {
 	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	// log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)
@@ -70,7 +70,7 @@ func (p *tableParser) parseField(field *internalpb.Field, header *tableHeader, c
 		return cursor, false, err
 	}
 
-	opts := parseroptions.ParseOptions(options...)
+	opts := tableparser.ParseOptions(options...)
 	if opts.GetVTypeCell(cursor) != "" {
 		typeCell = opts.GetVTypeCell(cursor)
 	}
@@ -104,7 +104,7 @@ func (p *tableParser) parseField(field *internalpb.Field, header *tableHeader, c
 	return cursor, true, nil
 }
 
-func (p *tableParser) parseSubField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...parseroptions.Option) (int, error) {
+func (p *tableParser) parseSubField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...tableparser.Option) (int, error) {
 	subField := &internalpb.Field{}
 	cursor, parsed, err := p.parseField(subField, header, cursor, prefix, notePrefix, options...)
 	if err != nil {
@@ -116,7 +116,7 @@ func (p *tableParser) parseSubField(field *internalpb.Field, header *tableHeader
 	return cursor, nil
 }
 
-func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...parseroptions.Option) (cur int, err error) {
+func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...tableparser.Option) (cur int, err error) {
 	// refer: https://developers.google.com/protocol-buffers/docs/proto3#maps
 	//
 	//	map<key_type, value_type> map_field = N;
@@ -124,7 +124,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 	// where the key_type can be any integral or string type (so, any scalar type
 	// except for floating point types and bytes). Note that enum is not a valid
 	// key_type. The value_type can be any type except another map.
-	opts := parseroptions.ParseOptions(options...)
+	opts := tableparser.ParseOptions(options...)
 	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	if opts.GetVTypeCell(cursor) != "" {
@@ -399,8 +399,8 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 	return cursor, nil
 }
 
-func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...parseroptions.Option) (cur int, err error) {
-	opts := parseroptions.ParseOptions(options...)
+func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...tableparser.Option) (cur int, err error) {
+	opts := tableparser.ParseOptions(options...)
 	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	if opts.GetVTypeCell(cursor) != "" {
@@ -532,7 +532,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 			field.Options.Key = trimmedNameCell
 		}
 		// Parse first field
-		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, colType+desc.Prop.RawProp()))
+		firstFieldOptions := append(options, tableparser.VTypeCell(cursor, colType+desc.Prop.RawProp()))
 		cursor, err = p.parseSubField(field, header, cursor, prefix, notePrefix, firstFieldOptions...)
 		if err != nil {
 			return cursor, err
@@ -597,7 +597,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))
 
 		// Parse first field
-		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
+		firstFieldOptions := append(options, tableparser.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
 		if listElemSpanInnerCell {
 			// inner cell element
 			tempField := &internalpb.Field{}
@@ -723,8 +723,8 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 	return cursor, nil
 }
 
-func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...parseroptions.Option) (cur int, err error) {
-	opts := parseroptions.ParseOptions(options...)
+func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...tableparser.Option) (cur int, err error) {
+	opts := tableparser.ParseOptions(options...)
 	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	if opts.GetVTypeCell(cursor) != "" {
@@ -831,7 +831,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 			Prop: ExtractStructFieldProp(prop),
 		}
 		prefix += structName
-		firstFieldOptions := append(options, parseroptions.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
+		firstFieldOptions := append(options, tableparser.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
 		cursor, err = p.parseSubField(field, header, cursor, prefix, notePrefix, firstFieldOptions...)
 		if err != nil {
 			return cursor, err

@@ -105,6 +105,24 @@ func TestInReferredSpace(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "in ignored referred value space",
+			args: args{
+				prop: &tableaupb.FieldProp{
+					Refer: "ItemConf(ItemConf).ID",
+				},
+				cellData: "4",
+				input: &Input{
+					ProtoPackage:   "unittest",
+					InputDir:       "../../../testdata",
+					SubdirRewrites: nil,
+					PRFiles:        protoregistry.GlobalFiles,
+					Present:        true,
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
 			name: "in referred value space with subdir rewrites",
 			args: args{
 				prop: &tableaupb.FieldProp{

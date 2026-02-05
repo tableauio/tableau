@@ -1,4 +1,4 @@
-package parseroptions
+package tableparser
 
 import "github.com/tableauio/tableau/proto/tableaupb"
 

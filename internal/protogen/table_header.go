@@ -2,7 +2,7 @@ package protogen
 
 import (
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/protogen/parseroptions"
+	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/xerrors"
@@ -13,7 +13,7 @@ type Positioner interface {
 }
 
 type tableHeader struct {
-	*parseroptions.Header
+	*tableparser.Header
 	Positioner
 
 	nameRowData []string
@@ -25,7 +25,7 @@ type tableHeader struct {
 }
 
 func newTableHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption, t book.Tabler) *tableHeader {
-	header := parseroptions.MergeHeader(sheetOpts, bookOpts, globalOpts)
+	header := tableparser.NewHeader(sheetOpts, bookOpts, globalOpts)
 	return &tableHeader{
 		Header:      header,
 		Positioner:  t,

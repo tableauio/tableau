@@ -1,10 +1,12 @@
-package parseroptions
+package tableparser
 
 import (
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 )
 
+// Header represents the table sheet header options. It merges sheet-level,
+// book-level, and global-level header options into the final header options.
 type Header struct {
 	NameRow  int
 	TypeRow  int
@@ -15,10 +17,13 @@ type Header struct {
 	NoteLine int
 	Sep      string
 	Subsep   string
+
+	AdjacentKey bool
 }
 
-// MergeHeader merges sheet-level, book-level, and global-level header options into the final header options.
-func MergeHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption) *Header {
+// NewHeader creates a new header, which merges sheet-level, book-level, and
+// global-level header options into the final header options.
+func NewHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption) *Header {
 	hdr := &Header{}
 	// name row
 	if sheetOpts.GetNamerow() != 0 {
@@ -110,5 +115,9 @@ func MergeHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.Work
 	} else {
 		hdr.Subsep = options.DefaultSubsep
 	}
+
+	// AjacentKey
+	hdr.AdjacentKey = sheetOpts.GetAdjacentKey()
+
 	return hdr
 }
