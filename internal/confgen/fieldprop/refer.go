@@ -49,7 +49,7 @@ func NewValueSpace() *ValueSpace {
 }
 
 func (v *ValueSpace) AddFromTable(header *tableparser.Header, table book.Tabler, columnName, bookName, sheetName string) error {
-	return tableparser.RangeDataRows(table, header, sheetName, false, func(r *book.Row) error {
+	return tableparser.RangeDataRows(table, header, sheetName, func(r *book.Row) error {
 		cell, err := r.Cell(columnName, false)
 		if err != nil {
 			return xerrors.E2015(columnName, bookName, sheetName)

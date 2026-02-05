@@ -35,8 +35,10 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 
 func (p *tableParser) parse(protomsg proto.Message, sheetName string, table book.Tabler) error {
 	msg := protomsg.ProtoReflect()
+	// NOTE: the global options has been merged into book options on protogen,
+	// so there is no need to set it here.
 	header := tableparser.NewHeader(p.sheetOpts, p.bookOpts, nil)
-	return tableparser.RangeDataRows(table, header, sheetName, p.sheetOpts.AdjacentKey, func(r *book.Row) error {
+	return tableparser.RangeDataRows(table, header, sheetName, func(r *book.Row) error {
 		_, err := p.parseMessage(nil, msg, r, "", "")
 		return err
 	})

@@ -6,7 +6,7 @@ import (
 )
 
 // RangeDataRows ranges data rows in the table.
-func RangeDataRows(table book.Tabler, header *Header, sheetName string, adjacentKey bool, fn func(*book.Row) error) error {
+func RangeDataRows(table book.Tabler, header *Header, sheetName string, fn func(*book.Row) error) error {
 	columns, lookupTable, err := parseColumns(table, header)
 	if err != nil {
 		return err
@@ -21,7 +21,7 @@ func RangeDataRows(table book.Tabler, header *Header, sheetName string, adjacent
 			if err != nil {
 				return xerrors.WrapKV(err)
 			}
-			curr.AddCell(columns[col], data, adjacentKey)
+			curr.AddCell(columns[col], data, header.AdjacentKey)
 		}
 		ignored, err := curr.Ignored()
 		if err != nil {

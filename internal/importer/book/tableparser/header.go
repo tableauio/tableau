@@ -17,6 +17,8 @@ type Header struct {
 	NoteLine int
 	Sep      string
 	Subsep   string
+
+	AdjacentKey bool
 }
 
 // NewHeader creates a new header, which merges sheet-level, book-level, and
@@ -113,5 +115,9 @@ func NewHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.Workbo
 	} else {
 		hdr.Subsep = options.DefaultSubsep
 	}
+
+	// AjacentKey
+	hdr.AdjacentKey = sheetOpts.GetAdjacentKey()
+
 	return hdr
 }
