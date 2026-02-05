@@ -123,23 +123,31 @@ func extractTypeInfosFromMessage(md protoreflect.MessageDescriptor, typeInfos *T
 	}
 }
 
+// parseFirstFieldOptionName parses the first field option name of the message.
+//   - If the message is a union, return the name of the enum type field.
+//   - Else if the message has sub fields, return the name of the first field. Besides,
+//     if the first field's kind is message and its span is not inner cell,
+//     then recursively parse sub fields' option name and concat them.
+//   - Otherwise, return empty string.
 func parseFirstFieldOptionName(md protoreflect.MessageDescriptor) string {
-	firstFieldOptionName := ""
 	if IsUnion(md) {
 		desc := ExtractUnionDescriptor(md)
 		if desc != nil {
 			// union's first field is enum type field.
 			fieldOpts := proto.GetExtension(desc.Type.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
-			firstFieldOptionName = fieldOpts.GetName()
+			return fieldOpts.GetName()
 		}
 	} else if md.Fields().Len() != 0 {
 		// struct's first field
 		fd := md.Fields().Get(0)
 		fieldOpts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
-		firstFieldOptionName = fieldOpts.GetName()
-		if childMd := fd.Message(); childMd != nil && fieldOpts.GetSpan() != tableaupb.Span_SPAN_INNER_CELL {
-			firstFieldOptionName += parseFirstFieldOptionName(childMd)
+		firstFieldOptionName := fieldOpts.GetName()
+		// if the first field's kind is message, and field's span is not inner cell,
+		// then we need to parse sub message's first field option name recursively.
+		if subMD := fd.Message(); subMD != nil && fieldOpts.GetSpan() != tableaupb.Span_SPAN_INNER_CELL {
+			firstFieldOptionName += parseFirstFieldOptionName(subMD)
 		}
+		return firstFieldOptionName
 	}
-	return firstFieldOptionName
+	return ""
 }
