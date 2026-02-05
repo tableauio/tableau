@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/tableauio/tableau/format"
@@ -128,6 +129,61 @@ func Test_storeMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := storeMessage(tt.args.msg, tt.args.name, "UTC", tt.args.outputDir, tt.args.opt); (err != nil) != tt.wantErr {
 				t.Errorf("storeMessage() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_parseOutputFormats(t *testing.T) {
+	type args struct {
+		msg proto.Message
+		opt *options.ConfOutputOption
+	}
+	tests := []struct {
+		name string
+		args args
+		want []format.Format
+	}{
+		{
+			name: "default",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				opt: &options.ConfOutputOption{},
+			},
+			want: []format.Format{format.JSON, format.Bin, format.Text},
+		},
+		{
+			name: "global",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				opt: &options.ConfOutputOption{
+					Formats: []format.Format{format.Bin},
+					MessagerFormats: map[string][]format.Format{
+						"TaskConf": {format.JSON},
+					},
+				},
+			},
+			want: []format.Format{format.Bin},
+		},
+		{
+			name: "messager-level",
+			args: args{
+				msg: &unittestpb.ItemConf{},
+				opt: &options.ConfOutputOption{
+					Formats: []format.Format{format.Bin},
+					MessagerFormats: map[string][]format.Format{
+						"TaskConf": {format.JSON},
+						"ItemConf": {format.Text},
+					},
+				},
+			},
+			want: []format.Format{format.Text},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := parseOutputFormats(tt.args.msg, tt.args.opt); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseOutputFormats() = %v, want %v", got, tt.want)
 			}
 		})
 	}

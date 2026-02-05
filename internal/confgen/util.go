@@ -261,13 +261,22 @@ func loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles
 	return protoc.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
 }
 
+// parseOutputFormats parses the output formats of the specified message.
+func parseOutputFormats(msg proto.Message, opt *options.ConfOutputOption) []format.Format {
+	messagerName := string(msg.ProtoReflect().Descriptor().Name())
+	if formats, ok := opt.MessagerFormats[messagerName]; ok && len(formats) != 0 {
+		return formats
+	}
+	if formats := opt.Formats; len(formats) != 0 {
+		return formats
+	}
+	return format.OutputFormats
+}
+
 // storeMessage stores a message to one or multiple file formats.
 func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption) error {
 	outputDir = filepath.Join(outputDir, opt.Subdir)
-	formats := format.OutputFormats
-	if len(opt.Formats) != 0 {
-		formats = opt.Formats
-	}
+	formats := parseOutputFormats(msg, opt)
 	for _, fmt := range formats {
 		err := store.Store(msg, outputDir, fmt,
 			store.Name(name),
@@ -289,10 +298,7 @@ func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *
 // formats. It will not emit unpopulated fields for clear reading.
 func storePatchMergeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption) error {
 	outputDir = filepath.Join(outputDir, opt.Subdir)
-	formats := format.OutputFormats
-	if len(opt.Formats) != 0 {
-		formats = opt.Formats
-	}
+	formats := parseOutputFormats(msg, opt)
 	for _, fmt := range formats {
 		err := store.Store(msg, outputDir, fmt,
 			store.Name(name),
