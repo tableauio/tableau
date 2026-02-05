@@ -24,9 +24,15 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 	}
 	if existed && delExisted {
 		// remove all *.proto file but not Imports
-		imports := make(map[string]int)
-		for _, path := range importFiles {
-			imports[path] = 1
+		imports := make(map[string]bool)
+		for _, filename := range importFiles {
+			matches, err := filepath.Glob(filename)
+			if err != nil {
+				return xerrors.Wrapf(err, "failed to glob files in %s", filename)
+			}
+			for _, match := range matches {
+				imports[xfs.CleanSlashPath(match)] = true
+			}
 		}
 		files, err := os.ReadDir(outdir)
 		if err != nil {
@@ -36,10 +42,10 @@ func prepareOutdir(outdir string, importFiles []string, delExisted bool) error {
 			if !strings.HasSuffix(file.Name(), ".proto") {
 				continue
 			}
-			if _, ok := imports[file.Name()]; ok {
+			fpath := filepath.Join(outdir, file.Name())
+			if imports[xfs.CleanSlashPath(fpath)] {
 				continue
 			}
-			fpath := filepath.Join(outdir, file.Name())
 			err := os.Remove(fpath)
 			if err != nil {
 				return xerrors.WrapKV(err)
