@@ -756,10 +756,11 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 
 func (p *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) (present bool, err error) {
 	if elemData == "" {
-		// check presence
 		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
 			return false, err
 		}
+		// For fixed size list, an empty cell means an empty list element,
+		// So here we should continue to parse, but not return.
 	}
 	splits := strings.Split(elemData, field.sep)
 	return p.parseListElems(field, list, cardPrefix, field.subsep, splits)
