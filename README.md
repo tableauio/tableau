@@ -40,7 +40,7 @@ import "github.com/tableauio/tableau"
 
 Install: 
 
-```bash
+```sh
 go install github.com/tableauio/tableau/cmd/tableauc@latest
 ```
 

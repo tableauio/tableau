@@ -35,7 +35,7 @@ E2004:
 E2005:
   desc: map or keyed-list key not unique
   text: map或keyed-list的key "{{.Key}}" 已存在
-  help: 确保map或keyed-list的key唯一, 不允许重复配置相同key
+  help: 确保map或keyed-list的key唯一, 不能配置相同key
 E2006:
   desc: enum value not defined in enum type
   text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
@@ -103,7 +103,7 @@ E2021:
 E2022:
   desc: sub-field's value not unique in map values or list elements
   text: map value 或 list element 子字段 "{{.FieldName}}" 的值 "{{.Key}}" 已存在
-  help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值保证唯一, 不允许重复配置相同值
+  help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值唯一, 不能配置相同值
 E2024:
   desc: invalid version pattern
   text: '"{{.Value}}" 无法以点分十进制解析, {{.Error}}'
