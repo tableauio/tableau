@@ -284,3 +284,25 @@ message Transpose {
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
 }
+
+message FieldPresentMap {
+  option (tableau.worksheet) = {name:"FieldPresentMap"};
+
+  map<int32, Player> player_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Player {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    Weapon weapon = 2 [(tableau.field) = {name:"Weapon" prop:{present:true}}];
+    message Weapon {
+      string name = 1 [(tableau.field) = {name:"Name" prop:{present:true}}];
+      int32 rarity = 2 [(tableau.field) = {name:"Rarity"}];
+    }
+    Info info = 3 [(tableau.field) = {name:"Info" span:SPAN_INNER_CELL prop:{present:true}}];
+    message Info {
+      int32 level = 1 [(tableau.field) = {name:"Level"}];
+      int32 exp = 2 [(tableau.field) = {name:"Exp"}];
+    }
+    repeated int32 hero_list = 4 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL prop:{present:true}}];
+    map<string, int32> attr_map = 5 [(tableau.field) = {name:"Attr" layout:LAYOUT_INCELL prop:{present:true}}];
+    unittest.Target target = 6 [(tableau.field) = {name:"Target" span:SPAN_INNER_CELL prop:{form:FORM_TEXT present:true}}];
+  }
+}
