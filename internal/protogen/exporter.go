@@ -205,9 +205,13 @@ func (x *sheetExporter) exportStruct() error {
 	x.p.P("")
 	// generate the fields
 	depth := 1
-	for i, field := range x.ws.Fields {
-		tagid := i + 1
-		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+	tagid := int32(1)
+	for _, field := range x.ws.Fields {
+		field.Number = tagid
+		tagid++
+	}
+	for _, field := range x.ws.Fields {
+		if err := x.exportField(depth, field, x.ws.Name); err != nil {
 			return err
 		}
 	}
@@ -273,16 +277,19 @@ func (x *sheetExporter) exportUnion() error {
 		x.p.P("  message ", typ, " {")
 		// generate the fields
 		depth := 2
-		tagid := 1
+		tagid := int32(1)
 		for _, field := range msgField.Fields {
-			if err := x.exportField(depth, tagid, field, msgField.Name); err != nil {
-				return err
-			}
-			cross := int(field.GetOptions().GetProp().GetCross())
+			field.Number = tagid
+			cross := field.GetOptions().GetProp().GetCross()
 			if cross < 1 {
 				cross = 1
 			}
 			tagid += cross
+		}
+		for _, field := range msgField.Fields {
+			if err := x.exportField(depth, field, msgField.Name); err != nil {
+				return err
+			}
 		}
 		x.p.P("  }")
 	}
@@ -304,9 +311,13 @@ func (x *sheetExporter) exportMessager() error {
 	x.p.P("")
 	// generate the fields
 	depth := 1
-	for i, field := range x.ws.Fields {
-		tagid := i + 1
-		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+	tagid := int32(1)
+	for _, field := range x.ws.Fields {
+		field.Number = tagid
+		tagid++
+	}
+	for _, field := range x.ws.Fields {
+		if err := x.exportField(depth, field, x.ws.Name); err != nil {
 			return err
 		}
 	}
@@ -317,7 +328,7 @@ func (x *sheetExporter) exportMessager() error {
 	return nil
 }
 
-func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Field, prefix string) error {
+func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix string) error {
 	label := ""
 	if x.ws.GetOptions().GetFieldPresence() &&
 		types.IsScalarType(field.FullType) &&
@@ -328,7 +339,7 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 	if field.Note != "" {
 		note = " // " + field.Note
 	}
-	x.p.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " ", genFieldOptionsString(field.Options), ";", note)
+	x.p.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", field.Number, " ", genFieldOptionsString(field.Options), ";", note)
 
 	typeName := field.Type
 	fullTypeName := field.FullType
@@ -377,9 +388,13 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 
 		// x.g.P("")
 		x.p.P(printer.Indent(depth), "message ", typeName, " {")
-		for i, f := range field.Fields {
-			tagid := i + 1
-			if err := x.exportField(depth+1, tagid, f, nestedMsgName); err != nil {
+		tagid := int32(1)
+		for _, f := range field.Fields {
+			f.Number = tagid
+			tagid++
+		}
+		for _, f := range field.Fields {
+			if err := x.exportField(depth+1, f, nestedMsgName); err != nil {
 				return err
 			}
 		}
