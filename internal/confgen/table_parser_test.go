@@ -1009,3 +1009,111 @@ func TestTableParser_parseVerticalSequenceFieldKeyedList(t *testing.T) {
 		})
 	}
 }
+
+func TestTableParser_parseFieldPresentMap(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		err     error
+	}{
+		{
+			name:   "all fields present",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "1,10", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "first field of horizontal struct not present",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "", "2", "1,10", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2011,
+		},
+		{
+			name:   "incell struct field not present",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2011,
+		},
+		{
+			name:   "incell list field not present",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "1,10", "", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2011,
+		},
+		{
+			name:   "incell map field not present",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "1,10", "1,2,3", "", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2011,
+		},
+		{
+			name:   "incell union field not present",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "1,10", "1,2,3", "hp:10,atk:20,def:30", ""},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2011,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.FieldPresentMap{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				require.ErrorIs(t, err, tt.err)
+			}
+		})
+	}
+}

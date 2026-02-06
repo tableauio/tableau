@@ -408,7 +408,8 @@ func (p *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, 
 //   - map<int32, EnumType>
 func (p *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
-		return nil
+		// check presence
+		return fieldprop.CheckPresence(field.opts.Prop, false)
 	}
 	// If s does not contain sep and sep is not empty, Split returns a
 	// slice of length 1 whose only element is s.
@@ -480,7 +481,8 @@ func (p *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protor
 //	}
 func (p *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
-		return nil
+		// check presence
+		return fieldprop.CheckPresence(field.opts.Prop, false)
 	}
 	// If s does not contain sep and sep is not empty, Split returns a
 	// slice of length 1 whose only element is s.
@@ -753,6 +755,13 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 }
 
 func (p *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) (present bool, err error) {
+	if elemData == "" {
+		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
+			return false, err
+		}
+		// For fixed size list, an empty cell means an empty list element,
+		// So here we should continue to parse, but not return.
+	}
 	splits := strings.Split(elemData, field.sep)
 	return p.parseListElems(field, list, cardPrefix, field.subsep, splits)
 }
@@ -823,7 +832,8 @@ func (p *sheetParser) parseListElems(field *Field, list protoreflect.List, cardP
 
 func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.Value, cellData string, sep string) (present bool, err error) {
 	if cellData == "" {
-		return false, nil
+		// check presence
+		return false, fieldprop.CheckPresence(field.opts.Prop, false)
 	}
 	switch field.opts.GetProp().GetForm() {
 	case tableaupb.Form_FORM_TEXT:
@@ -915,10 +925,11 @@ func (p *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Mess
 	return nil
 }
 
-func (p *sheetParser) parseIncellUnion(structValue protoreflect.Value, cellData string, form tableaupb.Form) (present bool, err error) {
+func (p *sheetParser) parseIncellUnion(field *Field, structValue protoreflect.Value, cellData string) (present bool, err error) {
 	if cellData == "" {
-		return false, nil
+		return false, fieldprop.CheckPresence(field.opts.Prop, false)
 	}
+	form := field.opts.GetProp().GetForm()
 	switch form {
 	case tableaupb.Form_FORM_TEXT:
 		if err := prototext.Unmarshal([]byte(cellData), structValue.Message().Interface()); err != nil {

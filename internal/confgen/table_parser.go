@@ -568,7 +568,7 @@ func (p *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell union
 		if cell, err = r.Cell(newPrefix, p.IsFieldOptional(field)); err == nil {
-			present, err = p.parseIncellUnion(structValue, cell.Data, field.opts.GetProp().GetForm())
+			present, err = p.parseIncellUnion(field, structValue, cell.Data)
 		}
 	} else {
 		// cross-cell union

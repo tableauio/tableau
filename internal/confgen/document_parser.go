@@ -387,7 +387,7 @@ func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message,
 	}
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
-		present, err = p.parseIncellUnion(structValue, node.ScalarValue(), field.opts.GetProp().GetForm())
+		present, err = p.parseIncellUnion(field, structValue, node.ScalarValue())
 	} else {
 		present, err = p.parseUnionMessage(field, structValue.Message(), node.StructNode(), cardPrefix)
 	}
