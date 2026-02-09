@@ -11,8 +11,10 @@ import (
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
+	_ "github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 func Test_genFieldOptionsString(t *testing.T) {
@@ -372,6 +374,46 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 `,
 			wantErr: false,
 		},
+		{
+			name: "field-number-compatibility",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "Item",
+					Options: &tableaupb.WorksheetOptions{
+						Name: "StructItem",
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
+						{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					wb: &internalpb.Workbook{
+						Name: "tableau/protobuf/unittest/common",
+					},
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						GeneratedProtoRegistryFiles: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message Item {
+  option (tableau.struct) = {name:"StructItem"};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
+  int32 num = 2 [(tableau.field) = {name:"Num"}];
+}
+
+`,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -511,6 +553,62 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 				nestedMessages: make(map[string]*internalpb.Field),
 			},
 			wantErr: true,
+		},
+		{
+			name: "field-number-compatibility",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "YamlScalarConf",
+					Options: &tableaupb.WorksheetOptions{
+						Name: "YamlScalarConf",
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
+						{Name: "value", Type: "uint64", FullType: "uint64", Options: &tableaupb.FieldOptions{Name: "Value"}},
+						{Name: "inserted_field", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "InsertedField"}},
+						{Name: "weight", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Weight"}},
+						{Name: "percentage", Type: "float", FullType: "float", Options: &tableaupb.FieldOptions{Name: "Percentage"}},
+						{Name: "ratio", Type: "double", FullType: "double", Options: &tableaupb.FieldOptions{Name: "Ratio"}},
+						{Name: "another_inserted_field", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "AnotherInsertedField"}},
+						{Name: "name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "Name"}},
+						{Name: "blob", Type: "bytes", FullType: "bytes", Options: &tableaupb.FieldOptions{Name: "Blob"}},
+						{Name: "ok", Type: "bool", FullType: "bool", Options: &tableaupb.FieldOptions{Name: "OK"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					wb: &internalpb.Workbook{
+						Name: "tableau/protobuf/unittest/unittest",
+					},
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						GeneratedProtoRegistryFiles: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message YamlScalarConf {
+  option (tableau.worksheet) = {name:"YamlScalarConf"};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  int32 num = 2 [(tableau.field) = {name:"Num"}];
+  uint64 value = 3 [(tableau.field) = {name:"Value"}];
+  int32 inserted_field = 10 [(tableau.field) = {name:"InsertedField"}];
+  int64 weight = 4 [(tableau.field) = {name:"Weight"}];
+  float percentage = 5 [(tableau.field) = {name:"Percentage"}];
+  double ratio = 6 [(tableau.field) = {name:"Ratio"}];
+  int32 another_inserted_field = 11 [(tableau.field) = {name:"AnotherInsertedField"}];
+  string name = 7 [(tableau.field) = {name:"Name"}];
+  bytes blob = 8 [(tableau.field) = {name:"Blob"}];
+  bool ok = 9 [(tableau.field) = {name:"OK"}];
+}
+
+`,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
