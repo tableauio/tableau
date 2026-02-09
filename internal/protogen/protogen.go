@@ -71,7 +71,9 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 
 		cachedImporters: make(map[string]importer.Importer),
 	}
-	gen.GeneratedProtoRegistryFiles, _ = gen.parseProtoRegistryFiles(true)
+	if opts.Proto.Output.PreserveFieldNumbers {
+		gen.GeneratedProtoRegistryFiles, _ = gen.parseProtoRegistryFiles(true)
+	}
 
 	return gen
 }
