@@ -203,15 +203,17 @@ func (x *sheetExporter) exportStruct() error {
 	opts := &tableaupb.StructOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
 	x.p.P("  option (tableau.struct) = {", marshalToText(opts), "};")
 	x.p.P("")
+
+	md := x.parseMessagerFromGeneratedProtos(x.ws.Name)
+	x.addNumberToFields(x.ws.Fields, md)
 	// generate the fields
 	depth := 1
-	tagid := int32(1)
 	for _, field := range x.ws.Fields {
-		field.Number = tagid
-		tagid++
-	}
-	for _, field := range x.ws.Fields {
-		if err := x.exportField(depth, field, x.ws.Name, nil); err != nil {
+		var fd protoreflect.FieldDescriptor
+		if md != nil {
+			fd = md.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+		}
+		if err := x.exportField(depth, field, x.ws.Name, fd); err != nil {
 			return err
 		}
 	}
@@ -280,10 +282,7 @@ func (x *sheetExporter) exportUnion() error {
 		tagid := int32(1)
 		for _, field := range msgField.Fields {
 			field.Number = tagid
-			cross := field.GetOptions().GetProp().GetCross()
-			if cross < 1 {
-				cross = 1
-			}
+			cross := max(field.GetOptions().GetProp().GetCross(), 1)
 			tagid += cross
 		}
 		for _, field := range msgField.Fields {
@@ -313,7 +312,7 @@ func (x *sheetExporter) parseMessagerFromGeneratedProtos(name string) protorefle
 	return fd.Messages().ByName(protoreflect.Name(name))
 }
 
-func (_ *sheetExporter) addNumberToFields(fields []*internalpb.Field, md protoreflect.MessageDescriptor) {
+func (*sheetExporter) addNumberToFields(fields []*internalpb.Field, md protoreflect.MessageDescriptor) {
 	if md == nil {
 		tagid := int32(1)
 		for _, field := range fields {
