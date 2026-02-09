@@ -203,6 +203,28 @@ type ProtoOutputOption struct {
 	//
 	// Default: false.
 	EnumValueWithPrefix bool `yaml:"enumValueWithPrefix"`
+
+	// Whether converter will preserve field numbers for fields that already
+	// exists in current protos. For example, if you already have the message
+	// below in your proto file:
+	//
+	// message Item {
+	// 	int32 id    = 1 [(tableau.field) = { name: "ID" }];
+	// 	int32 count = 2 [(tableau.field) = { name: "Count" }];
+	// }
+	//
+	// Then you try to add a string field "Name" between "ID" and "Count", its
+	// field number will be 3. "ID" and "Count" will preserve their previous
+	// field number 1 and 2.
+	//
+	// message Item {
+	// 	int32 id    = 1 [(tableau.field) = { name: "ID" }];
+	// 	string name = 3 [(tableau.field) = { name: "Name" }];
+	// 	int32 count = 2 [(tableau.field) = { name: "Count" }];
+	// }
+	//
+	// Default: false.
+	PreserveFieldNumbers bool `yaml:"preserveFieldNumbers"`
 }
 
 // Options for generating conf files. Only for confgen.

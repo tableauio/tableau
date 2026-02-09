@@ -45,7 +45,7 @@ func newBookExporter(protoPackage string, protoFileOptions map[string]string, ou
 }
 
 func (x *bookExporter) GetProtoFilePath() string {
-	return genProtoFilePath(x.wb.Name, x.FilenameSuffix)
+	return genProtoFilePath(x.wb.GetName(), x.FilenameSuffix)
 }
 
 func (x *bookExporter) export(checkProtoFileConflicts bool) error {
@@ -203,11 +203,17 @@ func (x *sheetExporter) exportStruct() error {
 	opts := &tableaupb.StructOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
 	x.p.P("  option (tableau.struct) = {", marshalToText(opts), "};")
 	x.p.P("")
+
+	md := x.parseMessagerFromGeneratedProtos(x.ws.Name)
+	x.addNumberToFields(x.ws.Fields, md)
 	// generate the fields
 	depth := 1
-	for i, field := range x.ws.Fields {
-		tagid := i + 1
-		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+	for _, field := range x.ws.Fields {
+		var fd protoreflect.FieldDescriptor
+		if md != nil {
+			fd = md.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+		}
+		if err := x.exportField(depth, field, x.ws.Name, fd); err != nil {
 			return err
 		}
 	}
@@ -273,16 +279,16 @@ func (x *sheetExporter) exportUnion() error {
 		x.p.P("  message ", typ, " {")
 		// generate the fields
 		depth := 2
-		tagid := 1
+		tagid := int32(1)
 		for _, field := range msgField.Fields {
-			if err := x.exportField(depth, tagid, field, msgField.Name); err != nil {
+			field.Number = tagid
+			cross := max(field.GetOptions().GetProp().GetCross(), 1)
+			tagid += cross
+		}
+		for _, field := range msgField.Fields {
+			if err := x.exportField(depth, field, msgField.Name, nil); err != nil {
 				return err
 			}
-			cross := int(field.GetOptions().GetProp().GetCross())
-			if cross < 1 {
-				cross = 1
-			}
-			tagid += cross
 		}
 		x.p.P("  }")
 	}
@@ -294,6 +300,54 @@ func (x *sheetExporter) exportUnion() error {
 	return nil
 }
 
+func (x *sheetExporter) parseMessagerFromGeneratedProtos(name string) protoreflect.MessageDescriptor {
+	if !x.be.gen.OutputOpt.PreserveFieldNumbers {
+		return nil
+	}
+	relPath := x.be.GetProtoFilePath()
+	fd, err := x.be.gen.GeneratedProtoRegistryFiles.FindFileByPath(relPath)
+	if err != nil {
+		return nil
+	}
+	return fd.Messages().ByName(protoreflect.Name(name))
+}
+
+func (*sheetExporter) addNumberToFields(fields []*internalpb.Field, md protoreflect.MessageDescriptor) {
+	if md == nil {
+		tagid := int32(1)
+		for _, field := range fields {
+			field.Number = tagid
+			tagid++
+		}
+		return
+	}
+	fieldNameNumberMap := make(map[string]int32)
+	fieldNumbers := make(map[int32]bool)
+	for _, field := range fields {
+		if fd := md.Fields().ByName(protoreflect.Name(field.Name)); fd != nil {
+			number := int32(fd.Number())
+			fieldNameNumberMap[field.Name] = number
+			fieldNumbers[number] = true
+		}
+	}
+	var missingNumbers []int32
+	for i := int32(1); len(fieldNumbers)+len(missingNumbers) < len(fields); i++ {
+		if fieldNumbers[i] {
+			continue
+		}
+		missingNumbers = append(missingNumbers, i)
+	}
+	missingNumberIndex := 0
+	for _, field := range fields {
+		if number, ok := fieldNameNumberMap[field.Name]; ok {
+			field.Number = number
+		} else {
+			field.Number = missingNumbers[missingNumberIndex]
+			missingNumberIndex++
+		}
+	}
+}
+
 func (x *sheetExporter) exportMessager() error {
 	// log.Debugf("workbook: %s", x.ws.String())
 	if x.be.messagerPatternRegexp != nil && !x.be.messagerPatternRegexp.MatchString(x.ws.Name) {
@@ -302,11 +356,17 @@ func (x *sheetExporter) exportMessager() error {
 	x.p.P("message ", x.ws.Name, " {")
 	x.p.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
 	x.p.P("")
+
+	md := x.parseMessagerFromGeneratedProtos(x.ws.Name)
+	x.addNumberToFields(x.ws.Fields, md)
 	// generate the fields
 	depth := 1
-	for i, field := range x.ws.Fields {
-		tagid := i + 1
-		if err := x.exportField(depth, tagid, field, x.ws.Name); err != nil {
+	for _, field := range x.ws.Fields {
+		var fd protoreflect.FieldDescriptor
+		if md != nil {
+			fd = md.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+		}
+		if err := x.exportField(depth, field, x.ws.Name, fd); err != nil {
 			return err
 		}
 	}
@@ -317,7 +377,7 @@ func (x *sheetExporter) exportMessager() error {
 	return nil
 }
 
-func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Field, prefix string) error {
+func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix string, fd protoreflect.FieldDescriptor) error {
 	label := ""
 	if x.ws.GetOptions().GetFieldPresence() &&
 		types.IsScalarType(field.FullType) &&
@@ -328,8 +388,12 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 	if field.Note != "" {
 		note = " // " + field.Note
 	}
-	x.p.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", tagid, " ", genFieldOptionsString(field.Options), ";", note)
+	x.p.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", field.Number, " ", genFieldOptionsString(field.Options), ";", note)
 
+	var md protoreflect.MessageDescriptor
+	if fd != nil {
+		md = fd.Message()
+	}
 	typeName := field.Type
 	fullTypeName := field.FullType
 	if field.ListEntry != nil {
@@ -339,6 +403,11 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 	if field.MapEntry != nil {
 		typeName = field.MapEntry.ValueType
 		fullTypeName = field.MapEntry.ValueFullType
+		if fd != nil {
+			if v := fd.MapValue(); v != nil {
+				md = v.Message()
+			}
+		}
 	}
 
 	if types.IsWellKnownMessage(fullTypeName) {
@@ -377,9 +446,14 @@ func (x *sheetExporter) exportField(depth int, tagid int, field *internalpb.Fiel
 
 		// x.g.P("")
 		x.p.P(printer.Indent(depth), "message ", typeName, " {")
-		for i, f := range field.Fields {
-			tagid := i + 1
-			if err := x.exportField(depth+1, tagid, f, nestedMsgName); err != nil {
+
+		x.addNumberToFields(field.Fields, md)
+		for _, f := range field.Fields {
+			var nextFd protoreflect.FieldDescriptor
+			if md != nil {
+				nextFd = md.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+			}
+			if err := x.exportField(depth+1, f, nestedMsgName, nextFd); err != nil {
 				return err
 			}
 		}
