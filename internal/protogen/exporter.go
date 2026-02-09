@@ -302,6 +302,9 @@ func (x *sheetExporter) exportUnion() error {
 }
 
 func (x *sheetExporter) parseMessagerFromGeneratedProtos(name string) protoreflect.MessageDescriptor {
+	if !x.be.gen.OutputOpt.PreserveFieldNumbers {
+		return nil
+	}
 	relPath := x.be.GetProtoFilePath()
 	fd, err := x.be.gen.GeneratedProtoRegistryFiles.FindFileByPath(relPath)
 	if err != nil {
