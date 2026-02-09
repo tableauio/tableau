@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"google.golang.org/protobuf/proto"
@@ -351,7 +352,12 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
 					},
 				},
-				p:              printer.New(),
+				p: printer.New(),
+				be: &bookExporter{
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+				},
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),
 			},
@@ -468,7 +474,9 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 				},
 				p: printer.New(),
 				be: &bookExporter{
-					gen:                   &Generator{},
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
 					messagerPatternRegexp: regexp.MustCompile(`Conf$`),
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -494,7 +502,9 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 				},
 				p: printer.New(),
 				be: &bookExporter{
-					gen:                   &Generator{},
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
 					messagerPatternRegexp: regexp.MustCompile(`Data$`),
 				},
 				typeInfos:      &xproto.TypeInfos{},
