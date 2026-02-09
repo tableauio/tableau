@@ -27,6 +27,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 type Generator struct {
@@ -38,6 +39,8 @@ type Generator struct {
 	LocationName string // TZ location name.
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
+
+	GeneratedProtoRegistryFiles *protoregistry.Files
 
 	// internal
 	typeInfos *xproto.TypeInfos // predefined type infos
@@ -68,11 +71,12 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 
 		cachedImporters: make(map[string]importer.Importer),
 	}
+	gen.GeneratedProtoRegistryFiles, _ = gen.parseProtoRegistryFiles(true)
 
 	return gen
 }
 
-func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
+func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protoregistry.Files, error) {
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	var protoFiles []string
 	protoFiles = append(protoFiles, gen.InputOpt.ProtoFiles...)
@@ -84,9 +88,15 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 		protoFiles = append(protoFiles, xfs.CleanSlashPath(filepath.Join(outdir, "*.proto")))
 	}
 	// parse custom imported proto files
-	protoRegistryFiles, err := protoc.NewFiles(
+	return protoc.NewFiles(
 		gen.InputOpt.ProtoPaths,
 		protoFiles)
+}
+
+func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
+	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
+	// parse custom imported proto files
+	protoRegistryFiles, err := gen.parseProtoRegistryFiles(useGeneratedProtos)
 	if err != nil {
 		return err
 	}
