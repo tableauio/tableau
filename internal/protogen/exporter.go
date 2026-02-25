@@ -330,7 +330,7 @@ func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD proto
 		return
 	}
 	fieldNameNumberMap := make(map[string]int32)
-	maxFieldNumber := int32(1)
+	var maxFieldNumber int32
 	for i := 0; i < oldMD.Fields().Len(); i++ {
 		fd := oldMD.Fields().Get(i)
 		for _, field := range fields {
