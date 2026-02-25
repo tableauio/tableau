@@ -279,11 +279,11 @@ func (x *sheetExporter) exportUnion() error {
 		x.p.P("  message ", typ, " {")
 		// generate the fields
 		depth := 2
-		tagid := int32(1)
+		fieldNumber := int32(1)
 		for _, field := range msgField.Fields {
-			field.Number = tagid
+			field.Number = fieldNumber
 			cross := max(field.GetOptions().GetProp().GetCross(), 1)
-			tagid += cross
+			fieldNumber += cross
 		}
 		for _, field := range msgField.Fields {
 			if err := x.exportField(depth, field, msgField.Name, nil); err != nil {
@@ -302,16 +302,19 @@ func (x *sheetExporter) exportUnion() error {
 
 // findMDFromGeneratedProtos finds the MessageDescriptor in the generated proto
 // files by message name. It returns nil if not found.
+//
+// NOTE: Even if the message is moved to another proto file, we still can find it
+// in the generated proto files.
 func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.MessageDescriptor {
 	if !x.be.gen.OutputOpt.PreserveFieldNumbers {
 		return nil
 	}
-	relPath := x.be.GetProtoFilePath()
-	fd, err := x.be.gen.ProtoRegistryFiles.FindFileByPath(relPath)
+	fullName := protoreflect.FullName(x.be.ProtoPackage).Append(protoreflect.Name(name))
+	descriptor, err := x.be.gen.ProtoRegistryFiles.FindDescriptorByName(fullName)
 	if err != nil {
 		return nil
 	}
-	return fd.Messages().ByName(protoreflect.Name(name))
+	return descriptor.(protoreflect.MessageDescriptor)
 }
 
 // assignFieldNumbers assigns the field numbers to the fields. It uses the old
@@ -319,14 +322,13 @@ func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.Mess
 // in sequence starting from 1.
 func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD protoreflect.MessageDescriptor) {
 	if oldMD == nil {
-		tagid := int32(1)
+		fieldNumber := int32(1)
 		for _, field := range fields {
-			field.Number = tagid
-			tagid++
+			field.Number = fieldNumber
+			fieldNumber++
 		}
 		return
 	}
-
 	fieldNameNumberMap := make(map[string]int32)
 	maxFieldNumber := int32(1)
 	for i := 0; i < oldMD.Fields().Len(); i++ {
@@ -393,22 +395,25 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 	x.p.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", field.Number, " ", genFieldOptionsString(field.Options), ";", note)
 
 	var oldMD protoreflect.MessageDescriptor
-	if oldFD != nil {
-		oldMD = oldFD.Message()
-	}
 	typeName := field.Type
 	fullTypeName := field.FullType
 	if field.ListEntry != nil {
 		typeName = field.ListEntry.ElemType
 		fullTypeName = field.ListEntry.ElemFullType
-	}
-	if field.MapEntry != nil {
+		if oldFD != nil {
+			oldMD = oldFD.Message()
+		}
+	} else if field.MapEntry != nil {
 		typeName = field.MapEntry.ValueType
 		fullTypeName = field.MapEntry.ValueFullType
 		if oldFD != nil {
 			if v := oldFD.MapValue(); v != nil {
 				oldMD = v.Message()
 			}
+		}
+	} else {
+		if oldFD != nil {
+			oldMD = oldFD.Message()
 		}
 	}
 
@@ -450,12 +455,12 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 		x.p.P(printer.Indent(depth), "message ", typeName, " {")
 
 		x.assignFieldNumbers(field.Fields, oldMD)
-		for _, f := range field.Fields {
+		for _, subField := range field.Fields {
 			var nestedOldFD protoreflect.FieldDescriptor
 			if oldMD != nil {
-				nestedOldFD = oldMD.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+				nestedOldFD = oldMD.Fields().ByNumber(protoreflect.FieldNumber(subField.GetNumber()))
 			}
-			if err := x.exportField(depth+1, f, nestedMsgName, nestedOldFD); err != nil {
+			if err := x.exportField(depth+1, subField, nestedMsgName, nestedOldFD); err != nil {
 				return err
 			}
 		}

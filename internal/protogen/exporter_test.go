@@ -390,9 +390,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 				},
 				p: printer.New(),
 				be: &bookExporter{
-					wb: &internalpb.Workbook{
-						Name: "tableau/protobuf/unittest/common",
-					},
+					ProtoPackage: "unittest",
 					gen: &Generator{
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
@@ -429,9 +427,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 				},
 				p: printer.New(),
 				be: &bookExporter{
-					wb: &internalpb.Workbook{
-						Name: "tableau/protobuf/unittest/common",
-					},
+					ProtoPackage: "unittest",
 					gen: &Generator{
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
@@ -593,7 +589,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "field-number-compatibility-add-new-fields",
+			name: "field-number-compatibility-delete-fields-and-add-new-fields",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "YamlScalarConf",
@@ -602,7 +598,8 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 					},
 					Fields: []*internalpb.Field{
 						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
-						{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
+						// delete field "num"
+						// {Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
 						{Name: "value", Type: "uint64", FullType: "uint64", Options: &tableaupb.FieldOptions{Name: "Value"}},
 						{Name: "inserted_field", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "InsertedField"}},
 						{Name: "weight", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Weight"}},
@@ -611,14 +608,13 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						{Name: "another_inserted_field", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "AnotherInsertedField"}},
 						{Name: "name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "Name"}},
 						{Name: "blob", Type: "bytes", FullType: "bytes", Options: &tableaupb.FieldOptions{Name: "Blob"}},
-						{Name: "ok", Type: "bool", FullType: "bool", Options: &tableaupb.FieldOptions{Name: "OK"}},
+						// delete field "ok" which has max field number
+						// {Name: "ok", Type: "bool", FullType: "bool", Options: &tableaupb.FieldOptions{Name: "OK"}},
 					},
 				},
 				p: printer.New(),
 				be: &bookExporter{
-					wb: &internalpb.Workbook{
-						Name: "tableau/protobuf/unittest/unittest",
-					},
+					ProtoPackage: "unittest",
 					gen: &Generator{
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
@@ -633,7 +629,6 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
   option (tableau.worksheet) = {name:"YamlScalarConf"};
 
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
-  int32 num = 2 [(tableau.field) = {name:"Num"}];
   uint64 value = 3 [(tableau.field) = {name:"Value"}];
   int32 inserted_field = 10 [(tableau.field) = {name:"InsertedField"}];
   int64 weight = 4 [(tableau.field) = {name:"Weight"}];
@@ -642,41 +637,58 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
   int32 another_inserted_field = 11 [(tableau.field) = {name:"AnotherInsertedField"}];
   string name = 7 [(tableau.field) = {name:"Name"}];
   bytes blob = 8 [(tableau.field) = {name:"Blob"}];
-  bool ok = 9 [(tableau.field) = {name:"OK"}];
 }
 
 `,
 			wantErr: false,
 		},
 		{
-			name: "field-number-compatibility-in-sub-structs",
+			name: "field-number-compatibility-sub-message",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
-					Name: "RewardConf",
+					Name: "ActivityConf",
 					Options: &tableaupb.WorksheetOptions{
-						Name: "RewardConf",
+						Name: "ActivityConf",
 					},
 					Fields: []*internalpb.Field{
 						{
-							Name:     "reward_map",
-							Type:     "map<uint32, Reward>",
-							FullType: "map<uint32, Reward>",
-							MapEntry: &internalpb.Field_MapEntry{
-								KeyType:       "uint32",
-								ValueType:     "Reward",
-								ValueFullType: "Reward",
-							},
-							Options: &tableaupb.FieldOptions{
-								Key:    "RewardID",
-								Layout: tableaupb.Layout_LAYOUT_VERTICAL,
-							},
+							Name: "activity_map", Type: "map<uint32, Activity>", FullType: "map<uint32, Activity>",
+							MapEntry: &internalpb.Field_MapEntry{KeyType: "uint32", ValueType: "Activity", ValueFullType: "Activity"},
+							Options:  &tableaupb.FieldOptions{Key: "ActivityID", Layout: tableaupb.Layout_LAYOUT_VERTICAL},
 							Fields: []*internalpb.Field{
-								{Name: "reward_id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "RewardID"}},
-								{Name: "reward_name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "RewardName"}},
+								{Name: "activity_id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ActivityID"}},
+								// delete field "activity_name"
+								// {Name: "activity_name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "ActivityName"}},
+								// add new field "activity_desc"
+								{Name: "activity_desc", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "ActivityDesc"}},
 								{
-									Name: "item_map", Type: "map<uint32, Item>", FullType: "map<uint32, unittest.Item>", Predefined: true,
-									MapEntry: &internalpb.Field_MapEntry{KeyType: "uint32", ValueType: "Item", ValueFullType: "unittest.Item"},
-									Options:  &tableaupb.FieldOptions{Name: "Item", Key: "ID", Layout: tableaupb.Layout_LAYOUT_HORIZONTAL},
+									Name: "chapter_map", Type: "map<uint32, Chapter>", FullType: "map<uint32, Chapter>",
+									MapEntry: &internalpb.Field_MapEntry{KeyType: "uint32", ValueType: "Chapter", ValueFullType: "Chapter"},
+									Options:  &tableaupb.FieldOptions{Key: "ChapterID", Layout: tableaupb.Layout_LAYOUT_VERTICAL},
+									Fields: []*internalpb.Field{
+										{Name: "chapter_id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ChapterID"}},
+										{Name: "chapter_name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "ChapterName"}},
+										{
+											Name: "section_list", Type: "repeated", FullType: "repeated Section",
+											ListEntry: &internalpb.Field_ListEntry{ElemType: "Section", ElemFullType: "Section"},
+											Options:   &tableaupb.FieldOptions{Layout: tableaupb.Layout_LAYOUT_VERTICAL},
+											Fields: []*internalpb.Field{
+												{Name: "section_id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "SectionID"}},
+												// delete field "section_name"
+												// {Name: "section_name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "SectionName"}},
+												{Name: "section_desc", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "SectionDesc"}},
+												{
+													Name: "reward_map", Type: "map<uint32, Reward>", FullType: "map<uint32, Reward>",
+													MapEntry: &internalpb.Field_MapEntry{KeyType: "uint32", ValueType: "Reward", ValueFullType: "Reward"},
+													Options:  &tableaupb.FieldOptions{Name: "Reward", Key: "ID", Layout: tableaupb.Layout_LAYOUT_HORIZONTAL},
+													Fields: []*internalpb.Field{
+														{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+														{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
+													},
+												},
+											},
+										},
+									},
 								},
 							},
 						},
@@ -684,9 +696,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 				},
 				p: printer.New(),
 				be: &bookExporter{
-					wb: &internalpb.Workbook{
-						Name: "tableau/protobuf/unittest/unittest",
-					},
+					ProtoPackage: "unittest",
 					gen: &Generator{
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
@@ -697,14 +707,28 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),
 			},
-			want: `message RewardConf {
-  option (tableau.worksheet) = {name:"RewardConf"};
+			want: `message ActivityConf {
+  option (tableau.worksheet) = {name:"ActivityConf"};
 
-  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"RewardID" layout:LAYOUT_VERTICAL}];
-  message Reward {
-    uint32 reward_id = 1 [(tableau.field) = {name:"RewardID"}];
-    string reward_name = 3 [(tableau.field) = {name:"RewardName"}];
-    map<uint32, unittest.Item> item_map = 2 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
+  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL}];
+  message Activity {
+    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID"}];
+    string activity_desc = 4 [(tableau.field) = {name:"ActivityDesc"}];
+    map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
+    message Chapter {
+      uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID"}];
+      string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}];
+      repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+      message Section {
+        uint32 section_id = 1 [(tableau.field) = {name:"SectionID"}];
+        string section_desc = 4 [(tableau.field) = {name:"SectionDesc"}];
+        map<uint32, Reward> reward_map = 3 [(tableau.field) = {name:"Reward" key:"ID" layout:LAYOUT_HORIZONTAL}];
+        message Reward {
+          uint32 id = 1 [(tableau.field) = {name:"ID"}];
+          int32 num = 2 [(tableau.field) = {name:"Num"}];
+        }
+      }
+    }
   }
 }
 
