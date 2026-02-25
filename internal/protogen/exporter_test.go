@@ -8,10 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
+	_ "github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 func Test_genFieldOptionsString(t *testing.T) {
@@ -351,7 +354,12 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
 					},
 				},
-				p:              printer.New(),
+				p: printer.New(),
+				be: &bookExporter{
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+				},
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),
 			},
@@ -360,6 +368,80 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   int32 num = 2 [(tableau.field) = {name:"Num"}];
+  protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			name: "field-number-compatibility-add-new-field-in-the-middle",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "Item", // use message unittest.Item to test
+					Options: &tableaupb.WorksheetOptions{
+						Name: "StructItem",
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
+						{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						ProtoRegistryFiles: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message Item {
+  option (tableau.struct) = {name:"StructItem"};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
+  int32 num = 2 [(tableau.field) = {name:"Num"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			name: "field-number-compatibility-delete-old-field-and-add-new-field",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "Item", // use message unittest.Item to test
+					Options: &tableaupb.WorksheetOptions{
+						Name: "StructItem",
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						ProtoRegistryFiles: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message Item {
+  option (tableau.struct) = {name:"StructItem"};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
   protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
 }
 
@@ -468,7 +550,9 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 				},
 				p: printer.New(),
 				be: &bookExporter{
-					gen:                   &Generator{},
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
 					messagerPatternRegexp: regexp.MustCompile(`Conf$`),
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -494,13 +578,162 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 				},
 				p: printer.New(),
 				be: &bookExporter{
-					gen:                   &Generator{},
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
 					messagerPatternRegexp: regexp.MustCompile(`Data$`),
 				},
 				typeInfos:      &xproto.TypeInfos{},
 				nestedMessages: make(map[string]*internalpb.Field),
 			},
 			wantErr: true,
+		},
+		{
+			name: "field-number-compatibility-delete-fields-and-add-new-fields",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "YamlScalarConf",
+					Options: &tableaupb.WorksheetOptions{
+						Name: "YamlScalarConf",
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						// delete field "num"
+						// {Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
+						{Name: "value", Type: "uint64", FullType: "uint64", Options: &tableaupb.FieldOptions{Name: "Value"}},
+						{Name: "inserted_field", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "InsertedField"}},
+						{Name: "weight", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Weight"}},
+						{Name: "percentage", Type: "float", FullType: "float", Options: &tableaupb.FieldOptions{Name: "Percentage"}},
+						{Name: "ratio", Type: "double", FullType: "double", Options: &tableaupb.FieldOptions{Name: "Ratio"}},
+						{Name: "another_inserted_field", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "AnotherInsertedField"}},
+						{Name: "name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "Name"}},
+						{Name: "blob", Type: "bytes", FullType: "bytes", Options: &tableaupb.FieldOptions{Name: "Blob"}},
+						// delete field "ok" which has max field number
+						// {Name: "ok", Type: "bool", FullType: "bool", Options: &tableaupb.FieldOptions{Name: "OK"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						ProtoRegistryFiles: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message YamlScalarConf {
+  option (tableau.worksheet) = {name:"YamlScalarConf"};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  uint64 value = 3 [(tableau.field) = {name:"Value"}];
+  int32 inserted_field = 10 [(tableau.field) = {name:"InsertedField"}];
+  int64 weight = 4 [(tableau.field) = {name:"Weight"}];
+  float percentage = 5 [(tableau.field) = {name:"Percentage"}];
+  double ratio = 6 [(tableau.field) = {name:"Ratio"}];
+  int32 another_inserted_field = 11 [(tableau.field) = {name:"AnotherInsertedField"}];
+  string name = 7 [(tableau.field) = {name:"Name"}];
+  bytes blob = 8 [(tableau.field) = {name:"Blob"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			name: "field-number-compatibility-sub-message",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ActivityConf",
+					Options: &tableaupb.WorksheetOptions{
+						Name: "ActivityConf",
+					},
+					Fields: []*internalpb.Field{
+						{
+							Name: "activity_map", Type: "map<uint32, Activity>", FullType: "map<uint32, Activity>",
+							MapEntry: &internalpb.Field_MapEntry{KeyType: "uint32", ValueType: "Activity", ValueFullType: "Activity"},
+							Options:  &tableaupb.FieldOptions{Key: "ActivityID", Layout: tableaupb.Layout_LAYOUT_VERTICAL},
+							Fields: []*internalpb.Field{
+								{Name: "activity_id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ActivityID"}},
+								// delete field "activity_name"
+								// {Name: "activity_name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "ActivityName"}},
+								// add new field "activity_desc"
+								{Name: "activity_desc", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "ActivityDesc"}},
+								{
+									Name: "chapter_map", Type: "map<uint32, Chapter>", FullType: "map<uint32, Chapter>",
+									MapEntry: &internalpb.Field_MapEntry{KeyType: "uint32", ValueType: "Chapter", ValueFullType: "Chapter"},
+									Options:  &tableaupb.FieldOptions{Key: "ChapterID", Layout: tableaupb.Layout_LAYOUT_VERTICAL},
+									Fields: []*internalpb.Field{
+										{Name: "chapter_id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ChapterID"}},
+										{Name: "chapter_name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "ChapterName"}},
+										{
+											Name: "section_list", Type: "repeated", FullType: "repeated Section",
+											ListEntry: &internalpb.Field_ListEntry{ElemType: "Section", ElemFullType: "Section"},
+											Options:   &tableaupb.FieldOptions{Layout: tableaupb.Layout_LAYOUT_VERTICAL},
+											Fields: []*internalpb.Field{
+												{Name: "section_id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "SectionID"}},
+												// delete field "section_name"
+												// {Name: "section_name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "SectionName"}},
+												{Name: "section_desc", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "SectionDesc"}},
+												{
+													Name: "reward_map", Type: "map<uint32, Reward>", FullType: "map<uint32, Reward>",
+													MapEntry: &internalpb.Field_MapEntry{KeyType: "uint32", ValueType: "Reward", ValueFullType: "Reward"},
+													Options:  &tableaupb.FieldOptions{Name: "Reward", Key: "ID", Layout: tableaupb.Layout_LAYOUT_HORIZONTAL},
+													Fields: []*internalpb.Field{
+														{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+														{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						ProtoRegistryFiles: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message ActivityConf {
+  option (tableau.worksheet) = {name:"ActivityConf"};
+
+  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL}];
+  message Activity {
+    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID"}];
+    string activity_desc = 4 [(tableau.field) = {name:"ActivityDesc"}];
+    map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
+    message Chapter {
+      uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID"}];
+      string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}];
+      repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+      message Section {
+        uint32 section_id = 1 [(tableau.field) = {name:"SectionID"}];
+        string section_desc = 4 [(tableau.field) = {name:"SectionDesc"}];
+        map<uint32, Reward> reward_map = 3 [(tableau.field) = {name:"Reward" key:"ID" layout:LAYOUT_HORIZONTAL}];
+        message Reward {
+          uint32 id = 1 [(tableau.field) = {name:"ID"}];
+          int32 num = 2 [(tableau.field) = {name:"Num"}];
+        }
+      }
+    }
+  }
+}
+
+`,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

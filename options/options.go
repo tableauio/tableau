@@ -203,6 +203,16 @@ type ProtoOutputOption struct {
 	//
 	// Default: false.
 	EnumValueWithPrefix bool `yaml:"enumValueWithPrefix"`
+
+	// In Protocol Buffers (Protobuf), to guarantee both backward and forward
+	// compatibility, field numbers must be preserved because they are used as
+	// unique identifiers in the binary wire format. Changing a field number
+	// breaks backward compatibility with any existing data that uses the old
+	// numbering. Compared with the old generated proto message, if a new field
+	// name occurs, then assign the max field number plus 1 in the same level.
+	//
+	// Default: false.
+	PreserveFieldNumbers bool `yaml:"preserveFieldNumbers"`
 }
 
 // Options for generating conf files. Only for confgen.
