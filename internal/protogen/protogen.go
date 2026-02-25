@@ -40,7 +40,7 @@ type Generator struct {
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
 
-	GeneratedProtoRegistryFiles *protoregistry.Files
+	ProtoRegistryFiles *protoregistry.Files
 
 	// internal
 	typeInfos *xproto.TypeInfos // predefined type infos
@@ -72,7 +72,11 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		cachedImporters: make(map[string]importer.Importer),
 	}
 	if opts.Proto.Output.PreserveFieldNumbers {
-		gen.GeneratedProtoRegistryFiles, _ = gen.parseProtoRegistryFiles(true)
+		registryFiles, err := gen.parseProtoRegistryFiles(true)
+		if err != nil {
+			panic(err)
+		}
+		gen.ProtoRegistryFiles = registryFiles
 	}
 
 	return gen

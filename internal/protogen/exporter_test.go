@@ -375,10 +375,10 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "field-number-compatibility",
+			name: "field-number-compatibility-add-new-field-in-the-middle",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
-					Name: "Item",
+					Name: "Item", // use message unittest.Item to test
 					Options: &tableaupb.WorksheetOptions{
 						Name: "StructItem",
 					},
@@ -397,7 +397,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						GeneratedProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFiles: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -409,6 +409,44 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
   int32 num = 2 [(tableau.field) = {name:"Num"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			name: "field-number-compatibility-delete-old-field-and-add-new-field",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "Item", // use message unittest.Item to test
+					Options: &tableaupb.WorksheetOptions{
+						Name: "StructItem",
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					wb: &internalpb.Workbook{
+						Name: "tableau/protobuf/unittest/common",
+					},
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						ProtoRegistryFiles: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message Item {
+  option (tableau.struct) = {name:"StructItem"};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
 }
 
 `,
@@ -555,7 +593,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "field-number-compatibility",
+			name: "field-number-compatibility-add-new-fields",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "YamlScalarConf",
@@ -585,7 +623,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						GeneratedProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFiles: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -653,7 +691,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						GeneratedProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFiles: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},

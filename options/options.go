@@ -204,24 +204,12 @@ type ProtoOutputOption struct {
 	// Default: false.
 	EnumValueWithPrefix bool `yaml:"enumValueWithPrefix"`
 
-	// Whether converter will preserve field numbers for fields that already
-	// exists in current protos. For example, if you already have the message
-	// below in your proto file:
-	//
-	// message Item {
-	// 	int32 id    = 1 [(tableau.field) = { name: "ID" }];
-	// 	int32 count = 2 [(tableau.field) = { name: "Count" }];
-	// }
-	//
-	// Then you try to add a string field "Name" between "ID" and "Count", its
-	// field number will be 3. "ID" and "Count" will preserve their previous
-	// field number 1 and 2.
-	//
-	// message Item {
-	// 	int32 id    = 1 [(tableau.field) = { name: "ID" }];
-	// 	string name = 3 [(tableau.field) = { name: "Name" }];
-	// 	int32 count = 2 [(tableau.field) = { name: "Count" }];
-	// }
+	// In Protocol Buffers (Protobuf), to guarantee both backward and forward
+	// compatibility, field numbers must be preserved because they are used as
+	// unique identifiers in the binary wire format. Changing a field number
+	// breaks backward compatibility with any existing data that uses the old
+	// numbering. Compared with the old generated proto message, if a new field
+	// name occurs, then assign the max field number plus 1 in the same level.
 	//
 	// Default: false.
 	PreserveFieldNumbers bool `yaml:"preserveFieldNumbers"`

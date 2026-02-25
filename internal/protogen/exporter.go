@@ -204,14 +204,14 @@ func (x *sheetExporter) exportStruct() error {
 	x.p.P("  option (tableau.struct) = {", marshalToText(opts), "};")
 	x.p.P("")
 
-	md := x.parseMessagerFromGeneratedProtos(x.ws.Name)
-	x.addNumberToFields(x.ws.Fields, md)
+	oldMD := x.findMDFromGeneratedProtos(x.ws.Name)
+	x.assignFieldNumbers(x.ws.Fields, oldMD)
 	// generate the fields
 	depth := 1
 	for _, field := range x.ws.Fields {
 		var fd protoreflect.FieldDescriptor
-		if md != nil {
-			fd = md.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+		if oldMD != nil {
+			fd = oldMD.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
 		}
 		if err := x.exportField(depth, field, x.ws.Name, fd); err != nil {
 			return err
@@ -300,20 +300,25 @@ func (x *sheetExporter) exportUnion() error {
 	return nil
 }
 
-func (x *sheetExporter) parseMessagerFromGeneratedProtos(name string) protoreflect.MessageDescriptor {
+// findMDFromGeneratedProtos finds the MessageDescriptor in the generated proto
+// files by message name. It returns nil if not found.
+func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.MessageDescriptor {
 	if !x.be.gen.OutputOpt.PreserveFieldNumbers {
 		return nil
 	}
 	relPath := x.be.GetProtoFilePath()
-	fd, err := x.be.gen.GeneratedProtoRegistryFiles.FindFileByPath(relPath)
+	fd, err := x.be.gen.ProtoRegistryFiles.FindFileByPath(relPath)
 	if err != nil {
 		return nil
 	}
 	return fd.Messages().ByName(protoreflect.Name(name))
 }
 
-func (*sheetExporter) addNumberToFields(fields []*internalpb.Field, md protoreflect.MessageDescriptor) {
-	if md == nil {
+// assignFieldNumbers assigns the field numbers to the fields. It uses the old
+// MD to preserve field numbers if provided, otherwise it assigns field numbers
+// in sequence starting from 1.
+func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD protoreflect.MessageDescriptor) {
+	if oldMD == nil {
 		tagid := int32(1)
 		for _, field := range fields {
 			field.Number = tagid
@@ -321,29 +326,26 @@ func (*sheetExporter) addNumberToFields(fields []*internalpb.Field, md protorefl
 		}
 		return
 	}
+
 	fieldNameNumberMap := make(map[string]int32)
-	fieldNumbers := make(map[int32]bool)
-	for _, field := range fields {
-		if fd := md.Fields().ByName(protoreflect.Name(field.Name)); fd != nil {
-			number := int32(fd.Number())
-			fieldNameNumberMap[field.Name] = number
-			fieldNumbers[number] = true
+	maxFieldNumber := int32(1)
+	for i := 0; i < oldMD.Fields().Len(); i++ {
+		fd := oldMD.Fields().Get(i)
+		for _, field := range fields {
+			if string(fd.Name()) == field.Name {
+				fieldNameNumberMap[field.Name] = int32(fd.Number())
+			}
 		}
+		maxFieldNumber = max(maxFieldNumber, int32(fd.Number()))
 	}
-	var missingNumbers []int32
-	for i := int32(1); len(fieldNumbers)+len(missingNumbers) < len(fields); i++ {
-		if fieldNumbers[i] {
-			continue
-		}
-		missingNumbers = append(missingNumbers, i)
-	}
-	missingNumberIndex := 0
 	for _, field := range fields {
 		if number, ok := fieldNameNumberMap[field.Name]; ok {
+			// for existing field, use the old field number.
 			field.Number = number
 		} else {
-			field.Number = missingNumbers[missingNumberIndex]
-			missingNumberIndex++
+			// for new field, assign the max field number plus 1 in the same level.
+			maxFieldNumber++
+			field.Number = maxFieldNumber
 		}
 	}
 }
@@ -357,8 +359,8 @@ func (x *sheetExporter) exportMessager() error {
 	x.p.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
 	x.p.P("")
 
-	md := x.parseMessagerFromGeneratedProtos(x.ws.Name)
-	x.addNumberToFields(x.ws.Fields, md)
+	md := x.findMDFromGeneratedProtos(x.ws.Name)
+	x.assignFieldNumbers(x.ws.Fields, md)
 	// generate the fields
 	depth := 1
 	for _, field := range x.ws.Fields {
@@ -377,7 +379,7 @@ func (x *sheetExporter) exportMessager() error {
 	return nil
 }
 
-func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix string, fd protoreflect.FieldDescriptor) error {
+func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix string, oldFD protoreflect.FieldDescriptor) error {
 	label := ""
 	if x.ws.GetOptions().GetFieldPresence() &&
 		types.IsScalarType(field.FullType) &&
@@ -390,9 +392,9 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 	}
 	x.p.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", field.Number, " ", genFieldOptionsString(field.Options), ";", note)
 
-	var md protoreflect.MessageDescriptor
-	if fd != nil {
-		md = fd.Message()
+	var oldMD protoreflect.MessageDescriptor
+	if oldFD != nil {
+		oldMD = oldFD.Message()
 	}
 	typeName := field.Type
 	fullTypeName := field.FullType
@@ -403,9 +405,9 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 	if field.MapEntry != nil {
 		typeName = field.MapEntry.ValueType
 		fullTypeName = field.MapEntry.ValueFullType
-		if fd != nil {
-			if v := fd.MapValue(); v != nil {
-				md = v.Message()
+		if oldFD != nil {
+			if v := oldFD.MapValue(); v != nil {
+				oldMD = v.Message()
 			}
 		}
 	}
@@ -441,19 +443,19 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 		default:
 			return nil
 		}
-		// bookkeeping this nested msessage, so we can check if we can reuse it later.
+		// bookkeeping this nested message, so we can check if we can reuse it later.
 		x.nestedMessages[nestedMsgName] = field
 
 		// x.g.P("")
 		x.p.P(printer.Indent(depth), "message ", typeName, " {")
 
-		x.addNumberToFields(field.Fields, md)
+		x.assignFieldNumbers(field.Fields, oldMD)
 		for _, f := range field.Fields {
-			var nextFd protoreflect.FieldDescriptor
-			if md != nil {
-				nextFd = md.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+			var nestedOldFD protoreflect.FieldDescriptor
+			if oldMD != nil {
+				nestedOldFD = oldMD.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
 			}
-			if err := x.exportField(depth+1, f, nestedMsgName, nextFd); err != nil {
+			if err := x.exportField(depth+1, f, nestedMsgName, nestedOldFD); err != nil {
 				return err
 			}
 		}

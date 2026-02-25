@@ -68,6 +68,24 @@ message MallConf {
   }
 }
 
+message ActivityConf {
+  option (tableau.worksheet) = {name:"ActivityConf" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL}];
+  message Activity {
+    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID"}];
+    map<uint32, Chapter> chapter_map = 2 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
+    message Chapter {
+      uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID"}];
+      repeated Section section_list = 2 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+      message Section {
+        uint32 section_id = 1 [(tableau.field) = {name:"SectionID"}];
+        repeated unittest.Item reward_list = 2 [(tableau.field) = {name:"Reward" layout:LAYOUT_HORIZONTAL}];
+      }
+    }
+  }
+}
+
 message RewardConf {
   option (tableau.worksheet) = {name:"RewardConf" namerow:1 typerow:2 noterow:3 datarow:4};
 
