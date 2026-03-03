@@ -102,21 +102,16 @@ type Row struct {
 	// activitysvr			ActivityConf
 	// *MISSING-KEY*		ChapterConf
 	// *MISSING-KEY*		CollectionConf
-
-	SheetName string
-	prev      *Row
-
+	prev        *Row
 	Row         int               // row number
 	cells       map[int]*Cell     // column index (started with 0) -> Cell
 	lookupTable ColumnLookupTable // name -> column index
 }
 
 // NewRow creates a new row.
-func NewRow(row int, prev *Row, sheetName string, lookupTable ColumnLookupTable) *Row {
+func NewRow(row int, prev *Row, lookupTable ColumnLookupTable) *Row {
 	return &Row{
-		SheetName: sheetName,
-		prev:      prev,
-
+		prev:        prev,
 		Row:         row,
 		cells:       make(map[int]*Cell),
 		lookupTable: lookupTable,
@@ -188,7 +183,6 @@ func (r *Row) CellDebugKV(name string) []any {
 	pos := fmt.Sprintf("%s%d", col, r.Row+1)
 
 	return []any{
-		xerrors.KeySheetName, r.SheetName,
 		xerrors.KeyDataCellPos, pos,
 		xerrors.KeyDataCell, data,
 		xerrors.KeyColumnName, name,

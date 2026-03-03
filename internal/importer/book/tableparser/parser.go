@@ -6,7 +6,7 @@ import (
 )
 
 // RangeDataRows ranges data rows in the table.
-func RangeDataRows(table book.Tabler, header *Header, sheetName string, fn func(*book.Row) error) error {
+func RangeDataRows(table book.Tabler, header *Header, fn func(*book.Row) error) error {
 	columns, lookupTable, err := parseColumns(table, header)
 	if err != nil {
 		return err
@@ -15,7 +15,7 @@ func RangeDataRows(table book.Tabler, header *Header, sheetName string, fn func(
 	// [datarow, endRow]: data rows
 	dataRow := table.BeginRow() + header.DataRow - 1
 	for row := dataRow; row < table.EndRow(); row++ {
-		curr := book.NewRow(row, prev, sheetName, lookupTable)
+		curr := book.NewRow(row, prev, lookupTable)
 		for col := table.BeginCol(); col < table.EndCol(); col++ {
 			data, err := table.Cell(row, col)
 			if err != nil {
