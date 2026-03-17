@@ -158,17 +158,16 @@ func (d *Desc) ErrString(withDebug bool) string {
 }
 
 func (d *Desc) DebugString() string {
-	str := ""
+	str := new(strings.Builder)
 	for _, key := range keys {
 		val := d.fields[key]
 		if val != nil {
-			str += fmt.Sprintf("\t%s: %v\n", key, val)
+			fmt.Fprintf(str, "\t%s: %v\n", key, val)
 		}
 	}
-	return str
+	return str.String()
 }
 
 func (d *Desc) GetValue(key string) any {
 	return d.fields[key]
 }
-
