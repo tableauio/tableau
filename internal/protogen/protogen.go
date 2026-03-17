@@ -476,7 +476,9 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			} else {
 				worksheets, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
 				if err != nil {
-					return err
+					return xerrors.WrapKV(err,
+						xerrors.KeyBookName, debugBookName,
+						xerrors.KeySheetName, debugSheetName)
 				}
 				// append parsed sheets to workbook
 				bp.wb.Worksheets = append(bp.wb.Worksheets, worksheets...)

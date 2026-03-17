@@ -57,7 +57,7 @@ func isEnumTypeBlockHeader(cols []string) bool {
 func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator) error {
 	desc := &internalpb.EnumDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
-		return xerrors.Wrapf(err, "failed to parse enum type sheet (block): %s", sheet.Name)
+		return err
 	}
 	prefix := strcase.FromContext(gen.ctx).ToScreamingSnake(ws.Name) + "_"
 	for i, value := range desc.Values {
@@ -98,7 +98,7 @@ func isStructTypeBlockHeader(cols []string) bool {
 func extractStructTypeInfo(sheet *book.Sheet, typeName, parentFilename string, parser book.SheetParser, gen *Generator) error {
 	desc := &internalpb.StructDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
-		return xerrors.Wrapf(err, "failed to parse struct type sheet: %s", sheet.Name)
+		return err
 	}
 	firstFieldOptionName := ""
 	if len(desc.Fields) != 0 {
@@ -118,7 +118,7 @@ func extractStructTypeInfo(sheet *book.Sheet, typeName, parentFilename string, p
 func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
 	desc := &internalpb.StructDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
-		return xerrors.Wrapf(err, "failed to parse struct type sheet (block): %s", sheet.Name)
+		return err
 	}
 	bp := newTableParser("struct", "", "", gen)
 	shHeader := &tableHeader{
@@ -185,7 +185,7 @@ func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, pa
 
 	desc := &internalpb.UnionDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
-		return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
+		return err
 	}
 	// add types nested in union type
 	for _, value := range desc.Values {
@@ -208,7 +208,7 @@ func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, pa
 func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
 	desc := &internalpb.UnionDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
-		return xerrors.Wrapf(err, "failed to parse union type sheet: %s", sheet.Name)
+		return err
 	}
 
 	for i, value := range desc.Values {
