@@ -187,8 +187,18 @@ type ProtoOutputOption struct {
 	// Default: "".
 	FilenameSuffix string `yaml:"filenameSuffix"`
 
-	// Specify proto file options.
-	// Example: go_package, csharp_namespace...
+	// Specify the generated protobuf file's edition.
+	// See https://protobuf.dev/editions/overview/.
+	//
+	// Default: "".
+	Edition string `yaml:"edition"`
+
+	// Specify options (including features) at file level.
+	// Examples: "go_package", "csharp_namespace", "features.(pb.go).strip_enum_prefix" etc.
+	//
+	// References
+	//  - https://protobuf.dev/programming-guides/proto3/#options
+	//  - https://protobuf.dev/editions/features/
 	//
 	// Default: nil.
 	FileOptions map[string]string `yaml:"fileOptions"`
