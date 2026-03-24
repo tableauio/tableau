@@ -115,16 +115,35 @@ func extractStructTypeInfo(sheet *book.Sheet, typeName, parentFilename string, p
 	return nil
 }
 
+// verticalPositioner correctly maps positions for LAYOUT_VERTICAL sheets
+// (e.g., struct type sheets) where cursor iterates over data rows
+// instead of columns.
+type verticalPositioner struct {
+	tabler  book.Tabler
+	dataRow int // 0-based data start row in tabler's coordinate
+}
+
+func (p *verticalPositioner) Position(row, col int) string {
+	// row: virtual header row index (e.g., 0 for Name col, 1 for Type col)
+	// col: cursor (field index), maps to actual data row
+	return p.tabler.Position(p.dataRow+col, row)
+}
+
 func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
 	desc := &internalpb.StructDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
 		return err
 	}
 	bp := newTableParser("struct", "", "", gen)
+	t := sheet.Tabler()
 	shHeader := &tableHeader{
 		Header: &tableparser.Header{
 			NameRow: 1,
 			TypeRow: 2,
+		},
+		Positioner: &verticalPositioner{
+			tabler:  t,
+			dataRow: t.BeginRow() + 1, // StructDescriptor's datarow is 2 (1-based)
 		},
 	}
 	for _, field := range desc.Fields {
@@ -205,6 +224,31 @@ func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, pa
 	return nil
 }
 
+// unionFieldPositioner correctly maps positions for union type sheets where
+// cursor iterates over field columns within a specific union value row.
+type unionFieldPositioner struct {
+	tabler        book.Tabler
+	valueRow      int // 0-based row of current union value in tabler's coordinate
+	fieldStartCol int // 0-based column where Field1 starts
+}
+
+func (p *unionFieldPositioner) Position(row, col int) string {
+	// row param is unused since name/type/note are all in the same cell (different lines).
+	// col is the cursor (field index within this value), maps to actual column.
+	return p.tabler.Position(p.valueRow, p.fieldStartCol+col)
+}
+
+// findFieldStartCol finds the 0-based column index of "Field1" in the header row.
+func findFieldStartCol(t book.Tabler) int {
+	headerRow := t.GetRow(t.BeginRow()) // namerow=1, 0-based: BeginRow+0
+	for i, cell := range headerRow {
+		if cell == colFieldPrefix+"1" {
+			return i
+		}
+	}
+	return 0 // fallback
+}
+
 func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
 	desc := &internalpb.UnionDescriptor{}
 	if err := parser.Parse(desc, sheet); err != nil {
@@ -232,7 +276,8 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 
 		// create a book parser
 		bp := newTableParser("union", "", "", gen)
-
+		t := sheet.Tabler()
+		fieldStartCol := findFieldStartCol(t)
 		shHeader := &tableHeader{
 			Header: &tableparser.Header{
 				NameRow:  1,
@@ -240,6 +285,11 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 				NameLine: 1,
 				TypeLine: 2,
 				NoteLine: 3,
+			},
+			Positioner: &unionFieldPositioner{
+				tabler:        t,
+				valueRow:      t.BeginRow() + 1 + i, // datarow=2 (1-based), i is the value index
+				fieldStartCol: fieldStartCol,
 			},
 			nameRowData: value.Fields,
 			typeRowData: value.Fields,
