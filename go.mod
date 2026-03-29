@@ -21,7 +21,7 @@ require (
 )
 
 require (
-	github.com/antchfx/xpath v0.0.0-20170515025933-1f3266e77307 // indirect
+	github.com/antchfx/xpath v1.3.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
