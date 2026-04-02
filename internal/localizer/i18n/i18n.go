@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"strconv"
 	"strings"
 	"text/template"
 
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 )
+
+var funcMap = template.FuncMap{
+	"quote": strconv.Quote,
+}
 
 // TODO: learn more about Internationalization (i18n) and Localization (l10n)
 // - https://go.dev/blog/matchlang
@@ -182,7 +187,7 @@ func loadBundles(langs []language.Tag) (map[string]*Bundle, error) {
 }
 
 func render(text string, data any) string {
-	tmpl, err := template.New("i18n").Parse(text)
+	tmpl, err := template.New("i18n").Funcs(funcMap).Parse(text)
 	if err != nil {
 		panic(err)
 	}
