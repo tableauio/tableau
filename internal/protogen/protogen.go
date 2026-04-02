@@ -384,6 +384,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	// export book
 	be := newBookExporter(
 		gen.ProtoPackage,
+		gen.OutputOpt.Edition,
 		gen.OutputOpt.FileOptions,
 		filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir),
 		gen.OutputOpt.FilenameSuffix,
@@ -490,6 +491,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		// export book
 		be := newBookExporter(
 			gen.ProtoPackage,
+			gen.OutputOpt.Edition,
 			gen.OutputOpt.FileOptions,
 			filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir),
 			gen.OutputOpt.FilenameSuffix,

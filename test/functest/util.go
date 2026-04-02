@@ -78,7 +78,7 @@ func genProto(logLevel, logMode string) error {
 					Output: &options.ProtoOutputOption{
 						FilenameWithSubdirPrefix: true,
 						FileOptions: map[string]string{
-							"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+							"go_package": `"github.com/tableauio/tableau/test/functest/protoconf"`,
 						},
 						EnumValueWithPrefix: true,
 					},
@@ -135,7 +135,7 @@ func genProto(logLevel, logMode string) error {
 				Output: &options.ProtoOutputOption{
 					FilenameWithSubdirPrefix: true,
 					FileOptions: map[string]string{
-						"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+						"go_package": `"github.com/tableauio/tableau/test/functest/protoconf"`,
 					},
 				},
 			},

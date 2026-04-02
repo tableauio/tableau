@@ -134,7 +134,7 @@ func genProto(logLevel string) error {
 				},
 				Output: &options.ProtoOutputOption{
 					FileOptions: map[string]string{
-						"go_package": "github.com/tableauio/tableau/test/bench/protoconf",
+						"go_package": `"github.com/tableauio/tableau/test/bench/protoconf"`,
 					},
 				},
 			},

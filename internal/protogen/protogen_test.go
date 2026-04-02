@@ -95,7 +95,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 						Output: &options.ProtoOutputOption{
 							FilenameWithSubdirPrefix: true,
 							FileOptions: map[string]string{
-								"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+								"go_package": `"github.com/tableauio/tableau/test/functest/protoconf"`,
 							},
 						},
 					},
@@ -124,7 +124,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 						Output: &options.ProtoOutputOption{
 							FilenameWithSubdirPrefix: true,
 							FileOptions: map[string]string{
-								"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+								"go_package": `"github.com/tableauio/tableau/test/functest/protoconf"`,
 							},
 						},
 					},
@@ -153,7 +153,7 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 						Output: &options.ProtoOutputOption{
 							FilenameWithSubdirPrefix: true,
 							FileOptions: map[string]string{
-								"go_package": "github.com/tableauio/tableau/test/functest/protoconf",
+								"go_package": `"github.com/tableauio/tableau/test/functest/protoconf"`,
 							},
 						},
 					},

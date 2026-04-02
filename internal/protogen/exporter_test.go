@@ -2,6 +2,8 @@ package protogen
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -250,6 +252,104 @@ func Test_bookExporter_GetProtoFilePath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.x.GetProtoFilePath(); got != tt.want {
 				t.Errorf("bookExporter.GetProtoFilePath() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_bookExporter_export(t *testing.T) {
+	tests := []struct {
+		name             string
+		edition          string
+		protoFileOptions map[string]string
+		wantContains     []string
+		wantNotContains  []string
+	}{
+		{
+			name: "proto3",
+			protoFileOptions: map[string]string{
+				"go_package": `"github.com/example/protoconf"`,
+			},
+			wantContains: []string{
+				`syntax = "proto3";`,
+				`option go_package = "github.com/example/protoconf";`,
+			},
+		},
+		{
+			name:    "edition-2023-with-features-utf8-validation",
+			edition: "2023",
+			protoFileOptions: map[string]string{
+				"go_package":               `"github.com/example/protoconf"`,
+				"features.utf8_validation": "NONE",
+			},
+			wantContains: []string{
+				`edition = "2023";`,
+				`option go_package = "github.com/example/protoconf";`,
+				`option features.utf8_validation = NONE;`,
+			},
+			wantNotContains: []string{
+				`syntax = "proto3";`,
+			},
+		},
+		{
+			name:    "edition-2024-with-features-strip-enum-prefix",
+			edition: "2024",
+			protoFileOptions: map[string]string{
+				"go_package":                         `"github.com/example/protoconf"`,
+				"features.(pb.go).strip_enum_prefix": "STRIP_ENUM_PREFIX_STRIP",
+			},
+			wantContains: []string{
+				`edition = "2024";`,
+				`option go_package = "github.com/example/protoconf";`,
+				`option features.(pb.go).strip_enum_prefix = STRIP_ENUM_PREFIX_STRIP;`,
+			},
+			wantNotContains: []string{
+				`syntax = "proto3";`,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			gen := &Generator{
+				ctx: context.Background(),
+				InputOpt: &options.ProtoInputOption{
+					MessagerPattern: `Conf$`,
+				},
+				OutputOpt: &options.ProtoOutputOption{},
+			}
+			wb := &internalpb.Workbook{
+				Name: "item",
+				Options: &tableaupb.WorkbookOptions{
+					Name: "item.xlsx",
+				},
+				Worksheets: []*internalpb.Worksheet{
+					{
+						Name: "ItemConf",
+						Options: &tableaupb.WorksheetOptions{
+							Name: "ItemConf",
+						},
+						Fields: []*internalpb.Field{
+							{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							{Name: "name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "Name"}},
+						},
+					},
+				},
+			}
+			be := newBookExporter("protoconf", tt.edition, tt.protoFileOptions, tmpDir, "", wb, gen)
+			err := be.export(false)
+			assert.NoError(t, err)
+
+			// read the generated file and verify
+			content, err := os.ReadFile(filepath.Join(tmpDir, "item.proto"))
+			assert.NoError(t, err)
+			got := string(content)
+			for _, want := range tt.wantContains {
+				assert.Contains(t, got, want, "expected proto file to contain: %s", want)
+			}
+			for _, notWant := range tt.wantNotContains {
+				assert.NotContains(t, got, notWant, "expected proto file NOT to contain: %s", notWant)
 			}
 		})
 	}
