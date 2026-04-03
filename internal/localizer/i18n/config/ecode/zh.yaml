@@ -42,11 +42,11 @@ E2006:
   help: 将 enum 值 "{{.Value}}" 添加到 enum 类型 "{{.EnumName}}" 定义中
 E2007:
   desc: invalid datetime format
-  text: '"{{.Value}}" 是无效的日期时间(datetime)格式, {{.Error}}'
+  text: '{{ quote .Value }} 是无效的日期时间(datetime)格式, {{.Error}}'
   help: '请遵循日期时间格式: "yyyy-MM-dd HH:mm:ss" 或 RFC3339, 示例: "2020-01-01 01:00:00" 或 "2020-01-01T01:00:00+08:00"'
 E2008:
   desc: invalid duration format
-  text: '"{{.Value}}" 是无效的时间段(duration)格式, {{.Error}}'
+  text: '{{ quote .Value }} 是无效的时间段(duration)格式, {{.Error}}'
   help: '请遵循时间段(duration)格式，以 "72h3m0.5s" 形式来配置'
 E2009:
   desc: duplicate key exists in different sheets
@@ -62,11 +62,11 @@ E2011:
   help: 请显式填充单元格数据
 E2012:
   desc: invalid syntax of numerical value
-  text: 无法将 "{{.Value}}" 解析为数值类型 "{{.FieldType}}", {{.Error}}
+  text: 无法将 {{ quote .Value }} 解析为数值类型 "{{.FieldType}}", {{.Error}}
   help: '请依据类型 "{{.FieldType}}" 填充合法的数值; int32/int64: 32/64位整数, uint32/uint64: 32/64位正整数, float32/float64: 32/64位浮点数'
 E2013:
   desc: invalid syntax of boolean value
-  text: 无法将 "{{.Value}}" 解析为布尔类型, {{.Error}}
+  text: 无法将 {{ quote .Value }} 解析为布尔类型, {{.Error}}
   help: "布尔值可以为: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
 E2014:
   desc: sheet column not found
@@ -90,11 +90,11 @@ E2018:
   help: 请确保map的每个元素中都填写了key字段
 E2019:
   desc: invalid fraction pattern
-  text: '"{{.Value}}" 无法以分数形式 "分子/分母" 解析, {{.Error}}'
+  text: '{{ quote .Value }} 无法以分数形式 "分子/分母" 解析, {{.Error}}'
   help: "支持的分数形式: 0.5, 5, 5/6, 10%, 10‰, 10‱"
 E2020:
   desc: invalid comparator pattern
-  text: '"{{.Value}}" 无法以比较式 "<比较运算符><分数>" 解析, {{.Error}}'
+  text: '{{ quote .Value }} 无法以比较式 "<比较运算符><分数>" 解析, {{.Error}}'
   help: "支持的比较形式: ==5, !=5, <3/5, <=10%, >10‰, >=10‱"
 E2021:
   desc: duplicate enum value alias
@@ -106,7 +106,7 @@ E2022:
   help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值唯一, 不能配置相同值
 E2024:
   desc: invalid version pattern
-  text: '"{{.Value}}" 无法以点分十进制解析, {{.Error}}'
+  text: '{{ quote .Value }} 无法以点分十进制解析, {{.Error}}'
   help: "确保版本号格式为: <MAJOR>.<MINOR>.<PATCH>[.<OTHER>]..."
 E2025:
   desc: version value mismatches pattern
