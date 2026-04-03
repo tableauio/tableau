@@ -57,6 +57,7 @@ func genProto(logLevel, logMode string) error {
 							filepath.Join(defaultOutdir, "common/base.proto"),
 							filepath.Join(defaultOutdir, "common/common.proto"),
 							filepath.Join(defaultOutdir, "common/union.proto"),
+							filepath.Join(defaultOutdir, "common/custom_rules.proto"),
 						},
 						Formats: []format.Format{
 							// format.Excel,

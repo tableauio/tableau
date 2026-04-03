@@ -1,0 +1,5 @@
+ID,Name,Value,TimespanStartTime,TimespanEndTime
+"map<uint32, Item>|{validate_message:""cel_expression:\""this.value <= 0 || this.name != ''\""""}"," string"," int32","{Timespan}datetime|{validate_message:""cel_expression:\""this.start_time < this.end_time\""""}"," datetime"
+Item ID,Item Name,Item Value,Start Time,End Time
+1,potion,10,2025-01-01 00:00:00,2025-06-30 23:59:59
+2,elixir,20,2025-03-01 00:00:00,2025-12-31 23:59:59

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/strcase"
@@ -274,7 +275,14 @@ func parseOutputFormats(msg proto.Message, opt *options.ConfOutputOption) []form
 }
 
 // storeMessage stores a message to one or multiple file formats.
-func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption) error {
+func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption, validator protovalidate.Validator) error {
+	if validator != nil {
+		if err := validator.Validate(msg); err != nil {
+			return xerrors.Wrap(err)
+		}
+	} else if err := protovalidate.Validate(msg); err != nil {
+		return xerrors.Wrap(err)
+	}
 	outputDir = filepath.Join(outputDir, opt.Subdir)
 	formats := parseOutputFormats(msg, opt)
 	for _, fmt := range formats {
@@ -288,7 +296,7 @@ func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *
 			store.UseEnumNumbers(opt.UseEnumNumbers),
 		)
 		if err != nil {
-			return err
+			return xerrors.Wrap(err)
 		}
 	}
 	return nil

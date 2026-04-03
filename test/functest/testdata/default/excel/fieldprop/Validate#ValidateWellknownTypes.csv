@@ -1,0 +1,5 @@
+ID,Name,CreateTime,UpdateTime,Duration,ExpireTime
+"map<uint32, Item>"," string"," google.protobuf.Timestamp|{validate:""timestamp: {gt: {seconds: 1735660800}}""}"," google.protobuf.Timestamp|{validate:""timestamp: {lt_now: true}""}"," google.protobuf.Duration|{validate:""duration: {gte: {seconds: 3600}, lte: {seconds: 86400}}""}"," google.protobuf.Timestamp|{validate:""timestamp: {gt_now: true}""}"
+Item ID,Item Name,Create Time,Update Time,Duration,Expire Time
+1,Test Item 1,2025-01-01 10:00:00,2025-01-02 15:30:00,2h30m,2030-12-31 23:59:59
+2,Test Item 2,2025-02-01 09:00:00,2025-02-01 18:00:00,8h,2031-01-01 00:00:00

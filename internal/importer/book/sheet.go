@@ -163,6 +163,7 @@ func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 			Patch:                  s.Meta.Patch,
 			WithParentDir:          s.Meta.WithParentDir,
 			ScatterWithoutBookName: s.Meta.ScatterWithoutBookName,
+			Validate:               s.Meta.Validate,
 			// Loader options:
 			OrderedMap:   s.Meta.OrderedMap,
 			Index:        parseIndexes(s.Meta.Index),

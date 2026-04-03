@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
@@ -32,14 +33,15 @@ import (
 type sheetExporter struct {
 	OutputDir string
 	OutputOpt *options.ConfOutputOption // output settings.
-
+	validator protovalidate.Validator   // validator with extension type resolver.
 }
 
 // NewSheetExporter creates a new sheet exporter.
-func NewSheetExporter(outputDir string, output *options.ConfOutputOption) *sheetExporter {
+func NewSheetExporter(outputDir string, output *options.ConfOutputOption, validator protovalidate.Validator) *sheetExporter {
 	return &sheetExporter{
 		OutputDir: outputDir,
 		OutputOpt: output,
+		validator: validator,
 	}
 }
 
@@ -70,7 +72,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return err
 	}
 	mainName := getExportedConfName(info, mainImpInfo)
-	err = storeMessage(mainMsg, mainName, info.LocationName, x.OutputDir, x.OutputOpt)
+	err = storeMessage(mainMsg, mainName, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
 	if err != nil {
 		return err
 	}
@@ -97,7 +99,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 					return storePatchMergeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt)
 				}
 			}
-			return storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt)
+			return storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
 		})
 	}
 	return eg.Wait()
@@ -125,7 +127,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 		return filename
 	}
 	name := getExportedConfName(info, mainImpInfo)
-	return storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt)
+	return storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
 }
 
 type oneMsg struct {
@@ -569,7 +571,7 @@ func (p *sheetParser) checkListKeyUnique(field *Field, keyData string) error {
 func (p *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string) error {
 	fd := p.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
-		return xerrors.Newf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
+		return xerrors.Newf("key field not found in proto definition: %s", fdOpts.Key)
 	}
 	keyField := p.parseFieldDescriptor(fd)
 	defer keyField.release()
@@ -631,7 +633,7 @@ func (p *sheetParser) checkListKeySequence(field *Field, reflectList protoreflec
 func (p *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts *tableaupb.FieldOptions, keyData string, valueCount int64, merged bool) error {
 	fd := p.findFieldByName(md, fdOpts.Key)
 	if fd == nil {
-		return xerrors.Newf(fmt.Sprintf("key field not found in proto definition: %s", fdOpts.Key))
+		return xerrors.Newf("key field not found in proto definition: %s", fdOpts.Key)
 	}
 	keyField := p.parseFieldDescriptor(fd)
 	defer keyField.release()

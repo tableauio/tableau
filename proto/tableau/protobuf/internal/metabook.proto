@@ -80,6 +80,11 @@ message Metasheet {
   // This concept is much like it is in k8s, see
   // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/.
   map<string, string> labels = 24 [(tableau.field) = {name:"Labels" layout:LAYOUT_INCELL prop:{optional:true}}];
+  // Protovalidate message-level constraints. The value is a text-format
+  // representation of buf.validate.MessageConstraints.
+  //
+  // See https://github.com/bufbuild/protovalidate.
+  string validate = 25 [(tableau.field) = {name:"Validate" prop:{optional:true}}];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers

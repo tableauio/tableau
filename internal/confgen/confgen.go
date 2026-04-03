@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
@@ -22,6 +23,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type Generator struct {
@@ -33,6 +35,8 @@ type Generator struct {
 	LocationName string                    // TZ location name.
 	InputOpt     *options.ConfInputOption  // Input settings.
 	OutputOpt    *options.ConfOutputOption // output settings.
+
+	validator protovalidate.Validator // validator with extension type resolver for custom predefined rules.
 
 	// Performance stats
 	PerfStats sync.Map
@@ -83,6 +87,13 @@ func (gen *Generator) GenAll() error {
 	if err != nil {
 		return err
 	}
+	// Create a validator with extension type resolver for custom predefined rules.
+	gen.validator, err = protovalidate.New(
+		protovalidate.WithExtensionTypeResolver(dynamicpb.NewTypes(prFiles)),
+	)
+	if err != nil {
+		return err
+	}
 	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
 	var eg errgroup.Group
 	prFiles.RangeFilesByPackage(
@@ -101,6 +112,13 @@ func (gen *Generator) GenAll() error {
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+	if err != nil {
+		return err
+	}
+	// Create a validator with extension type resolver for custom predefined rules.
+	gen.validator, err = protovalidate.New(
+		protovalidate.WithExtensionTypeResolver(dynamicpb.NewTypes(prFiles)),
+	)
 	if err != nil {
 		return err
 	}
@@ -215,16 +233,16 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		if sheetInfo.HasScatter() {
 			if sheetInfo.HasMerger() {
 				return xerrors.NewKV("option Scatter and Merger cannot be both set at one sheet",
-					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, specifiedSheetName)
+					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
 			}
 			err := gen.processScatter(imp, sheetInfo)
 			if err != nil {
-				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, specifiedSheetName)
+				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
 			}
 		} else {
 			err := gen.processMerger(imp, sheetInfo)
 			if err != nil {
-				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, specifiedSheetName)
+				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
 			}
 		}
 
@@ -246,7 +264,7 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 		return err
 	}
 	mainImporter := importer.ImporterInfo{Importer: self}
-	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator)
 	if err := exporter.ScatterAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
@@ -259,7 +277,7 @@ func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo
 		return err
 	}
 	mainImporter := importer.ImporterInfo{Importer: self}
-	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator)
 	if err := exporter.MergeAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}

@@ -1,0 +1,9 @@
+Sheet,Mode,Validate
+ValidateFieldLevel,,
+ValidateMessageLevel,,
+ValidateWorksheetLevel,,"cel_expression:""this.item_map.size() > 0"""
+ValidateStructType,MODE_STRUCT_TYPE,"cel_expression:""this.begin > this.end ? \'begin(%s) must be before end(%s)\'.format([this.begin, this.end])  : \'\'"""
+ValidateUnionType,MODE_UNION_TYPE,"cel_expression:""this.type != 0"""
+ValidateCustomRule,,
+ValidateWellknownTypes,,
+ValidatePredefinedTypes,,

@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package testpkg;
+
+import "buf/validate/validate.proto";
+
+extend buf.validate.Int32Rules {
+  optional bool is_zero = 1000 [(buf.validate.predefined).cel = {
+    id: "int32.is_zero",
+    message: "value must be zero",
+    expression: "!rule || this == 0",
+  }];
+}

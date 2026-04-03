@@ -1,0 +1,20 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "name": "Test Item 1",
+            "createTime": "2025-01-01T10:00:00+08:00",
+            "updateTime": "2025-01-02T15:30:00+08:00",
+            "duration": "9000s",
+            "expireTime": "2030-12-31T23:59:59+08:00"
+        },
+        "2": {
+            "id": 2,
+            "name": "Test Item 2",
+            "createTime": "2025-02-01T09:00:00+08:00",
+            "updateTime": "2025-02-01T18:00:00+08:00",
+            "duration": "28800s",
+            "expireTime": "2031-01-01T00:00:00+08:00"
+        }
+    }
+}

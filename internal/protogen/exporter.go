@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/printer"
@@ -17,6 +18,7 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -96,7 +98,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	for k, v := range x.ProtoFileOptions {
 		p2.P(`option `, k, ` = `, v, `;`)
 	}
-	p2.P("option (tableau.workbook) = {", marshalToText(x.wb.Options), "};")
+	p2.P("option (tableau.workbook) = {", x.marshalToText(x.wb.Options), "};")
 	p2.P("")
 
 	relPath := x.GetProtoFilePath()
@@ -180,7 +182,7 @@ func (x *sheetExporter) exportEnum() error {
 	}
 	x.p.P("enum ", x.ws.Name, " {")
 	opts := &tableaupb.EnumOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
-	x.p.P("  option (tableau.etype) = {", marshalToText(opts), "};")
+	x.p.P("  option (tableau.etype) = {", x.be.marshalToText(opts), "};")
 	x.p.P("")
 	// generate the enum value fields
 	for i, field := range x.ws.Fields {
@@ -205,9 +207,21 @@ func (x *sheetExporter) exportEnum() error {
 }
 
 func (x *sheetExporter) exportStruct() error {
+	msgValidate := x.ws.GetOptions().GetValidate()
+	if msgValidate != "" {
+		x.ws.Options.Validate = ""
+	}
 	x.p.P("message ", x.ws.Name, " {")
 	opts := &tableaupb.StructOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
-	x.p.P("  option (tableau.struct) = {", marshalToText(opts), "};")
+	x.p.P("  option (tableau.struct) = {", x.be.marshalToText(opts), "};")
+	if msgValidate != "" {
+		rules := &validate.MessageRules{}
+		if err := x.be.unmarshalFromText(rules, msgValidate); err != nil {
+			return err
+		}
+		x.addMessageExtensionImports(rules.ProtoReflect())
+		x.p.P("  option (buf.validate.message) = {", x.be.marshalToText(rules), "};")
+	}
 	x.p.P("")
 
 	oldMD := x.findMDFromGeneratedProtos(x.ws.Name)
@@ -231,17 +245,29 @@ func (x *sheetExporter) exportStruct() error {
 }
 
 func (x *sheetExporter) exportUnion() error {
+	msgValidate := x.ws.GetOptions().GetValidate()
+	if msgValidate != "" {
+		x.ws.Options.Validate = ""
+	}
 	x.p.P("message ", x.ws.Name, " {")
 	opts := &tableaupb.UnionOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
-	x.p.P("  option (tableau.union) = {", marshalToText(opts), "};")
+	x.p.P("  option (tableau.union) = {", x.be.marshalToText(opts), "};")
+	if msgValidate != "" {
+		rules := &validate.MessageRules{}
+		if err := x.be.unmarshalFromText(rules, msgValidate); err != nil {
+			return err
+		}
+		x.addMessageExtensionImports(rules.ProtoReflect())
+		x.p.P("  option (buf.validate.message) = {", x.be.marshalToText(rules), "};")
+	}
 	x.p.P()
 
 	typeOpts := &tableaupb.FieldOptions{Name: "Type"}
-	x.p.P("  Type type = 9999 [(tableau.field) = {", marshalToText(typeOpts), "}];")
+	x.p.P("  Type type = 9999 [(tableau.field) = {", x.be.marshalToText(typeOpts), "}];")
 	x.p.P(`  oneof value {`)
 
 	oneOfOpts := &tableaupb.OneofOptions{Note: x.ws.Note, Field: "Field"}
-	x.p.P("    option (tableau.oneof) = {", marshalToText(oneOfOpts), "};")
+	x.p.P("    option (tableau.oneof) = {", x.be.marshalToText(oneOfOpts), "};")
 	x.p.P()
 
 	for _, field := range x.ws.Fields {
@@ -320,7 +346,7 @@ func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.Mess
 		return nil
 	}
 	fullName := protoreflect.FullName(x.be.ProtoPackage).Append(protoreflect.Name(name))
-	descriptor, err := x.be.gen.ProtoRegistryFiles.FindDescriptorByName(fullName)
+	descriptor, err := x.be.gen.ProtoRegistryFilesWithGeneratedProto.FindDescriptorByName(fullName)
 	if err != nil {
 		return nil
 	}
@@ -369,8 +395,20 @@ func (x *sheetExporter) exportMessager() error {
 	if x.be.messagerPatternRegexp != nil && !x.be.messagerPatternRegexp.MatchString(x.ws.Name) {
 		return xerrors.Newf("messager %s does not match pattern %q", x.ws.Name, x.be.messagerPatternRegexp.String())
 	}
+	msgValidate := x.ws.GetOptions().GetValidate()
+	if msgValidate != "" {
+		x.ws.Options.Validate = ""
+	}
 	x.p.P("message ", x.ws.Name, " {")
-	x.p.P("  option (tableau.worksheet) = {", marshalToText(x.ws.Options), "};")
+	x.p.P("  option (tableau.worksheet) = {", x.be.marshalToText(x.ws.Options), "};")
+	if msgValidate != "" {
+		rules := &validate.MessageRules{}
+		if err := x.be.unmarshalFromText(rules, msgValidate); err != nil {
+			return err
+		}
+		x.addMessageExtensionImports(rules.ProtoReflect())
+		x.p.P("  option (buf.validate.message) = {", x.be.marshalToText(rules), "};")
+	}
 	x.p.P("")
 
 	md := x.findMDFromGeneratedProtos(x.ws.Name)
@@ -404,7 +442,39 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 	if field.Note != "" {
 		note = " // " + field.Note
 	}
-	x.p.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", field.Number, " ", genFieldOptionsString(field.Options), ";", note)
+	// Parse field-level validate into FieldRules then clears it.
+	var fieldRules *validate.FieldRules
+	fieldValidate := field.Options.GetProp().GetValidate()
+	if field.ListEntry != nil || field.MapEntry != nil {
+		// use complex validate for list/map entry.
+		fieldValidate = field.Options.GetProp().GetValidateComplex()
+	}
+	if fieldValidate != "" {
+		fieldRules = &validate.FieldRules{}
+		if err := x.be.unmarshalFromText(fieldRules, fieldValidate); err != nil {
+			return err
+		}
+		x.addMessageExtensionImports(fieldRules.ProtoReflect())
+	}
+	if field.Options.GetProp() != nil {
+		field.Options.Prop.Validate = ""
+		field.Options.Prop.ValidateComplex = ""
+	}
+	// Parse message-level validate into MessageRules then clears it.
+	var msgRules *validate.MessageRules
+	msgValidate := field.Options.GetProp().GetValidateMessage()
+	if msgValidate != "" {
+		msgRules = &validate.MessageRules{}
+		if err := x.be.unmarshalFromText(msgRules, msgValidate); err != nil {
+			return err
+		}
+		x.addMessageExtensionImports(msgRules.ProtoReflect())
+	}
+	if field.Options.GetProp() != nil {
+		field.Options.Prop.ValidateMessage = ""
+	}
+
+	x.p.P(printer.Indent(depth), label, field.FullType, " ", field.Name, " = ", field.Number, " ", x.be.genFieldOptionsString(field.Options, fieldRules), ";", note)
 
 	var oldMD protoreflect.MessageDescriptor
 	typeName := field.Type
@@ -466,6 +536,11 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 		// x.g.P("")
 		x.p.P(printer.Indent(depth), "message ", typeName, " {")
 
+		// Handle validate_message for nested message
+		if msgRules != nil {
+			x.p.P(printer.Indent(depth+1), "option (buf.validate.message) = {", x.be.marshalToText(msgRules), "};")
+		}
+
 		x.assignFieldNumbers(field.Fields, oldMD)
 		for _, subField := range field.Fields {
 			var nestedOldFD protoreflect.FieldDescriptor
@@ -481,7 +556,7 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 	return nil
 }
 
-func genFieldOptionsString(opts *tableaupb.FieldOptions) string {
+func (x *bookExporter) genFieldOptionsString(opts *tableaupb.FieldOptions, fieldRules *validate.FieldRules) string {
 	jsonName := ""
 	// remember and then clear protobuf built-in options
 	if opts.Prop != nil {
@@ -495,17 +570,20 @@ func genFieldOptionsString(opts *tableaupb.FieldOptions) string {
 	}
 
 	// compose this field options
-	fieldOpts := "[(tableau.field) = {" + marshalToText(opts) + "}"
+	fieldOpts := "[(tableau.field) = {" + x.marshalToText(opts) + "}"
 	if jsonName != "" {
 		fieldOpts += `, json_name="` + jsonName + `"`
+	}
+	if fieldRules != nil {
+		fieldOpts += `, (buf.validate.field) = {` + x.marshalToText(fieldRules) + `}`
 	}
 	fieldOpts += "]"
 	return fieldOpts
 }
 
-func marshalToText(m protoreflect.ProtoMessage) string {
+func (x *bookExporter) marshalToText(m proto.Message) string {
 	// text := proto.CompactTextString(field.Options)
-	bin, err := prototext.Marshal(m)
+	bin, err := prototext.MarshalOptions{Resolver: x.gen.ProtoRegistryTypes}.Marshal(m)
 	if err != nil {
 		panic(err)
 	}
@@ -513,6 +591,14 @@ func marshalToText(m protoreflect.ProtoMessage) string {
 	// refer: https://stackoverflow.com/questions/37290693/how-to-remove-redundant-spaces-whitespace-from-a-string-in-golang
 	text := strings.Join(strings.Fields(string(bin)), " ")
 	return text
+}
+
+func (x *bookExporter) unmarshalFromText(m proto.Message, s string) error {
+	err := prototext.UnmarshalOptions{Resolver: x.gen.ProtoRegistryTypes}.Unmarshal([]byte(s), m)
+	if err != nil {
+		return xerrors.Wrap(err)
+	}
+	return nil
 }
 
 func isSameFieldMessageType(left, right *internalpb.Field) bool {
@@ -528,4 +614,34 @@ func isSameFieldMessageType(left, right *internalpb.Field) bool {
 		return true
 	}
 	return false
+}
+
+// addMessageExtensionImports recursively walks the given proto message to find
+// all set fields (including extensions), and adds the corresponding proto file imports.
+func (x *sheetExporter) addMessageExtensionImports(m protoreflect.Message) {
+	m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		// Import the proto file that defines this field (including extensions).
+		importPath := string(fd.ParentFile().Path())
+		if importPath != x.be.GetProtoFilePath() {
+			x.Imports[importPath] = true
+		}
+		// Recurse into sub-messages to find nested fields/extensions.
+		if fd.Kind() == protoreflect.MessageKind {
+			switch {
+			case fd.IsList():
+				list := v.List()
+				for i := 0; i < list.Len(); i++ {
+					x.addMessageExtensionImports(list.Get(i).Message())
+				}
+			case fd.IsMap() && fd.MapValue().Kind() == protoreflect.MessageKind:
+				v.Map().Range(func(_ protoreflect.MapKey, val protoreflect.Value) bool {
+					x.addMessageExtensionImports(val.Message())
+					return true
+				})
+			default:
+				x.addMessageExtensionImports(v.Message())
+			}
+		}
+		return true
+	})
 }

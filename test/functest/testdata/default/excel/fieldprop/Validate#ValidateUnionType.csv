@@ -1,0 +1,6 @@
+Name,Alias,Field1,Field2
+Attack,AttackAlias,"Damage
+int32|{validate:""int32:{gte:0}""}","Range
+int32"
+Defend,DefendAlias,"Shield
+int32",

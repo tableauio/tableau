@@ -28,6 +28,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type Generator struct {
@@ -40,7 +41,8 @@ type Generator struct {
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
 
-	ProtoRegistryFiles *protoregistry.Files
+	ProtoRegistryFiles, ProtoRegistryFilesWithGeneratedProto *protoregistry.Files
+	ProtoRegistryTypes                                       *dynamicpb.Types
 
 	// internal
 	typeInfos *xproto.TypeInfos // predefined type infos
@@ -71,14 +73,17 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 
 		cachedImporters: make(map[string]importer.Importer),
 	}
-	if opts.Proto.Output.PreserveFieldNumbers {
-		registryFiles, err := gen.parseProtoRegistryFiles(true)
-		if err != nil {
-			panic(err)
-		}
-		gen.ProtoRegistryFiles = registryFiles
+	registryFiles, err := gen.parseProtoRegistryFiles(false)
+	if err != nil {
+		panic(err)
 	}
-
+	gen.ProtoRegistryFiles = registryFiles
+	registryFiles, err = gen.parseProtoRegistryFiles(true)
+	if err != nil {
+		panic(err)
+	}
+	gen.ProtoRegistryFilesWithGeneratedProto = registryFiles
+	gen.ProtoRegistryTypes = dynamicpb.NewTypes(registryFiles)
 	return gen
 }
 
@@ -102,9 +107,9 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	// parse custom imported proto files
-	protoRegistryFiles, err := gen.parseProtoRegistryFiles(useGeneratedProtos)
-	if err != nil {
-		return err
+	protoRegistryFiles := gen.ProtoRegistryFiles
+	if useGeneratedProtos {
+		protoRegistryFiles = gen.ProtoRegistryFilesWithGeneratedProto
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
