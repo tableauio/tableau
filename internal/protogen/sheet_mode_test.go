@@ -211,7 +211,7 @@ func TestVerticalPositioner_Position_Transposed(t *testing.T) {
 	}
 }
 
-func TestUnionFieldPositioner_Position(t *testing.T) {
+func TestUnionValueFieldPositioner_Position(t *testing.T) {
 	// Simulate a non-transposed union type sheet with ordered columns:
 	//      A(col0)  B(col1)  C(col2)  D(col3)  E(col4)  F(col5)
 	// R1:  Name     Alias    Type     Field1   Field2   Field3   <- header
@@ -276,7 +276,7 @@ func TestUnionFieldPositioner_Position(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &unionFieldPositioner{
+			p := &unionValueFieldPositioner{
 				basePositioner: basePositioner{tabler: table},
 				valueRow:       tt.valueRow,
 			}
@@ -288,7 +288,7 @@ func TestUnionFieldPositioner_Position(t *testing.T) {
 	}
 }
 
-func TestUnionFieldPositioner_Position_Disordered(t *testing.T) {
+func TestUnionValueFieldPositioner_Position_Disordered(t *testing.T) {
 	// Simulate a non-transposed union type sheet with disordered columns:
 	//      A(col0)  B(col1)  C(col2)  D(col3)  E(col4)
 	// R1:  Field3   Name     Field2   Alias    Field1   <- header (disordered!)
@@ -339,7 +339,7 @@ func TestUnionFieldPositioner_Position_Disordered(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &unionFieldPositioner{
+			p := &unionValueFieldPositioner{
 				basePositioner: basePositioner{tabler: table},
 				valueRow:       tt.valueRow,
 			}
@@ -351,7 +351,7 @@ func TestUnionFieldPositioner_Position_Disordered(t *testing.T) {
 	}
 }
 
-func TestUnionFieldPositioner_Position_Transposed(t *testing.T) {
+func TestUnionValueFieldPositioner_Position_Transposed(t *testing.T) {
 	// Simulate a transposed union type sheet:
 	// The underlying table is:
 	//      A(col0)  B(col1)  C(col2)  ...
@@ -413,7 +413,7 @@ func TestUnionFieldPositioner_Position_Transposed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &unionFieldPositioner{
+			p := &unionValueFieldPositioner{
 				basePositioner: basePositioner{tabler: transposed},
 				valueRow:       tt.valueRow,
 			}

@@ -266,14 +266,16 @@ func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, pa
 	return nil
 }
 
-// unionFieldPositioner correctly maps positions for union type sheets where
-// cursor iterates over field columns within a specific union value row.
-type unionFieldPositioner struct {
+// unionValueFieldPositioner resolves cell positions for a single union value row.
+// The col cursor maps to the physical column of Field1, Field2, ... FieldN in order,
+// while the row parameter is ignored because name, type, and note are stored as
+// separate lines within the same cell rather than in separate rows.
+type unionValueFieldPositioner struct {
 	basePositioner
 	valueRow int // 0-based row of current union value in tabler's coordinate
 }
 
-func (p *unionFieldPositioner) Position(row, col int) string {
+func (p *unionValueFieldPositioner) Position(row, col int) string {
 	// row param is unused since name/type/note are all in the same cell (different lines).
 	// col is the cursor (field index within this value), maps to "Field1", "Field2", ... via colIndex.
 	name := colFieldPrefix + strconv.Itoa(col+1) // 0-based col -> "Field1", "Field2", ...
@@ -289,59 +291,77 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		return err
 	}
 
-	for i, value := range desc.Values {
-		number := int32(i + 1)
-		if value.Number != nil {
-			number = *value.Number
-		}
-		field := &internalpb.Field{
-			Number: number,
-			Name:   strings.TrimSpace(value.Name),
-			Alias:  strings.TrimSpace(value.Alias),
-		}
-		if typ := strings.TrimSpace(value.Type); typ != "" {
-			typeDesc, err := parseTypeDescriptor(gen.typeInfos, typ)
-			if err != nil {
-				return xerrors.Wrapf(err, "failed to parse union type %s of sheet: %s", typ, sheet.Name)
-			}
-			field.Type = typeDesc.Name
-			field.FullType = typeDesc.FullName
-		}
+	// bp and t are shared across all union values; create them once outside the loop.
+	bp := newTableParser("union-fields", "", "", gen)
+	t := sheet.Tabler()
 
-		// create a book parser
-		bp := newTableParser("union", "", "", gen)
-		t := sheet.Tabler()
-		shHeader := &tableHeader{
-			Header: &tableparser.Header{
-				NameRow:  1,
-				TypeRow:  1,
-				NoteRow:  1,
-				NameLine: 1,
-				TypeLine: 2,
-				NoteLine: 3,
-			},
-			Positioner: &unionFieldPositioner{
-				basePositioner: basePositioner{tabler: t},
-				valueRow:       t.BeginRow() + 1 + i, // datarow=2 (1-based), i is the value index
-			},
-			nameRowData: value.Fields,
-			typeRowData: value.Fields,
-			noteRowData: value.Fields,
+	for i, value := range desc.Values {
+		field, err := newUnionField(i, value, gen, sheet.Name)
+		if err != nil {
+			return err
 		}
+		if err := parseUnionValueFields(field, value, bp, t, i, debugBookName, debugSheetName); err != nil {
+			return err
+		}
+		ws.Fields = append(ws.Fields, field)
+	}
+	return nil
+}
+
+// newUnionField builds the top-level Field for a single union value, resolving
+// its optional type descriptor when a type string is present.
+func newUnionField(i int, value *internalpb.UnionDescriptor_Value, gen *Generator, sheetName string) (*internalpb.Field, error) {
+	number := int32(i + 1)
+	if value.Number != nil {
+		number = *value.Number
+	}
+	field := &internalpb.Field{
+		Number: number,
+		Name:   strings.TrimSpace(value.Name),
+		Alias:  strings.TrimSpace(value.Alias),
+	}
+	if typ := strings.TrimSpace(value.Type); typ != "" {
+		typeDesc, err := parseTypeDescriptor(gen.typeInfos, typ)
+		if err != nil {
+			return nil, xerrors.Wrapf(err, "failed to parse union type %s of sheet: %s", typ, sheetName)
+		}
+		field.Type = typeDesc.Name
+		field.FullType = typeDesc.FullName
+	}
+	return field, nil
+}
+
+// parseUnionValueFields parses the Field1...N columns of a union value row into
+// the sub-fields of the union oneof message, appending them to field.Fields.
+func parseUnionValueFields(field *internalpb.Field, value *internalpb.UnionDescriptor_Value, bp *tableParser, t book.Tabler, i int, debugBookName, debugSheetName string) error {
+	shHeader := &tableHeader{
+		Header: &tableparser.Header{
+			NameRow:  1,
+			TypeRow:  1,
+			NoteRow:  1,
+			NameLine: 1,
+			TypeLine: 2,
+			NoteLine: 3,
+		},
+		Positioner: &unionValueFieldPositioner{
+			basePositioner: basePositioner{tabler: t},
+			valueRow:       t.BeginRow() + 1 + i, // datarow=2 (1-based), i is the value index
+		},
+		nameRowData: value.Fields,
+		typeRowData: value.Fields,
+		noteRowData: value.Fields,
+	}
+	for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
+		subField := &internalpb.Field{}
 		var parsed bool
 		var err error
-		for cursor := 0; cursor < len(shHeader.nameRowData); cursor++ {
-			subField := &internalpb.Field{}
-			cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "", tableparser.Mode(tableaupb.Mode_MODE_UNION_TYPE))
-			if err != nil {
-				return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
-			}
-			if parsed {
-				field.Fields = append(field.Fields, subField)
-			}
+		cursor, parsed, err = bp.parseField(subField, shHeader, cursor, "", "", tableparser.Mode(tableaupb.Mode_MODE_UNION_TYPE))
+		if err != nil {
+			return wrapDebugErr(err, debugBookName, debugSheetName, shHeader, cursor)
 		}
-
-		ws.Fields = append(ws.Fields, field)
+		if parsed {
+			field.Fields = append(field.Fields, subField)
+		}
 	}
 	return nil
 }
