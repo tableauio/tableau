@@ -2,7 +2,9 @@ package protogen
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
@@ -19,6 +21,7 @@ const (
 	colNumber      = "Number" // name of column "Number"
 	colName        = "Name"   // name of column "Name"
 	colType        = "Type"   // name of column "Type"
+	colNote        = "Note"   // name of column "Note"
 	colAlias       = "Alias"  // name of column "Alias"
 	colFieldPrefix = "Field"  // name of column field prefix "Field"
 )
@@ -115,18 +118,56 @@ func extractStructTypeInfo(sheet *book.Sheet, typeName, parentFilename string, p
 	return nil
 }
 
+// basePositioner holds common fields for positioners that need to resolve
+// column names to physical column indices. The colMap is lazily initialized
+// on the first call to colIndex via sync.Once.
+type basePositioner struct {
+	tabler book.Tabler
+	colMap map[string]int // column name -> 0-based physical column index
+	once   sync.Once
+}
+
+// colIndex returns the 0-based physical column index for the given column name.
+// On the first call, it scans the header row to build the colMap.
+// Returns (index, true) if found, or (0, false) if the column does not exist.
+func (b *basePositioner) colIndex(name string) (int, bool) {
+	b.once.Do(func() {
+		headerRow := b.tabler.GetRow(b.tabler.BeginRow())
+		b.colMap = make(map[string]int, len(headerRow))
+		for i, cell := range headerRow {
+			if cell != "" {
+				b.colMap[cell] = i
+			}
+		}
+	})
+	idx, ok := b.colMap[name]
+	return idx, ok
+}
+
+// verticalRowNames maps virtual header row indices to column names.
+// Index 0 corresponds to NameRow, 1 to TypeRow, 2 to NoteRow.
+var verticalRowNames = []string{colName, colType, colNote}
+
 // verticalPositioner correctly maps positions for LAYOUT_VERTICAL sheets
 // (e.g., struct type sheets) where cursor iterates over data rows
 // instead of columns.
 type verticalPositioner struct {
-	tabler  book.Tabler
+	basePositioner
 	dataRow int // 0-based data start row in tabler's coordinate
 }
 
 func (p *verticalPositioner) Position(row, col int) string {
-	// row: virtual header row index (e.g., 0 for Name col, 1 for Type col)
+	// row: virtual header row index (e.g., 0 for Name, 1 for Type, 2 for Note)
 	// col: cursor (field index), maps to actual data row
-	return p.tabler.Position(p.dataRow+col, row)
+	if row < 0 || row >= len(verticalRowNames) {
+		return ""
+	}
+	colIdx, ok := p.colIndex(verticalRowNames[row])
+	if !ok {
+		// The requested column (e.g., Note) does not exist in this table.
+		return ""
+	}
+	return p.tabler.Position(p.dataRow+col, colIdx)
 }
 
 func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
@@ -140,10 +181,11 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 		Header: &tableparser.Header{
 			NameRow: 1,
 			TypeRow: 2,
+			NoteRow: 3,
 		},
 		Positioner: &verticalPositioner{
-			tabler:  t,
-			dataRow: t.BeginRow() + 1, // StructDescriptor's datarow is 2 (1-based)
+			basePositioner: basePositioner{tabler: t},
+			dataRow:        t.BeginRow() + 1, // StructDescriptor's datarow is 2 (1-based)
 		},
 	}
 	for _, field := range desc.Fields {
@@ -227,26 +269,18 @@ func extractUnionTypeInfo(sheet *book.Sheet, typeName, parentFilename string, pa
 // unionFieldPositioner correctly maps positions for union type sheets where
 // cursor iterates over field columns within a specific union value row.
 type unionFieldPositioner struct {
-	tabler        book.Tabler
-	valueRow      int // 0-based row of current union value in tabler's coordinate
-	fieldStartCol int // 0-based column where Field1 starts
+	basePositioner
+	valueRow int // 0-based row of current union value in tabler's coordinate
 }
 
 func (p *unionFieldPositioner) Position(row, col int) string {
 	// row param is unused since name/type/note are all in the same cell (different lines).
-	// col is the cursor (field index within this value), maps to actual column.
-	return p.tabler.Position(p.valueRow, p.fieldStartCol+col)
-}
-
-// findFieldStartCol finds the 0-based column index of "Field1" in the header row.
-func findFieldStartCol(t book.Tabler) int {
-	headerRow := t.GetRow(t.BeginRow()) // namerow=1, 0-based: BeginRow+0
-	for i, cell := range headerRow {
-		if cell == colFieldPrefix+"1" {
-			return i
-		}
+	// col is the cursor (field index within this value), maps to "Field1", "Field2", ... via colIndex.
+	name := colFieldPrefix + strconv.Itoa(col+1) // 0-based col -> "Field1", "Field2", ...
+	if colIdx, ok := p.colIndex(name); ok {
+		return p.tabler.Position(p.valueRow, colIdx)
 	}
-	return 0 // fallback
+	return ""
 }
 
 func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.SheetParser, gen *Generator, debugBookName, debugSheetName string) error {
@@ -277,19 +311,18 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 		// create a book parser
 		bp := newTableParser("union", "", "", gen)
 		t := sheet.Tabler()
-		fieldStartCol := findFieldStartCol(t)
 		shHeader := &tableHeader{
 			Header: &tableparser.Header{
 				NameRow:  1,
 				TypeRow:  1,
+				NoteRow:  1,
 				NameLine: 1,
 				TypeLine: 2,
 				NoteLine: 3,
 			},
 			Positioner: &unionFieldPositioner{
-				tabler:        t,
-				valueRow:      t.BeginRow() + 1 + i, // datarow=2 (1-based), i is the value index
-				fieldStartCol: fieldStartCol,
+				basePositioner: basePositioner{tabler: t},
+				valueRow:       t.BeginRow() + 1 + i, // datarow=2 (1-based), i is the value index
 			},
 			nameRowData: value.Fields,
 			typeRowData: value.Fields,
