@@ -1,6 +1,8 @@
 package protogen
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -46,6 +48,116 @@ func Test_prepareOutdir(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test_prepareOutdir_delExisted verifies that prepareOutdir correctly retains
+// imported proto files and removes non-imported ones when delExisted is true.
+// It covers two scenarios:
+//   - Glob pattern in importFiles (e.g. "testdata/output/proto/*.proto")
+//   - Relative path with dot-segment in importFiles (e.g. "./testdata/output/proto/common.proto")
+func Test_prepareOutdir_delExisted(t *testing.T) {
+	const outdir = "testdata/output/proto"
+
+	setup := func(t *testing.T, extraFiles []string) {
+		t.Helper()
+		for _, f := range extraFiles {
+			if err := os.WriteFile(f, []byte("// temp proto\n"), 0644); err != nil {
+				t.Fatalf("setup: failed to create temp file %s: %v", f, err)
+			}
+		}
+		t.Cleanup(func() {
+			// Restore: remove any leftover temp files so other tests are unaffected.
+			for _, f := range extraFiles {
+				_ = os.Remove(f)
+			}
+		})
+	}
+
+	t.Run("glob-pattern-keeps-matched-removes-others", func(t *testing.T) {
+		// Create two extra proto files; only common.proto is the real import.
+		// Using a glob pattern "testdata/output/proto/*.proto" should match ALL
+		// proto files in the directory, so none should be deleted.
+		extra := []string{
+			outdir + "/temp1.proto",
+			outdir + "/temp2.proto",
+		}
+		setup(t, extra)
+
+		err := prepareOutdir(outdir, []string{outdir + "/*.proto"}, true)
+		require.NoError(t, err)
+
+		// All proto files (including temp ones) must still exist because they
+		// were all matched by the glob pattern.
+		for _, f := range append(extra, outdir+"/common.proto") {
+			_, statErr := os.Stat(f)
+			require.NoError(t, statErr, "file should be retained by glob import: %s", f)
+		}
+	})
+
+	t.Run("glob-pattern-removes-non-imported", func(t *testing.T) {
+		// Import only common.proto via glob; temp files should be deleted.
+		extra := []string{
+			outdir + "/temp3.proto",
+			outdir + "/temp4.proto",
+		}
+		setup(t, extra)
+
+		err := prepareOutdir(outdir, []string{outdir + "/common.proto"}, true)
+		require.NoError(t, err)
+
+		// common.proto must be retained.
+		_, statErr := os.Stat(outdir + "/common.proto")
+		require.NoError(t, statErr, "imported file should be retained")
+
+		// temp files must have been deleted.
+		for _, f := range extra {
+			_, statErr := os.Stat(f)
+			require.True(t, os.IsNotExist(statErr), "non-imported file should be removed: %s", f)
+		}
+	})
+
+	t.Run("relative-path-with-dot-segment-keeps-imported", func(t *testing.T) {
+		// Use a relative path with a leading "./" — xfs.IsSamePath must resolve
+		// it to the same absolute path as the file inside outdir.
+		extra := []string{
+			outdir + "/temp5.proto",
+		}
+		setup(t, extra)
+
+		err := prepareOutdir(outdir, []string{"./" + outdir + "/common.proto"}, true)
+		require.NoError(t, err)
+
+		// common.proto must be retained despite the dot-segment in importFiles.
+		_, statErr := os.Stat(outdir + "/common.proto")
+		require.NoError(t, statErr, "imported file with relative path should be retained")
+
+		// temp5.proto must have been deleted (not in importFiles).
+		_, statErr = os.Stat(outdir + "/temp5.proto")
+		require.True(t, os.IsNotExist(statErr), "non-imported file should be removed")
+	})
+
+	t.Run("absolute-path-keeps-imported", func(t *testing.T) {
+		// Use an absolute path in importFiles — xfs.IsSamePath must match it
+		// against the relative path constructed inside prepareOutdir.
+		extra := []string{
+			outdir + "/temp6.proto",
+		}
+		setup(t, extra)
+
+		absCommon, err := filepath.Abs(outdir + "/common.proto")
+		require.NoError(t, err)
+
+		err = prepareOutdir(outdir, []string{absCommon}, true)
+		require.NoError(t, err)
+
+		// common.proto must be retained when specified as an absolute path.
+		_, statErr := os.Stat(outdir + "/common.proto")
+		require.NoError(t, statErr, "imported file with absolute path should be retained")
+
+		// temp6.proto must have been deleted (not in importFiles).
+		_, statErr = os.Stat(outdir + "/temp6.proto")
+		require.True(t, os.IsNotExist(statErr), "non-imported file should be removed")
+	})
 }
 
 func Test_getRelCleanSlashPath(t *testing.T) {
