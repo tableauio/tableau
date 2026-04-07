@@ -151,6 +151,68 @@ func TestIsSamePath(t *testing.T) {
 	}
 }
 
+func TestIsSamePath_errorFallback(t *testing.T) {
+	// Force filepath.Abs to fail by changing into a temporary directory and
+	// then removing it, so that os.Getwd() (called internally by filepath.Abs)
+	// returns an error for any relative path.
+	tmpDir, err := os.MkdirTemp("", "xfs-test-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd: %v", err)
+	}
+	// Restore working directory when the test ends.
+	t.Cleanup(func() { _ = os.Chdir(origDir) })
+
+	// Move into the temp dir, then delete it so Getwd fails on relative paths.
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir: %v", err)
+	}
+	if err := os.Remove(tmpDir); err != nil {
+		t.Fatalf("failed to remove temp dir: %v", err)
+	}
+
+	t.Run("left-abs-fails-same-cleaned-path", func(t *testing.T) {
+		// Both relative paths are identical after cleaning → fallback returns true.
+		if got := IsSamePath("foo/bar/baz.txt", "foo/bar/baz.txt"); !got {
+			t.Errorf("IsSamePath fallback: expected true for identical cleaned paths, got false")
+		}
+	})
+
+	t.Run("left-abs-fails-different-cleaned-path", func(t *testing.T) {
+		// Both relative paths differ after cleaning → fallback returns false.
+		if got := IsSamePath("foo/bar/a.txt", "foo/bar/b.txt"); got {
+			t.Errorf("IsSamePath fallback: expected false for different cleaned paths, got true")
+		}
+	})
+
+	t.Run("right-abs-fails-different-cleaned-path", func(t *testing.T) {
+		// leftPath is absolute → filepath.Abs succeeds (no Getwd needed).
+		// rightPath is relative → filepath.Abs calls Getwd, which fails because
+		// the cwd has been deleted, hitting the second "if err != nil" branch.
+		// The fallback compares CleanSlashPath of the original inputs; since
+		// absLeft != "foo/bar/baz.txt" the result is false.
+		absLeft := filepath.Join(origDir, "foo/bar/baz.txt")
+		if got := IsSamePath(absLeft, "foo/bar/baz.txt"); got {
+			t.Errorf("IsSamePath fallback (right fails): expected false when absolute left != cleaned relative right, got true")
+		}
+	})
+
+	t.Run("right-abs-fails-same-cleaned-path", func(t *testing.T) {
+		// leftPath is absolute → filepath.Abs succeeds.
+		// rightPath is the same absolute path string → filepath.Abs also succeeds
+		// (absolute paths don't need Getwd), so this actually hits the normal
+		// success path and returns true.
+		absPath := filepath.Join(origDir, "foo/bar/baz.txt")
+		if got := IsSamePath(absPath, absPath); !got {
+			t.Errorf("IsSamePath (both absolute, cwd deleted): expected true for identical absolute paths, got false")
+		}
+	})
+}
+
 func TestRel(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -186,6 +248,23 @@ func TestRel(t *testing.T) {
 			targetpath: "foo/a/b/c.txt",
 			want:       "a/b/c.txt",
 			wantErr:    false,
+		},
+		{
+			// filepath.Rel returns an error when one path is absolute and the
+			// other is relative, because computing the result would require
+			// knowing the current working directory.
+			name:       "absolute base relative target returns error",
+			basepath:   "/abs/base",
+			targetpath: "relative/target",
+			want:       "",
+			wantErr:    true,
+		},
+		{
+			name:       "relative base absolute target returns error",
+			basepath:   "relative/base",
+			targetpath: "/abs/target",
+			want:       "",
+			wantErr:    true,
 		},
 	}
 	for _, tt := range tests {
