@@ -274,6 +274,7 @@ func (x *sheetExporter) exportUnion() error {
 	x.p.P()
 
 	// generate message type
+	parentMD := x.findMDFromGeneratedProtos(x.ws.Name)
 	for _, msgField := range x.ws.Fields {
 		if len(msgField.Fields) == 0 {
 			continue
@@ -285,14 +286,17 @@ func (x *sheetExporter) exportUnion() error {
 		x.p.P("  message ", typ, " {")
 		// generate the fields
 		depth := 2
-		fieldNumber := int32(1)
-		for _, field := range msgField.Fields {
-			field.Number = fieldNumber
-			cross := max(field.GetOptions().GetProp().GetCross(), 1)
-			fieldNumber += cross
+		var oldMD protoreflect.MessageDescriptor
+		if parentMD != nil {
+			oldMD = parentMD.Messages().ByName(protoreflect.Name(typ))
 		}
+		x.assignFieldNumbers(msgField.Fields, oldMD)
 		for _, field := range msgField.Fields {
-			if err := x.exportField(depth, field, msgField.Name, nil); err != nil {
+			var oldFD protoreflect.FieldDescriptor
+			if oldMD != nil {
+				oldFD = oldMD.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+			}
+			if err := x.exportField(depth, field, msgField.Name, oldFD); err != nil {
 				return err
 			}
 		}
@@ -331,7 +335,8 @@ func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD proto
 		fieldNumber := int32(1)
 		for _, field := range fields {
 			field.Number = fieldNumber
-			fieldNumber++
+			cross := max(field.GetOptions().GetProp().GetCross(), 1)
+			fieldNumber += cross
 		}
 		return
 	}
@@ -351,9 +356,10 @@ func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD proto
 			// for existing field, use the old field number.
 			field.Number = number
 		} else {
-			// for new field, assign the max field number plus 1 in the same level.
-			maxFieldNumber++
-			field.Number = maxFieldNumber
+			// for new field, assign the next available field number considering cross.
+			cross := max(field.GetOptions().GetProp().GetCross(), 1)
+			field.Number = maxFieldNumber + 1
+			maxFieldNumber = field.Number + cross - 1
 		}
 	}
 }
