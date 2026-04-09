@@ -12,7 +12,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var funcMap = template.FuncMap{
+// FuncMap contains the custom template functions used for rendering i18n templates.
+var FuncMap = template.FuncMap{
 	"quote": strconv.Quote,
 }
 
@@ -187,7 +188,7 @@ func loadBundles(langs []language.Tag) (map[string]*Bundle, error) {
 }
 
 func render(text string, data any) string {
-	tmpl, err := template.New("i18n").Funcs(funcMap).Parse(text)
+	tmpl, err := template.New("i18n").Funcs(FuncMap).Parse(text)
 	if err != nil {
 		panic(err)
 	}

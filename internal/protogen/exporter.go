@@ -207,16 +207,16 @@ func (x *sheetExporter) exportEnum() error {
 }
 
 func (x *sheetExporter) exportStruct() error {
-	msgValidate := x.ws.GetOptions().GetValidate()
-	if msgValidate != "" {
+	validateMessage := x.ws.GetOptions().GetValidate()
+	if validateMessage != "" {
 		x.ws.Options.Validate = ""
 	}
 	x.p.P("message ", x.ws.Name, " {")
 	opts := &tableaupb.StructOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
 	x.p.P("  option (tableau.struct) = {", x.be.marshalToText(opts), "};")
-	if msgValidate != "" {
+	if validateMessage != "" {
 		rules := &validate.MessageRules{}
-		if err := x.be.unmarshalFromText(rules, msgValidate); err != nil {
+		if err := x.be.unmarshalFromText(rules, validateMessage); err != nil {
 			return err
 		}
 		x.addMessageExtensionImports(rules.ProtoReflect())
@@ -245,16 +245,16 @@ func (x *sheetExporter) exportStruct() error {
 }
 
 func (x *sheetExporter) exportUnion() error {
-	msgValidate := x.ws.GetOptions().GetValidate()
-	if msgValidate != "" {
+	validateMessage := x.ws.GetOptions().GetValidate()
+	if validateMessage != "" {
 		x.ws.Options.Validate = ""
 	}
 	x.p.P("message ", x.ws.Name, " {")
 	opts := &tableaupb.UnionOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
 	x.p.P("  option (tableau.union) = {", x.be.marshalToText(opts), "};")
-	if msgValidate != "" {
+	if validateMessage != "" {
 		rules := &validate.MessageRules{}
-		if err := x.be.unmarshalFromText(rules, msgValidate); err != nil {
+		if err := x.be.unmarshalFromText(rules, validateMessage); err != nil {
 			return err
 		}
 		x.addMessageExtensionImports(rules.ProtoReflect())
@@ -395,15 +395,15 @@ func (x *sheetExporter) exportMessager() error {
 	if x.be.messagerPatternRegexp != nil && !x.be.messagerPatternRegexp.MatchString(x.ws.Name) {
 		return xerrors.Newf("messager %s does not match pattern %q", x.ws.Name, x.be.messagerPatternRegexp.String())
 	}
-	msgValidate := x.ws.GetOptions().GetValidate()
-	if msgValidate != "" {
+	validateMessage := x.ws.GetOptions().GetValidate()
+	if validateMessage != "" {
 		x.ws.Options.Validate = ""
 	}
 	x.p.P("message ", x.ws.Name, " {")
 	x.p.P("  option (tableau.worksheet) = {", x.be.marshalToText(x.ws.Options), "};")
-	if msgValidate != "" {
+	if validateMessage != "" {
 		rules := &validate.MessageRules{}
-		if err := x.be.unmarshalFromText(rules, msgValidate); err != nil {
+		if err := x.be.unmarshalFromText(rules, validateMessage); err != nil {
 			return err
 		}
 		x.addMessageExtensionImports(rules.ProtoReflect())
@@ -444,33 +444,34 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 	}
 	// Parse field-level validate into FieldRules then clears it.
 	var fieldRules *validate.FieldRules
-	fieldValidate := field.Options.GetProp().GetValidate()
+	validateField := field.Options.GetProp().GetValidate()
 	if field.ListEntry != nil || field.MapEntry != nil {
 		// use complex validate for list/map entry.
-		fieldValidate = field.Options.GetProp().GetValidateComplex()
+		validateField = field.Options.GetProp().GetValidateComplex()
 	}
-	if fieldValidate != "" {
+	if validateField != "" {
 		fieldRules = &validate.FieldRules{}
-		if err := x.be.unmarshalFromText(fieldRules, fieldValidate); err != nil {
+		if err := x.be.unmarshalFromText(fieldRules, validateField); err != nil {
 			return err
 		}
 		x.addMessageExtensionImports(fieldRules.ProtoReflect())
 	}
-	if field.Options.GetProp() != nil {
-		field.Options.Prop.Validate = ""
-		field.Options.Prop.ValidateComplex = ""
-	}
 	// Parse message-level validate into MessageRules then clears it.
 	var msgRules *validate.MessageRules
-	msgValidate := field.Options.GetProp().GetValidateMessage()
-	if msgValidate != "" {
+	validateMessage := field.Options.GetProp().GetValidateMessage()
+	if validateMessage != "" {
 		msgRules = &validate.MessageRules{}
-		if err := x.be.unmarshalFromText(msgRules, msgValidate); err != nil {
+		if err := x.be.unmarshalFromText(msgRules, validateMessage); err != nil {
 			return err
 		}
 		x.addMessageExtensionImports(msgRules.ProtoReflect())
 	}
+	// Clear Validate,ValidateComplex, and ValidateMessage after parsing into
+	// fieldRules, so they are not exported as raw strings into the generated
+	// proto file.
 	if field.Options.GetProp() != nil {
+		field.Options.Prop.Validate = ""
+		field.Options.Prop.ValidateComplex = ""
 		field.Options.Prop.ValidateMessage = ""
 	}
 

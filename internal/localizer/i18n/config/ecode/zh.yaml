@@ -42,11 +42,11 @@ E2006:
   help: 将 enum 值 "{{.Value}}" 添加到 enum 类型 "{{.EnumName}}" 定义中
 E2007:
   desc: invalid datetime format
-  text: '{{ quote .Value }} 是无效的日期时间(datetime)格式, {{.Error}}'
+  text: "{{ quote .Value }} 是无效的日期时间(datetime)格式, {{.Error}}"
   help: '请遵循日期时间格式: "yyyy-MM-dd HH:mm:ss" 或 RFC3339, 示例: "2020-01-01 01:00:00" 或 "2020-01-01T01:00:00+08:00"'
 E2008:
   desc: invalid duration format
-  text: '{{ quote .Value }} 是无效的时间段(duration)格式, {{.Error}}'
+  text: "{{ quote .Value }} 是无效的时间段(duration)格式, {{.Error}}"
   help: '请遵循时间段(duration)格式，以 "72h3m0.5s" 形式来配置'
 E2009:
   desc: duplicate key exists in different sheets
@@ -106,7 +106,7 @@ E2022:
   help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值唯一, 不能配置相同值
 E2024:
   desc: invalid version pattern
-  text: '{{ quote .Value }} 无法以点分十进制解析, {{.Error}}'
+  text: "{{ quote .Value }} 无法以点分十进制解析, {{.Error}}"
   help: "确保版本号格式为: <MAJOR>.<MINOR>.<PATCH>[.<OTHER>]..."
 E2025:
   desc: version value mismatches pattern
@@ -120,6 +120,13 @@ E2026:
     - Value: any
     - PrevValue: any
     - Order: string
+E2027:
+  desc: protovalidate violation
+  text: "{{ quote .FieldValue }} 违反校验规则：{{.Violation}}"
+  help: "修正字段值以满足 protovalidate 规则"
+  fields:
+    - Violation: string
+    - FieldValue: any
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

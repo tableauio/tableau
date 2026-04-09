@@ -103,9 +103,8 @@ func Test_genFieldOptionsString_predefinedValidateRule(t *testing.T) {
 	opts := &tableaupb.FieldOptions{Name: "FieldX"}
 	// Unmarshal validate into FieldRules first, then pass to genFieldOptionsString.
 	fieldRules := &validate.FieldRules{}
-	if err := be.unmarshalFromText(fieldRules, fieldValidate); err != nil {
-		panic(err)
-	}
+	err = be.unmarshalFromText(fieldRules, fieldValidate)
+	assert.NoError(t, err)
 	got := be.genFieldOptionsString(opts, fieldRules)
 	want := `[(tableau.field) = {name:"FieldX"}, (buf.validate.field) = {int32:{[testpkg.is_zero]:true}}]`
 	assert.Equal(t, want, got)

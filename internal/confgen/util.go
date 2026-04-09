@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -274,14 +275,36 @@ func parseOutputFormats(msg proto.Message, opt *options.ConfOutputOption) []form
 	return format.OutputFormats
 }
 
+// validate validates a proto message using the provided validator if non-nil,
+// otherwise falls back to the default protovalidate.Validate. Each violation
+// is wrapped as an E2027 error and all violations are joined together.
+func validate(msg proto.Message, validator protovalidate.Validator) error {
+	var err error
+	if validator != nil {
+		err = validator.Validate(msg)
+	} else {
+		err = protovalidate.Validate(msg)
+	}
+	if err == nil {
+		return nil
+	}
+	var valErr *protovalidate.ValidationError
+	if errors.As(err, &valErr) {
+		errs := make([]error, 0, len(valErr.Violations))
+		for _, v := range valErr.Violations {
+			errs = append(errs, xerrors.E2027(v.String(), v.FieldValue.String()))
+		}
+		// TODO: multiple errors cannot be properly rendered in localizer, need to enhance
+		// localizer to support multiple errors with same error code but different fields.
+		return errors.Join(errs...)
+	}
+	return xerrors.Wrap(err)
+}
+
 // storeMessage stores a message to one or multiple file formats.
 func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption, validator protovalidate.Validator) error {
-	if validator != nil {
-		if err := validator.Validate(msg); err != nil {
-			return xerrors.Wrap(err)
-		}
-	} else if err := protovalidate.Validate(msg); err != nil {
-		return xerrors.Wrap(err)
+	if err := validate(msg, validator); err != nil {
+		return err
 	}
 	outputDir = filepath.Join(outputDir, opt.Subdir)
 	formats := parseOutputFormats(msg, opt)
