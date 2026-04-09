@@ -72,14 +72,10 @@ See official document: [Design](https://tableauio.github.io/docs/design/overview
 
 ### Requirements
 
-#### Protobuf
-
-Goto [Protocol Buffers v21.12](https://github.com/protocolbuffers/protobuf/releases/tag/v21.12), choose and download the correct platform of **protoc**, then install by README.
-
-#### protoc-gen-go
+#### buf
 
 Install: 
 
 ```bash
-go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.33.0
+go install github.com/bufbuild/buf/cmd/buf@v1.67.0
 ```
