@@ -24,3 +24,22 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version: v2.2.1
+
+      - name: Install Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          version: 1.67.0
+          setup_only: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Buf Lint
+        run: buf lint
+
+      - name: Buf Generate and Check
+        run: |
+          buf generate
+          if git diff --name-only | grep -q "\.go$"; then
+            echo "Error: Generated Go files are not committed"
+            git diff
+            exit 1
+          fi

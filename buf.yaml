@@ -1,0 +1,22 @@
+version: v2
+deps:
+  - buf.build/bufbuild/protovalidate:v1.1.1
+modules:
+  # Named module: published to BSR, excludes internal/unittest protos.
+  - path: proto
+    name: buf.build/tableauio/tableau
+    excludes:
+      - proto/tableau/protobuf/internal
+      - proto/tableau/protobuf/unittest
+  # Unnamed module: not published to BSR, but included for lint/build checks.
+  - path: proto
+    includes:
+      - proto/tableau/protobuf/internal
+      - proto/tableau/protobuf/unittest
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_VERSION_SUFFIX
+    - PACKAGE_DIRECTORY_MATCH
+    - ENUM_ZERO_VALUE_SUFFIX
