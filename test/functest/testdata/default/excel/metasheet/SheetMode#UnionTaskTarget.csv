@@ -1,35 +1,36 @@
-Name,Alias,Field1,Field2,Field3
-PVP,AliasPVP,"ID
+Number,Name,Alias,Field1,Field2,Field3
+0,Unknown,AliasUnknown,,,
+1,PVP,AliasPVP,"ID
 uint32
 Note","Damage
 int64
 Note","Type
 []enum<.FruitType>
 Note"
-PVE,AliasPVE,"Mission
+2,PVE,AliasPVE,"Mission
 {uint32 ID, enum<.ItemType> Type}Mission
 Note","Hero
 []uint32
 Note","Dungeon
 map<int32, int64>
 Note"
-Story,AliasStory,"Cost
+3,Story,AliasStory,"Cost
 {.Item}
 Note","Fruit
 map<int32, enum<.FruitType>>
 Note","Flavor
 map<enum<.FruitFlavor>, enum<.FruitType>>
 Note"
-Hobby,AliasHobby,"Flavor
+4,Hobby,AliasHobby,"Flavor
 map<enum<.FruitFlavor>, enum<.FruitType>>
 Note","StartTime
 datetime
 Note","Duration
 duration
 Note"
-Skill,AliasSkill,"ID
+5,Skill,AliasSkill,"ID
 uint32
 Note","Damage
 int64
 Note",
-Empty,AliasEmpty,,,
+6,Empty,AliasEmpty,,,

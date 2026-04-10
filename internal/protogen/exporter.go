@@ -3,6 +3,7 @@ package protogen
 import (
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
@@ -275,6 +276,10 @@ func (x *sheetExporter) exportUnion() error {
 	x.p.P()
 
 	for _, field := range x.ws.Fields {
+		// Skip enum value 0
+		if field.Number == 0 {
+			continue
+		}
 		ename := "TYPE_" + strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(field.Name)
 		typ := field.Name
 		if field.FullType != "" {
@@ -291,7 +296,10 @@ func (x *sheetExporter) exportUnion() error {
 
 	// generate enum type
 	x.p.P("  enum Type {")
-	x.p.P("    TYPE_INVALID = 0;")
+	// Only emit TYPE_INVALID = 0 if no field has already claimed number 0.
+	if !slices.ContainsFunc(x.ws.Fields, func(f *internalpb.Field) bool { return f.Number == 0 }) {
+		x.p.P("    TYPE_INVALID = 0;")
+	}
 	for _, field := range x.ws.Fields {
 		ename := "TYPE_" + strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(field.Name)
 		note := ""
