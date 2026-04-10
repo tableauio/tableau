@@ -1391,7 +1391,7 @@ type FieldProp struct {
 	ValidateComplex string `protobuf:"bytes,19,opt,name=validate_complex,json=validateComplex,proto3" json:"validate_complex,omitempty"`
 	// Protovalidate message-level rules for the nested message corresponding to
 	// this field. The value is a text-format representation of buf.validate.MessageRules,
-	// e.g.: cel_expression:"this.begin > this.end ? 'begin(%s) must be before end(%s)'.format([this.begin, this.end]) : ”".
+	// e.g.: cel_expression:"this.begin > this.end ? 'begin(%s) must <= end(%s)'.format([this.begin, this.end]): ”".
 	//
 	// See https://github.com/bufbuild/protovalidate.
 	ValidateMessage string `protobuf:"bytes,20,opt,name=validate_message,json=validateMessage,proto3" json:"validate_message,omitempty"`

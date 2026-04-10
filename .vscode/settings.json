@@ -4,5 +4,9 @@
         "options": [
             "--proto_path=proto"
         ]
-    }
+    },
+    // Formatting
+    "protobuf.formatOnSave": true,
+    "protobuf.clangFormat.enabled": true,
+    "protobuf.clangFormat.style": "file"
 }
