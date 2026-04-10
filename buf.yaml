@@ -3,6 +3,14 @@ deps:
   - buf.build/bufbuild/protovalidate:v1.1.1
 modules:
   - path: proto
+    name: buf.build/tableauio/tableau
+    excludes:
+      - proto/tableau/protobuf/internal
+      - proto/tableau/protobuf/unittest
+  - path: proto
+    includes:
+      - proto/tableau/protobuf/internal
+      - proto/tableau/protobuf/unittest
 lint:
   use:
     - STANDARD

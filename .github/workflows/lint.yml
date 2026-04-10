@@ -26,9 +26,10 @@ jobs:
           version: v2.2.1
 
       - name: Install Buf
-        uses: bufbuild/buf-setup-action@v1.50.0
+        uses: bufbuild/buf-action@v1
         with:
           version: 1.67.0
+          setup_only: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Buf Lint
