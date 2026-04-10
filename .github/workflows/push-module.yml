@@ -1,0 +1,26 @@
+name: Push module to BSR
+
+on:
+  push:
+    branches: [master, main]
+    tags: ["*"]
+
+jobs:
+  push-module:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          version: 1.67.0
+          setup_only: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.BUF_TOKEN }}
+
+      - name: Push module to BSR
+        run: buf push --error-format github-actions --git-metadata --exclude-unnamed
