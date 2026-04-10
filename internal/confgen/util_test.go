@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
@@ -191,7 +192,11 @@ func Test_storeMessage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := storeMessage(tt.args.msg, tt.args.name, "UTC", tt.args.outputDir, tt.args.opt, nil); (err != nil) != tt.wantErr {
+			validator, err := protovalidate.New()
+			if err != nil {
+				t.Fatalf("failed to create validator: %v", err)
+			}
+			if err := storeMessage(tt.args.msg, tt.args.name, "UTC", tt.args.outputDir, tt.args.opt, validator); (err != nil) != tt.wantErr {
 				t.Errorf("storeMessage() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
