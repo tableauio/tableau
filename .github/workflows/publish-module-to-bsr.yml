@@ -1,4 +1,4 @@
-name: Push module to BSR
+name: Publish modules to the BSR
 
 on:
   push:
