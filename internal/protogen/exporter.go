@@ -209,6 +209,8 @@ func (x *sheetExporter) exportEnum() error {
 func (x *sheetExporter) exportStruct() error {
 	validateMessage := x.ws.GetOptions().GetValidate()
 	if validateMessage != "" {
+		// clear validate in options, so it won't be exported as raw string into the generated proto file,
+		// but instead be exported as (buf.validate.message) option.
 		x.ws.Options.Validate = ""
 	}
 	x.p.P("message ", x.ws.Name, " {")
@@ -247,6 +249,8 @@ func (x *sheetExporter) exportStruct() error {
 func (x *sheetExporter) exportUnion() error {
 	validateMessage := x.ws.GetOptions().GetValidate()
 	if validateMessage != "" {
+		// clear validate in options, so it won't be exported as raw string into the generated proto file,
+		// but instead be exported as (buf.validate.message) option.
 		x.ws.Options.Validate = ""
 	}
 	x.p.P("message ", x.ws.Name, " {")
@@ -346,7 +350,7 @@ func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.Mess
 		return nil
 	}
 	fullName := protoreflect.FullName(x.be.ProtoPackage).Append(protoreflect.Name(name))
-	descriptor, err := x.be.gen.ProtoRegistryFilesWithGeneratedProto.FindDescriptorByName(fullName)
+	descriptor, err := x.be.gen.ProtoRegistryFilesWithGenerated.FindDescriptorByName(fullName)
 	if err != nil {
 		return nil
 	}
@@ -397,6 +401,8 @@ func (x *sheetExporter) exportMessager() error {
 	}
 	validateMessage := x.ws.GetOptions().GetValidate()
 	if validateMessage != "" {
+		// clear validate in options, so it won't be exported as raw string into the generated proto file,
+		// but instead be exported as (buf.validate.message) option.
 		x.ws.Options.Validate = ""
 	}
 	x.p.P("message ", x.ws.Name, " {")
@@ -442,11 +448,11 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 	if field.Note != "" {
 		note = " // " + field.Note
 	}
-	// Parse field-level validate into FieldRules then clears it.
+	// Parse field-level validate into FieldRules.
 	var fieldRules *validate.FieldRules
 	validateField := field.Options.GetProp().GetValidate()
 	if field.ListEntry != nil || field.MapEntry != nil {
-		// use complex validate for list/map entry.
+		// use complex validate for list/map fields.
 		validateField = field.Options.GetProp().GetValidateComplex()
 	}
 	if validateField != "" {
@@ -456,7 +462,7 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 		}
 		x.addMessageExtensionImports(fieldRules.ProtoReflect())
 	}
-	// Parse message-level validate into MessageRules then clears it.
+	// Parse message-level validate into MessageRules.
 	var msgRules *validate.MessageRules
 	validateMessage := field.Options.GetProp().GetValidateMessage()
 	if validateMessage != "" {
@@ -466,9 +472,9 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 		}
 		x.addMessageExtensionImports(msgRules.ProtoReflect())
 	}
-	// Clear Validate,ValidateComplex, and ValidateMessage after parsing into
-	// fieldRules, so they are not exported as raw strings into the generated
-	// proto file.
+	// Clear Validate, ValidateComplex, and ValidateMessage after parsing into
+	// field or message rules, so they are not exported as raw strings into the
+	// generated proto file.
 	if field.Options.GetProp() != nil {
 		field.Options.Prop.Validate = ""
 		field.Options.Prop.ValidateComplex = ""
@@ -596,10 +602,7 @@ func (x *bookExporter) marshalToText(m proto.Message) string {
 
 func (x *bookExporter) unmarshalFromText(m proto.Message, s string) error {
 	err := prototext.UnmarshalOptions{Resolver: x.gen.ProtoRegistryTypes}.Unmarshal([]byte(s), m)
-	if err != nil {
-		return xerrors.Wrap(err)
-	}
-	return nil
+	return xerrors.Wrap(err)
 }
 
 func isSameFieldMessageType(left, right *internalpb.Field) bool {

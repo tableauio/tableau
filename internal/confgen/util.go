@@ -275,16 +275,10 @@ func parseOutputFormats(msg proto.Message, opt *options.ConfOutputOption) []form
 	return format.OutputFormats
 }
 
-// validate validates a proto message using the provided validator if non-nil,
-// otherwise falls back to the default protovalidate.Validate. Each violation
+// validate validates a proto message using the provided validator. Each violation
 // is wrapped as an E2027 error and all violations are joined together.
 func validate(msg proto.Message, validator protovalidate.Validator) error {
-	var err error
-	if validator != nil {
-		err = validator.Validate(msg)
-	} else {
-		err = protovalidate.Validate(msg)
-	}
+	err := validator.Validate(msg)
 	if err == nil {
 		return nil
 	}

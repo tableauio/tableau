@@ -41,8 +41,8 @@ type Generator struct {
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
 
-	ProtoRegistryFiles, ProtoRegistryFilesWithGeneratedProto *protoregistry.Files
-	ProtoRegistryTypes                                       *dynamicpb.Types
+	ProtoRegistryFiles, ProtoRegistryFilesWithGenerated *protoregistry.Files
+	ProtoRegistryTypes                                  *dynamicpb.Types
 
 	// internal
 	typeInfos *xproto.TypeInfos // predefined type infos
@@ -82,7 +82,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	if err != nil {
 		panic(err)
 	}
-	gen.ProtoRegistryFilesWithGeneratedProto = registryFiles
+	gen.ProtoRegistryFilesWithGenerated = registryFiles
 	gen.ProtoRegistryTypes = dynamicpb.NewTypes(registryFiles)
 	return gen
 }
@@ -109,7 +109,7 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	// parse custom imported proto files
 	protoRegistryFiles := gen.ProtoRegistryFiles
 	if useGeneratedProtos {
-		protoRegistryFiles = gen.ProtoRegistryFilesWithGeneratedProto
+		protoRegistryFiles = gen.ProtoRegistryFilesWithGenerated
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
