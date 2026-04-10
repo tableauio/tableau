@@ -14,6 +14,7 @@
     <a href="https://codecov.io/gh/tableauio/tableau"><img src="https://codecov.io/gh/tableauio/tableau/branch/master/graph/badge.svg" alt="Code Coverage"></a>
     <a href="https://github.com/tableauio/tableau/releases"><img src="https://img.shields.io/github/v/release/tableauio/tableau?include_prereleases&style=flat-square"alt="GitHub release (latest SemVer including pre-releases)"></a>
     <a href="https://pkg.go.dev/github.com/tableauio/tableau"><img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white" alt="go.dev"></a>
+    <a href="https://buf.build/tableauio/tableau"><img src="https://img.shields.io/badge/BSR-Module-0C65EC" alt="BSR"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/github/license/tableauio/tableau?style=flat-square" alt="GitHub"></a>
 </p>
 
@@ -62,7 +63,7 @@ go install github.com/tableauio/tableau/cmd/tableauc@latest
 - Exporter:
   - protogen: exports a [tableau.Workbook](proto/tableau/protobuf/internal/workbook.proto) to a proto file.
   - confgen: exports a protobuf message to a **JSON/Text/Bin** file.
-- Protoconf: a dialect of [Protocol Buffers (proto3)](https://developers.google.com/protocol-buffers/docs/proto3) extended with [tableau options](proto/tableau/protobuf/tableau.proto), aimed to define the structure of Excel/CSV/XML/YAML.
+- Protoconf: a dialect of [Protocol Buffers (proto3)](https://protobuf.dev/programming-guides/proto3/) extended with [tableau options](proto/tableau/protobuf/tableau.proto), aimed to define the structure of Excel/CSV/XML/YAML.
 
 ## Design
 
@@ -72,10 +73,42 @@ See official document: [Design](https://tableauio.github.io/docs/design/overview
 
 ### Requirements
 
-#### buf
-
-Install: 
+#### Install buf
 
 ```bash
 go install github.com/bufbuild/buf/cmd/buf@v1.67.0
 ```
+
+#### Dev Workflow
+
+**Lint** proto files:
+
+```bash
+buf lint
+```
+
+**Build** proto files (check for errors):
+
+```bash
+buf build
+```
+
+**Generate** Go code from proto files:
+
+```bash
+buf generate
+```
+
+**Update** dependencies in `buf.lock`:
+
+```bash
+buf dep update
+```
+
+**Push** modules to the [BSR](https://buf.build/tableauio/tableau) (CI only, requires `BUF_TOKEN`):
+
+```bash
+buf push --git-metadata --exclude-unnamed
+```
+
+[buf-mod]: https://buf.build/tableauio/tableau
