@@ -1,0 +1,5 @@
+ID,Value,Name,Tags,Props
+"map<uint32, Item>","int32|{validate:""int32:{[protoconf.is_zero]:true}""}","string|{validate:""string:{[protoconf.is_not_empty]:true}""}","[]string|{validate_complex:""repeated:{[protoconf.min_items_three]:true}""}","map<string, int32>|{validate_complex:""map:{[protoconf.min_pairs_two]:true}""}"
+Item ID,Item Value,Item Name,Item Tags,Item Props
+1,0,Alice,"a,b,c","x:1,y:2"
+2,0,Bob,"d,e,f","m:3,n:4"

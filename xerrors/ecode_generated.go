@@ -30,6 +30,7 @@ var ErrE2022 = newEcode("E2022", `sub-field's value not unique in map values or 
 var ErrE2024 = newEcode("E2024", `invalid version pattern`)
 var ErrE2025 = newEcode("E2025", `version value mismatches pattern`)
 var ErrE2026 = newEcode("E2026", `illegally ordered values`)
+var ErrE2027 = newEcode("E2027", `protovalidate violation`)
 var ErrE3000 = newEcode("E3000", `no workbook file found about sheet specifier`)
 var ErrE3001 = newEcode("E3001", `no worksheet found in workbook`)
 var ErrE3002 = newEcode("E3002", `failed to open file`)
@@ -291,6 +292,14 @@ func E2026(value any, prevValue any, order string) error {
 		"Value":     value,
 		"PrevValue": prevValue,
 		"Order":     order,
+	})
+}
+
+// E2027: protovalidate violation
+func E2027(violation string, fieldValue any) error {
+	return renderEcode(ErrE2027, map[string]any{
+		"Violation":  violation,
+		"FieldValue": fieldValue,
 	})
 }
 

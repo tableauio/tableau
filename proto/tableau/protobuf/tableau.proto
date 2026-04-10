@@ -208,6 +208,11 @@ message WorksheetOptions {
   bool with_parent_dir = 22;
   // confgen(scatter): export JSON/Bin/Text filenames without book name prefix.
   bool scatter_without_book_name = 23;
+  // Protovalidate message-level rules. The value is a text-format
+  // representation of buf.validate.MessageRules, e.g.: "cel_expression:\"this.item_map.size() > 0\"".
+  //
+  // See https://github.com/bufbuild/protovalidate.
+  string validate = 24;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
@@ -359,6 +364,22 @@ message FieldProp {
   string pattern = 16;
   // Ensure this field's value is in order.
   Order order = 17;
+  // Protovalidate field-level rules of scalar and well-known types. The value is
+  // a text-format representation of buf.validate.FieldRules, e.g.: "string:{max_len:10}".
+  //
+  // See https://github.com/bufbuild/protovalidate.
+  string validate = 18;
+  // Protovalidate field-level rules of complex types: list, map. The value is a text-format
+  // representation of buf.validate.FieldRules, e.g.: "repeated:{min_items:1}".
+  //
+  // See https://github.com/bufbuild/protovalidate.
+  string validate_complex = 19;
+  // Protovalidate message-level rules for the nested message corresponding to
+  // this field. The value is a text-format representation of buf.validate.MessageRules,
+  // e.g.: cel_expression:"this.begin > this.end ? 'begin(%s) must <= end(%s)'.format([this.begin, this.end]): ''".
+  //
+  // See https://github.com/bufbuild/protovalidate.
+  string validate_message = 20;
 }
 
 // Layout of list and map.

@@ -1,0 +1,6 @@
+ID,Name,TimespanBegin,TimespanEnd,AttrType,AttrField1,AttrField2
+"map<uint32, Item>",string,{.ValidateStructType}datetime,datetime,{.ValidateUnionType}enum<.ValidateUnionType.Type>,union,union
+Item ID,Item Name,Begin Time,End Time,Attribute Type,Attribute Field1,Attribute Field2
+1,Item1,2024-01-02 00:00:00,2024-02-01 00:00:00,TYPE_ATTACK,100,5
+2,Item2,2025-01-02 00:00:00,2025-02-01 00:00:00,TYPE_DEFEND,50,
+3,Item3,2026-01-02 00:00:00,2026-02-01 00:00:00,TYPE_ATTACK,200,10

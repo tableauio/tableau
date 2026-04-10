@@ -1,0 +1,45 @@
+syntax = "proto2";
+package protoconf;
+option go_package = "github.com/tableauio/tableau/test/functest/protoconf/common";
+
+import "buf/validate/validate.proto";
+
+extend buf.validate.Int32Rules {
+  optional bool is_zero = 1000 [(buf.validate.predefined).cel = {
+    id: "int32.is_zero",
+    message: "value must be zero",
+    expression: "!rule || this == 0",
+  }];
+}
+
+extend buf.validate.StringRules {
+  optional bool is_not_empty = 1001 [(buf.validate.predefined).cel = {
+    id: "string.is_not_empty",
+    message: "value must not be empty",
+    expression: "!rule || this != ''",
+  }];
+}
+
+extend buf.validate.UInt32Rules {
+  optional bool is_positive = 1002 [(buf.validate.predefined).cel = {
+    id: "uint32.is_positive",
+    message: "value must be positive",
+    expression: "!rule || this > 0u",
+  }];
+}
+
+extend buf.validate.RepeatedRules {
+  optional bool min_items_three = 1003 [(buf.validate.predefined).cel = {
+    id: "repeated.min_items_three",
+    message: "list must have at least 3 items",
+    expression: "!rule || this.size() >= 3",
+  }];
+}
+
+extend buf.validate.MapRules {
+  optional bool min_pairs_two = 1004 [(buf.validate.predefined).cel = {
+    id: "map.min_pairs_two",
+    message: "map must have at least 2 pairs",
+    expression: "!rule || this.size() >= 2",
+  }];
+}

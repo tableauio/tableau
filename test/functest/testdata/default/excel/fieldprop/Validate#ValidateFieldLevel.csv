@@ -1,0 +1,5 @@
+ID,Name,Score
+"map<uint32, Item>|{refer:""ItemConf.ID"" validate:""uint32:{gt:0}"" validate_complex:""map:{min_pairs:1}""}","string|{validate:""string:{min_len:1 max_len:20}""}","int32|{validate:""int32:{gt:0 lte:100}""}"
+Item ID,Item Name,Item Score
+1,sword,80
+2,shield,95

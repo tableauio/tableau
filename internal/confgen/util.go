@@ -1,11 +1,13 @@
 package confgen
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/strcase"
@@ -273,8 +275,31 @@ func parseOutputFormats(msg proto.Message, opt *options.ConfOutputOption) []form
 	return format.OutputFormats
 }
 
+// validate validates a proto message using the provided validator. Each violation
+// is wrapped as an E2027 error and all violations are joined together.
+func validate(msg proto.Message, validator protovalidate.Validator) error {
+	err := validator.Validate(msg)
+	if err == nil {
+		return nil
+	}
+	var valErr *protovalidate.ValidationError
+	if errors.As(err, &valErr) {
+		errs := make([]error, 0, len(valErr.Violations))
+		for _, v := range valErr.Violations {
+			errs = append(errs, xerrors.E2027(v.String(), v.FieldValue.String()))
+		}
+		// TODO: multiple errors cannot be properly rendered in localizer, need to enhance
+		// localizer to support multiple errors with same error code but different fields.
+		return errors.Join(errs...)
+	}
+	return xerrors.Wrap(err)
+}
+
 // storeMessage stores a message to one or multiple file formats.
-func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption) error {
+func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption, validator protovalidate.Validator) error {
+	if err := validate(msg, validator); err != nil {
+		return err
+	}
 	outputDir = filepath.Join(outputDir, opt.Subdir)
 	formats := parseOutputFormats(msg, opt)
 	for _, fmt := range formats {
@@ -288,7 +313,7 @@ func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *
 			store.UseEnumNumbers(opt.UseEnumNumbers),
 		)
 		if err != nil {
-			return err
+			return xerrors.Wrap(err)
 		}
 	}
 	return nil

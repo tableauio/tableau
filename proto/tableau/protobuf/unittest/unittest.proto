@@ -7,6 +7,7 @@ package unittest;
 option go_package = "github.com/tableauio/tableau/proto/tableaupb/unittestpb";
 option (tableau.workbook) = {name: "unittest/Unittest#*.csv"};
 
+import "buf/validate/validate.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
@@ -308,6 +309,20 @@ message Transpose {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
+}
+
+message ValidatedConf {
+  option (tableau.worksheet) = {name:"ValidatedConf" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (buf.validate.message) = {
+    cel: {
+      id: "validated_conf.id_name"
+      message: "id must be positive when name is non-empty"
+      expression: "this.id == 0u || this.name != ''"
+    }
+  };
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  string name = 2 [(tableau.field) = {name:"Name"}, (buf.validate.field) = {string:{max_len:10}}];
 }
 
 message FieldPresentMap {

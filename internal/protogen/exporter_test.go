@@ -7,16 +7,18 @@ import (
 	"regexp"
 	"testing"
 
+	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/internal/x/xproto/protoc"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	_ "github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 func Test_genFieldOptionsString(t *testing.T) {
@@ -75,13 +77,37 @@ func Test_genFieldOptionsString(t *testing.T) {
 			want: `[(tableau.field) = {name:"ItemID"}, json_name="item_id_1"]`,
 		},
 	}
+	be := &bookExporter{gen: &Generator{}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := genFieldOptionsString(tt.args.opts); got != tt.want {
+			if got := be.genFieldOptionsString(tt.args.opts, nil); got != tt.want {
 				t.Errorf("genFieldOptionsString() = %v, want %v", got, tt.want)
 			}
 		})
 	}
+}
+
+func Test_genFieldOptionsString_predefinedValidateRule(t *testing.T) {
+	// Parse the custom_rules.proto which extends buf.validate.Int32Rules
+	// with a custom "is_zero" field.
+	registryFiles, err := protoc.NewFiles(
+		[]string{"testdata"},
+		[]string{"testdata/custom_rules.proto"},
+	)
+	assert.NoError(t, err)
+	registryTypes := dynamicpb.NewTypes(registryFiles)
+
+	be := &bookExporter{gen: &Generator{ProtoRegistryTypes: registryTypes}}
+
+	fieldValidate := `int32:{[testpkg.is_zero]:true}`
+	opts := &tableaupb.FieldOptions{Name: "FieldX"}
+	// Unmarshal validate into FieldRules first, then pass to genFieldOptionsString.
+	fieldRules := &validate.FieldRules{}
+	err = be.unmarshalFromText(fieldRules, fieldValidate)
+	assert.NoError(t, err)
+	got := be.genFieldOptionsString(opts, fieldRules)
+	want := `[(tableau.field) = {name:"FieldX"}, (buf.validate.field) = {int32:{[testpkg.is_zero]:true}}]`
+	assert.Equal(t, want, got)
 }
 
 func Test_isSameFieldMessageType(t *testing.T) {
@@ -199,7 +225,7 @@ func Test_isSameFieldMessageType(t *testing.T) {
 
 func Test_marshalToText(t *testing.T) {
 	type args struct {
-		m protoreflect.ProtoMessage
+		m proto.Message
 	}
 	tests := []struct {
 		name string
@@ -222,9 +248,10 @@ func Test_marshalToText(t *testing.T) {
 			want: `key:"ID" layout:LAYOUT_VERTICAL prop:{unique:true refer:"ItemConf.ID" present:true}`,
 		},
 	}
+	be := &bookExporter{gen: &Generator{}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := marshalToText(tt.args.m); got != tt.want {
+			if got := be.marshalToText(tt.args.m); got != tt.want {
 				t.Errorf("marshalToText() = %v, want %v", got, tt.want)
 			}
 		})
@@ -495,7 +522,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -532,7 +559,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -710,7 +737,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -779,7 +806,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -879,6 +906,91 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "export-messager-with-validate",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ItemConf",
+					Options: &tableaupb.WorksheetOptions{
+						Name:     "ItemConf",
+						Validate: `cel:{id:"item.id" message:"id must be positive" expression:"this.id > 0"}`,
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					messagerPatternRegexp: regexp.MustCompile(`Conf$`),
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+				Imports:        make(map[string]bool),
+			},
+			want: `message ItemConf {
+  option (tableau.worksheet) = {name:"ItemConf"};
+  option (buf.validate.message) = {cel:{id:"item.id" message:"id must be positive" expression:"this.id > 0"}};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			name: "export-messager-with-message-validate-on-nested-message",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ItemConf",
+					Options: &tableaupb.WorksheetOptions{
+						Name: "ItemConf",
+					},
+					Fields: []*internalpb.Field{
+						{
+							Name: "item_map", Type: "map<uint32, Item>", FullType: "map<uint32, Item>",
+							MapEntry: &internalpb.Field_MapEntry{KeyType: "uint32", ValueType: "Item", ValueFullType: "Item"},
+							Options: &tableaupb.FieldOptions{
+								Key:    "ID",
+								Layout: tableaupb.Layout_LAYOUT_VERTICAL,
+								Prop: &tableaupb.FieldProp{
+									ValidateMessage: `cel:{id:"item.id_name" message:"id must be positive when name is non-empty" expression:"this.id == 0u || this.name != ''"}`,
+								},
+							},
+							Fields: []*internalpb.Field{
+								{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+								{Name: "name", Type: "string", FullType: "string", Options: &tableaupb.FieldOptions{Name: "Name"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					messagerPatternRegexp: regexp.MustCompile(`Conf$`),
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+				Imports:        make(map[string]bool),
+			},
+			want: `message ItemConf {
+  option (tableau.worksheet) = {name:"ItemConf"};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    option (buf.validate.message) = {cel:{id:"item.id_name" message:"id must be positive when name is non-empty" expression:"this.id == 0u || this.name != ''"}};
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+`,
+			wantErr: false,
+		},
+		{
 			name: "field-number-compatibility-delete-fields-and-add-new-fields",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -909,7 +1021,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -991,7 +1103,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFiles: protoregistry.GlobalFiles,
+						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},

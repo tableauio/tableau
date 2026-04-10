@@ -17,14 +17,16 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		return nil
 	}
 	p := &tableaupb.FieldProp{
-		JsonName: prop.JsonName,
-		Fixed:    prop.Fixed,
-		Size:     prop.Size,
-		Present:  prop.Present,
-		Optional: prop.Optional,
-		Patch:    prop.Patch,
-		Sep:      prop.Sep,
-		Subsep:   prop.Subsep,
+		JsonName:        prop.JsonName,
+		Fixed:           prop.Fixed,
+		Size:            prop.Size,
+		Present:         prop.Present,
+		Optional:        prop.Optional,
+		Patch:           prop.Patch,
+		Sep:             prop.Sep,
+		Subsep:          prop.Subsep,
+		ValidateComplex: prop.ValidateComplex,
+		ValidateMessage: prop.ValidateMessage,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
@@ -38,21 +40,24 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableau
 		return nil
 	}
 	p := &tableaupb.FieldProp{
-		JsonName: prop.JsonName,
-		Fixed:    prop.Fixed,
-		Size:     prop.Size,
-		Present:  prop.Present,
-		Optional: prop.Optional,
-		Patch:    prop.Patch,
-		Form:     prop.Form, // for vertical incell union list
-		Sep:      prop.Sep,
-		Subsep:   prop.Subsep,
-		Cross:    prop.Cross,
+		JsonName:        prop.JsonName,
+		Fixed:           prop.Fixed,
+		Size:            prop.Size,
+		Present:         prop.Present,
+		Optional:        prop.Optional,
+		Patch:           prop.Patch,
+		Form:            prop.Form, // for vertical incell union list
+		Sep:             prop.Sep,
+		Subsep:          prop.Subsep,
+		Cross:           prop.Cross,
+		ValidateComplex: prop.ValidateComplex,
+		ValidateMessage: prop.ValidateMessage,
 	}
 	if isScalarList {
 		p.Range = prop.Range
 		p.Refer = prop.Refer
 		p.Pattern = prop.Pattern
+		p.Validate = prop.Validate
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
@@ -66,13 +71,14 @@ func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		return nil
 	}
 	p := &tableaupb.FieldProp{
-		JsonName: prop.JsonName,
-		Form:     prop.Form,
-		Present:  prop.Present,
-		Optional: prop.Optional,
-		Patch:    prop.Patch,
-		Sep:      prop.Sep,
-		Subsep:   prop.Subsep,
+		JsonName:        prop.JsonName,
+		Form:            prop.Form,
+		Present:         prop.Present,
+		Optional:        prop.Optional,
+		Patch:           prop.Patch,
+		Sep:             prop.Sep,
+		Subsep:          prop.Subsep,
+		ValidateMessage: prop.ValidateMessage,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
@@ -100,6 +106,7 @@ func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Patch:    prop.Patch,
 		Pattern:  prop.Pattern,
 		Order:    prop.Order,
+		Validate: prop.Validate,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

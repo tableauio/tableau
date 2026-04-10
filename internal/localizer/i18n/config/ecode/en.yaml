@@ -71,11 +71,11 @@ E2006:
   help: add enum value "{{.Value}}" to enum "{{.EnumName}}" definition
 E2007:
   desc: invalid datetime format
-  text: '{{ quote .Value }} is invalid datetime format, {{.Error}}'
+  text: "{{ quote .Value }} is invalid datetime format, {{.Error}}"
   help: 'follow datetime format: "yyyy-MM-dd HH:mm:ss" or RFC3339, e.g.: "2020-01-01 01:00:00" or "2020-01-01T01:00:00+08:00"'
 E2008:
   desc: invalid duration format
-  text: '{{ quote .Value }} is invalid duration format, {{.Error}}'
+  text: "{{ quote .Value }} is invalid duration format, {{.Error}}"
   help: 'follow duration format in the form "72h3m0.5s"'
 E2009:
   desc: duplicate key exists in different sheets
@@ -102,7 +102,7 @@ E2012:
     - Error: error
 E2013:
   desc: invalid syntax of boolean value
-  text: '{{ quote .Value }} cannot be parsed to boolean type, {{.Error}}'
+  text: "{{ quote .Value }} cannot be parsed to boolean type, {{.Error}}"
   help: "boolean value can be: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False"
 E2014:
   desc: sheet column not found
@@ -162,7 +162,7 @@ E2022:
     - Key: any
 E2024:
   desc: invalid version pattern
-  text: '{{ quote .Value }} cannot be parsed into dotted-decimal format, {{.Error}}'
+  text: "{{ quote .Value }} cannot be parsed into dotted-decimal format, {{.Error}}"
   help: "ensure version pattern is: <MAJOR>.<MINOR>.<PATCH>[.<OTHER>]..."
   fields:
     - Value: string
@@ -182,6 +182,13 @@ E2026:
     - Value: any
     - PrevValue: any
     - Order: string
+E2027:
+  desc: protovalidate violation
+  text: "{{ quote .FieldValue }} violates rule: {{.Violation}}"
+  help: "fix the field value to satisfy the protovalidate rule"
+  fields:
+    - Violation: string
+    - FieldValue: any
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

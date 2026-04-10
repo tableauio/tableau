@@ -1,0 +1,14 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "name": "sword",
+            "score": 80
+        },
+        "2": {
+            "id": 2,
+            "name": "shield",
+            "score": 95
+        }
+    }
+}

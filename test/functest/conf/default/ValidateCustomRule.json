@@ -1,0 +1,32 @@
+{
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "value": 0,
+            "name": "Alice",
+            "tagsList": [
+                "a",
+                "b",
+                "c"
+            ],
+            "propsMap": {
+                "x": 1,
+                "y": 2
+            }
+        },
+        "2": {
+            "id": 2,
+            "value": 0,
+            "name": "Bob",
+            "tagsList": [
+                "d",
+                "e",
+                "f"
+            ],
+            "propsMap": {
+                "m": 3,
+                "n": 4
+            }
+        }
+    }
+}
