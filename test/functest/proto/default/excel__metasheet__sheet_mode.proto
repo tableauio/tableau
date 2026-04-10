@@ -241,7 +241,7 @@ message TaskTarget {
   }
 
   enum Type {
-    TYPE_INVALID = 0;
+    TYPE_UNKNOWN = 0 [(tableau.evalue).name = "AliasUnknown"]; // AliasUnknown
     TYPE_PVP = 1 [(tableau.evalue).name = "AliasPVP"]; // AliasPVP
     TYPE_PVE = 2 [(tableau.evalue).name = "AliasPVE"]; // AliasPVE
     TYPE_STORY = 3 [(tableau.evalue).name = "AliasStory"]; // AliasStory
@@ -300,7 +300,7 @@ message WishTarget {
   }
 
   enum Type {
-    TYPE_INVALID = 0;
+    TYPE_UNKNOWN = 0 [(tableau.evalue).name = ""];
     TYPE_HIGHER = 1 [(tableau.evalue).name = "WishHigher"]; // WishHigher
     TYPE_RICHER = 2 [(tableau.evalue).name = "WishRicher"]; // WishRicher
   }
