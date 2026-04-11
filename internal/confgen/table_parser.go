@@ -648,7 +648,9 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 		fieldMsg := fieldValue.Message()
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
-			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+			// Use definition order index (i+1) as the column suffix, not the tag number (fd.Number()),
+			// so that Value1, Value2, Value3... correspond to fields in definition order.
+			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(i+1)
 			err := func() error {
 				subField := p.parseFieldDescriptor(fd)
 				subField.mergeParentFieldProp(field)
@@ -661,7 +663,7 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 				crossCellDataList := []string{cell.Data}
 				if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
 					for j := 1; j < fieldCount; j++ {
-						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
+						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(i+1+j)
 						c, err := r.Cell(colName, p.IsFieldOptional(subField))
 						if err != nil {
 							break

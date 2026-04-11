@@ -329,6 +329,16 @@ message ValidateConf {
   map<string, int32> prop_map = 4 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}, (buf.validate.field) = {map:{max_pairs:2}}];
 }
 
+message TaskConf {
+  option (tableau.worksheet) = {name:"TaskConf" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Task {
+    int32 id = 1 [(tableau.field) = {name:"ID"}];
+    unittest.Target target = 2 [(tableau.field) = {name:"Target"}];
+  }
+}
+
 message FieldPresentMap {
   option (tableau.worksheet) = {name:"FieldPresentMap"};
 

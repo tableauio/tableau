@@ -1010,6 +1010,70 @@ func TestTableParser_parseVerticalSequenceFieldKeyedList(t *testing.T) {
 	}
 }
 
+func TestTableParser_parseTaskConf(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		want    proto.Message
+		wantErr bool
+		err     error
+	}{
+		{
+			// Pvp has non-sequential field tag numbers: type=1, health=4, damage=3.
+			// Field columns must be mapped by definition order (Field1→type, Field2→health, Field3→damage),
+			// not by tag number order (Field1→type, Field3→damage, Field4→health).
+			name:   "union value message with non-sequential field tag numbers",
+			parser: newTableParserForTest(),
+			args: args{
+					sheet: book.NewTableSheet(
+						"TaskConf",
+					[][]string{
+						{"ID", "TargetType", "TargetField1", "TargetField2", "TargetField3"},
+						{"1", "PVP", "10", "200", "500"},
+					}),
+			},
+				want: &unittestpb.TaskConf{
+					TaskMap: map[int32]*unittestpb.TaskConf_Task{
+					1: {
+						Id: 1,
+						Target: &unittestpb.Target{
+							Type: unittestpb.Target_TYPE_PVP,
+							Value: &unittestpb.Target_Pvp_{
+								Pvp: &unittestpb.Target_Pvp{
+									Type:   10,  // Field1 → type (definition order 1st, tag=1)
+									Health: 200, // Field2 → health (definition order 2nd, tag=4)
+									Damage: 500, // Field3 → damage (definition order 3rd, tag=3)
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := &unittestpb.TaskConf{}
+			err := tt.parser.Parse(msg, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				require.ErrorIs(t, err, tt.err)
+				return
+			}
+			if !proto.Equal(tt.want, msg) {
+				t.Errorf("sheetParser.Parse() = %v, want %v", msg, tt.want)
+			}
+		})
+	}
+}
+
 func TestTableParser_parseFieldPresentMap(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet

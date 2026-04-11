@@ -47,9 +47,11 @@ message Target {
     TYPE_PVP = 1 [(tableau.evalue) = { name: "PVP" }];
     TYPE_PVE = 2 [(tableau.evalue) = { name: "PVE" }];
   }
+  // Pvp has non-sequential field tag numbers (1, 4, 3) to test
+  // that FieldN columns are mapped by definition order, not tag number order.
   message Pvp {
     int32 type = 1;
-    uint32 health = 2;
+    uint32 health = 4;
     int64 damage = 3;
   }
   message Pve {
