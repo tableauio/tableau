@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestFormatNew(t *testing.T) {
@@ -23,17 +25,15 @@ func TestFormatNew(t *testing.T) {
 		"%v",
 		"error",
 	}, {
+		// %+v with no KeyModule: same as Error(), no structured rendering.
 		New("error"),
 		"%+v",
-		"error\n" +
-			"github.com/tableauio/tableau/xerrors.TestFormatNew\n" +
-			"\t.+/xerrors/format_test.go:26",
+		"error",
 	}, {
 		New("error"),
 		"%q",
-		`"|Reason: error"`,
+		`"error"`,
 	}}
-
 	for i, tt := range tests {
 		testFormatRegexp(t, i, tt.error, tt.format, tt.want)
 	}
@@ -47,17 +47,16 @@ func TestFormatNewf(t *testing.T) {
 	}{{
 		Newf("newf: %s", "error"),
 		"%s",
-		"error",
+		"newf: error",
 	}, {
 		Newf("newf: %s", "error"),
 		"%v",
-		"error",
+		"newf: error",
 	}, {
+		// %+v with no KeyModule: same as Error(), no structured rendering.
 		Newf("newf: %s", "error"),
 		"%+v",
-		"error\n" +
-			"github.com/tableauio/tableau/xerrors.TestFormatNewf\n" +
-			"\t.+/xerrors/format_test.go:56",
+		"newf: error",
 	}}
 
 	for i, tt := range tests {
@@ -74,24 +73,23 @@ func TestFormatWrap(t *testing.T) {
 		{
 			Wrapf(New("error"), "error2"),
 			"%s",
-			"error2|Reason: error",
+			"error2: error",
 		},
 		{
 			Wrapf(New("error"), "error2"),
 			"%v",
-			"error2|Reason: error",
+			"error2: error",
 		},
 		{
+			// %+v uses KeyReason from the inner New("error"), not the outer message.
 			Wrap(New("error")),
 			"%+v",
-			"error\n" +
-				"github.com/tableauio/tableau/xerrors.TestFormatWrap\n" +
-				"\t.+/xerrors/format_test.go:85",
+			"error",
 		},
 		{
 			Wrapf(io.EOF, "error1"),
 			"%s",
-			"error1|EOF",
+			"error1: EOF",
 		},
 		{
 			Wrap(io.EOF),
@@ -99,23 +97,20 @@ func TestFormatWrap(t *testing.T) {
 			"EOF",
 		},
 		{
+			// %+v with no KeyReason/KeyModule: same as Error().
 			Wrapf(io.EOF, "error1"),
 			"%+v",
-			"error1|EOF\n" +
-				"github.com/tableauio/tableau/xerrors.TestFormatWrap\n" +
-				"\t.+/xerrors/format_test.go:102",
+			"error1: EOF",
 		},
 		{
 			Wrap(Wrap(io.EOF)),
 			"%+v",
-			"EOF\n" +
-				"github.com/tableauio/tableau/xerrors.TestFormatWrap\n" +
-				"\t.+/xerrors/format_test.go:109\n",
+			"EOF",
 		},
 		{
 			Wrapf(New("error"), "context"),
 			"%q",
-			`"context|Reason: error"`,
+			`"context: error"`,
 		},
 	}
 
@@ -133,36 +128,35 @@ func TestFormatWrapf(t *testing.T) {
 		{
 			Wrapf(io.EOF, "error%d", 2),
 			"%s",
-			"error2|Reason: EOF",
+			"error2: EOF",
 		},
 		{
 			Wrapf(io.EOF, "error%d", 2),
 			"%v",
-			"error2|Reason: EOF",
+			"error2: EOF",
 		},
 		{
+			// %+v with no KeyReason/KeyModule: same as Error().
 			Wrapf(io.EOF, "error%d", 2),
 			"%+v",
-			"error2|EOF\n" +
-				"github.com/tableauio/tableau/xerrors.TestFormatWrapf\n" +
-				"\t.+/xerrors/format_test.go:144",
+			"error2: EOF",
 		},
 		{
 			Wrapf(New("error"), "error%d", 2),
 			"%s",
-			"error2|Reason: error",
+			"error2: error",
 		},
 		{
 			Wrapf(New("error"), "error%d", 2),
 			"%v",
-			"error2|Reason: error",
+			"error2: error",
 		},
 		{
+			// %+v uses KeyReason from the inner New("error"), not the outer message.
+			// This is the key difference: %s/%v = "error2: error", %+v = "error".
 			Wrapf(New("error"), "error%d", 2),
 			"%+v",
-			"error2|Reason: error\n" +
-				"github.com/tableauio/tableau/xerrors.TestFormatWrapf\n" +
-				"\t.+/xerrors/format_test.go:161",
+			"error",
 		},
 	}
 
@@ -179,19 +173,30 @@ func TestFormatWrappedNew(t *testing.T) {
 	tests := []struct {
 		error
 		format string
-		want   string
+		want   []string
 	}{{
+		// %+v with no KeyModule: desc = Error() text, followed by stack trace.
 		wrappedNew("error"),
 		"%+v",
-		"|Reason: error\n" +
-			"github.com/tableauio/tableau/xerrors.wrappedNew\n" +
-			"\t.+/xerrors/format_test.go:175\n" +
-			"github.com/tableauio/tableau/xerrors.TestFormatWrappedNew\n" +
-			"\t.+/xerrors/format_test.go:184",
+		[]string{
+			"error",
+			"github\\.com/tableauio/tableau/xerrors\\.wrappedNew\n",
+		},
+	}, {
+		// %+v with ecode: renders full structured desc + stack trace, different from Error().
+		// Error() = reason text only; %+v = ErrCode + ErrDesc + Reason + Help + stack.
+		Wrap(E2003("1", 3)),
+		"%+v",
+		[]string{
+			"error[E2003]: illegal sequence number",
+			`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
+			`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
+			"",
+			"github\\.com/tableauio/tableau/xerrors\\.TestFormatWrappedNew\n",
+		},
 	}}
-
 	for i, tt := range tests {
-		testFormatRegexp(t, i, tt.error, tt.format, tt.want)
+		testFormatCompleteCompare(t, i, tt.error, tt.format, tt.want, true)
 	}
 }
 
@@ -201,29 +206,74 @@ func TestFormatWrapKV(t *testing.T) {
 		format string
 		want   []string
 	}{
+		// %s / %v: always the plain Error() text.
 		{
 			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
 			"%s",
-			[]string{"|k1: v1|k2: v2|EOF"},
+			[]string{"EOF"},
 		},
 		{
 			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
 			"%v",
-			[]string{"|k1: v1|k2: v2|EOF"},
-		},
-		{
-			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
-			"%+v",
-			[]string{"|k1: v1|k2: v2|EOF",
-				"github.com/tableauio/tableau/xerrors.TestFormatWrapKV\n" +
-					"\t.+/xerrors/format_test.go:215"},
+			[]string{"EOF"},
 		},
 		{
 			WrapKV(New("error"), "k1", "v1", "k2", "v2"),
+			"%s",
+			[]string{"error"},
+		},
+		{
+			WrapKV(New("error"), "k1", "v1", "k2", "v2"),
+			"%v",
+			[]string{"error"},
+		},
+		// %+v with a plain error (no KeyModule): desc = Error() text, followed by stack trace.
+		{
+			WrapKV(io.EOF, "k1", "v1", "k2", "v2"),
 			"%+v",
-			[]string{"|k1: v1|k2: v2|Reason: error",
-				"github.com/tableauio/tableau/xerrors.TestFormatWrapKV\n" +
-					"\t.+/xerrors/format_test.go:222"},
+			[]string{
+				"EOF",
+				"github\\.com/tableauio/tableau/xerrors\\.TestFormatWrapKV\n",
+			},
+		},
+		// %+v with ecode error: renders full structured desc (ErrCode + Reason + Help),
+		// which is different from Error() that only returns the reason text.
+		{
+			E2003("1", 3),
+			"%s",
+			[]string{`value "1" does not meet sequence requirement: "sequence:3"`},
+		},
+		{
+			E2003("1", 3),
+			"%v",
+			[]string{`value "1" does not meet sequence requirement: "sequence:3"`},
+		},
+		{
+			// %+v renders the full structured desc + stack trace, unlike Error()/%s/%v.
+			E2003("1", 3),
+			"%+v",
+			[]string{
+				"error[E2003]: illegal sequence number",
+				`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
+				`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
+				"",
+				"github\\.com/tableauio/tableau/xerrors\\.TestFormatWrapKV\n",
+			},
+		},
+		{
+			// WrapKV adds outer fields (BookName, SheetName) to an ecode error.
+			// Since E2003 internally sets KeyModule=default (innermost wins),
+			// the default template does not render Workbook/Worksheet.
+			// %+v still renders the full structured desc (ErrCode + Reason + Help).
+			WrapKV(E2003("1", 3), KeyModule, ModuleDefault, KeyBookName, "Test.xlsx", KeySheetName, "Sheet1"),
+			"%+v",
+			[]string{
+				"error[E2003]: illegal sequence number",
+				`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
+				`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
+				"",
+				"github\\.com/tableauio/tableau/xerrors\\.TestFormatWrapKV\n",
+			},
 		},
 	}
 
@@ -238,19 +288,14 @@ func testFormatRegexp(t *testing.T, n int, arg any, format, want string) {
 	gotLines := strings.Split(got, "\n")
 	wantLines := strings.Split(want, "\n")
 
-	if len(wantLines) > len(gotLines) {
-		t.Errorf("test %d: wantLines(%d) > gotLines(%d):\n got: %q\nwant: %q", n+1, len(wantLines), len(gotLines), got, want)
-		return
-	}
+	require.GreaterOrEqualf(t, len(gotLines), len(wantLines),
+		"test %d: wantLines(%d) > gotLines(%d):\n got: %q\nwant: %q", n+1, len(wantLines), len(gotLines), got, want)
 
 	for i, w := range wantLines {
 		match, err := regexp.MatchString(w, gotLines[i])
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !match {
-			t.Errorf("test %d: line %d: fmt.Sprintf(%q, err):\n got: %q\nwant: %q", n+1, i+1, format, got, want)
-		}
+		require.NoErrorf(t, err, "test %d: line %d: invalid regexp %q", n+1, i+1, w)
+		require.Truef(t, match,
+			"test %d: line %d: fmt.Sprintf(%q, err):\n got: %q\nwant: %q", n+1, i+1, format, got, want)
 	}
 }
 
@@ -326,34 +371,27 @@ func parseBlocks(input string, detectStackboundaries bool) ([]string, error) {
 }
 
 func testFormatCompleteCompare(t *testing.T, n int, arg any, format string, want []string, detectStackBoundaries bool) {
+	t.Helper()
 	gotStr := fmt.Sprintf(format, arg)
 
 	got, err := parseBlocks(gotStr, detectStackBoundaries)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(got) != len(want) {
-		t.Fatalf("test %d: fmt.Sprintf(%s, err) -> wrong number of blocks: got(%d) want(%d)\n got: %s\nwant: %s\ngotStr: %q",
-			n+1, format, len(got), len(want), prettyBlocks(got), prettyBlocks(want), gotStr)
-	}
+	require.NoError(t, err)
+	require.Lenf(t, got, len(want),
+		"test %d: fmt.Sprintf(%s, err) -> wrong number of blocks:\n got: %s\nwant: %s\ngotStr: %q",
+		n+1, format, prettyBlocks(got), prettyBlocks(want), gotStr)
 
 	for i := range got {
 		if strings.ContainsAny(want[i], "\n") {
 			// Match as stack
 			match, err := regexp.MatchString(want[i], got[i])
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !match {
-				t.Fatalf("test %d: block %d: fmt.Sprintf(%q, err):\ngot:\n%q\nwant:\n%q\nall-got:\n%s\nall-want:\n%s\n",
-					n+1, i+1, format, got[i], want[i], prettyBlocks(got), prettyBlocks(want))
-			}
+			require.NoErrorf(t, err, "test %d: block %d: invalid regexp %q", n+1, i+1, want[i])
+			require.Truef(t, match,
+				"test %d: block %d: fmt.Sprintf(%q, err):\ngot:\n%q\nwant:\n%q\nall-got:\n%s\nall-want:\n%s\n",
+				n+1, i+1, format, got[i], want[i], prettyBlocks(got), prettyBlocks(want))
 		} else {
-			// Match as message
-			if got[i] != want[i] {
-				t.Fatalf("test %d: fmt.Sprintf(%s, err) at block %d got != want:\n got: %q\nwant: %q", n+1, format, i+1, got[i], want[i])
-			}
+			// Match as exact string.
+			require.Equalf(t, want[i], got[i],
+				"test %d: fmt.Sprintf(%s, err) at block %d", n+1, format, i+1)
 		}
 	}
 }

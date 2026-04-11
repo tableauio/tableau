@@ -29,19 +29,18 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/x/xfs"
-	"github.com/tableauio/tableau/xerrors"
 )
 
 func Test_CompareGeneratedProto(t *testing.T) {
 	err := genProto("DEBUG", "FULL")
-	require.NoErrorf(t, err, "%v", xerrors.NewDesc(err))
+	require.NoError(t, err)
 	err = EqualTextFile(".proto", "proto", "_proto", 2)
 	require.NoError(t, err)
 }
 
 func Test_CompareGeneratedJSON(t *testing.T) {
 	err := genConf("DEBUG", "FULL")
-	require.NoErrorf(t, err, "%v", xerrors.NewDesc(err))
+	require.NoError(t, err)
 	err = EqualTextFile(".json", "conf", "_conf", 1)
 	require.NoError(t, err)
 }

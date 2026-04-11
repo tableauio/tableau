@@ -296,8 +296,6 @@ func validate(msg proto.Message, validator protovalidate.Validator) error {
 			}
 			errs = append(errs, xerrors.E2027(v.String(), fieldValue))
 		}
-		// TODO: multiple errors cannot be properly rendered in localizer, need to enhance
-		// localizer to support multiple errors with same error code but different fields.
 		return errors.Join(errs...)
 	}
 	return xerrors.Wrap(err)

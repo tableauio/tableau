@@ -35,12 +35,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/tableauio/tableau/internal/localizer"
 )
 
-const sep = "|" // separator for error messages and key-value pairs
+// fieldsCarrier is implemented by error types that carry structured key-value fields.
+// NewDesc uses this interface to extract fields without string parsing.
+type fieldsCarrier interface {
+	Fields() map[string]any
+}
 
 // base is an error which has a cause error and caller stack
 type base struct {
@@ -60,50 +63,78 @@ func (b *base) Error() string {
 }
 
 func (b *base) Format(s fmt.State, verb rune) {
-	format(b, b, s, verb)
+	format(b, s, verb)
 }
 
-// withMessage is an error that has a cause error and message.
+// withMessage is an error that has a cause error, a human-readable message,
+// and optional structured key-value fields.
+//
+// When replacesCause is true, message fully replaces the cause's text in
+// Error() (i.e. the cause is kept only for errors.Is/As traversal and stack
+// retrieval, not for display). When false (the default), Error() returns
+// "message: cause.Error()" — the standard wrapping behaviour.
 type withMessage struct {
-	cause   error
-	message string
+	cause         error
+	message       string
+	fields        map[string]any // structured key-value metadata; never encoded into Error()
+	replacesCause bool
+}
+
+// Fields implements fieldsCarrier.
+func (w *withMessage) Fields() map[string]any {
+	return w.fields
 }
 
 func (w *withMessage) Error() string {
-	content := w.message
-	if w.cause != nil {
-		cause := w.cause.Error()
-		if cause != "" && !strings.HasPrefix(cause, sep) {
-			content += sep
+	if w.message != "" {
+		// When replacesCause is set, message is the complete error text.
+		if w.replacesCause {
+			return w.message
 		}
-		content += cause
+		if w.cause != nil {
+			causeStr := w.cause.Error()
+			if causeStr != "" {
+				return w.message + ": " + causeStr
+			}
+		}
+		return w.message
 	}
-	return content
+	// No message: delegate to cause.
+	if w.cause != nil {
+		return w.cause.Error()
+	}
+	return ""
 }
 
 // Unwrap provides compatibility for Go 1.13 error chains.
 func (w *withMessage) Unwrap() error { return w.cause }
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
-	format(w, w.cause, s, verb)
+	format(w, s, verb)
 }
 
-func format(self, cause error, s fmt.State, verb rune) {
-	content := self.Error()
+func format(self error, s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
-		_, _ = io.WriteString(s, content)
-		// try to find base error in cause, then print the stack trace.
-		var berr *base
-		if errors.As(cause, &berr) {
-			if berr.stack != nil {
-				berr.stack.Format(s, verb)
+		if s.Flag('+') {
+			// %+v: render the full structured desc, then append the stack trace.
+			if d := NewDesc(self); d != nil {
+				_, _ = io.WriteString(s, d.String())
+			} else {
+				_, _ = io.WriteString(s, self.Error())
 			}
+			// Append stack trace from the innermost base error.
+			var berr *base
+			if errors.As(self, &berr) && berr.stack != nil {
+				_, _ = fmt.Fprintf(s, "%+v", berr.stack)
+			}
+		} else {
+			_, _ = io.WriteString(s, self.Error())
 		}
 	case 's':
-		_, _ = io.WriteString(s, content)
+		_, _ = io.WriteString(s, self.Error())
 	case 'q':
-		_, _ = fmt.Fprintf(s, "%q", content)
+		_, _ = fmt.Fprintf(s, "%q", self.Error())
 	}
 }
 
@@ -125,16 +156,21 @@ func withStack(skip int, err error) error { // nolint:unparam
 	return &base{cause: err, stack: callers(1 + skip)}
 }
 
-func combineKV(keysAndValues ...any) string {
-	var msg strings.Builder
-	for i := 0; i < len(keysAndValues); i += 2 {
-		if i == len(keysAndValues)-1 {
-			panic("invalid Key-Value pairs: odd number")
-		}
-		key, val := keysAndValues[i], keysAndValues[i+1]
-		msg.WriteString(fmt.Sprintf("|%v: %v", key, val))
+// parseKV converts a variadic keysAndValues slice into a map[string]any.
+// Panics if the number of arguments is odd.
+func parseKV(keysAndValues ...any) map[string]any {
+	if len(keysAndValues) == 0 {
+		return nil
 	}
-	return msg.String()
+	if len(keysAndValues)%2 != 0 {
+		panic("invalid Key-Value pairs: odd number")
+	}
+	m := make(map[string]any, len(keysAndValues)/2)
+	for i := 0; i < len(keysAndValues); i += 2 {
+		key := fmt.Sprint(keysAndValues[i])
+		m[key] = keysAndValues[i+1]
+	}
+	return m
 }
 
 // New returns an error with the supplied message.
@@ -142,7 +178,8 @@ func combineKV(keysAndValues ...any) string {
 func New(msg string) error {
 	return &withMessage{
 		cause:   &base{stack: callers(1)},
-		message: combineKV(KeyReason, msg),
+		message: msg,
+		fields:  map[string]any{KeyReason: msg},
 	}
 }
 
@@ -150,19 +187,26 @@ func New(msg string) error {
 // as a value that satisfies error.
 // Newf also records the code and stack trace at the point it was called.
 func Newf(format string, args ...any) error {
+	msg := fmt.Sprintf(format, args...)
 	return &withMessage{
 		cause:   &base{stack: callers(1)},
-		message: combineKV(KeyReason, fmt.Sprintf(format, args...)),
+		message: msg,
+		fields:  map[string]any{KeyReason: msg},
 	}
 }
 
-// NewKV returns an error with the supplied message and the key-value pairs
-// as `[|key: value]...` string.
+// NewKV returns an error with the supplied message and structured key-value fields.
 // NewKV also records the stack trace at the point it was called.
 func NewKV(msg string, keysAndValues ...any) error {
+	fields := parseKV(keysAndValues...)
+	if fields == nil {
+		fields = make(map[string]any)
+	}
+	fields[KeyReason] = msg
 	return &withMessage{
 		cause:   &base{stack: callers(1)},
-		message: combineKV(keysAndValues...) + combineKV(KeyReason, msg),
+		message: msg,
+		fields:  fields,
 	}
 }
 
@@ -173,8 +217,7 @@ func Wrap(err error) error {
 		return nil
 	}
 	return &withMessage{
-		cause:   withStack(1, err),
-		message: "",
+		cause: withStack(1, err),
 	}
 }
 
@@ -191,16 +234,16 @@ func Wrapf(err error, format string, args ...any) error {
 	}
 }
 
-// WrapKV formats the key-value pairs as `[|key: value]...` string and
-// returns the string as a value that satisfies error.
+// WrapKV wraps err with structured key-value metadata fields.
+// The fields are accessible via NewDesc but do NOT appear in err.Error().
 // WrapKV also records the stack trace at the point it was called.
 func WrapKV(err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
 	}
 	return &withMessage{
-		cause:   withStack(1, err),
-		message: combineKV(keysAndValues...),
+		cause:  withStack(1, err),
+		fields: parseKV(keysAndValues...),
 	}
 }
 
@@ -232,16 +275,20 @@ func renderSummary(module string, kv map[string]any) string {
 	return localizer.Default.RenderMessage(module, kv)
 }
 
-func renderEcode(ecode *ecode, kv map[string]any) error {
-	detail := localizer.Default.RenderEcode(ecode.code, kv)
-	err := withStack(2, ecode)
+func renderEcode(ec *ecode, kv map[string]any) error {
+	detail := localizer.Default.RenderEcode(ec.code, kv)
+	fields := make(map[string]any, len(kv)+4)
+	for k, v := range kv {
+		fields[k] = v
+	}
+	fields[KeyReason] = detail.Text
+	fields[keyErrCode] = ec.code
+	fields[keyErrDesc] = detail.Desc
+	fields[keyHelp] = detail.Help
 	return &withMessage{
-		cause: err,
-		message: combineKV(
-			KeyReason, detail.Text,
-			keyErrCode, ecode.code,
-			keyErrDesc, detail.Desc,
-			keyHelp, detail.Help,
-		),
+		cause:         withStack(2, ec),
+		message:       detail.Text,
+		fields:        fields,
+		replacesCause: true, // message fully replaces ecode.Error(); keep cause only for errors.Is/stack
 	}
 }

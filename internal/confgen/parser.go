@@ -127,7 +127,13 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 		return filename
 	}
 	name := getExportedConfName(info, mainImpInfo)
-	return storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
+	if err := storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator); err != nil {
+		return xerrors.WrapKV(err,
+			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeyBookName, info.BookName(),
+			xerrors.KeySheetName, info.SheetName())
+	}
+	return nil
 }
 
 type oneMsg struct {
