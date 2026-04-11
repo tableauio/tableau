@@ -35,6 +35,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/tableauio/tableau/internal/localizer"
 )
@@ -244,6 +245,56 @@ func WrapKV(err error, keysAndValues ...any) error {
 	return &withMessage{
 		cause:  withStack(1, err),
 		fields: parseKV(keysAndValues...),
+	}
+}
+
+// joinError is a multi-error that renders each child via NewDesc for structured
+// output and implements fmt.Formatter so that %+v appends a stack trace.
+type joinError struct {
+	errs  []error
+	stack *stack
+}
+
+func (j *joinError) Unwrap() []error { return j.errs }
+
+// Error renders each child via NewDesc for structured output, falling back to
+// the raw Error() string when no structured fields are available.
+func (j *joinError) Error() string {
+	if d := NewDesc(j); d != nil {
+		return d.String()
+	}
+	// Fallback: plain join.
+	var sb strings.Builder
+	for i, e := range j.errs {
+		if i > 0 {
+			sb.WriteByte('\n')
+		}
+		if e != nil {
+			sb.WriteString(e.Error())
+		}
+	}
+	return sb.String()
+}
+
+func (j *joinError) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			if d := NewDesc(j); d != nil {
+				_, _ = io.WriteString(s, d.String())
+			} else {
+				_, _ = io.WriteString(s, j.Error())
+			}
+			if j.stack != nil {
+				_, _ = fmt.Fprintf(s, "%+v", j.stack)
+			}
+		} else {
+			_, _ = io.WriteString(s, j.Error())
+		}
+	case 's':
+		_, _ = io.WriteString(s, j.Error())
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", j.Error())
 	}
 }
 

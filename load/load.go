@@ -200,7 +200,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 			BookFormat:     self.Format(),
 		},
 	}
-	collector := xerrors.NewCollector(context.Background(), 1)
+	collector := xerrors.NewCollector(1)
 	protomsg, err := confgen.ParseMessage(sheetInfo, collector, impInfos...)
 	if err != nil {
 		return err

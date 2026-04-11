@@ -1,83 +1,119 @@
 package xerrors
 
 import (
-	"context"
-	"errors"
+	"math"
 	"sync"
 	"sync/atomic"
+
+	"golang.org/x/sync/errgroup"
 )
 
-// Collector collects multiple errors concurrently up to a maximum count.
-// When the maximum is reached it cancels an internal context so that all
-// goroutines sharing that context can detect the situation via Done() and
-// exit immediately (fail-fast).
-// It is safe for concurrent use.
+// Collector collects errors concurrently up to a maximum count.
+// Call IsFull to check for fail-fast; safe for concurrent use.
 type Collector struct {
 	mu      sync.Mutex
 	errs    []error
 	counter atomic.Int32
 	maxErrs int32
-
-	cancel context.CancelFunc
-	done   <-chan struct{}
+	once    sync.Once // ensures the joined error is computed exactly once
+	cached  error     // cached joined error, set once when full
 }
 
-// NewCollector creates a new Collector with the given maximum error count.
-// The returned Collector's Done() channel is derived from ctx: it is closed
-// either when ctx itself is cancelled or when the maximum error count is
-// reached, whichever comes first.
-func NewCollector(ctx context.Context, maxErrs int) *Collector {
-	childCtx, cancel := context.WithCancel(ctx)
-	return &Collector{
-		maxErrs: int32(maxErrs),
-		cancel:  cancel,
-		done:    childCtx.Done(),
+// NewCollector creates a Collector with the given max error count.
+//   - maxErrs <= 0: unlimited.
+//   - maxErrs == 1: fail-fast on first error (default).
+//   - maxErrs > 1: stop after N errors.
+func NewCollector(maxErrs int) *Collector {
+	max := int32(maxErrs)
+	if max <= 0 {
+		max = math.MaxInt32 // unlimited
 	}
+	return &Collector{maxErrs: max}
 }
 
-// Add tries to add an error to the collector. It returns true if the error was
-// accepted (i.e., the collector has not yet reached its maximum). Nil errors
-// are silently ignored and return false.
-// When the maximum is reached the internal context is cancelled so that all
-// goroutines watching Done() can exit immediately.
-func (c *Collector) Add(err error) bool {
+// Collect appends err to the collector.
+// Returns (false, nil) if err is nil or successfully collected and not yet full.
+// Returns (true, joined) once the max count is reached, where joined is all
+// collected errors via errors.Join; callers should stop processing immediately.
+func (c *Collector) Collect(err error) (bool, error) {
 	if err == nil {
-		return false
+		return false, nil
 	}
 	n := c.counter.Add(1)
 	if n > c.maxErrs {
-		return false
+		// Already full: block until the joined error is cached, then return it.
+		c.once.Do(func() { c.cached = c.Join() })
+		return true, c.cached
 	}
 	c.mu.Lock()
 	c.errs = append(c.errs, err)
 	c.mu.Unlock()
 	if n == c.maxErrs {
-		// Reached the limit — signal all goroutines to stop.
-		c.cancel()
+		// Just reached the limit: compute and cache the joined error.
+		c.once.Do(func() { c.cached = c.Join() })
+		return true, c.cached
 	}
-	return true
+	return false, nil
 }
 
-// IsFull reports whether the collector has reached its maximum error count.
-// Callers can use this to fail-fast and avoid launching new goroutines once
-// the limit is hit.
+// IsFull reports whether the max error count has been reached.
 func (c *Collector) IsFull() bool {
 	return c.counter.Load() >= c.maxErrs
 }
 
-// Done returns a channel that is closed when the error limit is reached or
-// when the parent context passed to NewCollector is cancelled.
-// Goroutines should select on this channel to implement fail-fast behaviour.
-func (c *Collector) Done() <-chan struct{} {
-	return c.done
-}
-
-// Join returns all collected errors joined together via errors.Join, or nil if
-// no errors were collected.
+// Join returns all collected errors joined as a structured joinError (with
+// stack), or nil if no errors were collected.
 func (c *Collector) Join() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return errors.Join(c.errs...)
+	var nonNil []error
+	for _, e := range c.errs {
+		if e != nil {
+			nonNil = append(nonNil, e)
+		}
+	}
+	if len(nonNil) == 0 {
+		return nil
+	}
+	return &joinError{errs: nonNil, stack: callers(1)}
 }
 
+// Group ties a fresh errgroup.Group to a Collector for one concurrent batch.
+// Use NewGroup per batch so batches run independently.
+type Group struct {
+	eg        errgroup.Group
+	collector *Collector
+	waitFull  bool
+}
 
+// NewGroup returns a new Group backed by this Collector.
+// If waitFull is false, Wait returns the final joined error even when the collector is not full
+// If waitFull is true, Wait returns nil when the collector is not full.
+func (c *Collector) NewGroup(waitFull bool) *Group {
+	return &Group{collector: c, waitFull: waitFull}
+}
+
+// Go runs fn in a new goroutine and collects its error.
+// If the collector becomes full, the joined error is forwarded to the errgroup.
+func (g *Group) Go(fn func() error) {
+	g.eg.Go(func() error {
+		full, err := g.collector.Collect(fn())
+		if full {
+			return err
+		}
+		return nil
+	})
+}
+
+// Wait blocks until all goroutines finish.
+// If the collector is full, it returns the joined error immediately via the errgroup.
+// If waitFull is false and the collector is not full, it returns the final joined error of all collected errors.
+// If waitFull is true and the collector is not full, it returns nil.
+func (g *Group) Wait() error {
+	if err := g.eg.Wait(); err != nil {
+		return err
+	} else if !g.waitFull {
+		return g.collector.Join()
+	}
+	return nil
+}

@@ -310,3 +310,153 @@ func TestNewDescOuterFieldDoesNotOverrideInner(t *testing.T) {
 	require.NotNil(t, d)
 	assert.Equal(t, ModuleConf, d.GetValue(KeyModule), "inner Module should win over outer")
 }
+
+// TestNewDescTwoLayerJoinMultiOuter covers the scenario where the outer join
+// has multiple children, each of which wraps an inner join:
+//
+//	outerJoinError                              ← Generator collector (multiple sheets)
+//	  ├── errs[0]: WrapKV(innerJoin1, ...)      ← sheet1 errors
+//	  │     └── innerJoin1: {err1, err2}
+//	  └── errs[1]: WrapKV(innerJoin2, ...)      ← sheet2 errors
+//	        └── innerJoin2: {err3, err4}
+//
+// All four leaf errors must appear as a flat numbered list.
+func TestNewDescTwoLayerJoinMultiOuter(t *testing.T) {
+	e1 := E2027("item_map[1].score: value must be > 0 and <= 100", "800")
+	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
+	e3 := E2027("item_map[3].score: value must be > 0 and <= 100", "0")
+	e4 := E2027("item_map[4].score: value must be > 0 and <= 100", "-1")
+
+	innerJoin1 := &joinError{errs: []error{e1, e2}}
+	wrapped1 := WrapKV(innerJoin1,
+		KeyModule, ModuleConf,
+		KeyBookName, "Validate#*.csv",
+		KeySheetName, "Sheet1",
+	)
+	innerJoin2 := &joinError{errs: []error{e3, e4}}
+	wrapped2 := WrapKV(innerJoin2,
+		KeyModule, ModuleConf,
+		KeyBookName, "Validate#*.csv",
+		KeySheetName, "Sheet2",
+	)
+	outerJoin := &joinError{errs: []error{wrapped1, wrapped2}}
+
+	md := NewDesc(outerJoin)
+	require.NotNil(t, md)
+	require.Len(t, md.Children(), 4, "all four leaf errors must be flattened as children")
+
+	assert.Equal(t, "Sheet1", md.Children()[0].GetValue(KeySheetName))
+	assert.Equal(t, "Sheet1", md.Children()[1].GetValue(KeySheetName))
+	assert.Equal(t, "Sheet2", md.Children()[2].GetValue(KeySheetName))
+	assert.Equal(t, "Sheet2", md.Children()[3].GetValue(KeySheetName))
+
+	for i, d := range md.Children() {
+		assert.Equal(t, ModuleConf, d.GetValue(KeyModule), "child[%d] Module", i)
+		assert.Equal(t, "Validate#*.csv", d.GetValue(KeyBookName), "child[%d] BookName", i)
+		assert.Equal(t, "E2027", d.ErrCode(), "child[%d] ErrCode", i)
+	}
+}
+// TestNewDescThreeLayerJoin covers 3-level nesting to verify arbitrary-depth
+// flattening:
+//
+//	WrapKV(outerJoin, BookName)             ← top-level WrapKV
+//	  └── outerJoinError                   ← multiple children
+//	        ├── WrapKV(innerJoin1, Sheet1)
+//	        │     └── innerJoin1: {err1, err2}
+//	        └── WrapKV(innerJoin2, Sheet2)
+//	              └── innerJoin2: {err3, err4}
+//
+// All four leaf errors must be flattened, each carrying BookName + SheetName.
+func TestNewDescThreeLayerJoin(t *testing.T) {
+	e1 := E2027("item_map[1].score: value must be > 0 and <= 100", "800")
+	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
+	e3 := E2027("item_map[3].score: value must be > 0 and <= 100", "0")
+	e4 := E2027("item_map[4].score: value must be > 0 and <= 100", "-1")
+
+	innerJoin1 := &joinError{errs: []error{e1, e2}}
+	wrapped1 := WrapKV(innerJoin1, KeySheetName, "Sheet1")
+	innerJoin2 := &joinError{errs: []error{e3, e4}}
+	wrapped2 := WrapKV(innerJoin2, KeySheetName, "Sheet2")
+
+	outerJoin := &joinError{errs: []error{wrapped1, wrapped2}}
+	top := WrapKV(outerJoin,
+		KeyModule, ModuleConf,
+		KeyBookName, "Validate#*.csv",
+	)
+
+	md := NewDesc(top)
+	require.NotNil(t, md)
+	require.Len(t, md.Children(), 4, "all four leaf errors must be flattened")
+
+	assert.Equal(t, "Sheet1", md.Children()[0].GetValue(KeySheetName))
+	assert.Equal(t, "Sheet1", md.Children()[1].GetValue(KeySheetName))
+	assert.Equal(t, "Sheet2", md.Children()[2].GetValue(KeySheetName))
+	assert.Equal(t, "Sheet2", md.Children()[3].GetValue(KeySheetName))
+
+	for i, d := range md.Children() {
+		assert.Equal(t, ModuleConf, d.GetValue(KeyModule), "child[%d] Module", i)
+		assert.Equal(t, "Validate#*.csv", d.GetValue(KeyBookName), "child[%d] BookName", i)
+		assert.Equal(t, "E2027", d.ErrCode(), "child[%d] ErrCode", i)
+	}
+}
+
+// TestNewDescTwoLayerJoin covers the real-world scenario produced by the
+// Generator+parser collector pair:
+//
+//	outerJoinError                         ← Generator collector.Join()
+//	  └── errs[0]: WrapKV(innerJoinError)  ← WrapKV adds Module/BookName/SheetName
+//	        └── innerJoinError             ← parser collector.Join()
+//	              ├── errs[0]: err1
+//	              └── errs[1]: err2
+//
+// NewDesc must recursively expand the inner join so that both err1 and err2
+// appear as separate children, each carrying the outer WrapKV fields.
+func TestNewDescTwoLayerJoin(t *testing.T) {
+	e1 := E2027("item_map[1].score: value must be > 0 and <= 100", "800")
+	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
+
+	// Inner join (parser collector)
+	innerJoin := &joinError{errs: []error{e1, e2}}
+	// WrapKV adds sheet-level context
+	wrapped := WrapKV(innerJoin,
+		KeyModule, ModuleConf,
+		KeyBookName, "Validate#*.csv",
+		KeySheetName, "ValidateFieldLevel",
+	)
+	// Outer join (Generator collector) – single child
+	outerJoin := &joinError{errs: []error{wrapped}}
+
+	md := NewDesc(outerJoin)
+	require.NotNil(t, md)
+	require.Len(t, md.Children(), 2, "both inner errors must be expanded as children")
+
+	for i, d := range md.Children() {
+		assert.Equal(t, ModuleConf, d.GetValue(KeyModule), "child[%d] Module", i)
+		assert.Equal(t, "Validate#*.csv", d.GetValue(KeyBookName), "child[%d] BookName", i)
+		assert.Equal(t, "ValidateFieldLevel", d.GetValue(KeySheetName), "child[%d] SheetName", i)
+		assert.Equal(t, "E2027", d.ErrCode(), "child[%d] ErrCode", i)
+	}
+
+	assert.Equal(t, `"800" violates rule: item_map[1].score: value must be > 0 and <= 100`,
+		md.Children()[0].GetValue(KeyReason))
+	assert.Equal(t, `"950" violates rule: item_map[2].score: value must be > 0 and <= 100`,
+		md.Children()[1].GetValue(KeyReason))
+
+	wantNoDebug := `[1] error[E2027]: protovalidate violation
+Workbook: Validate#*.csv 
+Worksheet: ValidateFieldLevel 
+DataCellPos: <no value>
+DataCell: <no value>
+Reason: "800" violates rule: item_map[1].score: value must be > 0 and <= 100
+Help: fix the field value to satisfy the protovalidate rule
+
+[2] error[E2027]: protovalidate violation
+Workbook: Validate#*.csv 
+Worksheet: ValidateFieldLevel 
+DataCellPos: <no value>
+DataCell: <no value>
+Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
+Help: fix the field value to satisfy the protovalidate rule
+`
+	assert.Equal(t, wantNoDebug, md.ErrString(false))
+}

@@ -38,10 +38,25 @@ func (p *tableParser) parse(protomsg proto.Message, table book.Tabler) error {
 	// NOTE: the global options has been merged into book options on protogen,
 	// so there is no need to set it here.
 	header := tableparser.NewHeader(p.sheetOpts, p.bookOpts, nil)
-	return tableparser.RangeDataRows(table, header, func(r *book.Row) error {
+	// Use a local collector to gather multiple row-level errors within this
+	// sheet, so that the caller can wrap the joined result with outer context
+	// (BookName, SheetName, etc.) via WrapKV.
+	local := xerrors.NewCollector(0) // unlimited; the shared collector limits globally
+	err := tableparser.RangeDataRows(table, header, func(r *book.Row) error {
+		// Fail-fast if the shared collector is already full (another goroutine hit the limit).
+		if p.collector.IsFull() {
+			return p.collector.Join()
+		}
 		_, err := p.parseMessage(nil, msg, r, "", "")
-		return err
+		if err != nil {
+			local.Collect(err)
+		}
+		return nil
 	})
+	if err != nil {
+		return err
+	}
+	return local.Join()
 }
 
 // parseMessage parses all fields of a protobuf message.
@@ -51,6 +66,10 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 		return p.parseUnionMessage(msg, parentField, r, prefix, cardPrefix)
 	}
 	for i := 0; i < md.Fields().Len(); i++ {
+		// fail-fast: stop if error limit already reached by another goroutine
+		if p.collector.IsFull() {
+			return false, p.collector.Join()
+		}
 		fd := md.Fields().Get(i)
 		err := func() error {
 			// TODO(performance): cache the parsed field for reuse, as each table row will be parsed repeatedly.

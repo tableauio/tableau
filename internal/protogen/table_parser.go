@@ -55,6 +55,9 @@ func (p *tableParser) GetProtoFilePath() string {
 }
 
 func (p *tableParser) parseField(field *internalpb.Field, header *tableHeader, cursor int, prefix, notePrefix string, options ...tableparser.Option) (cur int, parsed bool, err error) {
+	if p.gen.collector.IsFull() {
+		return cursor, false, p.gen.collector.Join()
+	}
 	nameCell := header.getValidNameCell(&cursor)
 	typeCell := header.getTypeCell(cursor)
 	// log.Debugf("column: %d, name: %s, type: %s", cursor, nameCell, typeCell)

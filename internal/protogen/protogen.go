@@ -47,7 +47,7 @@ type Generator struct {
 	ProtoRegistryTypes                                  *dynamicpb.Types
 
 	// internal
-	typeInfos *xproto.TypeInfos // predefined type infos
+	typeInfos *xproto.TypeInfos  // predefined type infos
 	collector *xerrors.Collector // concurrent error collector shared across the generator.
 
 	cacheMu         sync.RWMutex                 // guard fields below
@@ -73,7 +73,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		OutputOpt:    opts.Proto.Output,
 		ctx:          ctx,
 		typeInfos:    xproto.NewTypeInfos(protoPackage),
-		collector:    xerrors.NewCollector(ctx, maxParseErrors),
+		collector:    xerrors.NewCollector(maxParseErrors),
 
 		cachedImporters: make(map[string]importer.Importer),
 	}
@@ -169,49 +169,25 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		}
 	}
 	// second pass
-	var wg sync.WaitGroup
+	g := gen.collector.NewGroup(true)
 	for _, relWorkbookPath := range relWorkbookPaths {
-		if gen.collector.IsFull() {
-			break
-		}
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// fail-fast: stop if error limit already reached by another goroutine
-			select {
-			case <-gen.collector.Done():
-				return
-			default:
-			}
-			gen.collector.Add(gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, secondPass))
-		}()
+		g.Go(func() error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, secondPass)
+		})
 	}
-	wg.Wait()
-	return gen.collector.Join()
+	return g.Wait()
 }
 
 func (gen *Generator) processWorkbookOnFirstPass(relWorkbookPaths ...string) error {
-	var wg sync.WaitGroup
+	g := gen.collector.NewGroup(true)
 	for _, relWorkbookPath := range relWorkbookPaths {
-		if gen.collector.IsFull() {
-			break
-		}
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// fail-fast: stop if error limit already reached by another goroutine
-			select {
-			case <-gen.collector.Done():
-				return
-			default:
-			}
-			gen.collector.Add(gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass))
-		}()
+		g.Go(func() error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass)
+		})
 	}
-	wg.Wait()
-	return gen.collector.Join()
+	return g.Wait()
 }
 
 func (gen *Generator) processFirstPass(checkProtoFileConflicts bool) error {
@@ -238,33 +214,20 @@ func (gen *Generator) processSecondPass() error {
 	gen.cacheMu.RUnlock()
 
 	// second pass
-	var wg sync.WaitGroup
+	g := gen.collector.NewGroup(true)
 	for _, absPath := range absPaths {
-		if gen.collector.IsFull() {
-			break
-		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// fail-fast: stop if error limit already reached by another goroutine
-			select {
-			case <-gen.collector.Done():
-				return
-			default:
-			}
-			gen.collector.Add(gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), true, secondPass))
-		}()
+		g.Go(func() error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), true, secondPass)
+		})
 	}
-	wg.Wait()
-	return gen.collector.Join()
+	return g.Wait()
 }
 
 func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bool) (err error) {
-	var wg sync.WaitGroup
+	g := gen.collector.NewGroup(true)
 	defer func() {
 		if err == nil {
-			wg.Wait()
-			err = gen.collector.Join()
+			err = g.Wait()
 		}
 	}()
 
@@ -329,20 +292,9 @@ func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bo
 		}
 
 		filename := entry.Name()
-		if gen.collector.IsFull() {
-			break
-		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// fail-fast: stop if error limit already reached by another goroutine
-			select {
-			case <-gen.collector.Done():
-				return
-			default:
-			}
-			gen.collector.Add(gen.convertWithErrorModule(dir, filename, checkProtoFileConflicts, firstPass))
-		}()
+		g.Go(func() error {
+			return gen.convertWithErrorModule(dir, filename, checkProtoFileConflicts, firstPass)
+		})
 	}
 	return nil
 }
@@ -511,9 +463,11 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			parentFilename := bp.GetProtoFilePath()
 			err := gen.extractTypeInfoFromSpecialSheetMode(ws.Options.Mode, sheet, ws.Name, parentFilename)
 			if err != nil {
-				return xerrors.WrapKV(err,
+				if full, joinedErr := gen.collector.Collect(xerrors.WrapKV(err,
 					xerrors.KeyBookName, debugBookName,
-					xerrors.KeySheetName, debugSheetName)
+					xerrors.KeySheetName, debugSheetName)); full {
+					return joinedErr
+				}
 			}
 		} else if pass == secondPass {
 			log.Debugf("second pass: parse sheet schema from %s", debugSheetName)

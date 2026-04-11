@@ -18,7 +18,7 @@ import (
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"golang.org/x/sync/errgroup"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -66,7 +66,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Conf.Input,
 		OutputOpt:    opts.Conf.Output,
 		ctx:          ctx,
-		collector:    xerrors.NewCollector(ctx, maxParseErrors),
+		collector:    xerrors.NewCollector(maxParseErrors),
 		PerfStats:    sync.Map{},
 	}
 	return g
@@ -97,16 +97,16 @@ func (gen *Generator) GenAll() error {
 		return err
 	}
 	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-	var eg errgroup.Group
+	g := gen.collector.NewGroup(false)
 	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
-			eg.Go(func() error {
+			g.Go(func() error {
 				return gen.convert(prFiles, fd, "")
 			})
 			return true
 		})
-	return eg.Wait()
+	return g.Wait()
 }
 
 // bookSpecifier can be:
@@ -129,7 +129,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
-	var eg errgroup.Group
+	g := gen.collector.NewGroup(false)
 	for _, specifier := range bookSpecifiers {
 		bookName, sheetName, err := parseBookSpecifier(specifier)
 		if err != nil {
@@ -147,12 +147,12 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		// NOTE: one book may relate to multiple primary books
 		for _, fd := range primaryBookInfo.fds {
-			eg.Go(func() error {
+			g.Go(func() error {
 				return gen.convert(prFiles, fd, sheetName)
 			})
 		}
 	}
-	return eg.Wait()
+	return g.Wait()
 }
 
 // convert a workbook related to parameter fd, and only convert the
@@ -238,12 +238,18 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 			}
 			err := gen.processScatter(imp, sheetInfo)
 			if err != nil {
-				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
+				err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
+				if full, joinedErr := gen.collector.Collect(err); full {
+					return joinedErr
+				}
 			}
 		} else {
 			err := gen.processMerger(imp, sheetInfo)
 			if err != nil {
-				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
+				err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
+				if full, joinedErr := gen.collector.Collect(err); full {
+					return joinedErr
+				}
 			}
 		}
 

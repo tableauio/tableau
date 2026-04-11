@@ -72,7 +72,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return filename
 	}
 	// parse main sheet
-	mainMsg, err := parseMessageFromOneImporter(info, mainImpInfo)
+	mainMsg, err := parseMessageFromOneImporter(info, x.collector, mainImpInfo)
 	if err != nil {
 		return err
 	}
@@ -82,49 +82,30 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return err
 	}
 
-	var wg sync.WaitGroup
+	g := x.collector.NewGroup(true)
 	for _, impInfo := range impInfos {
-		if x.collector.IsFull() {
-			break
-		}
-		wg.Add(1)
 		// map-reduce: map jobs for concurrent processing
-		go func() {
-			defer wg.Done()
-			// fail-fast: stop if error limit already reached by another goroutine
-			select {
-			case <-x.collector.Done():
-				return
-			default:
-			}
-			msg, err := parseMessageFromOneImporter(info, impInfo)
+		g.Go(func() error {
+			msg, err := parseMessageFromOneImporter(info, x.collector, impInfo)
 			if err != nil {
-				x.collector.Add(err)
-				return
+				return err
 			}
 			name := getExportedConfName(info, impInfo)
 			if info.SheetOpts.Patch == tableaupb.Patch_PATCH_MERGE {
 				if info.ExtInfo.DryRun == options.DryRunPatch {
 					clonedMainMsg := proto.Clone(mainMsg)
 					if err = xproto.PatchMessage(clonedMainMsg, msg); err != nil {
-						x.collector.Add(err)
-						return
+						return err
 					}
 					msg = clonedMainMsg
 				} else {
-					if err = storePatchMergeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt); err != nil {
-						x.collector.Add(err)
-					}
-					return
+					return storePatchMergeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt)
 				}
 			}
-			if err = storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator); err != nil {
-				x.collector.Add(err)
-			}
-		}()
+			return storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
+		})
 	}
-	wg.Wait()
-	return x.collector.Join()
+	return g.Wait()
 }
 
 // MergeAndExport parses multiple importer infos and merges them into one
@@ -172,7 +153,7 @@ func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...imp
 			xerrors.KeySheetName, info.SheetOpts.Name,
 			xerrors.KeyPBMessage, string(info.MD.Name()))
 	} else if len(impInfos) == 1 {
-		protomsg, err := parseMessageFromOneImporter(info, impInfos[0])
+		protomsg, err := parseMessageFromOneImporter(info, collector, impInfos[0])
 		if err != nil {
 			return nil, err
 		}
@@ -183,27 +164,15 @@ func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...imp
 	var mu sync.Mutex // guard msgs
 	var msgs []oneMsg
 
-	var wg sync.WaitGroup
+	g := collector.NewGroup(true)
 	for _, impInfo := range impInfos {
-		if collector.IsFull() {
-			break
-		}
-		wg.Add(1)
 		// map-reduce: map jobs for concurrent processing
-		go func() {
-			defer wg.Done()
-			// fail-fast: stop if error limit already reached by another goroutine
-			select {
-			case <-collector.Done():
-				return
-			default:
-			}
-			protomsg, err := parseMessageFromOneImporter(info, impInfo)
+		g.Go(func() error {
+			protomsg, err := parseMessageFromOneImporter(info, collector, impInfo)
 			if err != nil {
-				collector.Add(xerrors.WrapKV(err,
+				return xerrors.WrapKV(err,
 					xerrors.KeyPrimaryBookName, info.PrimaryBookName,
-					xerrors.KeyPrimarySheetName, info.SheetOpts.Name))
-				return
+					xerrors.KeyPrimarySheetName, info.SheetOpts.Name)
 			}
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
@@ -212,10 +181,10 @@ func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...imp
 				sheetName: getRealSheetName(info, impInfo),
 			})
 			mu.Unlock()
-		}()
+			return nil
+		})
 	}
-	wg.Wait()
-	if err := collector.Join(); err != nil {
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
@@ -249,7 +218,7 @@ func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...imp
 	return mainMsg, nil
 }
 
-func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo) (proto.Message, error) {
+func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, impInfo importer.ImporterInfo) (proto.Message, error) {
 	sheetName := getRealSheetName(info, impInfo)
 	sheet := impInfo.GetSheet(sheetName)
 	if sheet == nil {
@@ -258,6 +227,7 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	parser := NewExtendedSheetParser(context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
+	parser.collector = collector // override default collector with shared collector for fail-fast across goroutines
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -299,6 +269,7 @@ type sheetParser struct {
 	bookOpts     *tableaupb.WorkbookOptions
 	sheetOpts    *tableaupb.WorksheetOptions
 	extInfo      *SheetParserExtInfo
+	collector    *xerrors.Collector // shared error collector for fail-fast
 
 	// cached maps and lists with cardinality
 	cards map[string]*cardInfo // map/list field card prefix -> cardInfo
@@ -355,6 +326,7 @@ func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName stri
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
+		collector:    xerrors.NewCollector(1),
 	}
 	sp.reset()
 	return sp

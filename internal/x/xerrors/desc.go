@@ -126,11 +126,46 @@ func collectFields(err error) map[string]any {
 	return fields
 }
 
+// mergeOuterFields merges outerFields into d and all its descendants
+// (inner fields always win over outer).
+func mergeOuterFields(d *Desc, outerFields map[string]any) {
+	if len(outerFields) == 0 {
+		return
+	}
+	if len(d.children) > 0 {
+		for _, child := range d.children {
+			mergeOuterFields(child, outerFields)
+		}
+		return
+	}
+	merged := make(map[string]any, len(outerFields)+len(d.fields))
+	maps.Copy(merged, outerFields)
+	maps.Copy(merged, d.fields) // inner fields win
+	d.fields = merged
+}
+
+// flattenDescs recursively collects all leaf *Desc nodes (those without
+// children) from d into dst. This fully flattens any depth of nested joins.
+func flattenDescs(d *Desc, dst *[]*Desc) {
+	if len(d.children) == 0 {
+		*dst = append(*dst, d)
+		return
+	}
+	for _, child := range d.children {
+		flattenDescs(child, dst)
+	}
+}
+
 // NewDesc extracts structured fields from err and returns a *Desc.
 //
 // It transparently traverses single-chain wrappers (e.g. WrapKV) to find an
 // inner errors.Join node, then builds one *Desc per child while merging the
 // outer wrapper fields (e.g. Module, BookName, SheetName) into each child.
+//
+// Multi-layer joins are handled recursively and fully flattened: regardless
+// of how many levels of nested joins exist, all leaf errors are collected into
+// a single flat children list, each carrying the accumulated outer fields from
+// every enclosing WrapKV layer (innermost fields win on key conflicts).
 //
 // Returns nil when err is nil.
 func NewDesc(err error) *Desc {
@@ -150,7 +185,7 @@ func NewDesc(err error) *Desc {
 			maps.Copy(outerFields, fc.Fields())
 		}
 		if mu, ok := cur.(multiUnwrapper); ok {
-			// Found the join node – build one Desc per child.
+			// Found the join node – recursively expand each child.
 			children := mu.Unwrap()
 			var nonNil []error
 			for _, c := range children {
@@ -158,24 +193,28 @@ func NewDesc(err error) *Desc {
 					nonNil = append(nonNil, c)
 				}
 			}
-			switch len(nonNil) {
+			if len(nonNil) == 0 {
+				return nil
+			}
+			// Recursively expand every child, then fully flatten all leaf nodes.
+			var leaves []*Desc
+			for _, c := range nonNil {
+				inner := NewDesc(c)
+				if inner == nil {
+					continue
+				}
+				// Merge accumulated outer fields into the subtree (inner wins).
+				mergeOuterFields(inner, outerFields)
+				// Flatten: collect all leaf Descs from this subtree.
+				flattenDescs(inner, &leaves)
+			}
+			switch len(leaves) {
 			case 0:
 				return nil
 			case 1:
-				// Merge outer fields with child fields (innermost wins).
-				merged := make(map[string]any, len(outerFields))
-				maps.Copy(merged, outerFields)
-				maps.Copy(merged, collectFields(nonNil[0]))
-				return &Desc{err: nonNil[0], fields: merged}
+				return leaves[0]
 			default:
-				descs := make([]*Desc, 0, len(nonNil))
-				for _, c := range nonNil {
-					merged := make(map[string]any, len(outerFields))
-					maps.Copy(merged, outerFields)
-					maps.Copy(merged, collectFields(c))
-					descs = append(descs, &Desc{err: c, fields: merged})
-				}
-				return &Desc{err: err, children: descs}
+				return &Desc{err: err, children: leaves}
 			}
 		}
 		cur = errors.Unwrap(cur)

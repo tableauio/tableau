@@ -37,6 +37,10 @@ func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error 
 func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
 	for i := 0; i < md.Fields().Len(); i++ {
+		// fail-fast: stop if error limit already reached by another goroutine
+		if p.collector.IsFull() {
+			return false, p.collector.Join()
+		}
 		fd := md.Fields().Get(i)
 		err := func() error {
 			field := p.parseFieldDescriptor(fd)

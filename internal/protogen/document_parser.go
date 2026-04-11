@@ -27,6 +27,9 @@ func errWithNodeKV(err error, node *book.Node, pairs ...any) error {
 }
 
 func (p *documentParser) parseField(field *internalpb.Field, node *book.Node) (parsed bool, err error) {
+	if p.gen.collector.IsFull() {
+		return false, p.gen.collector.Join()
+	}
 	nameCell := node.Name
 	if nameCell == book.SheetKey {
 		return false, nil
