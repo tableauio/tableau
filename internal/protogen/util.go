@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/xerrors"
 )
 
 type parsePass int

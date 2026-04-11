@@ -3,7 +3,7 @@ package xfs
 import (
 	"path/filepath"
 
-	"github.com/tableauio/tableau/xerrors"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
 // Dir returns all but the last element of path, typically the path's directory.

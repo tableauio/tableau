@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/tableauio/tableau/xerrors"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
 // Define a regex pattern to match RFC3339 timestamps

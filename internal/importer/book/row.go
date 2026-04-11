@@ -11,9 +11,9 @@ import (
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/strcase/camelcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/xerrors"
 )
 
 var newlineRegex *regexp.Regexp

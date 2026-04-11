@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/xerrors"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
 )

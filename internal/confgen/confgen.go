@@ -13,11 +13,11 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/strcase"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -37,6 +37,7 @@ type Generator struct {
 	OutputOpt    *options.ConfOutputOption // output settings.
 
 	validator protovalidate.Validator // validator with extension type resolver for custom predefined rules.
+	collector *xerrors.Collector      // concurrent error collector shared across the generator.
 
 	// Performance stats
 	PerfStats sync.Map
@@ -65,6 +66,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Conf.Input,
 		OutputOpt:    opts.Conf.Output,
 		ctx:          ctx,
+		collector:    xerrors.NewCollector(ctx, maxParseErrors),
 		PerfStats:    sync.Map{},
 	}
 	return g
@@ -145,7 +147,6 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		// NOTE: one book may relate to multiple primary books
 		for _, fd := range primaryBookInfo.fds {
-			fd := fd // TODO: go1.22 fixes loopvar problem
 			eg.Go(func() error {
 				return gen.convert(prFiles, fd, sheetName)
 			})
@@ -264,7 +265,7 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 		return err
 	}
 	mainImporter := importer.ImporterInfo{Importer: self}
-	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, gen.collector)
 	if err := exporter.ScatterAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
@@ -277,7 +278,7 @@ func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo
 		return err
 	}
 	mainImporter := importer.ImporterInfo{Importer: self}
-	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, gen.collector)
 	if err := exporter.MergeAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}

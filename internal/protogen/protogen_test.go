@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
-	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 

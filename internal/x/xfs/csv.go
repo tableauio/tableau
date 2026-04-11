@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/xerrors"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
 func ParseCSVFilenamePattern(filename string) (bookName, sheetName string, err error) {

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/tableauio/tableau/xerrors"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/xuri/excelize/v2"
 )
 

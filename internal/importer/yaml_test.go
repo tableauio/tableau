@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/xerrors"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 )

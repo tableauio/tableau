@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 )
 

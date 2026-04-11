@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/tableauio/tableau/internal/excel"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/xerrors"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/xuri/excelize/v2"
 )
 

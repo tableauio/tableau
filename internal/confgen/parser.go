@@ -15,12 +15,11 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -30,21 +29,27 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
+// maxParseErrors is the maximum number of errors collected during concurrent sheet parsing.
+const maxParseErrors = 10
+
 type sheetExporter struct {
 	OutputDir string
 	OutputOpt *options.ConfOutputOption // output settings.
 	validator protovalidate.Validator   // validator with extension type resolver.
+	collector *xerrors.Collector        // concurrent error collector shared from Generator.
 }
 
 // NewSheetExporter creates a new sheet exporter.
-func NewSheetExporter(outputDir string, output *options.ConfOutputOption, validator protovalidate.Validator) *sheetExporter {
+func NewSheetExporter(outputDir string, output *options.ConfOutputOption, validator protovalidate.Validator, collector *xerrors.Collector) *sheetExporter {
 	return &sheetExporter{
 		OutputDir: outputDir,
 		OutputOpt: output,
 		validator: validator,
+		collector: collector,
 	}
 }
 
+// ScatterAndExport
 // ScatterAndExport parses multiple importer infos into standalone protomsgs,
 // then export them to standalone files.
 func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
@@ -77,32 +82,49 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return err
 	}
 
-	var eg errgroup.Group
+	var wg sync.WaitGroup
 	for _, impInfo := range impInfos {
-		impInfo := impInfo
+		if x.collector.IsFull() {
+			break
+		}
+		wg.Add(1)
 		// map-reduce: map jobs for concurrent processing
-		eg.Go(func() error {
+		go func() {
+			defer wg.Done()
+			// fail-fast: stop if error limit already reached by another goroutine
+			select {
+			case <-x.collector.Done():
+				return
+			default:
+			}
 			msg, err := parseMessageFromOneImporter(info, impInfo)
 			if err != nil {
-				return err
+				x.collector.Add(err)
+				return
 			}
 			name := getExportedConfName(info, impInfo)
 			if info.SheetOpts.Patch == tableaupb.Patch_PATCH_MERGE {
 				if info.ExtInfo.DryRun == options.DryRunPatch {
 					clonedMainMsg := proto.Clone(mainMsg)
-					err = xproto.PatchMessage(clonedMainMsg, msg)
-					if err != nil {
-						return err
+					if err = xproto.PatchMessage(clonedMainMsg, msg); err != nil {
+						x.collector.Add(err)
+						return
 					}
 					msg = clonedMainMsg
 				} else {
-					return storePatchMergeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt)
+					if err = storePatchMergeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt); err != nil {
+						x.collector.Add(err)
+					}
+					return
 				}
 			}
-			return storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
-		})
+			if err = storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator); err != nil {
+				x.collector.Add(err)
+			}
+		}()
 	}
-	return eg.Wait()
+	wg.Wait()
+	return x.collector.Join()
 }
 
 // MergeAndExport parses multiple importer infos and merges them into one
@@ -112,7 +134,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 	impInfos ...importer.ImporterInfo) error {
 	// append main
 	allImpInfos := append(impInfos, importer.ImporterInfo{Importer: mainImpInfo})
-	protomsg, err := ParseMessage(info, allImpInfos...)
+	protomsg, err := ParseMessage(info, x.collector, allImpInfos...)
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
@@ -142,10 +164,8 @@ type oneMsg struct {
 	sheetName string
 }
 
-// ParseMessage parses multiple importer infos into one protomsg. If an error
-// occurs, then wrap it with KeyModule as ModuleConf ("confgen"), then API user
-// can call `xerrors.NewDesc(err)“ to print the pretty error message.
-func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Message, error) {
+// ParseMessage parses multiple importer infos into one protomsg.
+func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...importer.ImporterInfo) (proto.Message, error) {
 	if len(impInfos) == 0 {
 		return nil, xerrors.NewKV("no importer to be parsed",
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
@@ -163,14 +183,27 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 	var mu sync.Mutex // guard msgs
 	var msgs []oneMsg
 
-	var eg errgroup.Group
+	var wg sync.WaitGroup
 	for _, impInfo := range impInfos {
-		impInfo := impInfo
+		if collector.IsFull() {
+			break
+		}
+		wg.Add(1)
 		// map-reduce: map jobs for concurrent processing
-		eg.Go(func() error {
+		go func() {
+			defer wg.Done()
+			// fail-fast: stop if error limit already reached by another goroutine
+			select {
+			case <-collector.Done():
+				return
+			default:
+			}
 			protomsg, err := parseMessageFromOneImporter(info, impInfo)
 			if err != nil {
-				return err
+				collector.Add(xerrors.WrapKV(err,
+					xerrors.KeyPrimaryBookName, info.PrimaryBookName,
+					xerrors.KeyPrimarySheetName, info.SheetOpts.Name))
+				return
 			}
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
@@ -179,13 +212,11 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 				sheetName: getRealSheetName(info, impInfo),
 			})
 			mu.Unlock()
-			return nil
-		})
+		}()
 	}
-	if err := eg.Wait(); err != nil {
-		return nil, xerrors.WrapKV(err,
-			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
-			xerrors.KeyPrimarySheetName, info.SheetOpts.Name)
+	wg.Wait()
+	if err := collector.Join(); err != nil {
+		return nil, err
 	}
 
 	// map-reduce: reduce results to one

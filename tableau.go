@@ -8,10 +8,10 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/xerrors"
 )
 
 // Generate converts Excel/CSV/XML/YAML files to protoconf files and

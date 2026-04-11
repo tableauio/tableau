@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/testutil"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
-	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )

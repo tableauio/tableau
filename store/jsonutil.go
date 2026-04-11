@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/store/jsonparser"
-	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )

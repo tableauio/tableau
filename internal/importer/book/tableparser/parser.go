@@ -2,7 +2,7 @@ package tableparser
 
 import (
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/xerrors"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
 // RangeDataRows ranges data rows in the table.

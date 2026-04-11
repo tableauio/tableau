@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/xerrors"
 	"gopkg.in/yaml.v3"
 )
 
