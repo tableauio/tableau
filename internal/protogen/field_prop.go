@@ -49,7 +49,6 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableau
 		Form:            prop.Form, // for vertical incell union list
 		Sep:             prop.Sep,
 		Subsep:          prop.Subsep,
-		Cross:           prop.Cross,
 		ValidateComplex: prop.ValidateComplex,
 		ValidateMessage: prop.ValidateMessage,
 	}

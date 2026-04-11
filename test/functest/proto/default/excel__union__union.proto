@@ -12,16 +12,6 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/union/Union#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
-message FieldCapUnion {
-  option (tableau.worksheet) = {name:"FieldCapUnion"};
-
-  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
-  message Task {
-    int32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
-    protoconf.FieldCapTarget target = 2 [(tableau.field) = {name:"Target"}];
-  }
-}
-
 message PredefinedIncellUnion {
   option (tableau.worksheet) = {name:"PredefinedIncellUnion"};
 
@@ -81,48 +71,6 @@ message TypedUnion {
   option (tableau.worksheet) = {name:"TypedUnion"};
 
   repeated protoconf.UnionTypedTarget union_typed_target_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
-}
-
-message FieldCapTarget {
-  option (tableau.union) = {name:"UnionFieldCapTarget"};
-
-  Type type = 9999 [(tableau.field) = {name:"Type"}];
-  oneof value {
-    option (tableau.oneof) = {field:"Field"};
-
-    Exchange exchange = 101; // Bound to enum value: TYPE_EXCHANGE.
-    Vote vote = 102; // Bound to enum value: TYPE_VOTE.
-    Fruit2V2 fruit_2v2 = 103; // Bound to enum value: TYPE_FRUIT_2V2.
-    Key3V3 key_3v3 = 104; // Bound to enum value: TYPE_KEY_3V3.
-  }
-
-  enum Type {
-    TYPE_INVALID = 0;
-    TYPE_EXCHANGE = 101 [(tableau.evalue).name = "Exchange"]; // Exchange
-    TYPE_VOTE = 102 [(tableau.evalue).name = "Vote"]; // Vote
-    TYPE_FRUIT_2V2 = 103 [(tableau.evalue).name = "Fruit"]; // Fruit
-    TYPE_KEY_3V3 = 104 [(tableau.evalue).name = "Key"]; // Key
-  }
-
-  message Exchange {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    repeated protoconf.Item cost_list = 2 [(tableau.field) = {name:"Cost" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];
-    repeated protoconf.Item gain_list = 5 [(tableau.field) = {name:"Gain" layout:LAYOUT_HORIZONTAL prop:{cross:-1}}];
-  }
-  message Vote {
-    repeated uint32 approves_list = 1 [(tableau.field) = {name:"Approves" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
-    repeated uint32 againsts_list = 3 [(tableau.field) = {name:"Againsts" layout:LAYOUT_HORIZONTAL prop:{cross:1}}];
-    repeated uint32 abstains_list = 4 [(tableau.field) = {name:"Abstains" layout:LAYOUT_HORIZONTAL prop:{cross:2}}];
-  }
-  message Fruit2V2 {
-    repeated protoconf.FruitType type_a_list = 1 [(tableau.field) = {name:"TypeA" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];
-    repeated protoconf.FruitType type_b_list = 4 [(tableau.field) = {name:"TypeB" layout:LAYOUT_INCELL}];
-    repeated protoconf.FruitFlavor flavor_list = 5 [(tableau.field) = {name:"Flavor" layout:LAYOUT_HORIZONTAL prop:{cross:-1}}];
-  }
-  message Key3V3 {
-    repeated int32 keys_list = 1 [(tableau.field) = {name:"Keys" key:"Keys" layout:LAYOUT_HORIZONTAL prop:{cross:3}}];
-    repeated int32 values_list = 4 [(tableau.field) = {name:"Values" layout:LAYOUT_HORIZONTAL prop:{cross:-1}}];
-  }
 }
 
 message UnionTypedTarget {

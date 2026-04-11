@@ -2,10 +2,8 @@ package protogen
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
-	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
@@ -696,21 +694,6 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				xerrors.KeyPBFieldType, field.Type+" (incell list)",
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
-		}
-		// union mode
-		if opts.IsUnionMode() {
-			fieldCount := fieldprop.GetUnionCrossFieldCount(prop)
-			if fieldCount > 0 {
-				// change layout to horizontal if cross is > 0
-				layout = tableaupb.Layout_LAYOUT_HORIZONTAL
-				// move cursor to next
-				if fieldCount == math.MaxInt {
-					// occupy all following fields, so move to the end
-					cursor = math.MaxInt - 1
-				} else {
-					cursor += fieldCount - 1
-				}
-			}
 		}
 		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))
 		field.Options.Layout = layout
