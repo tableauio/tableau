@@ -286,7 +286,15 @@ func validate(msg proto.Message, validator protovalidate.Validator) error {
 	if errors.As(err, &valErr) {
 		errs := make([]error, 0, len(valErr.Violations))
 		for _, v := range valErr.Violations {
-			errs = append(errs, xerrors.E2027(v.String(), v.FieldValue.String()))
+			fieldValue := v.FieldValue.String()
+			if !v.FieldValue.IsValid() ||
+				(v.FieldDescriptor != nil && (v.FieldDescriptor.IsList() || v.FieldDescriptor.IsMap())) {
+				// FieldValue is not set for message-level constraints, or is a
+				// list/map whose String() returns a meaningless pointer address;
+				// use field path as a fallback.
+				fieldValue = protovalidate.FieldPathString(v.Proto.GetField())
+			}
+			errs = append(errs, xerrors.E2027(v.String(), fieldValue))
 		}
 		// TODO: multiple errors cannot be properly rendered in localizer, need to enhance
 		// localizer to support multiple errors with same error code but different fields.

@@ -311,18 +311,22 @@ message Transpose {
   }
 }
 
-message ValidatedConf {
-  option (tableau.worksheet) = {name:"ValidatedConf" namerow:1 typerow:2 noterow:3 datarow:4};
+message ValidateConf {
+  option (tableau.worksheet) = {name:"ValidateConf" namerow:1 typerow:2 noterow:3 datarow:4};
   option (buf.validate.message) = {
     cel: {
-      id: "validated_conf.id_name"
-      message: "id must be positive when name is non-empty"
+      id: "validate_conf.id_name"
+      message: "name must be non-empty when id is positive"
       expression: "this.id == 0u || this.name != ''"
     }
   };
 
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   string name = 2 [(tableau.field) = {name:"Name"}, (buf.validate.field) = {string:{max_len:10}}];
+  // List field: must have at most 3 items.
+  repeated string tag_list = 3 [(tableau.field) = {name:"Tag" layout:LAYOUT_INCELL}, (buf.validate.field) = {repeated:{max_items:3}}];
+  // Map field: must have at most 2 pairs.
+  map<string, int32> prop_map = 4 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}, (buf.validate.field) = {map:{max_pairs:2}}];
 }
 
 message FieldPresentMap {
