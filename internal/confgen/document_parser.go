@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
@@ -500,7 +499,9 @@ func (p *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messag
 	fieldMsg := fieldValue.Message()
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
-		valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+		// Use definition order index (i+1) as the column suffix, not the tag number (fd.Number()),
+		// so that Field1, Field2, Field3... correspond to fields in definition order.
+		valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(i+1)
 		valNode := node.FindChild(valNodeName)
 		err := func() error {
 			subField := p.parseFieldDescriptor(fd)
@@ -526,18 +527,7 @@ func (p *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messag
 				)
 				return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 			}
-			crossNodeValues := []string{valNode.Value}
-			if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
-				for j := 1; j < fieldCount; j++ {
-					nodeName := unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
-					node := node.FindChild(nodeName)
-					if node == nil {
-						break
-					}
-					crossNodeValues = append(crossNodeValues, node.Value)
-				}
-			}
-			return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, crossNodeValues)
+			return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, []string{valNode.Value})
 		}()
 		if err != nil {
 			return false, xerrors.WrapKV(err, valNode.DebugNameKV()...)

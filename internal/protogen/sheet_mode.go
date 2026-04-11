@@ -327,6 +327,7 @@ func newUnionField(i int, value *internalpb.UnionDescriptor_Value, gen *Generato
 		}
 		field.Type = typeDesc.Name
 		field.FullType = typeDesc.FullName
+		field.Predefined = typeDesc.Predefined
 	}
 	return field, nil
 }

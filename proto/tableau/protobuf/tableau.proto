@@ -337,21 +337,8 @@ message FieldProp {
   //
   // If set, it will overwrite sheet-level subseq in WorksheetOptions.
   string subsep = 14;
-  // Specify count of crossed nodes/cells/fields of composite types with
-  // cardinality, such as list and map.
-  //
-  // For union list field:
-  //
-  //    Specify the count of union fields the list will cross and occupy
-  //    (one list element for each field). It will also change this list
-  //    field's layout from incell to horizontal.
-  //
-  //    - Value 0 means it is an incell list.
-  //    - Value > 0 means it is a horizontal list occupying N fields.
-  //    - Value < 0 means it is a horizontal list occupying all following fields.
-  //
-  // TODO: use cases for more composite types.
-  int32 cross = 15;
+  // NOTE: field number 15 (cross) is reserved for backward compatibility.
+  reserved 15;
   // Specify the pattern of scalar, list element, and map value.
   //
   // For version (tableau.Version) field:

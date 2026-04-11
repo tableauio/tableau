@@ -648,7 +648,9 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 		fieldMsg := fieldValue.Message()
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
-			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number()))
+			// Use definition order index (i+1) as the column suffix, not the tag number (fd.Number()),
+			// so that Field1, Field2, Field3... correspond to fields in definition order.
+			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(i+1)
 			err := func() error {
 				subField := p.parseFieldDescriptor(fd)
 				subField.mergeParentFieldProp(field)
@@ -658,18 +660,7 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 				if err != nil {
 					return err
 				}
-				crossCellDataList := []string{cell.Data}
-				if fieldCount := fieldprop.GetUnionCrossFieldCount(subField.opts.Prop); fieldCount > 0 {
-					for j := 1; j < fieldCount; j++ {
-						colName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(int(fd.Number())+j)
-						c, err := r.Cell(colName, p.IsFieldOptional(subField))
-						if err != nil {
-							break
-						}
-						crossCellDataList = append(crossCellDataList, c.Data)
-					}
-				}
-				return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, crossCellDataList)
+				return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, []string{cell.Data})
 			}()
 			if err != nil {
 				return false, xerrors.WrapKV(err, r.CellDebugKV(valColName)...)

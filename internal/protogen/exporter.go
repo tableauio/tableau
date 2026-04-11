@@ -282,8 +282,19 @@ func (x *sheetExporter) exportUnion() error {
 		}
 		ename := "TYPE_" + strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(field.Name)
 		typ := field.Name
-		if field.FullType != "" {
-			typ = field.FullType
+		fullTypeName := field.FullType
+		if fullTypeName != "" {
+			typ = fullTypeName
+		}
+		// Add import for predefined types (e.g. protoconf.FruitType, protoconf.Item).
+		if field.Predefined {
+			if types.IsWellKnownMessage(fullTypeName) {
+				importPath := types.GetWellKnownMessageImport(fullTypeName)
+				x.Imports[importPath] = true
+			} else if typeInfo := x.typeInfos.GetByFullName(protoreflect.FullName(fullTypeName)); typeInfo != nil &&
+				typeInfo.ParentFilename != x.be.GetProtoFilePath() {
+				x.Imports[typeInfo.ParentFilename] = true
+			}
 		}
 		if len(field.Fields) == 0 && field.Type == "" {
 			x.p.P("    // No field bound to enum value: ", ename, ".")
@@ -373,8 +384,7 @@ func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD proto
 		fieldNumber := int32(1)
 		for _, field := range fields {
 			field.Number = fieldNumber
-			cross := max(field.GetOptions().GetProp().GetCross(), 1)
-			fieldNumber += cross
+			fieldNumber++
 		}
 		return
 	}
@@ -394,10 +404,9 @@ func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD proto
 			// for existing field, use the old field number.
 			field.Number = number
 		} else {
-			// for new field, assign the next available field number considering cross.
-			cross := max(field.GetOptions().GetProp().GetCross(), 1)
+			// for new field, assign the next available field number.
 			field.Number = maxFieldNumber + 1
-			maxFieldNumber = field.Number + cross - 1
+			maxFieldNumber = field.Number
 		}
 	}
 }

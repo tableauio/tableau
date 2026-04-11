@@ -1,8 +1,6 @@
 Sheet,Alias,Mode
 PredefinedIncellUnion,,
 PredefinedUnion,,
-UnionFieldCapTarget,FieldCapTarget,MODE_UNION_TYPE
-FieldCapUnion,,
 UnionTypedTarget,,MODE_UNION_TYPE
 TypedUnion,,
 Target,,MODE_UNION_TYPE

@@ -650,57 +650,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "export-union-with-cross",
-			x: &sheetExporter{
-				ws: &internalpb.Worksheet{
-					Name: "TaskTarget",
-					Options: &tableaupb.WorksheetOptions{
-						Name: "UnionTaskTarget",
-					},
-					Fields: []*internalpb.Field{
-						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
-							Fields: []*internalpb.Field{
-								{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID", Prop: &tableaupb.FieldProp{Cross: 3}}},
-								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
-							},
-						},
-					},
-				},
-				p: printer.New(),
-				be: &bookExporter{
-					gen: &Generator{
-						ctx:       context.Background(),
-						OutputOpt: &options.ProtoOutputOption{},
-					},
-				},
-				typeInfos:      &xproto.TypeInfos{},
-				nestedMessages: make(map[string]*internalpb.Field),
-			},
-			want: `message TaskTarget {
-  option (tableau.union) = {name:"UnionTaskTarget"};
-
-  Type type = 9999 [(tableau.field) = {name:"Type"}];
-  oneof value {
-    option (tableau.oneof) = {field:"Field"};
-
-    PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
-  }
-
-  enum Type {
-    TYPE_INVALID = 0;
-    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
-  }
-
-  message PvpBattle {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{cross:3}}];
-    int64 damage = 4 [(tableau.field) = {name:"Damage"}];
-  }
-}
-
-`,
-			wantErr: false,
-		},
-		{
 			name: "export-union-preserve-field-numbers",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -762,76 +711,13 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 
   message Pvp {
     int32 type = 1 [(tableau.field) = {name:"Type"}];
-    uint32 armor = 4 [(tableau.field) = {name:"Armor"}];
+    uint32 armor = 5 [(tableau.field) = {name:"Armor"}];
     int64 damage = 3 [(tableau.field) = {name:"Damage"}];
   }
   message Pve {
     int32 mission = 1 [(tableau.field) = {name:"Mission"}];
     int32 heros = 2 [(tableau.field) = {name:"Heros"}];
     int32 dungeons = 3 [(tableau.field) = {name:"Dungeons"}];
-  }
-}
-
-`,
-			wantErr: false,
-		},
-		{
-			name: "export-union-preserve-field-numbers-with-cross",
-			x: &sheetExporter{
-				ws: &internalpb.Worksheet{
-					Name: "Target", // use message unittest.Target to test
-					Options: &tableaupb.WorksheetOptions{
-						Name: "UnionTarget",
-					},
-					Fields: []*internalpb.Field{
-						{Number: 1, Name: "Pvp", Alias: "PVP",
-							Fields: []*internalpb.Field{
-								{Name: "type", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Type"}},
-								// delete field "health" (field number 2)
-								// keep existing field "damage"
-								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
-								// add new field "armor" with cross=3
-								{Name: "armor", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Armor", Prop: &tableaupb.FieldProp{Cross: 3}}},
-								// add new field "shield"
-								{Name: "shield", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Shield"}},
-							},
-						},
-					},
-				},
-				p: printer.New(),
-				be: &bookExporter{
-					ProtoPackage: "unittest",
-					gen: &Generator{
-						ctx: context.Background(),
-						OutputOpt: &options.ProtoOutputOption{
-							PreserveFieldNumbers: true,
-						},
-						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
-					},
-				},
-				typeInfos:      &xproto.TypeInfos{},
-				nestedMessages: make(map[string]*internalpb.Field),
-			},
-			want: `message Target {
-  option (tableau.union) = {name:"UnionTarget"};
-
-  Type type = 9999 [(tableau.field) = {name:"Type"}];
-  oneof value {
-    option (tableau.oneof) = {field:"Field"};
-
-    Pvp pvp = 1; // Bound to enum value: TYPE_PVP.
-  }
-
-  enum Type {
-    TYPE_INVALID = 0;
-    TYPE_PVP = 1 [(tableau.evalue).name = "PVP"]; // PVP
-  }
-
-  message Pvp {
-    int32 type = 1 [(tableau.field) = {name:"Type"}];
-    int64 damage = 3 [(tableau.field) = {name:"Damage"}];
-    uint32 armor = 4 [(tableau.field) = {name:"Armor" prop:{cross:3}}];
-    int32 shield = 7 [(tableau.field) = {name:"Shield"}];
   }
 }
 

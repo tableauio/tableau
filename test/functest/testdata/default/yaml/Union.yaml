@@ -25,7 +25,4 @@ UnionList:
     Field2: 2
   - Type: Item
     Field1: false
-    Field2: 1001,1
-    Field3: 1002,2
-    Field4: 1003,3
-    Field5: 1004
+    Field2: "1001:1,1002:2,1003:3,1004"
