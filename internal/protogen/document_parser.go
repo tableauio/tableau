@@ -251,7 +251,7 @@ func (p *documentParser) parseListField(field *internalpb.Field, node *book.Node
 	field.Options = &tableaupb.FieldOptions{
 		Name:   node.Name,
 		Layout: layout,
-		Prop:   ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType)),
+		Prop:   ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType), layout),
 	}
 	structNode := node.GetMetaStructNode()
 	if structNode != nil {

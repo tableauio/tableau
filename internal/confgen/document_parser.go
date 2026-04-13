@@ -222,11 +222,7 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 			return false, xerrors.NewKV("should not reach here", node.DebugKV()...)
 		}
 	}
-
-	if !msg.Has(field.fd) && reflectMap.Len() != 0 {
-		msg.Set(field.fd, prefValue)
-	}
-	if msg.Has(field.fd) || reflectMap.Len() != 0 {
+	if msg.Has(field.fd) {
 		present = true
 	}
 	return present, nil
@@ -345,7 +341,7 @@ func (p *documentParser) parseListField(field *Field, msg protoreflect.Message, 
 	case field.opts.Layout == tableaupb.Layout_LAYOUT_INCELL,
 		// node of XML scalar list with only 1 element is just like an incell list
 		node.Kind == book.ScalarNode:
-		present, err = p.parseIncellList(field, list, cardPrefix, node.ScalarValue())
+		err := p.parseIncellList(field, list, cardPrefix, node.ScalarValue())
 		if err != nil {
 			return false, xerrors.WrapKV(err, node.DebugKV()...)
 		}
@@ -381,14 +377,7 @@ func (p *documentParser) parseListField(field *Field, msg protoreflect.Message, 
 			}
 		}
 	}
-
-	if !msg.Has(field.fd) && list.Len() != 0 {
-		msg.Set(field.fd, newValue)
-	}
-	if msg.Has(field.fd) || list.Len() != 0 {
-		present = true
-	}
-	return present, nil
+	return msg.Has(field.fd), nil
 }
 
 func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
@@ -542,7 +531,7 @@ func (p *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messag
 				)
 				return xerrors.WrapKV(xerrors.E2014(subField.opts.Name), kvs...)
 			}
-			return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, []string{valNode.Value})
+			return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, valNode.Value)
 		}()
 		if err != nil {
 			return false, xerrors.WrapKV(err, valNode.DebugNameKV()...)

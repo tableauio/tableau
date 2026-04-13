@@ -92,6 +92,7 @@ func TestExtractListFieldProp(t *testing.T) {
 	type args struct {
 		prop         *tableaupb.FieldProp
 		isScalarList bool
+		layout       tableaupb.Layout
 	}
 	tests := []struct {
 		name string
@@ -111,6 +112,7 @@ func TestExtractListFieldProp(t *testing.T) {
 				prop: &tableaupb.FieldProp{
 					Size: 2,
 				},
+				layout: tableaupb.Layout_LAYOUT_HORIZONTAL,
 			},
 			want: &tableaupb.FieldProp{
 				Size: 2,
@@ -125,6 +127,7 @@ func TestExtractListFieldProp(t *testing.T) {
 					Range: "2,~",
 				},
 				isScalarList: true,
+				layout:       tableaupb.Layout_LAYOUT_HORIZONTAL,
 			},
 			want: &tableaupb.FieldProp{
 				Size:  2,
@@ -135,7 +138,7 @@ func TestExtractListFieldProp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ExtractListFieldProp(tt.args.prop, tt.args.isScalarList); !proto.Equal(got, tt.want) {
+			if got := ExtractListFieldProp(tt.args.prop, tt.args.isScalarList, tt.args.layout); !proto.Equal(got, tt.want) {
 				t.Errorf("ExtractListFieldProp() = %v, want %v", got, tt.want)
 			}
 		})
