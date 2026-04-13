@@ -169,10 +169,10 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		}
 	}
 	// second pass
-	g := gen.collector.NewGroup(true)
+	g := gen.collector.NewGroup(context.Background())
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-		g.Go(func() error {
+		g.Go(func(ctx context.Context) error {
 			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, secondPass)
 		})
 	}
@@ -180,10 +180,10 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 }
 
 func (gen *Generator) processWorkbookOnFirstPass(relWorkbookPaths ...string) error {
-	g := gen.collector.NewGroup(true)
+	g := gen.collector.NewGroup(context.Background())
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-		g.Go(func() error {
+		g.Go(func(ctx context.Context) error {
 			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass)
 		})
 	}
@@ -214,9 +214,9 @@ func (gen *Generator) processSecondPass() error {
 	gen.cacheMu.RUnlock()
 
 	// second pass
-	g := gen.collector.NewGroup(true)
+	g := gen.collector.NewGroup(context.Background())
 	for _, absPath := range absPaths {
-		g.Go(func() error {
+		g.Go(func(ctx context.Context) error {
 			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), true, secondPass)
 		})
 	}
@@ -224,7 +224,7 @@ func (gen *Generator) processSecondPass() error {
 }
 
 func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bool) (err error) {
-	g := gen.collector.NewGroup(true)
+	g := gen.collector.NewGroup(context.Background())
 	defer func() {
 		if err == nil {
 			err = g.Wait()
@@ -292,7 +292,7 @@ func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bo
 		}
 
 		filename := entry.Name()
-		g.Go(func() error {
+		g.Go(func(ctx context.Context) error {
 			return gen.convertWithErrorModule(dir, filename, checkProtoFileConflicts, firstPass)
 		})
 	}
@@ -463,10 +463,10 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			parentFilename := bp.GetProtoFilePath()
 			err := gen.extractTypeInfoFromSpecialSheetMode(ws.Options.Mode, sheet, ws.Name, parentFilename)
 			if err != nil {
-				if full, joinedErr := gen.collector.Collect(xerrors.WrapKV(err,
+				if err := gen.collector.Collect(xerrors.WrapKV(err,
 					xerrors.KeyBookName, debugBookName,
-					xerrors.KeySheetName, debugSheetName)); full {
-					return joinedErr
+					xerrors.KeySheetName, debugSheetName)); err != nil {
+					return err
 				}
 			}
 		} else if pass == secondPass {

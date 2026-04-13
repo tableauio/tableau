@@ -18,6 +18,9 @@ import (
 
 type tableParser struct {
 	*sheetParser
+	// sheetCollector is the sheet-level child of p.collector.
+	// parseMessage creates field-level children under it.
+	sheetCollector *xerrors.Collector
 }
 
 func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
@@ -38,25 +41,23 @@ func (p *tableParser) parse(protomsg proto.Message, table book.Tabler) error {
 	// NOTE: the global options has been merged into book options on protogen,
 	// so there is no need to set it here.
 	header := tableparser.NewHeader(p.sheetOpts, p.bookOpts, nil)
-	// Use a local collector to gather multiple row-level errors within this
-	// sheet, so that the caller can wrap the joined result with outer context
-	// (BookName, SheetName, etc.) via WrapKV.
-	local := xerrors.NewCollector(0) // unlimited; the shared collector limits globally
+	p.sheetCollector = p.collector.NewChild(maxErrorsPerSheet)
 	err := tableparser.RangeDataRows(table, header, func(r *book.Row) error {
-		// Fail-fast if the shared collector is already full (another goroutine hit the limit).
-		if p.collector.IsFull() {
-			return p.collector.Join()
+		if p.sheetCollector.IsFull() {
+			return p.sheetCollector.Join()
 		}
 		_, err := p.parseMessage(nil, msg, r, "", "")
 		if err != nil {
-			local.Collect(err)
+			if p.sheetCollector.IsFull() {
+				return p.sheetCollector.Join()
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-	return local.Join()
+	return p.sheetCollector.Join()
 }
 
 // parseMessage parses all fields of a protobuf message.
@@ -65,10 +66,11 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 	if xproto.IsUnion(md) {
 		return p.parseUnionMessage(msg, parentField, r, prefix, cardPrefix)
 	}
+	// Field-level child collector for this message scope.
+	fieldChild := p.sheetCollector.NewChild(maxErrorsPerField)
 	for i := 0; i < md.Fields().Len(); i++ {
-		// fail-fast: stop if error limit already reached by another goroutine
-		if p.collector.IsFull() {
-			return false, p.collector.Join()
+		if fieldChild.IsFull() {
+			return false, fieldChild.Join()
 		}
 		fd := md.Fields().Get(i)
 		err := func() error {
@@ -91,8 +93,13 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 			return nil
 		}()
 		if err != nil {
-			return false, err
+			if err := fieldChild.Collect(err); err != nil {
+				return false, err
+			}
 		}
+	}
+	if fieldChild.HasErrors() {
+		return false, fieldChild.Join()
 	}
 	return present, nil
 }

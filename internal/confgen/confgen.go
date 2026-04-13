@@ -26,6 +26,11 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
+// maxErrors is the maximum number of errors collected during concurrent sheet parsing.
+const maxErrors = 10
+const maxErrorsPerSheet = 3
+const maxErrorsPerField = 3
+
 type Generator struct {
 	ctx          context.Context
 	ProtoPackage string // protobuf package name.
@@ -66,7 +71,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Conf.Input,
 		OutputOpt:    opts.Conf.Output,
 		ctx:          ctx,
-		collector:    xerrors.NewCollector(maxParseErrors),
+		collector:    xerrors.NewCollector(maxErrors),
 		PerfStats:    sync.Map{},
 	}
 	return g
@@ -97,11 +102,11 @@ func (gen *Generator) GenAll() error {
 		return err
 	}
 	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-	g := gen.collector.NewGroup(false)
+	g := gen.collector.NewGroup(context.Background())
 	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
-			g.Go(func() error {
+			g.Go(func(ctx context.Context) error {
 				return gen.convert(prFiles, fd, "")
 			})
 			return true
@@ -129,7 +134,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
-	g := gen.collector.NewGroup(false)
+	g := gen.collector.NewGroup(context.Background())
 	for _, specifier := range bookSpecifiers {
 		bookName, sheetName, err := parseBookSpecifier(specifier)
 		if err != nil {
@@ -147,7 +152,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		// NOTE: one book may relate to multiple primary books
 		for _, fd := range primaryBookInfo.fds {
-			g.Go(func() error {
+			g.Go(func(ctx context.Context) error {
 				return gen.convert(prFiles, fd, sheetName)
 			})
 		}
@@ -236,19 +241,17 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				return xerrors.NewKV("option Scatter and Merger cannot be both set at one sheet",
 					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
 			}
-			err := gen.processScatter(imp, sheetInfo)
-			if err != nil {
+			if err := gen.processScatter(imp, sheetInfo); err != nil {
 				err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
-				if full, joinedErr := gen.collector.Collect(err); full {
-					return joinedErr
+				if err := gen.collector.Collect(err); err != nil {
+					return err
 				}
 			}
 		} else {
-			err := gen.processMerger(imp, sheetInfo)
-			if err != nil {
+			if err := gen.processMerger(imp, sheetInfo); err != nil {
 				err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
-				if full, joinedErr := gen.collector.Collect(err); full {
-					return joinedErr
+				if err := gen.collector.Collect(err); err != nil {
+					return err
 				}
 			}
 		}

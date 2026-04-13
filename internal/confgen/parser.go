@@ -29,9 +29,6 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-// maxParseErrors is the maximum number of errors collected during concurrent sheet parsing.
-const maxParseErrors = 10
-
 type sheetExporter struct {
 	OutputDir string
 	OutputOpt *options.ConfOutputOption // output settings.
@@ -82,10 +79,10 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return err
 	}
 
-	g := x.collector.NewGroup(true)
+	g := x.collector.NewGroup(context.Background())
 	for _, impInfo := range impInfos {
 		// map-reduce: map jobs for concurrent processing
-		g.Go(func() error {
+		g.Go(func(ctx context.Context) error {
 			msg, err := parseMessageFromOneImporter(info, x.collector, impInfo)
 			if err != nil {
 				return err
@@ -164,10 +161,10 @@ func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...imp
 	var mu sync.Mutex // guard msgs
 	var msgs []oneMsg
 
-	g := collector.NewGroup(true)
+	g := collector.NewGroup(context.Background())
 	for _, impInfo := range impInfos {
 		// map-reduce: map jobs for concurrent processing
-		g.Go(func() error {
+		g.Go(func(ctx context.Context) error {
 			protomsg, err := parseMessageFromOneImporter(info, collector, impInfo)
 			if err != nil {
 				return xerrors.WrapKV(err,
