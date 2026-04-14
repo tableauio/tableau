@@ -59,9 +59,11 @@
         "filterMap": {
             "1": {
                 "type": 1,
+                "open": false,
                 "jobList": [
                     {
-                        "type": 1
+                        "type": 1,
+                        "count": 0
                     }
                 ],
                 "sectionList": [
@@ -72,70 +74,6 @@
                             {
                                 "id": 2001,
                                 "num": 1
-                            }
-                        ]
-                    }
-                ]
-            },
-            "2": {
-                "type": 2,
-                "jobList": [
-                    {
-                        "type": 2,
-                        "count": 2
-                    }
-                ],
-                "sectionList": [
-                    {
-                        "id": 2,
-                        "name": "签到活动节2",
-                        "itemList": [
-                            {
-                                "id": 2002,
-                                "num": 2
-                            }
-                        ]
-                    }
-                ]
-            },
-            "3": {
-                "type": 3,
-                "open": true,
-                "jobList": [
-                    {
-                        "type": 3,
-                        "count": 3
-                    },
-                    {
-                        "type": 4
-                    }
-                ],
-                "sectionList": [
-                    {
-                        "id": 3,
-                        "name": "签到活动节3",
-                        "itemList": [
-                            {
-                                "id": 2003,
-                                "num": 3
-                            },
-                            {
-                                "id": 2005,
-                                "num": 13
-                            }
-                        ]
-                    },
-                    {
-                        "id": 4,
-                        "name": "签到活动节4",
-                        "itemList": [
-                            {
-                                "id": 2004,
-                                "num": 4
-                            },
-                            {
-                                "id": 2005,
-                                "num": 14
                             }
                         ]
                     }

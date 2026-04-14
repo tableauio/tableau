@@ -545,13 +545,7 @@ func (p *tableParser) parseStructField(field *Field, msg protoreflect.Message, r
 	// Solution:
 	//  1. spawn two values: `emptyValue` and `structValue`
 	//  2. set `structValue` back to field if `structValue` is not equal to `emptyValue`
-	var structValue protoreflect.Value
-	if msg.Has(field.fd) {
-		// Get it if this field is populated. It will be overwritten if present.
-		structValue = msg.Mutable(field.fd)
-	} else {
-		structValue = msg.NewField(field.fd)
-	}
+	structValue := msg.NewField(field.fd)
 
 	var cell *book.Cell
 	newPrefix := prefix + field.opts.Name
@@ -576,19 +570,20 @@ func (p *tableParser) parseStructField(field *Field, msg protoreflect.Message, r
 		return false, xerrors.WrapKV(err, r.CellDebugKV(newPrefix)...)
 	}
 	if present {
-		msg.Set(field.fd, structValue)
+		if msg.Has(field.fd) {
+			presentValue := msg.Get(field.fd)
+			if !presentValue.Equal(structValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(structValue, presentValue), r.CellDebugKV(newPrefix)...)
+			}
+		} else {
+			msg.Set(field.fd, structValue)
+		}
 	}
 	return
 }
 
 func (p *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
-	var structValue protoreflect.Value
-	if msg.Has(field.fd) {
-		// Get it if this field is populated. It will be overwritten if present.
-		structValue = msg.Mutable(field.fd)
-	} else {
-		structValue = msg.NewField(field.fd)
-	}
+	structValue := msg.NewField(field.fd)
 
 	var cell *book.Cell
 	newPrefix := prefix + field.opts.Name
@@ -607,7 +602,14 @@ func (p *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r 
 		return false, xerrors.WrapKV(err, r.CellDebugKV(newPrefix)...)
 	}
 	if present {
-		msg.Set(field.fd, structValue)
+		if msg.Has(field.fd) {
+			presentValue := msg.Get(field.fd)
+			if !presentValue.Equal(structValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(structValue, presentValue), r.CellDebugKV(newPrefix)...)
+			}
+		} else {
+			msg.Set(field.fd, structValue)
+		}
 	}
 	return
 }
@@ -694,11 +696,6 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 }
 
 func (p *tableParser) parseScalarField(field *Field, msg protoreflect.Message, r *book.Row, prefix string) (present bool, err error) {
-	if msg.Has(field.fd) {
-		// Only parse if this field is not populated. This means the first
-		// none-empty related row part (related to scalar) is parsed.
-		return true, nil
-	}
 	var newValue protoreflect.Value
 	var cell *book.Cell
 	colName := prefix + field.opts.Name
@@ -710,7 +707,14 @@ func (p *tableParser) parseScalarField(field *Field, msg protoreflect.Message, r
 		return false, xerrors.WrapKV(err, r.CellDebugKV(colName)...)
 	}
 	if present {
-		msg.Set(field.fd, newValue)
+		if msg.Has(field.fd) {
+			presentValue := msg.Get(field.fd)
+			if !presentValue.Equal(newValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(newValue, presentValue), r.CellDebugKV(colName)...)
+			}
+		} else {
+			msg.Set(field.fd, newValue)
+		}
 	}
 	return
 }
