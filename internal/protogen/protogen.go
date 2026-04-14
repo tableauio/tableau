@@ -30,8 +30,11 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-// maxParseErrors is the maximum number of errors collected during concurrent workbook parsing.
-const maxParseErrors = 10
+// Error collection limits at each level.
+const (
+	maxParseErrors   = 10 // generator level: across concurrent workbooks
+	maxErrorsPerBook = 5  // book level: across sheets in one workbook
+)
 
 type Generator struct {
 	ctx          context.Context
@@ -361,6 +364,8 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		debugBookName += " (alias: " + alias + ")"
 	}
 	bp := newDocumentParser(bookName, alias, rewrittenBookName, gen)
+	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
+sheetLoop:
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet options
 		ws := sheet.ToWorkseet()
@@ -369,7 +374,11 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 
 		// log.Debugf("dump document:\n%s", sheet.String())
 		if len(sheet.Document.Children) != 1 {
-			return xerrors.Newf("document should have and only have one child (map node), sheet: %s", sheet.Name)
+			err := xerrors.Newf("document should have and only have one child (map node), sheet: %s", sheet.Name)
+			if err := bookCollector.Collect(xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)); err != nil {
+				return err
+			}
+			continue sheetLoop
 		}
 		// get the first child (map node) in document
 		child := sheet.Document.Children[0]
@@ -378,10 +387,10 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 			field := &internalpb.Field{}
 			parsed, err = bp.parseField(field, node)
 			if err != nil {
-				return xerrors.WrapKV(err,
-					xerrors.KeyBookName, debugBookName,
-					xerrors.KeySheetName, debugSheetName,
-				)
+				if err := bookCollector.Collect(xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)); err != nil {
+					return err
+				}
+				continue sheetLoop
 			}
 			if parsed {
 				ws.Fields = append(ws.Fields, field)
@@ -389,6 +398,9 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		}
 		// append parsed sheet to workbook
 		bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
+	}
+	if bookCollector.HasErrors() {
+		return bookCollector.Join()
 	}
 	// export book
 	be := newBookExporter(
@@ -445,6 +457,9 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	}
 	// create a book parser
 	bp := newTableParser(bookName, alias, rewrittenBookName, gen)
+	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
+	var parsed bool
+sheetLoop:
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet header
 		ws := sheet.ToWorkseet()
@@ -463,7 +478,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			parentFilename := bp.GetProtoFilePath()
 			err := gen.extractTypeInfoFromSpecialSheetMode(ws.Options.Mode, sheet, ws.Name, parentFilename)
 			if err != nil {
-				if err := gen.collector.Collect(xerrors.WrapKV(err,
+				if err := bookCollector.Collect(xerrors.WrapKV(err,
 					xerrors.KeyBookName, debugBookName,
 					xerrors.KeySheetName, debugSheetName)); err != nil {
 					return err
@@ -472,12 +487,14 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 		} else if pass == secondPass {
 			log.Debugf("second pass: parse sheet schema from %s", debugSheetName)
 			if ws.Options.Mode == tableaupb.Mode_MODE_DEFAULT {
-				var parsed bool
 				for cursor := 0; cursor < len(tableHeader.nameRowData); cursor++ {
 					field := &internalpb.Field{}
 					cursor, parsed, err = bp.parseField(field, tableHeader, cursor, "", "", tableparser.Nested(ws.Options.Nested))
 					if err != nil {
-						return wrapDebugErr(err, debugBookName, debugSheetName, tableHeader, cursor)
+						if err := bookCollector.Collect(wrapDebugErr(err, debugBookName, debugSheetName, tableHeader, cursor)); err != nil {
+							return err
+						}
+						continue sheetLoop
 					}
 					if parsed {
 						ws.Fields = append(ws.Fields, field)
@@ -488,14 +505,20 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			} else {
 				worksheets, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
 				if err != nil {
-					return xerrors.WrapKV(err,
+					if err := bookCollector.Collect(xerrors.WrapKV(err,
 						xerrors.KeyBookName, debugBookName,
-						xerrors.KeySheetName, debugSheetName)
+						xerrors.KeySheetName, debugSheetName)); err != nil {
+						return err
+					}
+					continue sheetLoop
 				}
 				// append parsed sheets to workbook
 				bp.wb.Worksheets = append(bp.wb.Worksheets, worksheets...)
 			}
 		}
+	}
+	if bookCollector.HasErrors() {
+		return bookCollector.Join()
 	}
 
 	if pass == secondPass {

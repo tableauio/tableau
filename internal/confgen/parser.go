@@ -224,7 +224,7 @@ func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, 
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	parser := NewExtendedSheetParser(context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
-	parser.collector = collector // override default collector with shared collector for fail-fast across goroutines
+	parser.sheetCollector = collector.NewChild(maxErrorsPerSheet)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
@@ -260,13 +260,13 @@ func (si *SheetInfo) SheetName() string {
 }
 
 type sheetParser struct {
-	ProtoPackage string
-	LocationName string
-	ctx          context.Context
-	bookOpts     *tableaupb.WorkbookOptions
-	sheetOpts    *tableaupb.WorksheetOptions
-	extInfo      *SheetParserExtInfo
-	collector    *xerrors.Collector // shared error collector for fail-fast
+	ProtoPackage   string
+	LocationName   string
+	ctx            context.Context
+	bookOpts       *tableaupb.WorkbookOptions
+	sheetOpts      *tableaupb.WorksheetOptions
+	extInfo        *SheetParserExtInfo
+	sheetCollector *xerrors.Collector // sheet-level collector
 
 	// cached maps and lists with cardinality
 	cards map[string]*cardInfo // map/list field card prefix -> cardInfo
@@ -323,7 +323,9 @@ func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName stri
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
-		collector:    xerrors.NewCollector(1),
+		// Default capacity 1 is sufficient for protogen/load (fail-fast on first error).
+		// confgen overwrites it with a larger capacity for multi-error collection across sheets.
+		sheetCollector: xerrors.NewCollector(1),
 	}
 	sp.reset()
 	return sp

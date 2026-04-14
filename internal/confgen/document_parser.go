@@ -16,9 +16,6 @@ import (
 
 type documentParser struct {
 	*sheetParser
-	// docCollector is the document-level child of p.collector.
-	// parseMessage creates field-level children under it.
-	docCollector *xerrors.Collector
 }
 
 func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
@@ -29,13 +26,12 @@ func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error 
 	// get the first child (map node) in document
 	child := sheet.Document.Children[0]
 	msg := protomsg.ProtoReflect()
-	p.docCollector = p.collector.NewChild(maxErrorsPerSheet)
 	_, err := p.parseMessage(nil, msg, child, "")
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeySheetName, sheet.Name)
 	}
-	if joined := p.docCollector.Join(); joined != nil {
-		return xerrors.WrapKV(joined, xerrors.KeySheetName, sheet.Name)
+	if p.sheetCollector.HasErrors() {
+		return xerrors.WrapKV(p.sheetCollector.Join(), xerrors.KeySheetName, sheet.Name)
 	}
 	return nil
 }
@@ -43,14 +39,14 @@ func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error 
 // parseMessage parses all fields of a protobuf message.
 func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
-	// Field-level child collector for this message scope.
-	fieldChild := p.docCollector.NewChild(maxErrorsPerField)
+	// Per-message child collector
+	messageCollector := p.sheetCollector.NewChild(maxErrorsPerMessage)
 	for i := 0; i < md.Fields().Len(); i++ {
-		if fieldChild.IsFull() {
-			return false, fieldChild.Join()
+		if messageCollector.IsFull() {
+			return false, messageCollector.Join()
 		}
 		fd := md.Fields().Get(i)
-		err := func() error {
+		fieldErr := func() error {
 			field := p.parseFieldDescriptor(fd)
 			field.mergeParentFieldProp(parentField)
 			defer field.release()
@@ -100,19 +96,19 @@ func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Messa
 					xerrors.KeyPBFieldOpts, field.opts)
 			}
 			if fieldPresent {
-				// The message is treated as present at least one field is present.
+				// The message is treated as present if at least one field is present.
 				present = true
 			}
 			return nil
 		}()
-		if err != nil {
-			if err := fieldChild.Collect(err); err != nil {
+		if fieldErr != nil {
+			if err := messageCollector.Collect(fieldErr); err != nil {
 				return false, err
 			}
 		}
 	}
-	if fieldChild.HasErrors() {
-		return false, fieldChild.Join()
+	if messageCollector.HasErrors() {
+		return false, messageCollector.Join()
 	}
 	return present, nil
 }
