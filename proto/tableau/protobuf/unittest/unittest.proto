@@ -360,3 +360,18 @@ message FieldPresentMap {
     unittest.Target target = 6 [(tableau.field) = {name:"Target" span:SPAN_INNER_CELL prop:{form:FORM_TEXT present:true}}];
   }
 }
+
+message VerticalAggregationMap {
+  option (tableau.worksheet) = {name:"VerticalAggregationMap"};
+
+  map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"HeroID" layout:LAYOUT_VERTICAL}];
+  message Hero {
+    uint32 hero_id = 1 [(tableau.field) = {name:"HeroID"}]; // Hero ID
+    string hero_name = 2 [(tableau.field) = {name:"HeroName"}]; // Hero name
+    map<int32, Level> level_map = 3 [(tableau.field) = {key:"Level" layout:LAYOUT_VERTICAL}];
+    message Level {
+      int32 level = 1 [(tableau.field) = {name:"Level"}]; // Level
+      int32 exp = 2 [(tableau.field) = {name:"Exp"}]; // Experience points
+    }
+  }
+}
