@@ -160,6 +160,13 @@ E2022:
   fields:
     - FieldName: string
     - Key: any
+E2023:
+  desc: inconsistent value in vertical aggregated row
+  text: current value {{ quoteAny .Value }} of vertical aggregated row is different from its first presence {{ quoteAny .FirstPresence }}
+  help: ensure all values in vertical aggregated rows are consistent with the first occurrence
+  fields:
+    - Value: any
+    - FirstPresence: any
 E2024:
   desc: invalid version pattern
   text: "{{ quote .Value }} cannot be parsed into dotted-decimal format, {{.Error}}"

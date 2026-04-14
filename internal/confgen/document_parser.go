@@ -381,13 +381,7 @@ func (p *documentParser) parseListField(field *Field, msg protoreflect.Message, 
 }
 
 func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
-	var structValue protoreflect.Value
-	if msg.Has(field.fd) {
-		// Get it if this field is populated. It will be overwritten if present.
-		structValue = msg.Mutable(field.fd)
-	} else {
-		structValue = msg.NewField(field.fd)
-	}
+	structValue := msg.NewField(field.fd)
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		present, err = p.parseIncellUnion(field, structValue, node.ScalarValue())
@@ -398,19 +392,20 @@ func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message,
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
 	if present {
-		msg.Set(field.fd, structValue)
+		if msg.Has(field.fd) {
+			presentValue := msg.Get(field.fd)
+			if !presentValue.Equal(structValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(structValue, presentValue), node.DebugKV()...)
+			}
+		} else {
+			msg.Set(field.fd, structValue)
+		}
 	}
 	return
 }
 
 func (p *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
-	var structValue protoreflect.Value
-	if msg.Has(field.fd) {
-		// Get it if this field is populated. It will be overwritten if present.
-		structValue = msg.Mutable(field.fd)
-	} else {
-		structValue = msg.NewField(field.fd)
-	}
+	structValue := msg.NewField(field.fd)
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
@@ -425,7 +420,14 @@ func (p *documentParser) parseStructField(field *Field, msg protoreflect.Message
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
 	if present {
-		msg.Set(field.fd, structValue)
+		if msg.Has(field.fd) {
+			presentValue := msg.Get(field.fd)
+			if !presentValue.Equal(structValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(structValue, presentValue), node.DebugKV()...)
+			}
+		} else {
+			msg.Set(field.fd, structValue)
+		}
 	}
 	return
 }
@@ -438,7 +440,14 @@ func (p *documentParser) parseScalarField(field *Field, msg protoreflect.Message
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
 	if present {
-		msg.Set(field.fd, newValue)
+		if msg.Has(field.fd) {
+			presentValue := msg.Get(field.fd)
+			if !presentValue.Equal(newValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(newValue, presentValue), node.DebugKV()...)
+			}
+		} else {
+			msg.Set(field.fd, newValue)
+		}
 	}
 	return
 }

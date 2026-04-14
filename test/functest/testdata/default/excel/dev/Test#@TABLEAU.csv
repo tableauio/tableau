@@ -2,5 +2,5 @@ Sheet,Alias,Nameline,Typeline,Datarow,Nested,OrderedMap,Sep,AdjacentKey,FieldPre
 Activity,,1,1,4,,true,",",,
 Reward,,1,1,4,,,,,
 Exchange,ExchangeInfo,2,2,4,,,,,
-Match,MatchConf,1,1,4,true,,,,true
+Match,MatchConf,1,1,4,true,,,,
 Loader,,1,1,5,true,,,true,

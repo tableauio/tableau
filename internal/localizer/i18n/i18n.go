@@ -14,7 +14,8 @@ import (
 
 // FuncMap contains the custom template functions used for rendering i18n templates.
 var FuncMap = template.FuncMap{
-	"quote": strconv.Quote,
+	"quote":    strconv.Quote,
+	"quoteAny": func(v any) string { return strconv.Quote(fmt.Sprint(v)) },
 }
 
 // TODO: learn more about Internationalization (i18n) and Localization (l10n)
