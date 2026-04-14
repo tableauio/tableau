@@ -106,7 +106,7 @@ func TestCollector_FailFast(t *testing.T) {
 func TestChild_CountPropagation(t *testing.T) {
 	const max = 3
 	root := NewCollector(max)
-	child := root.NewChild(0) // unlimited
+	child := root.NewChild(0, nil) // unlimited
 
 	for i := range max - 1 {
 		assert.NoError(t, child.Collect(fmt.Errorf("err %d", i)))
@@ -120,7 +120,7 @@ func TestChild_CountPropagation(t *testing.T) {
 // Child with its own maxErrs becomes full independently of root.
 func TestChild_OwnLimit(t *testing.T) {
 	root := NewCollector(10)
-	child := root.NewChild(2)
+	child := root.NewChild(2, nil)
 
 	child.Collect(fmt.Errorf("err 1"))
 	assert.False(t, child.IsFull())
@@ -133,7 +133,7 @@ func TestChild_OwnLimit(t *testing.T) {
 // Child with maxErrs=1 is fail-fast at its own level.
 func TestChild_FailFast(t *testing.T) {
 	root := NewCollector(10)
-	child := root.NewChild(1)
+	child := root.NewChild(1, nil)
 
 	assert.Error(t, child.Collect(fmt.Errorf("first")))
 	assert.True(t, child.IsFull())
@@ -143,7 +143,7 @@ func TestChild_FailFast(t *testing.T) {
 // IsFull on a child returns true when a parent is full.
 func TestChild_IsFullRespectsAncestors(t *testing.T) {
 	root := NewCollector(2)
-	child := root.NewChild(0) // unlimited
+	child := root.NewChild(0, nil) // unlimited
 
 	root.Collect(fmt.Errorf("root err 1"))
 	root.Collect(fmt.Errorf("root err 2"))
@@ -155,8 +155,8 @@ func TestChild_IsFullRespectsAncestors(t *testing.T) {
 // Multiple children share the root's counter.
 func TestChild_MultipleShareRootCounter(t *testing.T) {
 	root := NewCollector(4)
-	c1 := root.NewChild(0)
-	c2 := root.NewChild(0)
+	c1 := root.NewChild(0, nil)
+	c2 := root.NewChild(0, nil)
 
 	c1.Collect(fmt.Errorf("c1 err 1"))
 	c1.Collect(fmt.Errorf("c1 err 2"))
@@ -173,7 +173,7 @@ func TestChild_MultipleShareRootCounter(t *testing.T) {
 // child.Collect(nil) is a no-op.
 func TestChild_NilError(t *testing.T) {
 	root := NewCollector(3)
-	child := root.NewChild(0)
+	child := root.NewChild(0, nil)
 
 	assert.NoError(t, child.Collect(nil))
 	assert.False(t, root.IsFull())
@@ -190,7 +190,7 @@ func TestChild_Concurrent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			child := root.NewChild(0)
+			child := root.NewChild(0, nil)
 			for i := range 5 {
 				child.Collect(fmt.Errorf("g%d err %d", g, i))
 			}
@@ -208,8 +208,8 @@ func TestChild_Concurrent(t *testing.T) {
 // Join recursively includes children's errors.
 func TestTree_JoinIncludesChildren(t *testing.T) {
 	root := NewCollector(0)
-	c1 := root.NewChild(0)
-	c2 := root.NewChild(0)
+	c1 := root.NewChild(0, nil)
+	c2 := root.NewChild(0, nil)
 
 	c1.Collect(fmt.Errorf("c1 err"))
 	c2.Collect(fmt.Errorf("c2 err"))
@@ -221,8 +221,8 @@ func TestTree_JoinIncludesChildren(t *testing.T) {
 func TestTree_GrandchildCountPropagation(t *testing.T) {
 	const max = 3
 	root := NewCollector(max)
-	child := root.NewChild(0)
-	gc := child.NewChild(0)
+	child := root.NewChild(0, nil)
+	gc := child.NewChild(0, nil)
 
 	for i := range max - 1 {
 		assert.NoError(t, gc.Collect(fmt.Errorf("gc err %d", i)))
@@ -243,7 +243,7 @@ func TestTree_GrandchildCountPropagation(t *testing.T) {
 // Child becomes full before root (child.maxErrs < root.maxErrs).
 func TestTree_ChildFullBeforeRoot(t *testing.T) {
 	root := NewCollector(10)
-	child := root.NewChild(3)
+	child := root.NewChild(3, nil)
 
 	child.Collect(fmt.Errorf("err 1"))
 	child.Collect(fmt.Errorf("err 2"))
@@ -257,8 +257,8 @@ func TestTree_ChildFullBeforeRoot(t *testing.T) {
 // Root becomes full before children (root.maxErrs < child.maxErrs).
 func TestTree_RootFullBeforeChildren(t *testing.T) {
 	root := NewCollector(3)
-	c1 := root.NewChild(5)
-	c2 := root.NewChild(5)
+	c1 := root.NewChild(5, nil)
+	c2 := root.NewChild(5, nil)
 
 	c1.Collect(fmt.Errorf("c1 err 1"))
 	c1.Collect(fmt.Errorf("c1 err 2"))
@@ -274,8 +274,8 @@ func TestTree_RootFullBeforeChildren(t *testing.T) {
 // IsFull walks UP (ancestors), not DOWN (children).
 func TestTree_IsFullDoesNotWalkDown(t *testing.T) {
 	root := NewCollector(100)
-	child := root.NewChild(10)
-	gc := child.NewChild(2)
+	child := root.NewChild(10, nil)
+	gc := child.NewChild(2, nil)
 
 	gc.Collect(fmt.Errorf("err 1"))
 	gc.Collect(fmt.Errorf("err 2"))
@@ -289,9 +289,9 @@ func TestTree_IsFullDoesNotWalkDown(t *testing.T) {
 // 4-level deep tree with per-level limits.
 func TestTree_DeepHierarchy(t *testing.T) {
 	root := NewCollector(100)
-	l1 := root.NewChild(50)
-	l2 := l1.NewChild(10)
-	l3 := l2.NewChild(3)
+	l1 := root.NewChild(50, nil)
+	l2 := l1.NewChild(10, nil)
+	l3 := l2.NewChild(3, nil)
 
 	for i := range 3 {
 		l3.Collect(fmt.Errorf("deep err %d", i))
@@ -307,8 +307,8 @@ func TestTree_DeepHierarchy(t *testing.T) {
 // Mid-level limit stops its subtree while siblings continue.
 func TestTree_MidLevelLimitStopsSubtree(t *testing.T) {
 	root := NewCollector(100)
-	left := root.NewChild(2)  // tight limit
-	right := root.NewChild(0) // unlimited
+	left := root.NewChild(2, nil)  // tight limit
+	right := root.NewChild(0, nil) // unlimited
 
 	left.Collect(fmt.Errorf("left 1"))
 	assert.Error(t, left.Collect(fmt.Errorf("left 2")))
@@ -322,10 +322,10 @@ func TestTree_MidLevelLimitStopsSubtree(t *testing.T) {
 // Multiple grandchildren under different children all share root counter.
 func TestTree_GrandchildrenShareRootCounter(t *testing.T) {
 	root := NewCollector(4)
-	c1 := root.NewChild(0)
-	c2 := root.NewChild(0)
-	gc1 := c1.NewChild(0)
-	gc2 := c2.NewChild(0)
+	c1 := root.NewChild(0, nil)
+	c2 := root.NewChild(0, nil)
+	gc1 := c1.NewChild(0, nil)
+	gc2 := c2.NewChild(0, nil)
 
 	gc1.Collect(fmt.Errorf("gc1 err 1"))
 	gc1.Collect(fmt.Errorf("gc1 err 2"))
@@ -337,8 +337,8 @@ func TestTree_GrandchildrenShareRootCounter(t *testing.T) {
 // Join on a mid-level node returns only its subtree, not siblings.
 func TestTree_JoinReturnsOnlySubtree(t *testing.T) {
 	root := NewCollector(0)
-	c1 := root.NewChild(0)
-	c2 := root.NewChild(0)
+	c1 := root.NewChild(0, nil)
+	c2 := root.NewChild(0, nil)
 
 	c1.Collect(fmt.Errorf("c1 err"))
 	c2.Collect(fmt.Errorf("c2 err"))
@@ -353,10 +353,10 @@ func TestTree_JoinReturnsOnlySubtree(t *testing.T) {
 // Simulates the table parser pattern: root → rowChild → fieldChild.
 func TestTree_ParserPattern(t *testing.T) {
 	root := NewCollector(10)
-	rowChild := root.NewChild(0)
+	rowChild := root.NewChild(0, nil)
 
 	for row := range 2 {
-		fc := rowChild.NewChild(0)
+		fc := rowChild.NewChild(0, nil)
 		for f := range 2 {
 			fc.Collect(fmt.Errorf("row%d field%d err", row, f))
 		}
@@ -370,13 +370,13 @@ func TestTree_ParserPattern(t *testing.T) {
 // No double-counting: each error is Collect'd once at the leaf.
 func TestTree_NoDoubleCount(t *testing.T) {
 	root := NewCollector(3)
-	row := root.NewChild(0)
+	row := root.NewChild(0, nil)
 
-	fc1 := row.NewChild(0)
+	fc1 := row.NewChild(0, nil)
 	fc1.Collect(fmt.Errorf("r1 f1"))
 	fc1.Collect(fmt.Errorf("r1 f2"))
 
-	fc2 := row.NewChild(0)
+	fc2 := row.NewChild(0, nil)
 	assert.Error(t, fc2.Collect(fmt.Errorf("r2 f1")), "3rd error hits root limit")
 	assert.True(t, root.IsFull())
 }
@@ -384,8 +384,8 @@ func TestTree_NoDoubleCount(t *testing.T) {
 // Join returns nil when all children are empty.
 func TestTree_JoinEmptyChildren(t *testing.T) {
 	root := NewCollector(10)
-	_ = root.NewChild(0)
-	_ = root.NewChild(0)
+	_ = root.NewChild(0, nil)
+	_ = root.NewChild(0, nil)
 	assert.NoError(t, root.Join())
 }
 
@@ -394,7 +394,7 @@ func TestTree_MixedOwnAndChildErrors(t *testing.T) {
 	root := NewCollector(0)
 	root.Collect(fmt.Errorf("root own"))
 
-	child := root.NewChild(0)
+	child := root.NewChild(0, nil)
 	child.Collect(fmt.Errorf("child err"))
 
 	assert.Equal(t, 2, countJoinedErrors(root.Join()))
@@ -403,7 +403,7 @@ func TestTree_MixedOwnAndChildErrors(t *testing.T) {
 // Overflow: errors beyond the collector's own limit are counted but not stored.
 func TestTree_OverflowNotStored(t *testing.T) {
 	root := NewCollector(10)
-	child := root.NewChild(2) // child stores at most 2
+	child := root.NewChild(2, nil) // child stores at most 2
 
 	child.Collect(fmt.Errorf("err 1"))
 	child.Collect(fmt.Errorf("err 2"))
@@ -414,6 +414,96 @@ func TestTree_OverflowNotStored(t *testing.T) {
 	assert.Equal(t, 2, countJoinedErrors(child.Join()))
 	// Root counter reflects all 4.
 	assert.False(t, root.IsFull(), "root should not be full (4 < 10)")
+}
+
+// Parent limit caps child storage: child has a large limit but parent's
+// smaller limit prevents storing more errors than the parent allows.
+func TestTree_ParentLimitCapsChildStorage(t *testing.T) {
+	root := NewCollector(3)
+	child := root.NewChild(10, nil) // child limit is large, but root limit is 3
+
+	for i := 1; i <= 5; i++ {
+		child.Collect(fmt.Errorf("err %d", i))
+	}
+
+	assert.True(t, root.IsFull())
+	// Only 3 errors stored (capped by root limit), not 5.
+	assert.Equal(t, 3, countJoinedErrors(child.Join()))
+}
+
+// Grandparent limit caps grandchild storage across 3 levels.
+func TestTree_GrandparentLimitCapsGrandchild(t *testing.T) {
+	root := NewCollector(4)
+	mid := root.NewChild(10, nil)
+	leaf := mid.NewChild(10, nil)
+
+	for i := 1; i <= 6; i++ {
+		leaf.Collect(fmt.Errorf("err %d", i))
+	}
+
+	assert.True(t, root.IsFull())
+	// Only 4 errors stored (capped by root limit).
+	assert.Equal(t, 4, countJoinedErrors(leaf.Join()))
+}
+
+// Multiple children share parent's storage budget: once the parent limit
+// is reached, subsequent children cannot store more errors.
+func TestTree_SiblingsShareParentStorageBudget(t *testing.T) {
+	root := NewCollector(5)
+	c1 := root.NewChild(10, nil)
+	c2 := root.NewChild(10, nil)
+
+	// c1 stores 3 errors.
+	for i := 1; i <= 3; i++ {
+		c1.Collect(fmt.Errorf("c1 err %d", i))
+	}
+	assert.False(t, root.IsFull())
+
+	// c2 can only store 2 more before root is full.
+	for i := 1; i <= 4; i++ {
+		c2.Collect(fmt.Errorf("c2 err %d", i))
+	}
+	assert.True(t, root.IsFull())
+
+	// c1 stored 3, c2 stored only 2 (root budget exhausted).
+	assert.Equal(t, 3, countJoinedErrors(c1.Join()))
+	assert.Equal(t, 2, countJoinedErrors(c2.Join()))
+	// root.Join() = c1.Join() + c2.Join() = 2 children joins.
+	assert.Equal(t, 2, countJoinedErrors(root.Join()))
+}
+
+// Mid-level limit caps its subtree while root has plenty of budget.
+func TestTree_MidLevelLimitCapsSubtree(t *testing.T) {
+	root := NewCollector(100)
+	mid := root.NewChild(3, nil) // tight mid-level limit
+	leaf := mid.NewChild(10, nil)
+
+	for i := 1; i <= 5; i++ {
+		leaf.Collect(fmt.Errorf("err %d", i))
+	}
+
+	assert.True(t, mid.IsFull())
+	assert.False(t, root.IsFull())
+	// Only 3 errors stored (capped by mid-level limit).
+	assert.Equal(t, 3, countJoinedErrors(leaf.Join()))
+}
+
+// 4-level hierarchy: the tightest ancestor limit controls storage.
+func TestTree_FourLevelTightestAncestorWins(t *testing.T) {
+	root := NewCollector(100)
+	l1 := root.NewChild(50, nil)
+	l2 := l1.NewChild(4, nil) // tightest limit
+	l3 := l2.NewChild(20, nil)
+
+	for i := 1; i <= 8; i++ {
+		l3.Collect(fmt.Errorf("err %d", i))
+	}
+
+	assert.True(t, l2.IsFull())
+	assert.False(t, l1.IsFull())
+	assert.False(t, root.IsFull())
+	// Only 4 errors stored (capped by l2's limit, the tightest ancestor).
+	assert.Equal(t, 4, countJoinedErrors(l3.Join()))
 }
 
 // ---------------------------------------------------------------------------
@@ -491,7 +581,7 @@ func TestGroup_ConcurrentFull(t *testing.T) {
 // Group backed by a child collector in a hierarchy.
 func TestGroup_WithChildCollector(t *testing.T) {
 	root := NewCollector(5)
-	child := root.NewChild(0)
+	child := root.NewChild(0, nil)
 	g := child.NewGroup(context.Background())
 
 	for i := range 3 {
@@ -509,7 +599,7 @@ func TestGroup_WithChildCollector(t *testing.T) {
 // Group backed by a child; root becomes full via child's Group.
 func TestGroup_ChildFullHitsRoot(t *testing.T) {
 	root := NewCollector(3)
-	child := root.NewChild(0)
+	child := root.NewChild(0, nil)
 	g := child.NewGroup(context.Background())
 
 	for i := range 5 {
@@ -652,15 +742,15 @@ func TestCollected_ErrorsIsWorksThrough(t *testing.T) {
 // fieldChild.Collect(), which skips it. Parent's Join() includes both via
 // tree auto-join.
 //
-//   root
-//   └── docChild
-//       ├── outerChild  (skips innerJoined)
-//       └── innerChild  (has "inner err 1", "inner err 2")
+//	root
+//	└── docChild
+//	    ├── outerChild  (skips innerJoined)
+//	    └── innerChild  (has "inner err 1", "inner err 2")
 func TestCollected_CrossSubtreeCollection(t *testing.T) {
 	root := NewCollector(10)
-	docChild := root.NewChild(0)
-	outerChild := docChild.NewChild(0)
-	innerChild := docChild.NewChild(0)
+	docChild := root.NewChild(0, nil)
+	outerChild := docChild.NewChild(0, nil)
+	innerChild := docChild.NewChild(0, nil)
 
 	innerChild.Collect(fmt.Errorf("inner err 1"))
 	innerChild.Collect(fmt.Errorf("inner err 2"))
@@ -684,7 +774,7 @@ func TestCollected_CrossSubtreeCollection(t *testing.T) {
 // Tree auto-join: child errors appear in root.Join() via tree traversal.
 func TestCollected_TreeAutoJoinStillWorks(t *testing.T) {
 	root := NewCollector(10)
-	child := root.NewChild(0)
+	child := root.NewChild(0, nil)
 
 	child.Collect(fmt.Errorf("err 1"))
 	child.Collect(fmt.Errorf("err 2"))
@@ -713,15 +803,15 @@ func TestHasErrors_WithOwnErrors(t *testing.T) {
 
 func TestHasErrors_EmptyWithEmptyChildren(t *testing.T) {
 	root := NewCollector(10)
-	_ = root.NewChild(0)
-	_ = root.NewChild(0)
+	_ = root.NewChild(0, nil)
+	_ = root.NewChild(0, nil)
 	assert.False(t, root.HasErrors())
 }
 
 // HasErrors detects errors in children via counter propagation.
 func TestHasErrors_ErrorInChild(t *testing.T) {
 	root := NewCollector(10)
-	child := root.NewChild(0)
+	child := root.NewChild(0, nil)
 	child.Collect(fmt.Errorf("child err"))
 
 	assert.True(t, root.HasErrors())
@@ -730,8 +820,8 @@ func TestHasErrors_ErrorInChild(t *testing.T) {
 // HasErrors detects errors in grandchildren.
 func TestHasErrors_ErrorInGrandchild(t *testing.T) {
 	root := NewCollector(10)
-	child := root.NewChild(0)
-	gc := child.NewChild(0)
+	child := root.NewChild(0, nil)
+	gc := child.NewChild(0, nil)
 	gc.Collect(fmt.Errorf("deep err"))
 
 	assert.True(t, root.HasErrors())

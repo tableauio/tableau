@@ -1,0 +1,15 @@
+ShopID,Price
+uint32,int32
+Shop's ID,Goods's price
+b1,100
+b2,200
+b3,300
+b4,400
+b5,500
+b6,600
+b7,700
+b8,800
+b9,900
+b10,1000
+b11,1100
+b12,1200

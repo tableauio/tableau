@@ -15,6 +15,13 @@ import (
 // Collectors form a hierarchy via [Collector.NewChild]. Collect increments
 // counters on self and every ancestor; IsFull checks self and all ancestors;
 // Join recursively merges own errors with children's.
+//
+// An optional set of key-value pairs (kvPairs) can be attached when creating
+// a child via [Collector.NewChild]. These pairs are carried by the
+// [collected] marker returned from [Collector.Join] (which implements
+// [fieldsCarrier]), so [NewDesc] naturally extracts them while walking the
+// error chain and propagates them to every leaf error through
+// mergeOuterFields. Callers do not need to manually call [WrapKV].
 type Collector struct {
 	mu       sync.Mutex
 	errs     []error
@@ -22,6 +29,7 @@ type Collector struct {
 	counter  atomic.Int32
 	maxErrs  int32
 	parent   *Collector
+	kvPairs  []any // auto-wrapped onto each collected error
 }
 
 // NewCollector creates a root Collector.
@@ -33,10 +41,17 @@ func NewCollector(maxErrs int) *Collector {
 // NewChild creates a child collector with its own limit, registered under
 // the receiver. Collect on the child increments counters up to the root.
 // maxErrs semantics are the same as [NewCollector].
-func (c *Collector) NewChild(maxErrs int) *Collector {
+//
+// Optional kvPairs are carried by the [collected] marker returned from
+// [Collector.Join] on the returned child. Because [collected] implements
+// [fieldsCarrier], [NewDesc] naturally extracts these fields while walking
+// the error chain and propagates them to every leaf error through
+// mergeOuterFields. The caller does not need to wrap errors manually.
+func (c *Collector) NewChild(maxErrs int, kvPairs ...any) *Collector {
 	child := &Collector{
 		maxErrs: normalizeMax(maxErrs),
 		parent:  c,
+		kvPairs: kvPairs,
 	}
 	c.mu.Lock()
 	c.children = append(c.children, child)
@@ -76,7 +91,17 @@ func (c *Collector) Collect(err error) error {
 		}
 	}
 
-	if c.counter.Load() <= c.maxErrs {
+	// Store the error only if no collector in the ancestor chain has
+	// exceeded its limit. This ensures that the total number of stored
+	// errors in any subtree never exceeds the ancestor's limit.
+	store := true
+	for cur := c; cur != nil; cur = cur.parent {
+		if cur.counter.Load() > cur.maxErrs {
+			store = false
+			break
+		}
+	}
+	if store {
 		c.mu.Lock()
 		c.errs = append(c.errs, err)
 		c.mu.Unlock()
@@ -122,24 +147,29 @@ func (c *Collector) Join() error {
 	}
 	for _, kid := range kids {
 		if joined := kid.Join(); joined != nil {
-			// Unwrap collected marker from child joins to avoid nesting.
-			var ce *collected
-			if errors.As(joined, &ce) {
-				nonNil = append(nonNil, ce.error)
-			} else {
-				nonNil = append(nonNil, joined)
-			}
+			nonNil = append(nonNil, joined)
 		}
 	}
 	if len(nonNil) == 0 {
 		return nil
 	}
-	return &collected{&joinError{errs: nonNil, stack: callers(1)}}
+	return &collected{
+		error:   &joinError{errs: nonNil, stack: callers(1)},
+		kvPairs: c.kvPairs,
+	}
 }
 
 // collected marks an error as already stored in the collector tree.
 // Transparent: Error(), Unwrap(), and Format() delegate to the inner error.
-type collected struct{ error }
+//
+// It optionally carries key-value pairs inherited from the owning
+// [Collector]. Because it implements [fieldsCarrier], [NewDesc] extracts
+// these fields while walking the error chain and propagates them to every
+// leaf error through mergeOuterFields — no extra [WrapKV] layer needed.
+type collected struct {
+	error
+	kvPairs []any // inherited from Collector; may be nil
+}
 
 func (c *collected) Error() string { return c.error.Error() }
 func (c *collected) Unwrap() error { return c.error }
@@ -149,6 +179,21 @@ func (c *collected) Format(s fmt.State, verb rune) {
 	} else {
 		_, _ = fmt.Fprintf(s, "%"+string(verb), c.error)
 	}
+}
+
+// Fields implements fieldsCarrier so that [NewDesc] can extract the
+// collector-level key-value pairs while traversing the error chain.
+func (c *collected) Fields() map[string]any {
+	if len(c.kvPairs) == 0 {
+		return nil
+	}
+	m := make(map[string]any, len(c.kvPairs)/2)
+	for i := 0; i+1 < len(c.kvPairs); i += 2 {
+		if k, ok := c.kvPairs[i].(string); ok {
+			m[k] = c.kvPairs[i+1]
+		}
+	}
+	return m
 }
 
 // Group ties an [errgroup.Group] to a Collector for concurrent error collection.

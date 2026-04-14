@@ -224,10 +224,19 @@ func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, 
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	parser := NewExtendedSheetParser(context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
-	parser.sheetCollector = collector.NewChild(maxErrorsPerSheet)
+	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
+	parser.sheetCollector = collector.NewChild(maxErrorsPerSheet,
+		xerrors.KeyModule, xerrors.ModuleConf,
+		xerrors.KeyBookName, bookName,
+		xerrors.KeySheetName, sheetName,
+	)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
-		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
+		return nil, xerrors.WrapKV(err,
+			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeyBookName, bookName,
+			xerrors.KeySheetName, sheetName,
+			xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	return protomsg, nil
 }
