@@ -237,7 +237,6 @@ NameCell: Attack
 TypeCellPos: B2
 TypeCell: UnknownType
 Reason: unknown type reference
-
 `
 	assert.Equal(t, want, got)
 }
@@ -282,7 +281,6 @@ TypeCellPos: B2
 TypeCell: int32
 Reason: field1 error
 
-
 [2] 
 Workbook: Hero.csv 
 Worksheet: HeroConf 
@@ -291,7 +289,6 @@ NameCell: Defense
 TypeCellPos: C2
 TypeCell: string
 Reason: field2 error
-
 `
 	assert.Equal(t, want, got)
 }
@@ -375,7 +372,6 @@ NameCell: Attack
 TypeCellPos: B2
 TypeCell: int32
 Reason: invalid integer
-
 
 [3] error[E0003]: duplicate column name
 Workbook: Hero.csv 

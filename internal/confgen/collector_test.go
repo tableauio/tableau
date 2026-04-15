@@ -270,7 +270,6 @@ Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc
 Reason: invalid integer value
-
 `
 	assert.Equal(t, want, got)
 }
@@ -309,14 +308,12 @@ DataCellPos: C3
 DataCell: abc
 Reason: field1 error
 
-
 [2] 
 Workbook: Items.xlsx 
 Worksheet: ItemConf 
 DataCellPos: D3
 DataCell: def
 Reason: field2 error
-
 `
 	assert.Equal(t, want, got)
 }
@@ -390,7 +387,6 @@ Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc
 Reason: invalid integer
-
 
 [3] error[E2000]: integer overflow
 Workbook: Items.xlsx 

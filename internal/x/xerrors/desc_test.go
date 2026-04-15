@@ -262,7 +262,6 @@ Worksheet: <no value>
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: inner error
-
 `
 	assert.Equal(t, want, d.ErrString(false))
 }
