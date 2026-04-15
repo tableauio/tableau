@@ -1,6 +1,7 @@
 package protogen
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,6 +96,43 @@ func TestCollectorIntegration_MultiBook(t *testing.T) {
 	assert.Contains(t, got, e0003("Collector#*.csv", "ItemConf", "B1", "ID", "B2", "uint32", "A1", "B1"))
 	assert.Contains(t, got, e0003("Collector#*.csv", "SkillConf", "C1", "Name", "C2", "string", "B1", "C1"))
 	assert.Contains(t, got, e0003("Collector2#*.csv", "HeroConf", "C1", "Level", "C2", "int32", "B1", "C1"))
+	// Verify total error count is exactly 3.
+	assert.Equal(t, 3, strings.Count(got, "error[E0003]"))
+}
+
+// TestCollectorIntegration_MultiBookCapped tests that the global-level
+// collector caps total errors across multiple workbooks.
+//
+// Two workbooks (Collector and Collector2) each have 6 sheets with 1 error each.
+//   - Collector/Sheet1..Sheet6: each has 1 duplicate column name -> E0003
+//   - Collector2/Sheet1..Sheet6: each has 1 duplicate column name -> E0003
+//
+// Limits: global(10) -> book(5)
+// Each book caps at 5, so both books together produce exactly 10 errors,
+// which hits the global cap.
+// NOTE: workbook processing order is non-deterministic (concurrent), so we
+// verify each error is present and total count rather than asserting exact order.
+func TestCollectorIntegration_MultiBookCapped(t *testing.T) {
+	gen := newCollectorTestGenerator("./testdata/collector/csv/overflow/")
+	err := gen.Generate()
+	require.Error(t, err)
+
+	got := err.Error()
+	t.Logf("got error string:\n%s", got)
+	// Collector: first 5 sheets capped (Sheet6 is dropped).
+	assert.Contains(t, got, e0003("Collector#*.csv", "Sheet1", "B1", "ID", "B2", "uint32", "A1", "B1"))
+	assert.Contains(t, got, e0003("Collector#*.csv", "Sheet2", "C1", "Name", "C2", "string", "B1", "C1"))
+	assert.Contains(t, got, e0003("Collector#*.csv", "Sheet3", "C1", "Value", "C2", "int32", "B1", "C1"))
+	assert.Contains(t, got, e0003("Collector#*.csv", "Sheet4", "C1", "Type", "C2", "int32", "B1", "C1"))
+	assert.Contains(t, got, e0003("Collector#*.csv", "Sheet5", "C1", "Level", "C2", "int32", "B1", "C1"))
+	// Collector2: first 5 sheets capped (Sheet6 is dropped).
+	assert.Contains(t, got, e0003("Collector2#*.csv", "Sheet1", "B1", "HeroID", "B2", "uint32", "A1", "B1"))
+	assert.Contains(t, got, e0003("Collector2#*.csv", "Sheet2", "C1", "Rank", "C2", "int32", "B1", "C1"))
+	assert.Contains(t, got, e0003("Collector2#*.csv", "Sheet3", "C1", "Power", "C2", "int32", "B1", "C1"))
+	assert.Contains(t, got, e0003("Collector2#*.csv", "Sheet4", "C1", "Speed", "C2", "int32", "B1", "C1"))
+	assert.Contains(t, got, e0003("Collector2#*.csv", "Sheet5", "C1", "Armor", "C2", "int32", "B1", "C1"))
+	// Verify total error count is exactly 10 (global cap).
+	assert.Equal(t, 10, strings.Count(got, "error[E0003]"))
 }
 
 // TestCollectorIntegration_BookLevelCapped tests that the book-level

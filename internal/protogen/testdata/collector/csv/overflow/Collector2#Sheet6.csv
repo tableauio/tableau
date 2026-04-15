@@ -1,0 +1,4 @@
+HeroID,Magic,Magic
+uint32,int32,int32
+HeroID,Magic (dup),Magic
+1,30,30

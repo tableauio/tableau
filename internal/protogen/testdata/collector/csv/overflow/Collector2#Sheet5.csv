@@ -1,0 +1,4 @@
+HeroID,Armor,Armor
+uint32,int32,int32
+HeroID,Armor (dup),Armor
+1,50,50

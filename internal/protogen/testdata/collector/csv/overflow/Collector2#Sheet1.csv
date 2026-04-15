@@ -1,0 +1,4 @@
+HeroID,HeroID,Exp
+uint32,uint32,int32
+HeroID (dup),HeroID,Exp
+1,1,100
