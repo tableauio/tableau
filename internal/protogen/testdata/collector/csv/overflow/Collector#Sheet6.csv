@@ -1,0 +1,4 @@
+ID,Score,Score
+uint32,int32,int32
+ID,Score (dup),Score
+1,100,100
