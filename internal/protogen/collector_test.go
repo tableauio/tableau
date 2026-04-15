@@ -15,9 +15,9 @@ func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 	// protogen uses: global(10) -> book(5)
 	// We simulate a deeper hierarchy: global -> book -> sheet -> message.
 	global := xerrors.NewCollector(maxParseErrors)
-	book := global.NewChild(maxErrorsPerBook, nil)
-	sheet := book.NewChild(3, nil) // sheet-level limit
-	msg := sheet.NewChild(2, nil)  // message-level limit
+	book := global.NewChild(maxErrorsPerBook)
+	sheet := book.NewChild(3) // sheet-level limit
+	msg := sheet.NewChild(2)  // message-level limit
 
 	// Simulate 2 field-level errors in one message parse.
 	msg.Collect(fmt.Errorf("field ID: invalid type uint32"))
@@ -42,12 +42,12 @@ func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 // accumulate at the sheet level in protogen.
 func TestCollectorHierarchy_SheetLevel(t *testing.T) {
 	global := xerrors.NewCollector(maxParseErrors)
-	book := global.NewChild(maxErrorsPerBook, nil)
-	sheet := book.NewChild(5, nil)
+	book := global.NewChild(maxErrorsPerBook)
+	sheet := book.NewChild(5)
 
 	// Simulate 3 field-level errors across different messages.
 	for i := 1; i <= 3; i++ {
-		msg := sheet.NewChild(2, nil)
+		msg := sheet.NewChild(2)
 		msg.Collect(fmt.Errorf("field%d: parse error", i))
 	}
 
@@ -66,11 +66,11 @@ func TestCollectorHierarchy_SheetLevel(t *testing.T) {
 // accumulate at the book level in protogen.
 func TestCollectorHierarchy_BookLevel(t *testing.T) {
 	global := xerrors.NewCollector(maxParseErrors)
-	book := global.NewChild(maxErrorsPerBook, nil)
+	book := global.NewChild(maxErrorsPerBook)
 
 	// Simulate 2 sheets, each with 2 errors.
 	for s := 1; s <= 2; s++ {
-		sheet := book.NewChild(5, nil)
+		sheet := book.NewChild(5)
 		for r := 1; r <= 2; r++ {
 			sheet.Collect(fmt.Errorf("sheet%d_field%d: error", s, r))
 		}
@@ -93,11 +93,11 @@ func TestCollectorHierarchy_BookLevel(t *testing.T) {
 // across all child sheets are capped by the book limit.
 func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
 	global := xerrors.NewCollector(maxParseErrors)
-	book := global.NewChild(maxErrorsPerBook, nil) // limit = 5
+	book := global.NewChild(maxErrorsPerBook) // limit = 5
 
 	// Simulate 3 sheets, each with 2 errors = 6 total (exceeds book limit of 5).
 	for s := 1; s <= 3; s++ {
-		sheet := book.NewChild(10, nil)
+		sheet := book.NewChild(10)
 		for r := 1; r <= 2; r++ {
 			sheet.Collect(fmt.Errorf("sheet%d_field%d: error", s, r))
 		}
@@ -126,8 +126,8 @@ func TestCollectorHierarchy_GlobalLevel(t *testing.T) {
 
 	// Simulate 3 books, each with 1 sheet, each with 1 error.
 	for b := 1; b <= 3; b++ {
-		book := global.NewChild(maxErrorsPerBook, nil)
-		sheet := book.NewChild(5, nil)
+		book := global.NewChild(maxErrorsPerBook)
+		sheet := book.NewChild(5)
 		sheet.Collect(fmt.Errorf("book%d: schema error", b))
 	}
 
@@ -149,8 +149,8 @@ func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
 
 	// Simulate 4 books, each with 1 sheet, each with 3 errors = 12 total.
 	for b := 1; b <= 4; b++ {
-		book := global.NewChild(maxErrorsPerBook, nil)
-		sheet := book.NewChild(10, nil)
+		book := global.NewChild(maxErrorsPerBook)
+		sheet := book.NewChild(10)
 		for r := 1; r <= 3; r++ {
 			sheet.Collect(fmt.Errorf("book%d_field%d: error", b, r))
 		}
@@ -184,9 +184,9 @@ func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
 // rendered error text with exact string comparison.
 func TestCollectorHierarchy_FourLevelRenderedText(t *testing.T) {
 	global := xerrors.NewCollector(10)
-	book := global.NewChild(5, nil)
-	sheet := book.NewChild(3, nil)
-	msg := sheet.NewChild(2, nil)
+	book := global.NewChild(5)
+	sheet := book.NewChild(3)
+	msg := sheet.NewChild(2)
 
 	// Message level: 2 field errors.
 	msg.Collect(fmt.Errorf("field_x: bad type"))
@@ -211,9 +211,9 @@ func TestCollectorHierarchy_FourLevelRenderedText(t *testing.T) {
 // with NewKV structured errors that render via the protogen template.
 func TestCollectorHierarchy_StructuredErrors_NewKV(t *testing.T) {
 	global := xerrors.NewCollector(10)
-	book := global.NewChild(5, nil)
-	sheet := book.NewChild(3, nil)
-	msg := sheet.NewChild(2, nil)
+	book := global.NewChild(5)
+	sheet := book.NewChild(3)
+	msg := sheet.NewChild(2)
 
 	// Simulate a protogen-style structured error at message level.
 	msg.Collect(xerrors.NewKV("unknown type reference",
@@ -246,9 +246,9 @@ Reason: unknown type reference
 // a plain error with structured fields that render via the protogen template.
 func TestCollectorHierarchy_StructuredErrors_WrapKV(t *testing.T) {
 	global := xerrors.NewCollector(10)
-	book := global.NewChild(5, nil)
-	sheet := book.NewChild(3, nil)
-	msg := sheet.NewChild(3, nil)
+	book := global.NewChild(5)
+	sheet := book.NewChild(3)
+	msg := sheet.NewChild(3)
 
 	// Collect 2 NewKV errors at message level.
 	msg.Collect(xerrors.NewKV("field1 error",
@@ -300,8 +300,8 @@ Reason: field2 error
 // a concrete ecode error (E0003) with protogen-style structured fields.
 func TestCollectorHierarchy_StructuredErrors_WrapKV_Ecode(t *testing.T) {
 	global := xerrors.NewCollector(10)
-	book := global.NewChild(5, nil)
-	sheet := book.NewChild(3, nil)
+	book := global.NewChild(5)
+	sheet := book.NewChild(3)
 
 	// E0003: duplicate column name
 	sheet.Collect(xerrors.WrapKV(xerrors.E0003("ID", "A1", "B1"),
@@ -334,9 +334,9 @@ Help: rename column name and keep sure it is unique in name row
 // errors collected at different levels.
 func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	global := xerrors.NewCollector(10)
-	book := global.NewChild(5, nil)
-	sheet := book.NewChild(5, nil)
-	msg := sheet.NewChild(3, nil)
+	book := global.NewChild(5)
+	sheet := book.NewChild(5)
+	msg := sheet.NewChild(3)
 
 	// Message level: 1 NewKV + 1 WrapKV(ecode).
 	msg.Collect(xerrors.NewKV("invalid integer",
@@ -394,16 +394,16 @@ Help: rename column name and keep sure it is unique in name row
 // mid-level (book) collector is full, sibling sheets detect it.
 func TestCollectorHierarchy_MidLevelFullStopsSibling(t *testing.T) {
 	global := xerrors.NewCollector(100)
-	book := global.NewChild(3, nil) // tight book limit
+	book := global.NewChild(3) // tight book limit
 
 	// Sheet1: 2 errors.
-	sheet1 := book.NewChild(10, nil)
+	sheet1 := book.NewChild(10)
 	sheet1.Collect(fmt.Errorf("sheet1: err1"))
 	sheet1.Collect(fmt.Errorf("sheet1: err2"))
 	assert.False(t, book.IsFull())
 
 	// Sheet2: 1 error triggers book full.
-	sheet2 := book.NewChild(10, nil)
+	sheet2 := book.NewChild(10)
 	err := sheet2.Collect(fmt.Errorf("sheet2: err1"))
 	require.Error(t, err)
 	assert.True(t, book.IsFull())
@@ -424,8 +424,8 @@ func TestCollectorHierarchy_MidLevelFullStopsSibling(t *testing.T) {
 // produce a numbered list in the output.
 func TestCollectorHierarchy_NumberedListOutput(t *testing.T) {
 	global := xerrors.NewCollector(10)
-	book := global.NewChild(10, nil)
-	sheet := book.NewChild(10, nil)
+	book := global.NewChild(10)
+	sheet := book.NewChild(10)
 
 	sheet.Collect(fmt.Errorf("error one"))
 	sheet.Collect(fmt.Errorf("error two"))

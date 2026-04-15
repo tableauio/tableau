@@ -158,6 +158,7 @@ func TestCollectorIntegration_MultiBookCapped(t *testing.T) {
 	require.Error(t, err)
 
 	got := xerrors.NewDesc(err).ErrString(false)
+	t.Logf("got error string:\n%s", got)
 	want := "[1] " + e2012("Collector2#*.csv", "HeroConf", "A4", "c1", "uint32") +
 		"\n[2] " + e2012("Collector2#*.csv", "HeroConf", "A5", "c2", "uint32") +
 		"\n[3] " + e2012("Collector2#*.csv", "HeroConf", "A6", "c3", "uint32") +

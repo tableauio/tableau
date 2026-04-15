@@ -364,7 +364,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		debugBookName += " (alias: " + alias + ")"
 	}
 	bp := newDocumentParser(bookName, alias, rewrittenBookName, gen)
-	bookCollector := gen.collector.NewChild(maxErrorsPerBook, nil)
+	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
 sheetLoop:
 	for _, sheet := range imp.GetSheets() {
 		// parse sheet options
@@ -457,7 +457,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	}
 	// create a book parser
 	bp := newTableParser(bookName, alias, rewrittenBookName, gen)
-	bookCollector := gen.collector.NewChild(maxErrorsPerBook, nil)
+	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
 	var parsed bool
 sheetLoop:
 	for _, sheet := range imp.GetSheets() {

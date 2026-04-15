@@ -40,6 +40,80 @@ import (
 	"github.com/tableauio/tableau/internal/localizer"
 )
 
+// New returns an error with the supplied message.
+// New also records the stack trace at the point it was called.
+func New(msg string) error {
+	return &withMessage{
+		cause:   &base{stack: callers(1)},
+		message: msg,
+		fields:  map[string]any{KeyReason: msg},
+	}
+}
+
+// Newf formats according to a format specifier and returns the string
+// as a value that satisfies error.
+// Newf also records the code and stack trace at the point it was called.
+func Newf(format string, args ...any) error {
+	msg := fmt.Sprintf(format, args...)
+	return &withMessage{
+		cause:   &base{stack: callers(1)},
+		message: msg,
+		fields:  map[string]any{KeyReason: msg},
+	}
+}
+
+// NewKV returns an error with the supplied message and structured key-value fields.
+// NewKV also records the stack trace at the point it was called.
+func NewKV(msg string, keysAndValues ...any) error {
+	fields := parseKV(keysAndValues...)
+	if fields == nil {
+		fields = make(map[string]any)
+	}
+	fields[KeyReason] = msg
+	return &withMessage{
+		cause:   &base{stack: callers(1)},
+		message: msg,
+		fields:  fields,
+	}
+}
+
+// Wrap annotates err with a stack trace at the point Wrap was called.
+// If err is nil, Wrap returns nil.
+func Wrap(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &withMessage{
+		cause: withStack(1, err),
+	}
+}
+
+// Wrapf returns an error annotating err with a stack trace
+// at the point Wrapf is called, and the format specifier.
+// If err is nil, Wrapf returns nil.
+func Wrapf(err error, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+	return &withMessage{
+		cause:   withStack(1, err),
+		message: fmt.Sprintf(format, args...),
+	}
+}
+
+// WrapKV wraps err with structured key-value metadata fields.
+// The fields are accessible via NewDesc but do NOT appear in err.Error().
+// WrapKV also records the stack trace at the point it was called.
+func WrapKV(err error, keysAndValues ...any) error {
+	if err == nil {
+		return nil
+	}
+	return &withMessage{
+		cause:  withStack(1, err),
+		fields: parseKV(keysAndValues...),
+	}
+}
+
 // fieldsCarrier is implemented by error types that carry structured key-value fields.
 // NewDesc uses this interface to extract fields without string parsing.
 type fieldsCarrier interface {
@@ -172,80 +246,6 @@ func parseKV(keysAndValues ...any) map[string]any {
 		m[key] = keysAndValues[i+1]
 	}
 	return m
-}
-
-// New returns an error with the supplied message.
-// New also records the stack trace at the point it was called.
-func New(msg string) error {
-	return &withMessage{
-		cause:   &base{stack: callers(1)},
-		message: msg,
-		fields:  map[string]any{KeyReason: msg},
-	}
-}
-
-// Newf formats according to a format specifier and returns the string
-// as a value that satisfies error.
-// Newf also records the code and stack trace at the point it was called.
-func Newf(format string, args ...any) error {
-	msg := fmt.Sprintf(format, args...)
-	return &withMessage{
-		cause:   &base{stack: callers(1)},
-		message: msg,
-		fields:  map[string]any{KeyReason: msg},
-	}
-}
-
-// NewKV returns an error with the supplied message and structured key-value fields.
-// NewKV also records the stack trace at the point it was called.
-func NewKV(msg string, keysAndValues ...any) error {
-	fields := parseKV(keysAndValues...)
-	if fields == nil {
-		fields = make(map[string]any)
-	}
-	fields[KeyReason] = msg
-	return &withMessage{
-		cause:   &base{stack: callers(1)},
-		message: msg,
-		fields:  fields,
-	}
-}
-
-// Wrap annotates err with a stack trace at the point Wrap was called.
-// If err is nil, Wrap returns nil.
-func Wrap(err error) error {
-	if err == nil {
-		return nil
-	}
-	return &withMessage{
-		cause: withStack(1, err),
-	}
-}
-
-// Wrapf returns an error annotating err with a stack trace
-// at the point Wrapf is called, and the format specifier.
-// If err is nil, Wrapf returns nil.
-func Wrapf(err error, format string, args ...any) error {
-	if err == nil {
-		return nil
-	}
-	return &withMessage{
-		cause:   withStack(1, err),
-		message: fmt.Sprintf(format, args...),
-	}
-}
-
-// WrapKV wraps err with structured key-value metadata fields.
-// The fields are accessible via NewDesc but do NOT appear in err.Error().
-// WrapKV also records the stack trace at the point it was called.
-func WrapKV(err error, keysAndValues ...any) error {
-	if err == nil {
-		return nil
-	}
-	return &withMessage{
-		cause:  withStack(1, err),
-		fields: parseKV(keysAndValues...),
-	}
 }
 
 // joinError is a multi-error that renders each child via NewDesc for structured

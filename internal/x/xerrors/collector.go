@@ -12,16 +12,12 @@ import (
 )
 
 // Collector accumulates errors concurrently up to a configurable limit.
-// Collectors form a hierarchy via [Collector.NewChild]. Collect increments
-// counters on self and every ancestor; IsFull checks self and all ancestors;
-// Join recursively merges own errors with children's.
+// Collectors form a hierarchy via [Collector.NewChild]; [Collector.Join]
+// recursively merges own errors with children's.
 //
-// An optional set of key-value pairs (kvPairs) can be attached when creating
-// a child via [Collector.NewChild]. These pairs are carried by the
-// [collected] marker returned from [Collector.Join] (which implements
-// [fieldsCarrier]), so [NewDesc] naturally extracts them while walking the
-// error chain and propagates them to every leaf error through
-// mergeOuterFields. Callers do not need to manually call [WrapKV].
+// When a child's [collected] error is wrapped (e.g. via [WrapKV]), the
+// outer [withMessage] is remembered and re-applied in [Collector.Join],
+// producing: collected → withMessage{fields} → joinError{…}.
 type Collector struct {
 	mu       sync.Mutex
 	errs     []error
@@ -29,29 +25,21 @@ type Collector struct {
 	counter  atomic.Int32
 	maxErrs  int32
 	parent   *Collector
-	kvPairs  []any // auto-wrapped onto each collected error
+	outerWM  *withMessage // outer WrapKV layer, re-applied in Join()
 }
 
 // NewCollector creates a root Collector.
-// maxErrs <= 0 means unlimited; 1 means fail-fast; >1 stops after N errors.
+// maxErrs: <=0 unlimited, 1 fail-fast, >1 stops after N errors.
 func NewCollector(maxErrs int) *Collector {
 	return &Collector{maxErrs: normalizeMax(maxErrs)}
 }
 
-// NewChild creates a child collector with its own limit, registered under
-// the receiver. Collect on the child increments counters up to the root.
+// NewChild creates a child collector registered under the receiver.
 // maxErrs semantics are the same as [NewCollector].
-//
-// Optional kvPairs are carried by the [collected] marker returned from
-// [Collector.Join] on the returned child. Because [collected] implements
-// [fieldsCarrier], [NewDesc] naturally extracts these fields while walking
-// the error chain and propagates them to every leaf error through
-// mergeOuterFields. The caller does not need to wrap errors manually.
-func (c *Collector) NewChild(maxErrs int, kvPairs ...any) *Collector {
+func (c *Collector) NewChild(maxErrs int) *Collector {
 	child := &Collector{
 		maxErrs: normalizeMax(maxErrs),
 		parent:  c,
-		kvPairs: kvPairs,
 	}
 	c.mu.Lock()
 	c.children = append(c.children, child)
@@ -59,7 +47,7 @@ func (c *Collector) NewChild(maxErrs int, kvPairs ...any) *Collector {
 	return child
 }
 
-// normalizeMax converts user-facing maxErrs to an internal value.
+// normalizeMax converts user-facing maxErrs to internal representation.
 func normalizeMax(maxErrs int) int32 {
 	if maxErrs <= 0 {
 		return math.MaxInt32 // unlimited
@@ -67,17 +55,24 @@ func normalizeMax(maxErrs int) int32 {
 	return int32(maxErrs)
 }
 
-// Collect stores err, increments counters up the ancestor chain, and returns
-// the joined error tree if any collector is full (nil otherwise).
-// Already-joined errors (marked by [Collector.Join]) are skipped.
+// Collect stores err and returns the joined error tree if any collector
+// in the ancestor chain is full (nil otherwise).
 func (c *Collector) Collect(err error) error {
 	if err == nil {
 		return nil
 	}
 
-	// Skip collected errors — already in the tree.
+	// Already-collected error (from a child's Join): remember the outer
+	// WrapKV layer on the child collector for re-wrapping in Join().
 	var ce *collected
 	if errors.As(err, &ce) {
+		if ce.origin != nil {
+			if wm, ok := err.(*withMessage); ok {
+				ce.origin.mu.Lock()
+				ce.origin.outerWM = wm
+				ce.origin.mu.Unlock()
+			}
+		}
 		if c.IsFull() {
 			return c.Join()
 		}
@@ -91,9 +86,7 @@ func (c *Collector) Collect(err error) error {
 		}
 	}
 
-	// Store the error only if no collector in the ancestor chain has
-	// exceeded its limit. This ensures that the total number of stored
-	// errors in any subtree never exceeds the ancestor's limit.
+	// Store only if no ancestor has exceeded its limit.
 	store := true
 	for cur := c; cur != nil; cur = cur.parent {
 		if cur.counter.Load() > cur.maxErrs {
@@ -129,14 +122,14 @@ func (c *Collector) HasErrors() bool {
 	return c.counter.Load() > 0
 }
 
-// Join returns all errors in this collector's subtree as a single error,
-// or nil if empty. The result is marked so [Collector.Collect] skips it.
+// Join returns all errors in this collector's subtree as a single error.
 func (c *Collector) Join() error {
 	c.mu.Lock()
 	ownErrs := make([]error, len(c.errs))
 	copy(ownErrs, c.errs)
 	kids := make([]*Collector, len(c.children))
 	copy(kids, c.children)
+	outerWM := c.outerWM
 	c.mu.Unlock()
 
 	var nonNil []error
@@ -153,22 +146,21 @@ func (c *Collector) Join() error {
 	if len(nonNil) == 0 {
 		return nil
 	}
+	var inner error = &joinError{errs: nonNil, stack: callers(1)}
+	// Re-wrap with outer WrapKV fields if present.
+	if outerWM != nil {
+		inner = &withMessage{cause: inner, fields: outerWM.fields}
+	}
 	return &collected{
-		error:   &joinError{errs: nonNil, stack: callers(1)},
-		kvPairs: c.kvPairs,
+		error:  inner,
+		origin: c,
 	}
 }
 
-// collected marks an error as already stored in the collector tree.
-// Transparent: Error(), Unwrap(), and Format() delegate to the inner error.
-//
-// It optionally carries key-value pairs inherited from the owning
-// [Collector]. Because it implements [fieldsCarrier], [NewDesc] extracts
-// these fields while walking the error chain and propagates them to every
-// leaf error through mergeOuterFields — no extra [WrapKV] layer needed.
+// collected marks an error as already joined. Delegates to the inner error.
 type collected struct {
 	error
-	kvPairs []any // inherited from Collector; may be nil
+	origin *Collector // back-reference to the Collector that created this marker
 }
 
 func (c *collected) Error() string { return c.error.Error() }
@@ -181,23 +173,8 @@ func (c *collected) Format(s fmt.State, verb rune) {
 	}
 }
 
-// Fields implements fieldsCarrier so that [NewDesc] can extract the
-// collector-level key-value pairs while traversing the error chain.
-func (c *collected) Fields() map[string]any {
-	if len(c.kvPairs) == 0 {
-		return nil
-	}
-	m := make(map[string]any, len(c.kvPairs)/2)
-	for i := 0; i+1 < len(c.kvPairs); i += 2 {
-		if k, ok := c.kvPairs[i].(string); ok {
-			m[k] = c.kvPairs[i+1]
-		}
-	}
-	return m
-}
-
-// Group ties an [errgroup.Group] to a Collector for concurrent error collection.
-// Context is cancelled when the collector becomes full, enabling early exit.
+// Group ties an [errgroup.Group] to a Collector for concurrent collection.
+// Context is cancelled when the collector becomes full.
 type Group struct {
 	eg        *errgroup.Group
 	ctx       context.Context
@@ -206,7 +183,6 @@ type Group struct {
 }
 
 // NewGroup returns a new Group backed by this Collector.
-// The provided ctx is used as the parent context for the group's context.
 func (c *Collector) NewGroup(ctx context.Context) *Group {
 	ctx, cancel := context.WithCancel(ctx)
 	eg, gctx := errgroup.WithContext(ctx)
@@ -214,8 +190,6 @@ func (c *Collector) NewGroup(ctx context.Context) *Group {
 }
 
 // Go runs fn in a goroutine and collects its error.
-// When the collector becomes full, the group's context is cancelled
-// to signal other goroutines to exit early.
 func (g *Group) Go(fn func(ctx context.Context) error) {
 	g.eg.Go(func() error {
 		if g.collector.Collect(fn(g.ctx)) != nil {
@@ -225,7 +199,7 @@ func (g *Group) Go(fn func(ctx context.Context) error) {
 	})
 }
 
-// Wait blocks until all goroutines finish and returns the joined error tree.
+// Wait blocks until all goroutines finish and returns the joined errors.
 func (g *Group) Wait() error {
 	defer g.cancel()
 	_ = g.eg.Wait()
