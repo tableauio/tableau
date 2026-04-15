@@ -25,6 +25,7 @@ message SimpleIncellMap {
   map<int32, int32> item_map = 1 [(tableau.field) = {
     name: "Item"
     layout: LAYOUT_INCELL
+    prop: {aggregate: true}
   }];
 }
 
@@ -73,6 +74,7 @@ message IncellStructList {
   repeated unittest.Item item_list = 1 [(tableau.field) = {
     name: "Item"
     layout: LAYOUT_INCELL
+    prop: {aggregate: true}
   }];
 }
 
