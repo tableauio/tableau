@@ -254,6 +254,7 @@ func (d *Desc) String() string {
 
 // ErrString renders the description with optional debug info.
 // For joined multi-errors it renders a numbered list, one entry per child.
+// When withDebug is true, each error also includes its stack trace.
 func (d *Desc) ErrString(withDebug bool) string {
 	// Multi-error: render numbered list.
 	if len(d.children) > 0 {
@@ -284,7 +285,7 @@ func (d *Desc) ErrString(withDebug bool) string {
 	case ModuleDefault, ModuleProto, ModuleConf:
 		errmsg := renderSummary(module, d.fields)
 		if withDebug {
-			errmsg = fmt.Sprintf("Debugging: \n%s\n", d.debugString()) + errmsg
+			errmsg += "\n--- debugging ---\n" + d.fieldsString() + "\n" + d.stackString() + "\n"
 		}
 		return errmsg
 	default:
@@ -292,15 +293,25 @@ func (d *Desc) ErrString(withDebug bool) string {
 	}
 }
 
-// debugString returns a multi-line string of all structured fields in order.
-func (d *Desc) debugString() string {
-	str := new(strings.Builder)
+// fieldsString returns a multi-line string of all structured fields in order.
+func (d *Desc) fieldsString() string {
+	var lines []string
 	for _, key := range keys {
 		if val := d.fields[key]; val != nil {
-			fmt.Fprintf(str, "\t%s: %v\n", key, val)
+			lines = append(lines, fmt.Sprintf("%s: %v", key, val))
 		}
 	}
-	return str.String()
+	return strings.Join(lines, "\n")
+}
+
+// stackString extracts and formats the stack trace from d.err.
+// Returns an empty string if no stack trace is available.
+func (d *Desc) stackString() string {
+	var berr *base
+	if !errors.As(d.err, &berr) || berr.stack == nil {
+		return ""
+	}
+	return fmt.Sprintf("%+v", berr.stack)
 }
 
 // GetValue returns the value associated with key, or nil if not present.

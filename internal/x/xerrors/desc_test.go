@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -124,15 +126,10 @@ Help: prop "sequence:3" requires value starts from "3" and increases monotonical
 `
 	assert.Equal(t, wantNoDebug, d.ErrString(false))
 
-	wantDebug := `Debugging: 
-	Module: default
-	ErrCode: E2003
-	ErrDesc: illegal sequence number
-	Reason: value "1" does not meet sequence requirement: "sequence:3"
-	Help: prop "sequence:3" requires value starts from "3" and increases monotonically
-
-` + wantNoDebug
-	assert.Equal(t, wantDebug, d.ErrString(true))
+	debugGot := d.ErrString(true)
+	assert.True(t, strings.HasPrefix(debugGot, wantNoDebug), "debug output should start with the non-debug summary")
+	assert.Contains(t, debugGot, "\n--- debugging ---\n", "debug output should contain debugging header")
+	assert.Regexp(t, regexp.MustCompile(`xerrors\.TestNewDescSingleChildJoin`), debugGot, "debug output should contain stack trace")
 }
 
 // TestNewDescMultipleChildren verifies errors.Join with multiple children → numbered list.
@@ -397,6 +394,15 @@ Reason: "-1" violates rule: item_map[4].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
 	assert.Equal(t, want, md.ErrString(false))
+
+	// Verify debug output: each child should have its own stack trace.
+	debugGot := md.ErrString(true)
+	t.Log(debugGot)
+	for i := 1; i <= 4; i++ {
+		assert.Contains(t, debugGot, fmt.Sprintf("[%d] error[E2027]", i), "child %d should have error header", i)
+	}
+	assert.Equal(t, 4, strings.Count(debugGot, "\n--- debugging ---\n"), "debug output should contain exactly 4 debugging headers")
+	assert.Equal(t, 4, strings.Count(debugGot, "xerrors.TestNewDescThreeLayerJoin"), "debug output should contain exactly 4 stack traces")
 }
 
 // TestNewDescTwoLayerJoin verifies the real-world Generator+parser collector pattern:
