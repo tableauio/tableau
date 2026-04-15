@@ -14,13 +14,13 @@ option (tableau.workbook) = {name:"excel/keyedlist/VerticalKeyedList#*.csv" name
 message VerticalEnumKeyedList {
   option (tableau.worksheet) = {name:"VerticalEnumKeyedList"};
 
-  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}]; // Type
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // Type
 }
 
 message VerticalScalarKeyedList {
   option (tableau.worksheet) = {name:"VerticalScalarKeyedList"};
 
-  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL}]; // ID
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // ID
 }
 
 message VerticalStructKeyedList {

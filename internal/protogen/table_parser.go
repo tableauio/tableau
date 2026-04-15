@@ -221,7 +221,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		field.Options = &tableaupb.FieldOptions{
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   ExtractMapFieldProp(prop),
+			Prop:   ExtractMapFieldProp(prop, layout),
 		}
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
@@ -288,7 +288,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			Name:   mapName,
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   ExtractMapFieldProp(prop),
+			Prop:   ExtractMapFieldProp(prop, layout),
 		}
 		keyField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp(), trimmedNoteCell)
 		if err != nil {

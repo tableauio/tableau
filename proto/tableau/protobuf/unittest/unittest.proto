@@ -16,7 +16,7 @@ import "tableau/protobuf/unittest/common.proto";
 message SimpleIncellMap {
   option (tableau.worksheet) = {name:"SimpleIncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
   
-  map<int32, int32> item_map = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+  map<int32, int32> item_map = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL prop:{aggregate:true}}];
 }
 
 message IncellMap {
@@ -38,7 +38,7 @@ message IncellMap {
 message IncellStructList {
   option (tableau.worksheet) = {name:"IncellStructList" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  repeated unittest.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+  repeated unittest.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL prop:{aggregate:true}}];
 }
 
 message IncellList {

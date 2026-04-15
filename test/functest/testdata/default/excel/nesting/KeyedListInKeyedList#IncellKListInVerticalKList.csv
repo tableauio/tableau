@@ -1,5 +1,5 @@
 ID,Desc,Tip
-[KeyedItem]<uint32>|{unique:false},string,[]<uint32>
+[KeyedItem]<uint32>|{unique:false},string,[]<uint32>|{aggregate:true}
 Item ID,Item desc,Item tip
 1,Apple,"1,2,3"
 1,,"4,5"

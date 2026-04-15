@@ -1,5 +1,5 @@
 Type
-[]enum<.FruitType>
+[]enum<.FruitType>|{aggregate:true}
 Type
 "Apple,Orange,Banana"
 "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE"
