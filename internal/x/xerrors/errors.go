@@ -141,6 +141,18 @@ func (b *base) Format(s fmt.State, verb rune) {
 	format(b, s, verb)
 }
 
+// renderWithFields implements fieldsRenderer by delegating to the cause,
+// allowing outer WrapKV fields to pass through the base stack wrapper.
+func (b *base) renderWithFields(outerFields map[string]any) string {
+	if b.cause != nil {
+		if r, ok := b.cause.(fieldsRenderer); ok {
+			return r.renderWithFields(outerFields)
+		}
+		return b.cause.Error()
+	}
+	return ""
+}
+
 // withMessage is an error that has a cause error, a human-readable message,
 // and optional structured key-value fields.
 //
@@ -160,6 +172,12 @@ func (w *withMessage) Fields() map[string]any {
 	return w.fields
 }
 
+// fieldsRenderer is implemented by error types that can render themselves
+// with additional outer fields merged in (inner fields always win).
+type fieldsRenderer interface {
+	renderWithFields(outerFields map[string]any) string
+}
+
 func (w *withMessage) Error() string {
 	if w.message != "" {
 		// When replacesCause is set, message is the complete error text.
@@ -174,6 +192,12 @@ func (w *withMessage) Error() string {
 		}
 		return w.message
 	}
+	// No message but has fields: pass them down to the cause for rendering.
+	if len(w.fields) > 0 && w.cause != nil {
+		if r, ok := w.cause.(fieldsRenderer); ok {
+			return r.renderWithFields(w.fields)
+		}
+	}
 	// No message: delegate to cause.
 	if w.cause != nil {
 		return w.cause.Error()
@@ -184,6 +208,30 @@ func (w *withMessage) Error() string {
 // Unwrap provides compatibility for Go 1.13 error chains.
 func (w *withMessage) Unwrap() error { return w.cause }
 
+// renderWithFields implements fieldsRenderer for the no-message case:
+// merges outerFields with w.fields (inner wins) and passes them further down.
+func (w *withMessage) renderWithFields(outerFields map[string]any) string {
+	if w.message != "" {
+		// Has a message: not a transparent wrapper, just return Error().
+		return w.Error()
+	}
+	// Merge: start with outerFields, then overlay w.fields (inner wins).
+	merged := make(map[string]any, len(outerFields)+len(w.fields))
+	for k, v := range outerFields {
+		merged[k] = v
+	}
+	for k, v := range w.fields {
+		merged[k] = v
+	}
+	if w.cause != nil {
+		if r, ok := w.cause.(fieldsRenderer); ok {
+			return r.renderWithFields(merged)
+		}
+		return w.cause.Error()
+	}
+	return ""
+}
+
 func (w *withMessage) Format(s fmt.State, verb rune) {
 	format(w, s, verb)
 }
@@ -192,16 +240,15 @@ func format(self error, s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			// %+v: render the full structured desc, then append the stack trace.
+			// %+v: same as ErrString(true) — summary + debugging fields + stack trace.
 			if d := NewDesc(self); d != nil {
-				_, _ = io.WriteString(s, d.String())
+				_, _ = io.WriteString(s, d.ErrString(true))
 			} else {
 				_, _ = io.WriteString(s, self.Error())
-			}
-			// Append stack trace from the innermost base error.
-			var berr *base
-			if errors.As(self, &berr) && berr.stack != nil {
-				_, _ = fmt.Fprintf(s, "%+v", berr.stack)
+				var berr *base
+				if errors.As(self, &berr) && berr.stack != nil {
+					_, _ = fmt.Fprintf(s, "%+v", berr.stack)
+				}
 			}
 		} else {
 			_, _ = io.WriteString(s, self.Error())
@@ -257,10 +304,17 @@ type joinError struct {
 
 func (j *joinError) Unwrap() []error { return j.errs }
 
-// Error renders each child via NewDesc for structured output, falling back to
-// the raw Error() string when no structured fields are available.
+// Error renders each child as a plain join (no structured fields at this level).
 func (j *joinError) Error() string {
-	if d := NewDesc(j); d != nil {
+	return j.renderWithFields(nil)
+}
+
+// renderWithFields implements fieldsRenderer: renders the joined children with
+// outerFields merged in (inner fields always win). This is called by an
+// enclosing WrapKV (withMessage with no message but with fields) so that
+// Module, BookName, SheetName etc. are propagated into each child's output.
+func (j *joinError) renderWithFields(outerFields map[string]any) string {
+	if d := newDescWithOuter(j, outerFields); d != nil {
 		return d.String()
 	}
 	// Fallback: plain join.
@@ -280,13 +334,11 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
+			// %+v: same as ErrString(true) — summary + debugging fields + stack trace.
 			if d := NewDesc(j); d != nil {
-				_, _ = io.WriteString(s, d.String())
+				_, _ = io.WriteString(s, d.ErrString(true))
 			} else {
 				_, _ = io.WriteString(s, j.Error())
-			}
-			if j.stack != nil {
-				_, _ = fmt.Fprintf(s, "%+v", j.stack)
 			}
 		} else {
 			_, _ = io.WriteString(s, j.Error())

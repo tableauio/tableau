@@ -230,6 +230,46 @@ func newDescFromSingle(err error) *Desc {
 	}
 }
 
+// newDescWithOuter builds a *Desc for a joined multi-error with pre-supplied
+// outerFields already merged in. It is used by joinError.renderWithFields to
+// avoid routing back through NewDesc (which would call Error() again).
+func newDescWithOuter(err error, outerFields map[string]any) *Desc {
+	type multiUnwrapper interface {
+		Unwrap() []error
+	}
+	mu, ok := err.(multiUnwrapper)
+	if !ok {
+		return nil
+	}
+	children := mu.Unwrap()
+	var nonNil []error
+	for _, c := range children {
+		if c != nil {
+			nonNil = append(nonNil, c)
+		}
+	}
+	if len(nonNil) == 0 {
+		return nil
+	}
+	var leaves []*Desc
+	for _, c := range nonNil {
+		inner := NewDesc(c)
+		if inner == nil {
+			continue
+		}
+		mergeOuterFields(inner, outerFields)
+		flattenDescs(inner, &leaves)
+	}
+	switch len(leaves) {
+	case 0:
+		return nil
+	case 1:
+		return leaves[0]
+	default:
+		return &Desc{err: err, children: leaves}
+	}
+}
+
 // ErrCode returns the error code stored in the structured fields, or "".
 func (d *Desc) ErrCode() string {
 	val := d.GetValue(keyErrCode)
@@ -272,6 +312,9 @@ func (d *Desc) ErrString(withDebug bool) string {
 		return ""
 	}
 	if d.fields[KeyReason] == nil {
+		if withDebug {
+			return d.err.Error() + d.stackString()
+		}
 		return d.err.Error()
 	}
 	if d.fields[KeyModule] == nil && d.fields[keyErrCode] != nil {
@@ -289,6 +332,9 @@ func (d *Desc) ErrString(withDebug bool) string {
 		}
 		return errmsg
 	default:
+		if withDebug {
+			return d.err.Error() + d.stackString()
+		}
 		return d.err.Error()
 	}
 }

@@ -394,6 +394,9 @@ Reason: "-1" violates rule: item_map[4].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
 	assert.Equal(t, want, md.ErrString(false))
+	assert.Equal(t, want, top.Error())
+	assert.Equal(t, want, fmt.Sprintf("%s", top))
+	assert.Equal(t, want, fmt.Sprintf("%v", top))
 
 	// Verify debug output: each child should have its own stack trace.
 	debugGot := md.ErrString(true)

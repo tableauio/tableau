@@ -183,8 +183,7 @@ func TestFormatWrappedNew(t *testing.T) {
 			"github\\.com/tableauio/tableau/internal/x/xerrors\\.wrappedNew\n",
 		},
 	}, {
-		// %+v with ecode: renders full structured desc + stack trace, different from Error().
-		// Error() = reason text only; %+v = ErrCode + ErrDesc + Reason + Help + stack.
+		// %+v with ecode: renders full structured desc (ErrString(true)) = summary + debugging fields + stack trace.
 		Wrap(E2003("1", 3)),
 		"%+v",
 		[]string{
@@ -192,7 +191,15 @@ func TestFormatWrappedNew(t *testing.T) {
 			`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
 			`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
 			"",
+			"--- debugging ---",
+			"Module: default",
+			"ErrCode: E2003",
+			"ErrDesc: illegal sequence number",
+			`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
+			`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
+			"",
 			"github\\.com/tableauio/tableau/internal/x/xerrors\\.TestFormatWrappedNew\n",
+			"",
 		},
 	}}
 	for i, tt := range tests {
@@ -249,7 +256,7 @@ func TestFormatWrapKV(t *testing.T) {
 			[]string{`value "1" does not meet sequence requirement: "sequence:3"`},
 		},
 		{
-			// %+v renders the full structured desc + stack trace, unlike Error()/%s/%v.
+			// %+v renders ErrString(true): summary + debugging fields + stack trace.
 			E2003("1", 3),
 			"%+v",
 			[]string{
@@ -257,14 +264,20 @@ func TestFormatWrapKV(t *testing.T) {
 				`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
 				`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
 				"",
+				"--- debugging ---",
+				"Module: default",
+				"ErrCode: E2003",
+				"ErrDesc: illegal sequence number",
+				`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
+				`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
+				"",
 				"github\\.com/tableauio/tableau/internal/x/xerrors\\.TestFormatWrapKV\n",
+				"",
 			},
 		},
 		{
 			// WrapKV adds outer fields (BookName, SheetName) to an ecode error.
-			// Since E2003 internally sets KeyModule=default (innermost wins),
-			// the default template does not render Workbook/Worksheet.
-			// %+v still renders the full structured desc (ErrCode + Reason + Help).
+			// %+v renders ErrString(true): summary + debugging fields (including outer BookName/SheetName) + stack trace.
 			WrapKV(E2003("1", 3), KeyModule, ModuleDefault, KeyBookName, "Test.xlsx", KeySheetName, "Sheet1"),
 			"%+v",
 			[]string{
@@ -272,7 +285,17 @@ func TestFormatWrapKV(t *testing.T) {
 				`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
 				`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
 				"",
+				"--- debugging ---",
+				"Module: default",
+				"BookName: Test.xlsx",
+				"SheetName: Sheet1",
+				"ErrCode: E2003",
+				"ErrDesc: illegal sequence number",
+				`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
+				`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
+				"",
 				"github\\.com/tableauio/tableau/internal/x/xerrors\\.TestFormatWrapKV\n",
+				"",
 			},
 		},
 	}

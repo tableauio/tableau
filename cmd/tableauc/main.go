@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
-	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"go.uber.org/zap/zapcore"
@@ -155,13 +154,10 @@ func genConf(workbooks []string, config *options.Options) error {
 }
 
 func logError(mode string, err error) {
-	if log.Mode() == log.ModeFull {
-		log.Errorf("generate %s file failed: %+v", mode, err)
-	}
 	if log.LevelEnabled(zapcore.DebugLevel) {
-		log.Errorf("Error: %+v", err)
+		log.Errorf("generate %s file failed: \n%+v", mode, err)
 	} else {
-		log.Errorf("Error: %s", xerrors.NewDesc(err))
+		log.Errorf("generate %s file failed: \n%s", mode, err)
 	}
 }
 
