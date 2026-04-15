@@ -1,5 +1,5 @@
 ID,#IGNORE
-"[]int32|{refer:""EquipConf.ID""}",
+"[]int32|{refer:""EquipConf.ID"" aggregate:true}",
 ID,
 1000,
 1001,

@@ -12,7 +12,7 @@ func IsEmptyFieldProp(prop *tableaupb.FieldProp) bool {
 }
 
 // ExtractMapFieldProp extracts the specified props which the map field recognizes.
-func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
+func ExtractMapFieldProp(prop *tableaupb.FieldProp, layout tableaupb.Layout) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil
 	}
@@ -27,6 +27,10 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		Subsep:          prop.Subsep,
 		ValidateComplex: prop.ValidateComplex,
 		ValidateMessage: prop.ValidateMessage,
+	}
+	switch layout {
+	case tableaupb.Layout_LAYOUT_INCELL:
+		p.Aggregate = prop.Aggregate
 	}
 	if IsEmptyFieldProp(p) {
 		return nil
@@ -56,9 +60,12 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool, layout t
 		p.Pattern = prop.Pattern
 		p.Validate = prop.Validate
 	}
-	if layout == tableaupb.Layout_LAYOUT_HORIZONTAL {
+	switch layout {
+	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		p.Fixed = prop.Fixed
 		p.Size = prop.Size
+	case tableaupb.Layout_LAYOUT_INCELL:
+		p.Aggregate = prop.Aggregate
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

@@ -144,7 +144,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 		field.Options = &tableaupb.FieldOptions{
 			Name:   node.Name,
 			Layout: layout,
-			Prop:   ExtractMapFieldProp(prop),
+			Prop:   ExtractMapFieldProp(prop, layout),
 		}
 
 		// special process for key as enum type: create a new simple KV message as map value type.
@@ -183,7 +183,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 	}
 	field.Options = &tableaupb.FieldOptions{
 		Name: node.Name,
-		Prop: ExtractMapFieldProp(prop),
+		Prop: ExtractMapFieldProp(prop, layout),
 	}
 	field.Options.Key = keyCell
 	// struct map

@@ -394,3 +394,20 @@ func escapeMapKey(key protoreflect.Value) string {
 	}
 	return comp
 }
+
+func listValues(list protoreflect.List) []any {
+	values := make([]any, 0, list.Len())
+	for i := 0; i < list.Len(); i++ {
+		values = append(values, list.Get(i).Interface())
+	}
+	return values
+}
+
+func mapValues(mapValue protoreflect.Map) map[any]any {
+	values := make(map[any]any)
+	mapValue.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
+		values[k.Interface()] = v.Interface()
+		return true
+	})
+	return values
+}
