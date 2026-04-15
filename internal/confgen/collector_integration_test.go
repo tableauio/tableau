@@ -60,7 +60,7 @@ func TestCollectorIntegration_MessageLevel(t *testing.T) {
 	err := gen.Generate("Collector#ItemConf.csv")
 	require.Error(t, err)
 
-	got := xerrors.NewDesc(err).ErrString(false)
+	got := xerrors.NewDesc(err).Stringify(false)
 	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "A4", "abc", "uint32") +
 		"\n[2] " + e2012("Collector#*.csv", "ItemConf", "B5", "xyz", "int32") +
 		"\n[3] " + e2012("Collector#*.csv", "ShopConf", "B4", "bad_price", "int32") +
@@ -81,7 +81,7 @@ func TestCollectorIntegration_BookLevel(t *testing.T) {
 	err := gen.Generate("Collector#ItemConf.csv")
 	require.Error(t, err)
 
-	got := xerrors.NewDesc(err).ErrString(false)
+	got := xerrors.NewDesc(err).Stringify(false)
 	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "A4", "abc", "uint32") +
 		"\n[2] " + e2012("Collector#*.csv", "ItemConf", "B5", "xyz", "int32") +
 		"\n[3] " + e2012("Collector#*.csv", "ShopConf", "B4", "bad_price", "int32") +
@@ -101,7 +101,7 @@ func TestCollectorIntegration_SheetLevelCapped(t *testing.T) {
 	err := gen.Generate("Collector#ItemConf.csv")
 	require.Error(t, err)
 
-	got := xerrors.NewDesc(err).ErrString(false)
+	got := xerrors.NewDesc(err).Stringify(false)
 	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "A4", "a1", "uint32") +
 		"\n[2] " + e2012("Collector#*.csv", "ItemConf", "A5", "a2", "uint32") +
 		"\n[3] " + e2012("Collector#*.csv", "ItemConf", "A6", "a3", "uint32") +
@@ -130,7 +130,7 @@ func TestCollectorIntegration_MultiBook(t *testing.T) {
 	err := gen.Generate()
 	require.Error(t, err)
 
-	got := xerrors.NewDesc(err).ErrString(false)
+	got := xerrors.NewDesc(err).Stringify(false)
 	want := "[1] " + e2012("Collector2#*.csv", "HeroConf", "A4", "hero_x", "uint32") +
 		"\n[2] " + e2012("Collector2#*.csv", "HeroConf", "B5", "bad_lvl", "int32") +
 		"\n[3] " + e2012("Collector#*.csv", "ItemConf", "A4", "abc", "uint32") +
@@ -157,7 +157,7 @@ func TestCollectorIntegration_MultiBookCapped(t *testing.T) {
 	err := gen.Generate()
 	require.Error(t, err)
 
-	got := xerrors.NewDesc(err).ErrString(false)
+	got := xerrors.NewDesc(err).Stringify(false)
 	t.Logf("got error string:\n%s", got)
 	want := "[1] " + e2012("Collector2#*.csv", "HeroConf", "A4", "c1", "uint32") +
 		"\n[2] " + e2012("Collector2#*.csv", "HeroConf", "A5", "c2", "uint32") +

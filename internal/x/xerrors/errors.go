@@ -1,7 +1,7 @@
-//   Error handling model:
-// 			1. cause error(nil means no cause) is wrapped by base error with caller stack
-//          2. all errors contain only one caller stack
-//          3. withMessage is an error with a message, which could be infinitely nested with each other
+// Error handling model:
+//  1. cause (nil = no cause) is wrapped by base, which holds the caller stack.
+//  2. each error chain has exactly one caller stack.
+//  3. withMessage carries a message and can be nested arbitrarily.
 //
 //                                 +---------+
 //                                 |  cause  |
@@ -35,13 +35,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"strings"
 
 	"github.com/tableauio/tableau/internal/localizer"
 )
 
-// New returns an error with the supplied message.
-// New also records the stack trace at the point it was called.
+// New returns a new error with msg and a stack trace.
 func New(msg string) error {
 	return &withMessage{
 		cause:   &base{stack: callers(1)},
@@ -50,9 +50,7 @@ func New(msg string) error {
 	}
 }
 
-// Newf formats according to a format specifier and returns the string
-// as a value that satisfies error.
-// Newf also records the code and stack trace at the point it was called.
+// Newf returns a formatted error with a stack trace.
 func Newf(format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	return &withMessage{
@@ -62,8 +60,7 @@ func Newf(format string, args ...any) error {
 	}
 }
 
-// NewKV returns an error with the supplied message and structured key-value fields.
-// NewKV also records the stack trace at the point it was called.
+// NewKV returns an error with msg, structured key-value fields, and a stack trace.
 func NewKV(msg string, keysAndValues ...any) error {
 	fields := parseKV(keysAndValues...)
 	if fields == nil {
@@ -77,8 +74,7 @@ func NewKV(msg string, keysAndValues ...any) error {
 	}
 }
 
-// Wrap annotates err with a stack trace at the point Wrap was called.
-// If err is nil, Wrap returns nil.
+// Wrap annotates err with a stack trace. Returns nil if err is nil.
 func Wrap(err error) error {
 	if err == nil {
 		return nil
@@ -88,9 +84,7 @@ func Wrap(err error) error {
 	}
 }
 
-// Wrapf returns an error annotating err with a stack trace
-// at the point Wrapf is called, and the format specifier.
-// If err is nil, Wrapf returns nil.
+// Wrapf annotates err with a formatted message and a stack trace. Returns nil if err is nil.
 func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
@@ -101,9 +95,8 @@ func Wrapf(err error, format string, args ...any) error {
 	}
 }
 
-// WrapKV wraps err with structured key-value metadata fields.
-// The fields are accessible via NewDesc but do NOT appear in err.Error().
-// WrapKV also records the stack trace at the point it was called.
+// WrapKV wraps err with structured key-value fields (visible via NewDesc, not in Error()) and a stack trace.
+// Returns nil if err is nil.
 func WrapKV(err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
@@ -114,13 +107,12 @@ func WrapKV(err error, keysAndValues ...any) error {
 	}
 }
 
-// fieldsCarrier is implemented by error types that carry structured key-value fields.
-// NewDesc uses this interface to extract fields without string parsing.
+// fieldsCarrier is implemented by errors that carry structured key-value fields.
 type fieldsCarrier interface {
 	Fields() map[string]any
 }
 
-// base is an error which has a cause error and caller stack
+// base wraps a cause error and holds the caller stack.
 type base struct {
 	cause error
 	*stack
@@ -141,8 +133,7 @@ func (b *base) Format(s fmt.State, verb rune) {
 	format(b, s, verb)
 }
 
-// renderWithFields implements fieldsRenderer by delegating to the cause,
-// allowing outer WrapKV fields to pass through the base stack wrapper.
+// renderWithFields delegates to the cause, passing outerFields through the stack wrapper.
 func (b *base) renderWithFields(outerFields map[string]any) string {
 	if b.cause != nil {
 		if r, ok := b.cause.(fieldsRenderer); ok {
@@ -153,13 +144,10 @@ func (b *base) renderWithFields(outerFields map[string]any) string {
 	return ""
 }
 
-// withMessage is an error that has a cause error, a human-readable message,
-// and optional structured key-value fields.
-//
-// When replacesCause is true, message fully replaces the cause's text in
-// Error() (i.e. the cause is kept only for errors.Is/As traversal and stack
-// retrieval, not for display). When false (the default), Error() returns
-// "message: cause.Error()" — the standard wrapping behaviour.
+// withMessage wraps a cause with an optional message and structured fields.
+// If replacesCause is true, message fully replaces the cause text in Error();
+// the cause is kept only for errors.Is/As and stack retrieval.
+// Otherwise Error() returns "message: cause.Error()".
 type withMessage struct {
 	cause         error
 	message       string
@@ -172,15 +160,14 @@ func (w *withMessage) Fields() map[string]any {
 	return w.fields
 }
 
-// fieldsRenderer is implemented by error types that can render themselves
-// with additional outer fields merged in (inner fields always win).
+// fieldsRenderer renders an error string with outer fields merged in (inner fields win).
 type fieldsRenderer interface {
 	renderWithFields(outerFields map[string]any) string
 }
 
 func (w *withMessage) Error() string {
 	if w.message != "" {
-		// When replacesCause is set, message is the complete error text.
+		// replacesCause: message is the complete text.
 		if w.replacesCause {
 			return w.message
 		}
@@ -192,7 +179,7 @@ func (w *withMessage) Error() string {
 		}
 		return w.message
 	}
-	// No message but has fields: pass them down to the cause for rendering.
+	// No message but has fields: propagate to cause.
 	if len(w.fields) > 0 && w.cause != nil {
 		if r, ok := w.cause.(fieldsRenderer); ok {
 			return r.renderWithFields(w.fields)
@@ -205,24 +192,19 @@ func (w *withMessage) Error() string {
 	return ""
 }
 
-// Unwrap provides compatibility for Go 1.13 error chains.
+// Unwrap returns the cause for error chain traversal.
 func (w *withMessage) Unwrap() error { return w.cause }
 
-// renderWithFields implements fieldsRenderer for the no-message case:
-// merges outerFields with w.fields (inner wins) and passes them further down.
+// renderWithFields merges outerFields with w.fields (inner wins) and propagates down.
+// If w has a message it is not a transparent wrapper, so Error() is returned directly.
 func (w *withMessage) renderWithFields(outerFields map[string]any) string {
 	if w.message != "" {
-		// Has a message: not a transparent wrapper, just return Error().
 		return w.Error()
 	}
-	// Merge: start with outerFields, then overlay w.fields (inner wins).
+	// Merge outerFields then overlay w.fields (inner wins).
 	merged := make(map[string]any, len(outerFields)+len(w.fields))
-	for k, v := range outerFields {
-		merged[k] = v
-	}
-	for k, v := range w.fields {
-		merged[k] = v
-	}
+	maps.Copy(merged, outerFields)
+	maps.Copy(merged, w.fields)
 	if w.cause != nil {
 		if r, ok := w.cause.(fieldsRenderer); ok {
 			return r.renderWithFields(merged)
@@ -240,9 +222,9 @@ func format(self error, s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			// %+v: same as ErrString(true) — summary + debugging fields + stack trace.
+			// %+v: Stringify(true) — summary + fields + stack trace.
 			if d := NewDesc(self); d != nil {
-				_, _ = io.WriteString(s, d.ErrString(true))
+				_, _ = io.WriteString(s, d.Stringify(true))
 			} else {
 				_, _ = io.WriteString(s, self.Error())
 				var berr *base
@@ -260,10 +242,8 @@ func format(self error, s fmt.State, verb rune) {
 	}
 }
 
-// withStack add a caller stack to given error, but directly return if stack
-// already wrapped.
-//
-// NOTE: skip == 0 means the caller of withStack is the first frame shown.
+// withStack attaches a caller stack to err. Skips if a stack is already present.
+// skip == 0 means the caller of withStack is the first frame shown.
 func withStack(skip int, err error) error { // nolint:unparam
 	if err == nil {
 		return nil
@@ -278,8 +258,7 @@ func withStack(skip int, err error) error { // nolint:unparam
 	return &base{cause: err, stack: callers(1 + skip)}
 }
 
-// parseKV converts a variadic keysAndValues slice into a map[string]any.
-// Panics if the number of arguments is odd.
+// parseKV converts a variadic key-value slice into a map. Panics on odd length.
 func parseKV(keysAndValues ...any) map[string]any {
 	if len(keysAndValues) == 0 {
 		return nil
@@ -295,8 +274,7 @@ func parseKV(keysAndValues ...any) map[string]any {
 	return m
 }
 
-// joinError is a multi-error that renders each child via NewDesc for structured
-// output and implements fmt.Formatter so that %+v appends a stack trace.
+// joinError is a multi-error that renders children via NewDesc and supports %+v.
 type joinError struct {
 	errs  []error
 	stack *stack
@@ -304,15 +282,13 @@ type joinError struct {
 
 func (j *joinError) Unwrap() []error { return j.errs }
 
-// Error renders each child as a plain join (no structured fields at this level).
+// Error renders all children via renderWithFields(nil).
 func (j *joinError) Error() string {
 	return j.renderWithFields(nil)
 }
 
-// renderWithFields implements fieldsRenderer: renders the joined children with
-// outerFields merged in (inner fields always win). This is called by an
-// enclosing WrapKV (withMessage with no message but with fields) so that
-// Module, BookName, SheetName etc. are propagated into each child's output.
+// renderWithFields renders children with outerFields merged in (inner fields win),
+// propagating fields such as Module, BookName, SheetName from an enclosing WrapKV.
 func (j *joinError) renderWithFields(outerFields map[string]any) string {
 	if d := newDescWithOuter(j, outerFields); d != nil {
 		return d.String()
@@ -334,9 +310,9 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			// %+v: same as ErrString(true) — summary + debugging fields + stack trace.
+			// %+v: Stringify(true) — summary + fields + stack trace.
 			if d := NewDesc(j); d != nil {
-				_, _ = io.WriteString(s, d.ErrString(true))
+				_, _ = io.WriteString(s, d.Stringify(true))
 			} else {
 				_, _ = io.WriteString(s, j.Error())
 			}
@@ -381,9 +357,7 @@ func renderSummary(module string, kv map[string]any) string {
 func renderEcode(ec *ecode, kv map[string]any) error {
 	detail := localizer.Default.RenderEcode(ec.code, kv)
 	fields := make(map[string]any, len(kv)+4)
-	for k, v := range kv {
-		fields[k] = v
-	}
+	maps.Copy(fields, kv)
 	fields[KeyReason] = detail.Text
 	fields[keyErrCode] = ec.code
 	fields[keyErrDesc] = detail.Desc
@@ -392,6 +366,6 @@ func renderEcode(ec *ecode, kv map[string]any) error {
 		cause:         withStack(2, ec),
 		message:       detail.Text,
 		fields:        fields,
-		replacesCause: true, // message fully replaces ecode.Error(); keep cause only for errors.Is/stack
+		replacesCause: true, // message replaces ecode.Error(); cause kept for errors.Is/stack
 	}
 }

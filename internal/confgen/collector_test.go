@@ -19,8 +19,8 @@ func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 	msg := sheet.NewChild(maxErrorsPerMessage)
 
 	// Simulate 3 field-level errors in one message parse.
-	msg.Collect(fmt.Errorf("field1: invalid type"))
-	msg.Collect(fmt.Errorf("field2: value out of range"))
+	_ = msg.Collect(fmt.Errorf("field1: invalid type"))
+	_ = msg.Collect(fmt.Errorf("field2: value out of range"))
 	err := msg.Collect(fmt.Errorf("field3: missing required"))
 
 	// message collector is full (3/3), returns joined error.
@@ -31,10 +31,10 @@ func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 	assert.False(t, book.IsFull())
 	assert.False(t, global.IsFull())
 
-	// Verify rendered text via NewDesc.ErrString(false).
+	// Verify rendered text via NewDesc.Stringify(false).
 	joined := msg.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] field1: invalid type
 [2] field2: value out of range
 [3] field3: missing required`
@@ -51,7 +51,7 @@ func TestCollectorHierarchy_SheetLevel(t *testing.T) {
 	// Simulate 2 messages, each producing 1 error.
 	for i := 1; i <= 2; i++ {
 		msg := sheet.NewChild(maxErrorsPerMessage)
-		msg.Collect(fmt.Errorf("msg%d: parse error", i))
+		_ = msg.Collect(fmt.Errorf("msg%d: parse error", i))
 	}
 
 	assert.False(t, sheet.IsFull())
@@ -59,7 +59,7 @@ func TestCollectorHierarchy_SheetLevel(t *testing.T) {
 	// sheet.Join() includes errors from both message children.
 	joined := sheet.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] msg1: parse error
 [2] msg2: parse error`
 	assert.Equal(t, want, got)
@@ -74,7 +74,7 @@ func TestCollectorHierarchy_SheetLevelFull(t *testing.T) {
 
 	// Simulate 6 row-level errors (exceeds sheet limit of 5).
 	for i := 1; i <= 6; i++ {
-		sheet.Collect(fmt.Errorf("row%d: error", i))
+		_ = sheet.Collect(fmt.Errorf("row%d: error", i))
 	}
 
 	assert.True(t, sheet.IsFull())
@@ -83,7 +83,7 @@ func TestCollectorHierarchy_SheetLevelFull(t *testing.T) {
 	// Only the first 5 errors are stored; the 6th is counted but not stored.
 	joined := sheet.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] row1: error
 [2] row2: error
 [3] row3: error
@@ -101,14 +101,14 @@ func TestCollectorHierarchy_BookLevel(t *testing.T) {
 	// Simulate 3 sheets, each with 1 error.
 	for i := 1; i <= 3; i++ {
 		sheet := book.NewChild(maxErrorsPerSheet)
-		sheet.Collect(fmt.Errorf("sheet%d: header error", i))
+		_ = sheet.Collect(fmt.Errorf("sheet%d: header error", i))
 	}
 
 	assert.False(t, book.IsFull())
 
 	joined := book.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] sheet1: header error
 [2] sheet2: header error
 [3] sheet3: header error`
@@ -126,7 +126,7 @@ func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
 	for s := 1; s <= 3; s++ {
 		sheet := book.NewChild(maxErrorsPerSheet)
 		for r := 1; r <= 4; r++ {
-			sheet.Collect(fmt.Errorf("sheet%d_row%d: error", s, r))
+			_ = sheet.Collect(fmt.Errorf("sheet%d_row%d: error", s, r))
 		}
 	}
 
@@ -137,7 +137,7 @@ func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
 	// The 11th and 12th errors are counted but not stored.
 	joined := book.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] sheet1_row1: error
 [2] sheet1_row2: error
 [3] sheet1_row3: error
@@ -160,14 +160,14 @@ func TestCollectorHierarchy_GlobalLevel(t *testing.T) {
 	for b := 1; b <= 2; b++ {
 		book := global.NewChild(maxErrorsPerBook)
 		sheet := book.NewChild(maxErrorsPerSheet)
-		sheet.Collect(fmt.Errorf("book%d_sheet1: error", b))
+		_ = sheet.Collect(fmt.Errorf("book%d_sheet1: error", b))
 	}
 
 	assert.False(t, global.IsFull())
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] book1_sheet1: error
 [2] book2_sheet1: error`
 	assert.Equal(t, want, got)
@@ -184,7 +184,7 @@ func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
 		for s := 1; s <= 2; s++ {
 			sheet := book.NewChild(maxErrorsPerSheet)
 			for r := 1; r <= 3; r++ {
-				sheet.Collect(fmt.Errorf("book%d_sheet%d_row%d: error", b, s, r))
+				_ = sheet.Collect(fmt.Errorf("book%d_sheet%d_row%d: error", b, s, r))
 			}
 		}
 	}
@@ -193,7 +193,7 @@ func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	// Only the first 20 errors are stored (global limit = 20).
 	// The remaining 10 errors are counted but not stored.
 	var want string
@@ -225,19 +225,19 @@ func TestCollectorHierarchy_FourLevelRenderedText(t *testing.T) {
 	msg := sheet.NewChild(2)           // message limit
 
 	// Collect 2 field errors at message level.
-	msg.Collect(fmt.Errorf("field_a: type mismatch"))
+	_ = msg.Collect(fmt.Errorf("field_a: type mismatch"))
 	err := msg.Collect(fmt.Errorf("field_b: null value"))
 	require.Error(t, err, "message collector should be full (2/2)")
 	assert.True(t, msg.IsFull())
 
 	// Collect 1 more error directly at sheet level (e.g., row-level error).
-	sheet.Collect(fmt.Errorf("row2: missing key"))
+	_ = sheet.Collect(fmt.Errorf("row2: missing key"))
 
 	// Verify the full tree from global.Join().
 	// Join order: own errors first, then children's errors (flattened).
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] row2: missing key
 [2] field_a: type mismatch
 [3] field_b: null value`
@@ -253,7 +253,7 @@ func TestCollectorHierarchy_StructuredErrors_NewKV(t *testing.T) {
 	msg := sheet.NewChild(2)
 
 	// Simulate a confgen-style structured error at message level.
-	msg.Collect(xerrors.NewKV("invalid integer value",
+	_ = msg.Collect(xerrors.NewKV("invalid integer value",
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -263,7 +263,7 @@ func TestCollectorHierarchy_StructuredErrors_NewKV(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `
 Workbook: Items.xlsx 
 Worksheet: ItemConf 
@@ -283,14 +283,14 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV(t *testing.T) {
 	msg := sheet.NewChild(3)
 
 	// Collect 2 NewKV errors at message level.
-	msg.Collect(xerrors.NewKV("field1 error",
+	_ = msg.Collect(xerrors.NewKV("field1 error",
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
 		xerrors.KeyDataCellPos, "C3",
 		xerrors.KeyDataCell, "abc",
 	))
-	msg.Collect(xerrors.NewKV("field2 error",
+	_ = msg.Collect(xerrors.NewKV("field2 error",
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -300,7 +300,7 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] 
 Workbook: Items.xlsx 
 Worksheet: ItemConf 
@@ -326,7 +326,7 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV_Ecode(t *testing.T) {
 	sheet := book.NewChild(3)
 
 	// E2005: map or keyed-list key not unique
-	sheet.Collect(xerrors.WrapKV(xerrors.E2005("dup_key"),
+	_ = sheet.Collect(xerrors.WrapKV(xerrors.E2005("dup_key"),
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -336,7 +336,7 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV_Ecode(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `error[E2005]: map or keyed-list key not unique
 Workbook: Items.xlsx 
 Worksheet: ItemConf 
@@ -357,7 +357,7 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	msg := sheet.NewChild(3)
 
 	// Message level: 1 NewKV + 1 WrapKV(ecode).
-	msg.Collect(xerrors.NewKV("invalid integer",
+	_ = msg.Collect(xerrors.NewKV("invalid integer",
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -365,7 +365,7 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 		xerrors.KeyDataCell, "abc",
 	))
 	// E2000: integer overflow
-	msg.Collect(xerrors.WrapKV(xerrors.E2000("int32", "999999999999", int32(-2147483648), int32(2147483647)),
+	_ = msg.Collect(xerrors.WrapKV(xerrors.E2000("int32", "999999999999", int32(-2147483648), int32(2147483647)),
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -374,11 +374,11 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	))
 
 	// Sheet level: 1 plain error.
-	sheet.Collect(fmt.Errorf("row5: duplicate key"))
+	_ = sheet.Collect(fmt.Errorf("row5: duplicate key"))
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	// Order: sheet own errors first, then children (msg) errors flattened.
 	want := `[1] row5: duplicate key
 [2] 
@@ -407,8 +407,8 @@ func TestCollectorHierarchy_MidLevelFullStopsSibling(t *testing.T) {
 
 	// Sheet1: 2 errors.
 	sheet1 := book.NewChild(10)
-	sheet1.Collect(fmt.Errorf("sheet1: err1"))
-	sheet1.Collect(fmt.Errorf("sheet1: err2"))
+	_ = sheet1.Collect(fmt.Errorf("sheet1: err1"))
+	_ = sheet1.Collect(fmt.Errorf("sheet1: err2"))
 	assert.False(t, book.IsFull())
 
 	// Sheet2: 1 error triggers book full.
@@ -426,7 +426,7 @@ func TestCollectorHierarchy_MidLevelFullStopsSibling(t *testing.T) {
 	// Verify rendered text.
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] sheet1: err1
 [2] sheet1: err2
 [3] sheet2: err1`
@@ -441,13 +441,13 @@ func TestCollectorHierarchy_NumberedListOutput(t *testing.T) {
 	sheet := book.NewChild(10)
 
 	// Collect 3 simple errors.
-	sheet.Collect(fmt.Errorf("error alpha"))
-	sheet.Collect(fmt.Errorf("error beta"))
-	sheet.Collect(fmt.Errorf("error gamma"))
+	_ = sheet.Collect(fmt.Errorf("error alpha"))
+	_ = sheet.Collect(fmt.Errorf("error beta"))
+	_ = sheet.Collect(fmt.Errorf("error gamma"))
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := xerrors.NewDesc(joined).ErrString(false)
+	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] error alpha
 [2] error beta
 [3] error gamma`

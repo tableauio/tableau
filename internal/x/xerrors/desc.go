@@ -13,10 +13,9 @@ const (
 	ModuleConf    = "confgen"
 )
 
-// desc keys for bookkeeping
+// desc keys
 const (
-	// The String method processing logic of Desc is dependent on this key's corresponding value.
-	// module: default, proto, conf.
+	// Drives Desc.Stringify rendering; values: default, proto, conf.
 	KeyModule = "Module"
 
 	KeyIndir            = "Indir"            // input dir
@@ -45,14 +44,12 @@ const (
 	keyErrCode = "ErrCode"
 	keyErrDesc = "ErrDesc"
 	KeyReason  = "Reason" // error reason
-	// In addition to telling the user exactly why their code is wrong, it's oftentimes
-	// furthermore possible to tell them how to fix it.
-	//
+	// keyHelp suggests how to fix the error.
 	// See https://rustc-dev-guide.rust-lang.org/diagnostics.html#suggestions
 	keyHelp = "Help"
 )
 
-// ordered keys for debugging
+// keys defines the ordered set of field keys used for debug rendering.
 var keys = []string{
 	KeyModule,
 
@@ -83,27 +80,56 @@ var keys = []string{
 	keyHelp,
 }
 
-// Desc holds the structured fields extracted from a single error chain.
-// When the error is a joined multi-error, children holds one *Desc per child
-// and the numbered-list rendering is handled by ErrString/String.
+// multiUnwrapper is implemented by joined errors (e.g. errors.Join).
+type multiUnwrapper interface {
+	Unwrap() []error
+}
+
+// Desc holds structured fields extracted from an error chain.
+// For joined multi-errors, children holds one *Desc per child.
 type Desc struct {
 	err      error
 	fields   map[string]any
 	children []*Desc
 }
 
-// collectFields traverses the error chain of err and collects all structured
-// fields from each layer that implements fieldsCarrier. The innermost layer
-// wins when the same key appears in multiple layers (later iterations overwrite
-// as we walk from outer to inner).
-//
-// When a joined multi-error (errors.Join) is encountered, fields are collected
-// from the first child so that E2027-style errors wrapped inside a join are
-// still reachable.
-func collectFields(err error) map[string]any {
-	type multiUnwrapper interface {
-		Unwrap() []error
+// NewDesc builds a *Desc from err. Single-chain wrappers are traversed to find
+// inner multi-errors; all nested joins are fully flattened with outer fields
+// (e.g. Module, BookName) merged in (innermost wins). Returns nil for nil err.
+func NewDesc(err error) *Desc {
+	if err == nil {
+		return nil
 	}
+	// Collect outer fields while walking the chain; stop at the first multi-error.
+	outerFields := make(map[string]any)
+	cur := err
+	for cur != nil {
+		if fc, ok := cur.(fieldsCarrier); ok {
+			maps.Copy(outerFields, fc.Fields())
+		}
+		if mu, ok := cur.(multiUnwrapper); ok {
+			return buildFromChildren(cur, mu.Unwrap(), outerFields)
+		}
+		cur = errors.Unwrap(cur)
+	}
+	// No multi-error found: treat as a single error.
+	return &Desc{err: err, fields: collectFields(err)}
+}
+
+// newDescWithOuter builds a *Desc for a joinError using pre-supplied outerFields,
+// avoiding a re-entrant call to Error().
+func newDescWithOuter(err error, outerFields map[string]any) *Desc {
+	mu, ok := err.(multiUnwrapper)
+	if !ok {
+		return nil
+	}
+	return buildFromChildren(err, mu.Unwrap(), outerFields)
+}
+
+// collectFields walks the error chain and collects fields from every
+// fieldsCarrier layer; innermost values win on key conflicts.
+// For joined errors it descends into the first child to stay reachable.
+func collectFields(err error) map[string]any {
 	fields := make(map[string]any)
 	cur := err
 	for cur != nil {
@@ -126,8 +152,7 @@ func collectFields(err error) map[string]any {
 	return fields
 }
 
-// mergeOuterFields merges outerFields into d and all its descendants
-// (inner fields always win over outer).
+// mergeOuterFields merges outerFields into d and its descendants; inner fields win.
 func mergeOuterFields(d *Desc, outerFields map[string]any) {
 	if len(outerFields) == 0 {
 		return
@@ -144,8 +169,7 @@ func mergeOuterFields(d *Desc, outerFields map[string]any) {
 	d.fields = merged
 }
 
-// flattenDescs recursively collects all leaf *Desc nodes (those without
-// children) from d into dst. This fully flattens any depth of nested joins.
+// flattenDescs appends all leaf *Desc nodes from d into dst.
 func flattenDescs(d *Desc, dst *[]*Desc) {
 	if len(d.children) == 0 {
 		*dst = append(*dst, d)
@@ -156,103 +180,14 @@ func flattenDescs(d *Desc, dst *[]*Desc) {
 	}
 }
 
-// NewDesc extracts structured fields from err and returns a *Desc.
-//
-// It transparently traverses single-chain wrappers (e.g. WrapKV) to find an
-// inner errors.Join node, then builds one *Desc per child while merging the
-// outer wrapper fields (e.g. Module, BookName, SheetName) into each child.
-//
-// Multi-layer joins are handled recursively and fully flattened: regardless
-// of how many levels of nested joins exist, all leaf errors are collected into
-// a single flat children list, each carrying the accumulated outer fields from
-// every enclosing WrapKV layer (innermost fields win on key conflicts).
-//
-// Returns nil when err is nil.
-func NewDesc(err error) *Desc {
-	if err == nil {
-		return nil
-	}
-	type multiUnwrapper interface {
-		Unwrap() []error
-	}
-
-	// Walk the single-chain collecting outer fields, until we hit a
-	// multi-error node or the end of the chain.
-	outerFields := make(map[string]any)
-	cur := err
-	for cur != nil {
-		if fc, ok := cur.(fieldsCarrier); ok {
-			maps.Copy(outerFields, fc.Fields())
-		}
-		if mu, ok := cur.(multiUnwrapper); ok {
-			// Found the join node – recursively expand each child.
-			children := mu.Unwrap()
-			var nonNil []error
-			for _, c := range children {
-				if c != nil {
-					nonNil = append(nonNil, c)
-				}
-			}
-			if len(nonNil) == 0 {
-				return nil
-			}
-			// Recursively expand every child, then fully flatten all leaf nodes.
-			var leaves []*Desc
-			for _, c := range nonNil {
-				inner := NewDesc(c)
-				if inner == nil {
-					continue
-				}
-				// Merge accumulated outer fields into the subtree (inner wins).
-				mergeOuterFields(inner, outerFields)
-				// Flatten: collect all leaf Descs from this subtree.
-				flattenDescs(inner, &leaves)
-			}
-			switch len(leaves) {
-			case 0:
-				return nil
-			case 1:
-				return leaves[0]
-			default:
-				return &Desc{err: err, children: leaves}
-			}
-		}
-		cur = errors.Unwrap(cur)
-	}
-	// No multi-error found – treat as a single error.
-	return newDescFromSingle(err)
-}
-
-func newDescFromSingle(err error) *Desc {
-	return &Desc{
-		err:    err,
-		fields: collectFields(err),
-	}
-}
-
-// newDescWithOuter builds a *Desc for a joined multi-error with pre-supplied
-// outerFields already merged in. It is used by joinError.renderWithFields to
-// avoid routing back through NewDesc (which would call Error() again).
-func newDescWithOuter(err error, outerFields map[string]any) *Desc {
-	type multiUnwrapper interface {
-		Unwrap() []error
-	}
-	mu, ok := err.(multiUnwrapper)
-	if !ok {
-		return nil
-	}
-	children := mu.Unwrap()
-	var nonNil []error
-	for _, c := range children {
-		if c != nil {
-			nonNil = append(nonNil, c)
-		}
-	}
-	if len(nonNil) == 0 {
-		return nil
-	}
+// buildFromChildren expands errs into leaf *Desc nodes with outerFields merged in
+// (inner fields win) and returns a *Desc rooted at err.
+func buildFromChildren(err error, errs []error, outerFields map[string]any) *Desc {
 	var leaves []*Desc
-	for _, c := range nonNil {
+	for _, c := range errs {
+		if c == nil {
+			continue
+		}
 		inner := NewDesc(c)
 		if inner == nil {
 			continue
@@ -270,44 +205,27 @@ func newDescWithOuter(err error, outerFields map[string]any) *Desc {
 	}
 }
 
-// ErrCode returns the error code stored in the structured fields, or "".
-func (d *Desc) ErrCode() string {
-	val := d.GetValue(keyErrCode)
-	if val != nil {
-		if ec, ok := val.(string); ok {
-			return ec
-		}
-	}
-	return ""
-}
-
-// Children returns the individual child *Desc entries when the error is a
-// joined multi-error, or nil for a single error.
-func (d *Desc) Children() []*Desc {
-	return d.children
-}
-
-// String renders the description.
+// String renders the description without debug info.
 func (d *Desc) String() string {
-	return d.ErrString(false)
+	return d.Stringify(false)
 }
 
-// ErrString renders the description with optional debug info.
-// For joined multi-errors it renders a numbered list, one entry per child.
-// When withDebug is true, each error also includes its stack trace.
-func (d *Desc) ErrString(withDebug bool) string {
-	// Multi-error: render numbered list.
+// Stringify renders the description. When withDebug is true, each error also
+// includes its structured fields and stack trace.
+// Joined multi-errors are rendered as a numbered list.
+func (d *Desc) Stringify(withDebug bool) string {
+	// Multi-error: numbered list.
 	if len(d.children) > 0 {
 		var sb strings.Builder
 		for i, child := range d.children {
 			if i > 0 {
 				sb.WriteString("\n")
 			}
-			fmt.Fprintf(&sb, "[%d] %s", i+1, child.ErrString(withDebug))
+			fmt.Fprintf(&sb, "[%d] %s", i+1, child.Stringify(withDebug))
 		}
 		return sb.String()
 	}
-	// Single error.
+	// Single error
 	if d.err == nil {
 		return ""
 	}
@@ -339,7 +257,7 @@ func (d *Desc) ErrString(withDebug bool) string {
 	}
 }
 
-// fieldsString returns a multi-line string of all structured fields in order.
+// fieldsString returns all structured fields as an ordered multi-line string.
 func (d *Desc) fieldsString() string {
 	var lines []string
 	for _, key := range keys {
@@ -350,8 +268,7 @@ func (d *Desc) fieldsString() string {
 	return strings.Join(lines, "\n")
 }
 
-// stackString extracts and formats the stack trace from d.err.
-// Returns an empty string if no stack trace is available.
+// stackString returns the formatted stack trace from d.err, or "" if unavailable.
 func (d *Desc) stackString() string {
 	var berr *base
 	if !errors.As(d.err, &berr) || berr.stack == nil {
@@ -360,7 +277,7 @@ func (d *Desc) stackString() string {
 	return fmt.Sprintf("%+v", berr.stack)
 }
 
-// GetValue returns the value associated with key, or nil if not present.
+// GetValue returns the field value for key, or nil if absent.
 func (d *Desc) GetValue(key string) any {
 	return d.fields[key]
 }

@@ -183,7 +183,7 @@ func TestFormatWrappedNew(t *testing.T) {
 			"github\\.com/tableauio/tableau/internal/x/xerrors\\.wrappedNew\n",
 		},
 	}, {
-		// %+v with ecode: renders full structured desc (ErrString(true)) = summary + debugging fields + stack trace.
+		// %+v with ecode: renders full structured desc (Stringify(true)) = summary + debugging fields + stack trace.
 		Wrap(E2003("1", 3)),
 		"%+v",
 		[]string{
@@ -256,7 +256,7 @@ func TestFormatWrapKV(t *testing.T) {
 			[]string{`value "1" does not meet sequence requirement: "sequence:3"`},
 		},
 		{
-			// %+v renders ErrString(true): summary + debugging fields + stack trace.
+			// %+v renders Stringify(true): summary + debugging fields + stack trace.
 			E2003("1", 3),
 			"%+v",
 			[]string{
@@ -277,7 +277,7 @@ func TestFormatWrapKV(t *testing.T) {
 		},
 		{
 			// WrapKV adds outer fields (BookName, SheetName) to an ecode error.
-			// %+v renders ErrString(true): summary + debugging fields (including outer BookName/SheetName) + stack trace.
+			// %+v renders Stringify(true): summary + debugging fields (including outer BookName/SheetName) + stack trace.
 			WrapKV(E2003("1", 3), KeyModule, ModuleDefault, KeyBookName, "Test.xlsx", KeySheetName, "Sheet1"),
 			"%+v",
 			[]string{
