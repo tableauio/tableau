@@ -46,7 +46,6 @@ func NewSheetExporter(outputDir string, output *options.ConfOutputOption, valida
 	}
 }
 
-// ScatterAndExport
 // ScatterAndExport parses multiple importer infos into standalone protomsgs,
 // then export them to standalone files.
 func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
@@ -114,7 +113,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 	allImpInfos := append(impInfos, importer.ImporterInfo{Importer: mainImpInfo})
 	protomsg, err := ParseMessage(info, x.collector, allImpInfos...)
 	if err != nil {
-		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		return err
 	}
 	// exported conf name pattern is : [ParentDir/]<SheetName>
 	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
@@ -127,13 +126,7 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 		return filename
 	}
 	name := getExportedConfName(info, mainImpInfo)
-	if err := storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator); err != nil {
-		return xerrors.WrapKV(err,
-			xerrors.KeyModule, xerrors.ModuleConf,
-			xerrors.KeyBookName, info.BookName(),
-			xerrors.KeySheetName, info.SheetName())
-	}
-	return nil
+	return storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
 }
 
 type oneMsg struct {
@@ -224,8 +217,11 @@ func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, 
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	parser := NewExtendedSheetParser(context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
-	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
+	// Overwrite the default single-error collector (set by NewExtendedSheetParser for
+	// fail-fast use) with a child collector scoped to this sheet and capped at
+	// maxErrorsPerSheet, so one sheet cannot exhaust the parent book-level collector.
 	parser.sheetCollector = collector.NewChild(maxErrorsPerSheet)
+	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
 		return nil, xerrors.WrapKV(err,

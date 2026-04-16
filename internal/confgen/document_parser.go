@@ -42,8 +42,10 @@ func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Messa
 	// Per-message child collector
 	messageCollector := p.sheetCollector.NewChild(maxErrorsPerMessage)
 	for i := 0; i < md.Fields().Len(); i++ {
-		if messageCollector.IsFull() {
-			return false, messageCollector.Join()
+		// Only check at top-level fields (parentField == nil), consistent with
+		// table_parser's row-level sheetCollector fullness check.
+		if parentField == nil && p.sheetCollector.IsFull() {
+			return false, p.sheetCollector.Join()
 		}
 		fd := md.Fields().Get(i)
 		fieldErr := func() error {

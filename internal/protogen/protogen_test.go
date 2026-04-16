@@ -120,6 +120,8 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 								format.YAML, format.CSV,
 							},
 							FirstPassMode: options.FirstPassModeNormal,
+							// Limit first-pass scan to avoid picking up collector test data.
+							Subdirs: []string{"testdata/yaml", "testdata/csv"},
 						},
 						Output: &options.ProtoOutputOption{
 							FilenameWithSubdirPrefix: true,
@@ -149,6 +151,8 @@ func TestGenerator_GenWorkbook(t *testing.T) {
 								format.YAML, format.CSV,
 							},
 							FirstPassMode: options.FirstPassModeAdvanced,
+							// Limit first-pass scan to avoid picking up collector test data.
+							Subdirs: []string{"testdata/yaml", "testdata/csv"},
 						},
 						Output: &options.ProtoOutputOption{
 							FilenameWithSubdirPrefix: true,
@@ -1000,7 +1004,8 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", "")
+			sheetCollector := tt.gen.collector.NewChild(maxErrorsPerSheet)
+			got, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", "", sheetCollector)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Generator.parseSpecialSheetMode() error = %v, wantErr %v", err, tt.wantErr)
 			}

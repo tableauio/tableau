@@ -63,20 +63,23 @@ Key behaviors: field number preservation, nested message deduplication, auto imp
 
 ## Error Collection
 
-Errors are collected in a **2-level** hierarchy, enabling fail-fast without aborting the entire run:
+Errors are collected in a **3-level** hierarchy, enabling fail-fast without aborting the entire run:
 
 ```mermaid
 flowchart TB
     Root["Generator collector (max 10 errors)"]
     Book["Book collector (max 5 errors per workbook)"]
+    Sheet["Sheet collector (max 5 errors per sheet)"]
     Root --> Book
-    Book -- "increments both" --> Root
+    Book --> Sheet
+    Sheet -- "increments all ancestors" --> Root
     Root -- "full → cancel context" --> Root
 ```
 
 | Trigger | Action |
 |---------|--------|
-| Field parse error | Skip remaining fields in current sheet |
+| Field parse error | Collected into sheet collector; skip remaining fields in current sheet |
+| Sheet collector full | Stop processing fields in current sheet; propagate to book collector |
 | Book collector full | Stop processing sheets in this book |
 | Generator collector full | Cancel context; all goroutines exit early |
 

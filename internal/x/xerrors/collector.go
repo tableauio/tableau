@@ -55,8 +55,15 @@ func normalizeMax(maxErrs int) int32 {
 	return int32(maxErrs)
 }
 
-// Collect stores err and returns the joined error tree if any collector
-// in the ancestor chain is full (nil otherwise).
+// Collect accumulates err into the collector.
+//
+//   - nil err: no-op unless this collector (or an ancestor) is already full,
+//     in which case the joined error tree is returned immediately.
+//   - already-collected err (*collected): records the outer WrapKV layer for
+//     re-wrapping in Join; does not increment any counter.
+//   - ordinary err: increments every ancestor's counter, stores the error if
+//     it is within every ancestor's budget, and returns the joined error tree
+//     if any ancestor has now reached its limit (nil otherwise).
 func (c *Collector) Collect(err error) error {
 	if err == nil {
 		if c.IsFull() {

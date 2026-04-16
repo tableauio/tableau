@@ -1,0 +1,11 @@
+"@sheet": "@TABLEAU"
+---
+"@sheet": "@HeroConf"
+ID: uint32
+Name: string
+BadField: ".UnknownType"
+---
+"@sheet": HeroConf
+ID: 1
+Name: hero1
+BadField: 0

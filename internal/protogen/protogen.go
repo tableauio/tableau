@@ -32,8 +32,9 @@ import (
 
 // Error collection limits at each level.
 const (
-	maxErrors        = 10 // generator level: across concurrent workbooks
-	maxErrorsPerBook = 5  // book level: across sheets in one workbook
+	maxErrors         = 10 // generator level: across concurrent workbooks
+	maxErrorsPerBook  = 5  // book level: across sheets in one workbook
+	maxErrorsPerSheet = 3  // sheet level: across fields/blocks in one sheet
 )
 
 type Generator struct {
@@ -365,39 +366,11 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 	}
 	bp := newDocumentParser(bookName, alias, rewrittenBookName, gen)
 	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
-sheetLoop:
 	for _, sheet := range imp.GetSheets() {
-		// parse sheet options
-		ws := sheet.ToWorkseet()
-		debugSheetName := sheet.GetDebugName()
-		log.Infof("%15s: %s", "parsing sheet", debugSheetName)
-
-		// log.Debugf("dump document:\n%s", sheet.String())
-		if len(sheet.Document.Children) != 1 {
-			err := xerrors.Newf("document should have and only have one child (map node), sheet: %s", sheet.Name)
-			if err := bookCollector.Collect(xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)); err != nil {
-				return err
-			}
-			continue sheetLoop
+		sheetErr := gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
+		if err := bookCollector.Collect(sheetErr); err != nil {
+			return err
 		}
-		// get the first child (map node) in document
-		child := sheet.Document.Children[0]
-		var parsed bool
-		for _, node := range child.Children {
-			field := &internalpb.Field{}
-			parsed, err = bp.parseField(field, node)
-			if err != nil {
-				if err := bookCollector.Collect(xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)); err != nil {
-					return err
-				}
-				continue sheetLoop
-			}
-			if parsed {
-				ws.Fields = append(ws.Fields, field)
-			}
-		}
-		// append parsed sheet to workbook
-		bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
 	}
 	if bookCollector.HasErrors() {
 		return bookCollector.Join()
@@ -458,63 +431,10 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	// create a book parser
 	bp := newTableParser(bookName, alias, rewrittenBookName, gen)
 	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
-	var parsed bool
-sheetLoop:
 	for _, sheet := range imp.GetSheets() {
-		// parse sheet header
-		ws := sheet.ToWorkseet()
-		debugSheetName := sheet.GetDebugName()
-		if pass == secondPass {
-			log.Infof("%15s: %s", "parsing sheet", debugSheetName)
-		}
-
-		tableHeader := newTableHeader(ws.Options, bookOpts, gen.InputOpt.Header, sheet.Tabler())
-		// Two-pass flow:
-		// 	1. first pass: extract type info from special sheet mode (none default mode)
-		// 	2. second pass: parse sheet schema
-		if pass == firstPass && ws.Options.Mode != tableaupb.Mode_MODE_DEFAULT {
-			log.Debugf("first pass: extract type info from %s", debugSheetName)
-
-			parentFilename := bp.GetProtoFilePath()
-			err := gen.extractTypeInfoFromSpecialSheetMode(ws.Options.Mode, sheet, ws.Name, parentFilename)
-			if err != nil {
-				if err := bookCollector.Collect(xerrors.WrapKV(err,
-					xerrors.KeyBookName, debugBookName,
-					xerrors.KeySheetName, debugSheetName)); err != nil {
-					return err
-				}
-			}
-		} else if pass == secondPass {
-			log.Debugf("second pass: parse sheet schema from %s", debugSheetName)
-			if ws.Options.Mode == tableaupb.Mode_MODE_DEFAULT {
-				for cursor := 0; cursor < len(tableHeader.nameRowData); cursor++ {
-					field := &internalpb.Field{}
-					cursor, parsed, err = bp.parseField(field, tableHeader, cursor, "", "", tableparser.Nested(ws.Options.Nested))
-					if err != nil {
-						if err := bookCollector.Collect(wrapDebugErr(err, debugBookName, debugSheetName, tableHeader, cursor)); err != nil {
-							return err
-						}
-						continue sheetLoop
-					}
-					if parsed {
-						ws.Fields = append(ws.Fields, field)
-					}
-				}
-				// append parsed sheet to workbook
-				bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
-			} else {
-				worksheets, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName)
-				if err != nil {
-					if err := bookCollector.Collect(xerrors.WrapKV(err,
-						xerrors.KeyBookName, debugBookName,
-						xerrors.KeySheetName, debugSheetName)); err != nil {
-						return err
-					}
-					continue sheetLoop
-				}
-				// append parsed sheets to workbook
-				bp.wb.Worksheets = append(bp.wb.Worksheets, worksheets...)
-			}
+		sheetErr := gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
+		if err := bookCollector.Collect(sheetErr); err != nil {
+			return err
 		}
 	}
 	if bookCollector.HasErrors() {
@@ -636,7 +556,111 @@ func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, s
 	return nil
 }
 
-func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.Worksheet, sheet *book.Sheet, debugBookName, debugSheetName string) ([]*internalpb.Worksheet, error) {
+// convertDocumentSheet processes a single document sheet within a book:
+// it parses each top-level field node and appends the worksheet to the workbook.
+// A sheet-level collector is used to accumulate field errors and enable fail-fast
+// without aborting the entire book.
+func (gen *Generator) convertDocumentSheet(bp *documentParser, bookCollector *xerrors.Collector, sheet *book.Sheet, debugBookName string) error {
+	ws := sheet.ToWorkseet()
+	debugSheetName := sheet.GetDebugName()
+	log.Infof("%15s: %s", "parsing sheet", debugSheetName)
+
+	// log.Debugf("dump document:\n%s", sheet.String())
+	if len(sheet.Document.Children) != 1 {
+		err := xerrors.Newf("document should have and only have one child (map node), sheet: %s", sheet.Name)
+		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)
+	}
+
+	sheetCollector := bookCollector.NewChild(maxErrorsPerSheet)
+	// get the first child (map node) in document
+	child := sheet.Document.Children[0]
+	for _, node := range child.Children {
+		if sheetCollector.IsFull() {
+			return sheetCollector.Join()
+		}
+		field := &internalpb.Field{}
+		parsed, err := bp.parseField(field, node)
+		if err != nil {
+			if err := sheetCollector.Collect(xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)); err != nil {
+				return err
+			}
+			continue
+		}
+		if parsed {
+			ws.Fields = append(ws.Fields, field)
+		}
+	}
+	if sheetCollector.HasErrors() {
+		return sheetCollector.Join()
+	}
+	// append parsed sheet to workbook
+	bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
+	return nil
+}
+
+// convertTableSheet processes a single sheet within a book during the two-pass flow:
+//  1. first pass: extract type info from special sheet mode (non-default mode)
+//  2. second pass: parse sheet schema and append worksheets to the workbook
+func (gen *Generator) convertTableSheet(bp *tableParser, bookCollector *xerrors.Collector, sheet *book.Sheet, bookOpts *tableaupb.WorkbookOptions, debugBookName string, pass parsePass) error {
+	ws := sheet.ToWorkseet()
+	debugSheetName := sheet.GetDebugName()
+	if pass == secondPass {
+		log.Infof("%15s: %s", "parsing sheet", debugSheetName)
+	}
+
+	tableHeader := newTableHeader(ws.Options, bookOpts, gen.InputOpt.Header, sheet.Tabler())
+	sheetCollector := bookCollector.NewChild(maxErrorsPerSheet)
+
+	if pass == firstPass && ws.Options.Mode != tableaupb.Mode_MODE_DEFAULT {
+		log.Debugf("first pass: extract type info from %s", debugSheetName)
+		parentFilename := bp.GetProtoFilePath()
+		err := gen.extractTypeInfoFromSpecialSheetMode(ws.Options.Mode, sheet, ws.Name, parentFilename)
+		if err != nil {
+			if err := sheetCollector.Collect(xerrors.WrapKV(err,
+				xerrors.KeyBookName, debugBookName,
+				xerrors.KeySheetName, debugSheetName)); err != nil {
+				return err
+			}
+		}
+	} else if pass == secondPass {
+		log.Debugf("second pass: parse sheet schema from %s", debugSheetName)
+		if ws.Options.Mode == tableaupb.Mode_MODE_DEFAULT {
+			var parsed bool
+			for cursor := 0; cursor < len(tableHeader.nameRowData); cursor++ {
+				if sheetCollector.IsFull() {
+					return bookCollector.Join()
+				}
+				field := &internalpb.Field{}
+				var err error
+				cursor, parsed, err = bp.parseField(field, tableHeader, cursor, "", "", tableparser.Nested(ws.Options.Nested))
+				if err != nil {
+					if err := sheetCollector.Collect(wrapDebugErr(err, debugBookName, debugSheetName, tableHeader, cursor)); err != nil {
+						return err
+					}
+					return nil
+				}
+				if parsed {
+					ws.Fields = append(ws.Fields, field)
+				}
+			}
+			// append parsed sheet to workbook
+			bp.wb.Worksheets = append(bp.wb.Worksheets, ws)
+		} else {
+			worksheets, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName, sheetCollector)
+			if err != nil {
+				return sheetCollector.Collect(err)
+			}
+			// append parsed sheets to workbook
+			bp.wb.Worksheets = append(bp.wb.Worksheets, worksheets...)
+		}
+	}
+	if sheetCollector.HasErrors() {
+		return sheetCollector.Join()
+	}
+	return nil
+}
+
+func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.Worksheet, sheet *book.Sheet, debugBookName, debugSheetName string, sheetCollector *xerrors.Collector) ([]*internalpb.Worksheet, error) {
 	// create parser
 	sheetOpts := &tableaupb.WorksheetOptions{
 		Name:      sheet.Name,
@@ -657,27 +681,39 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
 		var worksheets []*internalpb.Worksheet
 		for row := table.BeginRow(); row < table.EndRow(); row++ {
+			if sheetCollector.IsFull() {
+				return nil, sheetCollector.Join()
+			}
 			cols := table.GetRow(row)
-			if isEnumTypeBlockHeader(cols) {
-				if row < 1 {
-					continue
-				}
-				blockBeginRow := row
+			if !isEnumTypeBlockHeader(cols) || row < 1 {
+				continue
+			}
+			blockBeginRow := row
+			blockErr := func() error {
 				typeRow := table.GetRow(row - 1)
-				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
+				var err error
 				subWs.Name, subWs.Note, err = extractTableBlockTypeRow(typeRow)
 				if err != nil {
-					return nil, xerrors.Wrapf(err, "failed to extract enum type block at row: %d, sheet: %s", row, sheet.Name)
+					return xerrors.Wrapf(err, "failed to extract enum type block at row: %d, sheet: %s", row, sheet.Name)
 				}
 				blockEndRow := table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
 				if err := parseEnumType(subWs, subSheet, parser, gen); err != nil {
-					return nil, err
+					return err
 				}
 				worksheets = append(worksheets, subWs)
+				return nil
+			}()
+			if blockErr != nil {
+				if err := sheetCollector.Collect(xerrors.WrapKV(blockErr, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)); err != nil {
+					return nil, err
+				}
 			}
+		}
+		if sheetCollector.HasErrors() {
+			return nil, sheetCollector.Join()
 		}
 		return worksheets, nil
 	case tableaupb.Mode_MODE_STRUCT_TYPE:
@@ -688,27 +724,39 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 	case tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
 		var worksheets []*internalpb.Worksheet
 		for row := table.BeginRow(); row < table.EndRow(); row++ {
+			if sheetCollector.IsFull() {
+				return nil, sheetCollector.Join()
+			}
 			cols := table.GetRow(row)
-			if isStructTypeBlockHeader(cols) {
-				if row < 1 {
-					continue
-				}
-				blockBeginRow := row
+			if !isStructTypeBlockHeader(cols) || row < 1 {
+				continue
+			}
+			blockBeginRow := row
+			blockErr := func() error {
 				typeRow := table.GetRow(row - 1)
-				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
+				var err error
 				subWs.Name, subWs.Note, err = extractTableBlockTypeRow(typeRow)
 				if err != nil {
-					return nil, xerrors.Wrapf(err, "failed to extract struct type block at row: %d, sheet: %s", row, sheet.Name)
+					return xerrors.Wrapf(err, "failed to extract struct type block at row: %d, sheet: %s", row, sheet.Name)
 				}
 				blockEndRow := table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
 				if err := parseStructType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
-					return nil, err
+					return err
 				}
 				worksheets = append(worksheets, subWs)
+				return nil
+			}()
+			if blockErr != nil {
+				if err := sheetCollector.Collect(xerrors.WrapKV(blockErr, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)); err != nil {
+					return nil, err
+				}
 			}
+		}
+		if sheetCollector.HasErrors() {
+			return nil, sheetCollector.Join()
 		}
 		return worksheets, nil
 	case tableaupb.Mode_MODE_UNION_TYPE:
@@ -719,27 +767,39 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 	case tableaupb.Mode_MODE_UNION_TYPE_MULTI:
 		var worksheets []*internalpb.Worksheet
 		for row := table.BeginRow(); row < table.EndRow(); row++ {
+			if sheetCollector.IsFull() {
+				return nil, sheetCollector.Join()
+			}
 			cols := table.GetRow(row)
-			if isUnionTypeBlockHeader(cols) {
-				if row < 1 {
-					continue
-				}
-				blockBeginRow := row
+			if !isUnionTypeBlockHeader(cols) || row < 1 {
+				continue
+			}
+			blockBeginRow := row
+			blockErr := func() error {
 				typeRow := table.GetRow(row - 1)
-				var err error
 				subWs := proto.Clone(ws).(*internalpb.Worksheet)
+				var err error
 				subWs.Name, subWs.Note, err = extractTableBlockTypeRow(typeRow)
 				if err != nil {
-					return nil, xerrors.Wrapf(err, "failed to extract union type block at row: %d, sheet: %s", row, sheet.Name)
+					return xerrors.Wrapf(err, "failed to extract union type block at row: %d, sheet: %s", row, sheet.Name)
 				}
 				blockEndRow := table.FindBlockEndRow(blockBeginRow)
 				row = blockEndRow // skip row to next block
 				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
 				if err := parseUnionType(subWs, subSheet, parser, gen, debugBookName, debugSheetName); err != nil {
-					return nil, err
+					return err
 				}
 				worksheets = append(worksheets, subWs)
+				return nil
+			}()
+			if blockErr != nil {
+				if err := sheetCollector.Collect(xerrors.WrapKV(blockErr, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)); err != nil {
+					return nil, err
+				}
 			}
+		}
+		if sheetCollector.HasErrors() {
+			return nil, sheetCollector.Join()
 		}
 		return worksheets, nil
 	default:

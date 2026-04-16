@@ -1,0 +1,49 @@
+"@sheet": "@TABLEAU"
+---
+"@sheet": "@Sheet1"
+ID: uint32
+BadField: ".UnknownType1"
+---
+"@sheet": "@Sheet2"
+ID: uint32
+BadField: ".UnknownType2"
+---
+"@sheet": "@Sheet3"
+ID: uint32
+BadField: ".UnknownType3"
+---
+"@sheet": "@Sheet4"
+ID: uint32
+BadField: ".UnknownType4"
+---
+"@sheet": "@Sheet5"
+ID: uint32
+BadField: ".UnknownType5"
+---
+"@sheet": "@Sheet6"
+ID: uint32
+BadField: ".UnknownType6"
+---
+"@sheet": Sheet1
+ID: 1
+BadField: 0
+---
+"@sheet": Sheet2
+ID: 2
+BadField: 0
+---
+"@sheet": Sheet3
+ID: 3
+BadField: 0
+---
+"@sheet": Sheet4
+ID: 4
+BadField: 0
+---
+"@sheet": Sheet5
+ID: 5
+BadField: 0
+---
+"@sheet": Sheet6
+ID: 6
+BadField: 0

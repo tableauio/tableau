@@ -228,13 +228,12 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
 	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
 	worksheetFound := false
-sheetLoop:
 	for _, sheetInfo := range sheets {
 		sheetName := sheetInfo.SheetName()
 		sheetBeginTime := time.Now()
 		if specifiedSheetName != "" {
 			if specifiedSheetName != sheetName {
-				continue sheetLoop
+				continue
 			}
 			worksheetFound = true
 		}
@@ -251,7 +250,7 @@ sheetLoop:
 				if err := bookCollector.Collect(err); err != nil {
 					return err
 				}
-				continue sheetLoop
+				continue
 			}
 		} else {
 			if err := gen.processMerger(imp, sheetInfo, bookCollector); err != nil {
@@ -259,7 +258,7 @@ sheetLoop:
 				if err := bookCollector.Collect(err); err != nil {
 					return err
 				}
-				continue sheetLoop
+				continue
 			}
 		}
 

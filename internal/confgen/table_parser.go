@@ -68,9 +68,6 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 	// Per-message child collector
 	messageCollector := p.sheetCollector.NewChild(maxErrorsPerMessage)
 	for i := 0; i < md.Fields().Len(); i++ {
-		if messageCollector.IsFull() {
-			return false, messageCollector.Join()
-		}
 		fd := md.Fields().Get(i)
 		fieldErr := func() error {
 			// TODO(performance): cache the parsed field for reuse, as each table row will be parsed repeatedly.
