@@ -806,19 +806,15 @@ func (p *sheetParser) parseIncellList(field *Field, list protoreflect.List, card
 			continue
 		}
 		if fdopts.GetKey() != "" && fd.Kind() != protoreflect.MessageKind {
-			// check key unique for scalar/enum list
-			for j := 0; j < list.Len(); j++ {
+			// check duplicate elems for scalar/enum keyed-list
+			for j := range list.Len() {
 				elemVal := list.Get(j)
 				if elemVal.Equal(elemValue) {
-					return xerrors.WrapKV(xerrors.E2005(elemValue))
+					return xerrors.WrapKV(xerrors.E2028(elemValue))
 				}
 			}
 		}
 		// check list elem's sub-field prop
-		_, err = p.checkSubFieldProp(field, cardPrefix, elemValue)
-		if err != nil {
-			return err
-		}
 		list.Append(elemValue)
 	}
 	return nil
