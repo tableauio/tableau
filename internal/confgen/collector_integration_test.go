@@ -50,9 +50,10 @@ func e2012(workbook, worksheet, cellPos, value, fieldType string) string {
 // TestCollectorIntegration_MessageLevel tests that field-level errors within
 // a single row (message) are collected by the message-level collector.
 //
-// CSV data: ItemConf has 2 rows, each with 1 invalid field.
-//   - Row 1: ID="abc" (invalid uint32) -> E2012
-//   - Row 2: Num="xyz" (invalid int32) -> E2012
+// CSV data: ItemConf has 1 row with 2 invalid fields in the same row.
+//   - Row 1: Num="xyz" (invalid int32) AND Price="bad_price" (invalid int32) -> 2x E2012 in same row
+//
+// This verifies that multiple column parse errors within the same row are all collected.
 //
 // Collector hierarchy: global -> book -> sheet(ItemConf) -> message(row)
 func TestCollectorIntegration_MessageLevel(t *testing.T) {
@@ -61,8 +62,8 @@ func TestCollectorIntegration_MessageLevel(t *testing.T) {
 	require.Error(t, err)
 
 	got := err.Error()
-	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "A4", "abc", "uint32") +
-		"\n[2] " + e2012("Collector#*.csv", "ItemConf", "B5", "xyz", "int32") +
+	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "B4", "xyz", "int32") +
+		"\n[2] " + e2012("Collector#*.csv", "ItemConf", "C4", "bad_price", "int32") +
 		"\n[3] " + e2012("Collector#*.csv", "ShopConf", "B4", "bad_price", "int32") +
 		"\n[4] " + e2012("Collector#*.csv", "ShopConf", "A5", "bad_id", "uint32")
 	assert.Equal(t, want, got)
@@ -72,7 +73,7 @@ func TestCollectorIntegration_MessageLevel(t *testing.T) {
 // are collected at the book level.
 //
 // CSV data: Both ItemConf and ShopConf have invalid data.
-//   - ItemConf: "abc" (uint32), "xyz" (int32)
+//   - ItemConf row 1: "xyz" (int32) AND "bad_price" (int32) — multiple errors in same row
 //   - ShopConf: "bad_price" (int32), "bad_id" (uint32)
 //
 // Collector hierarchy: global -> book -> sheet(ItemConf) + sheet(ShopConf)
@@ -82,8 +83,8 @@ func TestCollectorIntegration_BookLevel(t *testing.T) {
 	require.Error(t, err)
 
 	got := err.Error()
-	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "A4", "abc", "uint32") +
-		"\n[2] " + e2012("Collector#*.csv", "ItemConf", "B5", "xyz", "int32") +
+	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "B4", "xyz", "int32") +
+		"\n[2] " + e2012("Collector#*.csv", "ItemConf", "C4", "bad_price", "int32") +
 		"\n[3] " + e2012("Collector#*.csv", "ShopConf", "B4", "bad_price", "int32") +
 		"\n[4] " + e2012("Collector#*.csv", "ShopConf", "A5", "bad_id", "uint32")
 	assert.Equal(t, want, got)
@@ -119,7 +120,7 @@ func TestCollectorIntegration_SheetLevelCapped(t *testing.T) {
 // are collected at the global level.
 //
 // Two workbooks (Collector and Collector2) each have invalid data:
-//   - Collector/ItemConf: "abc" (uint32), "xyz" (int32)
+//   - Collector/ItemConf row 1: "xyz" (int32) AND "bad_price" (int32) — multiple errors in same row
 //   - Collector/ShopConf: "bad_price" (int32), "bad_id" (uint32)
 //   - Collector2/HeroConf: "hero_x" (uint32), "bad_lvl" (int32)
 //
@@ -136,8 +137,8 @@ func TestCollectorIntegration_MultiBook(t *testing.T) {
 	// Verify all 6 errors are present (order may vary due to concurrent processing).
 	assert.Contains(t, got, e2012("Collector2#*.csv", "HeroConf", "A4", "hero_x", "uint32"))
 	assert.Contains(t, got, e2012("Collector2#*.csv", "HeroConf", "B5", "bad_lvl", "int32"))
-	assert.Contains(t, got, e2012("Collector#*.csv", "ItemConf", "A4", "abc", "uint32"))
-	assert.Contains(t, got, e2012("Collector#*.csv", "ItemConf", "B5", "xyz", "int32"))
+	assert.Contains(t, got, e2012("Collector#*.csv", "ItemConf", "B4", "xyz", "int32"))
+	assert.Contains(t, got, e2012("Collector#*.csv", "ItemConf", "C4", "bad_price", "int32"))
 	assert.Contains(t, got, e2012("Collector#*.csv", "ShopConf", "B4", "bad_price", "int32"))
 	assert.Contains(t, got, e2012("Collector#*.csv", "ShopConf", "A5", "bad_id", "uint32"))
 	// Verify total error count is exactly 6.

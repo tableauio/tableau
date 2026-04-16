@@ -1,5 +1,4 @@
-ID,Num
-uint32,int32
-Item's ID,Item's num
-abc,100
-2,xyz
+ID,Num,Price
+uint32,int32,int32
+Item's ID,Item's num,Item's price
+1,xyz,bad_price
