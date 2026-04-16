@@ -59,6 +59,9 @@ func normalizeMax(maxErrs int) int32 {
 // in the ancestor chain is full (nil otherwise).
 func (c *Collector) Collect(err error) error {
 	if err == nil {
+		if c.IsFull() {
+			return c.Join()
+		}
 		return nil
 	}
 
@@ -79,21 +82,20 @@ func (c *Collector) Collect(err error) error {
 		return nil
 	}
 
-	anyFull := false
+	// Increment all ancestor counters; track whether any hit the limit (anyFull)
+	// and whether this error is within every ancestor's budget (store).
+	// n == maxErrs is the last accepted slot; n > maxErrs means overflow.
+	anyFull, store := false, true
 	for cur := c; cur != nil; cur = cur.parent {
-		if cur.counter.Add(1) >= cur.maxErrs {
+		n := cur.counter.Add(1)
+		if n >= cur.maxErrs {
 			anyFull = true
+		}
+		if n > cur.maxErrs {
+			store = false
 		}
 	}
 
-	// Store only if no ancestor has exceeded its limit.
-	store := true
-	for cur := c; cur != nil; cur = cur.parent {
-		if cur.counter.Load() > cur.maxErrs {
-			store = false
-			break
-		}
-	}
 	if store {
 		c.mu.Lock()
 		c.errs = append(c.errs, err)
@@ -203,5 +205,8 @@ func (g *Group) Go(fn func(ctx context.Context) error) {
 func (g *Group) Wait() error {
 	defer g.cancel()
 	_ = g.eg.Wait()
+	if !g.collector.HasErrors() {
+		return nil
+	}
 	return g.collector.Join()
 }
