@@ -123,7 +123,7 @@ E2026:
 E2027:
   desc: protovalidate violation
   text: "{{ quote .FieldValue }} 违反校验规则：{{.Violation}}"
-  help: "修正字段值以满足 protovalidate 规则"
+  help: "修正字段值以满足校验规则"
   fields:
     - Violation: string
     - FieldValue: any

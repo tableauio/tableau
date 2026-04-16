@@ -1,0 +1,4 @@
+HeroID,Rank,Rank
+uint32,int32,int32
+HeroID,Rank (dup),Rank
+1,1,1

@@ -1,0 +1,21 @@
+"@sheet": "@TABLEAU"
+---
+"@sheet": "@ItemConf"
+ID: uint32
+Name: string
+BadField: ".UnknownType"
+---
+"@sheet": "@SkillConf"
+SkillID: uint32
+Level: int32
+BadField: ".UnknownType"
+---
+"@sheet": ItemConf
+ID: 1
+Name: item1
+BadField: 0
+---
+"@sheet": SkillConf
+SkillID: 1
+Level: 10
+BadField: 0

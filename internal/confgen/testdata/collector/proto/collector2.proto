@@ -1,0 +1,21 @@
+// clang-format off
+
+syntax = "proto3";
+
+package collectortest;
+
+option (tableau.workbook) = {name: "Collector2#*.csv"};
+
+import "tableau/protobuf/tableau.proto";
+
+// Collector2HeroConf is a simple map sheet in a second workbook
+// for testing multi-workbook error collection.
+message Collector2HeroConf {
+  option (tableau.worksheet) = {name:"HeroConf" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"HeroID" layout:LAYOUT_VERTICAL}];
+  message Hero {
+    uint32 hero_id = 1 [(tableau.field) = {name:"HeroID"}];
+    int32 level = 2 [(tableau.field) = {name:"Level"}];
+  }
+}

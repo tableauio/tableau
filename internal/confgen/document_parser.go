@@ -7,9 +7,9 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -30,15 +30,25 @@ func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error 
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeySheetName, sheet.Name)
 	}
+	if p.sheetCollector.HasErrors() {
+		return xerrors.WrapKV(p.sheetCollector.Join(), xerrors.KeySheetName, sheet.Name)
+	}
 	return nil
 }
 
 // parseMessage parses all fields of a protobuf message.
 func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
+	// Per-message child collector
+	messageCollector := p.sheetCollector.NewChild(maxErrorsPerMessage)
 	for i := 0; i < md.Fields().Len(); i++ {
+		// Only check at top-level fields (parentField == nil), consistent with
+		// table_parser's row-level sheetCollector fullness check.
+		if parentField == nil && p.sheetCollector.IsFull() {
+			return false, p.sheetCollector.Join()
+		}
 		fd := md.Fields().Get(i)
-		err := func() error {
+		fieldErr := func() error {
 			field := p.parseFieldDescriptor(fd)
 			field.mergeParentFieldProp(parentField)
 			defer field.release()
@@ -88,14 +98,19 @@ func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Messa
 					xerrors.KeyPBFieldOpts, field.opts)
 			}
 			if fieldPresent {
-				// The message is treated as present at least one field is present.
+				// The message is treated as present if at least one field is present.
 				present = true
 			}
 			return nil
 		}()
-		if err != nil {
-			return false, err
+		if fieldErr != nil {
+			if err := messageCollector.Collect(fieldErr); err != nil {
+				return false, err
+			}
 		}
+	}
+	if messageCollector.HasErrors() {
+		return false, messageCollector.Join()
 	}
 	return present, nil
 }

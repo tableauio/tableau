@@ -1,0 +1,5 @@
+SkillID,Name,Name
+uint32,string,string
+Skill's ID,Skill's name (dup),Skill's name
+1,Fireball,Fireball
+2,IceBolt,IceBolt

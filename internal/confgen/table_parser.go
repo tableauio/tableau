@@ -9,9 +9,9 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -38,10 +38,25 @@ func (p *tableParser) parse(protomsg proto.Message, table book.Tabler) error {
 	// NOTE: the global options has been merged into book options on protogen,
 	// so there is no need to set it here.
 	header := tableparser.NewHeader(p.sheetOpts, p.bookOpts, nil)
-	return tableparser.RangeDataRows(table, header, func(r *book.Row) error {
-		_, err := p.parseMessage(nil, msg, r, "", "")
-		return err
+	err := tableparser.RangeDataRows(table, header, func(r *book.Row) error {
+		if p.sheetCollector.IsFull() {
+			return p.sheetCollector.Join()
+		}
+		_, rowErr := p.parseMessage(nil, msg, r, "", "")
+		if rowErr != nil {
+			if err := p.sheetCollector.Collect(rowErr); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
+	if err != nil {
+		return err
+	}
+	if p.sheetCollector.HasErrors() {
+		return p.sheetCollector.Join()
+	}
+	return nil
 }
 
 // parseMessage parses all fields of a protobuf message.
@@ -50,9 +65,11 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 	if xproto.IsUnion(md) {
 		return p.parseUnionMessage(msg, parentField, r, prefix, cardPrefix)
 	}
+	// Per-message child collector
+	messageCollector := p.sheetCollector.NewChild(maxErrorsPerMessage)
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
-		err := func() error {
+		fieldErr := func() error {
 			// TODO(performance): cache the parsed field for reuse, as each table row will be parsed repeatedly.
 			field := p.parseFieldDescriptor(fd)
 			field.mergeParentFieldProp(parentField)
@@ -66,14 +83,19 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 					xerrors.KeyPBFieldOpts, field.opts)
 			}
 			if fieldPresent {
-				// The message is treated as present at least one field is present.
+				// The message is treated as present if at least one field is present.
 				present = true
 			}
 			return nil
 		}()
-		if err != nil {
-			return false, err
+		if fieldErr != nil {
+			if err := messageCollector.Collect(fieldErr); err != nil {
+				return false, err
+			}
 		}
+	}
+	if messageCollector.HasErrors() {
+		return false, messageCollector.Join()
 	}
 	return present, nil
 }

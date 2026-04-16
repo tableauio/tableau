@@ -1,0 +1,15 @@
+HeroID,Level
+uint32,int32
+Hero's ID,Hero's level
+c1,100
+c2,200
+c3,300
+c4,400
+c5,500
+c6,600
+c7,700
+c8,800
+c9,900
+c10,1000
+c11,1100
+c12,1200

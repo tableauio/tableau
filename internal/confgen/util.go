@@ -12,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/internal/x/xproto/protoc"
@@ -19,7 +20,6 @@ import (
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/store"
-	"github.com/tableauio/tableau/xerrors"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -296,8 +296,6 @@ func validate(msg proto.Message, validator protovalidate.Validator) error {
 			}
 			errs = append(errs, xerrors.E2027(v.String(), fieldValue))
 		}
-		// TODO: multiple errors cannot be properly rendered in localizer, need to enhance
-		// localizer to support multiple errors with same error code but different fields.
 		return errors.Join(errs...)
 	}
 	return xerrors.Wrap(err)

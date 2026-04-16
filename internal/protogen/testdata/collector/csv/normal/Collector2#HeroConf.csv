@@ -1,0 +1,5 @@
+HeroID,Level,Level
+uint32,int32,int32
+Hero's ID,Hero's level (dup),Hero's level
+1,10,10
+2,20,20

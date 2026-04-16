@@ -1,0 +1,4 @@
+HeroID,Power,Power
+uint32,int32,int32
+HeroID,Power (dup),Power
+1,100,100

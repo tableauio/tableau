@@ -7,7 +7,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/types"
-	"github.com/tableauio/tableau/xerrors"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
 type Kind int

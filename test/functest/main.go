@@ -2,8 +2,6 @@ package main
 
 import (
 	"log"
-
-	"github.com/tableauio/tableau/xerrors"
 )
 
 func main() {
@@ -15,7 +13,6 @@ func CompareGeneratedProto() {
 	err := genProto("DEBUG", "FULL")
 	if err != nil {
 		log.Fatalf("%+v", err)
-		log.Fatalf("%s", xerrors.NewDesc(err))
 	}
 	err = EqualTextFile(".proto", "proto", "_proto", 2)
 	if err != nil {
@@ -27,7 +24,6 @@ func CompareGeneratedJSON() {
 	err := genConf("DEBUG", "FULL")
 	if err != nil {
 		log.Fatalf("%+v", err)
-		log.Fatalf("%s", xerrors.NewDesc(err))
 	}
 	err = EqualTextFile(".json", "conf", "_conf", 1)
 	if err != nil {

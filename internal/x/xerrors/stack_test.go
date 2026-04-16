@@ -33,7 +33,7 @@ func TestFrameFormat(t *testing.T) {
 	}, {
 		initpc,
 		"%+s",
-		"github.com/tableauio/tableau/xerrors.init\n" +
+		"github.com/tableauio/tableau/internal/x/xerrors.init\n" +
 			"\t.+/xerrors/stack_test.go",
 	}, {
 		0,
@@ -80,7 +80,7 @@ func TestFrameFormat(t *testing.T) {
 	}, {
 		initpc,
 		"%+v",
-		"github.com/tableauio/tableau/xerrors.init\n" +
+		"github.com/tableauio/tableau/internal/x/xerrors.init\n" +
 			"\t.+/xerrors/stack_test.go:10",
 	}, {
 		0,
@@ -99,7 +99,7 @@ func TestFuncname(t *testing.T) {
 	}{
 		{"", ""},
 		{"runtime.main", "main"},
-		{"github.com/tableauio/tableau/xerrors.funcname", "funcname"},
+		{"github.com/tableauio/tableau/internal/x/xerrors.funcname", "funcname"},
 		{"funcname", "funcname"},
 		{"io.copyBuffer", "copyBuffer"},
 		{"main.(*R).Write", "(*R).Write"},
@@ -121,27 +121,27 @@ func TestStackTrace(t *testing.T) {
 	}{
 		{
 			New("error"), []string{
-				"github.com/tableauio/tableau/xerrors.TestStackTrace\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.TestStackTrace\n" +
 					"\t.+/xerrors/stack_test.go:123",
 			},
 		},
 		{
 			Wrapf(New("error"), "ahh"), []string{
-				"github.com/tableauio/tableau/xerrors.TestStackTrace\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.TestStackTrace\n" +
 					"\t.+/xerrors/stack_test.go:129", // this is the stack of Wrap, not New
 			},
 		},
 		{
 			errors.Unwrap(Wrapf(New("error"), "ahh")), []string{
-				"github.com/tableauio/tableau/xerrors.TestStackTrace\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.TestStackTrace\n" +
 					"\t.+/xerrors/stack_test.go:135", // this is the stack of New
 			},
 		},
 		{
 			func() error { return New("error") }(), []string{
-				`github.com/tableauio/tableau/xerrors.TestStackTrace.func1` +
+				`github.com/tableauio/tableau/internal/x/xerrors.TestStackTrace.func1` +
 					"\n\t.+/xerrors/stack_test.go:141", // this is the stack of New
-				"github.com/tableauio/tableau/xerrors.TestStackTrace\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.TestStackTrace\n" +
 					"\t.+/xerrors/stack_test.go:141", // this is the stack of New's caller
 			},
 		},
@@ -151,11 +151,11 @@ func TestStackTrace(t *testing.T) {
 					return Wrap(Newf("newf: hello %s", fmt.Sprintf("world: %s", "ooh")))
 				}()
 			}()), []string{
-				`github.com/tableauio/tableau/xerrors.TestStackTrace.TestStackTrace.func2.func3` +
+				`github.com/tableauio/tableau/internal/x/xerrors.TestStackTrace.TestStackTrace.func2.func3` +
 					"\n\t.+/xerrors/stack_test.go:151", // this is the stack of Newf
-				`github.com/tableauio/tableau/xerrors.TestStackTrace.func2` +
+				`github.com/tableauio/tableau/internal/x/xerrors.TestStackTrace.func2` +
 					"\n\t.+/xerrors/stack_test.go:152", // this is the stack of Newf's caller
-				"github.com/tableauio/tableau/xerrors.TestStackTrace\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.TestStackTrace\n" +
 					"\t.+/xerrors/stack_test.go:153", // this is the stack of Newf's caller's caller
 			},
 		},
@@ -231,9 +231,9 @@ func TestStackTraceFormat(t *testing.T) {
 			stackTrace()[:2],
 			"%+v",
 			"\n" +
-				"github.com/tableauio/tableau/xerrors.stackTrace\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.stackTrace\n" +
 				"\t.+/xerrors/stack_test.go:179\n" +
-				"github.com/tableauio/tableau/xerrors.TestStackTraceFormat\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.TestStackTraceFormat\n" +
 				"\t.+/xerrors/stack_test.go:231",
 		},
 		{
@@ -275,7 +275,7 @@ func Test_withStack(t *testing.T) {
 				}(),
 			},
 			want: []string{
-				"github.com/tableauio/tableau/xerrors.Test_withStack\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.Test_withStack\n" +
 					"\t.+/xerrors/stack_test.go:274",
 			},
 		},
@@ -288,9 +288,9 @@ func Test_withStack(t *testing.T) {
 				}(),
 			},
 			want: []string{
-				"github.com/tableauio/tableau/xerrors.Test_withStack\n" +
+				"github.com/tableauio/tableau/internal/x/xerrors.Test_withStack\n" +
 					"\t.+/xerrors/stack_test.go:286", // this is the stack of new
-				`github.com/tableauio/tableau/xerrors.Test_withStack` +
+				`github.com/tableauio/tableau/internal/x/xerrors.Test_withStack` +
 					"\n\t.+/xerrors/stack_test.go:288", // this is the stack of withStack
 			},
 		},

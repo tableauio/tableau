@@ -42,7 +42,6 @@ func Test_RenderMessage(t *testing.T) {
 	}
 	result := `error[E0001]: sheet not found in book
 Reason: sheet "Sheet1" not found in book "Book1"
-
 `
 	e0001 := i18n.RenderMessage(language.English, "default", fields)
 	assert.Equal(t, result, e0001)

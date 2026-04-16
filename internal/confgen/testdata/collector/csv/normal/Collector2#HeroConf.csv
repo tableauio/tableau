@@ -1,0 +1,5 @@
+HeroID,Level
+uint32,int32
+Hero's ID,Hero's level
+hero_x,1
+2,bad_lvl

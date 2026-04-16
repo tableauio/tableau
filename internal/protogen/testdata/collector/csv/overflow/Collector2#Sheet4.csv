@@ -1,0 +1,4 @@
+HeroID,Speed,Speed
+uint32,int32,int32
+HeroID,Speed (dup),Speed
+1,10,10

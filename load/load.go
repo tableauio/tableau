@@ -11,11 +11,11 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -200,7 +200,8 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 			BookFormat:     self.Format(),
 		},
 	}
-	protomsg, err := confgen.ParseMessage(sheetInfo, impInfos...)
+	collector := xerrors.NewCollector(1)
+	protomsg, err := confgen.ParseMessage(sheetInfo, collector, impInfos...)
 	if err != nil {
 		return err
 	}

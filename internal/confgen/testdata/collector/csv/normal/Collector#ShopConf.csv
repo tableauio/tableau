@@ -1,0 +1,5 @@
+ShopID,Price
+uint32,int32
+Shop's ID,Goods's price
+1,bad_price
+bad_id,200

@@ -11,7 +11,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
-	"github.com/tableauio/tableau/xerrors"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
 )
 
@@ -128,18 +128,17 @@ func runE(_ *cobra.Command, args []string) error {
 	return nil
 }
 
+// genProto runs the proto generator to convert the specified workbooks into .proto files.
 func genProto(workbooks []string, config *options.Options) error {
-	// generate proto files
 	gen := tableau.NewProtoGeneratorWithOptions(protoPackage, indir, outdir, config)
 	if err := gen.Generate(workbooks...); err != nil {
-		logError(ModeProto, err)
-		return fmt.Errorf("generate proto failed")
+		return formatError(ModeProto, err)
 	}
 	return nil
 }
 
+// genConf runs the conf generator to convert the specified workbooks into configuration files.
 func genConf(workbooks []string, config *options.Options) error {
-	// generate conf files
 	if confOutputSubdir != "" {
 		// override conf.output.subdir field in config file, in order
 		// to gain dynamic output subdir ability.
@@ -147,17 +146,19 @@ func genConf(workbooks []string, config *options.Options) error {
 	}
 	gen := tableau.NewConfGeneratorWithOptions(protoPackage, indir, outdir, config)
 	if err := gen.Generate(workbooks...); err != nil {
-		logError(ModeConf, err)
-		return fmt.Errorf("generate conf failed")
+		return formatError(ModeConf, err)
 	}
 	return nil
 }
 
-func logError(mode string, err error) {
-	if log.Mode() == log.ModeFull {
-		log.Errorf("generate %s file failed: %+v", mode, err)
+// formatError formats the generation error message. At debug level, it includes the full stack
+// trace (%+v) for detailed diagnostics; at higher levels, it uses a concise format (%v).
+func formatError(mode string, err error) error {
+	if log.LevelEnabled(zapcore.DebugLevel) {
+		return fmt.Errorf("generate %s failed: \n%+v", mode, err)
+	} else {
+		return fmt.Errorf("generate %s failed: \n%v", mode, err)
 	}
-	log.Errorf("Error: %s", xerrors.NewDesc(err))
 }
 
 func loadConfig(path string) (*options.Options, error) {

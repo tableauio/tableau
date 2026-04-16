@@ -1,0 +1,15 @@
+"@sheet": "@TABLEAU"
+---
+"@sheet": "@MultiErrConf"
+ID: uint32
+BadField1: ".UnknownType1"
+BadField2: ".UnknownType2"
+BadField3: ".UnknownType3"
+BadField4: ".UnknownType4"
+---
+"@sheet": MultiErrConf
+ID: 1
+BadField1: 0
+BadField2: 0
+BadField3: 0
+BadField4: 0

@@ -15,12 +15,11 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -34,14 +33,16 @@ type sheetExporter struct {
 	OutputDir string
 	OutputOpt *options.ConfOutputOption // output settings.
 	validator protovalidate.Validator   // validator with extension type resolver.
+	collector *xerrors.Collector        // concurrent error collector shared from Generator.
 }
 
 // NewSheetExporter creates a new sheet exporter.
-func NewSheetExporter(outputDir string, output *options.ConfOutputOption, validator protovalidate.Validator) *sheetExporter {
+func NewSheetExporter(outputDir string, output *options.ConfOutputOption, validator protovalidate.Validator, collector *xerrors.Collector) *sheetExporter {
 	return &sheetExporter{
 		OutputDir: outputDir,
 		OutputOpt: output,
 		validator: validator,
+		collector: collector,
 	}
 }
 
@@ -67,7 +68,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return filename
 	}
 	// parse main sheet
-	mainMsg, err := parseMessageFromOneImporter(info, mainImpInfo)
+	mainMsg, err := parseMessageFromOneImporter(info, x.collector, mainImpInfo)
 	if err != nil {
 		return err
 	}
@@ -77,12 +78,11 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return err
 	}
 
-	var eg errgroup.Group
+	g := x.collector.NewGroup(context.Background())
 	for _, impInfo := range impInfos {
-		impInfo := impInfo
 		// map-reduce: map jobs for concurrent processing
-		eg.Go(func() error {
-			msg, err := parseMessageFromOneImporter(info, impInfo)
+		g.Go(func(ctx context.Context) error {
+			msg, err := parseMessageFromOneImporter(info, x.collector, impInfo)
 			if err != nil {
 				return err
 			}
@@ -90,8 +90,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 			if info.SheetOpts.Patch == tableaupb.Patch_PATCH_MERGE {
 				if info.ExtInfo.DryRun == options.DryRunPatch {
 					clonedMainMsg := proto.Clone(mainMsg)
-					err = xproto.PatchMessage(clonedMainMsg, msg)
-					if err != nil {
+					if err = xproto.PatchMessage(clonedMainMsg, msg); err != nil {
 						return err
 					}
 					msg = clonedMainMsg
@@ -102,7 +101,7 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 			return storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
 		})
 	}
-	return eg.Wait()
+	return g.Wait()
 }
 
 // MergeAndExport parses multiple importer infos and merges them into one
@@ -112,9 +111,9 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 	impInfos ...importer.ImporterInfo) error {
 	// append main
 	allImpInfos := append(impInfos, importer.ImporterInfo{Importer: mainImpInfo})
-	protomsg, err := ParseMessage(info, allImpInfos...)
+	protomsg, err := ParseMessage(info, x.collector, allImpInfos...)
 	if err != nil {
-		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		return err
 	}
 	// exported conf name pattern is : [ParentDir/]<SheetName>
 	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
@@ -136,17 +135,15 @@ type oneMsg struct {
 	sheetName string
 }
 
-// ParseMessage parses multiple importer infos into one protomsg. If an error
-// occurs, then wrap it with KeyModule as ModuleConf ("confgen"), then API user
-// can call `xerrors.NewDesc(err)“ to print the pretty error message.
-func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Message, error) {
+// ParseMessage parses multiple importer infos into one protomsg.
+func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...importer.ImporterInfo) (proto.Message, error) {
 	if len(impInfos) == 0 {
 		return nil, xerrors.NewKV("no importer to be parsed",
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 			xerrors.KeySheetName, info.SheetOpts.Name,
 			xerrors.KeyPBMessage, string(info.MD.Name()))
 	} else if len(impInfos) == 1 {
-		protomsg, err := parseMessageFromOneImporter(info, impInfos[0])
+		protomsg, err := parseMessageFromOneImporter(info, collector, impInfos[0])
 		if err != nil {
 			return nil, err
 		}
@@ -157,14 +154,15 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 	var mu sync.Mutex // guard msgs
 	var msgs []oneMsg
 
-	var eg errgroup.Group
+	g := collector.NewGroup(context.Background())
 	for _, impInfo := range impInfos {
-		impInfo := impInfo
 		// map-reduce: map jobs for concurrent processing
-		eg.Go(func() error {
-			protomsg, err := parseMessageFromOneImporter(info, impInfo)
+		g.Go(func(ctx context.Context) error {
+			protomsg, err := parseMessageFromOneImporter(info, collector, impInfo)
 			if err != nil {
-				return err
+				return xerrors.WrapKV(err,
+					xerrors.KeyPrimaryBookName, info.PrimaryBookName,
+					xerrors.KeyPrimarySheetName, info.SheetOpts.Name)
 			}
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
@@ -176,10 +174,8 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 			return nil
 		})
 	}
-	if err := eg.Wait(); err != nil {
-		return nil, xerrors.WrapKV(err,
-			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
-			xerrors.KeyPrimarySheetName, info.SheetOpts.Name)
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
 	// map-reduce: reduce results to one
@@ -212,7 +208,7 @@ func ParseMessage(info *SheetInfo, impInfos ...importer.ImporterInfo) (proto.Mes
 	return mainMsg, nil
 }
 
-func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo) (proto.Message, error) {
+func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, impInfo importer.ImporterInfo) (proto.Message, error) {
 	sheetName := getRealSheetName(info, impInfo)
 	sheet := impInfo.GetSheet(sheetName)
 	if sheet == nil {
@@ -221,9 +217,18 @@ func parseMessageFromOneImporter(info *SheetInfo, impInfo importer.ImporterInfo)
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	parser := NewExtendedSheetParser(context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
+	// Overwrite the default single-error collector (set by NewExtendedSheetParser for
+	// fail-fast use) with a child collector scoped to this sheet and capped at
+	// maxErrorsPerSheet, so one sheet cannot exhaust the parent book-level collector.
+	parser.sheetCollector = collector.NewChild(maxErrorsPerSheet)
+	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
-		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
+		return nil, xerrors.WrapKV(err,
+			xerrors.KeyModule, xerrors.ModuleConf,
+			xerrors.KeyBookName, bookName,
+			xerrors.KeySheetName, sheetName,
+			xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
 	return protomsg, nil
 }
@@ -256,12 +261,13 @@ func (si *SheetInfo) SheetName() string {
 }
 
 type sheetParser struct {
-	ProtoPackage string
-	LocationName string
-	ctx          context.Context
-	bookOpts     *tableaupb.WorkbookOptions
-	sheetOpts    *tableaupb.WorksheetOptions
-	extInfo      *SheetParserExtInfo
+	ProtoPackage   string
+	LocationName   string
+	ctx            context.Context
+	bookOpts       *tableaupb.WorkbookOptions
+	sheetOpts      *tableaupb.WorksheetOptions
+	extInfo        *SheetParserExtInfo
+	sheetCollector *xerrors.Collector // sheet-level collector
 
 	// cached maps and lists with cardinality
 	cards map[string]*cardInfo // map/list field card prefix -> cardInfo
@@ -318,6 +324,9 @@ func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName stri
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
 		extInfo:      extInfo,
+		// Default capacity 1 is sufficient for protogen/load (fail-fast on first error).
+		// confgen overwrites it with a larger capacity for multi-error collection across sheets.
+		sheetCollector: xerrors.NewCollector(1),
 	}
 	sp.reset()
 	return sp

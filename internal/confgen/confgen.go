@@ -13,17 +13,25 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/strcase"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"github.com/tableauio/tableau/xerrors"
-	"golang.org/x/sync/errgroup"
+
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
+)
+
+// Error collection limits at each level.
+const (
+	maxErrors           = 20 // generator level: across concurrent workbooks
+	maxErrorsPerBook    = 10 // book level: across sheets in one workbook
+	maxErrorsPerSheet   = 5  // sheet level: across messages in one sheet
+	maxErrorsPerMessage = 3  // message level: across fields in one message
 )
 
 type Generator struct {
@@ -37,6 +45,7 @@ type Generator struct {
 	OutputOpt    *options.ConfOutputOption // output settings.
 
 	validator protovalidate.Validator // validator with extension type resolver for custom predefined rules.
+	collector *xerrors.Collector      // concurrent error collector shared across the generator.
 
 	// Performance stats
 	PerfStats sync.Map
@@ -65,6 +74,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Conf.Input,
 		OutputOpt:    opts.Conf.Output,
 		ctx:          ctx,
+		collector:    xerrors.NewCollector(maxErrors),
 		PerfStats:    sync.Map{},
 	}
 	return g
@@ -95,16 +105,16 @@ func (gen *Generator) GenAll() error {
 		return err
 	}
 	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-	var eg errgroup.Group
+	g := gen.collector.NewGroup(context.Background())
 	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(gen.ProtoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
-			eg.Go(func() error {
+			g.Go(func(ctx context.Context) error {
 				return gen.convert(prFiles, fd, "")
 			})
 			return true
 		})
-	return eg.Wait()
+	return g.Wait()
 }
 
 // bookSpecifier can be:
@@ -127,7 +137,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
 	}
-	var eg errgroup.Group
+	g := gen.collector.NewGroup(context.Background())
 	for _, specifier := range bookSpecifiers {
 		bookName, sheetName, err := parseBookSpecifier(specifier)
 		if err != nil {
@@ -145,13 +155,12 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		// NOTE: one book may relate to multiple primary books
 		for _, fd := range primaryBookInfo.fds {
-			fd := fd // TODO: go1.22 fixes loopvar problem
-			eg.Go(func() error {
+			g.Go(func(ctx context.Context) error {
 				return gen.convert(prFiles, fd, sheetName)
 			})
 		}
 	}
-	return eg.Wait()
+	return g.Wait()
 }
 
 // convert a workbook related to parameter fd, and only convert the
@@ -217,6 +226,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
+	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
 	worksheetFound := false
 	for _, sheetInfo := range sheets {
 		sheetName := sheetInfo.SheetName()
@@ -235,14 +245,20 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				return xerrors.NewKV("option Scatter and Merger cannot be both set at one sheet",
 					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
 			}
-			err := gen.processScatter(imp, sheetInfo)
-			if err != nil {
-				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
+			if err := gen.processScatter(imp, sheetInfo, bookCollector); err != nil {
+				err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
+				if err := bookCollector.Collect(err); err != nil {
+					return err
+				}
+				continue
 			}
 		} else {
-			err := gen.processMerger(imp, sheetInfo)
-			if err != nil {
-				return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
+			if err := gen.processMerger(imp, sheetInfo, bookCollector); err != nil {
+				err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
+				if err := bookCollector.Collect(err); err != nil {
+					return err
+				}
+				continue
 			}
 		}
 
@@ -255,29 +271,32 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 			xerrors.KeyBookName, workbook.Name,
 			xerrors.KeySheetName, specifiedSheetName)
 	}
+	if bookCollector.HasErrors() {
+		return bookCollector.Join()
+	}
 	return nil
 }
 
-func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo) error {
+func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, bookCollector *xerrors.Collector) error {
 	importers, err := importer.GetScatterImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
 	mainImporter := importer.ImporterInfo{Importer: self}
-	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, bookCollector)
 	if err := exporter.ScatterAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo) error {
+func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, bookCollector *xerrors.Collector) error {
 	importers, err := importer.GetMergerImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
 	mainImporter := importer.ImporterInfo{Importer: self}
-	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, bookCollector)
 	if err := exporter.MergeAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
