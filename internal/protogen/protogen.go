@@ -32,7 +32,7 @@ import (
 
 // Error collection limits at each level.
 const (
-	maxParseErrors   = 10 // generator level: across concurrent workbooks
+	maxErrors        = 10 // generator level: across concurrent workbooks
 	maxErrorsPerBook = 5  // book level: across sheets in one workbook
 )
 
@@ -76,7 +76,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		OutputOpt:    opts.Proto.Output,
 		ctx:          ctx,
 		typeInfos:    xproto.NewTypeInfos(protoPackage),
-		collector:    xerrors.NewCollector(maxParseErrors),
+		collector:    xerrors.NewCollector(maxErrors),
 
 		cachedImporters: make(map[string]importer.Importer),
 	}

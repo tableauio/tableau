@@ -26,11 +26,13 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-// maxErrors is the maximum number of errors collected during concurrent sheet parsing.
-const maxErrors = 20
-const maxErrorsPerBook = 10
-const maxErrorsPerSheet = 5
-const maxErrorsPerMessage = 3
+// Error collection limits at each level.
+const (
+	maxErrors           = 20 // generator level: across concurrent workbooks
+	maxErrorsPerBook    = 10 // book level: across sheets in one workbook
+	maxErrorsPerSheet   = 5  // sheet level: across messages in one sheet
+	maxErrorsPerMessage = 3  // message level: across fields in one message
+)
 
 type Generator struct {
 	ctx          context.Context

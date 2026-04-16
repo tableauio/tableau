@@ -14,7 +14,7 @@ import (
 func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 	// protogen uses: global(10) -> book(5)
 	// We simulate a deeper hierarchy: global -> book -> sheet -> message.
-	global := xerrors.NewCollector(maxParseErrors)
+	global := xerrors.NewCollector(maxErrors)
 	book := global.NewChild(maxErrorsPerBook)
 	sheet := book.NewChild(3) // sheet-level limit
 	msg := sheet.NewChild(2)  // message-level limit
@@ -41,7 +41,7 @@ func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 // TestCollectorHierarchy_SheetLevel tests that multiple message errors
 // accumulate at the sheet level in protogen.
 func TestCollectorHierarchy_SheetLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxParseErrors)
+	global := xerrors.NewCollector(maxErrors)
 	book := global.NewChild(maxErrorsPerBook)
 	sheet := book.NewChild(5)
 
@@ -65,7 +65,7 @@ func TestCollectorHierarchy_SheetLevel(t *testing.T) {
 // TestCollectorHierarchy_BookLevel tests that errors from multiple sheets
 // accumulate at the book level in protogen.
 func TestCollectorHierarchy_BookLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxParseErrors)
+	global := xerrors.NewCollector(maxErrors)
 	book := global.NewChild(maxErrorsPerBook)
 
 	// Simulate 2 sheets, each with 2 errors.
@@ -92,7 +92,7 @@ func TestCollectorHierarchy_BookLevel(t *testing.T) {
 // becomes full when its limit is reached, and the total stored errors
 // across all child sheets are capped by the book limit.
 func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
-	global := xerrors.NewCollector(maxParseErrors)
+	global := xerrors.NewCollector(maxErrors)
 	book := global.NewChild(maxErrorsPerBook) // limit = 5
 
 	// Simulate 3 sheets, each with 2 errors = 6 total (exceeds book limit of 5).
@@ -122,7 +122,7 @@ func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
 // TestCollectorHierarchy_GlobalLevel tests that errors from multiple books
 // accumulate at the global level in protogen.
 func TestCollectorHierarchy_GlobalLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxParseErrors)
+	global := xerrors.NewCollector(maxErrors)
 
 	// Simulate 3 books, each with 1 sheet, each with 1 error.
 	for b := 1; b <= 3; b++ {
@@ -145,7 +145,7 @@ func TestCollectorHierarchy_GlobalLevel(t *testing.T) {
 // TestCollectorHierarchy_GlobalLevelFull tests that the global collector
 // stops storing errors when its limit is reached across books.
 func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
-	global := xerrors.NewCollector(maxParseErrors) // limit = 10
+	global := xerrors.NewCollector(maxErrors) // limit = 10
 
 	// Simulate 4 books, each with 1 sheet, each with 3 errors = 12 total.
 	for b := 1; b <= 4; b++ {
@@ -167,7 +167,7 @@ func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
 	for b := 1; b <= 4; b++ {
 		for r := 1; r <= 3; r++ {
 			idx := (b-1)*3 + r
-			if idx > maxParseErrors {
+			if idx > maxErrors {
 				break
 			}
 			if idx > 1 {
