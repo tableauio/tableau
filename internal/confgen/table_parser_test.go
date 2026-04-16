@@ -1262,3 +1262,84 @@ func TestTableParser_parseVerticalAggregationConsistency(t *testing.T) {
 		})
 	}
 }
+
+func TestTableParser_parseIncellKeyedListWithDuplicateElements(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		err     error
+	}{
+		{
+			name:   "no duplicate elements in incell keyed-list - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_BANANA"},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "duplicate elements in scalar incell keyed-list - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type"},
+						{"1,2,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_BANANA"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "duplicate elements in enum incell keyed-list - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_ORANGE"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "inconsistent value in aggregated incell keyed-list - should error E2023",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE"},
+						{"4,5,6", "FRUIT_TYPE_BANANA"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2023,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.IncellKeyedList{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				require.ErrorIs(t, err, tt.err)
+			}
+		})
+	}
+}

@@ -33,9 +33,9 @@ E2004:
   text: '值 "{{.Value}}" 超出限制的区间 [{{.Range}}]'
   help: 修改值使其在限制的区间内
 E2005:
-  desc: map or keyed-list key not unique
-  text: map或keyed-list的key "{{.Key}}" 已存在
-  help: 确保map或keyed-list的key唯一, 不能配置相同key
+  desc: map key not unique
+  text: map的key "{{.Key}}" 已存在
+  help: 确保map的key唯一, 不能配置相同key
 E2006:
   desc: enum value not defined in enum type
   text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
@@ -124,6 +124,10 @@ E2027:
   desc: protovalidate violation
   text: "{{ quote .FieldValue }} 违反校验规则：{{.Violation}}"
   help: "修正字段值以满足校验规则"
+E2028:
+  desc: duplicate elements in incell keyed-list
+  text: 'keyed-list元素 {{ quoteAny .Elem }} 已存在'
+  help: 确保keyed-list的元素唯一, 不能配置相同元素
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

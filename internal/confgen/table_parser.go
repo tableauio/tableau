@@ -329,10 +329,19 @@ func (p *tableParser) parseIncellMapField(field *Field, msg protoreflect.Message
 		if msg.Has(field.fd) {
 			if field.opts.GetProp().GetAggregate() {
 				presentMap := msg.Mutable(field.fd).Map()
-				mapValue.Map().Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
-					presentMap.Set(k, v)
+				var err error
+				mapValue.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
+					if presentMap.Has(key) {
+						// incell map key must be unique
+						err = xerrors.E2005(key)
+						return false
+					}
+					presentMap.Set(key, value)
 					return true
 				})
+				if err != nil {
+					return false, xerrors.WrapKV(err, r.CellDebugKV(colName)...)
+				}
 			} else {
 				presentValue := msg.Get(field.fd)
 				if !presentValue.Equal(mapValue) {
@@ -560,9 +569,18 @@ func (p *tableParser) parseIncellListField(field *Field, msg protoreflect.Messag
 			if field.opts.GetProp().GetAggregate() {
 				presentList := msg.Mutable(field.fd).List()
 				for i := range listValue.List().Len() {
-					presentList.Append(listValue.List().Get(i))
+					newValue := listValue.List().Get(i)
+					if field.opts.GetKey() != "" && field.fd.Kind() != protoreflect.MessageKind {
+						// check duplicate elems for scalar/enum keyed-list
+						for j := range presentList.Len() {
+							elemVal := presentList.Get(j)
+							if elemVal.Equal(newValue) {
+								return false, xerrors.WrapKV(xerrors.E2028(newValue), r.CellDebugKV(colName)...)
+							}
+						}
+					}
+					presentList.Append(newValue)
 				}
-				// FIXME(kybxd): check aggregated keyed list unique? or just ban incell keyed list?
 			} else {
 				presentValue := msg.Get(field.fd)
 				if !presentValue.Equal(listValue) {

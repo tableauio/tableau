@@ -375,3 +375,10 @@ message VerticalAggregationMap {
     }
   }
 }
+
+message IncellKeyedList {
+  option (tableau.worksheet) = {name:"IncellKeyedList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // ID list with key and aggregation
+  repeated unittest.FruitType type_list = 2 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}]; // Type list with key
+}
