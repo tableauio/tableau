@@ -33,14 +33,14 @@ import (
 
 func Test_CompareGeneratedProto(t *testing.T) {
 	err := genProto("DEBUG", "FULL")
-	require.NoError(t, err)
+	require.NoErrorf(t, err, "genproto error:\n%v", err)
 	err = EqualTextFile(".proto", "proto", "_proto", 2)
 	require.NoError(t, err)
 }
 
 func Test_CompareGeneratedJSON(t *testing.T) {
 	err := genConf("DEBUG", "FULL")
-	require.NoError(t, err)
+	require.NoErrorf(t, err, "genconf error:\n%v", err)
 	err = EqualTextFile(".json", "conf", "_conf", 1)
 	require.NoError(t, err)
 }
