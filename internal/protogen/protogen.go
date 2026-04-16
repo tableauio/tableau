@@ -123,6 +123,8 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
 }
 
+// Generate generates proto files for the specified workbooks. If no workbook paths are provided,
+// it generates proto files for all workbooks found in the input directory.
 func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 	if len(relWorkbookPaths) == 0 {
 		return gen.GenAll()
@@ -459,103 +461,6 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	return nil
 }
 
-func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, sheet *book.Sheet, typeName, parentFilename string) error {
-	// create parser
-	sheetOpts := &tableaupb.WorksheetOptions{
-		Name:      sheet.Name,
-		Namerow:   1,
-		Datarow:   2,
-		Transpose: sheet.Meta.GetTranspose(),
-	}
-	table := sheet.Tabler()
-	parser := confgen.NewSheetParser(gen.ctx, xproto.InternalProtoPackage, gen.LocationName, sheetOpts)
-	// parse each special sheet mode
-	switch mode {
-	case tableaupb.Mode_MODE_ENUM_TYPE:
-		// add type info
-		info := &xproto.TypeInfo{
-			FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName),
-			ParentFilename: parentFilename,
-			Kind:           types.EnumKind,
-		}
-		gen.typeInfos.Put(info)
-	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
-		for row := table.BeginRow(); row < table.EndRow(); row++ {
-			cols := table.GetRow(row)
-			if isEnumTypeBlockHeader(cols) {
-				if row < 1 {
-					continue
-				}
-				typeRow := table.GetRow(row - 1)
-				typeName, _, err := extractTableBlockTypeRow(typeRow)
-				if err != nil {
-					return xerrors.Wrapf(err, "failed to parse enum type block, sheet: %s, row: %d", sheet.Name, row)
-				}
-				// add type info
-				info := &xproto.TypeInfo{
-					FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName),
-					ParentFilename: parentFilename,
-					Kind:           types.EnumKind,
-				}
-				gen.typeInfos.Put(info)
-			}
-		}
-	case tableaupb.Mode_MODE_STRUCT_TYPE:
-		if err := extractStructTypeInfo(sheet, typeName, parentFilename, parser, gen); err != nil {
-			return err
-		}
-	case tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
-		for row := table.BeginRow(); row < table.EndRow(); row++ {
-			cols := table.GetRow(row)
-			if isStructTypeBlockHeader(cols) {
-				if row < 1 {
-					continue
-				}
-				typeRow := table.GetRow(row - 1)
-				typeName, _, err := extractTableBlockTypeRow(typeRow)
-				if err != nil {
-					return xerrors.Wrapf(err, "failed to parse struct type block at row: %d, sheet: %s", row, sheet.Name)
-				}
-				blockBeginRow := row
-				blockEndRow := table.FindBlockEndRow(blockBeginRow)
-				row = blockEndRow // skip row to next block
-				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
-				if err := extractStructTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
-					return err
-				}
-			}
-		}
-	case tableaupb.Mode_MODE_UNION_TYPE:
-		if err := extractUnionTypeInfo(sheet, typeName, parentFilename, parser, gen); err != nil {
-			return err
-		}
-	case tableaupb.Mode_MODE_UNION_TYPE_MULTI:
-		for row := table.BeginRow(); row < table.EndRow(); row++ {
-			cols := table.GetRow(row)
-			if isUnionTypeBlockHeader(cols) {
-				if row < 1 {
-					continue
-				}
-				typeRow := table.GetRow(row - 1)
-				typeName, _, err := extractTableBlockTypeRow(typeRow)
-				if err != nil {
-					return xerrors.Wrapf(err, "failed to parse union type block, sheet: %s, row: %d", sheet.Name, row)
-				}
-				blockBeginRow := row
-				blockEndRow := table.FindBlockEndRow(blockBeginRow)
-				row = blockEndRow // skip row to next block
-				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
-				if err := extractUnionTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
-					return err
-				}
-			}
-		}
-	default:
-		return xerrors.Newf("unknown mode: %v", mode)
-	}
-	return nil
-}
-
 // convertDocumentSheet processes a single document sheet within a book:
 // it parses each top-level field node and appends the worksheet to the workbook.
 // A sheet-level collector is used to accumulate field errors and enable fail-fast
@@ -656,6 +561,103 @@ func (gen *Generator) convertTableSheet(bp *tableParser, bookCollector *xerrors.
 	}
 	if sheetCollector.HasErrors() {
 		return sheetCollector.Join()
+	}
+	return nil
+}
+
+func (gen *Generator) extractTypeInfoFromSpecialSheetMode(mode tableaupb.Mode, sheet *book.Sheet, typeName, parentFilename string) error {
+	// create parser
+	sheetOpts := &tableaupb.WorksheetOptions{
+		Name:      sheet.Name,
+		Namerow:   1,
+		Datarow:   2,
+		Transpose: sheet.Meta.GetTranspose(),
+	}
+	table := sheet.Tabler()
+	parser := confgen.NewSheetParser(gen.ctx, xproto.InternalProtoPackage, gen.LocationName, sheetOpts)
+	// parse each special sheet mode
+	switch mode {
+	case tableaupb.Mode_MODE_ENUM_TYPE:
+		// add type info
+		info := &xproto.TypeInfo{
+			FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName),
+			ParentFilename: parentFilename,
+			Kind:           types.EnumKind,
+		}
+		gen.typeInfos.Put(info)
+	case tableaupb.Mode_MODE_ENUM_TYPE_MULTI:
+		for row := table.BeginRow(); row < table.EndRow(); row++ {
+			cols := table.GetRow(row)
+			if isEnumTypeBlockHeader(cols) {
+				if row < 1 {
+					continue
+				}
+				typeRow := table.GetRow(row - 1)
+				typeName, _, err := extractTableBlockTypeRow(typeRow)
+				if err != nil {
+					return xerrors.Wrapf(err, "failed to parse enum type block, sheet: %s, row: %d", sheet.Name, row)
+				}
+				// add type info
+				info := &xproto.TypeInfo{
+					FullName:       protoreflect.FullName(gen.ProtoPackage + "." + typeName),
+					ParentFilename: parentFilename,
+					Kind:           types.EnumKind,
+				}
+				gen.typeInfos.Put(info)
+			}
+		}
+	case tableaupb.Mode_MODE_STRUCT_TYPE:
+		if err := extractStructTypeInfo(sheet, typeName, parentFilename, parser, gen); err != nil {
+			return err
+		}
+	case tableaupb.Mode_MODE_STRUCT_TYPE_MULTI:
+		for row := table.BeginRow(); row < table.EndRow(); row++ {
+			cols := table.GetRow(row)
+			if isStructTypeBlockHeader(cols) {
+				if row < 1 {
+					continue
+				}
+				typeRow := table.GetRow(row - 1)
+				typeName, _, err := extractTableBlockTypeRow(typeRow)
+				if err != nil {
+					return xerrors.Wrapf(err, "failed to parse struct type block at row: %d, sheet: %s", row, sheet.Name)
+				}
+				blockBeginRow := row
+				blockEndRow := table.FindBlockEndRow(blockBeginRow)
+				row = blockEndRow // skip row to next block
+				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
+				if err := extractStructTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
+					return err
+				}
+			}
+		}
+	case tableaupb.Mode_MODE_UNION_TYPE:
+		if err := extractUnionTypeInfo(sheet, typeName, parentFilename, parser, gen); err != nil {
+			return err
+		}
+	case tableaupb.Mode_MODE_UNION_TYPE_MULTI:
+		for row := table.BeginRow(); row < table.EndRow(); row++ {
+			cols := table.GetRow(row)
+			if isUnionTypeBlockHeader(cols) {
+				if row < 1 {
+					continue
+				}
+				typeRow := table.GetRow(row - 1)
+				typeName, _, err := extractTableBlockTypeRow(typeRow)
+				if err != nil {
+					return xerrors.Wrapf(err, "failed to parse union type block, sheet: %s, row: %d", sheet.Name, row)
+				}
+				blockBeginRow := row
+				blockEndRow := table.FindBlockEndRow(blockBeginRow)
+				row = blockEndRow // skip row to next block
+				subSheet := sheet.SubTableSheet(book.Rows(blockBeginRow, blockEndRow))
+				if err := extractUnionTypeInfo(subSheet, typeName, parentFilename, parser, gen); err != nil {
+					return err
+				}
+			}
+		}
+	default:
+		return xerrors.Newf("unknown mode: %v", mode)
 	}
 	return nil
 }
