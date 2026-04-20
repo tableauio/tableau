@@ -161,8 +161,8 @@ E2022:
     - FieldName: string
     - Key: any
 E2023:
-  desc: inconsistent value in vertical aggregated row
-  text: current value {{ quoteAny .Value }} of vertical aggregated row is different from its first presence {{ quoteAny .FirstPresence }}
+  desc: inconsistent value in vertical aggregated rows
+  text: current value {{ quote .Value }} of vertical aggregated row is different from its first presence {{ quote .FirstPresence }}
   help: ensure all values in vertical aggregated rows are consistent with the first occurrence
   fields:
     - Value: any
@@ -198,7 +198,7 @@ E2027:
     - FieldValue: any
 E2028:
   desc: duplicate elements in incell keyed-list
-  text: keyed-list element {{ quoteAny .Elem }} already exists
+  text: keyed-list element {{ quote .Elem }} already exists
   help: fix duplicate elements and ensure keyed-list elements are unique
 # [3000, 3999]: importer error
 E3000:

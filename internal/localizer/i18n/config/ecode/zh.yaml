@@ -105,9 +105,9 @@ E2022:
   text: map value 或 list element 子字段 "{{.FieldName}}" 的值 "{{.Key}}" 已存在
   help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值唯一, 不能配置相同值
 E2023:
-  desc: inconsistent value in vertical aggregated row
-  text: 纵向聚合行的当前值 {{ quoteAny .Value }} 与首个出现的值 {{ quoteAny .FirstPresence }} 不相同
-  help: 确保纵向聚合行中的所有值与首次出现的值保持一致
+  desc: inconsistent value in vertical aggregated rows
+  text: 垂直聚合的当前行值 {{ quote .Value }} 与首个出现的行值 {{ quote .FirstPresence }} 不相同
+  help: 确保垂直聚合的所有行值与首次出现的行值保持一致
 E2024:
   desc: invalid version pattern
   text: "{{ quote .Value }} 无法以点分十进制解析, {{.Error}}"
@@ -126,7 +126,7 @@ E2027:
   help: "修正字段值以满足校验规则"
 E2028:
   desc: duplicate elements in incell keyed-list
-  text: 'keyed-list元素 {{ quoteAny .Elem }} 已存在'
+  text: 'keyed-list元素 {{ quote .Elem }} 已存在'
   help: 确保keyed-list的元素唯一, 不能配置相同元素
 # [3000, 3999]: importer error
 E3000:

@@ -570,7 +570,7 @@ func (p *tableParser) parseIncellListField(field *Field, msg protoreflect.Messag
 				presentList := msg.Mutable(field.fd).List()
 				for i := range listValue.List().Len() {
 					newValue := listValue.List().Get(i)
-					if field.opts.GetKey() != "" && field.fd.Kind() != protoreflect.MessageKind {
+					if field.opts.GetKey() != "" {
 						// check duplicate elems for scalar/enum keyed-list
 						for j := range presentList.Len() {
 							elemVal := presentList.Get(j)
