@@ -325,7 +325,7 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV_Ecode(t *testing.T) {
 	book := global.NewChild(5)
 	sheet := book.NewChild(3)
 
-	// E2005: map or keyed-list key not unique
+	// E2005: map key not unique
 	_ = sheet.Collect(xerrors.WrapKV(xerrors.E2005("dup_key"),
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
@@ -337,13 +337,13 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV_Ecode(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `error[E2005]: map or keyed-list key not unique
+	want := `error[E2005]: map key not unique
 Workbook: Items.xlsx 
 Worksheet: ItemConf 
 DataCellPos: B3
 DataCell: dup_key
-Reason: map or keyed-list key "dup_key" already exists
-Help: fix duplicate keys and ensure map or keyed-list key is unique
+Reason: map key "dup_key" already exists
+Help: fix duplicate keys and ensure map key is unique
 `
 	assert.Equal(t, want, got)
 }
