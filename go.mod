@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
 	buf.build/go/protovalidate v1.1.3
-	github.com/bufbuild/protocompile v0.10.0
+	github.com/bufbuild/protocompile v0.14.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240820135758-21b1d9897dc7
 	github.com/rogpeppe/go-internal v1.10.0
