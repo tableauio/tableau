@@ -35,14 +35,12 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 }
 
 // ExtractListFieldProp extracts the specified props which the list field recognizes.
-func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableaupb.FieldProp {
+func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool, layout tableaupb.Layout) *tableaupb.FieldProp {
 	if prop == nil {
 		return nil
 	}
 	p := &tableaupb.FieldProp{
 		JsonName:        prop.JsonName,
-		Fixed:           prop.Fixed,
-		Size:            prop.Size,
 		Present:         prop.Present,
 		Optional:        prop.Optional,
 		Patch:           prop.Patch,
@@ -57,6 +55,10 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool) *tableau
 		p.Refer = prop.Refer
 		p.Pattern = prop.Pattern
 		p.Validate = prop.Validate
+	}
+	if layout == tableaupb.Layout_LAYOUT_HORIZONTAL {
+		p.Fixed = prop.Fixed
+		p.Size = prop.Size
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

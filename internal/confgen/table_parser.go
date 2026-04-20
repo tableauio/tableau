@@ -517,11 +517,11 @@ func (p *tableParser) parseIncellListField(field *Field, msg protoreflect.Messag
 		return false, err
 	}
 	list := msg.Mutable(field.fd).List()
-	present, err = p.parseIncellList(field, list, cardPrefix, cell.Data)
+	err = p.parseIncellList(field, list, cardPrefix, cell.Data)
 	if err != nil {
 		return false, xerrors.WrapKV(err, r.CellDebugKV(colName)...)
 	}
-	return
+	return msg.Has(field.fd), nil
 }
 
 func (p *tableParser) parseStructField(field *Field, msg protoreflect.Message, r *book.Row, prefix, cardPrefix string) (present bool, err error) {
@@ -682,7 +682,7 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 				if err != nil {
 					return err
 				}
-				return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, []string{cell.Data})
+				return p.parseUnionMessageField(subField, fieldMsg, cardPrefix, cell.Data)
 			}()
 			if err != nil {
 				return false, xerrors.WrapKV(err, r.CellDebugKV(valColName)...)

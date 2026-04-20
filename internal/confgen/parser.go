@@ -765,35 +765,24 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 	return "", nil
 }
 
-func (p *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) (present bool, err error) {
+func (p *sheetParser) parseIncellList(field *Field, list protoreflect.List, cardPrefix string, elemData string) error {
 	if elemData == "" {
 		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
-			return false, err
+			return err
 		}
-		// For fixed size list, an empty cell means an empty list element,
-		// So here we should continue to parse, but not return.
+		return nil
 	}
-	splits := strings.Split(elemData, field.sep)
-	return p.parseListElems(field, list, cardPrefix, field.subsep, splits)
-}
-
-// parseListElems parses the given string slice to a list. Each elem's
-// corresponding type can be: scalar, enum, well-known, and struct.
-func (p *sheetParser) parseListElems(field *Field, list protoreflect.List, cardPrefix string, sep string, elemDataList []string) (present bool, err error) {
+	elemDataList := strings.Split(elemData, field.sep)
+	sep := field.subsep
 	fd := field.fd
 	fdopts := field.opts
-	detectedSize := len(elemDataList)
-	fixedSize := fieldprop.GetSize(fdopts.Prop, detectedSize)
-	size := detectedSize
-	if fixedSize > 0 && fixedSize < detectedSize {
-		// squeeze to specified fixed size
-		size = fixedSize
-	}
 	var firstNonePresentIndex int
-	for i := 1; i <= size; i++ {
-		elem := elemDataList[i-1]
-		var elemValue protoreflect.Value
-		var elemPresent bool
+	for i, elem := range elemDataList {
+		var (
+			elemValue   protoreflect.Value
+			elemPresent bool
+			err         error
+		)
 		if fd.Kind() == protoreflect.MessageKind && !types.IsWellKnownMessage(fd.Message().FullName()) {
 			elemValue = list.NewElement()
 			elemPresent, err = p.parseIncellStruct(field, elemValue, elem, sep)
@@ -801,18 +790,18 @@ func (p *sheetParser) parseListElems(field *Field, list protoreflect.List, cardP
 			elemValue, elemPresent, err = p.parseFieldValue(fd, elem, fdopts.Prop)
 		}
 		if err != nil {
-			return false, err
+			return err
 		}
 		if firstNonePresentIndex != 0 {
 			// Check that no empty elements are existed in begin or middle.
 			// Guarantee all the remaining elements are not present,
 			// otherwise report error!
 			if elemPresent {
-				return false, xerrors.E2016(firstNonePresentIndex, i)
+				return xerrors.E2016(firstNonePresentIndex, i+1)
 			}
 			continue
 		}
-		if !elemPresent && !fieldprop.IsFixed(fdopts.Prop) {
+		if !elemPresent {
 			firstNonePresentIndex = i
 			continue
 		}
@@ -821,24 +810,18 @@ func (p *sheetParser) parseListElems(field *Field, list protoreflect.List, cardP
 			for j := 0; j < list.Len(); j++ {
 				elemVal := list.Get(j)
 				if elemVal.Equal(elemValue) {
-					return false, xerrors.WrapKV(xerrors.E2005(elemValue))
+					return xerrors.WrapKV(xerrors.E2005(elemValue))
 				}
 			}
 		}
 		// check list elem's sub-field prop
-		_, err := p.checkSubFieldProp(field, cardPrefix, elemValue)
+		_, err = p.checkSubFieldProp(field, cardPrefix, elemValue)
 		if err != nil {
-			return false, err
+			return err
 		}
 		list.Append(elemValue)
 	}
-	if fieldprop.IsFixed(fdopts.Prop) {
-		for list.Len() < fixedSize {
-			// append empty elements to the specified length.
-			list.Append(list.NewElement())
-		}
-	}
-	return list.Len() != 0, nil
+	return nil
 }
 
 func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.Value, cellData string, sep string) (present bool, err error) {
@@ -887,51 +870,39 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 	}
 }
 
-func (p *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cardPrefix string, dataList []string) (err error) {
-	if len(dataList) == 0 {
-		return xerrors.Newf("union field data not provided")
-	}
-	var present bool
-	var fieldValue protoreflect.Value
+func (p *sheetParser) parseUnionMessageField(field *Field, msg protoreflect.Message, cardPrefix string, cellData string) error {
 	if field.fd.IsMap() {
 		// incell map
-		fieldValue = msg.NewField(field.fd)
-		err := p.parseIncellMap(field, fieldValue.Map(), dataList[0])
-		if err != nil {
-			return err
-		}
-		if !msg.Has(field.fd) && fieldValue.Map().Len() != 0 {
-			present = true
-		}
+		fieldValue := msg.Mutable(field.fd)
+		return p.parseIncellMap(field, fieldValue.Map(), cellData)
 	} else if field.fd.IsList() {
 		// incell list
-		fieldValue = msg.NewField(field.fd)
-		list := fieldValue.List()
-		switch field.opts.GetLayout() {
-		case tableaupb.Layout_LAYOUT_INCELL, tableaupb.Layout_LAYOUT_DEFAULT:
-			present, err = p.parseIncellList(field, list, cardPrefix, dataList[0])
-		case tableaupb.Layout_LAYOUT_HORIZONTAL:
-			present, err = p.parseListElems(field, list, cardPrefix, field.sep, dataList)
-		default:
-			return xerrors.Newf("union list field has illegal layout: %s", field.opts.GetLayout())
-		}
+		fieldValue := msg.Mutable(field.fd)
+		return p.parseIncellList(field, fieldValue.List(), cardPrefix, cellData)
 	} else if field.fd.Kind() == protoreflect.MessageKind {
 		if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 			// well-known message
-			fieldValue, present, err = p.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
+			fieldValue, present, err := p.parseFieldValue(field.fd, cellData, field.opts.Prop)
+			if err != nil {
+				return err
+			}
+			if present {
+				msg.Set(field.fd, fieldValue)
+			}
 		} else {
 			// incell struct
-			fieldValue = msg.NewField(field.fd)
-			present, err = p.parseIncellStruct(field, fieldValue, dataList[0], field.sep)
+			fieldValue := msg.Mutable(field.fd)
+			_, err := p.parseIncellStruct(field, fieldValue, cellData, field.sep)
+			return err
 		}
 	} else {
-		fieldValue, present, err = p.parseFieldValue(field.fd, dataList[0], field.opts.Prop)
-	}
-	if err != nil {
-		return err
-	}
-	if present {
-		msg.Set(field.fd, fieldValue)
+		fieldValue, present, err := p.parseFieldValue(field.fd, cellData, field.opts.Prop)
+		if err != nil {
+			return err
+		}
+		if present {
+			msg.Set(field.fd, fieldValue)
+		}
 	}
 	return nil
 }

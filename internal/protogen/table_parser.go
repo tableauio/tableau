@@ -515,7 +515,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
-		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))
+		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType), layout)
 
 		if opts.Nested {
 			prefix += field.ListEntry.ElemType // add prefix with value type
@@ -592,7 +592,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
-		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))
+		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType), layout)
 
 		// Parse first field
 		firstFieldOptions := append(options, tableparser.VTypeCell(cursor, desc.ColumnType+desc.Prop.RawProp()))
@@ -695,7 +695,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 				xerrors.KeyPBFieldOpts, desc.Prop.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
-		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType))
+		field.Options.Prop = ExtractListFieldProp(prop, types.IsScalarType(field.ListEntry.ElemType), layout)
 		field.Options.Layout = layout
 		if !isScalarElement {
 			field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
