@@ -517,9 +517,9 @@ func TestNewDesc_TwoLevelCollectorTree(t *testing.T) {
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 
-[2] error[E2005]: map or keyed-list key not unique
-Reason: map or keyed-list key "duplicate_key" already exists
-Help: fix duplicate keys and ensure map or keyed-list key is unique
+[2] error[E2005]: map key not unique
+Reason: map key "duplicate_key" already exists
+Help: fix duplicate keys and ensure map key is unique
 `
 	assert.Equal(t, want, d.Stringify(false))
 }
@@ -647,9 +647,9 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: "abcdefghijk" violates rule: name: too long
 Help: fix the field value to satisfy the protovalidate rule
 
-[3] error[E2005]: map or keyed-list key not unique
-Reason: map or keyed-list key "dup_key" already exists
-Help: fix duplicate keys and ensure map or keyed-list key is unique
+[3] error[E2005]: map key not unique
+Reason: map key "dup_key" already exists
+Help: fix duplicate keys and ensure map key is unique
 
 [4] error[E2003]: illegal sequence number
 Reason: value "5" does not meet sequence requirement: "sequence:1"
@@ -703,13 +703,13 @@ DataCell: <no value>
 Reason: "abcdefghijk" violates rule: name: too long
 Help: fix the field value to satisfy the protovalidate rule
 
-[3] error[E2005]: map or keyed-list key not unique
+[3] error[E2005]: map key not unique
 Workbook: Items#*.csv 
 Worksheet: Sheet2 
 DataCellPos: <no value>
 DataCell: <no value>
-Reason: map or keyed-list key "dup_key" already exists
-Help: fix duplicate keys and ensure map or keyed-list key is unique
+Reason: map key "dup_key" already exists
+Help: fix duplicate keys and ensure map key is unique
 `
 	assert.Equal(t, want, d.Stringify(false))
 }
@@ -761,13 +761,13 @@ DataCell: <no value>
 Reason: "abcdefghijk" violates rule: name: too long
 Help: fix the field value to satisfy the protovalidate rule
 
-[3] error[E2005]: map or keyed-list key not unique
+[3] error[E2005]: map key not unique
 Workbook: Items#*.csv 
 Worksheet: Sheet2 
 DataCellPos: <no value>
 DataCell: <no value>
-Reason: map or keyed-list key "dup_key" already exists
-Help: fix duplicate keys and ensure map or keyed-list key is unique
+Reason: map key "dup_key" already exists
+Help: fix duplicate keys and ensure map key is unique
 `
 	assert.Equal(t, want, d.Stringify(false))
 }
@@ -791,9 +791,9 @@ Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] unexpected EOF at row 42
-[3] error[E2005]: map or keyed-list key not unique
-Reason: map or keyed-list key "dup_key" already exists
-Help: fix duplicate keys and ensure map or keyed-list key is unique
+[3] error[E2005]: map key not unique
+Reason: map key "dup_key" already exists
+Help: fix duplicate keys and ensure map key is unique
 `
 	assert.Equal(t, want, d.Stringify(false))
 }
