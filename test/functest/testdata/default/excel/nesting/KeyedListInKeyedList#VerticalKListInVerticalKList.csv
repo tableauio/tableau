@@ -2,5 +2,5 @@ ID,Desc,PropID,PropNum
 [KeyedItem]<uint32>,string,[Prop]<uint32>,int32
 Item ID,Item desc,Prop ID,Prop num
 1,Apple,10,100
-1,,11,110
+1,Apple,11,110
 2,Orange,20,200
