@@ -2,8 +2,8 @@ name: Publish modules to the BSR
 
 on:
   push:
-    branches: [master, main]
-    tags: ["*"]
+    branches: [ master, main ]
+    tags: [ "*" ]
 
 jobs:
   push-module:

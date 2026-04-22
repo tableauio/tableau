@@ -71,6 +71,19 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	// keep the elements ordered by import path
 	set := treeset.NewWithStringComparator()
 	set.Add(tableauProtoPath) // default must be imported path
+
+	// infer imports from ProtoFileOptions
+	for optionKey := range x.ProtoFileOptions {
+		switch {
+		case strings.Contains(optionKey, "features.(pb.go)"):
+			set.Add("google/protobuf/go_features.proto")
+		case strings.Contains(optionKey, "features.(pb.cpp)"):
+			set.Add("google/protobuf/cpp_features.proto")
+		case strings.Contains(optionKey, "features.(pb.java)"):
+			set.Add("google/protobuf/java_features.proto")
+		}
+	}
+
 	p3 := printer.New()
 	for i, ws := range x.wb.Worksheets {
 		se := &sheetExporter{
@@ -96,8 +109,14 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 		p2.P(`import "`, key, `";`)
 	}
 	p2.P("")
-	for k, v := range x.ProtoFileOptions {
-		p2.P(`option `, k, ` = `, v, `;`)
+	// sort keys alphabetically
+	keys := make([]string, 0, len(x.ProtoFileOptions))
+	for k := range x.ProtoFileOptions {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	for _, k := range keys {
+		p2.P(`option `, k, ` = `, x.ProtoFileOptions[k], `;`)
 	}
 	p2.P("option (tableau.workbook) = {", x.marshalToText(x.wb.Options), "};")
 	p2.P("")
