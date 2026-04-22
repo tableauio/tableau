@@ -3,7 +3,7 @@ name: Testing
 # Trigger on pushes, PRs (excluding documentation changes), and nightly.
 on:
   push:
-    branches: [master, main]
+    branches: [ master, main ]
   pull_request:
   schedule:
     - cron: 0 0 * * * # daily at 00:00
@@ -16,9 +16,9 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.24.x]
-        os: [ubuntu-latest, windows-latest]
-        targetplatform: [x86, x64]
+        go-version: [ 1.24.x ]
+        os: [ ubuntu-latest, windows-latest ]
+        targetplatform: [ x86, x64 ]
 
     runs-on: ${{ matrix.os }}
 
@@ -35,7 +35,8 @@ jobs:
         run: go vet ./...
 
       - name: Unittest
-        run: go test -v -timeout 30m -race ./... -coverprofile=coverage.txt -covermode=atomic
+        run: go test -v -timeout 30m -race ./... -coverprofile=coverage.txt
+          -covermode=atomic
 
       - name: Functest
         # On Linux (ubuntu-latest), the default shell is bash.

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
@@ -291,6 +292,9 @@ func Test_bookExporter_export(t *testing.T) {
 		protoFileOptions map[string]string
 		wantContains     []string
 		wantNotContains  []string
+		// wantOrderedLines asserts the given lines appear in the generated
+		// proto file in the specified relative order.
+		wantOrderedLines []string
 	}{
 		{
 			name: "proto3",
@@ -329,9 +333,95 @@ func Test_bookExporter_export(t *testing.T) {
 				`edition = "2024";`,
 				`option go_package = "github.com/example/protoconf";`,
 				`option features.(pb.go).strip_enum_prefix = STRIP_ENUM_PREFIX_STRIP;`,
+				// go features option implies importing go_features.proto.
+				`import "google/protobuf/go_features.proto";`,
 			},
 			wantNotContains: []string{
 				`syntax = "proto3";`,
+				// must NOT import unrelated features proto files.
+				`import "google/protobuf/cpp_features.proto";`,
+				`import "google/protobuf/java_features.proto";`,
+			},
+		},
+		{
+			name:    "edition-2024-with-pb-cpp-features-infer-cpp-features-import",
+			edition: "2024",
+			protoFileOptions: map[string]string{
+				"go_package":                    `"github.com/example/protoconf"`,
+				"features.(pb.cpp).string_type": "VIEW",
+			},
+			wantContains: []string{
+				`edition = "2024";`,
+				`option features.(pb.cpp).string_type = VIEW;`,
+				`import "google/protobuf/cpp_features.proto";`,
+			},
+			wantNotContains: []string{
+				`import "google/protobuf/go_features.proto";`,
+				`import "google/protobuf/java_features.proto";`,
+			},
+		},
+		{
+			name:    "edition-2024-with-pb-java-features-infer-java-features-import",
+			edition: "2024",
+			protoFileOptions: map[string]string{
+				"go_package":                         `"github.com/example/protoconf"`,
+				"features.(pb.java).utf8_validation": "VERIFY",
+			},
+			wantContains: []string{
+				`edition = "2024";`,
+				`option features.(pb.java).utf8_validation = VERIFY;`,
+				`import "google/protobuf/java_features.proto";`,
+			},
+			wantNotContains: []string{
+				`import "google/protobuf/go_features.proto";`,
+				`import "google/protobuf/cpp_features.proto";`,
+			},
+		},
+		{
+			name:    "edition-2024-with-all-language-features-infer-all-imports",
+			edition: "2024",
+			protoFileOptions: map[string]string{
+				"go_package":                            `"github.com/example/protoconf"`,
+				"features.(pb.go).api_level":            "API_OPAQUE",
+				"features.(pb.cpp).legacy_closed_enum":  "true",
+				"features.(pb.java).legacy_closed_enum": "true",
+			},
+			wantContains: []string{
+				`import "google/protobuf/go_features.proto";`,
+				`import "google/protobuf/cpp_features.proto";`,
+				`import "google/protobuf/java_features.proto";`,
+				`option features.(pb.cpp).legacy_closed_enum = true;`,
+				`option features.(pb.go).api_level = API_OPAQUE;`,
+				`option features.(pb.java).legacy_closed_enum = true;`,
+			},
+		},
+		{
+			name: "options-sorted-alphabetically-by-key",
+			protoFileOptions: map[string]string{
+				// intentionally define keys in a non-alphabetical order
+				// to verify the output is sorted by key.
+				"java_package":     `"com.example.protoconf"`,
+				"go_package":       `"github.com/example/protoconf"`,
+				"csharp_namespace": `"Example.Protoconf"`,
+				"cc_enable_arenas": "true",
+				"optimize_for":     "SPEED",
+			},
+			wantContains: []string{
+				`option cc_enable_arenas = true;`,
+				`option csharp_namespace = "Example.Protoconf";`,
+				`option go_package = "github.com/example/protoconf";`,
+				`option java_package = "com.example.protoconf";`,
+				`option optimize_for = SPEED;`,
+			},
+			// verify the output order strictly matches alphabetical order
+			// of the keys: cc_enable_arenas < csharp_namespace < go_package
+			// < java_package < optimize_for
+			wantOrderedLines: []string{
+				`option cc_enable_arenas = true;`,
+				`option csharp_namespace = "Example.Protoconf";`,
+				`option go_package = "github.com/example/protoconf";`,
+				`option java_package = "com.example.protoconf";`,
+				`option optimize_for = SPEED;`,
 			},
 		},
 	}
@@ -377,6 +467,19 @@ func Test_bookExporter_export(t *testing.T) {
 			}
 			for _, notWant := range tt.wantNotContains {
 				assert.NotContains(t, got, notWant, "expected proto file NOT to contain: %s", notWant)
+			}
+			// verify that the expected lines appear in the given relative order.
+			if len(tt.wantOrderedLines) >= 2 {
+				prevIdx := -1
+				var prevLine string
+				for _, line := range tt.wantOrderedLines {
+					idx := strings.Index(got, line)
+					assert.GreaterOrEqual(t, idx, 0, "expected proto file to contain: %s", line)
+					assert.Greater(t, idx, prevIdx,
+						"expected line %q to appear after %q in generated proto file", line, prevLine)
+					prevIdx = idx
+					prevLine = line
+				}
 			}
 		})
 	}

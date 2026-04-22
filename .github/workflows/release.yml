@@ -2,7 +2,7 @@ name: Release
 
 on:
   release:
-    types: [published]
+    types: [ published ]
   workflow_dispatch:
 
 jobs:
@@ -12,8 +12,8 @@ jobs:
     if: startsWith(github.event.release.tag_name, 'cmd/tableauc/')
     strategy:
       matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
+        goos: [ linux, darwin, windows ]
+        goarch: [ amd64, arm64 ]
         exclude:
           - goos: linux
             goarch: arm64
