@@ -1,10 +1,6 @@
 package tableaupb
 
-import (
-	"time"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
-)
+import "math/big"
 
 // NewFraction creates a new fraction.
 func NewFraction(num, den int32) *Fraction {
@@ -36,34 +32,33 @@ func NewIntegerComparator(sign Comparator_Sign, num int32) *Comparator {
 
 // Compare returns true if the given fraction matches the given comparator.
 func Compare(left *Fraction, cmp *Comparator) bool {
-	right := cmp.GetValue()
-	// cross-multiply to compare
-	lval := int64(left.GetNum()) * int64(right.GetDen())
-	rval := int64(right.GetNum()) * int64(left.GetDen())
-	switch cmp.GetSign() {
-	case Comparator_SIGN_EQUAL:
-		return lval == rval
-	case Comparator_SIGN_NOT_EQUAL:
-		return lval != rval
-	case Comparator_SIGN_LESS:
-		return lval < rval
-	case Comparator_SIGN_LESS_OR_EQUAL:
-		return lval <= rval
-	case Comparator_SIGN_GREATER:
-		return lval > rval
-	case Comparator_SIGN_GREATER_OR_EQUAL:
-		return lval >= rval
-	default:
-		panic("invalid compare operator")
-	}
+	return left.Cmp(cmp)
 }
 
-// LocalTime converts a timestamp to a local time.
-//
-// NOTE: The [Timestamp.AsTime] method returns a UTC time, so we provide
-// [LocalTime] to convert it to a local time for easy use.
-//
-// [Timestamp.AsTime]: https://pkg.go.dev/google.golang.org/protobuf/types/known/timestamppb#Timestamp.AsTime
-func LocalTime(ts *timestamppb.Timestamp) time.Time {
-	return ts.AsTime().Local()
+func (f *Fraction) AsRat() *big.Rat {
+	return big.NewRat(int64(f.GetNum()), int64(f.GetDen()))
+}
+
+var cmpResult = map[int]map[Comparator_Sign]bool{
+	-1: {
+		Comparator_SIGN_NOT_EQUAL:     true,
+		Comparator_SIGN_LESS:          true,
+		Comparator_SIGN_LESS_OR_EQUAL: true,
+	},
+	0: {
+		Comparator_SIGN_EQUAL:            true,
+		Comparator_SIGN_LESS_OR_EQUAL:    true,
+		Comparator_SIGN_GREATER_OR_EQUAL: true,
+	},
+	1: {
+		Comparator_SIGN_NOT_EQUAL:        true,
+		Comparator_SIGN_GREATER:          true,
+		Comparator_SIGN_GREATER_OR_EQUAL: true,
+	},
+}
+
+func (f *Fraction) Cmp(cmp *Comparator) bool {
+	self := f.AsRat()
+	other := cmp.GetValue().AsRat()
+	return cmpResult[self.Cmp(other)][cmp.GetSign()]
 }
