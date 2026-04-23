@@ -27,7 +27,7 @@ var ErrE2019 = newEcode("E2019", `invalid fraction pattern`)
 var ErrE2020 = newEcode("E2020", `invalid comparator pattern`)
 var ErrE2021 = newEcode("E2021", `duplicate enum value alias`)
 var ErrE2022 = newEcode("E2022", `sub-field's value not unique in map values or list elements`)
-var ErrE2023 = newEcode("E2023", `inconsistent value in vertical aggregated row`)
+var ErrE2023 = newEcode("E2023", `inconsistent value in aggregated cells`)
 var ErrE2024 = newEcode("E2024", `invalid version pattern`)
 var ErrE2025 = newEcode("E2025", `version value mismatches pattern`)
 var ErrE2026 = newEcode("E2026", `illegally ordered values`)
@@ -269,7 +269,7 @@ func E2022(fieldName string, key any) error {
 	})
 }
 
-// E2023: inconsistent value in vertical aggregated row
+// E2023: inconsistent value in aggregated cells
 func E2023(value any, firstPresence any) error {
 	return renderEcode(ErrE2023, map[string]any{
 		"Value":         value,

@@ -161,9 +161,9 @@ E2022:
     - FieldName: string
     - Key: any
 E2023:
-  desc: inconsistent value in vertical aggregated rows
-  text: current value {{ quote .Value }} of vertical aggregated row is different from its first presence {{ quote .FirstPresence }}
-  help: ensure all values in vertical aggregated rows are consistent with the first occurrence
+  desc: inconsistent value in aggregated cells
+  text: current value {{ quote .Value }} of aggregated cell is different from its first presence {{ quote .FirstPresence }}
+  help: ensure all values in aggregated cells are consistent with the first occurrence
   fields:
     - Value: any
     - FirstPresence: any

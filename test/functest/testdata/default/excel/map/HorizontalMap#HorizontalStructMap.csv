@@ -1,4 +1,4 @@
-Item1ID,Item1Name,Item2ID,Item2Name,Item3ID,Item3Name
-"map<uint32, Item>",string,uint32,string,uint32,string
-Item1 ID,Item1 name,Item2 ID,Item2 name,Item3 ID,Item3 name
-1,Apple,2,Orange,3,Banana
+Item1ID,Item1Name,Item1Attr,Item2ID,Item2Name,Item2Attr,Item3ID,Item3Name,Item3Attr
+"map<uint32, Item>|{unique:false}",string,"map<int32,int32>|{aggregate:true}",uint32,string,"map<int32,int32>",uint32,string,"map<int32,int32>"
+Item1 ID,Item1 name,Item1 attr,Item2 ID,Item2 name,Item2 attr,Item3 ID,Item3 name,Item3 attr
+1,Apple,1:2,1,Apple,3:4,3,Banana,5:6
