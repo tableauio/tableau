@@ -3,7 +3,7 @@ module github.com/tableauio/tableau
 go 1.24.0
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
 	buf.build/go/protovalidate v1.1.3
 	github.com/bufbuild/protocompile v0.14.1
 	github.com/emirpasic/gods v1.18.1
