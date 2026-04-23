@@ -105,9 +105,9 @@ E2022:
   text: map value 或 list element 子字段 "{{.FieldName}}" 的值 "{{.Key}}" 已存在
   help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值唯一, 不能配置相同值
 E2023:
-  desc: inconsistent value in vertical aggregated rows
-  text: 垂直聚合的当前行值 {{ quote .Value }} 与首个出现的行值 {{ quote .FirstPresence }} 不相同
-  help: 确保垂直聚合的所有行值与首次出现的行值保持一致
+  desc: inconsistent value in aggregated cells
+  text: 聚合单元格中当前单元格值 {{ quote .Value }} 与首个出现的单元格值 {{ quote .FirstPresence }} 不相同
+  help: 确保聚合单元格中所有单元格值与首次出现的单元格值保持一致
 E2024:
   desc: invalid version pattern
   text: "{{ quote .Value }} 无法以点分十进制解析, {{.Error}}"

@@ -367,7 +367,10 @@ message FieldProp {
   //
   // See https://github.com/bufbuild/protovalidate.
   string validate_message = 20;
-  // Whether this incell list/map field's value is aggregated vertically.
+  // If true, this incell list/map field collects elements across vertically
+  // or horizontally duplicated rows (same primary key) into a single
+  // aggregated collection, instead of requiring all rows to carry the
+  // identical value.
   bool aggregate = 21;
 }
 

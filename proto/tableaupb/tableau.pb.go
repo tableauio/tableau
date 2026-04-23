@@ -1380,7 +1380,10 @@ type FieldProp struct {
 	//
 	// See https://github.com/bufbuild/protovalidate.
 	ValidateMessage string `protobuf:"bytes,20,opt,name=validate_message,json=validateMessage,proto3" json:"validate_message,omitempty"`
-	// Whether this incell list/map field's value is aggregated vertically.
+	// If true, this incell list/map field collects elements across vertically
+	// or horizontally duplicated rows (same primary key) into a single
+	// aggregated collection, instead of requiring all rows to carry the
+	// identical value.
 	Aggregate bool `protobuf:"varint,21,opt,name=aggregate,proto3" json:"aggregate,omitempty"`
 }
 

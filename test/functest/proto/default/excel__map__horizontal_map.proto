@@ -37,8 +37,9 @@ message HorizontalStructMap {
 
   map<uint32, Item> item_map = 1 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}]; // Item
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}]; // ID
     string name = 2 [(tableau.field) = {name:"Name"}]; // name
+    map<int32, int32> attr_map = 3 [(tableau.field) = {name:"Attr" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // attr
   }
 }
 
