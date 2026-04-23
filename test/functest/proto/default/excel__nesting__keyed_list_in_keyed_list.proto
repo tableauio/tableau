@@ -17,7 +17,7 @@ message IncellKListInVerticalKList {
   message KeyedItem {
     uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}]; // Item ID
     string desc = 2 [(tableau.field) = {name:"Desc"}]; // Item desc
-    repeated uint32 tip_list = 3 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL}]; // Item tip
+    repeated uint32 tip_list = 3 [(tableau.field) = {name:"Tip" key:"Tip" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // Item tip
   }
 }
 

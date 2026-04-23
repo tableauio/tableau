@@ -51,7 +51,8 @@ func TestIsEmptyFieldProp(t *testing.T) {
 
 func TestExtractMapFieldProp(t *testing.T) {
 	type args struct {
-		prop *tableaupb.FieldProp
+		prop   *tableaupb.FieldProp
+		layout tableaupb.Layout
 	}
 	tests := []struct {
 		name string
@@ -81,7 +82,7 @@ func TestExtractMapFieldProp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ExtractMapFieldProp(tt.args.prop); !proto.Equal(got, tt.want) {
+			if got := ExtractMapFieldProp(tt.args.prop, tt.args.layout); !proto.Equal(got, tt.want) {
 				t.Errorf("ExtractMapFieldProp() = %v, want %v", got, tt.want)
 			}
 		})

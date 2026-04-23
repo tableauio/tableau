@@ -82,7 +82,7 @@ message FieldPropPresent {
 message FieldPropRange {
   option (tableau.worksheet) = {name:"FieldPropRange"};
 
-  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL prop:{range:"1,10"}}]; // ID
+  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL prop:{range:"1,10" aggregate:true}}]; // ID
 }
 
 message FieldPropRefer {
@@ -94,7 +94,7 @@ message FieldPropRefer {
 message FieldPropReferIgnored {
   option (tableau.worksheet) = {name:"FieldPropReferIgnored"};
 
-  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL prop:{refer:"EquipConf.ID"}}]; // ID
+  repeated int32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL prop:{refer:"EquipConf.ID" aggregate:true}}]; // ID
 }
 
 message FieldPropSep {
@@ -145,6 +145,6 @@ message FieldPropUnique {
   map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
     uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}]; // Item ID
-    repeated int32 num_list = 2 [(tableau.field) = {name:"Num" layout:LAYOUT_INCELL}]; // Item num
+    repeated int32 num_list = 2 [(tableau.field) = {name:"Num" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // Item num
   }
 }

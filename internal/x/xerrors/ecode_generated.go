@@ -9,7 +9,7 @@ var ErrE2001 = newEcode("E2001", `field prop "refer" not configured correctly`)
 var ErrE2002 = newEcode("E2002", `field value not in referred space`)
 var ErrE2003 = newEcode("E2003", `illegal sequence number`)
 var ErrE2004 = newEcode("E2004", `value is out of range`)
-var ErrE2005 = newEcode("E2005", `map or keyed-list key not unique`)
+var ErrE2005 = newEcode("E2005", `map key not unique`)
 var ErrE2006 = newEcode("E2006", `enum value not defined in enum type`)
 var ErrE2007 = newEcode("E2007", `invalid datetime format`)
 var ErrE2008 = newEcode("E2008", `invalid duration format`)
@@ -27,10 +27,12 @@ var ErrE2019 = newEcode("E2019", `invalid fraction pattern`)
 var ErrE2020 = newEcode("E2020", `invalid comparator pattern`)
 var ErrE2021 = newEcode("E2021", `duplicate enum value alias`)
 var ErrE2022 = newEcode("E2022", `sub-field's value not unique in map values or list elements`)
+var ErrE2023 = newEcode("E2023", `inconsistent value in aggregated cells`)
 var ErrE2024 = newEcode("E2024", `invalid version pattern`)
 var ErrE2025 = newEcode("E2025", `version value mismatches pattern`)
 var ErrE2026 = newEcode("E2026", `illegally ordered values`)
 var ErrE2027 = newEcode("E2027", `protovalidate violation`)
+var ErrE2028 = newEcode("E2028", `duplicate elements in incell keyed-list`)
 var ErrE3000 = newEcode("E3000", `no workbook file found about sheet specifier`)
 var ErrE3001 = newEcode("E3001", `no worksheet found in workbook`)
 var ErrE3002 = newEcode("E3002", `failed to open file`)
@@ -108,7 +110,7 @@ func E2004(value any, range_ string) error {
 	})
 }
 
-// E2005: map or keyed-list key not unique
+// E2005: map key not unique
 func E2005(key any) error {
 	return renderEcode(ErrE2005, map[string]any{
 		"Key": key,
@@ -267,6 +269,14 @@ func E2022(fieldName string, key any) error {
 	})
 }
 
+// E2023: inconsistent value in aggregated cells
+func E2023(value any, firstPresence any) error {
+	return renderEcode(ErrE2023, map[string]any{
+		"Value":         value,
+		"FirstPresence": firstPresence,
+	})
+}
+
 // E2024: invalid version pattern
 func E2024(value string, error_ error) error {
 	if error_ == nil {
@@ -300,6 +310,13 @@ func E2027(violation string, fieldValue any) error {
 	return renderEcode(ErrE2027, map[string]any{
 		"Violation":  violation,
 		"FieldValue": fieldValue,
+	})
+}
+
+// E2028: duplicate elements in incell keyed-list
+func E2028(elem any) error {
+	return renderEcode(ErrE2028, map[string]any{
+		"Elem": elem,
 	})
 }
 

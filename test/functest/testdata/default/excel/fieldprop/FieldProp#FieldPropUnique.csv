@@ -1,5 +1,5 @@
 ID,Num
-"map<uint32, Item>|{unique:false}",[]int32
+"map<uint32, Item>|{unique:false}",[]int32|{aggregate:true}
 Item ID,Item num
 1,101
 1,102

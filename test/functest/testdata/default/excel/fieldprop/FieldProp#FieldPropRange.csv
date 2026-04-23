@@ -1,5 +1,5 @@
 ID,#IGNORE
-"[]int32|{range:""1,10""}",
+"[]int32|{range:""1,10"" aggregate:true}",
 ID,
 1,
 2,

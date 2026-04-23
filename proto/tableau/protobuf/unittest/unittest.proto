@@ -16,7 +16,7 @@ import "tableau/protobuf/unittest/common.proto";
 message SimpleIncellMap {
   option (tableau.worksheet) = {name:"SimpleIncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
   
-  map<int32, int32> item_map = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+  map<int32, int32> item_map = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL prop:{aggregate:true}}];
 }
 
 message IncellMap {
@@ -38,7 +38,7 @@ message IncellMap {
 message IncellStructList {
   option (tableau.worksheet) = {name:"IncellStructList" namerow:1 typerow:2 noterow:3 datarow:4};
 
-  repeated unittest.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+  repeated unittest.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL prop:{aggregate:true}}];
 }
 
 message IncellList {
@@ -359,4 +359,26 @@ message FieldPresentMap {
     map<string, int32> attr_map = 5 [(tableau.field) = {name:"Attr" layout:LAYOUT_INCELL prop:{present:true}}];
     unittest.Target target = 6 [(tableau.field) = {name:"Target" span:SPAN_INNER_CELL prop:{form:FORM_TEXT present:true}}];
   }
+}
+
+message VerticalAggregationMap {
+  option (tableau.worksheet) = {name:"VerticalAggregationMap"};
+
+  map<uint32, Hero> hero_map = 1 [(tableau.field) = {key:"HeroID" layout:LAYOUT_VERTICAL}];
+  message Hero {
+    uint32 hero_id = 1 [(tableau.field) = {name:"HeroID"}]; // Hero ID
+    string hero_name = 2 [(tableau.field) = {name:"HeroName"}]; // Hero name
+    map<int32, Level> level_map = 3 [(tableau.field) = {key:"Level" layout:LAYOUT_VERTICAL}];
+    message Level {
+      int32 level = 1 [(tableau.field) = {name:"Level"}]; // Level
+      int32 exp = 2 [(tableau.field) = {name:"Exp"}]; // Experience points
+    }
+  }
+}
+
+message IncellKeyedList {
+  option (tableau.worksheet) = {name:"IncellKeyedList" namerow:1 typerow:2 noterow:3 datarow:4};
+
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // ID list with key and aggregation
+  repeated unittest.FruitType type_list = 2 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}]; // Type list with key
 }

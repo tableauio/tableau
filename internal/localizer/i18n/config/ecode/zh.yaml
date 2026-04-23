@@ -33,9 +33,9 @@ E2004:
   text: '值 "{{.Value}}" 超出限制的区间 [{{.Range}}]'
   help: 修改值使其在限制的区间内
 E2005:
-  desc: map or keyed-list key not unique
-  text: map或keyed-list的key "{{.Key}}" 已存在
-  help: 确保map或keyed-list的key唯一, 不能配置相同key
+  desc: map key not unique
+  text: map的key "{{.Key}}" 已存在
+  help: 确保map的key唯一, 不能配置相同key
 E2006:
   desc: enum value not defined in enum type
   text: enum 值 "{{.Value}}" 未在 enum 类型 "{{.EnumName}}" 中定义
@@ -104,6 +104,10 @@ E2022:
   desc: sub-field's value not unique in map values or list elements
   text: map value 或 list element 子字段 "{{.FieldName}}" 的值 "{{.Key}}" 已存在
   help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值唯一, 不能配置相同值
+E2023:
+  desc: inconsistent value in aggregated cells
+  text: 聚合单元格中当前单元格值 {{ quote .Value }} 与首个出现的单元格值 {{ quote .FirstPresence }} 不相同
+  help: 确保聚合单元格中所有单元格值与首次出现的单元格值保持一致
 E2024:
   desc: invalid version pattern
   text: "{{ quote .Value }} 无法以点分十进制解析, {{.Error}}"
@@ -116,17 +120,14 @@ E2026:
   desc: illegally ordered values
   text: '上一个值 "{{.PrevValue}}" 和当前值 "{{.Value}}" 不满足有序性约束 "order:{{.Order}}"'
   help: '有序性 "order:{{.Order}}" 要求值{{if eq .Order "ORDER_ASC"}}单调递增{{else if eq .Order "ORDER_DESC"}}单调递减{{else if eq .Order "ORDER_STRICTLY_ASC"}}严格单调递增{{else if eq .Order "ORDER_STRICTLY_DESC"}}严格单调递减{{end}}'
-  fields:
-    - Value: any
-    - PrevValue: any
-    - Order: string
 E2027:
   desc: protovalidate violation
   text: "{{ quote .FieldValue }} 违反校验规则：{{.Violation}}"
   help: "修正字段值以满足校验规则"
-  fields:
-    - Violation: string
-    - FieldValue: any
+E2028:
+  desc: duplicate elements in incell keyed-list
+  text: 'keyed-list元素 {{ quote .Elem }} 已存在'
+  help: 确保keyed-list的元素唯一, 不能配置相同元素
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
