@@ -285,7 +285,7 @@ func Test_validate(t *testing.T) {
 				msg: &unittestpb.ValidateConf{Id: 0, Name: "this exceeds max_len of 10"},
 			},
 			wantErr:    true,
-			wantReason: `"this exceeds max_len of 10" violates rule: name: value length must be at most 10 characters`,
+			wantReason: `"this exceeds max_len of 10" violates rule: name: must be at most 10 characters`,
 		},
 		{
 			// Message-level violation: id>0 but name is empty, violating the CEL expression.
@@ -305,7 +305,7 @@ func Test_validate(t *testing.T) {
 				msg: &unittestpb.ValidateConf{Id: 1, Name: "this exceeds max_len of 10"},
 			},
 			wantErr:    true,
-			wantReason: `"this exceeds max_len of 10" violates rule: name: value length must be at most 10 characters`,
+			wantReason: `"this exceeds max_len of 10" violates rule: name: must be at most 10 characters`,
 		},
 		{
 			// List field passes: tag_list has <=3 items, satisfying max_items:3.
@@ -323,7 +323,7 @@ func Test_validate(t *testing.T) {
 				msg: &unittestpb.ValidateConf{Id: 0, Name: "ok", TagList: []string{"a", "b", "c", "d"}},
 			},
 			wantErr:    true,
-			wantReason: `"tag_list" violates rule: tag_list: value must contain no more than 3 item(s)`,
+			wantReason: `"tag_list" violates rule: tag_list: must contain no more than 3 item(s)`,
 		},
 		{
 			// Map field passes: prop_map has <=2 pairs, satisfying max_pairs:2.
