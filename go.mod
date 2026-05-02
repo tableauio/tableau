@@ -1,6 +1,6 @@
 module github.com/tableauio/tableau
 
-go 1.24.0
+go 1.25.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1
@@ -15,7 +15,7 @@ require (
 	github.com/valyala/fastjson v1.6.10
 	github.com/xuri/excelize/v2 v2.9.0
 	go.uber.org/zap v1.27.1
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.20.0
 	golang.org/x/text v0.28.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
