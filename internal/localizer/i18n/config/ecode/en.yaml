@@ -161,12 +161,12 @@ E2022:
     - FieldName: string
     - Key: any
 E2023:
-  desc: inconsistent value in aggregated cells
-  text: current value {{ quote .Value }} of aggregated cell is different from its first presence {{ quote .FirstPresence }}
-  help: ensure all values in aggregated cells are consistent with the first occurrence
+  desc: inconsistent merged field values across rows or columns
+  text: merged field value conflict - current {{ quote .CurrValue }} vs previous {{ quote .PrevValue }}
+  help: ensure all merged rows or columns have identical values for this field
   fields:
-    - Value: any
-    - FirstPresence: any
+    - CurrValue: any
+    - PrevValue: any
 E2024:
   desc: invalid version pattern
   text: "{{ quote .Value }} cannot be parsed into dotted-decimal format, {{.Error}}"

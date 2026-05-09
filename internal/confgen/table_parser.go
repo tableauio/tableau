@@ -295,9 +295,9 @@ func (p *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Mes
 	present = mapValue.Map().Len() != 0
 	if present {
 		if msg.Has(field.fd) {
-			presentValue := msg.Get(field.fd)
-			if !presentValue.Equal(mapValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(mapValues(mapValue.Map()), mapValues(presentValue.Map())), r.CellDebugKV(newPrefix)...)
+			existingValue := msg.Get(field.fd)
+			if !existingValue.Equal(mapValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(mapValues(mapValue.Map()), mapValues(existingValue.Map())), r.CellDebugKV(newPrefix)...)
 			}
 		} else {
 			msg.Set(field.fd, mapValue)
@@ -328,24 +328,24 @@ func (p *tableParser) parseIncellMapField(field *Field, msg protoreflect.Message
 	if present {
 		if msg.Has(field.fd) {
 			if field.opts.GetProp().GetAggregate() {
-				presentMap := msg.Mutable(field.fd).Map()
+				existingMap := msg.Mutable(field.fd).Map()
 				var err error
 				mapValue.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
-					if presentMap.Has(key) {
+					if existingMap.Has(key) {
 						// incell map key must be unique
 						err = xerrors.E2005(key)
 						return false
 					}
-					presentMap.Set(key, value)
+					existingMap.Set(key, value)
 					return true
 				})
 				if err != nil {
 					return false, xerrors.WrapKV(err, r.CellDebugKV(colName)...)
 				}
 			} else {
-				presentValue := msg.Get(field.fd)
-				if !presentValue.Equal(mapValue) {
-					return false, xerrors.WrapKV(xerrors.E2023(mapValue, presentValue), r.CellDebugKV(colName)...)
+				existingValue := msg.Get(field.fd)
+				if !existingValue.Equal(mapValue) {
+					return false, xerrors.WrapKV(xerrors.E2023(mapValue, existingValue), r.CellDebugKV(colName)...)
 				}
 			}
 		} else {
@@ -541,9 +541,9 @@ func (p *tableParser) parseHorizontalListField(field *Field, msg protoreflect.Me
 	present = listValue.List().Len() != 0
 	if present {
 		if msg.Has(field.fd) {
-			presentValue := msg.Get(field.fd)
-			if !presentValue.Equal(listValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(listValues(listValue.List()), listValues(presentValue.List())), r.CellDebugKV(newPrefix)...)
+			existingValue := msg.Get(field.fd)
+			if !existingValue.Equal(listValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(listValues(listValue.List()), listValues(existingValue.List())), r.CellDebugKV(newPrefix)...)
 			}
 		} else {
 			msg.Set(field.fd, listValue)
@@ -567,24 +567,24 @@ func (p *tableParser) parseIncellListField(field *Field, msg protoreflect.Messag
 	if present {
 		if msg.Has(field.fd) {
 			if field.opts.GetProp().GetAggregate() {
-				presentList := msg.Mutable(field.fd).List()
+				existingList := msg.Mutable(field.fd).List()
 				for i := range listValue.List().Len() {
 					newValue := listValue.List().Get(i)
 					if field.opts.GetKey() != "" {
 						// check duplicate elems for scalar/enum keyed-list
-						for j := range presentList.Len() {
-							elemVal := presentList.Get(j)
+						for j := range existingList.Len() {
+							elemVal := existingList.Get(j)
 							if elemVal.Equal(newValue) {
 								return false, xerrors.WrapKV(xerrors.E2028(newValue), r.CellDebugKV(colName)...)
 							}
 						}
 					}
-					presentList.Append(newValue)
+					existingList.Append(newValue)
 				}
 			} else {
-				presentValue := msg.Get(field.fd)
-				if !presentValue.Equal(listValue) {
-					return false, xerrors.WrapKV(xerrors.E2023(listValues(listValue.List()), listValues(presentValue.List())), r.CellDebugKV(colName)...)
+				existingValue := msg.Get(field.fd)
+				if !existingValue.Equal(listValue) {
+					return false, xerrors.WrapKV(xerrors.E2023(listValues(listValue.List()), listValues(existingValue.List())), r.CellDebugKV(colName)...)
 				}
 			}
 		} else {
@@ -641,9 +641,9 @@ func (p *tableParser) parseStructField(field *Field, msg protoreflect.Message, r
 	}
 	if present {
 		if msg.Has(field.fd) {
-			presentValue := msg.Get(field.fd)
-			if !presentValue.Equal(structValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(structValue, presentValue), r.CellDebugKV(newPrefix)...)
+			existingValue := msg.Get(field.fd)
+			if !existingValue.Equal(structValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(structValue, existingValue), r.CellDebugKV(newPrefix)...)
 			}
 		} else {
 			msg.Set(field.fd, structValue)
@@ -673,9 +673,9 @@ func (p *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r 
 	}
 	if present {
 		if msg.Has(field.fd) {
-			presentValue := msg.Get(field.fd)
-			if !presentValue.Equal(structValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(structValue, presentValue), r.CellDebugKV(newPrefix)...)
+			existingValue := msg.Get(field.fd)
+			if !existingValue.Equal(structValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(structValue, existingValue), r.CellDebugKV(newPrefix)...)
 			}
 		} else {
 			msg.Set(field.fd, structValue)
@@ -778,9 +778,9 @@ func (p *tableParser) parseScalarField(field *Field, msg protoreflect.Message, r
 	}
 	if present {
 		if msg.Has(field.fd) {
-			presentValue := msg.Get(field.fd)
-			if !presentValue.Equal(newValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(newValue, presentValue), r.CellDebugKV(colName)...)
+			existingValue := msg.Get(field.fd)
+			if !existingValue.Equal(newValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(newValue, existingValue), r.CellDebugKV(colName)...)
 			}
 		} else {
 			msg.Set(field.fd, newValue)

@@ -393,9 +393,9 @@ func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message,
 	}
 	if present {
 		if msg.Has(field.fd) {
-			presentValue := msg.Get(field.fd)
-			if !presentValue.Equal(structValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(structValue, presentValue), node.DebugKV()...)
+			existingValue := msg.Get(field.fd)
+			if !existingValue.Equal(structValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(structValue, existingValue), node.DebugKV()...)
 			}
 		} else {
 			msg.Set(field.fd, structValue)
@@ -421,9 +421,9 @@ func (p *documentParser) parseStructField(field *Field, msg protoreflect.Message
 	}
 	if present {
 		if msg.Has(field.fd) {
-			presentValue := msg.Get(field.fd)
-			if !presentValue.Equal(structValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(structValue, presentValue), node.DebugKV()...)
+			existingValue := msg.Get(field.fd)
+			if !existingValue.Equal(structValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(structValue, existingValue), node.DebugKV()...)
 			}
 		} else {
 			msg.Set(field.fd, structValue)
@@ -441,9 +441,9 @@ func (p *documentParser) parseScalarField(field *Field, msg protoreflect.Message
 	}
 	if present {
 		if msg.Has(field.fd) {
-			presentValue := msg.Get(field.fd)
-			if !presentValue.Equal(newValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(newValue, presentValue), node.DebugKV()...)
+			existingValue := msg.Get(field.fd)
+			if !existingValue.Equal(newValue) {
+				return false, xerrors.WrapKV(xerrors.E2023(newValue, existingValue), node.DebugKV()...)
 			}
 		} else {
 			msg.Set(field.fd, newValue)
