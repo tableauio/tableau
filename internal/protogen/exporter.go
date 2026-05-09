@@ -1,6 +1,7 @@
 package protogen
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -247,7 +248,8 @@ func (x *sheetExporter) exportStruct() error {
 	x.p.P("")
 
 	oldMD := x.findMDFromGeneratedProtos(x.ws.Name)
-	x.assignFieldNumbers(x.ws.Fields, oldMD)
+	reserved := x.assignFieldNumbers(x.ws.Fields, oldMD)
+	x.printReserved(1, reserved)
 	// generate the fields
 	depth := 1
 	for _, field := range x.ws.Fields {
@@ -358,7 +360,8 @@ func (x *sheetExporter) exportUnion() error {
 		if parentMD != nil {
 			oldMD = parentMD.Messages().ByName(protoreflect.Name(typ))
 		}
-		x.assignFieldNumbers(msgField.Fields, oldMD)
+		reserved := x.assignFieldNumbers(msgField.Fields, oldMD)
+		x.printReserved(depth, reserved)
 		for _, field := range msgField.Fields {
 			var oldFD protoreflect.FieldDescriptor
 			if oldMD != nil {
@@ -398,36 +401,165 @@ func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.Mess
 // assignFieldNumbers assigns the field numbers to the fields. It uses the old
 // MD to preserve field numbers if provided, otherwise it assigns field numbers
 // in sequence starting from 1.
-func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD protoreflect.MessageDescriptor) {
+//
+// It also returns a sorted slice of field numbers that should be marked as
+// "reserved" in the regenerated proto, in order to keep the wire format
+// compatible across multiple regenerations. The returned reserved numbers
+// include:
+//  1. Pre-existing reserved ranges declared in oldMD (carried forward).
+//  2. Field numbers that exist in oldMD but whose name no longer appears in
+//     fields (i.e., fields deleted in this regeneration).
+//  3. Gap numbers in [1, maxUsedNumber] that are missing from both oldMD's
+//     active fields and oldMD's reserved ranges. Such gaps are most likely
+//     left over by a previous tableau version that deleted a field without
+//     reserving it; auto-reserving them defends future regenerations from
+//     reusing those numbers.
+//
+// Newly-added fields are assigned numbers strictly greater than the highest
+// number currently used by either an active field or a reserved entry, so
+// that a new field never collides with a reserved number.
+func (*sheetExporter) assignFieldNumbers(fields []*internalpb.Field, oldMD protoreflect.MessageDescriptor) []int32 {
 	if oldMD == nil {
 		fieldNumber := int32(1)
 		for _, field := range fields {
 			field.Number = fieldNumber
 			fieldNumber++
 		}
-		return
+		return nil
 	}
-	fieldNameNumberMap := make(map[string]int32)
-	var maxFieldNumber int32
+
+	// Collect all numbers used by oldMD: active fields plus reserved ranges.
+	// usedNumbers tracks every number that may not be reused by a NEW field.
+	// activeOldNumbers tracks numbers that were active fields in oldMD.
+	usedNumbers := make(map[int32]bool)
+	activeOldNumbers := make(map[int32]bool)
+	oldFieldNameToNumber := make(map[string]int32)
+	var maxUsedNumber int32
+
 	for i := 0; i < oldMD.Fields().Len(); i++ {
 		fd := oldMD.Fields().Get(i)
-		for _, field := range fields {
-			if string(fd.Name()) == field.Name {
-				fieldNameNumberMap[field.Name] = int32(fd.Number())
+		num := int32(fd.Number())
+		oldFieldNameToNumber[string(fd.Name())] = num
+		activeOldNumbers[num] = true
+		usedNumbers[num] = true
+		if num > maxUsedNumber {
+			maxUsedNumber = num
+		}
+	}
+
+	// Pre-existing reserved ranges in oldMD must be preserved across
+	// regenerations.
+	preservedReserved := make(map[int32]bool)
+	reservedRanges := oldMD.ReservedRanges()
+	for i := 0; i < reservedRanges.Len(); i++ {
+		r := reservedRanges.Get(i)
+		// r is [start, end) where both are protoreflect.FieldNumber.
+		for n := int32(r[0]); n < int32(r[1]); n++ {
+			preservedReserved[n] = true
+			usedNumbers[n] = true
+			if n > maxUsedNumber {
+				maxUsedNumber = n
 			}
 		}
-		maxFieldNumber = max(maxFieldNumber, int32(fd.Number()))
 	}
+
+	newFieldNames := make(map[string]bool)
 	for _, field := range fields {
-		if number, ok := fieldNameNumberMap[field.Name]; ok {
-			// for existing field, use the old field number.
-			field.Number = number
-		} else {
-			// for new field, assign the next available field number.
-			field.Number = maxFieldNumber + 1
-			maxFieldNumber = field.Number
+		newFieldNames[field.Name] = true
+	}
+
+	// Compute the reserved set:
+	//   1. Carry over pre-existing reserved entries.
+	//   2. Reserve numbers of fields deleted in this regeneration.
+	//   3. Auto-reserve gaps in [1, maxUsedNumber] not covered above and not
+	//      occupied by surviving fields.
+	reservedSet := make(map[int32]bool)
+	for n := range preservedReserved {
+		reservedSet[n] = true
+	}
+	for name, num := range oldFieldNameToNumber {
+		if !newFieldNames[name] {
+			reservedSet[num] = true
 		}
 	}
+	for n := int32(1); n <= maxUsedNumber; n++ {
+		if activeOldNumbers[n] || preservedReserved[n] {
+			continue
+		}
+		// Gap detected: previously deleted-without-reserve. Auto-reserve it.
+		reservedSet[n] = true
+	}
+
+	// Surviving fields with a stable old number are not reserved.
+	for _, field := range fields {
+		if num, ok := oldFieldNameToNumber[field.Name]; ok {
+			delete(reservedSet, num)
+		}
+	}
+
+	// Assign numbers: existing fields keep their old number; new fields get
+	// the next number that is neither used nor reserved.
+	maxFieldNumber := maxUsedNumber
+	for _, field := range fields {
+		if num, ok := oldFieldNameToNumber[field.Name]; ok {
+			// for existing field, use the old field number.
+			field.Number = num
+		} else {
+			// for new field, assign the next available field number that is
+			// not already used (active or reserved).
+			next := maxFieldNumber + 1
+			for usedNumbers[next] || reservedSet[next] {
+				next++
+			}
+			field.Number = next
+			usedNumbers[next] = true
+			maxFieldNumber = next
+		}
+	}
+
+	if len(reservedSet) == 0 {
+		return nil
+	}
+	reserved := make([]int32, 0, len(reservedSet))
+	for n := range reservedSet {
+		reserved = append(reserved, n)
+	}
+	slices.Sort(reserved)
+	return reserved
+}
+
+// formatReservedNumbers formats a sorted slice of field numbers as a single
+// proto "reserved" statement value, collapsing consecutive numbers into
+// "start to end" ranges. For example, [2, 9] becomes "2, 9" and [2, 3, 4, 9]
+// becomes "2 to 4, 9". Returns an empty string if reserved is empty.
+func formatReservedNumbers(reserved []int32) string {
+	if len(reserved) == 0 {
+		return ""
+	}
+	var parts []string
+	i := 0
+	for i < len(reserved) {
+		j := i
+		for j+1 < len(reserved) && reserved[j+1] == reserved[j]+1 {
+			j++
+		}
+		if j == i {
+			parts = append(parts, fmt.Sprintf("%d", reserved[i]))
+		} else {
+			parts = append(parts, fmt.Sprintf("%d to %d", reserved[i], reserved[j]))
+		}
+		i = j + 1
+	}
+	return strings.Join(parts, ", ")
+}
+
+// printReserved emits a "reserved N1, N2 to N3, ...;" statement at the given
+// indentation depth if reserved is non-empty.
+func (x *sheetExporter) printReserved(depth int, reserved []int32) {
+	if len(reserved) == 0 {
+		return
+	}
+	x.p.P(printer.Indent(depth), "reserved ", formatReservedNumbers(reserved), ";")
 }
 
 func (x *sheetExporter) exportMessager() error {
@@ -454,7 +586,8 @@ func (x *sheetExporter) exportMessager() error {
 	x.p.P("")
 
 	md := x.findMDFromGeneratedProtos(x.ws.Name)
-	x.assignFieldNumbers(x.ws.Fields, md)
+	reserved := x.assignFieldNumbers(x.ws.Fields, md)
+	x.printReserved(1, reserved)
 	// generate the fields
 	depth := 1
 	for _, field := range x.ws.Fields {
@@ -584,7 +717,8 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 			x.p.P(printer.Indent(depth+1), "option (buf.validate.message) = {", x.be.marshalToText(msgRules), "};")
 		}
 
-		x.assignFieldNumbers(field.Fields, oldMD)
+		reserved := x.assignFieldNumbers(field.Fields, oldMD)
+		x.printReserved(depth+1, reserved)
 		for _, subField := range field.Fields {
 			var nestedOldFD protoreflect.FieldDescriptor
 			if oldMD != nil {

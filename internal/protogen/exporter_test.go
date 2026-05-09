@@ -18,7 +18,10 @@ import (
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	_ "github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protodesc"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
@@ -671,6 +674,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 			want: `message Item {
   option (tableau.struct) = {name:"StructItem"};
 
+  reserved 2;
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
 }
@@ -813,6 +817,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
   }
 
   message Pvp {
+    reserved 2, 4;
     int32 type = 1 [(tableau.field) = {name:"Type"}];
     uint32 armor = 5 [(tableau.field) = {name:"Armor"}];
     int64 damage = 3 [(tableau.field) = {name:"Damage"}];
@@ -1019,6 +1024,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 			want: `message YamlScalarConf {
   option (tableau.worksheet) = {name:"YamlScalarConf"};
 
+  reserved 2, 9;
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   uint64 value = 3 [(tableau.field) = {name:"Value"}];
   int32 inserted_field = 10 [(tableau.field) = {name:"InsertedField"}];
@@ -1103,6 +1109,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 
   map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL}];
   message Activity {
+    reserved 2;
     uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID"}];
     string activity_desc = 4 [(tableau.field) = {name:"ActivityDesc"}];
     map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
@@ -1111,6 +1118,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
       string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}];
       repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
       message Section {
+        reserved 2;
         uint32 section_id = 1 [(tableau.field) = {name:"SectionID"}];
         string section_desc = 4 [(tableau.field) = {name:"SectionDesc"}];
         map<uint32, Reward> reward_map = 3 [(tableau.field) = {name:"Reward" key:"ID" layout:LAYOUT_HORIZONTAL}];
@@ -1133,6 +1141,223 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 				t.Errorf("sheetExporter.exportMessager() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assert.Equal(t, tt.want, tt.x.p.String())
+		})
+	}
+}
+
+func Test_formatReservedNumbers(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []int32
+		want string
+	}{
+		{name: "empty", in: nil, want: ""},
+		{name: "single", in: []int32{3}, want: "3"},
+		{name: "two-non-consecutive", in: []int32{2, 9}, want: "2, 9"},
+		{name: "consecutive-collapsed-to-range", in: []int32{2, 3, 4}, want: "2 to 4"},
+		{name: "mixed", in: []int32{2, 3, 4, 9}, want: "2 to 4, 9"},
+		{name: "multiple-ranges", in: []int32{1, 2, 5, 7, 8, 9, 12}, want: "1 to 2, 5, 7 to 9, 12"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatReservedNumbers(tt.in)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// reservedRange describes a [start, end] inclusive reserved range used to
+// build a synthetic oldMD in Test_sheetExporter_assignFieldNumbers.
+type reservedRange struct{ start, end int32 }
+
+// buildOldMDWithReserved synthesizes a MessageDescriptor with the given
+// active fields (name -> number) and inclusive reserved ranges, so unit
+// tests for assignFieldNumbers can exercise oldMD shapes that don't exist
+// in the unittest .proto files (e.g., pre-existing reserved ranges, gaps
+// between active and reserved, etc.).
+func buildOldMDWithReserved(t *testing.T, fields map[string]int32, reserved []reservedRange) protoreflect.MessageDescriptor {
+	t.Helper()
+	msg := &descriptorpb.DescriptorProto{Name: proto.String("OldMsg")}
+	for name, num := range fields {
+		msg.Field = append(msg.Field, &descriptorpb.FieldDescriptorProto{
+			Name:   proto.String(name),
+			Number: proto.Int32(num),
+			Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
+			Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+		})
+	}
+	for _, r := range reserved {
+		// FileDescriptorProto's reserved_range uses [start, end) end-exclusive.
+		msg.ReservedRange = append(msg.ReservedRange, &descriptorpb.DescriptorProto_ReservedRange{
+			Start: proto.Int32(r.start),
+			End:   proto.Int32(r.end + 1),
+		})
+	}
+	fdp := &descriptorpb.FileDescriptorProto{
+		Name:    proto.String("synthetic_oldmd.proto"),
+		Syntax:  proto.String("proto2"),
+		Package: proto.String("synthetic"),
+		MessageType: []*descriptorpb.DescriptorProto{msg},
+	}
+	fd, err := protodesc.NewFile(fdp, nil)
+	assert.NoError(t, err)
+	return fd.Messages().Get(0)
+}
+
+func Test_sheetExporter_assignFieldNumbers(t *testing.T) {
+	type fieldSpec struct {
+		name       string
+		wantNumber int32
+	}
+	tests := []struct {
+		name         string
+		oldFields    map[string]int32
+		oldReserved  []reservedRange
+		fields       []fieldSpec
+		wantReserved []int32
+	}{
+		{
+			// oldMD == nil: simply assign 1..N.
+			name: "no-old-md-assigns-from-1",
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "b", wantNumber: 2},
+				{name: "c", wantNumber: 3},
+			},
+			wantReserved: nil,
+		},
+		{
+			// All old fields kept, no addition: reuse old numbers.
+			name:      "all-old-fields-kept",
+			oldFields: map[string]int32{"a": 1, "b": 2},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "b", wantNumber: 2},
+			},
+			wantReserved: nil,
+		},
+		{
+			// New field appended: gets next number after max used.
+			name:      "new-field-appended",
+			oldFields: map[string]int32{"a": 1, "b": 2},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "b", wantNumber: 2},
+				{name: "c", wantNumber: 3},
+			},
+			wantReserved: nil,
+		},
+		{
+			// Field deleted (not reserved before): its number gets reserved.
+			name:      "old-field-deleted-becomes-reserved",
+			oldFields: map[string]int32{"a": 1, "b": 2, "c": 3},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "c", wantNumber: 3},
+			},
+			wantReserved: []int32{2},
+		},
+		{
+			// Scenario from user query: oldMD has active fields 1, 2 and a
+			// pre-existing `reserved 3`. A new field is added; it must NOT
+			// reuse 3 and instead start at 4.
+			name:        "preexisting-reserved-just-after-active",
+			oldFields:   map[string]int32{"a": 1, "b": 2},
+			oldReserved: []reservedRange{{3, 3}},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "b", wantNumber: 2},
+				{name: "c", wantNumber: 4},
+			},
+			wantReserved: []int32{3},
+		},
+		{
+			// Pre-existing reserved range that was previously declared by the
+			// user (declared higher than any active field). The new field must
+			// not collide with it; the gap below it is auto-reserved (we
+			// accept this behavior per project policy).
+			name:        "preexisting-reserved-higher-than-active",
+			oldFields:   map[string]int32{"a": 1},
+			oldReserved: []reservedRange{{5, 5}},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "newF", wantNumber: 6},
+			},
+			wantReserved: []int32{2, 3, 4, 5},
+		},
+		{
+			// Pre-existing reserved combined with a deletion in this round.
+			// All three sources of reservation must merge: pre-existing
+			// reserved (3), deleted field number (2), and survivors keep
+			// their own numbers; new field starts after max used.
+			name:        "preexisting-reserved-plus-delete",
+			oldFields:   map[string]int32{"a": 1, "b": 2, "c": 4},
+			oldReserved: []reservedRange{{3, 3}},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "c", wantNumber: 4},
+				{name: "newF", wantNumber: 5},
+			},
+			wantReserved: []int32{2, 3},
+		},
+		{
+			// Pre-existing CONSECUTIVE reserved range (declared as
+			// `reserved 2 to 4;`). Should be carried over verbatim and the
+			// new field assigned right after.
+			name:        "preexisting-reserved-consecutive-range",
+			oldFields:   map[string]int32{"a": 1},
+			oldReserved: []reservedRange{{2, 4}},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "newF", wantNumber: 5},
+			},
+			wantReserved: []int32{2, 3, 4},
+		},
+		{
+			// Gap in active fields (1, 2, 4) without any pre-existing
+			// reserved entry — most likely from an older tableau version
+			// that deleted field #3 without reserving it. The gap should
+			// be auto-reserved.
+			name:      "auto-reserve-gap-without-preexisting-reserved",
+			oldFields: map[string]int32{"a": 1, "b": 2, "c": 4},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "b", wantNumber: 2},
+				{name: "c", wantNumber: 4},
+				{name: "newF", wantNumber: 5},
+			},
+			wantReserved: []int32{3},
+		},
+		{
+			// Field rename should NOT keep the number: a renamed field is
+			// treated as "old deleted + new added".
+			name:      "field-rename-old-number-reserved-new-gets-next",
+			oldFields: map[string]int32{"a": 1, "b": 2},
+			fields: []fieldSpec{
+				{name: "a", wantNumber: 1},
+				{name: "b_renamed", wantNumber: 3},
+			},
+			wantReserved: []int32{2},
+		},
+	}
+
+	x := &sheetExporter{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var oldMD protoreflect.MessageDescriptor
+			if tt.oldFields != nil || tt.oldReserved != nil {
+				oldMD = buildOldMDWithReserved(t, tt.oldFields, tt.oldReserved)
+			}
+			pbFields := make([]*internalpb.Field, len(tt.fields))
+			for i, f := range tt.fields {
+				pbFields[i] = &internalpb.Field{Name: f.name}
+			}
+			gotReserved := x.assignFieldNumbers(pbFields, oldMD)
+			assert.Equal(t, tt.wantReserved, gotReserved, "reserved numbers mismatch")
+			for i, f := range tt.fields {
+				assert.Equal(t, f.wantNumber, pbFields[i].Number,
+					"field %q: want number %d, got %d", f.name, f.wantNumber, pbFields[i].Number)
+			}
 		})
 	}
 }
