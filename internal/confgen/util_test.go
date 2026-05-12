@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func Test_parseBookSpecifier(t *testing.T) {
@@ -367,6 +369,136 @@ func Test_validate(t *testing.T) {
 				if gotReason != tt.wantReason {
 					t.Errorf("validate() KeyReason =\n\t%q\nwant:\n\t%q", gotReason, tt.wantReason)
 				}
+			}
+		})
+	}
+}
+
+func Test_findKeyFieldDescriptor(t *testing.T) {
+	// IncellKeyedList host: provides three fields with different kinds.
+	//   - id_list:   repeated uint32         (scalar list, not MessageKind)
+	//   - type_list: repeated unittest.FruitType (enum list, not MessageKind)
+	//   - item_list: repeated unittest.Item  (message list, MessageKind);
+	//                Item has sub-fields all with explicit (tableau.field).name:
+	//                    uint32 id  -> tableau name "ID"
+	//                    int32  num -> tableau name "Num"
+	keyedListFields := (&unittestpb.IncellKeyedList{}).ProtoReflect().Descriptor().Fields()
+	idListFd := keyedListFields.ByName("id_list")
+	typeListFd := keyedListFields.ByName("type_list")
+	itemListFd := keyedListFields.ByName("item_list")
+
+	// Target host: provides `pvp` field whose Pvp message has sub-fields
+	// WITHOUT (tableau.field) option, so they must be matched via the
+	// CamelCase fallback (e.g. "type" -> "Type", "health" -> "Health").
+	targetFields := (&unittestpb.Target{}).ProtoReflect().Descriptor().Fields()
+	pvpFd := targetFields.ByName("pvp")
+
+	tests := []struct {
+		name        string
+		ctx         context.Context
+		msgFd       protoreflect.FieldDescriptor
+		keyName     string
+		wantNil     bool
+		wantSubName protoreflect.Name // expected matched sub-field proto name (when not nil)
+	}{
+		{
+			name:    "empty key name returns nil",
+			ctx:     context.Background(),
+			msgFd:   itemListFd,
+			keyName: "",
+			wantNil: true,
+		},
+		{
+			name:    "scalar list (uint32) is not MessageKind, returns nil",
+			ctx:     context.Background(),
+			msgFd:   idListFd,
+			keyName: "ID",
+			wantNil: true,
+		},
+		{
+			name:    "enum list is not MessageKind, returns nil",
+			ctx:     context.Background(),
+			msgFd:   typeListFd,
+			keyName: "Type",
+			wantNil: true,
+		},
+		{
+			name:        "matched by tableau.field.name (Item.ID)",
+			ctx:         context.Background(),
+			msgFd:       itemListFd,
+			keyName:     "ID",
+			wantNil:     false,
+			wantSubName: "id",
+		},
+		{
+			name:        "matched by tableau.field.name (Item.Num)",
+			ctx:         context.Background(),
+			msgFd:       itemListFd,
+			keyName:     "Num",
+			wantNil:     false,
+			wantSubName: "num",
+		},
+		{
+			name:    "key name not found in message keyed-list returns nil",
+			ctx:     context.Background(),
+			msgFd:   itemListFd,
+			keyName: "NoSuch",
+			wantNil: true,
+		},
+		{
+			name:    "proto field name does not match tableau name (case sensitive)",
+			ctx:     context.Background(),
+			msgFd:   itemListFd,
+			keyName: "id", // Item's tableau name is "ID", not "id"
+			wantNil: true,
+		},
+		{
+			name:        "matched via CamelCase fallback (Pvp.type -> \"Type\")",
+			ctx:         context.Background(),
+			msgFd:       pvpFd,
+			keyName:     "Type",
+			wantNil:     false,
+			wantSubName: "type",
+		},
+		{
+			name:        "matched via CamelCase fallback (Pvp.health -> \"Health\")",
+			ctx:         context.Background(),
+			msgFd:       pvpFd,
+			keyName:     "Health",
+			wantNil:     false,
+			wantSubName: "health",
+		},
+		{
+			name:    "CamelCase fallback no match returns nil",
+			ctx:     context.Background(),
+			msgFd:   pvpFd,
+			keyName: "NotExist",
+			wantNil: true,
+		},
+		{
+			name:    "lowercase key does not match CamelCase fallback name",
+			ctx:     context.Background(),
+			msgFd:   pvpFd,
+			keyName: "type", // fallback yields "Type", not "type"
+			wantNil: true,
+		},
+		{
+			name:        "context.TODO uses default Strcase (still matches Type)",
+			ctx:         context.TODO(),
+			msgFd:       pvpFd,
+			keyName:     "Type",
+			wantNil:     false,
+			wantSubName: "type",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := findKeyFieldDescriptor(tt.ctx, tt.msgFd, tt.keyName)
+			if (got == nil) != tt.wantNil {
+				t.Fatalf("findKeyFieldDescriptor() got nil = %v, wantNil = %v", got == nil, tt.wantNil)
+			}
+			if !tt.wantNil && got.Name() != tt.wantSubName {
+				t.Errorf("findKeyFieldDescriptor() got sub-field = %q, want %q", got.Name(), tt.wantSubName)
 			}
 		})
 	}

@@ -1281,8 +1281,8 @@ func TestTableParser_parseIncellKeyedListWithDuplicateElements(t *testing.T) {
 				sheet: book.NewTableSheet(
 					"IncellKeyedList",
 					[][]string{
-						{"ID", "Type"},
-						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_BANANA"},
+						{"ID", "Type", "Item"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_BANANA", ""},
 					}),
 			},
 			wantErr: false,
@@ -1294,8 +1294,8 @@ func TestTableParser_parseIncellKeyedListWithDuplicateElements(t *testing.T) {
 				sheet: book.NewTableSheet(
 					"IncellKeyedList",
 					[][]string{
-						{"ID", "Type"},
-						{"1,2,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_BANANA"},
+						{"ID", "Type", "Item"},
+						{"1,2,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_BANANA", ""},
 					}),
 			},
 			wantErr: true,
@@ -1308,8 +1308,8 @@ func TestTableParser_parseIncellKeyedListWithDuplicateElements(t *testing.T) {
 				sheet: book.NewTableSheet(
 					"IncellKeyedList",
 					[][]string{
-						{"ID", "Type"},
-						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_ORANGE"},
+						{"ID", "Type", "Item"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_ORANGE", ""},
 					}),
 			},
 			wantErr: true,
@@ -1322,13 +1322,98 @@ func TestTableParser_parseIncellKeyedListWithDuplicateElements(t *testing.T) {
 				sheet: book.NewTableSheet(
 					"IncellKeyedList",
 					[][]string{
-						{"ID", "Type"},
-						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE"},
-						{"4,5,6", "FRUIT_TYPE_BANANA"},
+						{"ID", "Type", "Item"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE", ""},
+						{"4,5,6", "FRUIT_TYPE_BANANA", ""},
 					}),
 			},
 			wantErr: true,
 			err:     xerrors.ErrE2023,
+		},
+		{
+			name:   "no duplicate elements in message incell keyed-list - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20,3:30"},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "duplicate elements in message incell keyed-list (same key, same value) - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20,1:10"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "duplicate elements in message incell keyed-list (same key, different value) - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20,1:99"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "duplicate elements across rows in aggregated message incell keyed-list (same key, same value) - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20"},
+						{"2", "FRUIT_TYPE_APPLE", "3:30,1:10"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "duplicate elements across rows in aggregated message incell keyed-list (same key, different value) - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20"},
+						{"2", "FRUIT_TYPE_APPLE", "3:30,1:99"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "distinct keys across rows in aggregated message incell keyed-list - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20"},
+						{"2", "FRUIT_TYPE_APPLE", "3:30,4:40"},
+					}),
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

@@ -1717,6 +1717,7 @@ type IncellKeyedList struct {
 
 	IdList   []uint32    `protobuf:"varint,1,rep,packed,name=id_list,json=idList,proto3" json:"id_list,omitempty"`                               // ID list with key and aggregation
 	TypeList []FruitType `protobuf:"varint,2,rep,packed,name=type_list,json=typeList,proto3,enum=unittest.FruitType" json:"type_list,omitempty"` // Type list with key
+	ItemList []*Item     `protobuf:"bytes,3,rep,name=item_list,json=itemList,proto3" json:"item_list,omitempty"`                                 // Item list with key (key is sub-field "ID") and aggregation
 }
 
 func (x *IncellKeyedList) Reset() {
@@ -1761,6 +1762,13 @@ func (x *IncellKeyedList) GetIdList() []uint32 {
 func (x *IncellKeyedList) GetTypeList() []FruitType {
 	if x != nil {
 		return x.TypeList
+	}
+	return nil
+}
+
+func (x *IncellKeyedList) GetItemList() []*Item {
+	if x != nil {
+		return x.ItemList
 	}
 	return nil
 }
@@ -5282,7 +5290,7 @@ var file_tableau_protobuf_unittest_unittest_proto_rawDesc = []byte{
 	0x12, 0x1b, 0x0a, 0x03, 0x65, 0x78, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x42, 0x09, 0x82,
 	0xb5, 0x18, 0x05, 0x0a, 0x03, 0x45, 0x78, 0x70, 0x52, 0x03, 0x65, 0x78, 0x70, 0x3a, 0x1c, 0x82,
 	0xb5, 0x18, 0x18, 0x0a, 0x16, 0x56, 0x65, 0x72, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x41, 0x67, 0x67,
-	0x72, 0x65, 0x67, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x4d, 0x61, 0x70, 0x22, 0xa4, 0x01, 0x0a, 0x0f,
+	0x72, 0x65, 0x67, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x4d, 0x61, 0x70, 0x22, 0xe8, 0x01, 0x0a, 0x0f,
 	0x49, 0x6e, 0x63, 0x65, 0x6c, 0x6c, 0x4b, 0x65, 0x79, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x12,
 	0x2c, 0x0a, 0x07, 0x69, 0x64, 0x5f, 0x6c, 0x69, 0x73, 0x74, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0d,
 	0x42, 0x13, 0x82, 0xb5, 0x18, 0x0f, 0x0a, 0x02, 0x49, 0x44, 0x1a, 0x02, 0x49, 0x44, 0x20, 0x03,
@@ -5291,15 +5299,19 @@ var file_tableau_protobuf_unittest_unittest_proto_rawDesc = []byte{
 	0x32, 0x13, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x46, 0x72, 0x75, 0x69,
 	0x74, 0x54, 0x79, 0x70, 0x65, 0x42, 0x12, 0x82, 0xb5, 0x18, 0x0e, 0x0a, 0x04, 0x54, 0x79, 0x70,
 	0x65, 0x1a, 0x04, 0x54, 0x79, 0x70, 0x65, 0x20, 0x03, 0x52, 0x08, 0x74, 0x79, 0x70, 0x65, 0x4c,
-	0x69, 0x73, 0x74, 0x3a, 0x1d, 0x82, 0xb5, 0x18, 0x19, 0x0a, 0x0f, 0x49, 0x6e, 0x63, 0x65, 0x6c,
-	0x6c, 0x4b, 0x65, 0x79, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x10, 0x01, 0x18, 0x02, 0x20, 0x03,
-	0x28, 0x04, 0x42, 0x56, 0x82, 0xb5, 0x18, 0x19, 0x0a, 0x17, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65,
-	0x73, 0x74, 0x2f, 0x55, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x23, 0x2a, 0x2e, 0x63, 0x73,
-	0x76, 0x5a, 0x37, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x61,
-	0x62, 0x6c, 0x65, 0x61, 0x75, 0x69, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2f,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x70, 0x62, 0x2f,
-	0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x69, 0x73, 0x74, 0x12, 0x42, 0x0a, 0x09, 0x69, 0x74, 0x65, 0x6d, 0x5f, 0x6c, 0x69, 0x73, 0x74,
+	0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73,
+	0x74, 0x2e, 0x49, 0x74, 0x65, 0x6d, 0x42, 0x15, 0x82, 0xb5, 0x18, 0x11, 0x0a, 0x04, 0x49, 0x74,
+	0x65, 0x6d, 0x1a, 0x02, 0x49, 0x44, 0x20, 0x03, 0x7a, 0x03, 0xa8, 0x01, 0x01, 0x52, 0x08, 0x69,
+	0x74, 0x65, 0x6d, 0x4c, 0x69, 0x73, 0x74, 0x3a, 0x1d, 0x82, 0xb5, 0x18, 0x19, 0x0a, 0x0f, 0x49,
+	0x6e, 0x63, 0x65, 0x6c, 0x6c, 0x4b, 0x65, 0x79, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x10, 0x01,
+	0x18, 0x02, 0x20, 0x03, 0x28, 0x04, 0x42, 0x56, 0x82, 0xb5, 0x18, 0x19, 0x0a, 0x17, 0x75, 0x6e,
+	0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2f, 0x55, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x23,
+	0x2a, 0x2e, 0x63, 0x73, 0x76, 0x5a, 0x37, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
+	0x6d, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x69, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c,
+	0x65, 0x61, 0x75, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61,
+	0x75, 0x70, 0x62, 0x2f, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x70, 0x62, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -5484,78 +5496,79 @@ var file_tableau_protobuf_unittest_unittest_proto_depIdxs = []int32{
 	114, // 37: unittest.MergerMultiConf.zone_map:type_name -> unittest.MergerMultiConf.ZoneMapEntry
 	116, // 38: unittest.VerticalAggregationMap.hero_map:type_name -> unittest.VerticalAggregationMap.HeroMapEntry
 	122, // 39: unittest.IncellKeyedList.type_list:type_name -> unittest.FruitType
-	34,  // 40: unittest.IncellMap.FruitMapEntry.value:type_name -> unittest.IncellMap.Fruit
-	122, // 41: unittest.IncellMap.Fruit.key:type_name -> unittest.FruitType
-	121, // 42: unittest.IncellMap.FlavorMapEntry.value:type_name -> unittest.FruitFlavor
-	37,  // 43: unittest.IncellMap.ItemMapEntry.value:type_name -> unittest.IncellMap.Item
-	122, // 44: unittest.IncellMap.Item.key:type_name -> unittest.FruitType
-	121, // 45: unittest.IncellMap.Item.value:type_name -> unittest.FruitFlavor
-	120, // 46: unittest.ItemConf.ItemMapEntry.value:type_name -> unittest.Item
-	40,  // 47: unittest.MallConf.ShopMapEntry.value:type_name -> unittest.MallConf.Shop
-	41,  // 48: unittest.MallConf.Shop.goods_map:type_name -> unittest.MallConf.Shop.GoodsMapEntry
-	42,  // 49: unittest.MallConf.Shop.GoodsMapEntry.value:type_name -> unittest.MallConf.Shop.Goods
-	44,  // 50: unittest.ActivityConf.ActivityMapEntry.value:type_name -> unittest.ActivityConf.Activity
-	45,  // 51: unittest.ActivityConf.Activity.chapter_map:type_name -> unittest.ActivityConf.Activity.ChapterMapEntry
-	46,  // 52: unittest.ActivityConf.Activity.ChapterMapEntry.value:type_name -> unittest.ActivityConf.Activity.Chapter
-	47,  // 53: unittest.ActivityConf.Activity.Chapter.section_list:type_name -> unittest.ActivityConf.Activity.Chapter.Section
-	48,  // 54: unittest.ActivityConf.Activity.Chapter.Section.reward_map:type_name -> unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry
-	49,  // 55: unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry.value:type_name -> unittest.ActivityConf.Activity.Chapter.Section.Reward
-	51,  // 56: unittest.RewardConf.RewardMapEntry.value:type_name -> unittest.RewardConf.Reward
-	52,  // 57: unittest.RewardConf.Reward.item_map:type_name -> unittest.RewardConf.Reward.ItemMapEntry
-	120, // 58: unittest.RewardConf.Reward.ItemMapEntry.value:type_name -> unittest.Item
-	123, // 59: unittest.PatchMergeConf.Time.start:type_name -> google.protobuf.Timestamp
-	124, // 60: unittest.PatchMergeConf.Time.expiry:type_name -> google.protobuf.Duration
-	120, // 61: unittest.PatchMergeConf.ItemMapEntry.value:type_name -> unittest.Item
-	120, // 62: unittest.PatchMergeConf.ReplaceItemMapEntry.value:type_name -> unittest.Item
-	57,  // 63: unittest.RecursivePatchConf.ShopMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop
-	58,  // 64: unittest.RecursivePatchConf.Shop.goods_map:type_name -> unittest.RecursivePatchConf.Shop.GoodsMapEntry
-	59,  // 65: unittest.RecursivePatchConf.Shop.GoodsMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods
-	60,  // 66: unittest.RecursivePatchConf.Shop.Goods.currency_map:type_name -> unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
-	62,  // 67: unittest.RecursivePatchConf.Shop.Goods.award_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Award
-	61,  // 68: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency
-	63,  // 69: unittest.RecursivePatchConf.Shop.Goods.Currency.value_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
-	64,  // 70: unittest.RecursivePatchConf.Shop.Goods.Currency.message_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
-	10,  // 71: unittest.JsonUtilTestData.MapFieldEntry.value:type_name -> unittest.PatchMergeConf
-	68,  // 72: unittest.VerticalUniqueFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main
-	69,  // 73: unittest.VerticalUniqueFieldStructMap.Main.main_kv_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.MainKvMapEntry
-	70,  // 74: unittest.VerticalUniqueFieldStructMap.Main.sub_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry
-	71,  // 75: unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main.Sub
-	74,  // 76: unittest.DocumentUniqueFieldStructMap.ChapterEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter
-	79,  // 77: unittest.DocumentUniqueFieldStructMap.Chapter.section:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry
-	78,  // 78: unittest.DocumentUniqueFieldStructMap.ChapterInfoEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo
-	81,  // 79: unittest.DocumentUniqueFieldStructMap.ChapterInfo.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry
-	80,  // 80: unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter.Section
-	82,  // 81: unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section
-	83,  // 82: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry
-	84,  // 83: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section
-	85,  // 84: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry
-	86,  // 85: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.Section
-	89,  // 86: unittest.SequenceKeyInVerticalKeyedList.Item.prop_map:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry
-	90,  // 87: unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry.value:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item.Prop
-	92,  // 88: unittest.VerticalSequenceFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalSequenceFieldStructMap.Main
-	93,  // 89: unittest.VerticalSequenceFieldStructMap.Main.sub_map:type_name -> unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry
-	94,  // 90: unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalSequenceFieldStructMap.Main.Sub
-	97,  // 91: unittest.Transpose.HeroMapEntry.value:type_name -> unittest.Transpose.Hero
-	100, // 92: unittest.TaskConf.TaskMapEntry.value:type_name -> unittest.TaskConf.Task
-	125, // 93: unittest.TaskConf.Task.target:type_name -> unittest.Target
-	102, // 94: unittest.FieldPresentMap.PlayerMapEntry.value:type_name -> unittest.FieldPresentMap.Player
-	103, // 95: unittest.FieldPresentMap.Player.weapon:type_name -> unittest.FieldPresentMap.Player.Weapon
-	104, // 96: unittest.FieldPresentMap.Player.info:type_name -> unittest.FieldPresentMap.Player.Info
-	105, // 97: unittest.FieldPresentMap.Player.attr_map:type_name -> unittest.FieldPresentMap.Player.AttrMapEntry
-	125, // 98: unittest.FieldPresentMap.Player.target:type_name -> unittest.Target
-	107, // 99: unittest.ScatterNoneConf.ZoneMapEntry.value:type_name -> unittest.ScatterNoneConf.Zone
-	109, // 100: unittest.ScatterReplaceConf.ZoneMapEntry.value:type_name -> unittest.ScatterReplaceConf.Zone
-	111, // 101: unittest.ScatterMergeConf.ZoneMapEntry.value:type_name -> unittest.ScatterMergeConf.Zone
-	113, // 102: unittest.MergerSingleConf.ZoneMapEntry.value:type_name -> unittest.MergerSingleConf.Zone
-	115, // 103: unittest.MergerMultiConf.ZoneMapEntry.value:type_name -> unittest.MergerMultiConf.Zone
-	117, // 104: unittest.VerticalAggregationMap.HeroMapEntry.value:type_name -> unittest.VerticalAggregationMap.Hero
-	118, // 105: unittest.VerticalAggregationMap.Hero.level_map:type_name -> unittest.VerticalAggregationMap.Hero.LevelMapEntry
-	119, // 106: unittest.VerticalAggregationMap.Hero.LevelMapEntry.value:type_name -> unittest.VerticalAggregationMap.Hero.Level
-	107, // [107:107] is the sub-list for method output_type
-	107, // [107:107] is the sub-list for method input_type
-	107, // [107:107] is the sub-list for extension type_name
-	107, // [107:107] is the sub-list for extension extendee
-	0,   // [0:107] is the sub-list for field type_name
+	120, // 40: unittest.IncellKeyedList.item_list:type_name -> unittest.Item
+	34,  // 41: unittest.IncellMap.FruitMapEntry.value:type_name -> unittest.IncellMap.Fruit
+	122, // 42: unittest.IncellMap.Fruit.key:type_name -> unittest.FruitType
+	121, // 43: unittest.IncellMap.FlavorMapEntry.value:type_name -> unittest.FruitFlavor
+	37,  // 44: unittest.IncellMap.ItemMapEntry.value:type_name -> unittest.IncellMap.Item
+	122, // 45: unittest.IncellMap.Item.key:type_name -> unittest.FruitType
+	121, // 46: unittest.IncellMap.Item.value:type_name -> unittest.FruitFlavor
+	120, // 47: unittest.ItemConf.ItemMapEntry.value:type_name -> unittest.Item
+	40,  // 48: unittest.MallConf.ShopMapEntry.value:type_name -> unittest.MallConf.Shop
+	41,  // 49: unittest.MallConf.Shop.goods_map:type_name -> unittest.MallConf.Shop.GoodsMapEntry
+	42,  // 50: unittest.MallConf.Shop.GoodsMapEntry.value:type_name -> unittest.MallConf.Shop.Goods
+	44,  // 51: unittest.ActivityConf.ActivityMapEntry.value:type_name -> unittest.ActivityConf.Activity
+	45,  // 52: unittest.ActivityConf.Activity.chapter_map:type_name -> unittest.ActivityConf.Activity.ChapterMapEntry
+	46,  // 53: unittest.ActivityConf.Activity.ChapterMapEntry.value:type_name -> unittest.ActivityConf.Activity.Chapter
+	47,  // 54: unittest.ActivityConf.Activity.Chapter.section_list:type_name -> unittest.ActivityConf.Activity.Chapter.Section
+	48,  // 55: unittest.ActivityConf.Activity.Chapter.Section.reward_map:type_name -> unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry
+	49,  // 56: unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry.value:type_name -> unittest.ActivityConf.Activity.Chapter.Section.Reward
+	51,  // 57: unittest.RewardConf.RewardMapEntry.value:type_name -> unittest.RewardConf.Reward
+	52,  // 58: unittest.RewardConf.Reward.item_map:type_name -> unittest.RewardConf.Reward.ItemMapEntry
+	120, // 59: unittest.RewardConf.Reward.ItemMapEntry.value:type_name -> unittest.Item
+	123, // 60: unittest.PatchMergeConf.Time.start:type_name -> google.protobuf.Timestamp
+	124, // 61: unittest.PatchMergeConf.Time.expiry:type_name -> google.protobuf.Duration
+	120, // 62: unittest.PatchMergeConf.ItemMapEntry.value:type_name -> unittest.Item
+	120, // 63: unittest.PatchMergeConf.ReplaceItemMapEntry.value:type_name -> unittest.Item
+	57,  // 64: unittest.RecursivePatchConf.ShopMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop
+	58,  // 65: unittest.RecursivePatchConf.Shop.goods_map:type_name -> unittest.RecursivePatchConf.Shop.GoodsMapEntry
+	59,  // 66: unittest.RecursivePatchConf.Shop.GoodsMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods
+	60,  // 67: unittest.RecursivePatchConf.Shop.Goods.currency_map:type_name -> unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
+	62,  // 68: unittest.RecursivePatchConf.Shop.Goods.award_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Award
+	61,  // 69: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency
+	63,  // 70: unittest.RecursivePatchConf.Shop.Goods.Currency.value_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
+	64,  // 71: unittest.RecursivePatchConf.Shop.Goods.Currency.message_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
+	10,  // 72: unittest.JsonUtilTestData.MapFieldEntry.value:type_name -> unittest.PatchMergeConf
+	68,  // 73: unittest.VerticalUniqueFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main
+	69,  // 74: unittest.VerticalUniqueFieldStructMap.Main.main_kv_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.MainKvMapEntry
+	70,  // 75: unittest.VerticalUniqueFieldStructMap.Main.sub_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry
+	71,  // 76: unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main.Sub
+	74,  // 77: unittest.DocumentUniqueFieldStructMap.ChapterEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter
+	79,  // 78: unittest.DocumentUniqueFieldStructMap.Chapter.section:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry
+	78,  // 79: unittest.DocumentUniqueFieldStructMap.ChapterInfoEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo
+	81,  // 80: unittest.DocumentUniqueFieldStructMap.ChapterInfo.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry
+	80,  // 81: unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter.Section
+	82,  // 82: unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section
+	83,  // 83: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry
+	84,  // 84: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section
+	85,  // 85: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry
+	86,  // 86: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.Section
+	89,  // 87: unittest.SequenceKeyInVerticalKeyedList.Item.prop_map:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry
+	90,  // 88: unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry.value:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item.Prop
+	92,  // 89: unittest.VerticalSequenceFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalSequenceFieldStructMap.Main
+	93,  // 90: unittest.VerticalSequenceFieldStructMap.Main.sub_map:type_name -> unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry
+	94,  // 91: unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalSequenceFieldStructMap.Main.Sub
+	97,  // 92: unittest.Transpose.HeroMapEntry.value:type_name -> unittest.Transpose.Hero
+	100, // 93: unittest.TaskConf.TaskMapEntry.value:type_name -> unittest.TaskConf.Task
+	125, // 94: unittest.TaskConf.Task.target:type_name -> unittest.Target
+	102, // 95: unittest.FieldPresentMap.PlayerMapEntry.value:type_name -> unittest.FieldPresentMap.Player
+	103, // 96: unittest.FieldPresentMap.Player.weapon:type_name -> unittest.FieldPresentMap.Player.Weapon
+	104, // 97: unittest.FieldPresentMap.Player.info:type_name -> unittest.FieldPresentMap.Player.Info
+	105, // 98: unittest.FieldPresentMap.Player.attr_map:type_name -> unittest.FieldPresentMap.Player.AttrMapEntry
+	125, // 99: unittest.FieldPresentMap.Player.target:type_name -> unittest.Target
+	107, // 100: unittest.ScatterNoneConf.ZoneMapEntry.value:type_name -> unittest.ScatterNoneConf.Zone
+	109, // 101: unittest.ScatterReplaceConf.ZoneMapEntry.value:type_name -> unittest.ScatterReplaceConf.Zone
+	111, // 102: unittest.ScatterMergeConf.ZoneMapEntry.value:type_name -> unittest.ScatterMergeConf.Zone
+	113, // 103: unittest.MergerSingleConf.ZoneMapEntry.value:type_name -> unittest.MergerSingleConf.Zone
+	115, // 104: unittest.MergerMultiConf.ZoneMapEntry.value:type_name -> unittest.MergerMultiConf.Zone
+	117, // 105: unittest.VerticalAggregationMap.HeroMapEntry.value:type_name -> unittest.VerticalAggregationMap.Hero
+	118, // 106: unittest.VerticalAggregationMap.Hero.level_map:type_name -> unittest.VerticalAggregationMap.Hero.LevelMapEntry
+	119, // 107: unittest.VerticalAggregationMap.Hero.LevelMapEntry.value:type_name -> unittest.VerticalAggregationMap.Hero.Level
+	108, // [108:108] is the sub-list for method output_type
+	108, // [108:108] is the sub-list for method input_type
+	108, // [108:108] is the sub-list for extension type_name
+	108, // [108:108] is the sub-list for extension extendee
+	0,   // [0:108] is the sub-list for field type_name
 }
 
 func init() { file_tableau_protobuf_unittest_unittest_proto_init() }

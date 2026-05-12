@@ -862,4 +862,5 @@ message IncellKeyedList {
 
   repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" key:"ID" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // ID list with key and aggregation
   repeated unittest.FruitType type_list = 2 [(tableau.field) = {name:"Type" key:"Type" layout:LAYOUT_INCELL}]; // Type list with key
+  repeated unittest.Item item_list = 3 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // Item list with key (key is sub-field "ID") and aggregation
 }
