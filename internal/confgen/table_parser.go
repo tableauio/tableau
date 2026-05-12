@@ -568,13 +568,23 @@ func (p *tableParser) parseIncellListField(field *Field, msg protoreflect.Messag
 		if msg.Has(field.fd) {
 			if field.opts.GetProp().GetAggregate() {
 				existingList := msg.Mutable(field.fd).List()
+				// Resolve the key sub-field descriptor once for message keyed-list.
+				keyFd := findKeyFieldDescriptor(p.ctx, field.fd, field.opts.GetKey())
 				for i := range listValue.List().Len() {
 					newValue := listValue.List().Get(i)
 					if field.opts.GetKey() != "" {
-						// check duplicate elems for scalar/enum keyed-list
+						// check duplicate elems for keyed-list:
+						//   - scalar/enum keyed-list: element itself is the key.
+						//   - message keyed-list: compare only the key sub-field.
 						for j := range existingList.Len() {
 							elemVal := existingList.Get(j)
-							if elemVal.Equal(newValue) {
+							var dup bool
+							if keyFd != nil {
+								dup = elemVal.Message().Get(keyFd).Equal(newValue.Message().Get(keyFd))
+							} else {
+								dup = elemVal.Equal(newValue)
+							}
+							if dup {
 								return false, xerrors.WrapKV(xerrors.E2028(newValue), r.CellDebugKV(colName)...)
 							}
 						}
