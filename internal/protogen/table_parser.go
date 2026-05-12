@@ -221,7 +221,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		field.Options = &tableaupb.FieldOptions{
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   ExtractMapFieldProp(prop),
+			Prop:   ExtractMapFieldProp(prop, layout),
 		}
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
@@ -257,7 +257,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			// This is for the case that note cell does not obey the name-like rule.
 			mapNote = ""
 		} else {
-			mapNote = trimmedNoteCell[:firstElemNoteIndex]
+			mapNote = strings.TrimPrefix(trimmedNoteCell[:firstElemNoteIndex], notePrefix)
 		}
 		prefix += mapName
 		notePrefix += mapNote
@@ -288,7 +288,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			Name:   mapName,
 			Key:    trimmedNameCell,
 			Layout: layout,
-			Prop:   ExtractMapFieldProp(prop),
+			Prop:   ExtractMapFieldProp(prop, layout),
 		}
 		keyField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp(), trimmedNoteCell)
 		if err != nil {
@@ -346,7 +346,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		field.Name = strcase.FromContext(p.gen.ctx).ToSnake(trimmedNameCell) + mapVarSuffix
 		field.Type = mapType
 		field.FullType = fullMapType
-		field.Note = header.getNoteCell(cursor)
+		field.Note = strings.TrimSpace(strings.TrimPrefix(header.getNoteCell(cursor), notePrefix))
 		// For map type, Predefined indicates the ValueType of map has already
 		// been defined before.
 		field.Predefined = valuePredefined

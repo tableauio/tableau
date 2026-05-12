@@ -107,55 +107,55 @@ message Loader {
 }
 
 message MatchConf {
-  option (tableau.worksheet) = {name:"Match" datarow:4 nameline:1 typeline:1 nested:true field_presence:true};
+  option (tableau.worksheet) = {name:"Match" datarow:4 nameline:1 typeline:1 nested:true};
 
-  optional int32 interval = 1 [(tableau.field) = {name:"Interval"}]; // 间隔时间
-  optional int32 timeout = 2 [(tableau.field) = {name:"Timeout"}]; // 超时时间
+  int32 interval = 1 [(tableau.field) = {name:"Interval"}]; // 间隔时间
+  int32 timeout = 2 [(tableau.field) = {name:"Timeout"}]; // 超时时间
   map<int32, Factor> factor_map = 3 [(tableau.field) = {name:"Factor" key:"Type" layout:LAYOUT_HORIZONTAL}];
   message Factor {
-    optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // 因子类型
-    optional int32 value = 2 [(tableau.field) = {name:"Value"}]; // 因子值
+    int32 type = 1 [(tableau.field) = {name:"Type"}]; // 因子类型
+    int32 value = 2 [(tableau.field) = {name:"Value"}]; // 因子值
   }
   map<uint32, Mode> mode_map = 4 [(tableau.field) = {name:"Mode" key:"ID" layout:LAYOUT_VERTICAL}];
   message Mode {
-    optional uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 奖励ID
-    optional int32 difficulty = 2 [(tableau.field) = {name:"Difficulty"}]; // 难度
-    optional string desc = 3 [(tableau.field) = {name:"Desc"}]; // 描述
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 奖励ID
+    int32 difficulty = 2 [(tableau.field) = {name:"Difficulty"}]; // 难度
+    string desc = 3 [(tableau.field) = {name:"Desc"}]; // 描述
     repeated AI ai_list = 4 [(tableau.field) = {name:"AI" layout:LAYOUT_VERTICAL}];
     message AI {
-      optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // AI类型
-      optional int32 ability = 2 [(tableau.field) = {name:"Ability"}]; // 能力
+      int32 type = 1 [(tableau.field) = {name:"Type"}]; // AI类型
+      int32 ability = 2 [(tableau.field) = {name:"Ability"}]; // 能力
     }
   }
   Task task = 5 [(tableau.field) = {name:"Task"}];
   message Task {
-    optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // 任务类型
+    int32 type = 1 [(tableau.field) = {name:"Type"}]; // 任务类型
     repeated int32 param_list = 2 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL}]; // 参数
     map<uint32, Filter> filter_map = 3 [(tableau.field) = {name:"Filter" key:"Type" layout:LAYOUT_VERTICAL}];
     message Filter {
-      optional uint32 type = 1 [(tableau.field) = {name:"Type"}]; // 过滤器类型
-      optional bool open = 2 [(tableau.field) = {name:"Open"}]; // 过滤器是否打开
+      uint32 type = 1 [(tableau.field) = {name:"Type"}]; // 过滤器类型
+      bool open = 2 [(tableau.field) = {name:"Open"}]; // 过滤器是否打开
       repeated Job job_list = 3 [(tableau.field) = {name:"Job" layout:LAYOUT_VERTICAL}];
       message Job {
-        optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // AI类型
-        optional int32 count = 2 [(tableau.field) = {name:"Count"}]; // 能力
+        int32 type = 1 [(tableau.field) = {name:"Type"}]; // AI类型
+        int32 count = 2 [(tableau.field) = {name:"Count"}]; // 能力
       }
       repeated Section section_list = 4 [(tableau.field) = {name:"Section" layout:LAYOUT_VERTICAL}];
       message Section {
-        optional uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 节ID
-        optional string name = 2 [(tableau.field) = {name:"Name"}]; // 节名
+        uint32 id = 1 [(tableau.field) = {name:"ID"}]; // 节ID
+        string name = 2 [(tableau.field) = {name:"Name"}]; // 节名
         repeated Item item_list = 3 [(tableau.field) = {name:"Item" layout:LAYOUT_HORIZONTAL}]; // 奖励
         message Item {
-          optional int32 id = 1 [(tableau.field) = {name:"Id"}]; // Id
-          optional int32 num = 2 [(tableau.field) = {name:"Num"}]; // Num
+          int32 id = 1 [(tableau.field) = {name:"Id"}]; // Id
+          int32 num = 2 [(tableau.field) = {name:"Num"}]; // Num
         }
       }
     }
   }
   Robot robot = 6 [(tableau.field) = {name:"Robot"}];
   message Robot {
-    optional int32 type = 1 [(tableau.field) = {name:"Type"}]; // 机器人类型
-    optional int32 ability = 2 [(tableau.field) = {name:"Ability"}]; // 能力
+    int32 type = 1 [(tableau.field) = {name:"Type"}]; // 机器人类型
+    int32 ability = 2 [(tableau.field) = {name:"Ability"}]; // 能力
   }
 }
 

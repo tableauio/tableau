@@ -45,7 +45,6 @@ func TestTableParser_parseTableMetasheet(t *testing.T) {
 					"@TABLEAU",
 					[][]string{
 						{"Sheet", "OrderedMap", "Mode"},
-						{"Item", "", ""},
 						{"Enum", "MODE_ENUM_TYPE", ""},
 					}),
 			},
@@ -1029,15 +1028,15 @@ func TestTableParser_parseTaskConf(t *testing.T) {
 			name:   "union value message with non-sequential field tag numbers",
 			parser: newTableParserForTest(),
 			args: args{
-					sheet: book.NewTableSheet(
-						"TaskConf",
+				sheet: book.NewTableSheet(
+					"TaskConf",
 					[][]string{
 						{"ID", "TargetType", "TargetField1", "TargetField2", "TargetField3"},
 						{"1", "PVP", "10", "200", "500"},
 					}),
 			},
-				want: &unittestpb.TaskConf{
-					TaskMap: map[int32]*unittestpb.TaskConf_Task{
+			want: &unittestpb.TaskConf{
+				TaskMap: map[int32]*unittestpb.TaskConf_Task{
 					1: {
 						Id: 1,
 						Target: &unittestpb.Target{
@@ -1172,6 +1171,254 @@ func TestTableParser_parseFieldPresentMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.parser.Parse(&unittestpb.FieldPresentMap{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				require.ErrorIs(t, err, tt.err)
+			}
+		})
+	}
+}
+
+func TestTableParser_parseVerticalAggregationConsistency(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		err     error
+	}{
+		{
+			name:   "hero_name same in both rows - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"VerticalAggregationMap",
+					[][]string{
+						{"HeroID", "HeroName", "Level", "Exp"},
+						{"1001", "Warrior", "1", "100"},
+						{"1001", "Warrior", "2", "200"},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "hero_name only in first row - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"VerticalAggregationMap",
+					[][]string{
+						{"HeroID", "HeroName", "Level", "Exp"},
+						{"1001", "Warrior", "1", "100"},
+						{"1001", "", "2", "200"},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "hero_name only in second row - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"VerticalAggregationMap",
+					[][]string{
+						{"HeroID", "HeroName", "Level", "Exp"},
+						{"1001", "", "1", "100"},
+						{"1001", "Warrior", "2", "200"},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "hero_name different in both rows - should error E2023",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"VerticalAggregationMap",
+					[][]string{
+						{"HeroID", "HeroName", "Level", "Exp"},
+						{"1001", "Warrior", "1", "100"},
+						{"1001", "Mage", "2", "200"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2023,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.VerticalAggregationMap{}, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				require.ErrorIs(t, err, tt.err)
+			}
+		})
+	}
+}
+
+func TestTableParser_parseIncellKeyedListWithDuplicateElements(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		wantErr bool
+		err     error
+	}{
+		{
+			name:   "no duplicate elements in incell keyed-list - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_BANANA", ""},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "duplicate elements in scalar incell keyed-list - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1,2,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_BANANA", ""},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "duplicate elements in enum incell keyed-list - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE,FRUIT_TYPE_ORANGE", ""},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "inconsistent value in aggregated incell keyed-list - should error E2023",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1,2,3", "FRUIT_TYPE_APPLE,FRUIT_TYPE_ORANGE", ""},
+						{"4,5,6", "FRUIT_TYPE_BANANA", ""},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2023,
+		},
+		{
+			name:   "no duplicate elements in message incell keyed-list - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20,3:30"},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "duplicate elements in message incell keyed-list (same key, same value) - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20,1:10"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "duplicate elements in message incell keyed-list (same key, different value) - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20,1:99"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "duplicate elements across rows in aggregated message incell keyed-list (same key, same value) - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20"},
+						{"2", "FRUIT_TYPE_APPLE", "3:30,1:10"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "duplicate elements across rows in aggregated message incell keyed-list (same key, different value) - should error E2028",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20"},
+						{"2", "FRUIT_TYPE_APPLE", "3:30,1:99"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2028,
+		},
+		{
+			name:   "distinct keys across rows in aggregated message incell keyed-list - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellKeyedList",
+					[][]string{
+						{"ID", "Type", "Item"},
+						{"1", "FRUIT_TYPE_APPLE", "1:10,2:20"},
+						{"2", "FRUIT_TYPE_APPLE", "3:30,4:40"},
+					}),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.parser.Parse(&unittestpb.IncellKeyedList{}, tt.args.sheet)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}

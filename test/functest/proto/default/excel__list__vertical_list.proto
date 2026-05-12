@@ -27,19 +27,19 @@ message UniqueFieldInVerticalStructList {
 message VerticalEnumList {
   option (tableau.worksheet) = {name:"VerticalEnumList"};
 
-  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL}]; // Type
+  repeated protoconf.FruitType type_list = 1 [(tableau.field) = {name:"Type" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // Type
 }
 
 message VerticalIncellPredefStructList {
   option (tableau.worksheet) = {name:"VerticalIncellPredefStructList"};
 
-  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}]; // Item info
+  repeated protoconf.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{aggregate:true}}]; // Item info
 }
 
 message VerticalIncellStructList {
   option (tableau.worksheet) = {name:"VerticalIncellStructList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}]; // Item info
+  repeated Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{aggregate:true}}]; // Item info
   message Item {
     int32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
@@ -49,7 +49,7 @@ message VerticalIncellStructList {
 message VerticalIncellUnionList {
   option (tableau.worksheet) = {name:"VerticalIncellUnionList"};
 
-  repeated union.Target target_list = 1 [(tableau.field) = {name:"Target" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}]; // Target info
+  repeated union.Target target_list = 1 [(tableau.field) = {name:"Target" layout:LAYOUT_INCELL span:SPAN_INNER_CELL prop:{form:FORM_TEXT aggregate:true}}]; // Target info
 }
 
 message VerticalPredefinedStructList {
@@ -61,7 +61,7 @@ message VerticalPredefinedStructList {
 message VerticalScalarList {
   option (tableau.worksheet) = {name:"VerticalScalarList"};
 
-  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL}]; // ID
+  repeated uint32 id_list = 1 [(tableau.field) = {name:"ID" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // ID
 }
 
 message VerticalStructList {
