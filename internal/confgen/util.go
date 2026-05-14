@@ -73,7 +73,7 @@ func (f *Field) release() {
 // TODO: use sync.Map to cache *Field for reuse, e.g.: treat key as fd.FullName().
 func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
 	// default value
-	name := strcase.FromContext(p.ctx).ToCamel(string(fd.FullName().Name()))
+	name := strcase.FromContext(p.ctx).ToPascal(string(fd.FullName().Name()))
 	note := ""
 	span := tableaupb.Span_SPAN_DEFAULT
 	key := ""

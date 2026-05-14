@@ -204,7 +204,7 @@ func genEcode(p *printer.Printer, name, desc string, fds []*FieldDesc) {
 			fd.Type = "error"
 			fd.goName = "error_"
 		} else {
-			fd.goName = strcase.New(nil).ToLowerCamel(fd.Name)
+			fd.goName = strcase.New(nil).ToCamel(fd.Name)
 		}
 		if token.Lookup(fd.goName).IsKeyword() {
 			fd.goName += "_"
