@@ -19,6 +19,7 @@ package protoc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"maps"
@@ -96,24 +97,21 @@ func parseProtos(protoPaths []string, protoFilesMap map[string]string) (*protore
 
 	protoFiles := slices.Collect(maps.Values(protoFilesMap))
 
-	// Build a layered Opener:
-	//   1. user sources (resolved against protoPaths, gated by protoFilesMap)
-	//   2. embedded sources (tableau + buf/validate)
-	//   3. WKTs (google/protobuf/*)
-	userOpener := &filesystemOpener{importPaths: protoPaths}
-	embeddedOpener := &fsOpener{fs: embeddedFS(), tag: "<tableau-embedded>"}
-	combined := &source.Openers{userOpener, embeddedOpener, source.WKTs()}
-
-	workspace := source.NewWorkspace(protoFiles...)
-	executor := incremental.New(incremental.WithParallelism(1))
-	session := new(ir.Session)
-
 	query := queries.FDS{
-		Opener:    combined,
-		Session:   session,
-		Workspace: workspace,
+		Opener: &source.Openers{
+			// Build a layered Opener:
+			//   1. user sources (resolved against protoPaths, gated by protoFilesMap)
+			//   2. embedded sources (tableau + buf/validate)
+			//   3. WKTs (google/protobuf/*)
+			&filesystemOpener{importPaths: protoPaths},
+			&fsOpener{fs: embeddedFS(), tag: "<tableau-embedded>"},
+			source.WKTs(),
+		},
+		Session:   new(ir.Session),
+		Workspace: source.NewWorkspace(protoFiles...),
 	}
-	results, rpt, err := incremental.Run(context.Background(), executor, query)
+
+	results, rpt, err := incremental.Run(context.Background(), incremental.New(), query)
 	if err != nil {
 		return nil, err
 	}
@@ -188,12 +186,6 @@ type filesystemOpener struct {
 // Open implements [source.Opener].
 func (o *filesystemOpener) Open(path string) (*source.File, error) {
 	clean := xfs.CleanSlashPath(path)
-	if len(o.importPaths) == 0 {
-		if data, err := os.ReadFile(clean); err == nil {
-			return source.NewFile(path, string(data)), nil
-		}
-		return nil, fs.ErrNotExist
-	}
 	for _, root := range o.importPaths {
 		full := xfs.CleanSlashPath(filepath.Join(root, clean))
 		if data, err := os.ReadFile(full); err == nil {
@@ -232,43 +224,31 @@ func (o *fsOpener) Open(path string) (*source.File, error) {
 //
 // When no source span is available, the line/column components are
 // omitted. When no file is available, only the message is emitted.
-func reportToError(rpt *report.Report) error {
-	if rpt == nil {
+func reportToError(r *report.Report) error {
+	if r == nil {
 		return nil
 	}
-	var errs []string
-	for i := range rpt.Diagnostics {
-		d := &rpt.Diagnostics[i]
-		msg := formatDiagnostic(d)
-		switch d.Level() {
-		case report.Error, report.ICE:
-			errs = append(errs, msg)
-		case report.Warning:
-			log.Warnf("protocompile: %s", msg)
-		}
+	var errs []error
+	for _, d := range r.Diagnostics {
+		errs = append(errs, formatDiagnostic(&d))
 	}
 	if len(errs) == 0 {
 		return nil
 	}
-	return fmt.Errorf("protocompile: %s", strings.Join(errs, "\n"))
+	return errors.Join(errs...)
 }
 
 // formatDiagnostic renders a single diagnostic in buf's
 // "<file>:<line>:<col>:<message>" format. Missing components are skipped.
-func formatDiagnostic(d *report.Diagnostic) string {
-	file := d.File()
-	span := d.Primary()
-	if !span.IsZero() {
+func formatDiagnostic(d *report.Diagnostic) error {
+	switch d.Level() {
+	case report.Error, report.ICE:
+		span := d.Primary()
 		loc := span.StartLoc()
-		if file != "" {
-			return fmt.Sprintf("%s:%d:%d:%s", file, loc.Line, loc.Column, d.Message())
-		}
-		return fmt.Sprintf("%d:%d:%s", loc.Line, loc.Column, d.Message())
+		return fmt.Errorf("%s:%d:%d:%s", span.Path(), loc.Line, loc.Column, d.Message())
+	default:
+		return nil
 	}
-	if file != "" {
-		return fmt.Sprintf("%s:%s", file, d.Message())
-	}
-	return d.Message()
 }
 
 // removeDynamicExtensionsFromProto rewrites *FileDescriptorProto-tree
