@@ -30,7 +30,7 @@ message FieldProp {
       string color = 1 [(tableau.field) = {name:"Color"}]; // Appearance color
       string shape = 2 [(tableau.field) = {name:"Shape"}]; // Appearance shape
     }
-    int32 buff_id_1 = 4 [(tableau.field) = {name:"BuffID1"}, json_name="buff_id_1"]; // Buff ID 1
+    int32 buff_id1 = 4 [(tableau.field) = {name:"BuffID1"}, json_name="buff_id_1"]; // Buff ID 1
     repeated uint32 award_id_list = 5 [(tableau.field) = {name:"AwardID" layout:LAYOUT_INCELL prop:{refer:"ItemConf.ID"}}]; // Award ID list
     uint32 optional_bonus_id = 6 [(tableau.field) = {name:"OptionalBonusID" prop:{refer:"ItemConf.ID"}}]; // Optional bonus ID
     protoconf.Item incell_struct = 7 [(tableau.field) = {name:"IncellStruct" span:SPAN_INNER_CELL}]; // Incell struct
@@ -40,8 +40,8 @@ message FieldProp {
 message FieldPropForm {
   option (tableau.worksheet) = {name:"FieldPropForm"};
 
-  protoconf.Transform transform_1 = 1 [(tableau.field) = {name:"Transform1" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}]; // Box transform1
-  protoconf.Transform transform_2 = 2 [(tableau.field) = {name:"Transform2" span:SPAN_INNER_CELL prop:{form:FORM_JSON}}]; // Box transform2
+  protoconf.Transform transform1 = 1 [(tableau.field) = {name:"Transform1" span:SPAN_INNER_CELL prop:{form:FORM_TEXT}}]; // Box transform1
+  protoconf.Transform transform2 = 2 [(tableau.field) = {name:"Transform2" span:SPAN_INNER_CELL prop:{form:FORM_JSON}}]; // Box transform2
 }
 
 message FieldPropOrder {

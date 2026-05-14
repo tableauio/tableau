@@ -301,18 +301,17 @@ func (x *sheetExporter) exportUnion() error {
 		if field.Number == 0 {
 			continue
 		}
-		ename := "TYPE_" + strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(field.Name)
-		typ := field.Name
-		fullTypeName := field.FullType
-		if fullTypeName != "" {
-			typ = fullTypeName
+		ename := strcase.FromContext(x.be.gen.ctx).EnumValue("Type", field.Name)
+		typ := field.FullType
+		if typ == "" {
+			typ = strcase.FromContext(x.be.gen.ctx).ToCamel(field.Name)
 		}
 		// Add import for predefined types (e.g. protoconf.FruitType, protoconf.Item).
 		if field.Predefined {
-			if types.IsWellKnownMessage(fullTypeName) {
-				importPath := types.GetWellKnownMessageImport(fullTypeName)
+			if types.IsWellKnownMessage(typ) {
+				importPath := types.GetWellKnownMessageImport(typ)
 				x.Imports[importPath] = true
-			} else if typeInfo := x.typeInfos.GetByFullName(protoreflect.FullName(fullTypeName)); typeInfo != nil &&
+			} else if typeInfo := x.typeInfos.GetByFullName(protoreflect.FullName(typ)); typeInfo != nil &&
 				typeInfo.ParentFilename != x.be.GetProtoFilePath() {
 				x.Imports[typeInfo.ParentFilename] = true
 			}
@@ -333,7 +332,7 @@ func (x *sheetExporter) exportUnion() error {
 		x.p.P("    TYPE_INVALID = 0;")
 	}
 	for _, field := range x.ws.Fields {
-		ename := "TYPE_" + strcase.FromContext(x.be.gen.ctx).ToScreamingSnake(field.Name)
+		ename := strcase.FromContext(x.be.gen.ctx).EnumValue("Type", field.Name)
 		note := ""
 		if field.Alias != "" {
 			note = " // " + field.Alias
@@ -349,9 +348,9 @@ func (x *sheetExporter) exportUnion() error {
 		if len(msgField.Fields) == 0 {
 			continue
 		}
-		typ := msgField.Name
-		if msgField.Type != "" {
-			typ = msgField.Type
+		typ := msgField.Type
+		if typ == "" {
+			typ = strcase.FromContext(x.be.gen.ctx).ToCamel(msgField.Name)
 		}
 		x.p.P("  message ", typ, " {")
 		// generate the fields

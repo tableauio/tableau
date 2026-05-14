@@ -34,7 +34,7 @@ message YamlStructConf {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
   }
-  InplaceIncellItem incell_struct_2 = 6 [(tableau.field) = {name:"IncellStruct2" span:SPAN_INNER_CELL}];
+  InplaceIncellItem incell_struct2 = 6 [(tableau.field) = {name:"IncellStruct2" span:SPAN_INNER_CELL}];
   message InplaceIncellItem {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];

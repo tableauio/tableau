@@ -81,7 +81,6 @@ func genProto(logLevel, logMode string) error {
 						FileOptions: map[string]string{
 							"go_package": `"github.com/tableauio/tableau/test/functest/protoconf"`,
 						},
-						EnumValueWithPrefix: true,
 					},
 				},
 			),

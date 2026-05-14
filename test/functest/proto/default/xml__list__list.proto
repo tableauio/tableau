@@ -17,7 +17,7 @@ message ListConf {
 
   Parent parent = 1 [(tableau.field) = {name:"Parent"}];
   message Parent {
-    Parent2 parent_2 = 1 [(tableau.field) = {name:"Parent2"}];
+    Parent2 parent2 = 1 [(tableau.field) = {name:"Parent2"}];
     message Parent2 {
       repeated CrossCell cross_cell_list = 1 [(tableau.field) = {name:"CrossCell"}];
       message CrossCell {
@@ -36,7 +36,7 @@ message ListConf2 {
 
   Parent parent = 1 [(tableau.field) = {name:"Parent"}];
   message Parent {
-    Parent2 parent_2 = 1 [(tableau.field) = {name:"Parent2"}];
+    Parent2 parent2 = 1 [(tableau.field) = {name:"Parent2"}];
     message Parent2 {
       Incell incell = 1 [(tableau.field) = {name:"Incell"}];
       message Incell {

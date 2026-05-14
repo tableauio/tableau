@@ -212,6 +212,11 @@ type ProtoOutputOption struct {
 	// not be prefixed again.
 	//
 	// Default: false.
+	//
+	// Deprecated: STYLE2024 mandates that every enum value name begins with the
+	// UPPER_SNAKE_CASE form of its enum type, so the prefix is now always
+	// applied regardless of this option. The field is kept only for backward
+	// compatibility of the configuration schema.
 	EnumValueWithPrefix bool `yaml:"enumValueWithPrefix"`
 
 	// In Protocol Buffers (Protobuf), to guarantee both backward and forward
