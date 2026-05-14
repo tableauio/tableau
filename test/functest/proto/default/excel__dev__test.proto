@@ -43,14 +43,14 @@ message Activity {
         Task task = 6 [(tableau.field) = {name:"Task"}];
         message Task {
           int32 type = 1 [(tableau.field) = {name:"Type" prop:{range:"~,20"}}]; // 任务类型
-          int32 param_1 = 2 [(tableau.field) = {name:"Param1"}]; // 参数1
-          int32 param_2 = 3 [(tableau.field) = {name:"Param2"}]; // 参数2
-          int32 param_3 = 4 [(tableau.field) = {name:"Param3"}]; // 参数3
-          repeated int32 incell_param_1_list = 5 [(tableau.field) = {name:"IncellParam1" layout:LAYOUT_INCELL prop:{range:"1,50"}}]; // 参数列表1
-          repeated int32 incell_param_2_list = 6 [(tableau.field) = {name:"IncellParam2" layout:LAYOUT_INCELL}]; // 参数列表2
-          repeated int32 incell_param_3_list = 7 [(tableau.field) = {name:"IncellParam3" layout:LAYOUT_INCELL}]; // 参数列表3
-          map<int32, int32> incell_param_4_map = 8 [(tableau.field) = {name:"IncellParam4" layout:LAYOUT_INCELL}]; // 参数列表4
-          map<int32, int32> incell_param_5_map = 9 [(tableau.field) = {name:"IncellParam5" layout:LAYOUT_INCELL prop:{range:"1,100"}}]; // 参数列表5
+          int32 param1 = 2 [(tableau.field) = {name:"Param1"}]; // 参数1
+          int32 param2 = 3 [(tableau.field) = {name:"Param2"}]; // 参数2
+          int32 param3 = 4 [(tableau.field) = {name:"Param3"}]; // 参数3
+          repeated int32 incell_param1_list = 5 [(tableau.field) = {name:"IncellParam1" layout:LAYOUT_INCELL prop:{range:"1,50"}}]; // 参数列表1
+          repeated int32 incell_param2_list = 6 [(tableau.field) = {name:"IncellParam2" layout:LAYOUT_INCELL}]; // 参数列表2
+          repeated int32 incell_param3_list = 7 [(tableau.field) = {name:"IncellParam3" layout:LAYOUT_INCELL}]; // 参数列表3
+          map<int32, int32> incell_param4_map = 8 [(tableau.field) = {name:"IncellParam4" layout:LAYOUT_INCELL}]; // 参数列表4
+          map<int32, int32> incell_param5_map = 9 [(tableau.field) = {name:"IncellParam5" layout:LAYOUT_INCELL prop:{range:"1,100"}}]; // 参数列表5
           int32 target = 10 [(tableau.field) = {name:"Target" prop:{range:"~,10"}}]; // 目标
         }
         Info bonus_info = 7 [(tableau.field) = {name:"BonusInfo" span:SPAN_INNER_CELL}]; // 津贴信息

@@ -39,8 +39,8 @@ message WellKnownTypeDatetime {
 message WellKnownTypeDuration {
   option (tableau.worksheet) = {name:"WellKnownTypeDuration"};
 
-  google.protobuf.Duration duration_1 = 1 [(tableau.field) = {name:"Duration1"}]; // Duration 1
-  google.protobuf.Duration duration_2 = 2 [(tableau.field) = {name:"Duration2"}]; // Duration 2
+  google.protobuf.Duration duration1 = 1 [(tableau.field) = {name:"Duration1"}]; // Duration 1
+  google.protobuf.Duration duration2 = 2 [(tableau.field) = {name:"Duration2"}]; // Duration 2
   repeated google.protobuf.Duration duration_list = 3 [(tableau.field) = {name:"Duration" layout:LAYOUT_INCELL}]; // Duration
 }
 

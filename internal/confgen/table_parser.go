@@ -619,7 +619,7 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 	}
 
 	// parse union type
-	typeColName := prefix + strcase.FromContext(p.ctx).ToCamel(unionDesc.TypeName())
+	typeColName := prefix + strcase.FromContext(p.ctx).ToPascal(unionDesc.TypeName())
 	cell, err := r.Cell(typeColName, p.IsFieldOptional(field))
 	if err != nil {
 		return false, err
