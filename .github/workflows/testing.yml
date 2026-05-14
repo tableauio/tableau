@@ -3,7 +3,7 @@ name: Testing
 # Trigger on pushes, PRs (excluding documentation changes), and nightly.
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
   schedule:
     - cron: 0 0 * * * # daily at 00:00
@@ -16,20 +16,20 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [ 1.24.x ]
-        os: [ ubuntu-latest, windows-latest ]
-        targetplatform: [ x86, x64 ]
+        os: [ubuntu-latest, windows-latest]
+        targetplatform: [x86, x64]
 
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
       - name: Install Go
         uses: actions/setup-go@v6
         with:
-          go-version: ${{ matrix.go-version }}
-
-      - name: Checkout Code
-        uses: actions/checkout@v6
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
 
       - name: Vet
         run: go vet ./...

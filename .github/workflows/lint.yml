@@ -2,9 +2,9 @@ name: Lint
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
 
 jobs:
   golangci:
@@ -23,7 +23,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9.2.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          version: v2.2.1
+          version: latest
 
       - name: Install Buf
         uses: bufbuild/buf-action@v1
@@ -40,6 +40,17 @@ jobs:
           buf generate
           if git diff --name-only | grep -q "\.go$"; then
             echo "Error: Generated Go files are not committed"
+            git diff
+            exit 1
+          fi
+
+      - name: Go Generate and Check
+        run: |
+          go generate ./...
+          if ! git diff --quiet; then
+            echo "Error: 'go generate ./...' produced uncommitted changes."
+            echo "Run 'go generate ./...' locally and commit the result."
+            git status --short
             git diff
             exit 1
           fi
