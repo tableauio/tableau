@@ -625,7 +625,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -662,7 +662,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -789,7 +789,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -1010,7 +1010,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -1092,7 +1092,7 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 						OutputOpt: &options.ProtoOutputOption{
 							PreserveFieldNumbers: true,
 						},
-						ProtoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
 				},
 				typeInfos:      &xproto.TypeInfos{},

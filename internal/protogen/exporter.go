@@ -388,7 +388,7 @@ func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.Mess
 		return nil
 	}
 	fullName := protoreflect.FullName(x.be.ProtoPackage).Append(protoreflect.Name(name))
-	descriptor, err := x.be.gen.ProtoRegistryFilesWithGenerated.FindDescriptorByName(fullName)
+	descriptor, err := x.be.gen.GetProtoRegistryFilesWithGenerated().FindDescriptorByName(fullName)
 	if err != nil {
 		return nil
 	}
