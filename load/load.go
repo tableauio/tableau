@@ -152,6 +152,16 @@ func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format
 
 // loadOrigin loads the origin file (excel/csv/xml/yaml) from the given
 // directory.
+//
+// Scatter and merger are mutually exclusive: scatter is processed first when
+// declared, otherwise the merger path is taken (consistent with confgen).
+//
+// For scatter sheets, the main workbook is always parsed first, and the
+// worksheet's patch mode determines how scatter importers are applied:
+//   - PATCH_NONE:    only the main workbook is loaded; scatter sheets are ignored.
+//   - PATCH_REPLACE: the last scatter importer replaces the main message.
+//   - PATCH_MERGE:   the main message is patched by each scatter importer
+//     in order via xproto.PatchMessage.
 func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 	md := msg.ProtoReflect().Descriptor()
 	protofile, bookOpts := confgen.ParseFileOptions(md.ParentFile())
@@ -178,14 +188,6 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 		return xerrors.Wrapf(err, "failed to import workbook: %v", wbPath)
 	}
 
-	// get merger importer infos
-	impInfos, err := importer.GetMergerImporters(context.Background(), dir, bookName, sheetName, sheetOpts.GetMerger(), subdirRewrites)
-	if err != nil {
-		return xerrors.Wrapf(err, "failed to get merger importer infos for %s", wbPath)
-	}
-	// append self
-	impInfos = append(impInfos, importer.ImporterInfo{Importer: self})
-
 	sheetInfo := &confgen.SheetInfo{
 		ProtoPackage:    string(md.ParentFile().Package()),
 		LocationName:    opts.GetLocationName(),
@@ -201,11 +203,96 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 		},
 	}
 	collector := xerrors.NewCollector(1)
+	mainImpInfo := importer.ImporterInfo{Importer: self}
+
+	// Scatter and merger are mutually exclusive: prefer scatter when declared.
+	if len(sheetOpts.GetScatter()) != 0 {
+		return loadOriginWithScatter(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
+	}
+
+	// Merger path: always merge merger importers (if any) into the main message.
+	mergerImpInfos, err := importer.GetMergerImporters(
+		context.Background(), dir, bookName, sheetName,
+		sheetOpts.GetMerger(), subdirRewrites,
+	)
+	if err != nil {
+		return xerrors.Wrapf(err, "failed to get merger importer infos for %s", wbPath)
+	}
+	impInfos := append(mergerImpInfos, mainImpInfo)
 	protomsg, err := confgen.ParseMessage(sheetInfo, collector, impInfos...)
 	if err != nil {
 		return err
 	}
 	// NOTE: deep copy
 	proto.Merge(msg, protomsg)
+	return nil
+}
+
+// loadOriginWithScatter handles the scatter branch of loadOrigin.
+func loadOriginWithScatter(
+	msg proto.Message,
+	sheetInfo *confgen.SheetInfo,
+	mainImpInfo importer.ImporterInfo,
+	dir string,
+	subdirRewrites map[string]string,
+	collector *xerrors.Collector,
+) error {
+	sheetOpts := sheetInfo.SheetOpts
+	bookName := sheetInfo.PrimaryBookName
+	sheetName := sheetOpts.GetName()
+	patch := sheetOpts.GetPatch()
+
+	// PATCH_NONE: only load the main workbook, ignore all scatter sheets.
+	if patch == tableaupb.Patch_PATCH_NONE {
+		mainMsg, err := confgen.ParseMessage(sheetInfo, collector, mainImpInfo)
+		if err != nil {
+			return err
+		}
+		proto.Merge(msg, mainMsg)
+		return nil
+	}
+
+	scatterImpInfos, err := importer.GetScatterImporters(
+		context.Background(), dir, bookName, sheetName,
+		sheetOpts.GetScatter(), subdirRewrites,
+	)
+	if err != nil {
+		return xerrors.Wrapf(err, "failed to get scatter importer infos for %s", bookName)
+	}
+
+	switch patch {
+	case tableaupb.Patch_PATCH_REPLACE:
+		// Use the last scatter importer to replace the main message; if no
+		// scatter importer is resolved, fall back to the main workbook.
+		impInfo := mainImpInfo
+		if len(scatterImpInfos) != 0 {
+			impInfo = scatterImpInfos[len(scatterImpInfos)-1]
+		}
+		protomsg, err := confgen.ParseMessage(sheetInfo, collector, impInfo)
+		if err != nil {
+			return err
+		}
+		proto.Merge(msg, protomsg)
+
+	case tableaupb.Patch_PATCH_MERGE:
+		// Parse main first, then patch each scatter importer onto it.
+		mainMsg, err := confgen.ParseMessage(sheetInfo, collector, mainImpInfo)
+		if err != nil {
+			return err
+		}
+		proto.Merge(msg, mainMsg)
+		for _, impInfo := range scatterImpInfos {
+			patchMsg, err := confgen.ParseMessage(sheetInfo, collector, impInfo)
+			if err != nil {
+				return err
+			}
+			if err := xproto.PatchMessage(msg, patchMsg); err != nil {
+				return err
+			}
+		}
+
+	default:
+		return xerrors.Newf("unknown patch type: %v", patch)
+	}
 	return nil
 }
