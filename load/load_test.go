@@ -554,3 +554,56 @@ func TestLoadEmptyText(t *testing.T) {
 	)
 	require.NoError(t, err, "should return no error")
 }
+
+// TestLoadOriginScatter exercises loadOrigin's scatter handling for the
+// three patch modes: PATCH_NONE, PATCH_REPLACE and PATCH_MERGE.
+//
+// Each messager's main sheet is "Unittest#<MsgName>.csv" and its scatter
+// shards are "UnittestScatter*#<MsgName>.csv", co-located with the main
+// workbook under testdata/unittest/.
+func TestLoadOriginScatter(t *testing.T) {
+	t.Run("PATCH_NONE-only-main-loaded", func(t *testing.T) {
+		got := &unittestpb.ScatterNoneConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		want := &unittestpb.ScatterNoneConf{
+			ZoneMap: map[uint32]*unittestpb.ScatterNoneConf_Zone{
+				1: {Id: 1, Name: "Main-A"},
+				2: {Id: 2, Name: "Main-B"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"PATCH_NONE: scatter shards must be ignored.\ngot:  %v\nwant: %v", got, want)
+	})
+
+	t.Run("PATCH_REPLACE-last-scatter-wins", func(t *testing.T) {
+		got := &unittestpb.ScatterReplaceConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		// NOTE: only one scatter shard is provided here on purpose. The
+		// order of importers returned by importer.GetScatterImporters
+		// is map-iteration based and not stable, so multi-shard
+		// "last-wins" assertions would be flaky.
+		want := &unittestpb.ScatterReplaceConf{
+			ZoneMap: map[uint32]*unittestpb.ScatterReplaceConf_Zone{
+				10: {Id: 10, Name: "Replace1"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"PATCH_REPLACE: scatter shard should replace the main message.\ngot:  %v\nwant: %v", got, want)
+	})
+
+	t.Run("PATCH_MERGE-main-plus-all-scatters", func(t *testing.T) {
+		got := &unittestpb.ScatterMergeConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		want := &unittestpb.ScatterMergeConf{
+			ZoneMap: map[uint32]*unittestpb.ScatterMergeConf_Zone{
+				1:  {Id: 1, Name: "Main-A"},
+				2:  {Id: 2, Name: "Main-B"},
+				10: {Id: 10, Name: "Patch1"},
+				20: {Id: 20, Name: "Patch2"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"PATCH_MERGE: main and all scatter shards should be merged.\ngot:  %v\nwant: %v", got, want)
+	})
+}
+
