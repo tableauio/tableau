@@ -1773,6 +1773,108 @@ func (x *IncellKeyedList) GetItemList() []*Item {
 	return nil
 }
 
+// HorizontalAggregateMap tests horizontal map with aggregate across rows.
+// Structure: vertical parent map (by HeroID) with a horizontal map child (Item)
+// that has aggregate:true, allowing different rows with same HeroID to contribute
+// different horizontal map entries.
+type HorizontalAggregateMap struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	HeroMap map[uint32]*HorizontalAggregateMap_Hero `protobuf:"bytes,1,rep,name=hero_map,json=heroMap,proto3" json:"hero_map,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *HorizontalAggregateMap) Reset() {
+	*x = HorizontalAggregateMap{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[32]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HorizontalAggregateMap) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HorizontalAggregateMap) ProtoMessage() {}
+
+func (x *HorizontalAggregateMap) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[32]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HorizontalAggregateMap.ProtoReflect.Descriptor instead.
+func (*HorizontalAggregateMap) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *HorizontalAggregateMap) GetHeroMap() map[uint32]*HorizontalAggregateMap_Hero {
+	if x != nil {
+		return x.HeroMap
+	}
+	return nil
+}
+
+// HorizontalAggregateList tests horizontal list with aggregate across rows.
+// Structure: vertical parent map (by HeroID) with a horizontal list child (Param)
+// that has aggregate:true, allowing different rows with same HeroID to contribute
+// different horizontal list entries.
+type HorizontalAggregateList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	HeroMap map[uint32]*HorizontalAggregateList_Hero `protobuf:"bytes,1,rep,name=hero_map,json=heroMap,proto3" json:"hero_map,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *HorizontalAggregateList) Reset() {
+	*x = HorizontalAggregateList{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[33]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HorizontalAggregateList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HorizontalAggregateList) ProtoMessage() {}
+
+func (x *HorizontalAggregateList) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[33]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HorizontalAggregateList.ProtoReflect.Descriptor instead.
+func (*HorizontalAggregateList) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *HorizontalAggregateList) GetHeroMap() map[uint32]*HorizontalAggregateList_Hero {
+	if x != nil {
+		return x.HeroMap
+	}
+	return nil
+}
+
 type IncellMap_Fruit struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1785,7 +1887,7 @@ type IncellMap_Fruit struct {
 func (x *IncellMap_Fruit) Reset() {
 	*x = IncellMap_Fruit{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[34]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[36]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1798,7 +1900,7 @@ func (x *IncellMap_Fruit) String() string {
 func (*IncellMap_Fruit) ProtoMessage() {}
 
 func (x *IncellMap_Fruit) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[34]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[36]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1840,7 +1942,7 @@ type IncellMap_Item struct {
 func (x *IncellMap_Item) Reset() {
 	*x = IncellMap_Item{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[37]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[39]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1853,7 +1955,7 @@ func (x *IncellMap_Item) String() string {
 func (*IncellMap_Item) ProtoMessage() {}
 
 func (x *IncellMap_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[37]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[39]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1895,7 +1997,7 @@ type MallConf_Shop struct {
 func (x *MallConf_Shop) Reset() {
 	*x = MallConf_Shop{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[40]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[42]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1908,7 +2010,7 @@ func (x *MallConf_Shop) String() string {
 func (*MallConf_Shop) ProtoMessage() {}
 
 func (x *MallConf_Shop) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[40]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[42]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1950,7 +2052,7 @@ type MallConf_Shop_Goods struct {
 func (x *MallConf_Shop_Goods) Reset() {
 	*x = MallConf_Shop_Goods{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[42]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[44]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1963,7 +2065,7 @@ func (x *MallConf_Shop_Goods) String() string {
 func (*MallConf_Shop_Goods) ProtoMessage() {}
 
 func (x *MallConf_Shop_Goods) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[42]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[44]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2006,7 +2108,7 @@ type ActivityConf_Activity struct {
 func (x *ActivityConf_Activity) Reset() {
 	*x = ActivityConf_Activity{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[44]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[46]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2019,7 +2121,7 @@ func (x *ActivityConf_Activity) String() string {
 func (*ActivityConf_Activity) ProtoMessage() {}
 
 func (x *ActivityConf_Activity) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[44]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[46]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2069,7 +2171,7 @@ type ActivityConf_Activity_Chapter struct {
 func (x *ActivityConf_Activity_Chapter) Reset() {
 	*x = ActivityConf_Activity_Chapter{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[46]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[48]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2082,7 +2184,7 @@ func (x *ActivityConf_Activity_Chapter) String() string {
 func (*ActivityConf_Activity_Chapter) ProtoMessage() {}
 
 func (x *ActivityConf_Activity_Chapter) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[46]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[48]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2132,7 +2234,7 @@ type ActivityConf_Activity_Chapter_Section struct {
 func (x *ActivityConf_Activity_Chapter_Section) Reset() {
 	*x = ActivityConf_Activity_Chapter_Section{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[47]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[49]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2145,7 +2247,7 @@ func (x *ActivityConf_Activity_Chapter_Section) String() string {
 func (*ActivityConf_Activity_Chapter_Section) ProtoMessage() {}
 
 func (x *ActivityConf_Activity_Chapter_Section) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[47]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[49]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2194,7 +2296,7 @@ type ActivityConf_Activity_Chapter_Section_Reward struct {
 func (x *ActivityConf_Activity_Chapter_Section_Reward) Reset() {
 	*x = ActivityConf_Activity_Chapter_Section_Reward{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[49]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[51]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2207,7 +2309,7 @@ func (x *ActivityConf_Activity_Chapter_Section_Reward) String() string {
 func (*ActivityConf_Activity_Chapter_Section_Reward) ProtoMessage() {}
 
 func (x *ActivityConf_Activity_Chapter_Section_Reward) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[49]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[51]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2249,7 +2351,7 @@ type RewardConf_Reward struct {
 func (x *RewardConf_Reward) Reset() {
 	*x = RewardConf_Reward{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[51]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[53]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2262,7 +2364,7 @@ func (x *RewardConf_Reward) String() string {
 func (*RewardConf_Reward) ProtoMessage() {}
 
 func (x *RewardConf_Reward) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[51]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[53]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2304,7 +2406,7 @@ type PatchMergeConf_Time struct {
 func (x *PatchMergeConf_Time) Reset() {
 	*x = PatchMergeConf_Time{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[53]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[55]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2317,7 +2419,7 @@ func (x *PatchMergeConf_Time) String() string {
 func (*PatchMergeConf_Time) ProtoMessage() {}
 
 func (x *PatchMergeConf_Time) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[53]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[55]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2359,7 +2461,7 @@ type RecursivePatchConf_Shop struct {
 func (x *RecursivePatchConf_Shop) Reset() {
 	*x = RecursivePatchConf_Shop{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[57]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[59]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2372,7 +2474,7 @@ func (x *RecursivePatchConf_Shop) String() string {
 func (*RecursivePatchConf_Shop) ProtoMessage() {}
 
 func (x *RecursivePatchConf_Shop) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[57]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[59]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2417,7 +2519,7 @@ type RecursivePatchConf_Shop_Goods struct {
 func (x *RecursivePatchConf_Shop_Goods) Reset() {
 	*x = RecursivePatchConf_Shop_Goods{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[59]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[61]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2430,7 +2532,7 @@ func (x *RecursivePatchConf_Shop_Goods) String() string {
 func (*RecursivePatchConf_Shop_Goods) ProtoMessage() {}
 
 func (x *RecursivePatchConf_Shop_Goods) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[59]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[61]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2495,7 +2597,7 @@ type RecursivePatchConf_Shop_Goods_Currency struct {
 func (x *RecursivePatchConf_Shop_Goods_Currency) Reset() {
 	*x = RecursivePatchConf_Shop_Goods_Currency{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[61]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[63]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2508,7 +2610,7 @@ func (x *RecursivePatchConf_Shop_Goods_Currency) String() string {
 func (*RecursivePatchConf_Shop_Goods_Currency) ProtoMessage() {}
 
 func (x *RecursivePatchConf_Shop_Goods_Currency) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[61]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[63]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2564,7 +2666,7 @@ type RecursivePatchConf_Shop_Goods_Award struct {
 func (x *RecursivePatchConf_Shop_Goods_Award) Reset() {
 	*x = RecursivePatchConf_Shop_Goods_Award{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[62]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[64]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2577,7 +2679,7 @@ func (x *RecursivePatchConf_Shop_Goods_Award) String() string {
 func (*RecursivePatchConf_Shop_Goods_Award) ProtoMessage() {}
 
 func (x *RecursivePatchConf_Shop_Goods_Award) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[62]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[64]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2620,7 +2722,7 @@ type UniqueFieldInVerticalStructList_Item struct {
 func (x *UniqueFieldInVerticalStructList_Item) Reset() {
 	*x = UniqueFieldInVerticalStructList_Item{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[66]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[68]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2633,7 +2735,7 @@ func (x *UniqueFieldInVerticalStructList_Item) String() string {
 func (*UniqueFieldInVerticalStructList_Item) ProtoMessage() {}
 
 func (x *UniqueFieldInVerticalStructList_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[66]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[68]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2684,7 +2786,7 @@ type VerticalUniqueFieldStructMap_Main struct {
 func (x *VerticalUniqueFieldStructMap_Main) Reset() {
 	*x = VerticalUniqueFieldStructMap_Main{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[68]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[70]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2697,7 +2799,7 @@ func (x *VerticalUniqueFieldStructMap_Main) String() string {
 func (*VerticalUniqueFieldStructMap_Main) ProtoMessage() {}
 
 func (x *VerticalUniqueFieldStructMap_Main) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[68]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[70]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2753,7 +2855,7 @@ type VerticalUniqueFieldStructMap_Main_Sub struct {
 func (x *VerticalUniqueFieldStructMap_Main_Sub) Reset() {
 	*x = VerticalUniqueFieldStructMap_Main_Sub{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[71]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[73]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2766,7 +2868,7 @@ func (x *VerticalUniqueFieldStructMap_Main_Sub) String() string {
 func (*VerticalUniqueFieldStructMap_Main_Sub) ProtoMessage() {}
 
 func (x *VerticalUniqueFieldStructMap_Main_Sub) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[71]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[73]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2809,7 +2911,7 @@ type DocumentUniqueFieldStructList_Item struct {
 func (x *DocumentUniqueFieldStructList_Item) Reset() {
 	*x = DocumentUniqueFieldStructList_Item{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[72]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[74]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2822,7 +2924,7 @@ func (x *DocumentUniqueFieldStructList_Item) String() string {
 func (*DocumentUniqueFieldStructList_Item) ProtoMessage() {}
 
 func (x *DocumentUniqueFieldStructList_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[72]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[74]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2872,7 +2974,7 @@ type DocumentUniqueFieldStructMap_Chapter struct {
 func (x *DocumentUniqueFieldStructMap_Chapter) Reset() {
 	*x = DocumentUniqueFieldStructMap_Chapter{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[74]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[76]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2885,7 +2987,7 @@ func (x *DocumentUniqueFieldStructMap_Chapter) String() string {
 func (*DocumentUniqueFieldStructMap_Chapter) ProtoMessage() {}
 
 func (x *DocumentUniqueFieldStructMap_Chapter) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[74]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[76]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2935,7 +3037,7 @@ type DocumentUniqueFieldStructMap_ChapterInfo struct {
 func (x *DocumentUniqueFieldStructMap_ChapterInfo) Reset() {
 	*x = DocumentUniqueFieldStructMap_ChapterInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[78]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[80]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2948,7 +3050,7 @@ func (x *DocumentUniqueFieldStructMap_ChapterInfo) String() string {
 func (*DocumentUniqueFieldStructMap_ChapterInfo) ProtoMessage() {}
 
 func (x *DocumentUniqueFieldStructMap_ChapterInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[78]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[80]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2997,7 +3099,7 @@ type DocumentUniqueFieldStructMap_Chapter_Section struct {
 func (x *DocumentUniqueFieldStructMap_Chapter_Section) Reset() {
 	*x = DocumentUniqueFieldStructMap_Chapter_Section{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[80]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[82]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3010,7 +3112,7 @@ func (x *DocumentUniqueFieldStructMap_Chapter_Section) String() string {
 func (*DocumentUniqueFieldStructMap_Chapter_Section) ProtoMessage() {}
 
 func (x *DocumentUniqueFieldStructMap_Chapter_Section) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[80]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[82]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3053,7 +3155,7 @@ type DocumentUniqueFieldStructMap_ChapterInfo_Section struct {
 func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section) Reset() {
 	*x = DocumentUniqueFieldStructMap_ChapterInfo_Section{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[82]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[84]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3066,7 +3168,7 @@ func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section) String() string {
 func (*DocumentUniqueFieldStructMap_ChapterInfo_Section) ProtoMessage() {}
 
 func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[82]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[84]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3116,7 +3218,7 @@ type DocumentUniqueFieldStructMap_ChapterInfo_Section_Section struct {
 func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section_Section) Reset() {
 	*x = DocumentUniqueFieldStructMap_ChapterInfo_Section_Section{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[84]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[86]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3129,7 +3231,7 @@ func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section_Section) String() stri
 func (*DocumentUniqueFieldStructMap_ChapterInfo_Section_Section) ProtoMessage() {}
 
 func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section_Section) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[84]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[86]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3178,7 +3280,7 @@ type DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section struct {
 func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section) Reset() {
 	*x = DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[86]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[88]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3191,7 +3293,7 @@ func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section) Strin
 func (*DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section) ProtoMessage() {}
 
 func (x *DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[86]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[88]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3234,7 +3336,7 @@ type SequenceFieldInVerticalStructList_Item struct {
 func (x *SequenceFieldInVerticalStructList_Item) Reset() {
 	*x = SequenceFieldInVerticalStructList_Item{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[87]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[89]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3247,7 +3349,7 @@ func (x *SequenceFieldInVerticalStructList_Item) String() string {
 func (*SequenceFieldInVerticalStructList_Item) ProtoMessage() {}
 
 func (x *SequenceFieldInVerticalStructList_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[87]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[89]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3296,7 +3398,7 @@ type SequenceKeyInVerticalKeyedList_Item struct {
 func (x *SequenceKeyInVerticalKeyedList_Item) Reset() {
 	*x = SequenceKeyInVerticalKeyedList_Item{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[88]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[90]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3309,7 +3411,7 @@ func (x *SequenceKeyInVerticalKeyedList_Item) String() string {
 func (*SequenceKeyInVerticalKeyedList_Item) ProtoMessage() {}
 
 func (x *SequenceKeyInVerticalKeyedList_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[88]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[90]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3351,7 +3453,7 @@ type SequenceKeyInVerticalKeyedList_Item_Prop struct {
 func (x *SequenceKeyInVerticalKeyedList_Item_Prop) Reset() {
 	*x = SequenceKeyInVerticalKeyedList_Item_Prop{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[90]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[92]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3364,7 +3466,7 @@ func (x *SequenceKeyInVerticalKeyedList_Item_Prop) String() string {
 func (*SequenceKeyInVerticalKeyedList_Item_Prop) ProtoMessage() {}
 
 func (x *SequenceKeyInVerticalKeyedList_Item_Prop) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[90]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[92]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3406,7 +3508,7 @@ type VerticalSequenceFieldStructMap_Main struct {
 func (x *VerticalSequenceFieldStructMap_Main) Reset() {
 	*x = VerticalSequenceFieldStructMap_Main{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[92]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[94]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3419,7 +3521,7 @@ func (x *VerticalSequenceFieldStructMap_Main) String() string {
 func (*VerticalSequenceFieldStructMap_Main) ProtoMessage() {}
 
 func (x *VerticalSequenceFieldStructMap_Main) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[92]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[94]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3461,7 +3563,7 @@ type VerticalSequenceFieldStructMap_Main_Sub struct {
 func (x *VerticalSequenceFieldStructMap_Main_Sub) Reset() {
 	*x = VerticalSequenceFieldStructMap_Main_Sub{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[94]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[96]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3474,7 +3576,7 @@ func (x *VerticalSequenceFieldStructMap_Main_Sub) String() string {
 func (*VerticalSequenceFieldStructMap_Main_Sub) ProtoMessage() {}
 
 func (x *VerticalSequenceFieldStructMap_Main_Sub) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[94]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[96]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3517,7 +3619,7 @@ type DocumentSequenceFieldStructList_Item struct {
 func (x *DocumentSequenceFieldStructList_Item) Reset() {
 	*x = DocumentSequenceFieldStructList_Item{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[95]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[97]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3530,7 +3632,7 @@ func (x *DocumentSequenceFieldStructList_Item) String() string {
 func (*DocumentSequenceFieldStructList_Item) ProtoMessage() {}
 
 func (x *DocumentSequenceFieldStructList_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[95]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[97]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3579,7 +3681,7 @@ type Transpose_Hero struct {
 func (x *Transpose_Hero) Reset() {
 	*x = Transpose_Hero{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[97]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[99]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3592,7 +3694,7 @@ func (x *Transpose_Hero) String() string {
 func (*Transpose_Hero) ProtoMessage() {}
 
 func (x *Transpose_Hero) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[97]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[99]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3634,7 +3736,7 @@ type TaskConf_Task struct {
 func (x *TaskConf_Task) Reset() {
 	*x = TaskConf_Task{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[100]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[102]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3647,7 +3749,7 @@ func (x *TaskConf_Task) String() string {
 func (*TaskConf_Task) ProtoMessage() {}
 
 func (x *TaskConf_Task) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[100]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[102]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3693,7 +3795,7 @@ type FieldPresentMap_Player struct {
 func (x *FieldPresentMap_Player) Reset() {
 	*x = FieldPresentMap_Player{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[102]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[104]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3706,7 +3808,7 @@ func (x *FieldPresentMap_Player) String() string {
 func (*FieldPresentMap_Player) ProtoMessage() {}
 
 func (x *FieldPresentMap_Player) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[102]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[104]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3776,7 +3878,7 @@ type FieldPresentMap_Player_Weapon struct {
 func (x *FieldPresentMap_Player_Weapon) Reset() {
 	*x = FieldPresentMap_Player_Weapon{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[103]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[105]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3789,7 +3891,7 @@ func (x *FieldPresentMap_Player_Weapon) String() string {
 func (*FieldPresentMap_Player_Weapon) ProtoMessage() {}
 
 func (x *FieldPresentMap_Player_Weapon) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[103]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[105]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3831,7 +3933,7 @@ type FieldPresentMap_Player_Info struct {
 func (x *FieldPresentMap_Player_Info) Reset() {
 	*x = FieldPresentMap_Player_Info{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[104]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[106]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3844,7 +3946,7 @@ func (x *FieldPresentMap_Player_Info) String() string {
 func (*FieldPresentMap_Player_Info) ProtoMessage() {}
 
 func (x *FieldPresentMap_Player_Info) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[104]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[106]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3886,7 +3988,7 @@ type ScatterNoneConf_Zone struct {
 func (x *ScatterNoneConf_Zone) Reset() {
 	*x = ScatterNoneConf_Zone{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[107]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[109]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3899,7 +4001,7 @@ func (x *ScatterNoneConf_Zone) String() string {
 func (*ScatterNoneConf_Zone) ProtoMessage() {}
 
 func (x *ScatterNoneConf_Zone) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[107]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[109]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3941,7 +4043,7 @@ type ScatterReplaceConf_Zone struct {
 func (x *ScatterReplaceConf_Zone) Reset() {
 	*x = ScatterReplaceConf_Zone{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[109]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[111]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3954,7 +4056,7 @@ func (x *ScatterReplaceConf_Zone) String() string {
 func (*ScatterReplaceConf_Zone) ProtoMessage() {}
 
 func (x *ScatterReplaceConf_Zone) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[109]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[111]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3996,7 +4098,7 @@ type ScatterMergeConf_Zone struct {
 func (x *ScatterMergeConf_Zone) Reset() {
 	*x = ScatterMergeConf_Zone{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[111]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[113]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4009,7 +4111,7 @@ func (x *ScatterMergeConf_Zone) String() string {
 func (*ScatterMergeConf_Zone) ProtoMessage() {}
 
 func (x *ScatterMergeConf_Zone) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[111]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[113]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4051,7 +4153,7 @@ type MergerSingleConf_Zone struct {
 func (x *MergerSingleConf_Zone) Reset() {
 	*x = MergerSingleConf_Zone{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[113]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[115]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4064,7 +4166,7 @@ func (x *MergerSingleConf_Zone) String() string {
 func (*MergerSingleConf_Zone) ProtoMessage() {}
 
 func (x *MergerSingleConf_Zone) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[113]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[115]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4106,7 +4208,7 @@ type MergerMultiConf_Zone struct {
 func (x *MergerMultiConf_Zone) Reset() {
 	*x = MergerMultiConf_Zone{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[115]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[117]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4119,7 +4221,7 @@ func (x *MergerMultiConf_Zone) String() string {
 func (*MergerMultiConf_Zone) ProtoMessage() {}
 
 func (x *MergerMultiConf_Zone) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[115]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[117]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4162,7 +4264,7 @@ type VerticalAggregationMap_Hero struct {
 func (x *VerticalAggregationMap_Hero) Reset() {
 	*x = VerticalAggregationMap_Hero{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[117]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[119]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4175,7 +4277,7 @@ func (x *VerticalAggregationMap_Hero) String() string {
 func (*VerticalAggregationMap_Hero) ProtoMessage() {}
 
 func (x *VerticalAggregationMap_Hero) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[117]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[119]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4224,7 +4326,7 @@ type VerticalAggregationMap_Hero_Level struct {
 func (x *VerticalAggregationMap_Hero_Level) Reset() {
 	*x = VerticalAggregationMap_Hero_Level{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[119]
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[121]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4237,7 +4339,7 @@ func (x *VerticalAggregationMap_Hero_Level) String() string {
 func (*VerticalAggregationMap_Hero_Level) ProtoMessage() {}
 
 func (x *VerticalAggregationMap_Hero_Level) ProtoReflect() protoreflect.Message {
-	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[119]
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[121]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4265,6 +4367,116 @@ func (x *VerticalAggregationMap_Hero_Level) GetExp() int32 {
 		return x.Exp
 	}
 	return 0
+}
+
+type HorizontalAggregateMap_Hero struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	HeroId  uint32           `protobuf:"varint,1,opt,name=hero_id,json=heroId,proto3" json:"hero_id,omitempty"`
+	ItemMap map[uint32]*Item `protobuf:"bytes,2,rep,name=item_map,json=itemMap,proto3" json:"item_map,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *HorizontalAggregateMap_Hero) Reset() {
+	*x = HorizontalAggregateMap_Hero{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[123]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HorizontalAggregateMap_Hero) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HorizontalAggregateMap_Hero) ProtoMessage() {}
+
+func (x *HorizontalAggregateMap_Hero) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[123]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HorizontalAggregateMap_Hero.ProtoReflect.Descriptor instead.
+func (*HorizontalAggregateMap_Hero) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{32, 1}
+}
+
+func (x *HorizontalAggregateMap_Hero) GetHeroId() uint32 {
+	if x != nil {
+		return x.HeroId
+	}
+	return 0
+}
+
+func (x *HorizontalAggregateMap_Hero) GetItemMap() map[uint32]*Item {
+	if x != nil {
+		return x.ItemMap
+	}
+	return nil
+}
+
+type HorizontalAggregateList_Hero struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	HeroId    uint32  `protobuf:"varint,1,opt,name=hero_id,json=heroId,proto3" json:"hero_id,omitempty"`
+	ParamList []*Item `protobuf:"bytes,2,rep,name=param_list,json=paramList,proto3" json:"param_list,omitempty"`
+}
+
+func (x *HorizontalAggregateList_Hero) Reset() {
+	*x = HorizontalAggregateList_Hero{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[126]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HorizontalAggregateList_Hero) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HorizontalAggregateList_Hero) ProtoMessage() {}
+
+func (x *HorizontalAggregateList_Hero) ProtoReflect() protoreflect.Message {
+	mi := &file_tableau_protobuf_unittest_unittest_proto_msgTypes[126]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HorizontalAggregateList_Hero.ProtoReflect.Descriptor instead.
+func (*HorizontalAggregateList_Hero) Descriptor() ([]byte, []int) {
+	return file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP(), []int{33, 1}
+}
+
+func (x *HorizontalAggregateList_Hero) GetHeroId() uint32 {
+	if x != nil {
+		return x.HeroId
+	}
+	return 0
+}
+
+func (x *HorizontalAggregateList_Hero) GetParamList() []*Item {
+	if x != nil {
+		return x.ParamList
+	}
+	return nil
 }
 
 var File_tableau_protobuf_unittest_unittest_proto protoreflect.FileDescriptor
@@ -5305,13 +5517,67 @@ var file_tableau_protobuf_unittest_unittest_proto_rawDesc = []byte{
 	0x65, 0x6d, 0x1a, 0x02, 0x49, 0x44, 0x20, 0x03, 0x7a, 0x03, 0xa8, 0x01, 0x01, 0x52, 0x08, 0x69,
 	0x74, 0x65, 0x6d, 0x4c, 0x69, 0x73, 0x74, 0x3a, 0x1d, 0x82, 0xb5, 0x18, 0x19, 0x0a, 0x0f, 0x49,
 	0x6e, 0x63, 0x65, 0x6c, 0x6c, 0x4b, 0x65, 0x79, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x10, 0x01,
-	0x18, 0x02, 0x20, 0x03, 0x28, 0x04, 0x42, 0x56, 0x82, 0xb5, 0x18, 0x19, 0x0a, 0x17, 0x75, 0x6e,
-	0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2f, 0x55, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x23,
-	0x2a, 0x2e, 0x63, 0x73, 0x76, 0x5a, 0x37, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
-	0x6d, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x69, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c,
-	0x65, 0x61, 0x75, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61,
-	0x75, 0x70, 0x62, 0x2f, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x70, 0x62, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x18, 0x02, 0x20, 0x03, 0x28, 0x04, 0x22, 0xe1, 0x03, 0x0a, 0x16, 0x48, 0x6f, 0x72, 0x69, 0x7a,
+	0x6f, 0x6e, 0x74, 0x61, 0x6c, 0x41, 0x67, 0x67, 0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x4d, 0x61,
+	0x70, 0x12, 0x58, 0x0a, 0x08, 0x68, 0x65, 0x72, 0x6f, 0x5f, 0x6d, 0x61, 0x70, 0x18, 0x01, 0x20,
+	0x03, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x48,
+	0x6f, 0x72, 0x69, 0x7a, 0x6f, 0x6e, 0x74, 0x61, 0x6c, 0x41, 0x67, 0x67, 0x72, 0x65, 0x67, 0x61,
+	0x74, 0x65, 0x4d, 0x61, 0x70, 0x2e, 0x48, 0x65, 0x72, 0x6f, 0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74,
+	0x72, 0x79, 0x42, 0x0e, 0x82, 0xb5, 0x18, 0x0a, 0x1a, 0x06, 0x48, 0x65, 0x72, 0x6f, 0x49, 0x44,
+	0x20, 0x01, 0x52, 0x07, 0x68, 0x65, 0x72, 0x6f, 0x4d, 0x61, 0x70, 0x1a, 0x61, 0x0a, 0x0c, 0x48,
+	0x65, 0x72, 0x6f, 0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b,
+	0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x3b, 0x0a,
+	0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x75,
+	0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x48, 0x6f, 0x72, 0x69, 0x7a, 0x6f, 0x6e, 0x74,
+	0x61, 0x6c, 0x41, 0x67, 0x67, 0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x4d, 0x61, 0x70, 0x2e, 0x48,
+	0x65, 0x72, 0x6f, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0xe3,
+	0x01, 0x0a, 0x04, 0x48, 0x65, 0x72, 0x6f, 0x12, 0x29, 0x0a, 0x07, 0x68, 0x65, 0x72, 0x6f, 0x5f,
+	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x42, 0x10, 0x82, 0xb5, 0x18, 0x0c, 0x0a, 0x06,
+	0x48, 0x65, 0x72, 0x6f, 0x49, 0x44, 0x7a, 0x02, 0x10, 0x00, 0x52, 0x06, 0x68, 0x65, 0x72, 0x6f,
+	0x49, 0x64, 0x12, 0x64, 0x0a, 0x08, 0x69, 0x74, 0x65, 0x6d, 0x5f, 0x6d, 0x61, 0x70, 0x18, 0x02,
+	0x20, 0x03, 0x28, 0x0b, 0x32, 0x32, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e,
+	0x48, 0x6f, 0x72, 0x69, 0x7a, 0x6f, 0x6e, 0x74, 0x61, 0x6c, 0x41, 0x67, 0x67, 0x72, 0x65, 0x67,
+	0x61, 0x74, 0x65, 0x4d, 0x61, 0x70, 0x2e, 0x48, 0x65, 0x72, 0x6f, 0x2e, 0x49, 0x74, 0x65, 0x6d,
+	0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x42, 0x15, 0x82, 0xb5, 0x18, 0x11, 0x0a, 0x04,
+	0x49, 0x74, 0x65, 0x6d, 0x1a, 0x02, 0x49, 0x44, 0x20, 0x02, 0x7a, 0x03, 0xa8, 0x01, 0x01, 0x52,
+	0x07, 0x69, 0x74, 0x65, 0x6d, 0x4d, 0x61, 0x70, 0x1a, 0x4a, 0x0a, 0x0c, 0x49, 0x74, 0x65, 0x6d,
+	0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x24, 0x0a, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x75, 0x6e, 0x69, 0x74,
+	0x74, 0x65, 0x73, 0x74, 0x2e, 0x49, 0x74, 0x65, 0x6d, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x3a, 0x02, 0x38, 0x01, 0x3a, 0x24, 0x82, 0xb5, 0x18, 0x20, 0x0a, 0x16, 0x48, 0x6f, 0x72, 0x69,
+	0x7a, 0x6f, 0x6e, 0x74, 0x61, 0x6c, 0x41, 0x67, 0x67, 0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x4d,
+	0x61, 0x70, 0x10, 0x01, 0x18, 0x02, 0x20, 0x03, 0x28, 0x04, 0x22, 0xf5, 0x02, 0x0a, 0x17, 0x48,
+	0x6f, 0x72, 0x69, 0x7a, 0x6f, 0x6e, 0x74, 0x61, 0x6c, 0x41, 0x67, 0x67, 0x72, 0x65, 0x67, 0x61,
+	0x74, 0x65, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x59, 0x0a, 0x08, 0x68, 0x65, 0x72, 0x6f, 0x5f, 0x6d,
+	0x61, 0x70, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2e, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74,
+	0x65, 0x73, 0x74, 0x2e, 0x48, 0x6f, 0x72, 0x69, 0x7a, 0x6f, 0x6e, 0x74, 0x61, 0x6c, 0x41, 0x67,
+	0x67, 0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x4c, 0x69, 0x73, 0x74, 0x2e, 0x48, 0x65, 0x72, 0x6f,
+	0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x42, 0x0e, 0x82, 0xb5, 0x18, 0x0a, 0x1a, 0x06,
+	0x48, 0x65, 0x72, 0x6f, 0x49, 0x44, 0x20, 0x01, 0x52, 0x07, 0x68, 0x65, 0x72, 0x6f, 0x4d, 0x61,
+	0x70, 0x1a, 0x62, 0x0a, 0x0c, 0x48, 0x65, 0x72, 0x6f, 0x4d, 0x61, 0x70, 0x45, 0x6e, 0x74, 0x72,
+	0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03,
+	0x6b, 0x65, 0x79, 0x12, 0x3c, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x26, 0x2e, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x48, 0x6f,
+	0x72, 0x69, 0x7a, 0x6f, 0x6e, 0x74, 0x61, 0x6c, 0x41, 0x67, 0x67, 0x72, 0x65, 0x67, 0x61, 0x74,
+	0x65, 0x4c, 0x69, 0x73, 0x74, 0x2e, 0x48, 0x65, 0x72, 0x6f, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x3a, 0x02, 0x38, 0x01, 0x1a, 0x74, 0x0a, 0x04, 0x48, 0x65, 0x72, 0x6f, 0x12, 0x29, 0x0a,
+	0x07, 0x68, 0x65, 0x72, 0x6f, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x42, 0x10,
+	0x82, 0xb5, 0x18, 0x0c, 0x0a, 0x06, 0x48, 0x65, 0x72, 0x6f, 0x49, 0x44, 0x7a, 0x02, 0x10, 0x00,
+	0x52, 0x06, 0x68, 0x65, 0x72, 0x6f, 0x49, 0x64, 0x12, 0x41, 0x0a, 0x0a, 0x70, 0x61, 0x72, 0x61,
+	0x6d, 0x5f, 0x6c, 0x69, 0x73, 0x74, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x75,
+	0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x49, 0x74, 0x65, 0x6d, 0x42, 0x12, 0x82, 0xb5,
+	0x18, 0x0e, 0x0a, 0x05, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x20, 0x02, 0x7a, 0x03, 0xa8, 0x01, 0x01,
+	0x52, 0x09, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x4c, 0x69, 0x73, 0x74, 0x3a, 0x25, 0x82, 0xb5, 0x18,
+	0x21, 0x0a, 0x17, 0x48, 0x6f, 0x72, 0x69, 0x7a, 0x6f, 0x6e, 0x74, 0x61, 0x6c, 0x41, 0x67, 0x67,
+	0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x4c, 0x69, 0x73, 0x74, 0x10, 0x01, 0x18, 0x02, 0x20, 0x03,
+	0x28, 0x04, 0x42, 0x56, 0x82, 0xb5, 0x18, 0x19, 0x0a, 0x17, 0x75, 0x6e, 0x69, 0x74, 0x74, 0x65,
+	0x73, 0x74, 0x2f, 0x55, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x23, 0x2a, 0x2e, 0x63, 0x73,
+	0x76, 0x5a, 0x37, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x61,
+	0x62, 0x6c, 0x65, 0x61, 0x75, 0x69, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x2f,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x61, 0x75, 0x70, 0x62, 0x2f,
+	0x75, 0x6e, 0x69, 0x74, 0x74, 0x65, 0x73, 0x74, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -5326,7 +5592,7 @@ func file_tableau_protobuf_unittest_unittest_proto_rawDescGZIP() []byte {
 	return file_tableau_protobuf_unittest_unittest_proto_rawDescData
 }
 
-var file_tableau_protobuf_unittest_unittest_proto_msgTypes = make([]protoimpl.MessageInfo, 120)
+var file_tableau_protobuf_unittest_unittest_proto_msgTypes = make([]protoimpl.MessageInfo, 127)
 var file_tableau_protobuf_unittest_unittest_proto_goTypes = []interface{}{
 	(*SimpleIncellMap)(nil),                   // 0: unittest.SimpleIncellMap
 	(*IncellMap)(nil),                         // 1: unittest.IncellMap
@@ -5360,215 +5626,229 @@ var file_tableau_protobuf_unittest_unittest_proto_goTypes = []interface{}{
 	(*MergerMultiConf)(nil),                   // 29: unittest.MergerMultiConf
 	(*VerticalAggregationMap)(nil),            // 30: unittest.VerticalAggregationMap
 	(*IncellKeyedList)(nil),                   // 31: unittest.IncellKeyedList
-	nil,                                       // 32: unittest.SimpleIncellMap.ItemMapEntry
-	nil,                                       // 33: unittest.IncellMap.FruitMapEntry
-	(*IncellMap_Fruit)(nil),                   // 34: unittest.IncellMap.Fruit
-	nil,                                       // 35: unittest.IncellMap.FlavorMapEntry
-	nil,                                       // 36: unittest.IncellMap.ItemMapEntry
-	(*IncellMap_Item)(nil),                    // 37: unittest.IncellMap.Item
-	nil,                                       // 38: unittest.ItemConf.ItemMapEntry
-	nil,                                       // 39: unittest.MallConf.ShopMapEntry
-	(*MallConf_Shop)(nil),                     // 40: unittest.MallConf.Shop
-	nil,                                       // 41: unittest.MallConf.Shop.GoodsMapEntry
-	(*MallConf_Shop_Goods)(nil),               // 42: unittest.MallConf.Shop.Goods
-	nil,                                       // 43: unittest.ActivityConf.ActivityMapEntry
-	(*ActivityConf_Activity)(nil),             // 44: unittest.ActivityConf.Activity
-	nil,                                       // 45: unittest.ActivityConf.Activity.ChapterMapEntry
-	(*ActivityConf_Activity_Chapter)(nil),     // 46: unittest.ActivityConf.Activity.Chapter
-	(*ActivityConf_Activity_Chapter_Section)(nil), // 47: unittest.ActivityConf.Activity.Chapter.Section
-	nil, // 48: unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry
-	(*ActivityConf_Activity_Chapter_Section_Reward)(nil), // 49: unittest.ActivityConf.Activity.Chapter.Section.Reward
-	nil,                                   // 50: unittest.RewardConf.RewardMapEntry
-	(*RewardConf_Reward)(nil),             // 51: unittest.RewardConf.Reward
-	nil,                                   // 52: unittest.RewardConf.Reward.ItemMapEntry
-	(*PatchMergeConf_Time)(nil),           // 53: unittest.PatchMergeConf.Time
-	nil,                                   // 54: unittest.PatchMergeConf.ItemMapEntry
-	nil,                                   // 55: unittest.PatchMergeConf.ReplaceItemMapEntry
-	nil,                                   // 56: unittest.RecursivePatchConf.ShopMapEntry
-	(*RecursivePatchConf_Shop)(nil),       // 57: unittest.RecursivePatchConf.Shop
-	nil,                                   // 58: unittest.RecursivePatchConf.Shop.GoodsMapEntry
-	(*RecursivePatchConf_Shop_Goods)(nil), // 59: unittest.RecursivePatchConf.Shop.Goods
-	nil,                                   // 60: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
-	(*RecursivePatchConf_Shop_Goods_Currency)(nil), // 61: unittest.RecursivePatchConf.Shop.Goods.Currency
-	(*RecursivePatchConf_Shop_Goods_Award)(nil),    // 62: unittest.RecursivePatchConf.Shop.Goods.Award
-	nil, // 63: unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
-	nil, // 64: unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
-	nil, // 65: unittest.JsonUtilTestData.MapFieldEntry
-	(*UniqueFieldInVerticalStructList_Item)(nil), // 66: unittest.UniqueFieldInVerticalStructList.Item
-	nil, // 67: unittest.VerticalUniqueFieldStructMap.MainMapEntry
-	(*VerticalUniqueFieldStructMap_Main)(nil), // 68: unittest.VerticalUniqueFieldStructMap.Main
-	nil, // 69: unittest.VerticalUniqueFieldStructMap.Main.MainKvMapEntry
-	nil, // 70: unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry
-	(*VerticalUniqueFieldStructMap_Main_Sub)(nil), // 71: unittest.VerticalUniqueFieldStructMap.Main.Sub
-	(*DocumentUniqueFieldStructList_Item)(nil),    // 72: unittest.DocumentUniqueFieldStructList.Item
-	nil, // 73: unittest.DocumentUniqueFieldStructMap.ChapterEntry
-	(*DocumentUniqueFieldStructMap_Chapter)(nil), // 74: unittest.DocumentUniqueFieldStructMap.Chapter
-	nil, // 75: unittest.DocumentUniqueFieldStructMap.ScalarMapEntry
-	nil, // 76: unittest.DocumentUniqueFieldStructMap.IncellMapEntry
-	nil, // 77: unittest.DocumentUniqueFieldStructMap.ChapterInfoEntry
-	(*DocumentUniqueFieldStructMap_ChapterInfo)(nil), // 78: unittest.DocumentUniqueFieldStructMap.ChapterInfo
-	nil, // 79: unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry
-	(*DocumentUniqueFieldStructMap_Chapter_Section)(nil), // 80: unittest.DocumentUniqueFieldStructMap.Chapter.Section
-	nil, // 81: unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry
-	(*DocumentUniqueFieldStructMap_ChapterInfo_Section)(nil), // 82: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section
-	nil, // 83: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry
-	(*DocumentUniqueFieldStructMap_ChapterInfo_Section_Section)(nil), // 84: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section
-	nil, // 85: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry
-	(*DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section)(nil), // 86: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.Section
-	(*SequenceFieldInVerticalStructList_Item)(nil),                           // 87: unittest.SequenceFieldInVerticalStructList.Item
-	(*SequenceKeyInVerticalKeyedList_Item)(nil),                              // 88: unittest.SequenceKeyInVerticalKeyedList.Item
-	nil, // 89: unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry
-	(*SequenceKeyInVerticalKeyedList_Item_Prop)(nil), // 90: unittest.SequenceKeyInVerticalKeyedList.Item.Prop
-	nil, // 91: unittest.VerticalSequenceFieldStructMap.MainMapEntry
-	(*VerticalSequenceFieldStructMap_Main)(nil), // 92: unittest.VerticalSequenceFieldStructMap.Main
-	nil, // 93: unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry
-	(*VerticalSequenceFieldStructMap_Main_Sub)(nil), // 94: unittest.VerticalSequenceFieldStructMap.Main.Sub
-	(*DocumentSequenceFieldStructList_Item)(nil),    // 95: unittest.DocumentSequenceFieldStructList.Item
-	nil,                                   // 96: unittest.Transpose.HeroMapEntry
-	(*Transpose_Hero)(nil),                // 97: unittest.Transpose.Hero
-	nil,                                   // 98: unittest.ValidateConf.PropMapEntry
-	nil,                                   // 99: unittest.TaskConf.TaskMapEntry
-	(*TaskConf_Task)(nil),                 // 100: unittest.TaskConf.Task
-	nil,                                   // 101: unittest.FieldPresentMap.PlayerMapEntry
-	(*FieldPresentMap_Player)(nil),        // 102: unittest.FieldPresentMap.Player
-	(*FieldPresentMap_Player_Weapon)(nil), // 103: unittest.FieldPresentMap.Player.Weapon
-	(*FieldPresentMap_Player_Info)(nil),   // 104: unittest.FieldPresentMap.Player.Info
-	nil,                                   // 105: unittest.FieldPresentMap.Player.AttrMapEntry
-	nil,                                   // 106: unittest.ScatterNoneConf.ZoneMapEntry
-	(*ScatterNoneConf_Zone)(nil),          // 107: unittest.ScatterNoneConf.Zone
-	nil,                                   // 108: unittest.ScatterReplaceConf.ZoneMapEntry
-	(*ScatterReplaceConf_Zone)(nil),       // 109: unittest.ScatterReplaceConf.Zone
-	nil,                                   // 110: unittest.ScatterMergeConf.ZoneMapEntry
-	(*ScatterMergeConf_Zone)(nil),         // 111: unittest.ScatterMergeConf.Zone
-	nil,                                   // 112: unittest.MergerSingleConf.ZoneMapEntry
-	(*MergerSingleConf_Zone)(nil),         // 113: unittest.MergerSingleConf.Zone
-	nil,                                   // 114: unittest.MergerMultiConf.ZoneMapEntry
-	(*MergerMultiConf_Zone)(nil),          // 115: unittest.MergerMultiConf.Zone
-	nil,                                   // 116: unittest.VerticalAggregationMap.HeroMapEntry
-	(*VerticalAggregationMap_Hero)(nil),   // 117: unittest.VerticalAggregationMap.Hero
-	nil,                                   // 118: unittest.VerticalAggregationMap.Hero.LevelMapEntry
-	(*VerticalAggregationMap_Hero_Level)(nil), // 119: unittest.VerticalAggregationMap.Hero.Level
-	(*Item)(nil),                  // 120: unittest.Item
-	(FruitFlavor)(0),              // 121: unittest.FruitFlavor
-	(FruitType)(0),                // 122: unittest.FruitType
-	(*timestamppb.Timestamp)(nil), // 123: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),   // 124: google.protobuf.Duration
-	(*Target)(nil),                // 125: unittest.Target
+	(*HorizontalAggregateMap)(nil),            // 32: unittest.HorizontalAggregateMap
+	(*HorizontalAggregateList)(nil),           // 33: unittest.HorizontalAggregateList
+	nil,                                       // 34: unittest.SimpleIncellMap.ItemMapEntry
+	nil,                                       // 35: unittest.IncellMap.FruitMapEntry
+	(*IncellMap_Fruit)(nil),                   // 36: unittest.IncellMap.Fruit
+	nil,                                       // 37: unittest.IncellMap.FlavorMapEntry
+	nil,                                       // 38: unittest.IncellMap.ItemMapEntry
+	(*IncellMap_Item)(nil),                    // 39: unittest.IncellMap.Item
+	nil,                                       // 40: unittest.ItemConf.ItemMapEntry
+	nil,                                       // 41: unittest.MallConf.ShopMapEntry
+	(*MallConf_Shop)(nil),                     // 42: unittest.MallConf.Shop
+	nil,                                       // 43: unittest.MallConf.Shop.GoodsMapEntry
+	(*MallConf_Shop_Goods)(nil),               // 44: unittest.MallConf.Shop.Goods
+	nil,                                       // 45: unittest.ActivityConf.ActivityMapEntry
+	(*ActivityConf_Activity)(nil),             // 46: unittest.ActivityConf.Activity
+	nil,                                       // 47: unittest.ActivityConf.Activity.ChapterMapEntry
+	(*ActivityConf_Activity_Chapter)(nil),     // 48: unittest.ActivityConf.Activity.Chapter
+	(*ActivityConf_Activity_Chapter_Section)(nil), // 49: unittest.ActivityConf.Activity.Chapter.Section
+	nil, // 50: unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry
+	(*ActivityConf_Activity_Chapter_Section_Reward)(nil), // 51: unittest.ActivityConf.Activity.Chapter.Section.Reward
+	nil,                                   // 52: unittest.RewardConf.RewardMapEntry
+	(*RewardConf_Reward)(nil),             // 53: unittest.RewardConf.Reward
+	nil,                                   // 54: unittest.RewardConf.Reward.ItemMapEntry
+	(*PatchMergeConf_Time)(nil),           // 55: unittest.PatchMergeConf.Time
+	nil,                                   // 56: unittest.PatchMergeConf.ItemMapEntry
+	nil,                                   // 57: unittest.PatchMergeConf.ReplaceItemMapEntry
+	nil,                                   // 58: unittest.RecursivePatchConf.ShopMapEntry
+	(*RecursivePatchConf_Shop)(nil),       // 59: unittest.RecursivePatchConf.Shop
+	nil,                                   // 60: unittest.RecursivePatchConf.Shop.GoodsMapEntry
+	(*RecursivePatchConf_Shop_Goods)(nil), // 61: unittest.RecursivePatchConf.Shop.Goods
+	nil,                                   // 62: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
+	(*RecursivePatchConf_Shop_Goods_Currency)(nil), // 63: unittest.RecursivePatchConf.Shop.Goods.Currency
+	(*RecursivePatchConf_Shop_Goods_Award)(nil),    // 64: unittest.RecursivePatchConf.Shop.Goods.Award
+	nil, // 65: unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
+	nil, // 66: unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
+	nil, // 67: unittest.JsonUtilTestData.MapFieldEntry
+	(*UniqueFieldInVerticalStructList_Item)(nil), // 68: unittest.UniqueFieldInVerticalStructList.Item
+	nil, // 69: unittest.VerticalUniqueFieldStructMap.MainMapEntry
+	(*VerticalUniqueFieldStructMap_Main)(nil), // 70: unittest.VerticalUniqueFieldStructMap.Main
+	nil, // 71: unittest.VerticalUniqueFieldStructMap.Main.MainKvMapEntry
+	nil, // 72: unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry
+	(*VerticalUniqueFieldStructMap_Main_Sub)(nil), // 73: unittest.VerticalUniqueFieldStructMap.Main.Sub
+	(*DocumentUniqueFieldStructList_Item)(nil),    // 74: unittest.DocumentUniqueFieldStructList.Item
+	nil, // 75: unittest.DocumentUniqueFieldStructMap.ChapterEntry
+	(*DocumentUniqueFieldStructMap_Chapter)(nil), // 76: unittest.DocumentUniqueFieldStructMap.Chapter
+	nil, // 77: unittest.DocumentUniqueFieldStructMap.ScalarMapEntry
+	nil, // 78: unittest.DocumentUniqueFieldStructMap.IncellMapEntry
+	nil, // 79: unittest.DocumentUniqueFieldStructMap.ChapterInfoEntry
+	(*DocumentUniqueFieldStructMap_ChapterInfo)(nil), // 80: unittest.DocumentUniqueFieldStructMap.ChapterInfo
+	nil, // 81: unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry
+	(*DocumentUniqueFieldStructMap_Chapter_Section)(nil), // 82: unittest.DocumentUniqueFieldStructMap.Chapter.Section
+	nil, // 83: unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry
+	(*DocumentUniqueFieldStructMap_ChapterInfo_Section)(nil), // 84: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section
+	nil, // 85: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry
+	(*DocumentUniqueFieldStructMap_ChapterInfo_Section_Section)(nil), // 86: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section
+	nil, // 87: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry
+	(*DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section)(nil), // 88: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.Section
+	(*SequenceFieldInVerticalStructList_Item)(nil),                           // 89: unittest.SequenceFieldInVerticalStructList.Item
+	(*SequenceKeyInVerticalKeyedList_Item)(nil),                              // 90: unittest.SequenceKeyInVerticalKeyedList.Item
+	nil, // 91: unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry
+	(*SequenceKeyInVerticalKeyedList_Item_Prop)(nil), // 92: unittest.SequenceKeyInVerticalKeyedList.Item.Prop
+	nil, // 93: unittest.VerticalSequenceFieldStructMap.MainMapEntry
+	(*VerticalSequenceFieldStructMap_Main)(nil), // 94: unittest.VerticalSequenceFieldStructMap.Main
+	nil, // 95: unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry
+	(*VerticalSequenceFieldStructMap_Main_Sub)(nil), // 96: unittest.VerticalSequenceFieldStructMap.Main.Sub
+	(*DocumentSequenceFieldStructList_Item)(nil),    // 97: unittest.DocumentSequenceFieldStructList.Item
+	nil,                                   // 98: unittest.Transpose.HeroMapEntry
+	(*Transpose_Hero)(nil),                // 99: unittest.Transpose.Hero
+	nil,                                   // 100: unittest.ValidateConf.PropMapEntry
+	nil,                                   // 101: unittest.TaskConf.TaskMapEntry
+	(*TaskConf_Task)(nil),                 // 102: unittest.TaskConf.Task
+	nil,                                   // 103: unittest.FieldPresentMap.PlayerMapEntry
+	(*FieldPresentMap_Player)(nil),        // 104: unittest.FieldPresentMap.Player
+	(*FieldPresentMap_Player_Weapon)(nil), // 105: unittest.FieldPresentMap.Player.Weapon
+	(*FieldPresentMap_Player_Info)(nil),   // 106: unittest.FieldPresentMap.Player.Info
+	nil,                                   // 107: unittest.FieldPresentMap.Player.AttrMapEntry
+	nil,                                   // 108: unittest.ScatterNoneConf.ZoneMapEntry
+	(*ScatterNoneConf_Zone)(nil),          // 109: unittest.ScatterNoneConf.Zone
+	nil,                                   // 110: unittest.ScatterReplaceConf.ZoneMapEntry
+	(*ScatterReplaceConf_Zone)(nil),       // 111: unittest.ScatterReplaceConf.Zone
+	nil,                                   // 112: unittest.ScatterMergeConf.ZoneMapEntry
+	(*ScatterMergeConf_Zone)(nil),         // 113: unittest.ScatterMergeConf.Zone
+	nil,                                   // 114: unittest.MergerSingleConf.ZoneMapEntry
+	(*MergerSingleConf_Zone)(nil),         // 115: unittest.MergerSingleConf.Zone
+	nil,                                   // 116: unittest.MergerMultiConf.ZoneMapEntry
+	(*MergerMultiConf_Zone)(nil),          // 117: unittest.MergerMultiConf.Zone
+	nil,                                   // 118: unittest.VerticalAggregationMap.HeroMapEntry
+	(*VerticalAggregationMap_Hero)(nil),   // 119: unittest.VerticalAggregationMap.Hero
+	nil,                                   // 120: unittest.VerticalAggregationMap.Hero.LevelMapEntry
+	(*VerticalAggregationMap_Hero_Level)(nil), // 121: unittest.VerticalAggregationMap.Hero.Level
+	nil,                                  // 122: unittest.HorizontalAggregateMap.HeroMapEntry
+	(*HorizontalAggregateMap_Hero)(nil),  // 123: unittest.HorizontalAggregateMap.Hero
+	nil,                                  // 124: unittest.HorizontalAggregateMap.Hero.ItemMapEntry
+	nil,                                  // 125: unittest.HorizontalAggregateList.HeroMapEntry
+	(*HorizontalAggregateList_Hero)(nil), // 126: unittest.HorizontalAggregateList.Hero
+	(*Item)(nil),                         // 127: unittest.Item
+	(FruitFlavor)(0),                     // 128: unittest.FruitFlavor
+	(FruitType)(0),                       // 129: unittest.FruitType
+	(*timestamppb.Timestamp)(nil),        // 130: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),          // 131: google.protobuf.Duration
+	(*Target)(nil),                       // 132: unittest.Target
 }
 var file_tableau_protobuf_unittest_unittest_proto_depIdxs = []int32{
-	32,  // 0: unittest.SimpleIncellMap.item_map:type_name -> unittest.SimpleIncellMap.ItemMapEntry
-	33,  // 1: unittest.IncellMap.fruit_map:type_name -> unittest.IncellMap.FruitMapEntry
-	35,  // 2: unittest.IncellMap.flavor_map:type_name -> unittest.IncellMap.FlavorMapEntry
-	36,  // 3: unittest.IncellMap.item_map:type_name -> unittest.IncellMap.ItemMapEntry
-	120, // 4: unittest.IncellStructList.item_list:type_name -> unittest.Item
-	121, // 5: unittest.IncellList.flavor_list:type_name -> unittest.FruitFlavor
-	120, // 6: unittest.IncellList.item_list:type_name -> unittest.Item
-	38,  // 7: unittest.ItemConf.item_map:type_name -> unittest.ItemConf.ItemMapEntry
-	39,  // 8: unittest.MallConf.shop_map:type_name -> unittest.MallConf.ShopMapEntry
-	43,  // 9: unittest.ActivityConf.activity_map:type_name -> unittest.ActivityConf.ActivityMapEntry
-	50,  // 10: unittest.RewardConf.reward_map:type_name -> unittest.RewardConf.RewardMapEntry
-	53,  // 11: unittest.PatchMergeConf.time:type_name -> unittest.PatchMergeConf.Time
-	54,  // 12: unittest.PatchMergeConf.item_map:type_name -> unittest.PatchMergeConf.ItemMapEntry
-	55,  // 13: unittest.PatchMergeConf.replace_item_map:type_name -> unittest.PatchMergeConf.ReplaceItemMapEntry
-	56,  // 14: unittest.RecursivePatchConf.shop_map:type_name -> unittest.RecursivePatchConf.ShopMapEntry
+	34,  // 0: unittest.SimpleIncellMap.item_map:type_name -> unittest.SimpleIncellMap.ItemMapEntry
+	35,  // 1: unittest.IncellMap.fruit_map:type_name -> unittest.IncellMap.FruitMapEntry
+	37,  // 2: unittest.IncellMap.flavor_map:type_name -> unittest.IncellMap.FlavorMapEntry
+	38,  // 3: unittest.IncellMap.item_map:type_name -> unittest.IncellMap.ItemMapEntry
+	127, // 4: unittest.IncellStructList.item_list:type_name -> unittest.Item
+	128, // 5: unittest.IncellList.flavor_list:type_name -> unittest.FruitFlavor
+	127, // 6: unittest.IncellList.item_list:type_name -> unittest.Item
+	40,  // 7: unittest.ItemConf.item_map:type_name -> unittest.ItemConf.ItemMapEntry
+	41,  // 8: unittest.MallConf.shop_map:type_name -> unittest.MallConf.ShopMapEntry
+	45,  // 9: unittest.ActivityConf.activity_map:type_name -> unittest.ActivityConf.ActivityMapEntry
+	52,  // 10: unittest.RewardConf.reward_map:type_name -> unittest.RewardConf.RewardMapEntry
+	55,  // 11: unittest.PatchMergeConf.time:type_name -> unittest.PatchMergeConf.Time
+	56,  // 12: unittest.PatchMergeConf.item_map:type_name -> unittest.PatchMergeConf.ItemMapEntry
+	57,  // 13: unittest.PatchMergeConf.replace_item_map:type_name -> unittest.PatchMergeConf.ReplaceItemMapEntry
+	58,  // 14: unittest.RecursivePatchConf.shop_map:type_name -> unittest.RecursivePatchConf.ShopMapEntry
 	10,  // 15: unittest.JsonUtilTestData.normal_field:type_name -> unittest.PatchMergeConf
 	10,  // 16: unittest.JsonUtilTestData.list_field:type_name -> unittest.PatchMergeConf
-	65,  // 17: unittest.JsonUtilTestData.map_field:type_name -> unittest.JsonUtilTestData.MapFieldEntry
-	66,  // 18: unittest.UniqueFieldInVerticalStructList.item_list:type_name -> unittest.UniqueFieldInVerticalStructList.Item
-	67,  // 19: unittest.VerticalUniqueFieldStructMap.main_map:type_name -> unittest.VerticalUniqueFieldStructMap.MainMapEntry
-	72,  // 20: unittest.DocumentUniqueFieldStructList.item_list:type_name -> unittest.DocumentUniqueFieldStructList.Item
-	73,  // 21: unittest.DocumentUniqueFieldStructMap.chapter:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterEntry
-	75,  // 22: unittest.DocumentUniqueFieldStructMap.scalar_map:type_name -> unittest.DocumentUniqueFieldStructMap.ScalarMapEntry
-	76,  // 23: unittest.DocumentUniqueFieldStructMap.incell_map:type_name -> unittest.DocumentUniqueFieldStructMap.IncellMapEntry
-	77,  // 24: unittest.DocumentUniqueFieldStructMap.chapter_info:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfoEntry
-	87,  // 25: unittest.SequenceFieldInVerticalStructList.item_list:type_name -> unittest.SequenceFieldInVerticalStructList.Item
-	88,  // 26: unittest.SequenceKeyInVerticalKeyedList.item_list:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item
-	91,  // 27: unittest.VerticalSequenceFieldStructMap.main_map:type_name -> unittest.VerticalSequenceFieldStructMap.MainMapEntry
-	95,  // 28: unittest.DocumentSequenceFieldStructList.item_list:type_name -> unittest.DocumentSequenceFieldStructList.Item
-	96,  // 29: unittest.Transpose.hero_map:type_name -> unittest.Transpose.HeroMapEntry
-	98,  // 30: unittest.ValidateConf.prop_map:type_name -> unittest.ValidateConf.PropMapEntry
-	99,  // 31: unittest.TaskConf.task_map:type_name -> unittest.TaskConf.TaskMapEntry
-	101, // 32: unittest.FieldPresentMap.player_map:type_name -> unittest.FieldPresentMap.PlayerMapEntry
-	106, // 33: unittest.ScatterNoneConf.zone_map:type_name -> unittest.ScatterNoneConf.ZoneMapEntry
-	108, // 34: unittest.ScatterReplaceConf.zone_map:type_name -> unittest.ScatterReplaceConf.ZoneMapEntry
-	110, // 35: unittest.ScatterMergeConf.zone_map:type_name -> unittest.ScatterMergeConf.ZoneMapEntry
-	112, // 36: unittest.MergerSingleConf.zone_map:type_name -> unittest.MergerSingleConf.ZoneMapEntry
-	114, // 37: unittest.MergerMultiConf.zone_map:type_name -> unittest.MergerMultiConf.ZoneMapEntry
-	116, // 38: unittest.VerticalAggregationMap.hero_map:type_name -> unittest.VerticalAggregationMap.HeroMapEntry
-	122, // 39: unittest.IncellKeyedList.type_list:type_name -> unittest.FruitType
-	120, // 40: unittest.IncellKeyedList.item_list:type_name -> unittest.Item
-	34,  // 41: unittest.IncellMap.FruitMapEntry.value:type_name -> unittest.IncellMap.Fruit
-	122, // 42: unittest.IncellMap.Fruit.key:type_name -> unittest.FruitType
-	121, // 43: unittest.IncellMap.FlavorMapEntry.value:type_name -> unittest.FruitFlavor
-	37,  // 44: unittest.IncellMap.ItemMapEntry.value:type_name -> unittest.IncellMap.Item
-	122, // 45: unittest.IncellMap.Item.key:type_name -> unittest.FruitType
-	121, // 46: unittest.IncellMap.Item.value:type_name -> unittest.FruitFlavor
-	120, // 47: unittest.ItemConf.ItemMapEntry.value:type_name -> unittest.Item
-	40,  // 48: unittest.MallConf.ShopMapEntry.value:type_name -> unittest.MallConf.Shop
-	41,  // 49: unittest.MallConf.Shop.goods_map:type_name -> unittest.MallConf.Shop.GoodsMapEntry
-	42,  // 50: unittest.MallConf.Shop.GoodsMapEntry.value:type_name -> unittest.MallConf.Shop.Goods
-	44,  // 51: unittest.ActivityConf.ActivityMapEntry.value:type_name -> unittest.ActivityConf.Activity
-	45,  // 52: unittest.ActivityConf.Activity.chapter_map:type_name -> unittest.ActivityConf.Activity.ChapterMapEntry
-	46,  // 53: unittest.ActivityConf.Activity.ChapterMapEntry.value:type_name -> unittest.ActivityConf.Activity.Chapter
-	47,  // 54: unittest.ActivityConf.Activity.Chapter.section_list:type_name -> unittest.ActivityConf.Activity.Chapter.Section
-	48,  // 55: unittest.ActivityConf.Activity.Chapter.Section.reward_map:type_name -> unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry
-	49,  // 56: unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry.value:type_name -> unittest.ActivityConf.Activity.Chapter.Section.Reward
-	51,  // 57: unittest.RewardConf.RewardMapEntry.value:type_name -> unittest.RewardConf.Reward
-	52,  // 58: unittest.RewardConf.Reward.item_map:type_name -> unittest.RewardConf.Reward.ItemMapEntry
-	120, // 59: unittest.RewardConf.Reward.ItemMapEntry.value:type_name -> unittest.Item
-	123, // 60: unittest.PatchMergeConf.Time.start:type_name -> google.protobuf.Timestamp
-	124, // 61: unittest.PatchMergeConf.Time.expiry:type_name -> google.protobuf.Duration
-	120, // 62: unittest.PatchMergeConf.ItemMapEntry.value:type_name -> unittest.Item
-	120, // 63: unittest.PatchMergeConf.ReplaceItemMapEntry.value:type_name -> unittest.Item
-	57,  // 64: unittest.RecursivePatchConf.ShopMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop
-	58,  // 65: unittest.RecursivePatchConf.Shop.goods_map:type_name -> unittest.RecursivePatchConf.Shop.GoodsMapEntry
-	59,  // 66: unittest.RecursivePatchConf.Shop.GoodsMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods
-	60,  // 67: unittest.RecursivePatchConf.Shop.Goods.currency_map:type_name -> unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
-	62,  // 68: unittest.RecursivePatchConf.Shop.Goods.award_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Award
-	61,  // 69: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency
-	63,  // 70: unittest.RecursivePatchConf.Shop.Goods.Currency.value_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
-	64,  // 71: unittest.RecursivePatchConf.Shop.Goods.Currency.message_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
-	10,  // 72: unittest.JsonUtilTestData.MapFieldEntry.value:type_name -> unittest.PatchMergeConf
-	68,  // 73: unittest.VerticalUniqueFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main
-	69,  // 74: unittest.VerticalUniqueFieldStructMap.Main.main_kv_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.MainKvMapEntry
-	70,  // 75: unittest.VerticalUniqueFieldStructMap.Main.sub_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry
-	71,  // 76: unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main.Sub
-	74,  // 77: unittest.DocumentUniqueFieldStructMap.ChapterEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter
-	79,  // 78: unittest.DocumentUniqueFieldStructMap.Chapter.section:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry
-	78,  // 79: unittest.DocumentUniqueFieldStructMap.ChapterInfoEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo
-	81,  // 80: unittest.DocumentUniqueFieldStructMap.ChapterInfo.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry
-	80,  // 81: unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter.Section
-	82,  // 82: unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section
-	83,  // 83: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry
-	84,  // 84: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section
-	85,  // 85: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry
-	86,  // 86: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.Section
-	89,  // 87: unittest.SequenceKeyInVerticalKeyedList.Item.prop_map:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry
-	90,  // 88: unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry.value:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item.Prop
-	92,  // 89: unittest.VerticalSequenceFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalSequenceFieldStructMap.Main
-	93,  // 90: unittest.VerticalSequenceFieldStructMap.Main.sub_map:type_name -> unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry
-	94,  // 91: unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalSequenceFieldStructMap.Main.Sub
-	97,  // 92: unittest.Transpose.HeroMapEntry.value:type_name -> unittest.Transpose.Hero
-	100, // 93: unittest.TaskConf.TaskMapEntry.value:type_name -> unittest.TaskConf.Task
-	125, // 94: unittest.TaskConf.Task.target:type_name -> unittest.Target
-	102, // 95: unittest.FieldPresentMap.PlayerMapEntry.value:type_name -> unittest.FieldPresentMap.Player
-	103, // 96: unittest.FieldPresentMap.Player.weapon:type_name -> unittest.FieldPresentMap.Player.Weapon
-	104, // 97: unittest.FieldPresentMap.Player.info:type_name -> unittest.FieldPresentMap.Player.Info
-	105, // 98: unittest.FieldPresentMap.Player.attr_map:type_name -> unittest.FieldPresentMap.Player.AttrMapEntry
-	125, // 99: unittest.FieldPresentMap.Player.target:type_name -> unittest.Target
-	107, // 100: unittest.ScatterNoneConf.ZoneMapEntry.value:type_name -> unittest.ScatterNoneConf.Zone
-	109, // 101: unittest.ScatterReplaceConf.ZoneMapEntry.value:type_name -> unittest.ScatterReplaceConf.Zone
-	111, // 102: unittest.ScatterMergeConf.ZoneMapEntry.value:type_name -> unittest.ScatterMergeConf.Zone
-	113, // 103: unittest.MergerSingleConf.ZoneMapEntry.value:type_name -> unittest.MergerSingleConf.Zone
-	115, // 104: unittest.MergerMultiConf.ZoneMapEntry.value:type_name -> unittest.MergerMultiConf.Zone
-	117, // 105: unittest.VerticalAggregationMap.HeroMapEntry.value:type_name -> unittest.VerticalAggregationMap.Hero
-	118, // 106: unittest.VerticalAggregationMap.Hero.level_map:type_name -> unittest.VerticalAggregationMap.Hero.LevelMapEntry
-	119, // 107: unittest.VerticalAggregationMap.Hero.LevelMapEntry.value:type_name -> unittest.VerticalAggregationMap.Hero.Level
-	108, // [108:108] is the sub-list for method output_type
-	108, // [108:108] is the sub-list for method input_type
-	108, // [108:108] is the sub-list for extension type_name
-	108, // [108:108] is the sub-list for extension extendee
-	0,   // [0:108] is the sub-list for field type_name
+	67,  // 17: unittest.JsonUtilTestData.map_field:type_name -> unittest.JsonUtilTestData.MapFieldEntry
+	68,  // 18: unittest.UniqueFieldInVerticalStructList.item_list:type_name -> unittest.UniqueFieldInVerticalStructList.Item
+	69,  // 19: unittest.VerticalUniqueFieldStructMap.main_map:type_name -> unittest.VerticalUniqueFieldStructMap.MainMapEntry
+	74,  // 20: unittest.DocumentUniqueFieldStructList.item_list:type_name -> unittest.DocumentUniqueFieldStructList.Item
+	75,  // 21: unittest.DocumentUniqueFieldStructMap.chapter:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterEntry
+	77,  // 22: unittest.DocumentUniqueFieldStructMap.scalar_map:type_name -> unittest.DocumentUniqueFieldStructMap.ScalarMapEntry
+	78,  // 23: unittest.DocumentUniqueFieldStructMap.incell_map:type_name -> unittest.DocumentUniqueFieldStructMap.IncellMapEntry
+	79,  // 24: unittest.DocumentUniqueFieldStructMap.chapter_info:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfoEntry
+	89,  // 25: unittest.SequenceFieldInVerticalStructList.item_list:type_name -> unittest.SequenceFieldInVerticalStructList.Item
+	90,  // 26: unittest.SequenceKeyInVerticalKeyedList.item_list:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item
+	93,  // 27: unittest.VerticalSequenceFieldStructMap.main_map:type_name -> unittest.VerticalSequenceFieldStructMap.MainMapEntry
+	97,  // 28: unittest.DocumentSequenceFieldStructList.item_list:type_name -> unittest.DocumentSequenceFieldStructList.Item
+	98,  // 29: unittest.Transpose.hero_map:type_name -> unittest.Transpose.HeroMapEntry
+	100, // 30: unittest.ValidateConf.prop_map:type_name -> unittest.ValidateConf.PropMapEntry
+	101, // 31: unittest.TaskConf.task_map:type_name -> unittest.TaskConf.TaskMapEntry
+	103, // 32: unittest.FieldPresentMap.player_map:type_name -> unittest.FieldPresentMap.PlayerMapEntry
+	108, // 33: unittest.ScatterNoneConf.zone_map:type_name -> unittest.ScatterNoneConf.ZoneMapEntry
+	110, // 34: unittest.ScatterReplaceConf.zone_map:type_name -> unittest.ScatterReplaceConf.ZoneMapEntry
+	112, // 35: unittest.ScatterMergeConf.zone_map:type_name -> unittest.ScatterMergeConf.ZoneMapEntry
+	114, // 36: unittest.MergerSingleConf.zone_map:type_name -> unittest.MergerSingleConf.ZoneMapEntry
+	116, // 37: unittest.MergerMultiConf.zone_map:type_name -> unittest.MergerMultiConf.ZoneMapEntry
+	118, // 38: unittest.VerticalAggregationMap.hero_map:type_name -> unittest.VerticalAggregationMap.HeroMapEntry
+	129, // 39: unittest.IncellKeyedList.type_list:type_name -> unittest.FruitType
+	127, // 40: unittest.IncellKeyedList.item_list:type_name -> unittest.Item
+	122, // 41: unittest.HorizontalAggregateMap.hero_map:type_name -> unittest.HorizontalAggregateMap.HeroMapEntry
+	125, // 42: unittest.HorizontalAggregateList.hero_map:type_name -> unittest.HorizontalAggregateList.HeroMapEntry
+	36,  // 43: unittest.IncellMap.FruitMapEntry.value:type_name -> unittest.IncellMap.Fruit
+	129, // 44: unittest.IncellMap.Fruit.key:type_name -> unittest.FruitType
+	128, // 45: unittest.IncellMap.FlavorMapEntry.value:type_name -> unittest.FruitFlavor
+	39,  // 46: unittest.IncellMap.ItemMapEntry.value:type_name -> unittest.IncellMap.Item
+	129, // 47: unittest.IncellMap.Item.key:type_name -> unittest.FruitType
+	128, // 48: unittest.IncellMap.Item.value:type_name -> unittest.FruitFlavor
+	127, // 49: unittest.ItemConf.ItemMapEntry.value:type_name -> unittest.Item
+	42,  // 50: unittest.MallConf.ShopMapEntry.value:type_name -> unittest.MallConf.Shop
+	43,  // 51: unittest.MallConf.Shop.goods_map:type_name -> unittest.MallConf.Shop.GoodsMapEntry
+	44,  // 52: unittest.MallConf.Shop.GoodsMapEntry.value:type_name -> unittest.MallConf.Shop.Goods
+	46,  // 53: unittest.ActivityConf.ActivityMapEntry.value:type_name -> unittest.ActivityConf.Activity
+	47,  // 54: unittest.ActivityConf.Activity.chapter_map:type_name -> unittest.ActivityConf.Activity.ChapterMapEntry
+	48,  // 55: unittest.ActivityConf.Activity.ChapterMapEntry.value:type_name -> unittest.ActivityConf.Activity.Chapter
+	49,  // 56: unittest.ActivityConf.Activity.Chapter.section_list:type_name -> unittest.ActivityConf.Activity.Chapter.Section
+	50,  // 57: unittest.ActivityConf.Activity.Chapter.Section.reward_map:type_name -> unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry
+	51,  // 58: unittest.ActivityConf.Activity.Chapter.Section.RewardMapEntry.value:type_name -> unittest.ActivityConf.Activity.Chapter.Section.Reward
+	53,  // 59: unittest.RewardConf.RewardMapEntry.value:type_name -> unittest.RewardConf.Reward
+	54,  // 60: unittest.RewardConf.Reward.item_map:type_name -> unittest.RewardConf.Reward.ItemMapEntry
+	127, // 61: unittest.RewardConf.Reward.ItemMapEntry.value:type_name -> unittest.Item
+	130, // 62: unittest.PatchMergeConf.Time.start:type_name -> google.protobuf.Timestamp
+	131, // 63: unittest.PatchMergeConf.Time.expiry:type_name -> google.protobuf.Duration
+	127, // 64: unittest.PatchMergeConf.ItemMapEntry.value:type_name -> unittest.Item
+	127, // 65: unittest.PatchMergeConf.ReplaceItemMapEntry.value:type_name -> unittest.Item
+	59,  // 66: unittest.RecursivePatchConf.ShopMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop
+	60,  // 67: unittest.RecursivePatchConf.Shop.goods_map:type_name -> unittest.RecursivePatchConf.Shop.GoodsMapEntry
+	61,  // 68: unittest.RecursivePatchConf.Shop.GoodsMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods
+	62,  // 69: unittest.RecursivePatchConf.Shop.Goods.currency_map:type_name -> unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry
+	64,  // 70: unittest.RecursivePatchConf.Shop.Goods.award_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Award
+	63,  // 71: unittest.RecursivePatchConf.Shop.Goods.CurrencyMapEntry.value:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency
+	65,  // 72: unittest.RecursivePatchConf.Shop.Goods.Currency.value_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.ValueListEntry
+	66,  // 73: unittest.RecursivePatchConf.Shop.Goods.Currency.message_list:type_name -> unittest.RecursivePatchConf.Shop.Goods.Currency.MessageListEntry
+	10,  // 74: unittest.JsonUtilTestData.MapFieldEntry.value:type_name -> unittest.PatchMergeConf
+	70,  // 75: unittest.VerticalUniqueFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main
+	71,  // 76: unittest.VerticalUniqueFieldStructMap.Main.main_kv_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.MainKvMapEntry
+	72,  // 77: unittest.VerticalUniqueFieldStructMap.Main.sub_map:type_name -> unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry
+	73,  // 78: unittest.VerticalUniqueFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalUniqueFieldStructMap.Main.Sub
+	76,  // 79: unittest.DocumentUniqueFieldStructMap.ChapterEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter
+	81,  // 80: unittest.DocumentUniqueFieldStructMap.Chapter.section:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry
+	80,  // 81: unittest.DocumentUniqueFieldStructMap.ChapterInfoEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo
+	83,  // 82: unittest.DocumentUniqueFieldStructMap.ChapterInfo.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry
+	82,  // 83: unittest.DocumentUniqueFieldStructMap.Chapter.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.Chapter.Section
+	84,  // 84: unittest.DocumentUniqueFieldStructMap.ChapterInfo.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section
+	85,  // 85: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry
+	86,  // 86: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section
+	87,  // 87: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.section:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry
+	88,  // 88: unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.SectionEntry.value:type_name -> unittest.DocumentUniqueFieldStructMap.ChapterInfo.Section.Section.Section
+	91,  // 89: unittest.SequenceKeyInVerticalKeyedList.Item.prop_map:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry
+	92,  // 90: unittest.SequenceKeyInVerticalKeyedList.Item.PropMapEntry.value:type_name -> unittest.SequenceKeyInVerticalKeyedList.Item.Prop
+	94,  // 91: unittest.VerticalSequenceFieldStructMap.MainMapEntry.value:type_name -> unittest.VerticalSequenceFieldStructMap.Main
+	95,  // 92: unittest.VerticalSequenceFieldStructMap.Main.sub_map:type_name -> unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry
+	96,  // 93: unittest.VerticalSequenceFieldStructMap.Main.SubMapEntry.value:type_name -> unittest.VerticalSequenceFieldStructMap.Main.Sub
+	99,  // 94: unittest.Transpose.HeroMapEntry.value:type_name -> unittest.Transpose.Hero
+	102, // 95: unittest.TaskConf.TaskMapEntry.value:type_name -> unittest.TaskConf.Task
+	132, // 96: unittest.TaskConf.Task.target:type_name -> unittest.Target
+	104, // 97: unittest.FieldPresentMap.PlayerMapEntry.value:type_name -> unittest.FieldPresentMap.Player
+	105, // 98: unittest.FieldPresentMap.Player.weapon:type_name -> unittest.FieldPresentMap.Player.Weapon
+	106, // 99: unittest.FieldPresentMap.Player.info:type_name -> unittest.FieldPresentMap.Player.Info
+	107, // 100: unittest.FieldPresentMap.Player.attr_map:type_name -> unittest.FieldPresentMap.Player.AttrMapEntry
+	132, // 101: unittest.FieldPresentMap.Player.target:type_name -> unittest.Target
+	109, // 102: unittest.ScatterNoneConf.ZoneMapEntry.value:type_name -> unittest.ScatterNoneConf.Zone
+	111, // 103: unittest.ScatterReplaceConf.ZoneMapEntry.value:type_name -> unittest.ScatterReplaceConf.Zone
+	113, // 104: unittest.ScatterMergeConf.ZoneMapEntry.value:type_name -> unittest.ScatterMergeConf.Zone
+	115, // 105: unittest.MergerSingleConf.ZoneMapEntry.value:type_name -> unittest.MergerSingleConf.Zone
+	117, // 106: unittest.MergerMultiConf.ZoneMapEntry.value:type_name -> unittest.MergerMultiConf.Zone
+	119, // 107: unittest.VerticalAggregationMap.HeroMapEntry.value:type_name -> unittest.VerticalAggregationMap.Hero
+	120, // 108: unittest.VerticalAggregationMap.Hero.level_map:type_name -> unittest.VerticalAggregationMap.Hero.LevelMapEntry
+	121, // 109: unittest.VerticalAggregationMap.Hero.LevelMapEntry.value:type_name -> unittest.VerticalAggregationMap.Hero.Level
+	123, // 110: unittest.HorizontalAggregateMap.HeroMapEntry.value:type_name -> unittest.HorizontalAggregateMap.Hero
+	124, // 111: unittest.HorizontalAggregateMap.Hero.item_map:type_name -> unittest.HorizontalAggregateMap.Hero.ItemMapEntry
+	127, // 112: unittest.HorizontalAggregateMap.Hero.ItemMapEntry.value:type_name -> unittest.Item
+	126, // 113: unittest.HorizontalAggregateList.HeroMapEntry.value:type_name -> unittest.HorizontalAggregateList.Hero
+	127, // 114: unittest.HorizontalAggregateList.Hero.param_list:type_name -> unittest.Item
+	115, // [115:115] is the sub-list for method output_type
+	115, // [115:115] is the sub-list for method input_type
+	115, // [115:115] is the sub-list for extension type_name
+	115, // [115:115] is the sub-list for extension extendee
+	0,   // [0:115] is the sub-list for field type_name
 }
 
 func init() { file_tableau_protobuf_unittest_unittest_proto_init() }
@@ -5962,7 +6242,31 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HorizontalAggregateMap); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HorizontalAggregateList); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*IncellMap_Fruit); i {
 			case 0:
 				return &v.state
@@ -5974,7 +6278,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*IncellMap_Item); i {
 			case 0:
 				return &v.state
@@ -5986,7 +6290,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MallConf_Shop); i {
 			case 0:
 				return &v.state
@@ -5998,7 +6302,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MallConf_Shop_Goods); i {
 			case 0:
 				return &v.state
@@ -6010,7 +6314,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ActivityConf_Activity); i {
 			case 0:
 				return &v.state
@@ -6022,7 +6326,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ActivityConf_Activity_Chapter); i {
 			case 0:
 				return &v.state
@@ -6034,7 +6338,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ActivityConf_Activity_Chapter_Section); i {
 			case 0:
 				return &v.state
@@ -6046,7 +6350,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ActivityConf_Activity_Chapter_Section_Reward); i {
 			case 0:
 				return &v.state
@@ -6058,7 +6362,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[53].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RewardConf_Reward); i {
 			case 0:
 				return &v.state
@@ -6070,7 +6374,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[53].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[55].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PatchMergeConf_Time); i {
 			case 0:
 				return &v.state
@@ -6082,7 +6386,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[57].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[59].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RecursivePatchConf_Shop); i {
 			case 0:
 				return &v.state
@@ -6094,7 +6398,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[59].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[61].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RecursivePatchConf_Shop_Goods); i {
 			case 0:
 				return &v.state
@@ -6106,7 +6410,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[61].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[63].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RecursivePatchConf_Shop_Goods_Currency); i {
 			case 0:
 				return &v.state
@@ -6118,7 +6422,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[62].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[64].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RecursivePatchConf_Shop_Goods_Award); i {
 			case 0:
 				return &v.state
@@ -6130,7 +6434,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[66].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[68].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*UniqueFieldInVerticalStructList_Item); i {
 			case 0:
 				return &v.state
@@ -6142,7 +6446,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[68].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[70].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*VerticalUniqueFieldStructMap_Main); i {
 			case 0:
 				return &v.state
@@ -6154,7 +6458,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[71].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[73].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*VerticalUniqueFieldStructMap_Main_Sub); i {
 			case 0:
 				return &v.state
@@ -6166,7 +6470,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[72].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[74].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DocumentUniqueFieldStructList_Item); i {
 			case 0:
 				return &v.state
@@ -6178,7 +6482,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[74].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[76].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DocumentUniqueFieldStructMap_Chapter); i {
 			case 0:
 				return &v.state
@@ -6190,7 +6494,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[78].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[80].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DocumentUniqueFieldStructMap_ChapterInfo); i {
 			case 0:
 				return &v.state
@@ -6202,7 +6506,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[80].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[82].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DocumentUniqueFieldStructMap_Chapter_Section); i {
 			case 0:
 				return &v.state
@@ -6214,7 +6518,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[82].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[84].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DocumentUniqueFieldStructMap_ChapterInfo_Section); i {
 			case 0:
 				return &v.state
@@ -6226,7 +6530,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[84].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[86].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DocumentUniqueFieldStructMap_ChapterInfo_Section_Section); i {
 			case 0:
 				return &v.state
@@ -6238,7 +6542,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[86].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[88].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DocumentUniqueFieldStructMap_ChapterInfo_Section_Section_Section); i {
 			case 0:
 				return &v.state
@@ -6250,7 +6554,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[87].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[89].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SequenceFieldInVerticalStructList_Item); i {
 			case 0:
 				return &v.state
@@ -6262,7 +6566,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[88].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[90].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SequenceKeyInVerticalKeyedList_Item); i {
 			case 0:
 				return &v.state
@@ -6274,7 +6578,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[90].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[92].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SequenceKeyInVerticalKeyedList_Item_Prop); i {
 			case 0:
 				return &v.state
@@ -6286,7 +6590,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[92].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[94].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*VerticalSequenceFieldStructMap_Main); i {
 			case 0:
 				return &v.state
@@ -6298,7 +6602,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[94].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[96].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*VerticalSequenceFieldStructMap_Main_Sub); i {
 			case 0:
 				return &v.state
@@ -6310,7 +6614,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[95].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[97].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DocumentSequenceFieldStructList_Item); i {
 			case 0:
 				return &v.state
@@ -6322,7 +6626,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[97].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[99].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Transpose_Hero); i {
 			case 0:
 				return &v.state
@@ -6334,7 +6638,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[100].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[102].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TaskConf_Task); i {
 			case 0:
 				return &v.state
@@ -6346,7 +6650,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[102].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[104].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FieldPresentMap_Player); i {
 			case 0:
 				return &v.state
@@ -6358,7 +6662,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[103].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[105].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FieldPresentMap_Player_Weapon); i {
 			case 0:
 				return &v.state
@@ -6370,7 +6674,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[104].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[106].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FieldPresentMap_Player_Info); i {
 			case 0:
 				return &v.state
@@ -6382,7 +6686,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[107].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[109].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ScatterNoneConf_Zone); i {
 			case 0:
 				return &v.state
@@ -6394,7 +6698,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[109].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[111].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ScatterReplaceConf_Zone); i {
 			case 0:
 				return &v.state
@@ -6406,7 +6710,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[111].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[113].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ScatterMergeConf_Zone); i {
 			case 0:
 				return &v.state
@@ -6418,7 +6722,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[113].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[115].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MergerSingleConf_Zone); i {
 			case 0:
 				return &v.state
@@ -6430,7 +6734,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[115].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[117].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*MergerMultiConf_Zone); i {
 			case 0:
 				return &v.state
@@ -6442,7 +6746,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[117].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[119].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*VerticalAggregationMap_Hero); i {
 			case 0:
 				return &v.state
@@ -6454,8 +6758,32 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 				return nil
 			}
 		}
-		file_tableau_protobuf_unittest_unittest_proto_msgTypes[119].Exporter = func(v interface{}, i int) interface{} {
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[121].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*VerticalAggregationMap_Hero_Level); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[123].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HorizontalAggregateMap_Hero); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tableau_protobuf_unittest_unittest_proto_msgTypes[126].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HorizontalAggregateList_Hero); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6474,7 +6802,7 @@ func file_tableau_protobuf_unittest_unittest_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tableau_protobuf_unittest_unittest_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   120,
+			NumMessages:   127,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

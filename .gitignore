@@ -30,3 +30,4 @@ test/parallel/protoconf/
 test/functest/testdata/xml/*/*.csv
 coverage.txt
 covdatafiles
+.claude/settings.local.json

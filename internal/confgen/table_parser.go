@@ -294,11 +294,29 @@ func (p *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Mes
 	}
 	present = mapValue.Map().Len() != 0
 	if present {
-		// Cross-column consistency: each row must produce the same horizontal map.
+		// Cross-row handling for horizontal map:
+		//   - Aggregate mode: merge per-row maps by key; duplicate keys => E2005.
+		//   - Default mode: each row must produce the same map, otherwise E2023.
 		if msg.Has(field.fd) {
-			existingValue := msg.Get(field.fd)
-			if !existingValue.Equal(mapValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(mapValues(mapValue.Map()), mapValues(existingValue.Map())), r.CellDebugKV(newPrefix)...)
+			if field.opts.GetProp().GetAggregate() {
+				existingMap := msg.Mutable(field.fd).Map()
+				var err error
+				mapValue.Map().Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
+					if existingMap.Has(key) {
+						err = xerrors.E2005(key)
+						return false
+					}
+					existingMap.Set(key, value)
+					return true
+				})
+				if err != nil {
+					return false, xerrors.WrapKV(err, r.CellDebugKV(newPrefix)...)
+				}
+			} else {
+				existingValue := msg.Get(field.fd)
+				if !existingValue.Equal(mapValue) {
+					return false, xerrors.WrapKV(xerrors.E2023(mapValues(mapValue.Map()), mapValues(existingValue.Map())), r.CellDebugKV(newPrefix)...)
+				}
 			}
 		} else {
 			msg.Set(field.fd, mapValue)
@@ -544,11 +562,40 @@ func (p *tableParser) parseHorizontalListField(field *Field, msg protoreflect.Me
 	}
 	present = listValue.List().Len() != 0
 	if present {
-		// Cross-column consistency: each row must produce the same horizontal list.
+		// Cross-row handling for horizontal list:
+		//   - Aggregate mode: append elements from each row; keyed-list checks E2028.
+		//   - Default mode: each row must produce the same list, otherwise E2023.
 		if msg.Has(field.fd) {
-			existingValue := msg.Get(field.fd)
-			if !existingValue.Equal(listValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(listValues(listValue.List()), listValues(existingValue.List())), r.CellDebugKV(newPrefix)...)
+			if field.opts.GetProp().GetAggregate() {
+				existingList := msg.Mutable(field.fd).List()
+				// Resolve the key sub-field descriptor once for message keyed-list.
+				keyFd := findKeyFieldDescriptor(p.ctx, field.fd, field.opts.GetKey())
+				for i := range listValue.List().Len() {
+					newValue := listValue.List().Get(i)
+					if field.opts.GetKey() != "" {
+						// check duplicate elems for keyed-list:
+						//   - scalar/enum keyed-list: element itself is the key.
+						//   - message keyed-list: compare only the key sub-field.
+						for j := range existingList.Len() {
+							elemVal := existingList.Get(j)
+							var dup bool
+							if keyFd != nil {
+								dup = elemVal.Message().Get(keyFd).Equal(newValue.Message().Get(keyFd))
+							} else {
+								dup = elemVal.Equal(newValue)
+							}
+							if dup {
+								return false, xerrors.WrapKV(xerrors.E2028(newValue), r.CellDebugKV(newPrefix)...)
+							}
+						}
+					}
+					existingList.Append(newValue)
+				}
+			} else {
+				existingValue := msg.Get(field.fd)
+				if !existingValue.Equal(listValue) {
+					return false, xerrors.WrapKV(xerrors.E2023(listValues(listValue.List()), listValues(existingValue.List())), r.CellDebugKV(newPrefix)...)
+				}
 			}
 		} else {
 			msg.Set(field.fd, listValue)

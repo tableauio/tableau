@@ -1428,3 +1428,349 @@ func TestTableParser_parseIncellKeyedListWithDuplicateElements(t *testing.T) {
 		})
 	}
 }
+
+func TestTableParser_parseHorizontalAggregateMap(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		want    proto.Message
+		wantErr bool
+		err     error
+	}{
+		{
+			name:   "aggregate horizontal map across rows - should merge entries",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"HorizontalAggregateMap",
+					[][]string{
+						{"HeroID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+						{"1", "101", "10", "", ""},
+						{"1", "102", "20", "", ""},
+					}),
+			},
+			want: &unittestpb.HorizontalAggregateMap{
+				HeroMap: map[uint32]*unittestpb.HorizontalAggregateMap_Hero{
+					1: {
+						HeroId: 1,
+						ItemMap: map[uint32]*unittestpb.Item{
+							101: {Id: 101, Num: 10},
+							102: {Id: 102, Num: 20},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "aggregate horizontal map with duplicate key across rows - should error E2005",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"HorizontalAggregateMap",
+					[][]string{
+						{"HeroID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+						{"1", "101", "10", "", ""},
+						{"1", "101", "20", "", ""},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2005,
+		},
+		{
+			name:   "multiple heroes with aggregate horizontal map",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"HorizontalAggregateMap",
+					[][]string{
+						{"HeroID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+						{"1", "101", "10", "", ""},
+						{"1", "102", "20", "", ""},
+						{"2", "201", "30", "202", "40"},
+					}),
+			},
+			want: &unittestpb.HorizontalAggregateMap{
+				HeroMap: map[uint32]*unittestpb.HorizontalAggregateMap_Hero{
+					1: {
+						HeroId: 1,
+						ItemMap: map[uint32]*unittestpb.Item{
+							101: {Id: 101, Num: 10},
+							102: {Id: 102, Num: 20},
+						},
+					},
+					2: {
+						HeroId: 2,
+						ItemMap: map[uint32]*unittestpb.Item{
+							201: {Id: 201, Num: 30},
+							202: {Id: 202, Num: 40},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := &unittestpb.HorizontalAggregateMap{}
+			err := tt.parser.Parse(msg, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				require.ErrorIs(t, err, tt.err)
+				return
+			}
+			if tt.want != nil && !proto.Equal(tt.want, msg) {
+				t.Errorf("sheetParser.Parse() = %v, want %v", msg, tt.want)
+			}
+		})
+	}
+}
+
+func TestTableParser_parseHorizontalAggregateList(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		want    proto.Message
+		wantErr bool
+		err     error
+	}{
+		{
+			name:   "aggregate horizontal list across rows - should append elements",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"HorizontalAggregateList",
+					[][]string{
+						{"HeroID", "Param1ID", "Param1Num", "Param2ID", "Param2Num"},
+						{"1", "101", "10", "", ""},
+						{"1", "102", "20", "", ""},
+					}),
+			},
+			want: &unittestpb.HorizontalAggregateList{
+				HeroMap: map[uint32]*unittestpb.HorizontalAggregateList_Hero{
+					1: {
+						HeroId: 1,
+						ParamList: []*unittestpb.Item{
+							{Id: 101, Num: 10},
+							{Id: 102, Num: 20},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "aggregate horizontal list with multiple entries per row",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"HorizontalAggregateList",
+					[][]string{
+						{"HeroID", "Param1ID", "Param1Num", "Param2ID", "Param2Num"},
+						{"1", "101", "10", "102", "20"},
+						{"1", "103", "30", "", ""},
+					}),
+			},
+			want: &unittestpb.HorizontalAggregateList{
+				HeroMap: map[uint32]*unittestpb.HorizontalAggregateList_Hero{
+					1: {
+						HeroId: 1,
+						ParamList: []*unittestpb.Item{
+							{Id: 101, Num: 10},
+							{Id: 102, Num: 20},
+							{Id: 103, Num: 30},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "multiple heroes with aggregate horizontal list",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"HorizontalAggregateList",
+					[][]string{
+						{"HeroID", "Param1ID", "Param1Num", "Param2ID", "Param2Num"},
+						{"1", "101", "10", "", ""},
+						{"1", "102", "20", "", ""},
+						{"2", "201", "30", "202", "40"},
+					}),
+			},
+			want: &unittestpb.HorizontalAggregateList{
+				HeroMap: map[uint32]*unittestpb.HorizontalAggregateList_Hero{
+					1: {
+						HeroId: 1,
+						ParamList: []*unittestpb.Item{
+							{Id: 101, Num: 10},
+							{Id: 102, Num: 20},
+						},
+					},
+					2: {
+						HeroId: 2,
+						ParamList: []*unittestpb.Item{
+							{Id: 201, Num: 30},
+							{Id: 202, Num: 40},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := &unittestpb.HorizontalAggregateList{}
+			err := tt.parser.Parse(msg, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				require.ErrorIs(t, err, tt.err)
+				return
+			}
+			if tt.want != nil && !proto.Equal(tt.want, msg) {
+				t.Errorf("sheetParser.Parse() = %v, want %v", msg, tt.want)
+			}
+		})
+	}
+}
+
+func TestTableParser_parseIncellConsistencyWithoutAggregate(t *testing.T) {
+	type args struct {
+		sheet *book.Sheet
+	}
+	tests := []struct {
+		name    string
+		parser  *sheetParser
+		args    args
+		want    proto.Message
+		wantErr bool
+		err     error
+	}{
+		{
+			name:   "incell list same value across rows - should not error",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellList",
+					[][]string{
+						{"Value", "Flavor", "Item"},
+						{"1,2,3", "Fragrant,Sour", "1:10,2:20"},
+						{"1,2,3", "Fragrant,Sour", "1:10,2:20"},
+					}),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "incell list different value across rows - should error E2023",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellList",
+					[][]string{
+						{"Value", "Flavor", "Item"},
+						{"1,2,3", "Fragrant,Sour", "1:10,2:20"},
+						{"4,5,6", "Sweet", "3:30"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2023,
+		},
+		{
+			name:   "incell map aggregate across rows - should merge entries",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"SimpleIncellMap",
+					[][]string{
+						{"Item"},
+						{"1:10,2:20"},
+						{"3:30,4:40"},
+					}),
+			},
+			want: &unittestpb.SimpleIncellMap{
+				ItemMap: map[int32]int32{
+					1: 10,
+					2: 20,
+					3: 30,
+					4: 40,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "incell map aggregate with duplicate key across rows - should error E2005",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"SimpleIncellMap",
+					[][]string{
+						{"Item"},
+						{"1:10,2:20"},
+						{"2:30,3:40"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2005,
+		},
+		{
+			name:   "incell struct list aggregate across rows - should append elements",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"IncellStructList",
+					[][]string{
+						{"Item"},
+						{"1:10,2:20"},
+						{"3:30,4:40"},
+					}),
+			},
+			want: &unittestpb.IncellStructList{
+				ItemList: []*unittestpb.Item{
+					{Id: 1, Num: 10},
+					{Id: 2, Num: 20},
+					{Id: 3, Num: 30},
+					{Id: 4, Num: 40},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var msg proto.Message
+			switch tt.args.sheet.Name {
+			case "IncellList":
+				msg = &unittestpb.IncellList{}
+			case "SimpleIncellMap":
+				msg = &unittestpb.SimpleIncellMap{}
+			case "IncellStructList":
+				msg = &unittestpb.IncellStructList{}
+			}
+			err := tt.parser.Parse(msg, tt.args.sheet)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				require.ErrorIs(t, err, tt.err)
+				return
+			}
+			if tt.want != nil && !proto.Equal(tt.want, msg) {
+				t.Errorf("sheetParser.Parse() = %v, want %v", msg, tt.want)
+			}
+		})
+	}
+}
