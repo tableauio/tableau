@@ -396,6 +396,7 @@ func escapeMapKey(key protoreflect.Value) string {
 	return comp
 }
 
+// listValues flattens a protoreflect.List into []any for E2023 diagnostics.
 func listValues(list protoreflect.List) []any {
 	values := make([]any, 0, list.Len())
 	for i := 0; i < list.Len(); i++ {
@@ -404,6 +405,7 @@ func listValues(list protoreflect.List) []any {
 	return values
 }
 
+// mapValues flattens a protoreflect.Map into map[any]any for E2023 diagnostics.
 func mapValues(mapValue protoreflect.Map) map[any]any {
 	values := make(map[any]any)
 	mapValue.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {

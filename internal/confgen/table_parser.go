@@ -294,6 +294,7 @@ func (p *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Mes
 	}
 	present = mapValue.Map().Len() != 0
 	if present {
+		// Cross-column consistency: each row must produce the same horizontal map.
 		if msg.Has(field.fd) {
 			existingValue := msg.Get(field.fd)
 			if !existingValue.Equal(mapValue) {
@@ -326,6 +327,9 @@ func (p *tableParser) parseIncellMapField(field *Field, msg protoreflect.Message
 	}
 	present = mapValue.Map().Len() != 0
 	if present {
+		// Cross-row handling for incell map:
+		//   - Aggregate mode: collect per-row maps by key; duplicate keys => E2005.
+		//   - Default mode: each row must produce the same map, otherwise E2023.
 		if msg.Has(field.fd) {
 			if field.opts.GetProp().GetAggregate() {
 				existingMap := msg.Mutable(field.fd).Map()
@@ -540,6 +544,7 @@ func (p *tableParser) parseHorizontalListField(field *Field, msg protoreflect.Me
 	}
 	present = listValue.List().Len() != 0
 	if present {
+		// Cross-column consistency: each row must produce the same horizontal list.
 		if msg.Has(field.fd) {
 			existingValue := msg.Get(field.fd)
 			if !existingValue.Equal(listValue) {
@@ -592,6 +597,7 @@ func (p *tableParser) parseIncellListField(field *Field, msg protoreflect.Messag
 					existingList.Append(newValue)
 				}
 			} else {
+				// Default mode: each row must produce the same incell list (E2023).
 				existingValue := msg.Get(field.fd)
 				if !existingValue.Equal(listValue) {
 					return false, xerrors.WrapKV(xerrors.E2023(listValues(listValue.List()), listValues(existingValue.List())), r.CellDebugKV(colName)...)
@@ -650,6 +656,7 @@ func (p *tableParser) parseStructField(field *Field, msg protoreflect.Message, r
 		return false, xerrors.WrapKV(err, r.CellDebugKV(newPrefix)...)
 	}
 	if present {
+		// Cross-row consistency: each row must produce the same struct value.
 		if msg.Has(field.fd) {
 			existingValue := msg.Get(field.fd)
 			if !existingValue.Equal(structValue) {
@@ -682,6 +689,7 @@ func (p *tableParser) parseUnionField(field *Field, msg protoreflect.Message, r 
 		return false, xerrors.WrapKV(err, r.CellDebugKV(newPrefix)...)
 	}
 	if present {
+		// Cross-row consistency: each row must produce the same union value.
 		if msg.Has(field.fd) {
 			existingValue := msg.Get(field.fd)
 			if !existingValue.Equal(structValue) {
@@ -787,6 +795,7 @@ func (p *tableParser) parseScalarField(field *Field, msg protoreflect.Message, r
 		return false, xerrors.WrapKV(err, r.CellDebugKV(colName)...)
 	}
 	if present {
+		// Cross-row consistency: each row must produce the same scalar value.
 		if msg.Has(field.fd) {
 			existingValue := msg.Get(field.fd)
 			if !existingValue.Equal(newValue) {

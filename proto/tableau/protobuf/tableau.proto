@@ -367,10 +367,24 @@ message FieldProp {
   //
   // See https://github.com/bufbuild/protovalidate.
   string validate_message = 20;
-  // If true, this incell list/map field collects elements across vertically
-  // or horizontally duplicated rows (same primary key) into a single
-  // aggregated collection, instead of requiring all rows to carry the
-  // identical value.
+  // If true, this incell map/list field aggregates elements from repeated
+  // visits to the same enclosing message into a single combined collection.
+  // Repeated visits occur when multiple rows or columns parse into the same
+  // message, e.g.:
+  //  - vertical map/keyed-list with same key across rows
+  //  - horizontal map with same key across columns
+  //  - vertical/horizontal list spanning multiple rows/columns (sibling
+  //    incell fields revisited per row or column)
+  //
+  // Without aggregate (default): all visits must produce the identical incell
+  // value, otherwise error E2023 is reported.
+  //
+  // With aggregate:
+  //  - incell map: merges entries from each visit; duplicate map keys across
+  //    visits report error E2005.
+  //  - incell list: appends elements from each visit unconditionally.
+  //  - incell keyed-list: appends elements from each visit; duplicate keys
+  //    across visits report error E2028.
   bool aggregate = 21;
 }
 
