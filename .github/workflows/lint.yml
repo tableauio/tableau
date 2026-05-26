@@ -32,9 +32,6 @@ jobs:
           setup_only: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Buf Lint
-        run: buf lint
-
       - name: Buf Generate and Check
         run: |
           buf generate

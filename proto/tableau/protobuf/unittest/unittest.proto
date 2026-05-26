@@ -4,90 +4,177 @@ syntax = "proto3";
 
 package unittest;
 
-option go_package = "github.com/tableauio/tableau/proto/tableaupb/unittestpb";
-option (tableau.workbook) = {name: "unittest/Unittest#*.csv"};
-
 import "buf/validate/validate.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 import "tableau/protobuf/unittest/common.proto";
 
+option go_package = "github.com/tableauio/tableau/proto/tableaupb/unittestpb";
+option (tableau.workbook) = {name: "unittest/Unittest#*.csv"};
+
 message SimpleIncellMap {
-  option (tableau.worksheet) = {name:"SimpleIncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
-  
-  map<int32, int32> item_map = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+  option (tableau.worksheet) = {
+    name: "SimpleIncellMap"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
+
+  map<int32, int32> item_map = 1 [(tableau.field) = {
+    name: "Item"
+    layout: LAYOUT_INCELL
+  }];
 }
 
 message IncellMap {
-  option (tableau.worksheet) = {name:"IncellMap" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "IncellMap"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
 
-  map<int32, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Key" layout:LAYOUT_INCELL}];
+  map<int32, Fruit> fruit_map = 1 [(tableau.field) = {
+    name: "Fruit"
+    key: "Key"
+    layout: LAYOUT_INCELL
+  }];
   message Fruit {
-    unittest.FruitType key = 1 [(tableau.field) = {name:"Key"}];
-    int64 value = 2 [(tableau.field) = {name:"Value"}];
+    unittest.FruitType key = 1 [(tableau.field) = {name: "Key"}];
+    int64 value = 2 [(tableau.field) = {name: "Value"}];
   }
-  map<int64, unittest.FruitFlavor> flavor_map = 2 [(tableau.field) = {name:"Flavor" layout:LAYOUT_INCELL}];
-  map<int32, Item> item_map = 3 [(tableau.field) = {name:"Item" key:"Key" layout:LAYOUT_INCELL}];
+  map<int64, unittest.FruitFlavor> flavor_map = 2 [(tableau.field) = {
+    name: "Flavor"
+    layout: LAYOUT_INCELL
+  }];
+  map<int32, Item> item_map = 3 [(tableau.field) = {
+    name: "Item"
+    key: "Key"
+    layout: LAYOUT_INCELL
+  }];
   message Item {
-    unittest.FruitType key = 1 [(tableau.field) = {name:"Key"}];
-    unittest.FruitFlavor value = 2 [(tableau.field) = {name:"Value"}];
+    unittest.FruitType key = 1 [(tableau.field) = {name: "Key"}];
+    unittest.FruitFlavor value = 2 [(tableau.field) = {name: "Value"}];
   }
 }
 
 message IncellStructList {
-  option (tableau.worksheet) = {name:"IncellStructList" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "IncellStructList"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
 
-  repeated unittest.Item item_list = 1 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+  repeated unittest.Item item_list = 1 [(tableau.field) = {
+    name: "Item"
+    layout: LAYOUT_INCELL
+  }];
 }
 
 message IncellList {
-  option (tableau.worksheet) = {name:"IncellList" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "IncellList"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
 
-  repeated int32 value_list = 1 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL}];
-  repeated unittest.FruitFlavor flavor_list = 2 [(tableau.field) = {name:"Flavor" layout:LAYOUT_INCELL}];
-  repeated unittest.Item item_list = 3 [(tableau.field) = {name:"Item" layout:LAYOUT_INCELL}];
+  repeated int32 value_list = 1 [(tableau.field) = {
+    name: "Value"
+    layout: LAYOUT_INCELL
+  }];
+  repeated unittest.FruitFlavor flavor_list = 2 [(tableau.field) = {
+    name: "Flavor"
+    layout: LAYOUT_INCELL
+  }];
+  repeated unittest.Item item_list = 3 [(tableau.field) = {
+    name: "Item"
+    layout: LAYOUT_INCELL
+  }];
 }
 
 message ItemConf {
-  option (tableau.worksheet) = {name:"ItemConf" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "ItemConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
 
-  map<uint32, unittest.Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, unittest.Item> item_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
 }
 
 message MallConf {
-  option (tableau.worksheet) = {name:"MallConf" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "MallConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
 
-  map<uint32, Shop> shop_map = 1 [(tableau.field) = {key:"ShopID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Shop> shop_map = 1 [(tableau.field) = {
+    key: "ShopID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Shop {
-    uint32 shop_id = 1 [(tableau.field) = {name:"ShopID"}];
-    map<uint32, Goods> goods_map = 2 [(tableau.field) = {key:"GoodsID" layout:LAYOUT_VERTICAL}];
+    uint32 shop_id = 1 [(tableau.field) = {name: "ShopID"}];
+    map<uint32, Goods> goods_map = 2 [(tableau.field) = {
+      key: "GoodsID"
+      layout: LAYOUT_VERTICAL
+    }];
     message Goods {
-      uint32 goods_id = 1 [(tableau.field) = {name:"GoodsID"}];
-      int32 price = 2 [(tableau.field) = {name:"Price"}];
+      uint32 goods_id = 1 [(tableau.field) = {name: "GoodsID"}];
+      int32 price = 2 [(tableau.field) = {name: "Price"}];
     }
   }
 }
 
 message ActivityConf {
-  option (tableau.worksheet) = {name:"ActivityConf" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "ActivityConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
 
-  map<uint32, Activity> activity_map = 1 [(tableau.field) = {key:"ActivityID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Activity> activity_map = 1 [(tableau.field) = {
+    key: "ActivityID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Activity {
-    uint32 activity_id = 1 [(tableau.field) = {name:"ActivityID"}];
-    string activity_name = 2 [(tableau.field) = {name:"ActivityName"}];
-    map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {key:"ChapterID" layout:LAYOUT_VERTICAL}];
+    uint32 activity_id = 1 [(tableau.field) = {name: "ActivityID"}];
+    string activity_name = 2 [(tableau.field) = {name: "ActivityName"}];
+    map<uint32, Chapter> chapter_map = 3 [(tableau.field) = {
+      key: "ChapterID"
+      layout: LAYOUT_VERTICAL
+    }];
     message Chapter {
-      uint32 chapter_id = 1 [(tableau.field) = {name:"ChapterID"}];
-      string chapter_name = 2 [(tableau.field) = {name:"ChapterName"}];
-      repeated Section section_list = 3 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+      uint32 chapter_id = 1 [(tableau.field) = {name: "ChapterID"}];
+      string chapter_name = 2 [(tableau.field) = {name: "ChapterName"}];
+      repeated Section section_list = 3 [(tableau.field) = {layout: LAYOUT_VERTICAL}];
       message Section {
-        uint32 section_id = 1 [(tableau.field) = {name:"SectionID"}];
-        string section_name = 2 [(tableau.field) = {name:"SectionName"}];
-        map<uint32, Reward> reward_map = 3 [(tableau.field) = {name:"Reward" key:"ID" layout:LAYOUT_HORIZONTAL}];
+        uint32 section_id = 1 [(tableau.field) = {name: "SectionID"}];
+        string section_name = 2 [(tableau.field) = {name: "SectionName"}];
+        map<uint32, Reward> reward_map = 3 [(tableau.field) = {
+          name: "Reward"
+          key: "ID"
+          layout: LAYOUT_HORIZONTAL
+        }];
         message Reward {
-            uint32 id = 1 [(tableau.field) = {name:"ID"}];
-            int32 num = 2 [(tableau.field) = {name:"Num"}];
+          uint32 id = 1 [(tableau.field) = {name: "ID"}];
+          int32 num = 2 [(tableau.field) = {name: "Num"}];
         }
       }
     }
@@ -95,75 +182,155 @@ message ActivityConf {
 }
 
 message RewardConf {
-  option (tableau.worksheet) = {name:"RewardConf" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "RewardConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
 
-  map<uint32, Reward> reward_map = 1 [(tableau.field) = {key:"RewardID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {
+    key: "RewardID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Reward {
-    uint32 reward_id = 1 [(tableau.field) = {name:"RewardID"}];
-    map<uint32, unittest.Item> item_map = 2 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
+    uint32 reward_id = 1 [(tableau.field) = {name: "RewardID"}];
+    map<uint32, unittest.Item> item_map = 2 [(tableau.field) = {
+      name: "Item"
+      key: "ID"
+      layout: LAYOUT_HORIZONTAL
+    }];
   }
 }
 
 message YamlScalarConf {
-  option (tableau.worksheet) = {name:"YamlScalarConf"};
+  option (tableau.worksheet) = {name: "YamlScalarConf"};
 
-  uint32 id = 1 [(tableau.field) = {name:"ID"}];
-  int32 num = 2 [(tableau.field) = {name:"Num"}];
-  uint64 value = 3 [(tableau.field) = {name:"Value"}];
-  int64 weight = 4 [(tableau.field) = {name:"Weight"}];
-  float percentage = 5 [(tableau.field) = {name:"Percentage"}];
-  double ratio = 6 [(tableau.field) = {name:"Ratio"}];
-  string name = 7 [(tableau.field) = {name:"Name"}];
-  bytes blob = 8 [(tableau.field) = {name:"Blob"}];
-  bool ok = 9 [(tableau.field) = {name:"OK"}];
+  uint32 id = 1 [(tableau.field) = {name: "ID"}];
+  int32 num = 2 [(tableau.field) = {name: "Num"}];
+  uint64 value = 3 [(tableau.field) = {name: "Value"}];
+  int64 weight = 4 [(tableau.field) = {name: "Weight"}];
+  float percentage = 5 [(tableau.field) = {name: "Percentage"}];
+  double ratio = 6 [(tableau.field) = {name: "Ratio"}];
+  string name = 7 [(tableau.field) = {name: "Name"}];
+  bytes blob = 8 [(tableau.field) = {name: "Blob"}];
+  bool ok = 9 [(tableau.field) = {name: "OK"}];
 }
 
 message PatchReplaceConf {
-  option (tableau.worksheet) = {name:"PatchReplaceConf" namerow:1 typerow:2 noterow:3 datarow:4 patch:PATCH_REPLACE};
-  
-  string name = 1 [(tableau.field) = {name: "Name" }];
-  repeated int32 price_list = 2 [(tableau.field) = {name: "Price" layout: LAYOUT_INCELL }];
+  option (tableau.worksheet) = {
+    name: "PatchReplaceConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+    patch: PATCH_REPLACE
+  };
+
+  string name = 1 [(tableau.field) = {name: "Name"}];
+  repeated int32 price_list = 2 [(tableau.field) = {
+    name: "Price"
+    layout: LAYOUT_INCELL
+  }];
 }
 
 message PatchMergeConf {
-  option (tableau.worksheet) = {name:"PatchMergeConf" namerow:1 typerow:2 noterow:3 datarow:4 patch:PATCH_MERGE};
-  
-  string name = 1 [(tableau.field) = {name:"Name" }];
-  string name2 = 2 [(tableau.field) = {name: "Name2" }];
-  optional string name3 = 3 [(tableau.field) = {name: "Name3" }];
-  Time time = 4 [(tableau.field) = {name:"Time"}];
+  option (tableau.worksheet) = {
+    name: "PatchMergeConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+    patch: PATCH_MERGE
+  };
+
+  string name = 1 [(tableau.field) = {name: "Name"}];
+  string name2 = 2 [(tableau.field) = {name: "Name2"}];
+  optional string name3 = 3 [(tableau.field) = {name: "Name3"}];
+  Time time = 4 [(tableau.field) = {name: "Time"}];
   message Time {
-    google.protobuf.Timestamp start = 1 [(tableau.field) = {name:"Start"}];
-    google.protobuf.Duration expiry = 2 [(tableau.field) = {name:"Expiry"}];
+    google.protobuf.Timestamp start = 1 [(tableau.field) = {name: "Start"}];
+    google.protobuf.Duration expiry = 2 [(tableau.field) = {name: "Expiry"}];
   }
-  repeated int32 price_list = 5 [(tableau.field) = {name:"Price" layout:LAYOUT_INCELL }];
-  repeated int32 replace_price_list = 6 [(tableau.field) = {name:"ReplacePrice" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
-  map<uint32, unittest.Item> item_map = 7 [(tableau.field) = {name:"Item" key:"ID" layout:LAYOUT_HORIZONTAL}];
-  map<uint32, unittest.Item> replace_item_map = 8 [(tableau.field) = {name:"ReplaceItem" key:"ID" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
+  repeated int32 price_list = 5 [(tableau.field) = {
+    name: "Price"
+    layout: LAYOUT_INCELL
+  }];
+  repeated int32 replace_price_list = 6 [(tableau.field) = {
+    name: "ReplacePrice"
+    layout: LAYOUT_INCELL
+    prop: {patch: PATCH_REPLACE}
+  }];
+  map<uint32, unittest.Item> item_map = 7 [(tableau.field) = {
+    name: "Item"
+    key: "ID"
+    layout: LAYOUT_HORIZONTAL
+  }];
+  map<uint32, unittest.Item> replace_item_map = 8 [(tableau.field) = {
+    name: "ReplaceItem"
+    key: "ID"
+    layout: LAYOUT_HORIZONTAL
+    prop: {patch: PATCH_REPLACE}
+  }];
 }
 
 message RecursivePatchConf {
-  option (tableau.worksheet) = {name:"RecursivePatchConf" namerow:1 typerow:2 noterow:3 datarow:4 patch:PATCH_MERGE};
-  
-  map<uint32, Shop> shop_map = 1 [(tableau.field) = {key:"ShopID" layout:LAYOUT_VERTICAL}];
+  option (tableau.worksheet) = {
+    name: "RecursivePatchConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+    patch: PATCH_MERGE
+  };
+
+  map<uint32, Shop> shop_map = 1 [(tableau.field) = {
+    key: "ShopID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Shop {
-    uint32 shop_id = 1 [(tableau.field) = {name:"ShopID"}];
-    map<uint32, Goods> goods_map = 2 [(tableau.field) = {key:"GoodsID" layout:LAYOUT_VERTICAL}];
+    uint32 shop_id = 1 [(tableau.field) = {name: "ShopID"}];
+    map<uint32, Goods> goods_map = 2 [(tableau.field) = {
+      key: "GoodsID"
+      layout: LAYOUT_VERTICAL
+    }];
     message Goods {
-      uint32 goods_id = 1 [(tableau.field) = {name:"GoodsID"}];
-      bytes desc = 2 [(tableau.field) = {name:"Desc"}];
-      map<uint32, Currency> currency_map = 3 [(tableau.field) = {name:"Currency" key:"Type" layout:LAYOUT_HORIZONTAL}];
+      uint32 goods_id = 1 [(tableau.field) = {name: "GoodsID"}];
+      bytes desc = 2 [(tableau.field) = {name: "Desc"}];
+      map<uint32, Currency> currency_map = 3 [(tableau.field) = {
+        name: "Currency"
+        key: "Type"
+        layout: LAYOUT_HORIZONTAL
+      }];
       message Currency {
-        uint32 type = 1 [(tableau.field) = {name:"Type"}];
-        repeated int32 price_list = 2 [(tableau.field) = {name:"Price" layout:LAYOUT_INCELL prop:{patch:PATCH_REPLACE}}];
-        map<int32, int32> value_list = 3 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL}];
-        map<int32, bytes> message_list = 4 [(tableau.field) = {name:"Message" layout:LAYOUT_INCELL}];
+        uint32 type = 1 [(tableau.field) = {name: "Type"}];
+        repeated int32 price_list = 2 [(tableau.field) = {
+          name: "Price"
+          layout: LAYOUT_INCELL
+          prop: {patch: PATCH_REPLACE}
+        }];
+        map<int32, int32> value_list = 3 [(tableau.field) = {
+          name: "Value"
+          layout: LAYOUT_INCELL
+        }];
+        map<int32, bytes> message_list = 4 [(tableau.field) = {
+          name: "Message"
+          layout: LAYOUT_INCELL
+        }];
       }
-      repeated bytes tag_list = 4 [(tableau.field) = {name:"Tag" layout:LAYOUT_HORIZONTAL prop:{patch:PATCH_REPLACE}}];
-      repeated Award award_list = 5 [(tableau.field) = {name:"Award" layout:LAYOUT_HORIZONTAL}];
+      repeated bytes tag_list = 4 [(tableau.field) = {
+        name: "Tag"
+        layout: LAYOUT_HORIZONTAL
+        prop: {patch: PATCH_REPLACE}
+      }];
+      repeated Award award_list = 5 [(tableau.field) = {
+        name: "Award"
+        layout: LAYOUT_HORIZONTAL
+      }];
       message Award {
-        uint32 id = 1 [(tableau.field) = {name:"Id"}];
-        int32 num = 2 [(tableau.field) = {name:"Num"}];
+        uint32 id = 1 [(tableau.field) = {name: "Id"}];
+        int32 num = 2 [(tableau.field) = {name: "Num"}];
       }
     }
   }
@@ -176,75 +343,169 @@ message JsonUtilTestData {
 }
 
 message UniqueFieldInVerticalStructList {
-  option (tableau.worksheet) = {name:"UniqueFieldInVerticalStructList"};
+  option (tableau.worksheet) = {name: "UniqueFieldInVerticalStructList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  repeated Item item_list = 1 [(tableau.field) = {layout: LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
-    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-    string desc = 3 [(tableau.field) = {name:"Desc"}];
+    uint32 id = 1 [(tableau.field) = {
+      name: "ID"
+      prop: {unique: true}
+    }];
+    string name = 2 [(tableau.field) = {
+      name: "Name"
+      prop: {unique: true}
+    }];
+    string desc = 3 [(tableau.field) = {name: "Desc"}];
   }
 }
 
 message VerticalUniqueFieldStructMap {
-  option (tableau.worksheet) = {name:"VerticalUniqueFieldStructMap"};
+  option (tableau.worksheet) = {name: "VerticalUniqueFieldStructMap"};
 
-  map<uint32, Main> main_map = 1 [(tableau.field) = {key:"MainID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Main> main_map = 1 [(tableau.field) = {
+    key: "MainID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Main {
-    uint32 main_id = 1 [(tableau.field) = {name:"MainID"}];
-    string main_name = 2 [(tableau.field) = {name:"MainName" prop:{unique:true}}];
-    map<int32, int32> main_kv_map = 3 [(tableau.field) = {name:"MainKV" layout:LAYOUT_INCELL prop:{optional:true}}];
-    map<uint32, Sub> sub_map = 4 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
+    uint32 main_id = 1 [(tableau.field) = {name: "MainID"}];
+    string main_name = 2 [(tableau.field) = {
+      name: "MainName"
+      prop: {unique: true}
+    }];
+    map<int32, int32> main_kv_map = 3 [(tableau.field) = {
+      name: "MainKV"
+      layout: LAYOUT_INCELL
+      prop: {optional: true}
+    }];
+    map<uint32, Sub> sub_map = 4 [(tableau.field) = {
+      key: "SubID"
+      layout: LAYOUT_VERTICAL
+    }];
     message Sub {
-      uint32 sub_id = 1 [(tableau.field) = {name:"SubID"}];
-      string sub_name = 2 [(tableau.field) = {name:"SubName" prop:{unique:true}}];
+      uint32 sub_id = 1 [(tableau.field) = {name: "SubID"}];
+      string sub_name = 2 [(tableau.field) = {
+        name: "SubName"
+        prop: {unique: true}
+      }];
     }
   }
 }
 
 message DocumentUniqueFieldStructList {
-  option (tableau.worksheet) = {name:"DocumentUniqueFieldStructList"};
+  option (tableau.worksheet) = {name: "DocumentUniqueFieldStructList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Items"}];
+  repeated Item item_list = 1 [(tableau.field) = {name: "Items"}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
-    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-    int32 num = 3 [(tableau.field) = {name:"Num"}];
+    uint32 id = 1 [(tableau.field) = {
+      name: "ID"
+      prop: {unique: true}
+    }];
+    string name = 2 [(tableau.field) = {
+      name: "Name"
+      prop: {unique: true}
+    }];
+    int32 num = 3 [(tableau.field) = {name: "Num"}];
   }
 }
 
 message DocumentUniqueFieldStructMap {
-  option (tableau.worksheet) = {name:"DocumentUniqueFieldStructMap"};
+  option (tableau.worksheet) = {name: "DocumentUniqueFieldStructMap"};
 
-  map<string, Chapter> chapter = 1 [(tableau.field) = {name:"Chapter" key:"@key" prop:{optional:true}}];
+  map<string, Chapter> chapter = 1 [(tableau.field) = {
+    name: "Chapter"
+    key: "@key"
+    prop: {optional: true}
+  }];
   message Chapter {
-    string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
-    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-    map<string, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key"}];
+    string key = 1 [(tableau.field) = {
+      name: "@key"
+      prop: {unique: true}
+    }];
+    string name = 2 [(tableau.field) = {
+      name: "Name"
+      prop: {unique: true}
+    }];
+    map<string, Section> section = 3 [(tableau.field) = {
+      name: "Section"
+      key: "@key"
+    }];
     message Section {
-      string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
-      string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+      string key = 1 [(tableau.field) = {
+        name: "@key"
+        prop: {unique: true}
+      }];
+      string name = 2 [(tableau.field) = {
+        name: "Name"
+        prop: {unique: true}
+      }];
     }
   }
-  map<uint32, string> scalar_map = 2 [(tableau.field) = {name:"ScalarMap" prop:{optional:true}}];
-  map<uint32, string> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL prop:{optional:true}}];
+  map<uint32, string> scalar_map = 2 [(tableau.field) = {
+    name: "ScalarMap"
+    prop: {optional: true}
+  }];
+  map<uint32, string> incell_map = 5 [(tableau.field) = {
+    name: "IncellMap"
+    layout: LAYOUT_INCELL
+    prop: {optional: true}
+  }];
   // for card prefix tests
-  map<string, ChapterInfo> chapter_info = 13 [(tableau.field) = {name:"ChapterInfo" key:"@key" prop:{optional:true}}];
+  map<string, ChapterInfo> chapter_info = 13 [(tableau.field) = {
+    name: "ChapterInfo"
+    key: "@key"
+    prop: {optional: true}
+  }];
   message ChapterInfo {
-    string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
-    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-    map<string, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key" prop:{optional:true}}];
+    string key = 1 [(tableau.field) = {
+      name: "@key"
+      prop: {unique: true}
+    }];
+    string name = 2 [(tableau.field) = {
+      name: "Name"
+      prop: {unique: true}
+    }];
+    map<string, Section> section = 3 [(tableau.field) = {
+      name: "Section"
+      key: "@key"
+      prop: {optional: true}
+    }];
     message Section {
-      string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
-      string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-      map<string, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key" prop:{optional:true}}];
+      string key = 1 [(tableau.field) = {
+        name: "@key"
+        prop: {unique: true}
+      }];
+      string name = 2 [(tableau.field) = {
+        name: "Name"
+        prop: {unique: true}
+      }];
+      map<string, Section> section = 3 [(tableau.field) = {
+        name: "Section"
+        key: "@key"
+        prop: {optional: true}
+      }];
       message Section {
-        string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
-        string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
-        map<string, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key" prop:{optional:true}}];
+        string key = 1 [(tableau.field) = {
+          name: "@key"
+          prop: {unique: true}
+        }];
+        string name = 2 [(tableau.field) = {
+          name: "Name"
+          prop: {unique: true}
+        }];
+        map<string, Section> section = 3 [(tableau.field) = {
+          name: "Section"
+          key: "@key"
+          prop: {optional: true}
+        }];
         message Section {
-          string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
-          string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+          string key = 1 [(tableau.field) = {
+            name: "@key"
+            prop: {unique: true}
+          }];
+          string name = 2 [(tableau.field) = {
+            name: "Name"
+            prop: {unique: true}
+          }];
         }
       }
     }
@@ -252,67 +513,109 @@ message DocumentUniqueFieldStructMap {
 }
 
 message SequenceFieldInVerticalStructList {
-  option (tableau.worksheet) = {name:"SequenceFieldInVerticalStructList"};
+  option (tableau.worksheet) = {name: "SequenceFieldInVerticalStructList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {layout:LAYOUT_VERTICAL}];
+  repeated Item item_list = 1 [(tableau.field) = {layout: LAYOUT_VERTICAL}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{sequence:1}}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    int64 num = 3 [(tableau.field) = {name:"Num" prop:{sequence:12345}}];
+    uint32 id = 1 [(tableau.field) = {
+      name: "ID"
+      prop: {sequence: 1}
+    }];
+    string name = 2 [(tableau.field) = {name: "Name"}];
+    int64 num = 3 [(tableau.field) = {
+      name: "Num"
+      prop: {sequence: 12345}
+    }];
   }
 }
 
 message SequenceKeyInVerticalKeyedList {
-  option (tableau.worksheet) = {name:"SequenceKeyInVerticalKeyedList"};
+  option (tableau.worksheet) = {name: "SequenceKeyInVerticalKeyedList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  repeated Item item_list = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{sequence:1}}];
-    map<int32, Prop> prop_map = 2 [(tableau.field) = {key:"PropID" layout:LAYOUT_VERTICAL}];
+    uint32 id = 1 [(tableau.field) = {
+      name: "ID"
+      prop: {sequence: 1}
+    }];
+    map<int32, Prop> prop_map = 2 [(tableau.field) = {
+      key: "PropID"
+      layout: LAYOUT_VERTICAL
+    }];
     message Prop {
-      int32 prop_id = 1 [(tableau.field) = {name:"PropID"}];
-      string prop_name = 2 [(tableau.field) = {name:"PropName"}];
+      int32 prop_id = 1 [(tableau.field) = {name: "PropID"}];
+      string prop_name = 2 [(tableau.field) = {name: "PropName"}];
     }
   }
 }
 
 message VerticalSequenceFieldStructMap {
-  option (tableau.worksheet) = {name:"VerticalSequenceFieldStructMap"};
+  option (tableau.worksheet) = {name: "VerticalSequenceFieldStructMap"};
 
-  map<uint32, Main> main_map = 1 [(tableau.field) = {key:"MainID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Main> main_map = 1 [(tableau.field) = {
+    key: "MainID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Main {
-    uint32 main_id = 1 [(tableau.field) = {name:"MainID" prop:{sequence:1001}}];
-    map<uint32, Sub> sub_map = 2 [(tableau.field) = {key:"SubID" layout:LAYOUT_VERTICAL}];
+    uint32 main_id = 1 [(tableau.field) = {
+      name: "MainID"
+      prop: {sequence: 1001}
+    }];
+    map<uint32, Sub> sub_map = 2 [(tableau.field) = {
+      key: "SubID"
+      layout: LAYOUT_VERTICAL
+    }];
     message Sub {
-      uint32 sub_id = 1 [(tableau.field) = {name:"SubID" prop:{sequence:1}}];
-      string sub_name = 2 [(tableau.field) = {name:"SubName"}];
+      uint32 sub_id = 1 [(tableau.field) = {
+        name: "SubID"
+        prop: {sequence: 1}
+      }];
+      string sub_name = 2 [(tableau.field) = {name: "SubName"}];
     }
   }
 }
 
 message DocumentSequenceFieldStructList {
-  option (tableau.worksheet) = {name:"DocumentSequenceFieldStructList"};
+  option (tableau.worksheet) = {name: "DocumentSequenceFieldStructList"};
 
-  repeated Item item_list = 1 [(tableau.field) = {name:"Items"}];
+  repeated Item item_list = 1 [(tableau.field) = {name: "Items"}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{sequence:1001}}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    int32 num = 3 [(tableau.field) = {name:"Num"}];
+    uint32 id = 1 [(tableau.field) = {
+      name: "ID"
+      prop: {sequence: 1001}
+    }];
+    string name = 2 [(tableau.field) = {name: "Name"}];
+    int32 num = 3 [(tableau.field) = {name: "Num"}];
   }
 }
 
 message Transpose {
-  option (tableau.worksheet) = {name:"Transpose" transpose:true};
+  option (tableau.worksheet) = {
+    name: "Transpose"
+    transpose: true
+  };
 
-  map<int32, Hero> hero_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<int32, Hero> hero_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Hero {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    int32 id = 1 [(tableau.field) = {name: "ID"}];
+    string name = 2 [(tableau.field) = {name: "Name"}];
   }
 }
 
 message ValidateConf {
-  option (tableau.worksheet) = {name:"ValidateConf" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "ValidateConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
   option (buf.validate.message) = {
     cel: {
       id: "validate_conf.id_name"
@@ -321,43 +624,101 @@ message ValidateConf {
     }
   };
 
-  uint32 id = 1 [(tableau.field) = {name:"ID"}];
-  string name = 2 [(tableau.field) = {name:"Name"}, (buf.validate.field) = {string:{max_len:10}}];
+  uint32 id = 1 [(tableau.field) = {name: "ID"}];
+  string name = 2 [
+    (tableau.field) = {name: "Name"},
+    (buf.validate.field) = {
+      string: {max_len: 10}
+    }
+  ];
   // List field: must have at most 3 items.
-  repeated string tag_list = 3 [(tableau.field) = {name:"Tag" layout:LAYOUT_INCELL}, (buf.validate.field) = {repeated:{max_items:3}}];
+  repeated string tag_list = 3 [
+    (tableau.field) = {
+      name: "Tag"
+      layout: LAYOUT_INCELL
+    },
+    (buf.validate.field) = {
+      repeated: {max_items: 3}
+    }
+  ];
   // Map field: must have at most 2 pairs.
-  map<string, int32> prop_map = 4 [(tableau.field) = {name:"Prop" layout:LAYOUT_INCELL}, (buf.validate.field) = {map:{max_pairs:2}}];
+  map<string, int32> prop_map = 4 [
+    (tableau.field) = {
+      name: "Prop"
+      layout: LAYOUT_INCELL
+    },
+    (buf.validate.field) = {
+      map: {max_pairs: 2}
+    }
+  ];
 }
 
 message TaskConf {
-  option (tableau.worksheet) = {name:"TaskConf" namerow:1 typerow:2 noterow:3 datarow:4};
+  option (tableau.worksheet) = {
+    name: "TaskConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
 
-  map<int32, Task> task_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<int32, Task> task_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Task {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    unittest.Target target = 2 [(tableau.field) = {name:"Target"}];
+    int32 id = 1 [(tableau.field) = {name: "ID"}];
+    unittest.Target target = 2 [(tableau.field) = {name: "Target"}];
   }
 }
 
 message FieldPresentMap {
-  option (tableau.worksheet) = {name:"FieldPresentMap"};
+  option (tableau.worksheet) = {name: "FieldPresentMap"};
 
-  map<int32, Player> player_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<int32, Player> player_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Player {
-    int32 id = 1 [(tableau.field) = {name:"ID"}];
-    Weapon weapon = 2 [(tableau.field) = {name:"Weapon" prop:{present:true}}];
+    int32 id = 1 [(tableau.field) = {name: "ID"}];
+    Weapon weapon = 2 [(tableau.field) = {
+      name: "Weapon"
+      prop: {present: true}
+    }];
     message Weapon {
-      string name = 1 [(tableau.field) = {name:"Name" prop:{present:true}}];
-      int32 rarity = 2 [(tableau.field) = {name:"Rarity"}];
+      string name = 1 [(tableau.field) = {
+        name: "Name"
+        prop: {present: true}
+      }];
+      int32 rarity = 2 [(tableau.field) = {name: "Rarity"}];
     }
-    Info info = 3 [(tableau.field) = {name:"Info" span:SPAN_INNER_CELL prop:{present:true}}];
+    Info info = 3 [(tableau.field) = {
+      name: "Info"
+      span: SPAN_INNER_CELL
+      prop: {present: true}
+    }];
     message Info {
-      int32 level = 1 [(tableau.field) = {name:"Level"}];
-      int32 exp = 2 [(tableau.field) = {name:"Exp"}];
+      int32 level = 1 [(tableau.field) = {name: "Level"}];
+      int32 exp = 2 [(tableau.field) = {name: "Exp"}];
     }
-    repeated int32 hero_list = 4 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL prop:{present:true}}];
-    map<string, int32> attr_map = 5 [(tableau.field) = {name:"Attr" layout:LAYOUT_INCELL prop:{present:true}}];
-    unittest.Target target = 6 [(tableau.field) = {name:"Target" span:SPAN_INNER_CELL prop:{form:FORM_TEXT present:true}}];
+    repeated int32 hero_list = 4 [(tableau.field) = {
+      name: "Hero"
+      layout: LAYOUT_INCELL
+      prop: {present: true}
+    }];
+    map<string, int32> attr_map = 5 [(tableau.field) = {
+      name: "Attr"
+      layout: LAYOUT_INCELL
+      prop: {present: true}
+    }];
+    unittest.Target target = 6 [(tableau.field) = {
+      name: "Target"
+      span: SPAN_INNER_CELL
+      prop: {
+        form: FORM_TEXT
+        present: true
+      }
+    }];
   }
 }
 
@@ -372,45 +733,63 @@ message FieldPresentMap {
 
 message ScatterNoneConf {
   option (tableau.worksheet) = {
-    name:"ScatterNoneConf"
-    namerow:1 typerow:2 noterow:3 datarow:4
-    scatter:"UnittestScatter*.csv#ScatterNoneConf"
+    name: "ScatterNoneConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+    scatter: "UnittestScatter*.csv#ScatterNoneConf"
   };
 
-  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Zone {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name: "ID"}];
+    string name = 2 [(tableau.field) = {name: "Name"}];
   }
 }
 
 message ScatterReplaceConf {
   option (tableau.worksheet) = {
-    name:"ScatterReplaceConf"
-    namerow:1 typerow:2 noterow:3 datarow:4
-    patch:PATCH_REPLACE
-    scatter:"UnittestScatter*.csv#ScatterReplaceConf"
+    name: "ScatterReplaceConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+    patch: PATCH_REPLACE
+    scatter: "UnittestScatter*.csv#ScatterReplaceConf"
   };
 
-  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Zone {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name: "ID"}];
+    string name = 2 [(tableau.field) = {name: "Name"}];
   }
 }
 
 message ScatterMergeConf {
   option (tableau.worksheet) = {
-    name:"ScatterMergeConf"
-    namerow:1 typerow:2 noterow:3 datarow:4
-    patch:PATCH_MERGE
-    scatter:"UnittestScatter*.csv#ScatterMergeConf"
+    name: "ScatterMergeConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+    patch: PATCH_MERGE
+    scatter: "UnittestScatter*.csv#ScatterMergeConf"
   };
 
-  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Zone {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name: "ID"}];
+    string name = 2 [(tableau.field) = {name: "Name"}];
   }
 }
 
@@ -423,28 +802,40 @@ message ScatterMergeConf {
 
 message MergerSingleConf {
   option (tableau.worksheet) = {
-    name:"MergerSingleConf"
-    namerow:1 typerow:2 noterow:3 datarow:4
-    merger:"UnittestMerger1*.csv#MergerSingleConf"
+    name: "MergerSingleConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+    merger: "UnittestMerger1*.csv#MergerSingleConf"
   };
 
-  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Zone {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name: "ID"}];
+    string name = 2 [(tableau.field) = {name: "Name"}];
   }
 }
 
 message MergerMultiConf {
   option (tableau.worksheet) = {
-    name:"MergerMultiConf"
-    namerow:1 typerow:2 noterow:3 datarow:4
-    merger:"UnittestMerger*.csv#MergerMultiConf"
+    name: "MergerMultiConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+    merger: "UnittestMerger*.csv#MergerMultiConf"
   };
 
-  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
   message Zone {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name: "ID"}];
+    string name = 2 [(tableau.field) = {name: "Name"}];
   }
 }

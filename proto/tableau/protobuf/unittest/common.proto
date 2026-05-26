@@ -5,9 +5,9 @@ syntax = "proto3";
 
 package unittest;
 
-option go_package = "github.com/tableauio/tableau/proto/tableaupb/unittestpb";
-
 import "tableau/protobuf/tableau.proto";
+
+option go_package = "github.com/tableauio/tableau/proto/tableaupb/unittestpb";
 
 enum FruitType {
   FRUIT_TYPE_UNKNOWN = 0 [(tableau.evalue).name = "Unknown"];
@@ -29,23 +29,19 @@ message Item {
 }
 
 message Target {
-  option (tableau.union) = {
-    name: "Target"
-  };
+  option (tableau.union) = {name: "Target"};
 
-  Type type = 9999 [(tableau.field) = { name: "Type" }];
+  Type type = 9999 [(tableau.field) = {name: "Type"}];
   oneof value {
-    option (tableau.oneof) = {
-      field: "Field"
-    };
-    Pvp pvp = 1;  // Bound to enum value: TYPE_PVP.
-    Pve pve = 2;  // Bound to enum value: TYPE_PVP.
+    option (tableau.oneof) = {field: "Field"};
+    Pvp pvp = 1; // Bound to enum value: TYPE_PVP.
+    Pve pve = 2; // Bound to enum value: TYPE_PVP.
   }
 
   enum Type {
     TYPE_NIL = 0;
-    TYPE_PVP = 1 [(tableau.evalue) = { name: "PVP" }];
-    TYPE_PVE = 2 [(tableau.evalue) = { name: "PVE" }];
+    TYPE_PVP = 1 [(tableau.evalue) = {name: "PVP"}];
+    TYPE_PVE = 2 [(tableau.evalue) = {name: "PVE"}];
   }
   // Pvp has non-sequential field tag numbers (1, 4, 3) to test
   // that FieldN columns are mapped by definition order, not tag number order.
@@ -55,9 +51,9 @@ message Target {
     int64 damage = 3;
   }
   message Pve {
-    Mission mission = 1 [(tableau.field) = { name: "Mission" }];  // incell struct
-    repeated int32 heros = 2;                                     // incell list
-    map<int32, int64> dungeons = 3;                               // incell map
+    Mission mission = 1 [(tableau.field) = {name: "Mission"}]; // incell struct
+    repeated int32 heros = 2; // incell list
+    map<int32, int64> dungeons = 3; // incell map
 
     message Mission {
       int32 id = 1;
