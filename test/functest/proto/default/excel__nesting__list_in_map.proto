@@ -11,6 +11,21 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/nesting/ListInMap#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
+message HAggregateListInVMap {
+  option (tableau.worksheet) = {name:"HAggregateListInVMap"};
+
+  map<uint32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Item {
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:false}}]; // Item ID
+    string name = 2 [(tableau.field) = {name:"Name"}]; // Item name
+    repeated Param param_list = 3 [(tableau.field) = {name:"Param" layout:LAYOUT_HORIZONTAL prop:{aggregate:true}}]; // Param
+    message Param {
+      uint32 id = 1 [(tableau.field) = {name:"ID"}]; // ID
+      int32 num = 2 [(tableau.field) = {name:"Num"}]; // num
+    }
+  }
+}
+
 message HorizontalListInHMap {
   option (tableau.worksheet) = {name:"HorizontalListInHMap"};
 

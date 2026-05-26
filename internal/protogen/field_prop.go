@@ -29,7 +29,7 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp, layout tableaupb.Layout) *ta
 		ValidateMessage: prop.ValidateMessage,
 	}
 	switch layout {
-	case tableaupb.Layout_LAYOUT_INCELL:
+	case tableaupb.Layout_LAYOUT_HORIZONTAL, tableaupb.Layout_LAYOUT_INCELL:
 		p.Aggregate = prop.Aggregate
 	}
 	if IsEmptyFieldProp(p) {
@@ -64,6 +64,7 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool, layout t
 	case tableaupb.Layout_LAYOUT_HORIZONTAL:
 		p.Fixed = prop.Fixed
 		p.Size = prop.Size
+		p.Aggregate = prop.Aggregate
 	case tableaupb.Layout_LAYOUT_INCELL:
 		p.Aggregate = prop.Aggregate
 	}
