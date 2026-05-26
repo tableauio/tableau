@@ -5,15 +5,15 @@ syntax = "proto3";
 
 package internal;
 
-option go_package = "github.com/tableauio/tableau/proto/tableaupb/internalpb";
-
 import "tableau/protobuf/tableau.proto";
 
+option go_package = "github.com/tableauio/tableau/proto/tableaupb/internalpb";
+
 message Workbook {
-  string name = 1;  // book name without suffix
+  string name = 1; // book name without suffix
   tableau.WorkbookOptions options = 2;
   repeated Worksheet worksheets = 3;
-  map<string, int32> imports = 4;  // imported proto files
+  map<string, int32> imports = 4; // imported proto files
 }
 
 message Worksheet {
