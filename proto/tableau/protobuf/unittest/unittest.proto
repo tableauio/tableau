@@ -413,3 +413,38 @@ message ScatterMergeConf {
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
 }
+
+// Merger loading test cases, used by load.TestLoadOriginMerger.
+//
+// Each messager declares its main sheet under "Unittest#*.csv" and uses
+// merger shards co-located with the main workbook. Merger always merges
+// the main workbook with every resolved shard (no PATCH_* gate), so the
+// test cases vary on shard count rather than on patch mode.
+
+message MergerSingleConf {
+  option (tableau.worksheet) = {
+    name:"MergerSingleConf"
+    namerow:1 typerow:2 noterow:3 datarow:4
+    merger:"UnittestMerger1*.csv#MergerSingleConf"
+  };
+
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Zone {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+message MergerMultiConf {
+  option (tableau.worksheet) = {
+    name:"MergerMultiConf"
+    namerow:1 typerow:2 noterow:3 datarow:4
+    merger:"UnittestMerger*.csv#MergerMultiConf"
+  };
+
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Zone {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}

@@ -607,3 +607,62 @@ func TestLoadOriginScatter(t *testing.T) {
 	})
 }
 
+// TestLoadOriginMerger exercises loadOrigin's merger handling.
+//
+// Each messager declares its main sheet under "Unittest#<MsgName>.csv"
+// and uses merger shards "UnittestMerger*#<MsgName>.csv" co-located with
+// the main workbook. Merger always merges the main workbook with every
+// resolved shard, so the cases vary on shard count rather than on patch
+// mode. A SubdirRewrites case is added to cover the importer-resolution
+// error path returned by loadOriginMerger.
+func TestLoadOriginMerger(t *testing.T) {
+	t.Run("single-shard-merged-with-main", func(t *testing.T) {
+		got := &unittestpb.MergerSingleConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		want := &unittestpb.MergerSingleConf{
+			ZoneMap: map[uint32]*unittestpb.MergerSingleConf_Zone{
+				1:  {Id: 1, Name: "Main-A"},
+				2:  {Id: 2, Name: "Main-B"},
+				10: {Id: 10, Name: "Shard1"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"merger: main and the single shard should be merged.\ngot:  %v\nwant: %v", got, want)
+	})
+
+	t.Run("multi-shard-all-merged-with-main", func(t *testing.T) {
+		got := &unittestpb.MergerMultiConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		// NOTE: shard contents are disjoint on purpose. The order in
+		// which importer.GetMergerImporters returns books is map-iter
+		// based and not stable, so any "later overrides earlier"
+		// assertion would be flaky.
+		want := &unittestpb.MergerMultiConf{
+			ZoneMap: map[uint32]*unittestpb.MergerMultiConf_Zone{
+				1:  {Id: 1, Name: "Main-A"},
+				2:  {Id: 2, Name: "Main-B"},
+				10: {Id: 10, Name: "Shard1"},
+				20: {Id: 20, Name: "Shard2"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"merger: main and all shards should be merged.\ngot:  %v\nwant: %v", got, want)
+	})
+
+	t.Run("importer-resolution-error", func(t *testing.T) {
+		// Redirect the workbook directory to a non-existent one so that
+		// the merger glob resolves no files; loadOriginMerger must
+		// surface this as an error rather than silently fall back to
+		// the main workbook.
+		err := LoadMessagerInDir(
+			&unittestpb.MergerSingleConf{}, "../testdata/", format.CSV,
+			&MessagerOptions{
+				BaseOptions: BaseOptions{
+					SubdirRewrites: map[string]string{"unittest": "unittest-not-existed"},
+				},
+			},
+		)
+		require.Error(t, err)
+	})
+}
+
