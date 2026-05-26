@@ -392,16 +392,7 @@ func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message,
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
 	if present {
-		// Cross-node consistency: when sibling document nodes merge into
-		// one record, each must produce the same value for this union field.
-		if msg.Has(field.fd) {
-			existingValue := msg.Get(field.fd)
-			if !existingValue.Equal(structValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(structValue, existingValue), node.DebugKV()...)
-			}
-		} else {
-			msg.Set(field.fd, structValue)
-		}
+		msg.Set(field.fd, structValue)
 	}
 	return
 }
@@ -422,16 +413,7 @@ func (p *documentParser) parseStructField(field *Field, msg protoreflect.Message
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
 	if present {
-		// Cross-node consistency: when sibling document nodes merge into
-		// one record, each must produce the same value for this struct field.
-		if msg.Has(field.fd) {
-			existingValue := msg.Get(field.fd)
-			if !existingValue.Equal(structValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(structValue, existingValue), node.DebugKV()...)
-			}
-		} else {
-			msg.Set(field.fd, structValue)
-		}
+		msg.Set(field.fd, structValue)
 	}
 	return
 }
@@ -444,16 +426,7 @@ func (p *documentParser) parseScalarField(field *Field, msg protoreflect.Message
 		return false, xerrors.WrapKV(err, node.DebugKV()...)
 	}
 	if present {
-		// Cross-node consistency: when sibling document nodes merge into
-		// one record, each must produce the same scalar value for this field.
-		if msg.Has(field.fd) {
-			existingValue := msg.Get(field.fd)
-			if !existingValue.Equal(newValue) {
-				return false, xerrors.WrapKV(xerrors.E2023(newValue, existingValue), node.DebugKV()...)
-			}
-		} else {
-			msg.Set(field.fd, newValue)
-		}
+		msg.Set(field.fd, newValue)
 	}
 	return
 }
