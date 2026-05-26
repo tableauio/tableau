@@ -202,7 +202,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 			BookFormat:     self.Format(),
 		},
 	}
-	collector := xerrors.NewCollector(opts.GetMaxErrors())
+	collector := xerrors.NewCollector(opts.GetMaxErrorsPerSheet())
 	mainImpInfo := importer.ImporterInfo{Importer: self}
 
 	// Scatter and merger are mutually exclusive: prefer scatter when declared.
