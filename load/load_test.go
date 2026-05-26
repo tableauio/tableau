@@ -554,3 +554,115 @@ func TestLoadEmptyText(t *testing.T) {
 	)
 	require.NoError(t, err, "should return no error")
 }
+
+// TestLoadOriginScatter exercises loadOrigin's scatter handling for the
+// three patch modes: PATCH_NONE, PATCH_REPLACE and PATCH_MERGE.
+//
+// Each messager's main sheet is "Unittest#<MsgName>.csv" and its scatter
+// shards are "UnittestScatter*#<MsgName>.csv", co-located with the main
+// workbook under testdata/unittest/.
+func TestLoadOriginScatter(t *testing.T) {
+	t.Run("PATCH_NONE-only-main-loaded", func(t *testing.T) {
+		got := &unittestpb.ScatterNoneConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		want := &unittestpb.ScatterNoneConf{
+			ZoneMap: map[uint32]*unittestpb.ScatterNoneConf_Zone{
+				1: {Id: 1, Name: "Main-A"},
+				2: {Id: 2, Name: "Main-B"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"PATCH_NONE: scatter shards must be ignored.\ngot:  %v\nwant: %v", got, want)
+	})
+
+	t.Run("PATCH_REPLACE-last-scatter-wins", func(t *testing.T) {
+		got := &unittestpb.ScatterReplaceConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		// NOTE: only one scatter shard is provided here on purpose. The
+		// order of importers returned by importer.GetScatterImporters
+		// is map-iteration based and not stable, so multi-shard
+		// "last-wins" assertions would be flaky.
+		want := &unittestpb.ScatterReplaceConf{
+			ZoneMap: map[uint32]*unittestpb.ScatterReplaceConf_Zone{
+				10: {Id: 10, Name: "Replace1"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"PATCH_REPLACE: scatter shard should replace the main message.\ngot:  %v\nwant: %v", got, want)
+	})
+
+	t.Run("PATCH_MERGE-main-plus-all-scatters", func(t *testing.T) {
+		got := &unittestpb.ScatterMergeConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		want := &unittestpb.ScatterMergeConf{
+			ZoneMap: map[uint32]*unittestpb.ScatterMergeConf_Zone{
+				1:  {Id: 1, Name: "Main-A"},
+				2:  {Id: 2, Name: "Main-B"},
+				10: {Id: 10, Name: "Patch1"},
+				20: {Id: 20, Name: "Patch2"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"PATCH_MERGE: main and all scatter shards should be merged.\ngot:  %v\nwant: %v", got, want)
+	})
+}
+
+// TestLoadOriginMerger exercises loadOrigin's merger handling.
+//
+// Each messager declares its main sheet under "Unittest#<MsgName>.csv"
+// and uses merger shards "UnittestMerger*#<MsgName>.csv" co-located with
+// the main workbook. Merger always merges the main workbook with every
+// resolved shard, so the cases vary on shard count rather than on patch
+// mode. A SubdirRewrites case is added to cover the importer-resolution
+// error path returned by loadOriginMerger.
+func TestLoadOriginMerger(t *testing.T) {
+	t.Run("single-shard-merged-with-main", func(t *testing.T) {
+		got := &unittestpb.MergerSingleConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		want := &unittestpb.MergerSingleConf{
+			ZoneMap: map[uint32]*unittestpb.MergerSingleConf_Zone{
+				1:  {Id: 1, Name: "Main-A"},
+				2:  {Id: 2, Name: "Main-B"},
+				10: {Id: 10, Name: "Shard1"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"merger: main and the single shard should be merged.\ngot:  %v\nwant: %v", got, want)
+	})
+
+	t.Run("multi-shard-all-merged-with-main", func(t *testing.T) {
+		got := &unittestpb.MergerMultiConf{}
+		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
+		// NOTE: shard contents are disjoint on purpose. The order in
+		// which importer.GetMergerImporters returns books is map-iter
+		// based and not stable, so any "later overrides earlier"
+		// assertion would be flaky.
+		want := &unittestpb.MergerMultiConf{
+			ZoneMap: map[uint32]*unittestpb.MergerMultiConf_Zone{
+				1:  {Id: 1, Name: "Main-A"},
+				2:  {Id: 2, Name: "Main-B"},
+				10: {Id: 10, Name: "Shard1"},
+				20: {Id: 20, Name: "Shard2"},
+			},
+		}
+		require.True(t, proto.Equal(got, want),
+			"merger: main and all shards should be merged.\ngot:  %v\nwant: %v", got, want)
+	})
+
+	t.Run("importer-resolution-error", func(t *testing.T) {
+		// Redirect the workbook directory to a non-existent one so that
+		// the merger glob resolves no files; loadOriginMerger must
+		// surface this as an error rather than silently fall back to
+		// the main workbook.
+		err := LoadMessagerInDir(
+			&unittestpb.MergerSingleConf{}, "../testdata/", format.CSV,
+			&MessagerOptions{
+				BaseOptions: BaseOptions{
+					SubdirRewrites: map[string]string{"unittest": "unittest-not-existed"},
+				},
+			},
+		)
+		require.Error(t, err)
+	})
+}
+

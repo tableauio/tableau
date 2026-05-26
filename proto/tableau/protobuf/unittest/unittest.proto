@@ -360,3 +360,91 @@ message FieldPresentMap {
     unittest.Target target = 6 [(tableau.field) = {name:"Target" span:SPAN_INNER_CELL prop:{form:FORM_TEXT present:true}}];
   }
 }
+
+// Scatter loading test cases, used by load.TestLoadOriginScatter.
+//
+// Each messager declares its main sheet under the file-level workbook
+// "unittest/Unittest#*.csv" and uses scatter shards co-located with the
+// main workbook. The scatter specifier is "<bookGlob>#<sheetName>": the
+// glob "UnittestScatter*.csv" matches the secondary CSV books, and the
+// sheet name after "#" further restricts the resolved files to those
+// holding the target sheet.
+
+message ScatterNoneConf {
+  option (tableau.worksheet) = {
+    name:"ScatterNoneConf"
+    namerow:1 typerow:2 noterow:3 datarow:4
+    scatter:"UnittestScatter*.csv#ScatterNoneConf"
+  };
+
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Zone {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+message ScatterReplaceConf {
+  option (tableau.worksheet) = {
+    name:"ScatterReplaceConf"
+    namerow:1 typerow:2 noterow:3 datarow:4
+    patch:PATCH_REPLACE
+    scatter:"UnittestScatter*.csv#ScatterReplaceConf"
+  };
+
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Zone {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+message ScatterMergeConf {
+  option (tableau.worksheet) = {
+    name:"ScatterMergeConf"
+    namerow:1 typerow:2 noterow:3 datarow:4
+    patch:PATCH_MERGE
+    scatter:"UnittestScatter*.csv#ScatterMergeConf"
+  };
+
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Zone {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+// Merger loading test cases, used by load.TestLoadOriginMerger.
+//
+// Each messager declares its main sheet under "Unittest#*.csv" and uses
+// merger shards co-located with the main workbook. Merger always merges
+// the main workbook with every resolved shard (no PATCH_* gate), so the
+// test cases vary on shard count rather than on patch mode.
+
+message MergerSingleConf {
+  option (tableau.worksheet) = {
+    name:"MergerSingleConf"
+    namerow:1 typerow:2 noterow:3 datarow:4
+    merger:"UnittestMerger1*.csv#MergerSingleConf"
+  };
+
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Zone {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}
+
+message MergerMultiConf {
+  option (tableau.worksheet) = {
+    name:"MergerMultiConf"
+    namerow:1 typerow:2 noterow:3 datarow:4
+    merger:"UnittestMerger*.csv#MergerMultiConf"
+  };
+
+  map<uint32, Zone> zone_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
+  message Zone {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+}

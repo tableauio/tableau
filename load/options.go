@@ -62,6 +62,18 @@ type BaseOptions struct {
 	//
 	// Default: nil.
 	SubdirRewrites map[string]string
+
+	// MaxErrorsPerSheet caps how many errors loadOrigin aggregates while
+	// loading a single messager (one sheet) before bailing out.
+	//
+	//   <=0 : fail-fast (1, current behavior).
+	//    1  : fail-fast.
+	//   >1  : aggregate up to N errors.
+	//
+	// NOTE: only input formats (Excel, CSV, XML, YAML) are supported.
+	//
+	// Default: 0 (=> 1, fail-fast).
+	MaxErrorsPerSheet int
 }
 
 // MessagerOptions is the options struct for a messager.
@@ -142,6 +154,15 @@ func (o *MessagerOptions) GetSubdirRewrites() map[string]string {
 	return o.SubdirRewrites
 }
 
+// GetMaxErrorsPerSheet returns the configured per-sheet cap, or 1 (fail-fast)
+// if unset.
+func (o *MessagerOptions) GetMaxErrorsPerSheet() int {
+	if o == nil || o.MaxErrorsPerSheet <= 0 {
+		return 1
+	}
+	return o.MaxErrorsPerSheet
+}
+
 // GetPath returns messager's config file path.
 func (o *MessagerOptions) GetPath() string {
 	if o == nil {
@@ -200,6 +221,9 @@ func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
 	}
 	if mopts.SubdirRewrites == nil {
 		mopts.SubdirRewrites = o.SubdirRewrites
+	}
+	if mopts.MaxErrorsPerSheet == 0 {
+		mopts.MaxErrorsPerSheet = o.MaxErrorsPerSheet
 	}
 	return &mopts
 }
@@ -290,5 +314,19 @@ func Mode(mode LoadMode) Option {
 func WithMessagerOptions(options map[string]*MessagerOptions) Option {
 	return func(opts *Options) {
 		opts.MessagerOptions = options
+	}
+}
+
+// MaxErrorsPerSheet caps how many errors loadOrigin aggregates while
+// loading a single messager (one sheet) before bailing out.
+//
+//   <=0 : fail-fast (1, current behavior).
+//    1  : fail-fast.
+//   >1  : aggregate up to n errors.
+//
+// NOTE: only input formats (Excel, CSV, XML, YAML) are supported.
+func MaxErrorsPerSheet(n int) Option {
+	return func(opts *Options) {
+		opts.MaxErrorsPerSheet = n
 	}
 }
