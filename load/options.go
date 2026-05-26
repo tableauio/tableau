@@ -62,6 +62,18 @@ type BaseOptions struct {
 	//
 	// Default: nil.
 	SubdirRewrites map[string]string
+
+	// MaxErrors caps how many errors loadOrigin aggregates at the top
+	// (per-call) collector before bailing out.
+	//
+	//   <=0 : fail-fast (1, current behavior).
+	//    1  : fail-fast.
+	//   >1  : aggregate up to N errors.
+	//
+	// NOTE: only input formats (Excel, CSV, XML, YAML) are supported.
+	//
+	// Default: 0 (=> 1, fail-fast).
+	MaxErrors int
 }
 
 // MessagerOptions is the options struct for a messager.
@@ -142,6 +154,14 @@ func (o *MessagerOptions) GetSubdirRewrites() map[string]string {
 	return o.SubdirRewrites
 }
 
+// GetMaxErrors returns the configured per-call cap, or 1 (fail-fast) if unset.
+func (o *MessagerOptions) GetMaxErrors() int {
+	if o == nil || o.MaxErrors <= 0 {
+		return 1
+	}
+	return o.MaxErrors
+}
+
 // GetPath returns messager's config file path.
 func (o *MessagerOptions) GetPath() string {
 	if o == nil {
@@ -200,6 +220,9 @@ func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
 	}
 	if mopts.SubdirRewrites == nil {
 		mopts.SubdirRewrites = o.SubdirRewrites
+	}
+	if mopts.MaxErrors == 0 {
+		mopts.MaxErrors = o.MaxErrors
 	}
 	return &mopts
 }
