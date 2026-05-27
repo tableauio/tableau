@@ -1,6 +1,6 @@
 version: v2
 deps:
-  - buf.build/bufbuild/protovalidate:v1.1.1
+  - buf.build/bufbuild/protovalidate:v1.2.0
 modules:
   # Named module: published to BSR, excludes internal/unittest protos.
   - path: proto
