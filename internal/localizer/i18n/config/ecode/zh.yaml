@@ -105,9 +105,9 @@ E2022:
   text: map value 或 list element 子字段 "{{.FieldName}}" 的值 "{{.Key}}" 已存在
   help: 确保 map value 或 list element 子字段 "{{.FieldName}}" 的值唯一, 不能配置相同值
 E2023:
-  desc: inconsistent merged field values across rows or columns
-  text: 合并字段取值冲突——当前 {{ quote .CurrValue }} 与之前 {{ quote .PrevValue }} 不同
-  help: 请确保所有参与合并的行或列在该字段取值相同
+  desc: inconsistent field values across aggregated rows or columns
+  text: 聚合字段取值冲突——当前 {{ quote .CurrValue }} 与之前 {{ quote .PrevValue }} 不同
+  help: 请确保所有参与聚合的行或列在该字段取值相同，或设置 prop "aggregate:true" 以启用聚合
 E2024:
   desc: invalid version pattern
   text: "{{ quote .Value }} 无法以点分十进制解析, {{.Error}}"

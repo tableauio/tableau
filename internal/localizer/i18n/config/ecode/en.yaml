@@ -161,9 +161,9 @@ E2022:
     - FieldName: string
     - Key: any
 E2023:
-  desc: inconsistent merged field values across rows or columns
-  text: merged field value conflict - current {{ quote .CurrValue }} vs previous {{ quote .PrevValue }}
-  help: ensure all merged rows or columns have identical values for this field
+  desc: inconsistent field values across aggregated rows or columns
+  text: aggregated field value conflict - current {{ quote .CurrValue }} vs previous {{ quote .PrevValue }}
+  help: ensure all aggregated rows or columns have identical values for this field, or set prop "aggregate:true" to enable aggregation
   fields:
     - CurrValue: any
     - PrevValue: any
