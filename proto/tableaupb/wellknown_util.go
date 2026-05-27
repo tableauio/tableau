@@ -1,7 +1,5 @@
 package tableaupb
 
-import "math/big"
-
 // NewFraction creates a new fraction.
 func NewFraction(num, den int32) *Fraction {
 	return &Fraction{Num: num, Den: den}
@@ -33,10 +31,6 @@ func NewIntegerComparator(sign Comparator_Sign, num int32) *Comparator {
 // Compare returns true if the given fraction matches the given comparator.
 func Compare(left *Fraction, cmp *Comparator) bool {
 	return left.Cmp(cmp)
-}
-
-func (f *Fraction) AsRat() *big.Rat {
-	return big.NewRat(int64(f.GetNum()), int64(f.GetDen()))
 }
 
 func (f *Fraction) Cmp(cmp *Comparator) bool {
