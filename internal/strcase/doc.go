@@ -23,4 +23,25 @@
 //     of "Tier1" is "tier1", NOT "tier_1".
 //   - Acronyms are treated as ordinary words: "GetDnsRequest" / "dns_request",
 //     NOT "GetDNSRequest" / "d_n_s_request".
+//
+// # Legacy (pre-STYLE2024) mode
+//
+// Existing projects whose generated proto files were produced under the
+// pre-STYLE2024 algorithm can opt back into the old behavior by constructing
+// the engine via [NewLegacy] (or, at the public API level, by setting
+// proto.input.useLegacyNamingStyle: true in their tableau config). The flag
+// is honored only by protogen — confgen always parses input under STYLE2024
+// rules — and is force-disabled when proto.output.edition >= 2024.
+// In legacy mode:
+//
+//   - Underscores ARE inserted at letter <-> digit boundaries
+//     (e.g. "Tier1" -> "tier_1", "DeviceTier" / "1" -> "DEVICE_TIER_1").
+//   - EnumValue does NOT inject a leading "V" for digit-led suffixes;
+//     ProtoOutputOption.EnumValueWithPrefix continues to gate prefixing
+//     at the call site (see options.EnumValueWithPrefix).
+//   - Consecutive uppercase letters are folded to lower in camel form
+//     (e.g. "HeroNTagMFcX" -> "HeroNtagMfcX").
+//
+// See the strcase tests (camel_test.go / snake_test.go / enum_value_test.go)
+// for an exhaustive, side-by-side enumeration of every divergence.
 package strcase

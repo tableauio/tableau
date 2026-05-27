@@ -182,22 +182,33 @@ func isAllUpperOrDigitWithLetter(s string) bool {
 	return hasLetter
 }
 
-// ToCamel converts a string to PascalCase (UpperCamelCase) under
-// STYLE2024 rules.
+// ToCamel converts a string to PascalCase (UpperCamelCase).
 //
-// Examples:
+// Under STYLE2024 rules (default):
 //
 //	"any_kind_of_string"  -> "AnyKindOfString"
 //	"PVE_DATA"            -> "PveData"
 //	"Tier1"               -> "Tier1"
 //	"HeroNTagMFcX_SCORE"  -> "HeroNTagMFcXScore"
+//
+// Under legacy rules (NewLegacy):
+//
+//	"any_kind_of_string"  -> "AnyKindOfString"
+//	"Tier1"               -> "Tier1"
+//	"numbers2And55with000"-> "Numbers2And55With000"   // capital W
 func (ctx *Strcase) ToCamel(s string) string {
+	if ctx.legacy {
+		return ctx.toCamelInitCaseLegacy(s, true)
+	}
 	return ctx.toCamelCase(s)
 }
 
-// ToLowerCamel converts a string to lowerCamelCase under STYLE2024
-// rules. It is derived from ToCamel by lower-casing the first
-// character of the PascalCase result.
+// ToLowerCamel converts a string to lowerCamelCase.
+//
+// Under STYLE2024 rules (default), it is derived from ToCamel by
+// lower-casing the first character of the PascalCase result.
+//
+// Under legacy rules, the byte-level walker emits the result directly.
 //
 // Examples:
 //
@@ -206,5 +217,8 @@ func (ctx *Strcase) ToCamel(s string) string {
 //	"Tier1"               -> "tier1"
 //	"HeroNTagMFcX_SCORE"  -> "heroNTagMFcXScore"
 func (ctx *Strcase) ToLowerCamel(s string) string {
+	if ctx.legacy {
+		return ctx.toCamelInitCaseLegacy(s, false)
+	}
 	return lowerFirst(ctx.toCamelCase(s))
 }

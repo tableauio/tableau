@@ -62,12 +62,24 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 	if err := parser.Parse(desc, sheet); err != nil {
 		return err
 	}
+	sc := strcase.FromContext(gen.ctx)
 	for i, value := range desc.Values {
 		number := int32(i + 1)
 		if value.Number != nil {
 			number = value.GetNumber()
 		}
-		name := strcase.FromContext(gen.ctx).EnumValue(ws.Name, value.Name)
+		var name string
+		if sc.Legacy() {
+			// Legacy: the prefix is opt-in via EnumValueWithPrefix, matching
+			// the pre-STYLE2024 generator behavior.
+			name = value.Name
+			if gen.OutputOpt.EnumValueWithPrefix {
+				name = sc.EnumValue(ws.Name, value.Name)
+			}
+		} else {
+			// STYLE2024: the prefix is mandatory.
+			name = sc.EnumValue(ws.Name, value.Name)
+		}
 		field := &internalpb.Field{
 			Number: number,
 			Name:   strings.TrimSpace(name),

@@ -65,7 +65,17 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	ctx := context.Background()
-	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
+	// STYLE2024 naming is the default. Users can opt back into the legacy
+	// pre-STYLE2024 algorithm via ProtoInputOption.UseLegacyNamingStyle,
+	// EXCEPT when the requested edition itself mandates STYLE2024
+	// (>= EditionStyle2024); in that case the legacy flag is ignored.
+	useLegacy := opts.Proto.Input.UseLegacyNamingStyle &&
+		opts.Proto.Output.Edition < options.EditionStyle2024
+	if useLegacy {
+		ctx = strcase.NewContext(ctx, strcase.NewLegacy(opts.Acronyms))
+	} else {
+		ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
+	}
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
 
 	gen := &Generator{

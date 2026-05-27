@@ -4,35 +4,52 @@ import (
 	"strings"
 )
 
-// ToSnake converts a string to snake_case under STYLE2024 rules.
+// ToSnake converts a string to snake_case.
 //
-// STYLE2024 highlights (https://protobuf.dev/programming-guides/style/):
-//   - An underscore is only allowed in front of a letter; therefore no
-//     underscore is inserted at letter <-> digit boundaries.
-//   - Acronyms are treated as ordinary words (e.g. "JSONData" ->
-//     "json_data", "userID" -> "user_id").
+// Under STYLE2024 rules (default), see toDelimited for the detailed rule
+// set. Under legacy rules (NewLegacy), letter <-> digit boundaries are
+// also split with an underscore (e.g. "Tier1" -> "tier_1").
 //
-// Examples:
+// STYLE2024 examples:
 //
 //	"Tier1"                -> "tier1"
 //	"numbers2and55with000" -> "numbers2and55with000"
 //	"AB1AB2AB3"            -> "ab1_ab2_ab3"
 //	"userID"               -> "user_id"
 //	"JSONData"             -> "json_data"
+//
+// Legacy examples:
+//
+//	"Tier1"                -> "tier_1"
+//	"numbers2and55with000" -> "numbers_2_and_55_with_000"
+//	"AB1AB2AB3"            -> "ab_1_ab_2_ab_3"
+//	"userID"               -> "user_id"
+//	"JSONData"             -> "json_data"
 func (ctx *Strcase) ToSnake(s string) string {
+	if ctx.legacy {
+		return ctx.toScreamingDelimitedLegacy(s, '_', false)
+	}
 	return ctx.toDelimited(s, '_', false)
 }
 
-// ToScreamingSnake converts a string to SCREAMING_SNAKE_CASE under
-// STYLE2024 rules. Same semantics as ToSnake, but the result is upper
-// cased.
+// ToScreamingSnake converts a string to SCREAMING_SNAKE_CASE. Same
+// semantics as ToSnake, but the result is upper cased.
 //
-// Examples:
+// STYLE2024 examples:
 //
 //	"Tier1"                -> "TIER1"
 //	"numbers2and55with000" -> "NUMBERS2AND55WITH000"
 //	"AB1AB2AB3"            -> "AB1_AB2_AB3"
+//
+// Legacy examples:
+//
+//	"Tier1"                -> "TIER_1"
+//	"numbers2and55with000" -> "NUMBERS_2_AND_55_WITH_000"
+//	"AB1AB2AB3"            -> "AB_1_AB_2_AB_3"
 func (ctx *Strcase) ToScreamingSnake(s string) string {
+	if ctx.legacy {
+		return ctx.toScreamingDelimitedLegacy(s, '_', true)
+	}
 	return ctx.toDelimited(s, '_', true)
 }
 

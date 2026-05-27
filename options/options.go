@@ -168,6 +168,39 @@ type ProtoInputOption struct {
 	//
 	// Default: "".
 	MessagerPattern string `yaml:"messagerPattern"`
+
+	// UseLegacyNamingStyle switches the case-conversion engine used during
+	// proto generation to the pre-STYLE2024 algorithm.
+	//
+	// When false (default), all generated proto field names and enum value
+	// names follow the Protobuf STYLE2024 guide
+	// (https://protobuf.dev/programming-guides/style/). Notably:
+	//   - No underscore is inserted at letter <-> digit boundaries
+	//     ("Tier1" -> "tier1", NOT "tier_1").
+	//   - Acronyms are treated as ordinary words
+	//     ("JSONData" -> "json_data", "userID" -> "user_id").
+	//   - Enum value names are always prefixed with the UPPER_SNAKE_CASE form
+	//     of their enum type, and a leading "V" is injected when the suffix
+	//     would otherwise start with a digit ("DeviceTier"."1" ->
+	//     "DEVICE_TIER_V1").
+	//
+	// When true, the algorithm shipped before STYLE2024 is used. This option
+	// exists so that existing projects whose .proto files were generated
+	// under the old rules can keep regenerating without a one-shot rename
+	// storm. It also re-enables ProtoOutputOption.EnumValueWithPrefix
+	// (which is otherwise a no-op under STYLE2024).
+	//
+	// NOTE: this flag is ignored (i.e. STYLE2024 is forced) when
+	// ProtoOutputOption.Edition >= EditionStyle2024, because edition 2024
+	// itself mandates the STYLE2024 naming rules.
+	//
+	// NOTE: confgen never honors this flag — conf-side parsing always uses
+	// the STYLE2024 algorithm so that generated proto produced under either
+	// style still loads correctly. The only consumer of this flag is the
+	// proto generator.
+	//
+	// Default: false.
+	UseLegacyNamingStyle bool `yaml:"useLegacyNamingStyle"`
 }
 
 // Output options for generating proto files.
@@ -187,11 +220,18 @@ type ProtoOutputOption struct {
 	// Default: "".
 	FilenameSuffix string `yaml:"filenameSuffix"`
 
-	// Specify the generated protobuf file's edition.
+	// Specify the generated protobuf file's edition (e.g. 2023, 2024).
 	// See https://protobuf.dev/editions/overview/.
 	//
-	// Default: "".
-	Edition string `yaml:"edition"`
+	// 0 (the zero value) means "do not emit an edition declaration"; the
+	// generator falls back to `syntax = "proto3";` instead.
+	//
+	// NOTE: when Edition >= EditionStyle2024, ProtoInputOption.UseLegacyNamingStyle
+	// is force-disabled because edition 2024 itself mandates the STYLE2024
+	// naming rules.
+	//
+	// Default: 0.
+	Edition int `yaml:"edition"`
 
 	// Specify options (including features) at file level.
 	// Examples: "go_package", "csharp_namespace", "features.(pb.go).strip_enum_prefix" etc.
@@ -213,10 +253,11 @@ type ProtoOutputOption struct {
 	//
 	// Default: false.
 	//
-	// Deprecated: STYLE2024 mandates that every enum value name begins with the
-	// UPPER_SNAKE_CASE form of its enum type, so the prefix is now always
-	// applied regardless of this option. The field is kept only for backward
-	// compatibility of the configuration schema.
+	// NOTE: under the default STYLE2024 naming style this option is a no-op,
+	// because STYLE2024 mandates the prefix unconditionally. It is only
+	// honored when ProtoInputOption.UseLegacyNamingStyle is true (and
+	// Edition < EditionStyle2024); in that case it preserves the legacy
+	// "opt-in prefix" behavior.
 	EnumValueWithPrefix bool `yaml:"enumValueWithPrefix"`
 
 	// In Protocol Buffers (Protobuf), to guarantee both backward and forward
@@ -388,6 +429,11 @@ const (
 const (
 	DefaultVersionPattern = "255.255.255"
 )
+
+// EditionStyle2024 is the protobuf edition number at which the STYLE2024
+// naming rules become mandatory. When ProtoOutputOption.Edition is at or
+// above this value, ProtoInputOption.UseLegacyNamingStyle is ignored.
+const EditionStyle2024 = 2024
 
 // Option is the functional option type.
 type Option func(*Options)
