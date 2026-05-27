@@ -39,26 +39,25 @@ func (f *Fraction) AsRat() *big.Rat {
 	return big.NewRat(int64(f.GetNum()), int64(f.GetDen()))
 }
 
-var cmpResult = map[int]map[Comparator_Sign]bool{
-	-1: {
-		Comparator_SIGN_NOT_EQUAL:     true,
-		Comparator_SIGN_LESS:          true,
-		Comparator_SIGN_LESS_OR_EQUAL: true,
-	},
-	0: {
-		Comparator_SIGN_EQUAL:            true,
-		Comparator_SIGN_LESS_OR_EQUAL:    true,
-		Comparator_SIGN_GREATER_OR_EQUAL: true,
-	},
-	1: {
-		Comparator_SIGN_NOT_EQUAL:        true,
-		Comparator_SIGN_GREATER:          true,
-		Comparator_SIGN_GREATER_OR_EQUAL: true,
-	},
-}
-
 func (f *Fraction) Cmp(cmp *Comparator) bool {
-	self := f.AsRat()
-	other := cmp.GetValue().AsRat()
-	return cmpResult[self.Cmp(other)][cmp.GetSign()]
+	other := cmp.GetValue()
+	// cross-multiply to compare
+	lval := int64(f.GetNum()) * int64(other.GetDen())
+	rval := int64(other.GetNum()) * int64(f.GetDen())
+	switch cmp.GetSign() {
+	case Comparator_SIGN_EQUAL:
+		return lval == rval
+	case Comparator_SIGN_NOT_EQUAL:
+		return lval != rval
+	case Comparator_SIGN_LESS:
+		return lval < rval
+	case Comparator_SIGN_LESS_OR_EQUAL:
+		return lval <= rval
+	case Comparator_SIGN_GREATER:
+		return lval > rval
+	case Comparator_SIGN_GREATER_OR_EQUAL:
+		return lval >= rval
+	default:
+		panic("invalid compare operator")
+	}
 }
