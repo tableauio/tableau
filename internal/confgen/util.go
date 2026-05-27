@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -393,4 +394,45 @@ func escapeMapKey(key protoreflect.Value) string {
 		}
 	}
 	return comp
+}
+
+// listValues flattens a protoreflect.List into []any for E2023 diagnostics.
+func listValues(list protoreflect.List) []any {
+	values := make([]any, 0, list.Len())
+	for i := 0; i < list.Len(); i++ {
+		values = append(values, list.Get(i).Interface())
+	}
+	return values
+}
+
+// mapValues flattens a protoreflect.Map into map[any]any for E2023 diagnostics.
+func mapValues(mapValue protoreflect.Map) map[any]any {
+	values := make(map[any]any)
+	mapValue.Range(func(k protoreflect.MapKey, v protoreflect.Value) bool {
+		values[k.Interface()] = v.Interface()
+		return true
+	})
+	return values
+}
+
+// findKeyFieldDescriptor returns the sub-field descriptor of msgFd whose
+// tableau field option `name` (or default CamelCase fallback) equals keyName.
+// It is used to locate the key sub-field of a message keyed-list element.
+// Returns nil if msgFd is not a message kind or no matching sub-field is found.
+func findKeyFieldDescriptor(ctx context.Context, msgFd protoreflect.FieldDescriptor, keyName string) protoreflect.FieldDescriptor {
+	if keyName == "" || msgFd.Kind() != protoreflect.MessageKind {
+		return nil
+	}
+	fields := msgFd.Message().Fields()
+	for i := 0; i < fields.Len(); i++ {
+		fd := fields.Get(i)
+		name := strcase.FromContext(ctx).ToCamel(string(fd.FullName().Name()))
+		if opts, ok := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions); ok && opts != nil && opts.Name != "" {
+			name = opts.Name
+		}
+		if name == keyName {
+			return fd
+		}
+	}
+	return nil
 }

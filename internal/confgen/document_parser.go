@@ -381,13 +381,7 @@ func (p *documentParser) parseListField(field *Field, msg protoreflect.Message, 
 }
 
 func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
-	var structValue protoreflect.Value
-	if msg.Has(field.fd) {
-		// Get it if this field is populated. It will be overwritten if present.
-		structValue = msg.Mutable(field.fd)
-	} else {
-		structValue = msg.NewField(field.fd)
-	}
+	structValue := msg.NewField(field.fd)
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		present, err = p.parseIncellUnion(field, structValue, node.ScalarValue())
@@ -404,13 +398,7 @@ func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message,
 }
 
 func (p *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
-	var structValue protoreflect.Value
-	if msg.Has(field.fd) {
-		// Get it if this field is populated. It will be overwritten if present.
-		structValue = msg.Mutable(field.fd)
-	} else {
-		structValue = msg.NewField(field.fd)
-	}
+	structValue := msg.NewField(field.fd)
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct

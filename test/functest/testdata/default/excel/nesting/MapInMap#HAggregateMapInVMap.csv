@@ -1,0 +1,7 @@
+ID,Name,Prop1ID,Prop1Value,Prop2ID,Prop2Value
+"map<uint32, Item>|{unique:false}",string,"map<int32, Prop>|{aggregate:true}",int64,int32,int64
+Item ID,Item name,Prop1 ID,Prop1 value,Prop2 ID,Prop2 value
+1,Apple,1,10,,
+1,,2,20,,
+2,Orange,3,30,4,40
+3,Banana,5,50,,

@@ -805,16 +805,27 @@ func (p *sheetParser) parseIncellList(field *Field, list protoreflect.List, card
 			firstNonePresentIndex = i
 			continue
 		}
-		if fdopts.GetKey() != "" && fd.Kind() != protoreflect.MessageKind {
-			// check key unique for scalar/enum list
-			for j := 0; j < list.Len(); j++ {
+		if fdopts.GetKey() != "" {
+			// check duplicate elems for keyed-list:
+			//   - scalar/enum keyed-list: element itself is the key, compare elements directly.
+			//   - message keyed-list: compare only the key sub-field on each element.
+			keyFd := findKeyFieldDescriptor(p.ctx, fd, fdopts.GetKey())
+			for j := range list.Len() {
 				elemVal := list.Get(j)
-				if elemVal.Equal(elemValue) {
-					return xerrors.WrapKV(xerrors.E2005(elemValue))
+				var dup bool
+				if keyFd != nil {
+					dup = elemVal.Message().Get(keyFd).Equal(elemValue.Message().Get(keyFd))
+				} else {
+					dup = elemVal.Equal(elemValue)
+				}
+				if dup {
+					return xerrors.WrapKV(xerrors.E2028(elemValue))
 				}
 			}
 		}
-		// check list elem's sub-field prop
+		// In addition to the key-based dedup above, validate sub-field
+		// props (unique / sequence / order) on the new element. For scalar or
+		// non-message lists, checkSubFieldProp early-returns and is a no-op.
 		_, err = p.checkSubFieldProp(field, cardPrefix, elemValue)
 		if err != nil {
 			return err

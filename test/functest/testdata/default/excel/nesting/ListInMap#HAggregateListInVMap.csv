@@ -1,0 +1,7 @@
+ID,Name,Param1ID,Param1Num,Param2ID,Param2Num
+"map<uint32, Item>|{unique:false}",string,[Param]uint32|{aggregate:true},int32,uint32,int32
+Item ID,Item name,Param1 ID,Param1 num,Param2 ID,Param2 num
+1,Apple,101,10,,
+1,,102,20,,
+2,Orange,201,30,202,40
+3,Banana,301,50,,

@@ -2,15 +2,18 @@
     "itemMap": {
         "1": {
             "id": 1,
-            "name": "Apple"
-        },
-        "2": {
-            "id": 2,
-            "name": "Orange"
+            "name": "Apple",
+            "attrMap": {
+                "1": 2,
+                "3": 4
+            }
         },
         "3": {
             "id": 3,
-            "name": "Banana"
+            "name": "Banana",
+            "attrMap": {
+                "5": 6
+            }
         }
     }
 }

@@ -25,6 +25,7 @@ message SimpleIncellMap {
   map<int32, int32> item_map = 1 [(tableau.field) = {
     name: "Item"
     layout: LAYOUT_INCELL
+    prop: {aggregate: true}
   }];
 }
 
@@ -73,6 +74,7 @@ message IncellStructList {
   repeated unittest.Item item_list = 1 [(tableau.field) = {
     name: "Item"
     layout: LAYOUT_INCELL
+    prop: {aggregate: true}
   }];
 }
 
@@ -837,5 +839,115 @@ message MergerMultiConf {
   message Zone {
     uint32 id = 1 [(tableau.field) = {name: "ID"}];
     string name = 2 [(tableau.field) = {name: "Name"}];
+  }
+}
+
+message VerticalAggregationMap {
+  option (tableau.worksheet) = {name: "VerticalAggregationMap"};
+
+  map<uint32, Hero> hero_map = 1 [(tableau.field) = {
+    key: "HeroID"
+    layout: LAYOUT_VERTICAL
+  }];
+  message Hero {
+    uint32 hero_id = 1 [(tableau.field) = {name: "HeroID"}]; // Hero ID
+    string hero_name = 2 [(tableau.field) = {name: "HeroName"}]; // Hero name
+    map<int32, Level> level_map = 3 [(tableau.field) = {
+      key: "Level"
+      layout: LAYOUT_VERTICAL
+    }];
+    message Level {
+      int32 level = 1 [(tableau.field) = {name: "Level"}]; // Level
+      int32 exp = 2 [(tableau.field) = {name: "Exp"}]; // Experience points
+    }
+  }
+}
+
+message IncellKeyedList {
+  option (tableau.worksheet) = {
+    name: "IncellKeyedList"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
+
+  repeated uint32 id_list = 1 [(tableau.field) = {
+    name: "ID"
+    key: "ID"
+    layout: LAYOUT_INCELL
+    prop: {aggregate: true}
+  }]; // ID list with key and aggregation
+  repeated unittest.FruitType type_list = 2 [(tableau.field) = {
+    name: "Type"
+    key: "Type"
+    layout: LAYOUT_INCELL
+  }]; // Type list with key
+  repeated unittest.Item item_list = 3 [(tableau.field) = {
+    name: "Item"
+    key: "ID"
+    layout: LAYOUT_INCELL
+    prop: {aggregate: true}
+  }]; // Item list with key (key is sub-field "ID") and aggregation
+}
+
+// HorizontalAggregateMap tests horizontal map with aggregate across rows.
+// Structure: vertical parent map (by HeroID) with a horizontal map child (Item)
+// that has aggregate:true, allowing different rows with same HeroID to contribute
+// different horizontal map entries.
+message HorizontalAggregateMap {
+  option (tableau.worksheet) = {
+    name: "HorizontalAggregateMap"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
+
+  map<uint32, Hero> hero_map = 1 [(tableau.field) = {
+    key: "HeroID"
+    layout: LAYOUT_VERTICAL
+  }];
+  message Hero {
+    uint32 hero_id = 1 [(tableau.field) = {
+      name: "HeroID"
+      prop: {unique: false}
+    }];
+    map<uint32, unittest.Item> item_map = 2 [(tableau.field) = {
+      name: "Item"
+      key: "ID"
+      layout: LAYOUT_HORIZONTAL
+      prop: {aggregate: true}
+    }];
+  }
+}
+
+// HorizontalAggregateList tests horizontal list with aggregate across rows.
+// Structure: vertical parent map (by HeroID) with a horizontal list child (Param)
+// that has aggregate:true, allowing different rows with same HeroID to contribute
+// different horizontal list entries.
+message HorizontalAggregateList {
+  option (tableau.worksheet) = {
+    name: "HorizontalAggregateList"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
+
+  map<uint32, Hero> hero_map = 1 [(tableau.field) = {
+    key: "HeroID"
+    layout: LAYOUT_VERTICAL
+  }];
+  message Hero {
+    uint32 hero_id = 1 [(tableau.field) = {
+      name: "HeroID"
+      prop: {unique: false}
+    }];
+    repeated unittest.Item param_list = 2 [(tableau.field) = {
+      name: "Param"
+      layout: LAYOUT_HORIZONTAL
+      prop: {aggregate: true}
+    }];
   }
 }
