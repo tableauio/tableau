@@ -1,11 +1,5 @@
 package tableaupb
 
-import (
-	"time"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
-)
-
 // NewFraction creates a new fraction.
 func NewFraction(num, den int32) *Fraction {
 	return &Fraction{Num: num, Den: den}
@@ -36,10 +30,14 @@ func NewIntegerComparator(sign Comparator_Sign, num int32) *Comparator {
 
 // Compare returns true if the given fraction matches the given comparator.
 func Compare(left *Fraction, cmp *Comparator) bool {
-	right := cmp.GetValue()
+	return left.Cmp(cmp)
+}
+
+func (f *Fraction) Cmp(cmp *Comparator) bool {
+	other := cmp.GetValue()
 	// cross-multiply to compare
-	lval := int64(left.GetNum()) * int64(right.GetDen())
-	rval := int64(right.GetNum()) * int64(left.GetDen())
+	lval := int64(f.GetNum()) * int64(other.GetDen())
+	rval := int64(other.GetNum()) * int64(f.GetDen())
 	switch cmp.GetSign() {
 	case Comparator_SIGN_EQUAL:
 		return lval == rval
@@ -56,14 +54,4 @@ func Compare(left *Fraction, cmp *Comparator) bool {
 	default:
 		panic("invalid compare operator")
 	}
-}
-
-// LocalTime converts a timestamp to a local time.
-//
-// NOTE: The [Timestamp.AsTime] method returns a UTC time, so we provide
-// [LocalTime] to convert it to a local time for easy use.
-//
-// [Timestamp.AsTime]: https://pkg.go.dev/google.golang.org/protobuf/types/known/timestamppb#Timestamp.AsTime
-func LocalTime(ts *timestamppb.Timestamp) time.Time {
-	return ts.AsTime().Local()
 }
