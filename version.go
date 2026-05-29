@@ -7,7 +7,7 @@ import (
 	"github.com/tableauio/tableau/internal/protogen"
 )
 
-const version = "0.15.0" // version of tableau
+const version = "0.16.0" // version of tableau
 const revisionSize = 7
 
 // VersionInfo holds versions of tableau's main modules and VCS info.
