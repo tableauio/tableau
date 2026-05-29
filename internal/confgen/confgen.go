@@ -145,7 +145,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		relCleanSlashPath := xfs.CleanSlashPath(bookName)
 		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
-		primaryBookInfo, ok := bookIndexes[relCleanSlashPath]
+		primaryBookInfo, ok := bookIndexes.get(relCleanSlashPath)
 		if !ok {
 			if gen.InputOpt.IgnoreUnknownWorkbook {
 				log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)

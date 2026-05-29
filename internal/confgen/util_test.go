@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func Test_appendUniqueFdByPath(t *testing.T) {
+func Test_primaryBookInfo_addFd(t *testing.T) {
 	// Two different proto files give us two FileDescriptors with different
 	// Path() values. Reusing the same FileDescriptor instance under different
 	// variable names still counts as the same identity (same Path()).
@@ -27,47 +27,48 @@ func Test_appendUniqueFdByPath(t *testing.T) {
 	tests := []struct {
 		name      string
 		initial   []protoreflect.FileDescriptor
-		toAppend  protoreflect.FileDescriptor
+		toAdd     protoreflect.FileDescriptor
 		wantPaths []string
 	}{
 		{
-			name:      "append to empty",
+			name:      "add to empty",
 			initial:   nil,
-			toAppend:  fdA,
+			toAdd:     fdA,
 			wantPaths: []string{fdA.Path()},
 		},
 		{
-			name:      "append distinct fd",
+			name:      "add distinct fd",
 			initial:   []protoreflect.FileDescriptor{fdA},
-			toAppend:  fdB,
+			toAdd:     fdB,
 			wantPaths: []string{fdA.Path(), fdB.Path()},
 		},
 		{
-			// Core regression: same fd appended twice must NOT duplicate.
+			// Core regression: same fd added twice must NOT duplicate.
 			// This is the bug behind the duplicated parsing/scatter/export
 			// logs when a Scatter specifier globs to the primary workbook
 			// itself, causing addFd() to be called twice with the same fd.
 			name:      "skip duplicate fd by Path",
 			initial:   []protoreflect.FileDescriptor{fdA},
-			toAppend:  fdA,
+			toAdd:     fdA,
 			wantPaths: []string{fdA.Path()},
 		},
 		{
 			name:      "skip duplicate among many",
 			initial:   []protoreflect.FileDescriptor{fdA, fdB},
-			toAppend:  fdB,
+			toAdd:     fdB,
 			wantPaths: []string{fdA.Path(), fdB.Path()},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := appendUniqueFdByPath(tt.initial, tt.toAppend)
-			gotPaths := make([]string, 0, len(got))
-			for _, fd := range got {
+			p := &primaryBookInfo{fds: tt.initial}
+			p.addFd(tt.toAdd)
+			gotPaths := make([]string, 0, len(p.fds))
+			for _, fd := range p.fds {
 				gotPaths = append(gotPaths, fd.Path())
 			}
 			if !reflect.DeepEqual(gotPaths, tt.wantPaths) {
-				t.Errorf("appendUniqueFdByPath() paths = %v, want %v", gotPaths, tt.wantPaths)
+				t.Errorf("addFd() paths = %v, want %v", gotPaths, tt.wantPaths)
 			}
 		})
 	}
