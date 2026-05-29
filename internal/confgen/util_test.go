@@ -14,6 +14,65 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+func Test_appendDedupedFd(t *testing.T) {
+	// Two different proto files give us two FileDescriptors with different
+	// Path() values. Reusing the same FileDescriptor instance under different
+	// variable names still counts as the same identity (same Path()).
+	fdA := (&unittestpb.ItemConf{}).ProtoReflect().Descriptor().ParentFile()
+	fdB := (&unittestpb.Item{}).ProtoReflect().Descriptor().ParentFile()
+	if fdA.Path() == fdB.Path() {
+		t.Fatalf("test prerequisite broken: fdA and fdB share the same Path() %q", fdA.Path())
+	}
+
+	tests := []struct {
+		name      string
+		initial   []protoreflect.FileDescriptor
+		toAppend  protoreflect.FileDescriptor
+		wantPaths []string
+	}{
+		{
+			name:      "append to empty",
+			initial:   nil,
+			toAppend:  fdA,
+			wantPaths: []string{fdA.Path()},
+		},
+		{
+			name:      "append distinct fd",
+			initial:   []protoreflect.FileDescriptor{fdA},
+			toAppend:  fdB,
+			wantPaths: []string{fdA.Path(), fdB.Path()},
+		},
+		{
+			// Core regression: same fd appended twice must NOT duplicate.
+			// This is the bug behind the duplicated parsing/scatter/export
+			// logs when a Scatter specifier globs to the primary workbook
+			// itself, causing addFd() to be called twice with the same fd.
+			name:      "skip duplicate fd by Path",
+			initial:   []protoreflect.FileDescriptor{fdA},
+			toAppend:  fdA,
+			wantPaths: []string{fdA.Path()},
+		},
+		{
+			name:      "skip duplicate among many",
+			initial:   []protoreflect.FileDescriptor{fdA, fdB},
+			toAppend:  fdB,
+			wantPaths: []string{fdA.Path(), fdB.Path()},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := appendDedupedFd(tt.initial, tt.toAppend)
+			gotPaths := make([]string, 0, len(got))
+			for _, fd := range got {
+				gotPaths = append(gotPaths, fd.Path())
+			}
+			if !reflect.DeepEqual(gotPaths, tt.wantPaths) {
+				t.Errorf("appendDedupedFd() paths = %v, want %v", gotPaths, tt.wantPaths)
+			}
+		})
+	}
+}
+
 func Test_parseBookSpecifier(t *testing.T) {
 	type args struct {
 		bookSpecifier string
