@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func Test_appendDedupedFd(t *testing.T) {
+func Test_appendUniqueFdByPath(t *testing.T) {
 	// Two different proto files give us two FileDescriptors with different
 	// Path() values. Reusing the same FileDescriptor instance under different
 	// variable names still counts as the same identity (same Path()).
@@ -61,13 +61,13 @@ func Test_appendDedupedFd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := appendDedupedFd(tt.initial, tt.toAppend)
+			got := appendUniqueFdByPath(tt.initial, tt.toAppend)
 			gotPaths := make([]string, 0, len(got))
 			for _, fd := range got {
 				gotPaths = append(gotPaths, fd.Path())
 			}
 			if !reflect.DeepEqual(gotPaths, tt.wantPaths) {
-				t.Errorf("appendDedupedFd() paths = %v, want %v", gotPaths, tt.wantPaths)
+				t.Errorf("appendUniqueFdByPath() paths = %v, want %v", gotPaths, tt.wantPaths)
 			}
 		})
 	}

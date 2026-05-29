@@ -165,13 +165,12 @@ type primaryBookInfo struct {
 	fds []protoreflect.FileDescriptor
 }
 
-// appendDedupedFd appends fd to fds if no existing entry has the same fd.Path().
-// Identity is keyed by fd.Path() because a single proto file may be visited
-// multiple times via Merger/Scatter glob results that resolve to a workbook
-// already indexed (e.g. a Scatter pattern globbing the primary workbook
-// itself). Without this dedup, GenWorkbook would schedule convert() for the
-// same (book, fd) pair more than once, producing duplicated output and logs.
-func appendDedupedFd(fds []protoreflect.FileDescriptor, fd protoreflect.FileDescriptor) []protoreflect.FileDescriptor {
+// appendUniqueFdByPath appends fd to fds, skipping if an entry with the
+// same fd.Path() already exists. Dedup is needed because Merger/Scatter
+// globs may resolve to an already-indexed workbook (e.g. a Scatter pattern
+// matching the primary workbook itself), which would otherwise cause
+// GenWorkbook to run convert() twice for the same (book, fd) pair.
+func appendUniqueFdByPath(fds []protoreflect.FileDescriptor, fd protoreflect.FileDescriptor) []protoreflect.FileDescriptor {
 	for _, existed := range fds {
 		if existed.Path() == fd.Path() {
 			return fds
@@ -183,6 +182,17 @@ func appendDedupedFd(fds []protoreflect.FileDescriptor, fd protoreflect.FileDesc
 // buildWorkbookIndex builds all workbook names (includes primary and secondary) to primary workbook info indexes.
 func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirRewrites map[string]string, prFiles *protoregistry.Files) (bookIndexes map[string]*primaryBookInfo, err error) {
 	bookIndexes = map[string]*primaryBookInfo{} // init
+	// index records fd under bookName, deduped by fd.Path() to avoid
+	// scheduling convert() twice when Merger/Scatter globs resolve
+	// to an already-indexed workbook.
+	index := func(bookName string, fd protoreflect.FileDescriptor) {
+		info := bookIndexes[bookName]
+		if info == nil {
+			info = &primaryBookInfo{}
+			bookIndexes[bookName] = info
+		}
+		info.fds = appendUniqueFdByPath(info.fds, fd)
+	}
 	prFiles.RangeFilesByPackage(
 		protoreflect.FullName(protoPackage),
 		func(fd protoreflect.FileDescriptor) bool {
@@ -194,21 +204,10 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 			if !xfs.HasSubdirPrefix(workbook.Name, subdirs) {
 				return true
 			}
-			// addFd appends fd to bookIndexes[bookName].fds, deduped by fd.Path().
-			// This avoids scheduling convert() multiple times for the same (book, fd)
-			// pair when a Merger/Scatter specifier globs to a workbook that is
-			// already indexed (most commonly: the primary workbook itself).
-			addFd := func(bookName string, fd protoreflect.FileDescriptor) {
-				info := bookIndexes[bookName]
-				if info == nil {
-					info = &primaryBookInfo{}
-					bookIndexes[bookName] = info
-				}
-				info.fds = appendDedupedFd(info.fds, fd)
-			}
+
 			// add self: rewrite subdir
 			rewrittenBookName := xfs.RewriteSubdir(workbook.Name, subdirRewrites)
-			addFd(rewrittenBookName, fd)
+			index(rewrittenBookName, fd)
 			// Merger/Scatter (only one can be set at once)
 			msgs := fd.Messages()
 			for i := 0; i < msgs.Len(); i++ {
@@ -229,7 +228,7 @@ func buildWorkbookIndex(protoPackage, inputDir string, subdirs []string, subdirR
 						return false
 					}
 					for relBookPath := range relBookPaths {
-						addFd(relBookPath, fd)
+						index(relBookPath, fd)
 					}
 				}
 			}
