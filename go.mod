@@ -14,7 +14,7 @@ require (
 	github.com/subchen/go-xmldom v1.1.2
 	github.com/valyala/fastjson v1.6.10
 	github.com/xuri/excelize/v2 v2.10.1
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/text v0.34.0
 	google.golang.org/protobuf v1.36.11
