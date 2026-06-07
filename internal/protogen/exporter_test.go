@@ -291,7 +291,7 @@ func Test_bookExporter_GetProtoFilePath(t *testing.T) {
 func Test_bookExporter_export(t *testing.T) {
 	tests := []struct {
 		name             string
-		edition          string
+		edition          int
 		protoFileOptions map[string]string
 		wantContains     []string
 		wantNotContains  []string
@@ -311,7 +311,7 @@ func Test_bookExporter_export(t *testing.T) {
 		},
 		{
 			name:    "edition-2023-with-features-utf8-validation",
-			edition: "2023",
+			edition: 2023,
 			protoFileOptions: map[string]string{
 				"go_package":               `"github.com/example/protoconf"`,
 				"features.utf8_validation": "NONE",
@@ -327,7 +327,7 @@ func Test_bookExporter_export(t *testing.T) {
 		},
 		{
 			name:    "edition-2024-with-features-strip-enum-prefix",
-			edition: "2024",
+			edition: 2024,
 			protoFileOptions: map[string]string{
 				"go_package":                         `"github.com/example/protoconf"`,
 				"features.(pb.go).strip_enum_prefix": "STRIP_ENUM_PREFIX_STRIP",
@@ -348,7 +348,7 @@ func Test_bookExporter_export(t *testing.T) {
 		},
 		{
 			name:    "edition-2024-with-pb-cpp-features-infer-cpp-features-import",
-			edition: "2024",
+			edition: 2024,
 			protoFileOptions: map[string]string{
 				"go_package":                    `"github.com/example/protoconf"`,
 				"features.(pb.cpp).string_type": "VIEW",
@@ -365,7 +365,7 @@ func Test_bookExporter_export(t *testing.T) {
 		},
 		{
 			name:    "edition-2024-with-pb-java-features-infer-java-features-import",
-			edition: "2024",
+			edition: 2024,
 			protoFileOptions: map[string]string{
 				"go_package":                         `"github.com/example/protoconf"`,
 				"features.(pb.java).utf8_validation": "VERIFY",
@@ -382,7 +382,7 @@ func Test_bookExporter_export(t *testing.T) {
 		},
 		{
 			name:    "edition-2024-with-all-language-features-infer-all-imports",
-			edition: "2024",
+			edition: 2024,
 			protoFileOptions: map[string]string{
 				"go_package":                            `"github.com/example/protoconf"`,
 				"features.(pb.go).api_level":            "API_OPAQUE",

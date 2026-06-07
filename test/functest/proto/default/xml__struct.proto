@@ -20,7 +20,7 @@ message XMLStructConf {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
-  OtherItem item_2 = 2 [(tableau.field) = {name:"Item2"}];
+  OtherItem item2 = 2 [(tableau.field) = {name:"Item2"}];
   message OtherItem {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];

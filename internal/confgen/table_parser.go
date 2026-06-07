@@ -7,7 +7,6 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
-	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xproto"
@@ -756,7 +755,7 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 	}
 
 	// parse union type
-	typeColName := prefix + strcase.FromContext(p.ctx).ToCamel(unionDesc.TypeName())
+	typeColName := prefix + unionDesc.TypeName()
 	cell, err := r.Cell(typeColName, p.IsFieldOptional(field))
 	if err != nil {
 		return false, err
