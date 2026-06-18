@@ -181,3 +181,62 @@ func TestCollectorIntegration_MultiBookCapped(t *testing.T) {
 		assert.Contains(t, got, e2012("Collector2#*.csv", "HeroConf", cells[i], v, "uint32"))
 	}
 }
+
+// TestCollectorIntegration_MergerSubtableBookName verifies that when a
+// SHARD sub-table fails to parse inside the ParseMessage merger goroutine,
+// the rendered error reports the offending shard's own BookName/SheetName,
+// and additionally annotates the primary main workbook as "(Primary: ...)".
+//
+// Layout:
+//   - main workbook "MergerCollector#*.csv" / sheet MergerCollectorItemConf
+//     contains only valid rows.
+//   - shard workbook  "MergerShard1#*.csv"   / sheet MergerCollectorItemConf
+//     contains one invalid Num cell ("bad_num") that triggers E2012.
+//
+// The shard is merged via `merger: "MergerShard*.csv#MergerCollectorItemConf"`
+// in merger.proto. parseMessageFromOneImporter fails on the shard, the
+// merger goroutine WrapKV's the error with both the shard names AND the
+// primary names; the fix ensures the shard names survive into the final
+// error description (regression: previously only the primary names were
+// kept and the user could not tell which shard actually broke).
+//
+// Note: uses a separate proto package + testdata tree so its workbook
+// options don't perturb the other TestCollectorIntegration_* tests above.
+func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
+	const mergerProtoDir = "./testdata/collector_merger/proto"
+	gen := NewGenerator("collectormergertest",
+		"./testdata/collector_merger/csv/merger/",
+		"./testdata/_collector_merger_out/",
+		options.Conf(
+			&options.ConfOption{
+				Input: &options.ConfInputOption{
+					ProtoPaths: []string{mergerProtoDir},
+					ProtoFiles: []string{mergerProtoDir + "/*.proto"},
+					Formats:    []format.Format{format.CSV},
+				},
+				Output: &options.ConfOutputOption{
+					Formats: []format.Format{format.JSON},
+				},
+			},
+		),
+	)
+	err := gen.Generate("MergerCollector#MergerCollectorItemConf.csv")
+	require.Error(t, err)
+
+	got := err.Error()
+	t.Logf("got error string:\n%s", got)
+
+	// The offending cell ("bad_num") must be reported against the SHARD
+	// workbook, not the main workbook.
+	assert.Contains(t, got, "Workbook: MergerShard1#*.csv",
+		"shard BookName must appear in the rendered error")
+	assert.Contains(t, got, "Worksheet: MergerCollectorItemConf",
+		"shard SheetName must appear in the rendered error")
+	// And the main workbook must be annotated as Primary, proving both
+	// (BookName, PrimaryBookName) survived WrapKV layering.
+	assert.Contains(t, got, "(Primary: MergerCollector#*.csv)",
+		"primary BookName must be annotated alongside the shard BookName")
+	// The error must NOT point at the main workbook as the offending one.
+	assert.NotContains(t, got, "Workbook: MergerCollector#*.csv ",
+		"main workbook must not be reported as the offending file")
+}
