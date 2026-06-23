@@ -246,11 +246,11 @@ message WorksheetOptions {
   // Different kvs must be seperated by ',' and one key value must be seperated
   // by ':'. If one key doesn't exist in map, it means that this loader option
   // is supported in all languages. Valid values are all combinations of "cpp",
-  // "go" and "csharp" with ' ' as seperator.
+  // "go", "csharp" and "ts" with ' ' as seperator.
   //
   // Examples:
-  //  - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index
-  //    supported in cpp and go
+  //  - OrderedMap:cpp,Index:cpp go ts // ordered map supported in cpp, index
+  //    supported in cpp, go and ts
   //  - OrderedMap:cpp // ordered map supported in cpp, index supported in all
   //    languages
   map<string, string> lang_options = 52;

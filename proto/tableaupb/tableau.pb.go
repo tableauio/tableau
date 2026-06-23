@@ -955,11 +955,11 @@ type WorksheetOptions struct {
 	// Different kvs must be seperated by ',' and one key value must be seperated
 	// by ':'. If one key doesn't exist in map, it means that this loader option
 	// is supported in all languages. Valid values are all combinations of "cpp",
-	// "go" and "csharp" with ' ' as seperator.
+	// "go", "csharp" and "ts" with ' ' as seperator.
 	//
 	// Examples:
-	//   - OrderedMap:cpp,Index:cpp go // ordered map supported in cpp, index
-	//     supported in cpp and go
+	//   - OrderedMap:cpp,Index:cpp go ts // ordered map supported in cpp, index
+	//     supported in cpp, go and ts
 	//   - OrderedMap:cpp // ordered map supported in cpp, index supported in all
 	//     languages
 	LangOptions map[string]string `protobuf:"bytes,52,rep,name=lang_options,json=langOptions,proto3" json:"lang_options,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
