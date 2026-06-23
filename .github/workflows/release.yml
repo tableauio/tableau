@@ -7,9 +7,10 @@ on:
 
 jobs:
   release:
-    name: Release cmd/tableauc
+    name: Release tableauc
     runs-on: ubuntu-latest
-    if: startsWith(github.event.release.tag_name, 'cmd/tableauc/')
+    # Only run for top-level release tags like `vX.Y.Z` (optionally with a suffix).
+    if: startsWith(github.event.release.tag_name, 'v')
     strategy:
       matrix:
         goos: [linux, darwin, windows]
@@ -30,9 +31,7 @@ jobs:
           go-version: "1.24.x"
 
       - name: Download dependencies
-        run: |
-          cd cmd/tableauc
-          go mod download
+        run: go mod download
 
       - name: Prepare build directory
         run: |
@@ -52,9 +51,11 @@ jobs:
       - name: Create package
         id: package
         run: |
-          PACKAGE_NAME=tableauc.${GITHUB_REF#refs/tags/cmd/tableauc/}.${{ matrix.goos }}.${{ matrix.goarch }}.tar.gz
+          # Strip the leading `refs/tags/` so that a tag like `v0.16.1`
+          # produces a package name `tableauc.v0.16.1.<goos>.<goarch>.tar.gz`.
+          PACKAGE_NAME=tableauc.${GITHUB_REF#refs/tags/}.${{ matrix.goos }}.${{ matrix.goarch }}.tar.gz
           tar -czvf $PACKAGE_NAME -C build .
-          echo ::set-output name=name::${PACKAGE_NAME}
+          echo "name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
 
       - name: Upload asset
         uses: actions/upload-release-asset@v1

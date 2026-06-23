@@ -2,13 +2,6 @@ name: Buf CI
 on:
   push:
     branches: ['**']
-    # Only top-level release tags (vX.Y.Z[-suffix]) should be synced to BSR.
-    # Submodule tags such as `cmd/tableauc/vX.Y.Z` (consumed by release.yml)
-    # must NOT trigger this workflow, otherwise buf-action would push them
-    # to BSR as well.
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-      - 'v[0-9]+.[0-9]+.[0-9]+-*'
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
   delete:
@@ -16,9 +9,12 @@ jobs:
   buf:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: bufbuild/buf-action@v1
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Buf CI
+        uses: bufbuild/buf-action@v1
         with:
-          version: "1.69.0"
+          version: 1.69.0
           token: ${{ secrets.BUF_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
