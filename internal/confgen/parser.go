@@ -158,17 +158,21 @@ func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...imp
 	for _, impInfo := range impInfos {
 		// map-reduce: map jobs for concurrent processing
 		g.Go(func(ctx context.Context) error {
+			bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
+			sheetName := getRealSheetName(info, impInfo)
 			protomsg, err := parseMessageFromOneImporter(info, collector, impInfo)
 			if err != nil {
 				return xerrors.WrapKV(err,
+					xerrors.KeyBookName, bookName,
+					xerrors.KeySheetName, sheetName,
 					xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 					xerrors.KeyPrimarySheetName, info.SheetOpts.Name)
 			}
 			mu.Lock()
 			msgs = append(msgs, oneMsg{
 				protomsg:  protomsg,
-				bookName:  getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()),
-				sheetName: getRealSheetName(info, impInfo),
+				bookName:  bookName,
+				sheetName: sheetName,
 			})
 			mu.Unlock()
 			return nil

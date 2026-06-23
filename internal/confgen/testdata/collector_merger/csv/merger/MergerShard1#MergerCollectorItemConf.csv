@@ -1,0 +1,4 @@
+ID,Num
+uint32,int32
+Item's ID,Item's num
+3,bad_num
