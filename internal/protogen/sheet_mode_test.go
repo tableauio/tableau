@@ -1,9 +1,11 @@
 package protogen
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 )
 
 func TestVerticalPositioner_Position(t *testing.T) {
@@ -507,4 +509,194 @@ func TestBasePositioner_ColIndex(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestResolveFieldNumber covers the Number-column resolution rules shared by
+// parseEnumType and parseUnionType. It exercises resolveFieldNumber directly
+// (the shared helper) so the same guarantees are pinned for both call sites:
+//   - When no row sets Number, the legacy "1, 2, 3, ..., N" fallback applies
+//     (regression guard for byte-for-byte backward compatibility).
+//   - When every row sets Number explicitly, the explicit values are used and
+//     the i+1 fallback is unreachable.
+//   - When some rows set Number and others leave it blank, the i+1 fallback
+//     on a blank row must detect collisions with another row's explicit
+//     Number and surface an error rather than silently emitting duplicate
+//     proto field numbers.
+func TestResolveFieldNumber(t *testing.T) {
+	int32Ptr := func(v int32) *int32 { return &v }
+
+	type valueRow struct {
+		name   string
+		number *int32
+	}
+
+	collect := func(values []valueRow) map[int32]struct{} {
+		used := make(map[int32]struct{}, len(values))
+		for _, v := range values {
+			if v.number != nil {
+				used[*v.number] = struct{}{}
+			}
+		}
+		return used
+	}
+
+	t.Run("all-empty-preserves-legacy-1..N", func(t *testing.T) {
+		values := []valueRow{
+			{name: "V1"},
+			{name: "V2"},
+			{name: "V3"},
+		}
+		used := collect(values)
+		wantNumbers := []int32{1, 2, 3}
+		for i, v := range values {
+			got, err := resolveFieldNumber(i, v.number, used, "enum", v.name)
+			if err != nil {
+				t.Fatalf("i=%d unexpected error: %v", i, err)
+			}
+			if got != wantNumbers[i] {
+				t.Errorf("i=%d got %d, want %d", i, got, wantNumbers[i])
+			}
+		}
+	})
+
+	t.Run("all-explicit-uses-explicit-values", func(t *testing.T) {
+		values := []valueRow{
+			{name: "V1", number: int32Ptr(10)},
+			{name: "V2", number: int32Ptr(20)},
+			{name: "V3", number: int32Ptr(30)},
+		}
+		used := collect(values)
+		wantNumbers := []int32{10, 20, 30}
+		for i, v := range values {
+			got, err := resolveFieldNumber(i, v.number, used, "union", v.name)
+			if err != nil {
+				t.Fatalf("i=%d unexpected error: %v", i, err)
+			}
+			if got != wantNumbers[i] {
+				t.Errorf("i=%d got %d, want %d", i, got, wantNumbers[i])
+			}
+		}
+	})
+
+	t.Run("mixed-no-collision-uses-fallback", func(t *testing.T) {
+		// Explicit Number values are 10, 30; the blank rows fall back to i+1
+		// (2 and 4) which don't collide.
+		values := []valueRow{
+			{name: "V1", number: int32Ptr(10)},
+			{name: "V2"}, // i=1, fallback 2
+			{name: "V3", number: int32Ptr(30)},
+			{name: "V4"}, // i=3, fallback 4
+		}
+		used := collect(values)
+		wantNumbers := []int32{10, 2, 30, 4}
+		for i, v := range values {
+			got, err := resolveFieldNumber(i, v.number, used, "enum", v.name)
+			if err != nil {
+				t.Fatalf("i=%d unexpected error: %v", i, err)
+			}
+			if got != wantNumbers[i] {
+				t.Errorf("i=%d got %d, want %d", i, got, wantNumbers[i])
+			}
+		}
+	})
+
+	t.Run("mixed-collision-returns-error", func(t *testing.T) {
+		// V1 explicitly claims Number=3. V2 is blank (fallback 2, fine). V3 is
+		// blank too and its i+1 fallback is 3, which collides with V1. The
+		// natural for-range iteration must succeed for V1/V2 and fail on V3.
+		values := []valueRow{
+			{name: "V1", number: int32Ptr(3)},
+			{name: "V2"}, // i=1, fallback 2 - ok
+			{name: "V3"}, // i=2, fallback 3 - collides with V1
+		}
+		used := collect(values)
+		var errs []error
+		for i, v := range values {
+			_, err := resolveFieldNumber(i, v.number, used, "union", v.name)
+			errs = append(errs, err)
+		}
+		if errs[0] != nil {
+			t.Fatalf("V1 should resolve cleanly, got: %v", errs[0])
+		}
+		if errs[1] != nil {
+			t.Fatalf("V2 should resolve cleanly (fallback 2), got: %v", errs[1])
+		}
+		if errs[2] == nil {
+			t.Fatal("V3 should fail on i+1 fallback collision with V1's explicit Number, got nil")
+		}
+		// Contract: the free-text Reason must identify the offending row
+		// (kind + value name + index + colliding number) but must NOT inline
+		// any sheet/book name. Book/SheetName are attached as structured
+		// fields exactly once, by convertTableSheet's single-mode return
+		// path - re-wrapping at this layer would create two sources of
+		// truth and tempt callers into duplicating the sheet name inside
+		// Reason for "convenience".
+		msg := errs[2].Error()
+		if !strings.Contains(msg, "V3") {
+			t.Errorf("error free-text should reference the offending value name, got: %v", errs[2])
+		}
+		if !strings.Contains(msg, "union") {
+			t.Errorf("error free-text should identify the union kind, got: %v", errs[2])
+		}
+	})
+}
+
+// TestNewUnionField_NumberFallback is a thin end-to-end check that
+// parseUnionType's call site (newUnionField) wires resolveFieldNumber in
+// correctly. The exhaustive semantics are covered by TestResolveFieldNumber;
+// here we just confirm the union-specific wrapper returns the expected
+// resolved number for both legacy and collision cases.
+func TestNewUnionField_NumberFallback(t *testing.T) {
+	int32Ptr := func(v int32) *int32 { return &v }
+	gen := &Generator{}
+
+	collect := func(values []*internalpb.UnionDescriptor_Value) map[int32]struct{} {
+		used := make(map[int32]struct{}, len(values))
+		for _, v := range values {
+			if v.Number != nil {
+				used[*v.Number] = struct{}{}
+			}
+		}
+		return used
+	}
+
+	t.Run("legacy-all-empty", func(t *testing.T) {
+		values := []*internalpb.UnionDescriptor_Value{
+			{Name: "V1"}, {Name: "V2"}, {Name: "V3"},
+		}
+		used := collect(values)
+		want := []int32{1, 2, 3}
+		for i, v := range values {
+			field, err := newUnionField(i, v, gen, used)
+			if err != nil {
+				t.Fatalf("i=%d unexpected error: %v", i, err)
+			}
+			if field.Number != want[i] {
+				t.Errorf("i=%d Number = %d, want %d", i, field.Number, want[i])
+			}
+		}
+	})
+
+	t.Run("collision-reported", func(t *testing.T) {
+		values := []*internalpb.UnionDescriptor_Value{
+			{Name: "V1", Number: int32Ptr(3)},
+			{Name: "V2"}, // i=1, fallback 2 - ok
+			{Name: "V3"}, // i=2, fallback 3 - collides with V1
+		}
+		used := collect(values)
+		var errs []error
+		for i, v := range values {
+			_, err := newUnionField(i, v, gen, used)
+			errs = append(errs, err)
+		}
+		if errs[0] != nil || errs[1] != nil {
+			t.Fatalf("V1/V2 should resolve cleanly, got: %v / %v", errs[0], errs[1])
+		}
+		if errs[2] == nil {
+			t.Fatal("V3 should fail on i+1 fallback collision, got nil")
+		}
+		if !strings.Contains(errs[2].Error(), "union") {
+			t.Errorf("error should identify union kind, got: %v", errs[2])
+		}
+	})
 }
