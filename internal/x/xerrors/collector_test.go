@@ -691,23 +691,28 @@ func TestCollected_JoinReturnsCollectedMarker(t *testing.T) {
 	assert.True(t, errors.As(joined, &ce), "Join() should return a collected-wrapped error")
 }
 
-// Collect skips collected-marked errors.
-func TestCollected_CollectSkipsCollectedError(t *testing.T) {
+// Collect treats a foreign collected error (from an unrelated collector
+// tree) as an ordinary error so it is not silently dropped.
+func TestCollected_CollectForeignCollectedIsNotDropped(t *testing.T) {
 	c := NewCollector(10)
 	_ = c.Collect(fmt.Errorf("err 1"))
 
 	joined := c.Join()
 	assert.Error(t, joined)
 
-	// Create a new collector and Collect the joined error.
-	// The collected marker should cause it to be skipped.
+	// Create a new, unrelated collector and Collect the joined error.
+	// Since joined.origin (= c) is not in c2's tree, c2 must keep it
+	// rather than silently drop it.
 	c2 := NewCollector(10)
 	_ = c2.Collect(joined)
-	assert.NoError(t, c2.Join(), "collected error should be skipped")
+	got := c2.Join()
+	assert.Error(t, got, "foreign collected error must not be silently dropped")
+	assert.Contains(t, got.Error(), "err 1")
 }
 
-// Collect skips collected marker even through WrapKV.
-func TestCollected_CollectSkipsWrappedCollectedError(t *testing.T) {
+// Collect treats a WrapKV'd foreign collected error as an ordinary error
+// so it is not silently dropped; the wrapping fields remain available.
+func TestCollected_CollectForeignWrappedCollectedIsNotDropped(t *testing.T) {
 	c := NewCollector(10)
 	_ = c.Collect(fmt.Errorf("err 1"))
 
@@ -715,8 +720,10 @@ func TestCollected_CollectSkipsWrappedCollectedError(t *testing.T) {
 	wrapped := WrapKV(joined, KeyBookName, "test.xlsx")
 
 	c2 := NewCollector(10)
-	_ = c2.Collect(wrapped) // collected marker detected, skip entirely
-	assert.NoError(t, c2.Join(), "WrapKV'd collected error should be skipped")
+	_ = c2.Collect(wrapped)
+	got := c2.Join()
+	assert.Error(t, got, "WrapKV'd foreign collected error must not be silently dropped")
+	assert.Contains(t, got.Error(), "err 1")
 }
 
 // collected marker is transparent: Error() delegates to inner.

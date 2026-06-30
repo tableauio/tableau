@@ -72,16 +72,22 @@ func (c *Collector) Collect(err error) error {
 		return nil
 	}
 
-	// Already-collected error (from a child's Join): remember the outer
-	// WrapKV layer on the child collector for re-wrapping in Join().
+	// Already-collected error (from a Join() somewhere): if the collected
+	// error originates from the same collector tree as c (shares the same
+	// root), it is or will be reachable from the root via tree auto-join, so
+	// we must not double-count it here. We only record the outer WrapKV
+	// layer on the originating collector for re-wrapping in its Join().
+	//
+	// Otherwise (foreign collected, e.g. from an unrelated parser-local
+	// fail-fast collector that is not part of c's tree), fall through and
+	// treat it as an ordinary error so it is still stored and counted on
+	// this collector; without this fallback the error would silently vanish.
 	var ce *collected
-	if errors.As(err, &ce) {
-		if ce.origin != nil {
-			if wm, ok := err.(*withMessage); ok {
-				ce.origin.mu.Lock()
-				ce.origin.outerWM = wm
-				ce.origin.mu.Unlock()
-			}
+	if errors.As(err, &ce) && ce.origin != nil && ce.origin.sameTreeAs(c) {
+		if wm, ok := err.(*withMessage); ok {
+			ce.origin.mu.Lock()
+			ce.origin.outerWM = wm
+			ce.origin.mu.Unlock()
 		}
 		if c.IsFull() {
 			return c.Join()
@@ -123,6 +129,24 @@ func (c *Collector) IsFull() bool {
 		}
 	}
 	return false
+}
+
+// root walks the parent chain and returns the topmost collector.
+func (c *Collector) root() *Collector {
+	cur := c
+	for cur.parent != nil {
+		cur = cur.parent
+	}
+	return cur
+}
+
+// sameTreeAs reports whether c and other share the same root collector,
+// i.e. they belong to the same collector tree built via NewChild.
+func (c *Collector) sameTreeAs(other *Collector) bool {
+	if c == nil || other == nil {
+		return false
+	}
+	return c.root() == other.root()
 }
 
 // HasErrors reports whether this collector's subtree has any errors.
