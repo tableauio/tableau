@@ -11,7 +11,7 @@ protogen: |
   NameCellPos: {{.NameCellPos}}
   NameCell: {{.NameCell}}
   TypeCellPos: {{.TypeCellPos}}
-  TypeCell: {{.TypeCell}}{{ if .PBFieldOpts }}|{{.PBFieldOpts}}{{ end }}
+  TypeCell: {{.TypeCell}}
   Reason: {{.Reason}}
   {{- if .Help }}
   Help: {{.Help}}
