@@ -63,10 +63,18 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 		return err
 	}
 	prefix := strcase.FromContext(gen.ctx).ToScreamingSnake(ws.Name) + "_"
-	for i, value := range desc.Values {
-		number := int32(i + 1)
+
+	usedNumbers := make(map[int32]struct{}, len(desc.Values))
+	for _, value := range desc.Values {
 		if value.Number != nil {
-			number = value.GetNumber()
+			usedNumbers[*value.Number] = struct{}{}
+		}
+	}
+
+	for i, value := range desc.Values {
+		number, err := resolveFieldNumber(i, value.Number, usedNumbers, "enum", value.Name)
+		if err != nil {
+			return err
 		}
 		name := value.Name
 		if gen.OutputOpt.EnumValueWithPrefix && !strings.HasPrefix(name, prefix) {
@@ -80,6 +88,39 @@ func parseEnumType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Shee
 		ws.Fields = append(ws.Fields, field)
 	}
 	return nil
+}
+
+// resolveFieldNumber computes the proto field number for one row of an
+// enum/union value table whose "Number" column is optional.
+//
+// Semantics (shared by parseEnumType and parseUnionType):
+//   - If the row sets Number explicitly, use it as-is. Uniqueness across
+//     explicitly-set values is already enforced by the "unique: true" prop on
+//     the descriptor's number field, so no extra check is needed here.
+//   - Otherwise fall back to i+1 (the row's 0-based index in desc.Values plus
+//     one). This preserves the legacy "auto-numbered 1..N" behavior when no
+//     row sets Number at all - in that case usedNumbers is empty and the
+//     collision check is a no-op, keeping byte-for-byte compatibility with the
+//     previous implementation.
+//   - When some rows set Number and others leave it blank, the i+1 fallback
+//     may collide with an explicitly-set value on another row. usedNumbers
+//     must contain all explicitly-set values; on collision we surface an
+//     error rather than silently emitting duplicate proto field numbers
+//     (which would in turn produce duplicate generated enum values).
+//
+// kind is a short noun ("enum" or "union") used only in the error message.
+func resolveFieldNumber(i int, explicit *int32, usedNumbers map[int32]struct{}, kind, name string) (int32, error) {
+	if explicit != nil {
+		return *explicit, nil
+	}
+	number := int32(i + 1)
+	if _, dup := usedNumbers[number]; dup {
+		return 0, xerrors.Newf(
+			"%s value %q (row index %d) has empty Number column, but the fallback value %d is already taken by another row's explicit Number. "+
+				"Either fill in the Number column for this row, or leave Number blank for all rows",
+			kind, strings.TrimSpace(name), i, number)
+	}
+	return number, nil
 }
 
 func isStructTypeBlockHeader(cols []string) bool {
@@ -295,8 +336,15 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 	bp := newTableParser("union-fields", "", "", gen)
 	t := sheet.Tabler()
 
+	usedNumbers := make(map[int32]struct{}, len(desc.Values))
+	for _, value := range desc.Values {
+		if value.Number != nil {
+			usedNumbers[*value.Number] = struct{}{}
+		}
+	}
+
 	for i, value := range desc.Values {
-		field, err := newUnionField(i, value, gen, sheet.Name)
+		field, err := newUnionField(i, value, gen, usedNumbers)
 		if err != nil {
 			return err
 		}
@@ -309,11 +357,13 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 }
 
 // newUnionField builds the top-level Field for a single union value, resolving
-// its optional type descriptor when a type string is present.
-func newUnionField(i int, value *internalpb.UnionDescriptor_Value, gen *Generator, sheetName string) (*internalpb.Field, error) {
-	number := int32(i + 1)
-	if value.Number != nil {
-		number = *value.Number
+// its optional type descriptor when a type string is present. See
+// resolveFieldNumber for the Number-column resolution semantics shared with
+// parseEnumType.
+func newUnionField(i int, value *internalpb.UnionDescriptor_Value, gen *Generator, usedNumbers map[int32]struct{}) (*internalpb.Field, error) {
+	number, err := resolveFieldNumber(i, value.Number, usedNumbers, "union", value.Name)
+	if err != nil {
+		return nil, err
 	}
 	field := &internalpb.Field{
 		Number: number,
@@ -323,7 +373,7 @@ func newUnionField(i int, value *internalpb.UnionDescriptor_Value, gen *Generato
 	if typ := strings.TrimSpace(value.Type); typ != "" {
 		typeDesc, err := parseTypeDescriptor(gen.typeInfos, typ)
 		if err != nil {
-			return nil, xerrors.Wrapf(err, "failed to parse union type %s of sheet: %s", typ, sheetName)
+			return nil, xerrors.Wrapf(err, "failed to parse union type %s", typ)
 		}
 		field.Type = typeDesc.Name
 		field.FullType = typeDesc.FullName

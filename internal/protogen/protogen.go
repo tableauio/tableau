@@ -553,7 +553,9 @@ func (gen *Generator) convertTableSheet(bp *tableParser, bookCollector *xerrors.
 		} else {
 			worksheets, err := gen.parseSpecialSheetMode(ws.Options.Mode, ws, sheet, debugBookName, debugSheetName, sheetCollector)
 			if err != nil {
-				return sheetCollector.Collect(err)
+				return sheetCollector.Collect(xerrors.WrapKV(err,
+					xerrors.KeyBookName, debugBookName,
+					xerrors.KeySheetName, debugSheetName))
 			}
 			// append parsed sheets to workbook
 			bp.wb.Worksheets = append(bp.wb.Worksheets, worksheets...)
