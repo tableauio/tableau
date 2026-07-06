@@ -165,12 +165,12 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 					Line:   value.Line,
 					Column: value.Column,
 				},
-			// Only trailing `# ...` line comments are collected. For a
-			// mapping pair the line comment may be attached to either
-			// the value node (when value is a scalar on the same line:
-			// `Key: value  # note`) or the key node (when value spans
-			// multiple lines: `Key:  # note\n  ...`).
-			Note: yamlLineNote(value.LineComment, key.LineComment),
+				// Only trailing `# ...` line comments are collected. For a
+				// mapping pair the line comment may be attached to either
+				// the value node (when value is a scalar on the same line:
+				// `Key: value  # note`) or the key node (when value spans
+				// multiple lines: `Key:  # note\n  ...`).
+				Note: yamlLineNote(value.LineComment, key.LineComment),
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if value.Kind == yaml.ScalarNode {
@@ -195,9 +195,9 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 					Line:   elem.Line,
 					Column: elem.Column,
 				},
-			// For sequence elements, the trailing `# ...` line comment
-			// is attached to the element node itself.
-			Note: yamlLineNote(elem.LineComment),
+				// For sequence elements, the trailing `# ...` line comment
+				// is attached to the element node itself.
+				Note: yamlLineNote(elem.LineComment),
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if elem.Kind == yaml.ScalarNode {

@@ -6,8 +6,10 @@
 </@TABLEAU>
 
 <XMLStructConf>
-    <Item ID="uint32" Name="string" @note.ID="item id" @note.Name="item name" />
-    <Item2 ID="{OtherItem}uint32" Name="string" @note.ID="item2 id" @note.Name="item2 name" />
+    <Item ID="uint32" @note.ID="item id"
+        Name="string" @note.Name="item name" />
+    <Item2 ID="{OtherItem}uint32" @note.ID="item2 id"
+        Name="string" @note.Name="item2 name" />
     <FruitShopData @type="{.FruitInfo}" @note="fruit shop data" />
     <Empty @note="empty placeholder struct">
     </Empty>

@@ -42,6 +42,7 @@ const (
 	KeywordValue    = types.DefaultDocumentMapValueOptName // @value
 	KeywordIncell   = "@incell"
 	KeywordVariable = "@variable"
+	KeywordNote     = "@note"
 )
 
 // MetaSign signifies the name starts with leading "@" is meta name.
@@ -63,7 +64,7 @@ type Node struct {
 	ValuePos Position
 
 	// Note is an optional comment attached to this node in the source
-	// document (e.g. YAML `#` line comment, XML `note` attribute),
+	// document (e.g. YAML `#` line comment, XML `@note` attribute),
 	// extracted so that protogen can emit it as the generated proto
 	// field's comment.
 	Note string

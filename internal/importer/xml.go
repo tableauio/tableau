@@ -711,7 +711,7 @@ func extractXMLMetasheetInComment(content string, metasheetName string) string {
 	metasheet = strings.ReplaceAll(metasheet, "<@", "<AT")
 	metasheet = strings.ReplaceAll(metasheet, "</@", "</AT")
 	metasheet = strings.ReplaceAll(metasheet, book.KeywordType, atTypeDisplacement)
-	metasheet = strings.ReplaceAll(metasheet, "@note", atNoteDisplacement)
+	metasheet = strings.ReplaceAll(metasheet, book.KeywordNote, atNoteDisplacement)
 	metasheet = escapeAttrs(metasheet)
 	metasheet = xmlProlog + "\n" + metasheet
 	return metasheet

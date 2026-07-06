@@ -134,9 +134,9 @@ func TestXMLImporter_extractsNote(t *testing.T) {
 
 func TestXMLImporter_textOnlyChildNote(t *testing.T) {
 	tests := []struct {
-		name    string
-		xml     string
-		find    func(root *book.Node) *book.Node
+		name     string
+		xml      string
+		find     func(root *book.Node) *book.Node
 		wantKey  string
 		wantNote string
 	}{

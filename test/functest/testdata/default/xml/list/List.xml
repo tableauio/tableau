@@ -8,7 +8,9 @@
 <ListConf>
     <Parent @note="parent struct">
         <Parent2 @note="parent2 struct">
-            <CrossCell Value="[CrossCell]int32" Name="string" Cost="[]int32" @note.Value="cross cell value" @note.Name="cross cell name" @note.Cost="cross cell cost" />
+            <CrossCell Value="[CrossCell]int32" @note.Value="cross cell value"
+                Name="string" @note.Name="cross cell name"
+                Cost="[]int32" @note.Cost="cross cell cost" />
         </Parent2>
     </Parent>
     <Value @note="scalar list">[int32]</Value>
@@ -18,13 +20,17 @@
 <ListConf2>
     <Parent @note="parent struct">
         <Parent2 @note="parent2 struct">
-            <Incell Value="[]int32" Cost="[]int32" @note.Value="incell value" @note.Cost="incell cost" />
+            <Incell @note="incell struct"
+                Value="[]int32" @note.Value="incell value"
+                Cost="[]int32" @note.Cost="incell cost" />
             <EnumIncell @note="incell enum list">[]enum<.FruitType></EnumIncell>
         </Parent2>
     </Parent>
     <Fruit @note="fruit enum list">[enum<.FruitType>]</Fruit>
     <Date @note="date list">[datetime]</Date>
-    <Item ID="[Item]uint32|{unique:true}" Name="string|{unique:true}" Num="int32" @note.ID="item id" @note.Name="item name" @note.Num="item count"/>
+    <Item ID="[Item]uint32|{unique:true}" @note.ID="item id"
+        Name="string|{unique:true}" @note.Name="item name"
+        Num="int32" @note.Num="item count"/>
 </ListConf2>
 -->
 
