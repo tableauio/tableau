@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/subchen/go-xmldom"
+	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
@@ -54,6 +55,168 @@ func Test_inspectXMLNode(t *testing.T) {
 		sheet, err := parseXMLSheet(doc, Confgen, metasheet.DefaultMetasheetName)
 		require.NoError(t, err)
 		fmt.Println(sheet.String())
+	}
+}
+
+func TestXMLImporter_extractsNote(t *testing.T) {
+	data := []byte(`
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+<@TABLEAU>
+  <Item Sheet="NoteConf"/>
+</@TABLEAU>
+<NoteConf>
+    <Item @note="item struct" ID="uint32" Name="string" @note.ID="primary key" @note.Name="display name" />
+    <Deep @note="deep struct">
+        <Sub ID="uint32" @note.ID="sub field id" />
+    </Deep>
+    <Scalar @note="scalar field">int32</Scalar>
+</NoteConf>
+-->
+`)
+
+	ms := extractXMLMetasheetInComment(string(data), metasheet.DefaultMetasheetName)
+	rawDocs, err := extractRawXMLDocuments(ms)
+	require.NoError(t, err)
+	require.Len(t, rawDocs, 2)
+	// First doc is the metasheet, second is the schema sheet.
+	doc, err := xmldom.ParseXML(rawDocs[1])
+	require.NoError(t, err)
+	sheet, err := parseXMLSheet(doc, Protogen, metasheet.DefaultMetasheetName)
+	require.NoError(t, err)
+
+	// sheet.Document.Children[0] is the map node holding all fields.
+	require.Len(t, sheet.Document.Children, 1)
+	root := sheet.Document.Children[0]
+
+	findChild := func(n *book.Node, name string) *book.Node {
+		for _, c := range n.Children {
+			if c.Name == name {
+				return c
+			}
+		}
+		return nil
+	}
+
+	// Item: element-level note + inline attribute field notes
+	item := findChild(root, "Item")
+	require.NotNil(t, item)
+	assert.Equal(t, "item struct", item.Note)
+	itemStruct := item.FindChild(book.KeywordStruct)
+	require.NotNil(t, itemStruct)
+	idField := itemStruct.FindChild("ID")
+	require.NotNil(t, idField)
+	assert.Equal(t, "primary key", idField.Note)
+	nameField := itemStruct.FindChild("Name")
+	require.NotNil(t, nameField)
+	assert.Equal(t, "display name", nameField.Note)
+
+	// Scalar: note via attribute on a text-only child element.
+	scalar := findChild(root, "Scalar")
+	require.NotNil(t, scalar)
+	assert.Equal(t, "scalar field", scalar.Note)
+
+	// Deep: element-level note on nested struct
+	deep := findChild(root, "Deep")
+	require.NotNil(t, deep)
+	assert.Equal(t, "deep struct", deep.Note)
+	deepStruct := deep.FindChild(book.KeywordStruct)
+	require.NotNil(t, deepStruct)
+	subField := deepStruct.FindChild("Sub")
+	require.NotNil(t, subField)
+	// Sub is itself a struct; its inner field ID has a note.
+	subStruct := subField.FindChild(book.KeywordStruct)
+	require.NotNil(t, subStruct)
+	subID := subStruct.FindChild("ID")
+	require.NotNil(t, subID)
+	assert.Equal(t, "sub field id", subID.Note)
+}
+
+func TestXMLImporter_textOnlyChildNote(t *testing.T) {
+	tests := []struct {
+		name    string
+		xml     string
+		find    func(root *book.Node) *book.Node
+		wantKey  string
+		wantNote string
+	}{
+		{
+			name: "scalar text-only child with note",
+			xml: `<NoteConf>
+    <Score @note="player score">int32</Score>
+</NoteConf>`,
+			find: func(root *book.Node) *book.Node {
+				return root.FindChild("Score")
+			},
+			wantNote: "player score",
+		},
+		{
+			name: "text-only child without note still works",
+			xml: `<NoteConf>
+    <Level>int32</Level>
+</NoteConf>`,
+			find: func(root *book.Node) *book.Node {
+				return root.FindChild("Level")
+			},
+			wantNote: "",
+		},
+		{
+			name: "nested text-only child with note inside struct",
+			xml: `<NoteConf>
+    <Config>
+        <Timeout @note="timeout in seconds">int32</Timeout>
+        <Retry @note="retry count">int32</Retry>
+    </Config>
+</NoteConf>`,
+			find: func(root *book.Node) *book.Node {
+				configStruct := root.FindChild("Config")
+				if configStruct == nil {
+					return nil
+				}
+				s := configStruct.FindChild(book.KeywordStruct)
+				if s == nil {
+					return nil
+				}
+				return s.FindChild("Timeout")
+			},
+			wantNote: "timeout in seconds",
+		},
+		{
+			name: "text-only child with note and special characters",
+			xml: `<NoteConf>
+    <Desc @note="player description: name &amp; title">string</Desc>
+</NoteConf>`,
+			find: func(root *book.Node) *book.Node {
+				return root.FindChild("Desc")
+			},
+			wantNote: "player description: name & title",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<!--
+<@TABLEAU>
+  <Item Sheet="NoteConf"/>
+</@TABLEAU>
+` + tt.xml + `
+-->
+`)
+			ms := extractXMLMetasheetInComment(string(data), metasheet.DefaultMetasheetName)
+			rawDocs, err := extractRawXMLDocuments(ms)
+			require.NoError(t, err)
+			require.Len(t, rawDocs, 2)
+			doc, err := xmldom.ParseXML(rawDocs[1])
+			require.NoError(t, err)
+			sheet, err := parseXMLSheet(doc, Protogen, metasheet.DefaultMetasheetName)
+			require.NoError(t, err)
+			require.Len(t, sheet.Document.Children, 1)
+			root := sheet.Document.Children[0]
+			node := tt.find(root)
+			require.NotNil(t, node, "field not found")
+			assert.Equal(t, tt.wantNote, node.Note)
+		})
 	}
 }
 

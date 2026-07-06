@@ -23,7 +23,7 @@
         </FruitInfo>
     </Meal>
 
-    <Chapter ID="map<int32, Chapter>|{unique:true}" Name="string|{unique:true}">
+    <Chapter ID="map<int32, Chapter>|{unique:true}" Name="string|{unique:true}" @note.Name="chapter name">
         <Section ID="map<int32, Section>|{unique:true}" Name="string|{unique:true}" />
     </Chapter>
 </MapConf>

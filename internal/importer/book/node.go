@@ -63,8 +63,9 @@ type Node struct {
 	ValuePos Position
 
 	// Note is an optional comment attached to this node in the source
-	// document (e.g. YAML `#` comment, XML `<!-- -->`), extracted so
-	// that protogen can emit it as the generated proto field's comment.
+	// document (e.g. YAML `#` line comment, XML `note` attribute),
+	// extracted so that protogen can emit it as the generated proto
+	// field's comment.
 	Note string
 }
 

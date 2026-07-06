@@ -11,9 +11,9 @@ import (
 
 // TestDocumentParser_parseField_propagatesNote verifies that a note
 // attached to a document node (typically extracted from a YAML `#`
-// comment or an XML sibling comment) is propagated to the generated
-// proto field's Note, so that the exporter can emit it as a `// ...`
-// field comment.
+// line comment or an XML `note` attribute) is propagated to the
+// generated proto field's Note, so that the exporter can emit it as a
+// `// ...` field comment.
 func TestDocumentParser_parseField_propagatesNote(t *testing.T) {
 	dp := newDocumentParser("Test", "", "Test.yaml", testgen)
 

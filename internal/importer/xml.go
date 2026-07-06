@@ -32,8 +32,17 @@ var (
 const (
 	xmlProlog          = `<?xml version='1.0' encoding='UTF-8'?>`
 	atTypeDisplacement = "ATYPE"
+	atNoteDisplacement = "ANOTE"
 	ungreedyPropGroup  = `(\|\{[^\{\}]+\})?` // e.g.: |{default:"100"}
 	metasheetItemBlock = `<Item\s+[^>]*\/>`  // e.g.: <Item Sheet="XXXConf" Sep="|"/>
+
+	// xmlNoteAttrPrefix is the prefix for field-level note attributes
+	// (after @note displacement). In source XML, writing
+	// `@note.ID="..."` attaches a note to the field named "ID".
+	xmlNoteAttrPrefix = atNoteDisplacement + "."
+	// xmlNoteAttr is the element-level note attribute name (after
+	// @note displacement). In source XML: `@note="..."`.
+	xmlNoteAttr = atNoteDisplacement
 )
 
 func init() {
@@ -247,15 +256,35 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		}
 		// NOTE: curBNode may be pointed to one subnode when needed
 		curBNode := bnode
-		for i, attr := range node.Attributes {
+		// Pre-scan: collect element-level note and field-level notes
+		// (note.X="...") before processing real attributes, so that
+		// each field node can be annotated right after creation.
+		var elemNote string
+		fieldNotes := map[string]string{}
+		for _, attr := range node.Attributes {
+			if attr.Name == xmlNoteAttr {
+				elemNote = attr.Value
+			} else if strings.HasPrefix(attr.Name, xmlNoteAttrPrefix) {
+				fieldNotes[strings.TrimPrefix(attr.Name, xmlNoteAttrPrefix)] = attr.Value
+			}
+		}
+		isFirstRealAttr := true
+		for _, attr := range node.Attributes {
+			if attr.Name == xmlNoteAttr || strings.HasPrefix(attr.Name, xmlNoteAttrPrefix) {
+				continue
+			}
 			var err error
-			curBNode, err = parseXMLAttribute(curBNode, attr.Name, attr.Value, i == 0)
+			curBNode, err = parseXMLAttribute(curBNode, attr.Name, attr.Value, isFirstRealAttr)
 			if err != nil {
 				return xerrors.Wrapf(err, "parse xml attribute failed")
 			}
+			isFirstRealAttr = false
+			if note, ok := fieldNotes[attr.Name]; ok {
+				applyFieldNote(curBNode, attr.Name, note)
+			}
 		}
-		// generate struct even if encounter empty node
-		if len(node.Attributes) == 0 {
+		// generate struct even if encounter empty node (or note-only attrs)
+		if isFirstRealAttr {
 			curBNode = &book.Node{
 				Kind: book.MapNode,
 				Name: book.KeywordStruct,
@@ -265,15 +294,28 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 				Value: fmt.Sprintf("{%s}", node.Name),
 			}, curBNode)
 		}
+		bnode.Note = elemNote
 		for _, child := range node.Children {
 			if child.Text != "" {
-				// child with text is regarded as an attribute
-				if len(child.Attributes) != 0 || len(child.Children) != 0 {
-					return xerrors.Newf("node contains text so attributes and children must be empty|name: %s", child.Name)
+				// child with text is regarded as an attribute; a single
+				// "note" attribute is allowed to annotate it.
+				if len(child.Children) != 0 {
+					return xerrors.Newf("node contains text so children must be empty|name: %s", child.Name)
+				}
+				var childNote string
+				for _, attr := range child.Attributes {
+					if attr.Name == xmlNoteAttr {
+						childNote = attr.Value
+					} else {
+						return xerrors.Newf("node contains text so only 'note' attribute is allowed|name: %s", child.Name)
+					}
 				}
 				_, err := parseXMLAttribute(curBNode, child.Name, child.Text, false)
 				if err != nil {
 					return xerrors.Wrapf(err, "parse xml text-only child failed")
+				}
+				if childNote != "" {
+					applyFieldNote(curBNode, child.Name, childNote)
 				}
 				continue
 			}
@@ -600,6 +642,25 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 	}
 }
 
+// applyFieldNote sets the note on the most recently created child named
+// fieldName of the struct container curBNode. It is used to attach a
+// `@note.X="..."` note to the corresponding field after parseXMLAttribute
+// has created it.
+func applyFieldNote(curBNode *book.Node, fieldName, note string) {
+	if curBNode == nil {
+		return
+	}
+	// parseXMLAttribute appends the field as the last child of the
+	// @struct container; search backwards for a match.
+	for i := len(curBNode.Children) - 1; i >= 0; i-- {
+		c := curBNode.Children[i]
+		if c.Name == fieldName {
+			c.Note = note
+			return
+		}
+	}
+}
+
 // extractXMLMetasheetInComment extracts metasheet content from the top xml comment.
 func extractXMLMetasheetInComment(content string, metasheetName string) string {
 	// metasheet regexp, e.g.:
@@ -630,6 +691,7 @@ func extractXMLMetasheetInComment(content string, metasheetName string) string {
 	metasheet = strings.ReplaceAll(metasheet, "<@", "<AT")
 	metasheet = strings.ReplaceAll(metasheet, "</@", "</AT")
 	metasheet = strings.ReplaceAll(metasheet, book.KeywordType, atTypeDisplacement)
+	metasheet = strings.ReplaceAll(metasheet, "@note", atNoteDisplacement)
 	metasheet = escapeAttrs(metasheet)
 	metasheet = xmlProlog + "\n" + metasheet
 	return metasheet

@@ -6,16 +6,16 @@
 </@TABLEAU>
 
 <XMLStructConf>
-    <Item ID="uint32" Name="string" />
+    <Item ID="uint32" Name="string" @note.ID="item id" @note.Name="item name" />
     <Item2 ID="{OtherItem}uint32" Name="string" />
     <FruitShopData @type="{.FruitInfo}" />
-    <Empty>
+    <Empty @note="empty placeholder struct">
     </Empty>
     <Award>{uint32 ID, int32 Num}Award</Award>
     <Vector>{.Vector3}</Vector>
-    <Date>date</Date>
-    <Text>string</Text>
-    <Attr Value="int32" />
+    <Date @note="creation date">date</Date>
+    <Text @note="display text">string</Text>
+    <Attr Value="int32" @note.Value="attr value" />
 </XMLStructConf>
 
 <XMLStructConf2>

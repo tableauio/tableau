@@ -24,7 +24,7 @@
     </Parent>
     <Fruit>[enum<.FruitType>]</Fruit>
     <Date>[datetime]</Date>
-    <Item ID="[Item]uint32|{unique:true}" Name="string|{unique:true}" Num="int32"/>
+    <Item ID="[Item]uint32|{unique:true}" Name="string|{unique:true}" Num="int32" @note.Num="item count"/>
 </ListConf2>
 -->
 
