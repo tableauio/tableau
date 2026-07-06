@@ -57,6 +57,15 @@ func (p *documentParser) parseField(field *internalpb.Field, node *book.Node) (p
 		proto.Merge(field, scalarField)
 	}
 
+	// Attach the field-level note extracted from the source document
+	// (e.g. YAML `#` comment) so that protogen can emit it as the
+	// generated proto field's comment. Sub-fields fabricated internally
+	// (map key/value, inner-cell struct members, etc.) have no source
+	// node and thus no note.
+	if note := strings.TrimSpace(node.Note); note != "" {
+		field.Note = note
+	}
+
 	return true, nil
 }
 

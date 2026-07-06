@@ -165,6 +165,12 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 					Line:   value.Line,
 					Column: value.Column,
 				},
+			// Only trailing `# ...` line comments are collected. For a
+			// mapping pair the line comment may be attached to either
+			// the value node (when value is a scalar on the same line:
+			// `Key: value  # note`) or the key node (when value spans
+			// multiple lines: `Key:  # note\n  ...`).
+			Note: yamlLineNote(value.LineComment, key.LineComment),
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if value.Kind == yaml.ScalarNode {
@@ -189,6 +195,9 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 					Line:   elem.Line,
 					Column: elem.Column,
 				},
+			// For sequence elements, the trailing `# ...` line comment
+			// is attached to the element node itself.
+			Note: yamlLineNote(elem.LineComment),
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if elem.Kind == yaml.ScalarNode {
@@ -205,6 +214,28 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 	default:
 		return xerrors.Newf("unknown yaml node(%d:%d) kind: %v, value: %v", node.Line, node.Column, node.Kind, node.Value)
 	}
+}
+
+// yamlLineNote extracts a trailing `# ...` line comment from the first
+// non-empty candidate string. The leading "#" marker and surrounding
+// whitespace are stripped. Returns "" when no line comment is present.
+//
+// For a mapping pair the line comment may be attached to either the value
+// node (when value is a scalar on the same line: `Key: value  # note`)
+// or the key node (when value spans multiple lines: `Key:  # note`), so
+// both should be passed as candidates.
+func yamlLineNote(parts ...string) string {
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		p = strings.TrimSpace(p)
+		p = strings.TrimPrefix(p, "#")
+		if p = strings.TrimSpace(p); p != "" {
+			return p
+		}
+	}
+	return ""
 }
 
 var yamlSheetNameRegexp *regexp.Regexp

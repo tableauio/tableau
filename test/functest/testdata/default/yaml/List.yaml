@@ -3,7 +3,7 @@
 ---
 # define schema
 "@sheet": "@YamlListConf"
-ScalarList: "[int32]"
+ScalarList: "[int32]" # scalar list
 EnumList: "[enum<.FruitType>]"
 IncellScalarList:
   "@type": "[int32]"
@@ -12,10 +12,10 @@ IncellEnumList: "[]enum<.FruitType>"
 IncellPredefinedStructList:
   "@type": "[.Item]"
   "@incell": true
-StructList:
+StructList:  # struct list
   "@type": "[Hero]"
   "@struct":
-    ID: uint32
+    ID: uint32 # hero id
     Name: string
 PredefinedStructList: "[.Item]"
 ListInList:
@@ -41,7 +41,7 @@ MapInList:
 Items:
   "@type": "[Item]"
   "@struct":
-    ID: uint32|{unique:true}
+    ID: uint32|{unique:true} # item unique id
     Name: string|{unique:true}
     Num: int32
 ---

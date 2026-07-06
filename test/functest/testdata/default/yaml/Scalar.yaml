@@ -3,13 +3,13 @@
 ---
 # define schema
 "@sheet": "@YamlScalarConf"
-ID: uint32
-Num: int32
-Value: uint64
+ID: uint32 # primary key
+Num: int32 # player level number
+Value: uint64 # player asset value in cents
 Weight: int64
 Percentage: float
 Ratio: double
-Name: string
+Name: string # player display name used in UI and logs
 Blob: bytes
 OK: bool
 

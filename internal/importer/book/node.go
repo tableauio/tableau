@@ -61,6 +61,11 @@ type Node struct {
 	// Line and Column hold the node position in the file.
 	NamePos  Position
 	ValuePos Position
+
+	// Note is an optional comment attached to this node in the source
+	// document (e.g. YAML `#` comment, XML `<!-- -->`), extracted so
+	// that protogen can emit it as the generated proto field's comment.
+	Note string
 }
 
 type Position struct {

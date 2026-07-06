@@ -6,11 +6,11 @@
 StrictStruct:
   "@type": "{Fruit}"
   "@struct":
-    ID: uint32
+    ID: uint32 # fruit id
     Name: string
 Struct:
   "@type": "{Order}"
-  ID: uint32
+  ID: uint32 # order id
   StartTime: datetime
   Expire: duration
 ReusePredefinedStruct: "{Order}"

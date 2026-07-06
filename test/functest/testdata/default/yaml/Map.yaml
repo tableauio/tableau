@@ -3,7 +3,7 @@
 ---
 # define schema
 "@sheet": "@YamlMapConf"
-ScalarMap: "map<uint32, string>"
+ScalarMap: "map<uint32, string>" # scalar kv map
 EnumKeyScalarMap: "map<enum<.FruitType>, string>"
 EnumValueScalarMap: "map<string, enum<.FruitType>>"
 EnumKVScalarMap:
@@ -19,7 +19,7 @@ IncellEnumMap:
 StructMap:
   "@type": "map<uint32, Item>"
   "@struct":
-    Name: string
+    Name: string # item name
     Num: int32
 CustomKeyStructMap:
   "@type": "map<uint32, CustomItem>"
@@ -53,7 +53,7 @@ MapInMap:
 Chapter:
   "@type": "map<string, Chapter>|{unique:true}"
   "@struct":
-    Name: string|{unique:true}
+    Name: string|{unique:true} # chapter name
     Section:
       "@type": "map<uint32, Section>|{unique:true}"
       "@struct":
