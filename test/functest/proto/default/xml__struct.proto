@@ -22,19 +22,19 @@ message XMLStructConf {
   }
   OtherItem item_2 = 2 [(tableau.field) = {name:"Item2"}];
   message OtherItem {
-    uint32 id = 1 [(tableau.field) = {name:"ID"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
+    uint32 id = 1 [(tableau.field) = {name:"ID"}]; // item2 id
+    string name = 2 [(tableau.field) = {name:"Name"}]; // item2 name
   }
-  protoconf.FruitInfo fruit_shop_data = 3 [(tableau.field) = {name:"FruitShopData"}];
+  protoconf.FruitInfo fruit_shop_data = 3 [(tableau.field) = {name:"FruitShopData"}]; // fruit shop data
   Empty empty = 4 [(tableau.field) = {name:"Empty"}]; // empty placeholder struct
   message Empty {
   }
-  Award award = 5 [(tableau.field) = {name:"Award" span:SPAN_INNER_CELL}];
+  Award award = 5 [(tableau.field) = {name:"Award" span:SPAN_INNER_CELL}]; // award struct
   message Award {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     int32 num = 2 [(tableau.field) = {name:"Num"}];
   }
-  protoconf.Vector3 vector = 6 [(tableau.field) = {name:"Vector" span:SPAN_INNER_CELL}];
+  protoconf.Vector3 vector = 6 [(tableau.field) = {name:"Vector" span:SPAN_INNER_CELL}]; // vector struct
   google.protobuf.Timestamp date = 7 [(tableau.field) = {name:"Date"}]; // creation date
   string text = 8 [(tableau.field) = {name:"Text"}]; // display text
   Attr attr = 9 [(tableau.field) = {name:"Attr"}];
@@ -48,6 +48,6 @@ message XMLStructConf2 {
 
   Node node = 1 [(tableau.field) = {name:"Node"}];
   message Node {
-    string desc = 1 [(tableau.field) = {name:"desc"}];
+    string desc = 1 [(tableau.field) = {name:"desc"}]; // node description
   }
 }

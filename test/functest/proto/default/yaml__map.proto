@@ -15,66 +15,66 @@ message YamlMapConf {
   option (tableau.worksheet) = {name:"YamlMapConf"};
 
   map<uint32, string> scalar_map = 1 [(tableau.field) = {name:"ScalarMap"}]; // scalar kv map
-  map<int32, EnumKeyScalarMapValue> enum_key_scalar_map = 2 [(tableau.field) = {name:"EnumKeyScalarMap" key:"@key" span:SPAN_INNER_CELL}];
+  map<int32, EnumKeyScalarMapValue> enum_key_scalar_map = 2 [(tableau.field) = {name:"EnumKeyScalarMap" key:"@key" span:SPAN_INNER_CELL}]; // enum key scalar map
   message EnumKeyScalarMapValue {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
     string value = 2 [(tableau.field) = {name:"@value"}];
   }
-  map<string, protoconf.FruitType> enum_value_scalar_map = 3 [(tableau.field) = {name:"EnumValueScalarMap"}];
-  map<int32, CustomMapValue> enum_kv_scalar_map = 4 [(tableau.field) = {name:"EnumKVScalarMap" key:"@key" span:SPAN_INNER_CELL}];
+  map<string, protoconf.FruitType> enum_value_scalar_map = 3 [(tableau.field) = {name:"EnumValueScalarMap"}]; // enum value scalar map
+  map<int32, CustomMapValue> enum_kv_scalar_map = 4 [(tableau.field) = {name:"EnumKVScalarMap" key:"@key" span:SPAN_INNER_CELL}]; // enum kv scalar map
   message CustomMapValue {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
     protoconf.FruitFlavor value = 2 [(tableau.field) = {name:"@value"}];
   }
-  map<uint32, string> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}];
-  map<int32, CustomMapValue> incell_enum_map = 6 [(tableau.field) = {name:"IncellEnumMap" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}];
-  map<uint32, Item> struct_map = 7 [(tableau.field) = {name:"StructMap" key:"@key"}];
+  map<uint32, string> incell_map = 5 [(tableau.field) = {name:"IncellMap" layout:LAYOUT_INCELL}]; // incell map
+  map<int32, CustomMapValue> incell_enum_map = 6 [(tableau.field) = {name:"IncellEnumMap" key:"@key" layout:LAYOUT_INCELL span:SPAN_INNER_CELL}]; // incell enum map
+  map<uint32, Item> struct_map = 7 [(tableau.field) = {name:"StructMap" key:"@key"}]; // struct map
   message Item {
     uint32 key = 1 [(tableau.field) = {name:"@key"}];
     string name = 2 [(tableau.field) = {name:"Name"}]; // item name
-    int32 num = 3 [(tableau.field) = {name:"Num"}];
+    int32 num = 3 [(tableau.field) = {name:"Num"}]; // item num
   }
-  map<uint32, CustomItem> custom_key_struct_map = 8 [(tableau.field) = {name:"CustomKeyStructMap" key:"CustomKey"}];
+  map<uint32, CustomItem> custom_key_struct_map = 8 [(tableau.field) = {name:"CustomKeyStructMap" key:"CustomKey"}]; // custom key struct map
   message CustomItem {
     uint32 custom_key = 1 [(tableau.field) = {name:"CustomKey"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    int32 num = 3 [(tableau.field) = {name:"Num"}];
+    string name = 2 [(tableau.field) = {name:"Name"}]; // item name
+    int32 num = 3 [(tableau.field) = {name:"Num"}]; // item num
   }
-  map<int32, EnumItem> enum_key_struct_map = 9 [(tableau.field) = {name:"EnumKeyStructMap" key:"@key"}];
+  map<int32, EnumItem> enum_key_struct_map = 9 [(tableau.field) = {name:"EnumKeyStructMap" key:"@key"}]; // enum key struct map
   message EnumItem {
     protoconf.FruitType key = 1 [(tableau.field) = {name:"@key"}];
-    string name = 2 [(tableau.field) = {name:"Name"}];
-    int32 num = 3 [(tableau.field) = {name:"Num"}];
+    string name = 2 [(tableau.field) = {name:"Name"}]; // item name
+    int32 num = 3 [(tableau.field) = {name:"Num"}]; // item num
   }
-  map<string, Country1> list_in_map = 10 [(tableau.field) = {name:"ListInMap" key:"@key"}];
+  map<string, Country1> list_in_map = 10 [(tableau.field) = {name:"ListInMap" key:"@key"}]; // list in map
   message Country1 {
     string key = 1 [(tableau.field) = {name:"@key"}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
-    repeated Item items = 3 [(tableau.field) = {name:"Items"}];
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // country description
+    repeated Item items = 3 [(tableau.field) = {name:"Items"}]; // items list in country
     message Item {
-      string name = 1 [(tableau.field) = {name:"Name"}];
-      int32 num = 2 [(tableau.field) = {name:"Num"}];
+      string name = 1 [(tableau.field) = {name:"Name"}]; // item name
+      int32 num = 2 [(tableau.field) = {name:"Num"}]; // item num
     }
   }
-  map<string, Country2> map_in_map = 11 [(tableau.field) = {name:"MapInMap" key:"@key"}];
+  map<string, Country2> map_in_map = 11 [(tableau.field) = {name:"MapInMap" key:"@key"}]; // map in map
   message Country2 {
     string key = 1 [(tableau.field) = {name:"@key"}];
-    string desc = 2 [(tableau.field) = {name:"Desc"}];
-    map<uint32, Item> items = 3 [(tableau.field) = {name:"Items" key:"@key"}];
+    string desc = 2 [(tableau.field) = {name:"Desc"}]; // country description
+    map<uint32, Item> items = 3 [(tableau.field) = {name:"Items" key:"@key"}]; // items map in country
     message Item {
       uint32 key = 1 [(tableau.field) = {name:"@key"}];
-      string name = 2 [(tableau.field) = {name:"Name"}];
-      int32 num = 3 [(tableau.field) = {name:"Num"}];
+      string name = 2 [(tableau.field) = {name:"Name"}]; // item name
+      int32 num = 3 [(tableau.field) = {name:"Num"}]; // item num
     }
   }
-  map<string, Chapter> chapter = 12 [(tableau.field) = {name:"Chapter" key:"@key"}];
+  map<string, Chapter> chapter = 12 [(tableau.field) = {name:"Chapter" key:"@key"}]; // chapter map
   message Chapter {
     string key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
     string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}]; // chapter name
-    map<uint32, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key"}];
+    map<uint32, Section> section = 3 [(tableau.field) = {name:"Section" key:"@key"}]; // section map
     message Section {
       uint32 key = 1 [(tableau.field) = {name:"@key" prop:{unique:true}}];
-      string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+      string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}]; // section name
     }
   }
 }

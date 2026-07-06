@@ -15,43 +15,43 @@ option (tableau.workbook) = {name:"xml/list/List.xml" sep:"," subsep:":"};
 message ListConf {
   option (tableau.worksheet) = {name:"ListConf"};
 
-  Parent parent = 1 [(tableau.field) = {name:"Parent"}];
+  Parent parent = 1 [(tableau.field) = {name:"Parent"}]; // parent struct
   message Parent {
-    Parent2 parent_2 = 1 [(tableau.field) = {name:"Parent2"}];
+    Parent2 parent_2 = 1 [(tableau.field) = {name:"Parent2"}]; // parent2 struct
     message Parent2 {
       repeated CrossCell cross_cell_list = 1 [(tableau.field) = {name:"CrossCell"}];
       message CrossCell {
-        int32 value = 1 [(tableau.field) = {name:"Value"}];
-        string name = 2 [(tableau.field) = {name:"Name"}];
-        repeated int32 cost_list = 3 [(tableau.field) = {name:"Cost" layout:LAYOUT_INCELL}];
+        int32 value = 1 [(tableau.field) = {name:"Value"}]; // cross cell value
+        string name = 2 [(tableau.field) = {name:"Name"}]; // cross cell name
+        repeated int32 cost_list = 3 [(tableau.field) = {name:"Cost" layout:LAYOUT_INCELL}]; // cross cell cost
       }
     }
   }
-  repeated int32 value_list = 2 [(tableau.field) = {name:"Value"}];
-  repeated protoconf.Item item_list = 3 [(tableau.field) = {name:"Item"}];
+  repeated int32 value_list = 2 [(tableau.field) = {name:"Value"}]; // scalar list
+  repeated protoconf.Item item_list = 3 [(tableau.field) = {name:"Item"}]; // predefined item list
 }
 
 message ListConf2 {
   option (tableau.worksheet) = {name:"ListConf2"};
 
-  Parent parent = 1 [(tableau.field) = {name:"Parent"}];
+  Parent parent = 1 [(tableau.field) = {name:"Parent"}]; // parent struct
   message Parent {
-    Parent2 parent_2 = 1 [(tableau.field) = {name:"Parent2"}];
+    Parent2 parent_2 = 1 [(tableau.field) = {name:"Parent2"}]; // parent2 struct
     message Parent2 {
       Incell incell = 1 [(tableau.field) = {name:"Incell"}];
       message Incell {
-        repeated int32 value_list = 1 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL}];
-        repeated int32 cost_list = 2 [(tableau.field) = {name:"Cost" layout:LAYOUT_INCELL}];
+        repeated int32 value_list = 1 [(tableau.field) = {name:"Value" layout:LAYOUT_INCELL}]; // incell value
+        repeated int32 cost_list = 2 [(tableau.field) = {name:"Cost" layout:LAYOUT_INCELL}]; // incell cost
       }
-      repeated protoconf.FruitType enum_incell_list = 2 [(tableau.field) = {name:"EnumIncell" layout:LAYOUT_INCELL}];
+      repeated protoconf.FruitType enum_incell_list = 2 [(tableau.field) = {name:"EnumIncell" layout:LAYOUT_INCELL}]; // incell enum list
     }
   }
-  repeated protoconf.FruitType fruit_list = 2 [(tableau.field) = {name:"Fruit"}];
-  repeated google.protobuf.Timestamp date_list = 3 [(tableau.field) = {name:"Date"}];
+  repeated protoconf.FruitType fruit_list = 2 [(tableau.field) = {name:"Fruit"}]; // fruit enum list
+  repeated google.protobuf.Timestamp date_list = 3 [(tableau.field) = {name:"Date"}]; // date list
   repeated Item item_list = 4 [(tableau.field) = {name:"Item"}];
   message Item {
-    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}];
-    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}];
+    uint32 id = 1 [(tableau.field) = {name:"ID" prop:{unique:true}}]; // item id
+    string name = 2 [(tableau.field) = {name:"Name" prop:{unique:true}}]; // item name
     int32 num = 3 [(tableau.field) = {name:"Num"}]; // item count
   }
 }

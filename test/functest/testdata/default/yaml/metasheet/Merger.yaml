@@ -5,11 +5,11 @@
 ---
 # define schema
 "@sheet": "@YamlMergerConf"
-StructMap:
+StructMap:  # struct map
   "@type": "map<uint32, Item>"
   "@struct":
-    Name: string
-    Num: int32
+    Name: string # item name
+    Num: int32 # item num
 ---
 "@sheet": YamlMergerConf
 StructMap:

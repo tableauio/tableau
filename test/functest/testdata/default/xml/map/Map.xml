@@ -4,27 +4,27 @@
     <Item Sheet="MapConf" />
 </@TABLEAU>
 
-<MapConf Open="bool">
-    <PreEntry Name="map<string, PreEntry>" Cost="[]int32" />
-    <Entry Id="map<uint32, Entry>" Value="int32|{default:"1"}" Incell="map<int32, string>" />
-    <Friends Friend="map<string, int32>" />
-    <Incell>map<int32, int32></Incell>
-    <KeyEnum>map<enum<.FruitType>, int32></KeyEnum>
-    <ValueEnum>map<int32, enum<.FruitType>></ValueEnum>
-    <KvEnum>map<enum<.FruitType>, enum<.FruitType>></KvEnum>
+<MapConf Open="bool" @note.Open="whether map is open">
+    <PreEntry Name="map<string, PreEntry>" Cost="[]int32" @note.Name="pre entry name" @note.Cost="pre entry cost" />
+    <Entry Id="map<uint32, Entry>" Value="int32|{default:"1"}" Incell="map<int32, string>" @note.Value="entry value" @note.Incell="entry incell map" />
+    <Friends Friend="map<string, int32>" @note.Friend="friends map" />
+    <Incell @note="incell map">map<int32, int32></Incell>
+    <KeyEnum @note="enum key map">map<enum<.FruitType>, int32></KeyEnum>
+    <ValueEnum @note="enum value map">map<int32, enum<.FruitType>></ValueEnum>
+    <KvEnum @note="enum kv map">map<enum<.FruitType>, enum<.FruitType>></KvEnum>
 
-    <Meal Id="map<string, Meal>" Time="duration|{default:"30m"}">
-        <Meat Name="map<string, Meat>" Weight="string" />
-        <VegetableInfo>
-            <Vegetable Name="map<string, Vegetable>|{optional:true}" Num="int32" />
+    <Meal Id="map<string, Meal>" Time="duration|{default:"30m"}" @note.Id="meal id" @note.Time="meal time">
+        <Meat Name="map<string, Meat>" Weight="string" @note.Name="meat name" @note.Weight="meat weight" />
+        <VegetableInfo @note="vegetable info struct">
+            <Vegetable Name="map<string, Vegetable>|{optional:true}" Num="int32" @note.Name="vegetable name" @note.Num="vegetable num" />
         </VegetableInfo>
-        <FruitInfo>
-            <Fruit Name="map<string, Fruit>" Desc="string|{optional:true}" />
+        <FruitInfo @note="fruit info struct">
+            <Fruit Name="map<string, Fruit>" Desc="string|{optional:true}" @note.Name="fruit name" @note.Desc="fruit desc" />
         </FruitInfo>
     </Meal>
 
     <Chapter ID="map<int32, Chapter>|{unique:true}" Name="string|{unique:true}" @note.Name="chapter name">
-        <Section ID="map<int32, Section>|{unique:true}" Name="string|{unique:true}" />
+        <Section ID="map<int32, Section>|{unique:true}" Name="string|{unique:true}" @note.Name="section name" />
     </Chapter>
 </MapConf>
 -->

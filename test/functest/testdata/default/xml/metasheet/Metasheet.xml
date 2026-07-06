@@ -6,12 +6,12 @@
 </@TABLEAU>
 
 <MetasheetConf>
-    <SepConf number="[]int32" />
-    <MaxNum>int32</MaxNum>
+    <SepConf number="[]int32" @note.number="number list with custom sep" />
+    <MaxNum @note="max number">int32</MaxNum>
 </MetasheetConf>
 
 <TemplateConf>
-    <OutputType Type="int32" />
+    <OutputType Type="int32" @note.Type="output type" />
 </TemplateConf>
 -->
 

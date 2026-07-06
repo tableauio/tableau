@@ -16,10 +16,10 @@ message YamlScalarConf {
   uint32 id = 1 [(tableau.field) = {name:"ID"}]; // primary key
   int32 num = 2 [(tableau.field) = {name:"Num"}]; // player level number
   uint64 value = 3 [(tableau.field) = {name:"Value"}]; // player asset value in cents
-  int64 weight = 4 [(tableau.field) = {name:"Weight"}];
-  float percentage = 5 [(tableau.field) = {name:"Percentage"}];
-  double ratio = 6 [(tableau.field) = {name:"Ratio"}];
+  int64 weight = 4 [(tableau.field) = {name:"Weight"}]; // player weight
+  float percentage = 5 [(tableau.field) = {name:"Percentage"}]; // percentage value
+  double ratio = 6 [(tableau.field) = {name:"Ratio"}]; // ratio value
   string name = 7 [(tableau.field) = {name:"Name"}]; // player display name used in UI and logs
-  bytes blob = 8 [(tableau.field) = {name:"Blob"}];
-  bool ok = 9 [(tableau.field) = {name:"OK"}];
+  bytes blob = 8 [(tableau.field) = {name:"Blob"}]; // binary blob data
+  bool ok = 9 [(tableau.field) = {name:"OK"}]; // whether player is ok
 }

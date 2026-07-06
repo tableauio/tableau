@@ -4,46 +4,46 @@
 # define schema
 "@sheet": "@YamlListConf"
 ScalarList: "[int32]" # scalar list
-EnumList: "[enum<.FruitType>]"
-IncellScalarList:
+EnumList: "[enum<.FruitType>]" # enum list
+IncellScalarList:  # incell scalar list
   "@type": "[int32]"
   "@incell": true
-IncellEnumList: "[]enum<.FruitType>"
-IncellPredefinedStructList:
+IncellEnumList: "[]enum<.FruitType>" # incell enum list
+IncellPredefinedStructList:  # incell predefined struct list
   "@type": "[.Item]"
   "@incell": true
 StructList:  # struct list
   "@type": "[Hero]"
   "@struct":
     ID: uint32 # hero id
-    Name: string
-PredefinedStructList: "[.Item]"
-ListInList:
+    Name: string # hero name
+PredefinedStructList: "[.Item]" # predefined struct list
+ListInList:  # list in list
   "@type": "[Country1]"
   "@struct":
-    Country: string
-    Desc: string
-    Items:
+    Country: string # country name
+    Desc: string # country description
+    Items:  # items in country
       "@type": "[Item]"
       "@struct":
-        Name: string
-        Num: int32
-MapInList:
+        Name: string # item name
+        Num: int32 # item num
+MapInList:  # map in list
   "@type": "[Country2]"
   "@struct":
-    Country: string
-    Desc: string
-    Items:
+    Country: string # country name
+    Desc: string # country description
+    Items:  # items map in country
       "@type": "map<uint32, Item>"
       "@struct":
-        Name: string
-        Num: int32
-Items:
+        Name: string # item name
+        Num: int32 # item num
+Items:  # top-level items list
   "@type": "[Item]"
   "@struct":
     ID: uint32|{unique:true} # item unique id
-    Name: string|{unique:true}
-    Num: int32
+    Name: string|{unique:true} # item name
+    Num: int32 # item num
 ---
 "@sheet": YamlListConf
 ScalarList: [1, 2, 3]

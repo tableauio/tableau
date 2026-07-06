@@ -6,12 +6,12 @@
 ID: uint32 # primary key
 Num: int32 # player level number
 Value: uint64 # player asset value in cents
-Weight: int64
-Percentage: float
-Ratio: double
+Weight: int64 # player weight
+Percentage: float # percentage value
+Ratio: double # ratio value
 Name: string # player display name used in UI and logs
-Blob: bytes
-OK: bool
+Blob: bytes # binary blob data
+OK: bool # whether player is ok
 
 ---
 "@sheet": YamlScalarConf

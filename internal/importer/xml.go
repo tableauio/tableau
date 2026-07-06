@@ -45,6 +45,15 @@ const (
 	xmlNoteAttr = atNoteDisplacement
 )
 
+// xmlMetaAttrsAfterDisplacement is the set of attribute names that were
+// originally @-prefixed in the source XML and displaced to A-prefixed
+// names by extractXMLMetasheetInComment. These are meta attributes, not
+// field definitions.
+var xmlMetaAttrsAfterDisplacement = map[string]bool{
+	atTypeDisplacement: true, // @type
+	atNoteDisplacement: true, // @note
+}
+
 func init() {
 	attrRegexp = regexp.MustCompile(`\s*=\s*("|')` + types.TypeGroup + ungreedyPropGroup + `("|')`) // e.g.: = "int32|{range:"1,~"}"
 	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`)                // e.g.: >int32|{range:"1,~"}</
@@ -238,10 +247,21 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		bnode.Name = node.Name
 		if typeAttr := node.GetAttribute(atTypeDisplacement); typeAttr != nil {
 			// predefined struct
-			if len(node.Attributes) != 1 || len(node.Children) != 0 || node.Text != "" {
-				return xerrors.Newf("predefined struct should not have children, text, or other attributes|name: %s", node.Name)
+			if len(node.Children) != 0 || node.Text != "" {
+				return xerrors.Newf("predefined struct should not have children or text|name: %s", node.Name)
+			}
+			// Only meta attributes (originally @-prefixed) are allowed;
+			// extract @note if present.
+			var note string
+			for _, attr := range node.Attributes {
+				if attr.Name == atNoteDisplacement {
+					note = attr.Value
+				} else if !xmlMetaAttrsAfterDisplacement[attr.Name] {
+					return xerrors.Newf("predefined struct should not have non-meta attributes|name: %s, attr: %s", node.Name, attr.Name)
+				}
 			}
 			bnode.Kind = book.MapNode
+			bnode.Note = note
 			bnode.Children = append(bnode.Children, &book.Node{
 				Name:  book.KeywordType,
 				Value: typeAttr.Value,
