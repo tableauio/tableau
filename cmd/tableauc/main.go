@@ -53,7 +53,7 @@ func main() {
 	rootCmd.Flags().BoolVarP(&confInputIgnoreUnknownWorkbook, "conf-input-ignore-unknown-workbook", "", false, `Whether converter will not report an error and abort if a workbook
 is not recognized in proto files.`)
 
-	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `Available mode: default, proto, and conf. 
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", "default", `Available mode: default, proto, and conf.
   - default: generate both proto and conf files.
   - proto: generate proto files only.
   - conf: generate conf files only.

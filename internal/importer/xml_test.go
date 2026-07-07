@@ -17,7 +17,7 @@ func Test_inspectXMLNode(t *testing.T) {
 	// your byte array
 	data := []byte(`
 <?xml version="1.0" encoding="UTF-8"?>
-<!--  
+<!--
 <@TABLEAU>
   <Item Sheet="RankConf"/>
 </@TABLEAU>

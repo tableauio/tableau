@@ -307,8 +307,8 @@ func TestLoadWithPatch(t *testing.T) {
 		options *MessagerOptions
 	}
 	tests := []struct {
-		name string
-		args args
+		name    string
+		args    args
 		wantErr bool
 	}{
 		{
@@ -665,4 +665,3 @@ func TestLoadOriginMerger(t *testing.T) {
 		require.Error(t, err)
 	})
 }
-

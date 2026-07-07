@@ -265,8 +265,8 @@ func TestCollectorHierarchy_StructuredErrors_NewKV(t *testing.T) {
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+Workbook: Items.xlsx
+Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc
 Reason: invalid integer value
@@ -301,16 +301,16 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `[1] 
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+	want := `[1]
+Workbook: Items.xlsx
+Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc
 Reason: field1 error
 
-[2] 
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+[2]
+Workbook: Items.xlsx
+Worksheet: ItemConf
 DataCellPos: D3
 DataCell: def
 Reason: field2 error
@@ -338,8 +338,8 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV_Ecode(t *testing.T) {
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `error[E2005]: map key not unique
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+Workbook: Items.xlsx
+Worksheet: ItemConf
 DataCellPos: B3
 DataCell: dup_key
 Reason: map key "dup_key" already exists
@@ -381,16 +381,16 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	got := xerrors.NewDesc(joined).Stringify(false)
 	// Order: sheet own errors first, then children (msg) errors flattened.
 	want := `[1] row5: duplicate key
-[2] 
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+[2]
+Workbook: Items.xlsx
+Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc
 Reason: invalid integer
 
 [3] error[E2000]: integer overflow
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+Workbook: Items.xlsx
+Worksheet: ItemConf
 DataCellPos: D3
 DataCell: 999999999999
 Reason: value "999999999999" is outside of range [-2147483648,2147483647] of type int32
