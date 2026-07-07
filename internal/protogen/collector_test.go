@@ -229,8 +229,7 @@ func TestCollectorHierarchy_StructuredErrors_NewKV(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `
-Workbook: Hero.csv
+	want := `Workbook: Hero.csv
 Worksheet: HeroConf
 NameCellPos: B1
 NameCell: Attack
@@ -272,8 +271,7 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `[1]
-Workbook: Hero.csv
+	want := `[1] Workbook: Hero.csv
 Worksheet: HeroConf
 NameCellPos: B1
 NameCell: Attack
@@ -281,8 +279,7 @@ TypeCellPos: B2
 TypeCell: int32
 Reason: field1 error
 
-[2]
-Workbook: Hero.csv
+[2] Workbook: Hero.csv
 Worksheet: HeroConf
 NameCellPos: C1
 NameCell: Defense
@@ -364,8 +361,7 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	got := xerrors.NewDesc(joined).Stringify(false)
 	// Order: sheet own errors first, then children (msg) errors flattened.
 	want := `[1] row5: duplicate key
-[2]
-Workbook: Hero.csv
+[2] Workbook: Hero.csv
 Worksheet: HeroConf
 NameCellPos: B1
 NameCell: Attack

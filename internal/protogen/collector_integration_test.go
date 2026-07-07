@@ -174,8 +174,7 @@ func TestCollectorIntegration_BookLevelCapped(t *testing.T) {
 // docErr returns the rendered error text for a single document parser
 // "predefined type not found" error.
 func docErr(workbook, worksheet, nameCellPos, nameCell, typeCellPos, typeCell string) string {
-	return "\n" +
-		`Workbook: ` + workbook + "\n" +
+	return `Workbook: ` + workbook + "\n" +
 		`Worksheet: ` + worksheet + "\n" +
 		`NameCellPos: ` + nameCellPos + "\n" +
 		`NameCell: ` + nameCell + "\n" +
@@ -215,8 +214,8 @@ func TestCollectorIntegration_DocMultiSheet(t *testing.T) {
 	require.Error(t, err)
 
 	got := err.Error()
-	want := "[1]" + docErr("DocCollector2.yaml", "@ItemConf", "Ln 4, Col 1", "BadField", "Ln 4, Col 11", ".UnknownType") +
-		"\n[2]" + docErr("DocCollector2.yaml", "@SkillConf", "Ln 4, Col 1", "BadField", "Ln 4, Col 11", ".UnknownType")
+	want := "[1] " + docErr("DocCollector2.yaml", "@ItemConf", "Ln 4, Col 1", "BadField", "Ln 4, Col 11", ".UnknownType") +
+		"\n[2] " + docErr("DocCollector2.yaml", "@SkillConf", "Ln 4, Col 1", "BadField", "Ln 4, Col 11", ".UnknownType")
 	assert.Equal(t, want, got)
 }
 
@@ -233,11 +232,11 @@ func TestCollectorIntegration_DocBookLevelCapped(t *testing.T) {
 	require.Error(t, err)
 
 	got := err.Error()
-	want := "[1]" + docErr("DocCollector.yaml", "@Sheet1", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType1") +
-		"\n[2]" + docErr("DocCollector.yaml", "@Sheet2", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType2") +
-		"\n[3]" + docErr("DocCollector.yaml", "@Sheet3", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType3") +
-		"\n[4]" + docErr("DocCollector.yaml", "@Sheet4", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType4") +
-		"\n[5]" + docErr("DocCollector.yaml", "@Sheet5", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType5")
+	want := "[1] " + docErr("DocCollector.yaml", "@Sheet1", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType1") +
+		"\n[2] " + docErr("DocCollector.yaml", "@Sheet2", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType2") +
+		"\n[3] " + docErr("DocCollector.yaml", "@Sheet3", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType3") +
+		"\n[4] " + docErr("DocCollector.yaml", "@Sheet4", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType4") +
+		"\n[5] " + docErr("DocCollector.yaml", "@Sheet5", "Ln 3, Col 1", "BadField", "Ln 3, Col 11", ".UnknownType5")
 	assert.Equal(t, want, got)
 }
 
@@ -285,9 +284,9 @@ func TestCollectorIntegration_DocSheetLevelCapped(t *testing.T) {
 	require.Error(t, err)
 
 	got := err.Error()
-	want := "[1]" + docErr("DocCollector.yaml", "@MultiErrConf", "Ln 3, Col 1", "BadField1", "Ln 3, Col 12", ".UnknownType1") +
-		"\n[2]" + docErr("DocCollector.yaml", "@MultiErrConf", "Ln 4, Col 1", "BadField2", "Ln 4, Col 12", ".UnknownType2") +
-		"\n[3]" + docErr("DocCollector.yaml", "@MultiErrConf", "Ln 5, Col 1", "BadField3", "Ln 5, Col 12", ".UnknownType3")
+	want := "[1] " + docErr("DocCollector.yaml", "@MultiErrConf", "Ln 3, Col 1", "BadField1", "Ln 3, Col 12", ".UnknownType1") +
+		"\n[2] " + docErr("DocCollector.yaml", "@MultiErrConf", "Ln 4, Col 1", "BadField2", "Ln 4, Col 12", ".UnknownType2") +
+		"\n[3] " + docErr("DocCollector.yaml", "@MultiErrConf", "Ln 5, Col 1", "BadField3", "Ln 5, Col 12", ".UnknownType3")
 	assert.Equal(t, want, got)
 	// Verify BadField4 error is NOT present (dropped by sheet-level cap).
 	assert.NotContains(t, got, ".UnknownType4")

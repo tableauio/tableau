@@ -221,14 +221,7 @@ func (d *Desc) Stringify(withDebug bool) string {
 			if i > 0 {
 				sb.WriteString("\n")
 			}
-			// A child rendered from a KV error (no ErrCode) begins with a
-			// leading newline; avoid emitting "[N] \n" with a trailing space.
-			sep := " "
-			childStr := child.Stringify(withDebug)
-			if strings.HasPrefix(childStr, "\n") {
-				sep = ""
-			}
-			fmt.Fprintf(&sb, "[%d]%s%s", i+1, sep, childStr)
+			fmt.Fprintf(&sb, "[%d] %s", i+1, child.Stringify(withDebug))
 		}
 		return sb.String()
 	}
