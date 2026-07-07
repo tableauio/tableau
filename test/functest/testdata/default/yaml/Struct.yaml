@@ -10,16 +10,21 @@ StrictStruct:  # strict struct
     Name: string # fruit name
 Struct:  # struct
   "@type": "{Order}"
-  ID: uint32 # order id
-  StartTime: datetime # order start time
-  Expire: duration # order expire duration
+  # order id
+  ID: uint32
+  # order start time
+  StartTime: datetime
+  # order expire duration
+  Expire: duration
 ReusePredefinedStruct: "{Order}" # reuse predefined struct
 PredefinedStruct: "{.Item}" # predefined struct
 IncellStruct:  # incell struct
   "@type": "{IncellItem}"
   "@incell": true
-  ID: uint32 # incell item id
-  Num: int32 # incell item num
+  # incell item id
+  ID: uint32
+  # incell item num
+  Num: int32
 IncellStruct2: "{uint32 ID, int32 Num}InplaceIncellItem" # inplace incell struct
 PredefinedIncellStruct:  # predefined incell struct
   "@type": "{.Item}"

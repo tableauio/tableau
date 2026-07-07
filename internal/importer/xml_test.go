@@ -67,6 +67,7 @@ func TestXMLImporter_extractsNote(t *testing.T) {
 </@TABLEAU>
 <NoteConf>
     <Item @note="item struct" ID="uint32" Name="string" @note.ID="primary key" @note.Name="display name" />
+    <KeyMap Name="map<string, KeyMap>" @note.Name="key field note" Score="int32" @note.Score="score note" />
     <Deep @note="deep struct">
         <Sub ID="uint32" @note.ID="sub field id" />
     </Deep>
@@ -115,6 +116,19 @@ func TestXMLImporter_extractsNote(t *testing.T) {
 	scalar := findChild(root, "Scalar")
 	require.NotNil(t, scalar)
 	assert.Equal(t, "scalar field", scalar.Note)
+
+	// KeyMap: a vertical struct map. The `@note.Name` note targets the map
+	// key field (represented by the @key node), which previously was dropped.
+	keyMap := findChild(root, "KeyMap")
+	require.NotNil(t, keyMap)
+	keyMapStruct := keyMap.FindChild(book.KeywordStruct)
+	require.NotNil(t, keyMapStruct)
+	keyNode := keyMapStruct.FindChild(book.KeywordKey)
+	require.NotNil(t, keyNode)
+	assert.Equal(t, "key field note", keyNode.Note)
+	scoreField := keyMapStruct.FindChild("Score")
+	require.NotNil(t, scoreField)
+	assert.Equal(t, "score note", scoreField.Note)
 
 	// Deep: element-level note on nested struct
 	deep := findChild(root, "Deep")

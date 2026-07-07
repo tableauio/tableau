@@ -22,4 +22,5 @@ message YamlScalarConf {
   string name = 7 [(tableau.field) = {name:"Name"}]; // player display name used in UI and logs
   bytes blob = 8 [(tableau.field) = {name:"Blob"}]; // binary blob data
   bool ok = 9 [(tableau.field) = {name:"OK"}]; // whether player is ok
+  int32 score = 10 [(tableau.field) = {name:"Score"}]; // bonus score
 }

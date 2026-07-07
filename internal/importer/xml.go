@@ -54,6 +54,17 @@ var xmlMetaAttrsAfterDisplacement = map[string]bool{
 	atNoteDisplacement: true, // @note
 }
 
+// metasheetDisplacer rewrites @-prefixed meta markers in the metasheet
+// comment into A-prefixed displacement names in a single pass, so the
+// extracted content parses as valid XML (element/attribute names cannot
+// start with "@").
+var metasheetDisplacer = strings.NewReplacer(
+	"</@", "</AT",
+	"<@", "<AT",
+	book.KeywordType, atTypeDisplacement,
+	book.KeywordNote, atNoteDisplacement,
+)
+
 func init() {
 	attrRegexp = regexp.MustCompile(`\s*=\s*("|')` + types.TypeGroup + ungreedyPropGroup + `("|')`) // e.g.: = "int32|{range:"1,~"}"
 	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`)                // e.g.: >int32|{range:"1,~"}</
@@ -277,30 +288,35 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 		// NOTE: curBNode may be pointed to one subnode when needed
 		curBNode := bnode
 		// Pre-scan: collect element-level note and field-level notes
-		// (note.X="...") before processing real attributes, so that
-		// each field node can be annotated right after creation.
+		// (note.X="...") before processing real attributes, so that each
+		// field node can be annotated right after creation. The map is
+		// allocated lazily so the common case (no field notes) pays nothing.
 		var elemNote string
-		fieldNotes := map[string]string{}
+		var fieldNotes map[string]string
 		for _, attr := range node.Attributes {
 			if attr.Name == xmlNoteAttr {
 				elemNote = attr.Value
 			} else if strings.HasPrefix(attr.Name, xmlNoteAttrPrefix) {
+				if fieldNotes == nil {
+					fieldNotes = map[string]string{}
+				}
 				fieldNotes[strings.TrimPrefix(attr.Name, xmlNoteAttrPrefix)] = attr.Value
 			}
 		}
 		isFirstRealAttr := true
+		var err error
 		for _, attr := range node.Attributes {
 			if attr.Name == xmlNoteAttr || strings.HasPrefix(attr.Name, xmlNoteAttrPrefix) {
 				continue
 			}
-			var err error
-			curBNode, err = parseXMLAttribute(curBNode, attr.Name, attr.Value, isFirstRealAttr)
+			var fieldNode *book.Node
+			curBNode, fieldNode, err = parseXMLAttribute(curBNode, attr.Name, attr.Value, isFirstRealAttr)
 			if err != nil {
 				return xerrors.Wrapf(err, "parse xml attribute failed")
 			}
 			isFirstRealAttr = false
-			if note, ok := fieldNotes[attr.Name]; ok {
-				applyFieldNote(curBNode, attr.Name, note)
+			if note := fieldNotes[attr.Name]; note != "" && fieldNode != nil {
+				fieldNode.Note = note
 			}
 		}
 		// generate struct even if encounter empty node (or note-only attrs)
@@ -330,12 +346,12 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 						return xerrors.Newf("node contains text so only 'note' attribute is allowed|name: %s", child.Name)
 					}
 				}
-				_, err := parseXMLAttribute(curBNode, child.Name, child.Text, false)
+				_, fieldNode, err := parseXMLAttribute(curBNode, child.Name, child.Text, false)
 				if err != nil {
 					return xerrors.Wrapf(err, "parse xml text-only child failed")
 				}
-				if childNote != "" {
-					applyFieldNote(curBNode, child.Name, childNote)
+				if childNote != "" && fieldNode != nil {
+					fieldNode.Note = childNote
 				}
 				continue
 			}
@@ -344,6 +360,13 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 				return xerrors.Wrapf(err, "parse xml node failed")
 			}
 			curBNode.Children = append(curBNode.Children, subNode)
+			// A `@note.X` on the parent annotates an element-defined field X
+			// (child element); apply it unless the child carried its own note.
+			if subNode.Note == "" {
+				if note := fieldNotes[child.Name]; note != "" {
+					subNode.Note = note
+				}
+			}
 		}
 	default:
 		bnode.Name = node.Name
@@ -416,8 +439,13 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 	return nil
 }
 
-func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr bool) (*book.Node, error) {
-	curBNode := bnode
+// parseXMLAttribute parses a single XML attribute into book nodes. It returns
+// curBNode (the container the caller should use as the cursor for the next
+// attribute) and fieldNode (the node representing the field just created, i.e.
+// the node a `@note.X="..."` note should be attached to). fieldNode may be nil
+// when no annotatable field is produced.
+func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr bool) (curBNode *book.Node, fieldNode *book.Node, err error) {
+	curBNode = bnode
 	if desc := types.MatchMap(attrValue); desc != nil {
 		valueDesc := types.ParseTypeDescriptor(desc.ValueType)
 		switch valueDesc.Kind {
@@ -452,7 +480,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					Name:  book.KeywordType,
 					Value: fmt.Sprintf("{%s}", bnode.Name),
 				}, curBNode)
-				return curBNode, nil
+				return curBNode, curBNode.Children[0], nil
 			}
 			bnode.Children = append(bnode.Children, &book.Node{
 				Kind: book.MapNode,
@@ -472,10 +500,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					},
 				},
 			})
-			return bnode, nil
+			return bnode, bnode.Children[len(bnode.Children)-1], nil
 		default:
 			if !isFirstAttr {
-				return nil, xerrors.Newf("vertical map not supported on non-first attributes")
+				return nil, nil, xerrors.Newf("vertical map not supported on non-first attributes")
 			}
 			// vertical map
 			curBNode = &book.Node{
@@ -495,7 +523,11 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 				Name:  book.KeywordVariable,
 				Value: fmt.Sprintf("%sMap", bnode.Name),
 			}, curBNode)
-			return curBNode, nil
+			// The vertical-map key field is represented by the @key node
+			// (whose Value is attrName), so a `@note.X` note on the key
+			// attribute attaches to the @key node rather than a child named
+			// attrName.
+			return curBNode, curBNode.Children[0], nil
 		}
 	} else if desc := types.MatchList(attrValue); desc != nil {
 		if desc.ElemType != "" && desc.ColumnType != "" {
@@ -518,10 +550,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					Name:  book.KeywordVariable,
 					Value: fmt.Sprintf("%sList", bnode.Name),
 				}, curBNode)
-				return curBNode, nil
+				return curBNode, curBNode.Children[0], nil
 			} else {
 				bnode.Children = append(bnode.Children, curBNode.Children[0])
-				return bnode, nil
+				return bnode, bnode.Children[len(bnode.Children)-1], nil
 			}
 		} else if desc.ElemType != "" {
 			// scalar or enum list
@@ -553,10 +585,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					Name:  book.KeywordVariable,
 					Value: fmt.Sprintf("%sList", bnode.Name),
 				}, curBNode)
-				return curBNode, nil
+				return curBNode, curBNode.Children[0], nil
 			} else {
 				bnode.Children = append(bnode.Children, curBNode.Children[0])
-				return bnode, nil
+				return bnode, bnode.Children[len(bnode.Children)-1], nil
 			}
 		} else {
 			// incell list
@@ -589,10 +621,10 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					Name:  book.KeywordType,
 					Value: fmt.Sprintf("{%s}", bnode.Name),
 				}, curBNode)
-				return curBNode, nil
+				return curBNode, curBNode.Children[0], nil
 			} else {
 				bnode.Children = append(bnode.Children, curBNode.Children[0])
-				return bnode, nil
+				return bnode, bnode.Children[len(bnode.Children)-1], nil
 			}
 		}
 	} else if desc := types.MatchStruct(attrValue); desc != nil {
@@ -613,7 +645,7 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					},
 				},
 			})
-			return bnode, nil
+			return bnode, bnode.Children[len(bnode.Children)-1], nil
 		default:
 			curBNode = &book.Node{
 				Kind: book.MapNode,
@@ -630,10 +662,13 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 					Name:  book.KeywordType,
 					Value: fmt.Sprintf("{%s}", desc.StructType),
 				}, curBNode)
-				return curBNode, nil
+				return curBNode, curBNode.Children[0], nil
 			} else {
-				bnode.Children = append(bnode.Children, curBNode)
-				return bnode, nil
+				// Unwrap the @struct container and append the field node
+				// directly, consistent with the list branches above, so that
+				// the field (and any `@note.X` note on it) is reachable.
+				bnode.Children = append(bnode.Children, curBNode.Children[0])
+				return bnode, bnode.Children[len(bnode.Children)-1], nil
 			}
 		}
 	} else if isFirstAttr {
@@ -652,32 +687,13 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 			Name:  book.KeywordType,
 			Value: fmt.Sprintf("{%s}", bnode.Name),
 		}, curBNode)
-		return curBNode, nil
+		return curBNode, curBNode.Children[0], nil
 	} else {
 		bnode.Children = append(bnode.Children, &book.Node{
 			Name:  attrName,
 			Value: attrValue,
 		})
-		return bnode, nil
-	}
-}
-
-// applyFieldNote sets the note on the most recently created child named
-// fieldName of the struct container curBNode. It is used to attach a
-// `@note.X="..."` note to the corresponding field after parseXMLAttribute
-// has created it.
-func applyFieldNote(curBNode *book.Node, fieldName, note string) {
-	if curBNode == nil {
-		return
-	}
-	// parseXMLAttribute appends the field as the last child of the
-	// @struct container; search backwards for a match.
-	for i := len(curBNode.Children) - 1; i >= 0; i-- {
-		c := curBNode.Children[i]
-		if c.Name == fieldName {
-			c.Note = note
-			return
-		}
+		return bnode, bnode.Children[len(bnode.Children)-1], nil
 	}
 }
 
@@ -708,10 +724,7 @@ func extractXMLMetasheetInComment(content string, metasheetName string) string {
 		return ""
 	}
 	metasheet := matches[1]
-	metasheet = strings.ReplaceAll(metasheet, "<@", "<AT")
-	metasheet = strings.ReplaceAll(metasheet, "</@", "</AT")
-	metasheet = strings.ReplaceAll(metasheet, book.KeywordType, atTypeDisplacement)
-	metasheet = strings.ReplaceAll(metasheet, book.KeywordNote, atNoteDisplacement)
+	metasheet = metasheetDisplacer.Replace(metasheet)
 	metasheet = escapeAttrs(metasheet)
 	metasheet = xmlProlog + "\n" + metasheet
 	return metasheet

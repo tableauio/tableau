@@ -169,6 +169,11 @@ func TestYAMLImporter_extractsCommentAsNote(t *testing.T) {
 	require.NotNil(t, name)
 	assert.Equal(t, "display name", name.Note)
 
+	// Scalar field: `# ...` on its own line above the field (HeadComment).
+	nickname := findChild(root, "Nickname")
+	require.NotNil(t, nickname)
+	assert.Equal(t, "nickname above the field", nickname.Note)
+
 	// List field: `# ...` on the key line (value is a mapping below).
 	fruits := findChild(root, "Fruits")
 	require.NotNil(t, fruits)

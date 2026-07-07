@@ -19,13 +19,15 @@ IncellEnumMap:  # incell enum map
 StructMap:  # struct map
   "@type": "map<uint32, Item>"
   "@struct":
-    Name: string # item name
+    # item name
+    Name: string
     Num: int32 # item num
 CustomKeyStructMap:  # custom key struct map
   "@type": "map<uint32, CustomItem>"
   "@struct":
     "@key": CustomKey
-    Name: string # item name
+    # item name
+    Name: string
     Num: int32 # item num
 EnumKeyStructMap:  # enum key struct map
   "@type": "map<enum<.FruitType>, EnumItem>"

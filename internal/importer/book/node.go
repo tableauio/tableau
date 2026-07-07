@@ -146,12 +146,24 @@ func (n *Node) GetMetaTypeNode() *Node {
 // GetMetaKey returns this node's key defined in schema sheet.
 func (n *Node) GetMetaKey() string {
 	// find @key in children
-	keyNode := n.GetMetaStructNode().FindChild(KeywordKey)
+	keyNode := n.GetMetaKeyNode()
 	if keyNode != nil {
 		return keyNode.Value
 	}
 	// default
 	return KeywordKey
+}
+
+// GetMetaKeyNode returns the @key node of a vertical-map struct, or nil if
+// the struct has no explicit key (e.g. an incell map). The @key node carries
+// the key field's name as its Value, and may carry a Note extracted from the
+// source document that should be attached to the generated key field.
+func (n *Node) GetMetaKeyNode() *Node {
+	structNode := n.GetMetaStructNode()
+	if structNode == nil {
+		return nil
+	}
+	return structNode.FindChild(KeywordKey)
 }
 
 // GetMetaIncell returns this node's @incell defined in schema sheet.

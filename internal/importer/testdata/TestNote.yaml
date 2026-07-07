@@ -1,6 +1,8 @@
 "@sheet": "@NoteConf"
 ID: uint32   # primary key
 Name: string # display name
+# nickname above the field
+Nickname: string
 Fruits:  # fruit list
   "@type": "[Fruit]"
   "@struct":

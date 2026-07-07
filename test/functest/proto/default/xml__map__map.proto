@@ -18,7 +18,7 @@ message MapConf {
   bool open = 1 [(tableau.field) = {name:"Open"}]; // whether map is open
   map<string, PreEntry> pre_entry_map = 2 [(tableau.field) = {name:"PreEntry" key:"Name"}];
   message PreEntry {
-    string name = 1 [(tableau.field) = {name:"Name"}];
+    string name = 1 [(tableau.field) = {name:"Name"}]; // pre entry name
     repeated int32 cost_list = 2 [(tableau.field) = {name:"Cost" layout:LAYOUT_INCELL}]; // pre entry cost
   }
   map<uint32, Entry> entry_map = 3 [(tableau.field) = {name:"Entry" key:"Id"}];
@@ -45,18 +45,18 @@ message MapConf {
   }
   map<string, Meal> meal_map = 9 [(tableau.field) = {name:"Meal" key:"Id"}];
   message Meal {
-    string id = 1 [(tableau.field) = {name:"Id"}];
+    string id = 1 [(tableau.field) = {name:"Id"}]; // meal id
     google.protobuf.Duration time = 2 [(tableau.field) = {name:"Time" prop:{default:"30m"}}]; // meal time
     map<string, Meat> meat_map = 3 [(tableau.field) = {name:"Meat" key:"Name"}];
     message Meat {
-      string name = 1 [(tableau.field) = {name:"Name"}];
+      string name = 1 [(tableau.field) = {name:"Name"}]; // meat name
       string weight = 2 [(tableau.field) = {name:"Weight"}]; // meat weight
     }
     VegetableInfo vegetable_info = 4 [(tableau.field) = {name:"VegetableInfo"}]; // vegetable info struct
     message VegetableInfo {
       map<string, Vegetable> vegetable_map = 1 [(tableau.field) = {name:"Vegetable" key:"Name" prop:{optional:true}}];
       message Vegetable {
-        string name = 1 [(tableau.field) = {name:"Name" prop:{optional:true}}];
+        string name = 1 [(tableau.field) = {name:"Name" prop:{optional:true}}]; // vegetable name
         int32 num = 2 [(tableau.field) = {name:"Num"}]; // vegetable num
       }
     }
@@ -64,7 +64,7 @@ message MapConf {
     message FruitInfo {
       map<string, Fruit> fruit_map = 1 [(tableau.field) = {name:"Fruit" key:"Name"}];
       message Fruit {
-        string name = 1 [(tableau.field) = {name:"Name"}];
+        string name = 1 [(tableau.field) = {name:"Name"}]; // fruit name
         string desc = 2 [(tableau.field) = {name:"Desc" prop:{optional:true}}]; // fruit desc
       }
     }

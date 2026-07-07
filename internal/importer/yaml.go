@@ -165,12 +165,10 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 					Line:   value.Line,
 					Column: value.Column,
 				},
-				// Only trailing `# ...` line comments are collected. For a
-				// mapping pair the line comment may be attached to either
-				// the value node (when value is a scalar on the same line:
-				// `Key: value  # note`) or the key node (when value spans
-				// multiple lines: `Key:  # note\n  ...`).
-				Note: yamlLineNote(value.LineComment, key.LineComment),
+				// A `# ...` comment may annotate this field either as a
+				// trailing line comment or as a comment on its own line
+				// above the pair (HeadComment).
+				Note: yamlPairNote(key, value),
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if value.Kind == yaml.ScalarNode {
@@ -195,9 +193,9 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 					Line:   elem.Line,
 					Column: elem.Column,
 				},
-				// For sequence elements, the trailing `# ...` line comment
-				// is attached to the element node itself.
-				Note: yamlLineNote(elem.LineComment),
+				// For sequence elements, a `# ...` trailing line comment or a
+				// head comment above the element annotates it.
+				Note: yamlElemNote(elem),
 			}
 			bnode.Children = append(bnode.Children, subNode)
 			if elem.Kind == yaml.ScalarNode {
@@ -216,26 +214,61 @@ func parseYAMLNode(node *yaml.Node, bnode *book.Node) error {
 	}
 }
 
-// yamlLineNote extracts a trailing `# ...` line comment from the first
-// non-empty candidate string. The leading "#" marker and surrounding
-// whitespace are stripped. Returns "" when no line comment is present.
-//
-// For a mapping pair the line comment may be attached to either the value
-// node (when value is a scalar on the same line: `Key: value  # note`)
-// or the key node (when value spans multiple lines: `Key:  # note`), so
-// both should be passed as candidates.
-func yamlLineNote(parts ...string) string {
-	for _, p := range parts {
-		if p == "" {
-			continue
-		}
-		p = strings.TrimSpace(p)
-		p = strings.TrimPrefix(p, "#")
-		if p = strings.TrimSpace(p); p != "" {
-			return p
+// yamlCommentNote extracts a note from a trailing `# ...` line comment
+// string (as reported by yaml.v3's LineComment). The leading "#" marker
+// and surrounding whitespace are stripped. Returns "" when empty.
+func yamlCommentNote(lineComment string) string {
+	s := strings.TrimSpace(lineComment)
+	s = strings.TrimPrefix(s, "#")
+	return strings.TrimSpace(s)
+}
+
+// yamlHeadNote extracts a note from a HeadComment, which yaml.v3 uses for
+// comments on their own line(s) above a node (e.g. `# field note\nField:
+// type`). Only the last non-empty comment line is used, so a multi-line head
+// block yields a single-line note (the proto comment is rendered on one
+// line). Returns "" when empty.
+func yamlHeadNote(headComment string) string {
+	s := strings.TrimSpace(headComment)
+	if s == "" {
+		return ""
+	}
+	last := ""
+	for _, line := range strings.Split(s, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			last = line
 		}
 	}
-	return ""
+	return yamlCommentNote(last)
+}
+
+// yamlPairNote extracts a note for a YAML mapping pair. It prefers a
+// trailing `# ...` line comment (on the value when it is a scalar on the
+// same line: `Key: value  # note`, or on the key when the value spans
+// multiple lines: `Key:  # note\n  ...`), and falls back to a head comment
+// on its own line above the pair.
+func yamlPairNote(key, value *yaml.Node) string {
+	if n := yamlCommentNote(value.LineComment); n != "" {
+		return n
+	}
+	if n := yamlCommentNote(key.LineComment); n != "" {
+		return n
+	}
+	if n := yamlHeadNote(key.HeadComment); n != "" {
+		return n
+	}
+	return yamlHeadNote(value.HeadComment)
+}
+
+// yamlElemNote extracts a note for a YAML sequence element, preferring a
+// trailing `# ...` line comment and falling back to a head comment above
+// the element.
+func yamlElemNote(elem *yaml.Node) string {
+	if n := yamlCommentNote(elem.LineComment); n != "" {
+		return n
+	}
+	return yamlHeadNote(elem.HeadComment)
 }
 
 var yamlSheetNameRegexp *regexp.Regexp
