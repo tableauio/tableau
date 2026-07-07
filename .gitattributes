@@ -1,16 +1,42 @@
-# Treat all files in this repo as binary, with no git magic updating
-# line endings. This produces predictable results in different environments.
+# By default, treat all files as binary: git never rewrites line endings
+# on commit or checkout. This keeps assets and other binary files untouched
+# and produces predictable results in different environments.
+#
+# Text *source* files are the exception: they are normalized to LF below,
+# so edits on any OS (including Windows, where editors default to CRLF)
+# commit as LF. This prevents the cross-OS CRLF/LF churn that previously
+# left ~60 .go files and many .yaml/.xml/.json files committed as CRLF
+# while their siblings were LF.
 #
 # Windows users contributing to this repo will need to use a modern version
-# of git and editors capable of LF line endings.
+# of git and editors capable of LF line endings. The attributes below make
+# git enforce LF for source files regardless of editor settings.
 #
 # Windows .bat files are known to have multiple bugs when run with LF
 # endings, and so they are checked in with CRLF endings, with a test
 # to catch problems. (See https://github.com/golang/go/issues/37791.)
-#
-# We'll prevent accidental CRLF line endings from entering the repo
-# via MR/PR checks and tests.
+# They fall under the default "-text" below, so their committed bytes
+# (including CRLF) are preserved.
 #
 # See https://github.com/golang/go/issues/9281.
 # See https://adaptivepatchwork.com/2012/03/01/mind-the-end-of-your-line.
 * -text
+
+# Text source files: store LF in the repo and check out LF on every
+# platform. Existing CRLF files were renormalized to LF in the commit
+# that introduced these rules.
+*.go            text eol=lf
+*.proto         text eol=lf
+*.yaml          text eol=lf
+*.yml           text eol=lf
+*.xml           text eol=lf
+*.json          text eol=lf
+*.csv           text eol=lf
+*.sh            text eol=lf
+*.md            text eol=lf
+*.txtpb         text eol=lf
+*.mod           text eol=lf
+*.sum           text eol=lf
+*.ts            text eol=lf
+*.js            text eol=lf
+.clang-format   text eol=lf

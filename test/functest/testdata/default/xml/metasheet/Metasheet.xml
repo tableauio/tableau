@@ -17,7 +17,7 @@
 
 <MetasheetConf>
     <SepConf number="1;2;3" />
-    
+
     <!-- Test -->
     <MaxNum>100</MaxNum>
 </MetasheetConf>
