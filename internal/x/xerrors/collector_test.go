@@ -691,23 +691,28 @@ func TestCollected_JoinReturnsCollectedMarker(t *testing.T) {
 	assert.True(t, errors.As(joined, &ce), "Join() should return a collected-wrapped error")
 }
 
-// Collect skips collected-marked errors.
-func TestCollected_CollectSkipsCollectedError(t *testing.T) {
+// Collect treats a foreign collected error (from an unrelated collector
+// tree) as an ordinary error so it is not silently dropped.
+func TestCollected_CollectForeignCollectedIsNotDropped(t *testing.T) {
 	c := NewCollector(10)
 	_ = c.Collect(fmt.Errorf("err 1"))
 
 	joined := c.Join()
 	assert.Error(t, joined)
 
-	// Create a new collector and Collect the joined error.
-	// The collected marker should cause it to be skipped.
+	// Create a new, unrelated collector and Collect the joined error.
+	// Since joined.origin (= c) is not in c2's tree, c2 must keep it
+	// rather than silently drop it.
 	c2 := NewCollector(10)
 	_ = c2.Collect(joined)
-	assert.NoError(t, c2.Join(), "collected error should be skipped")
+	got := c2.Join()
+	assert.Error(t, got, "foreign collected error must not be silently dropped")
+	assert.Contains(t, got.Error(), "err 1")
 }
 
-// Collect skips collected marker even through WrapKV.
-func TestCollected_CollectSkipsWrappedCollectedError(t *testing.T) {
+// Collect treats a WrapKV'd foreign collected error as an ordinary error
+// so it is not silently dropped; the wrapping fields remain available.
+func TestCollected_CollectForeignWrappedCollectedIsNotDropped(t *testing.T) {
 	c := NewCollector(10)
 	_ = c.Collect(fmt.Errorf("err 1"))
 
@@ -715,8 +720,62 @@ func TestCollected_CollectSkipsWrappedCollectedError(t *testing.T) {
 	wrapped := WrapKV(joined, KeyBookName, "test.xlsx")
 
 	c2 := NewCollector(10)
-	_ = c2.Collect(wrapped) // collected marker detected, skip entirely
-	assert.NoError(t, c2.Join(), "WrapKV'd collected error should be skipped")
+	_ = c2.Collect(wrapped)
+	got := c2.Join()
+	assert.Error(t, got, "WrapKV'd foreign collected error must not be silently dropped")
+	assert.Contains(t, got.Error(), "err 1")
+}
+
+// Collecting a WrapKV'd same-tree collected error records the outer WrapKV
+// layer on the originating collector so Join() can re-apply the fields.
+func TestCollected_CollectSameTreeWrappedCollectedRecordsOuterWM(t *testing.T) {
+	root := NewCollector(10)
+	child := root.NewChild(0)
+	_ = child.Collect(fmt.Errorf("err 1"))
+
+	joined := child.Join()
+	assert.Error(t, joined)
+	wrapped := WrapKV(joined, KeyBookName, "test.xlsx")
+
+	// root and child share a tree, so the collected marker is recognized
+	// and the outer WrapKV layer is recorded on child (origin) for Join().
+	_ = root.Collect(wrapped)
+
+	if assert.NotNil(t, child.outerWM, "outer WrapKV layer should be recorded on the originating collector") {
+		assert.Equal(t, "test.xlsx", child.outerWM.fields[KeyBookName])
+	}
+
+	// child.Join() re-applies the recorded fields, surfacing them in its Desc.
+	rejoined := child.Join()
+	assert.NotNil(t, rejoined)
+	assert.Equal(t, "test.xlsx", NewDesc(rejoined).fields[KeyBookName])
+}
+
+// Collecting a same-tree collected error when the receiver is already full
+// returns the joined error tree immediately (early termination).
+func TestCollected_CollectSameTreeCollectedWhenFullReturnsJoin(t *testing.T) {
+	root := NewCollector(1) // fail-fast: full after the first error
+	child := root.NewChild(0)
+	_ = child.Collect(fmt.Errorf("err 1"))
+	assert.True(t, root.IsFull(), "root should be full after child collects one error")
+
+	joined := child.Join()
+	assert.Error(t, joined)
+
+	// Same-tree collected marker is recognized; root is full, so Collect
+	// short-circuits and returns root.Join() instead of nil.
+	got := root.Collect(joined)
+	assert.Error(t, got, "full collector should return Join() for a same-tree collected error")
+}
+
+// sameTreeAs handles nil receivers/arguments defensively.
+func TestCollector_SameTreeAs_Nil(t *testing.T) {
+	c := NewCollector(10)
+	assert.False(t, c.sameTreeAs(nil), "nil other should not be same tree")
+
+	var nilCollector *Collector
+	assert.False(t, nilCollector.sameTreeAs(c), "nil receiver should not be same tree")
+	assert.False(t, nilCollector.sameTreeAs(nil), "nil receiver and nil other should not be same tree")
 }
 
 // collected marker is transparent: Error() delegates to inner.
