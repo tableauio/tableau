@@ -1194,9 +1194,9 @@ func buildOldMDWithReserved(t *testing.T, fields map[string]int32, reserved []re
 		})
 	}
 	fdp := &descriptorpb.FileDescriptorProto{
-		Name:    proto.String("synthetic_oldmd.proto"),
-		Syntax:  proto.String("proto2"),
-		Package: proto.String("synthetic"),
+		Name:        proto.String("synthetic_oldmd.proto"),
+		Syntax:      proto.String("proto2"),
+		Package:     proto.String("synthetic"),
 		MessageType: []*descriptorpb.DescriptorProto{msg},
 	}
 	fd, err := protodesc.NewFile(fdp, nil)

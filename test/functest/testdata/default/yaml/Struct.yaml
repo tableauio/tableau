@@ -3,28 +3,33 @@
 ---
 # define schema
 "@sheet": "@YamlStructConf"
-StrictStruct:
+StrictStruct:  # strict struct
   "@type": "{Fruit}"
   "@struct":
-    ID: uint32
-    Name: string
-Struct:
+    ID: uint32 # fruit id
+    Name: string # fruit name
+Struct:  # struct
   "@type": "{Order}"
+  # order id
   ID: uint32
+  # order start time
   StartTime: datetime
+  # order expire duration
   Expire: duration
-ReusePredefinedStruct: "{Order}"
-PredefinedStruct: "{.Item}"
-IncellStruct:
+ReusePredefinedStruct: "{Order}" # reuse predefined struct
+PredefinedStruct: "{.Item}" # predefined struct
+IncellStruct:  # incell struct
   "@type": "{IncellItem}"
   "@incell": true
+  # incell item id
   ID: uint32
+  # incell item num
   Num: int32
-IncellStruct2: "{uint32 ID, int32 Num}InplaceIncellItem"
-PredefinedIncellStruct:
+IncellStruct2: "{uint32 ID, int32 Num}InplaceIncellItem" # inplace incell struct
+PredefinedIncellStruct:  # predefined incell struct
   "@type": "{.Item}"
   "@incell": true
-EmptyStruct:
+EmptyStruct:  # empty struct
   "@type": "{Empty}"
 ---
 "@sheet": YamlStructConf

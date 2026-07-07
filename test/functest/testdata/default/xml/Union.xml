@@ -5,9 +5,9 @@
 </@TABLEAU>
 
 <XMLUnionConf>
-    <PredefinedUnion @type="{union.Target}" />
-    <PredefinedIncellUnion>{union.Target}|{form:FORM_TEXT}</PredefinedIncellUnion>
-    <Union @type="[union.Target]" />
+    <PredefinedUnion @type="{union.Target}" @note="predefined union" />
+    <PredefinedIncellUnion @note="predefined incell union">{union.Target}|{form:FORM_TEXT}</PredefinedIncellUnion>
+    <Union @type="[union.Target]" @note="union list" />
 </XMLUnionConf>
 -->
 

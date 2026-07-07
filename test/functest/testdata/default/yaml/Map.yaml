@@ -3,61 +3,63 @@
 ---
 # define schema
 "@sheet": "@YamlMapConf"
-ScalarMap: "map<uint32, string>"
-EnumKeyScalarMap: "map<enum<.FruitType>, string>"
-EnumValueScalarMap: "map<string, enum<.FruitType>>"
-EnumKVScalarMap:
+ScalarMap: "map<uint32, string>" # scalar kv map
+EnumKeyScalarMap: "map<enum<.FruitType>, string>" # enum key scalar map
+EnumValueScalarMap: "map<string, enum<.FruitType>>" # enum value scalar map
+EnumKVScalarMap:  # enum kv scalar map
   "@type": "map<enum<.FruitType>, enum<.FruitFlavor>>"
   "@struct": CustomMapValue
-IncellMap:
+IncellMap:  # incell map
   "@type": "map<uint32, string>"
   "@incell": true
-IncellEnumMap:
+IncellEnumMap:  # incell enum map
   "@type": "map<enum<.FruitType>, enum<.FruitFlavor>>"
   "@struct": CustomMapValue
   "@incell": true
-StructMap:
+StructMap:  # struct map
   "@type": "map<uint32, Item>"
   "@struct":
+    # item name
     Name: string
-    Num: int32
-CustomKeyStructMap:
+    Num: int32 # item num
+CustomKeyStructMap:  # custom key struct map
   "@type": "map<uint32, CustomItem>"
   "@struct":
     "@key": CustomKey
+    # item name
     Name: string
-    Num: int32
-EnumKeyStructMap:
+    Num: int32 # item num
+EnumKeyStructMap:  # enum key struct map
   "@type": "map<enum<.FruitType>, EnumItem>"
   "@struct":
-    Name: string
-    Num: int32
-ListInMap:
+    Name: string # item name
+    Num: int32 # item num
+ListInMap:  # list in map
   "@type": "map<string, Country1>"
   "@struct":
-    Desc: string
-    Items:
+    Desc: string # country description
+    Items:  # items list in country
       "@type": "[Item]"
       "@struct":
-        Name: string
-        Num: int32
-MapInMap:
+        Name: string # item name
+        Num: int32 # item num
+MapInMap:  # map in map
   "@type": "map<string, Country2>"
   "@struct":
-    Desc: string
-    Items:
+    Desc: string # country description
+    Items:  # items map in country
       "@type": "map<uint32, Item>"
       "@struct":
-        Name: string
-        Num: int32
-Chapter:
+        Name: string # item name
+        Num: int32 # item num
+Chapter:  # chapter map
   "@type": "map<string, Chapter>|{unique:true}"
   "@struct":
-    Name: string|{unique:true}
-    Section:
+    Name: string|{unique:true} # chapter name
+    Section:  # section map
       "@type": "map<uint32, Section>|{unique:true}"
       "@struct":
-        Name: string|{unique:true}
+        Name: string|{unique:true} # section name
 ---
 "@sheet": YamlMapConf
 ScalarMap:

@@ -39,8 +39,8 @@ func newCollectorTestGenerator(inputDir string) *Generator {
 // e2012 returns the rendered error text for a single E2012 error with confgen template.
 func e2012(workbook, worksheet, cellPos, value, fieldType string) string {
 	return `error[E2012]: invalid syntax of numerical value` + "\n" +
-		`Workbook: ` + workbook + ` ` + "\n" +
-		`Worksheet: ` + worksheet + ` ` + "\n" +
+		`Workbook: ` + workbook + "\n" +
+		`Worksheet: ` + worksheet + "\n" +
 		`DataCellPos: ` + cellPos + "\n" +
 		`DataCell: ` + value + "\n" +
 		`Reason: "` + value + `" cannot be parsed to numerical type "` + fieldType + `", strconv.ParseFloat: parsing "` + value + `": invalid syntax` + "\n" +
@@ -237,6 +237,6 @@ func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
 	assert.Contains(t, got, "(Primary: MergerCollector#*.csv)",
 		"primary BookName must be annotated alongside the shard BookName")
 	// The error must NOT point at the main workbook as the offending one.
-	assert.NotContains(t, got, "Workbook: MergerCollector#*.csv ",
+	assert.NotContains(t, got, "Workbook: MergerCollector#*.csv",
 		"main workbook must not be reported as the offending file")
 }

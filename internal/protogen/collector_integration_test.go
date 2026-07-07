@@ -43,8 +43,8 @@ func newCollectorTestGeneratorYAML(inputDir string) *Generator {
 // e0003 returns the rendered error text for a single E0003 error with protogen template.
 func e0003(workbook, worksheet, nameCellPos, nameCell, typeCellPos, typeCell, dupPos1, dupPos2 string) string {
 	return `error[E0003]: duplicate column name` + "\n" +
-		`Workbook: ` + workbook + ` ` + "\n" +
-		`Worksheet: ` + worksheet + ` ` + "\n" +
+		`Workbook: ` + workbook + "\n" +
+		`Worksheet: ` + worksheet + "\n" +
 		`NameCellPos: ` + nameCellPos + "\n" +
 		`NameCell: ` + nameCell + "\n" +
 		`TypeCellPos: ` + typeCellPos + "\n" +
@@ -174,9 +174,9 @@ func TestCollectorIntegration_BookLevelCapped(t *testing.T) {
 // docErr returns the rendered error text for a single document parser
 // "predefined type not found" error.
 func docErr(workbook, worksheet, nameCellPos, nameCell, typeCellPos, typeCell string) string {
-	return "\n" +
-		`Workbook: ` + workbook + ` ` + "\n" +
-		`Worksheet: ` + worksheet + ` ` + "\n" +
+	return `error[E0004]: unknown error` + "\n" +
+		`Workbook: ` + workbook + "\n" +
+		`Worksheet: ` + worksheet + "\n" +
 		`NameCellPos: ` + nameCellPos + "\n" +
 		`NameCell: ` + nameCell + "\n" +
 		`TypeCellPos: ` + typeCellPos + "\n" +

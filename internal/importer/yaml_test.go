@@ -132,3 +132,68 @@ func TestNewYAMLImporter(t *testing.T) {
 		})
 	}
 }
+
+func TestYAMLImporter_extractsCommentAsNote(t *testing.T) {
+	imp, err := NewYAMLImporter(
+		context.Background(),
+		"testdata/TestNote.yaml",
+	)
+	require.NoError(t, err)
+
+	sheet := imp.GetSheet("@NoteConf")
+	require.NotNil(t, sheet, "book sheets: %v", func() []string {
+		var names []string
+		for _, s := range imp.GetSheets() {
+			names = append(names, s.Name)
+		}
+		return names
+	}())
+	require.Len(t, sheet.Document.Children, 1)
+	root := sheet.Document.Children[0]
+
+	findChild := func(n *book.Node, name string) *book.Node {
+		for _, c := range n.Children {
+			if c.Name == name {
+				return c
+			}
+		}
+		return nil
+	}
+
+	// Scalar fields: trailing `# ...` on the same line.
+	id := findChild(root, "ID")
+	require.NotNil(t, id)
+	assert.Equal(t, "primary key", id.Note)
+
+	name := findChild(root, "Name")
+	require.NotNil(t, name)
+	assert.Equal(t, "display name", name.Note)
+
+	// Scalar field: `# ...` on its own line above the field (HeadComment).
+	nickname := findChild(root, "Nickname")
+	require.NotNil(t, nickname)
+	assert.Equal(t, "nickname above the field", nickname.Note)
+
+	// List field: `# ...` on the key line (value is a mapping below).
+	fruits := findChild(root, "Fruits")
+	require.NotNil(t, fruits)
+	assert.Equal(t, "fruit list", fruits.Note)
+	structNode := findChild(fruits, "@struct")
+	require.NotNil(t, structNode)
+	fid := findChild(structNode, "ID")
+	require.NotNil(t, fid)
+	assert.Equal(t, "fruit id", fid.Note)
+	fname := findChild(structNode, "Name")
+	require.NotNil(t, fname)
+	assert.Equal(t, "fruit name", fname.Note)
+
+	// Map field: `# ...` on the key line (value is a mapping below).
+	countries := findChild(root, "Countries")
+	require.NotNil(t, countries)
+	assert.Equal(t, "country map", countries.Note)
+	cstruct := findChild(countries, "@struct")
+	require.NotNil(t, cstruct)
+	desc := findChild(cstruct, "Desc")
+	require.NotNil(t, desc)
+	assert.Equal(t, "short description", desc.Note)
+}

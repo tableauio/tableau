@@ -3,9 +3,9 @@
 ---
 # define schema
 "@sheet": "@YamlEnumConf"
-ID: uint32
-Type: "enum<.FruitType>"
-Desc: string
+ID: uint32 # unique id
+Type: "enum<.FruitType>" # fruit type enum
+Desc: string # description text
 
 ---
 "@sheet": YamlEnumConf

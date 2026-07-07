@@ -6,25 +6,31 @@
 </@TABLEAU>
 
 <ListConf>
-    <Parent>
-        <Parent2>
-            <CrossCell Value="[CrossCell]int32" Name="string" Cost="[]int32" />
+    <Parent @note="parent struct">
+        <Parent2 @note="parent2 struct">
+            <CrossCell Value="[CrossCell]int32" @note.Value="cross cell value"
+                Name="string" @note.Name="cross cell name"
+                Cost="[]int32" @note.Cost="cross cell cost" />
         </Parent2>
     </Parent>
-    <Value>[int32]</Value>
-    <Item @type="[.Item]"/>
+    <Value @note="scalar list">[int32]</Value>
+    <Item @type="[.Item]" @note="predefined item list"/>
 </ListConf>
 
 <ListConf2>
-    <Parent>
-        <Parent2>
-            <Incell Value="[]int32" Cost="[]int32" />
-            <EnumIncell>[]enum<.FruitType></EnumIncell>
+    <Parent @note="parent struct">
+        <Parent2 @note="parent2 struct">
+            <Incell @note="incell struct"
+                Value="[]int32" @note.Value="incell value"
+                Cost="[]int32" @note.Cost="incell cost" />
+            <EnumIncell @note="incell enum list">[]enum<.FruitType></EnumIncell>
         </Parent2>
     </Parent>
-    <Fruit>[enum<.FruitType>]</Fruit>
-    <Date>[datetime]</Date>
-    <Item ID="[Item]uint32|{unique:true}" Name="string|{unique:true}" Num="int32"/>
+    <Fruit @note="fruit enum list">[enum<.FruitType>]</Fruit>
+    <Date @note="date list">[datetime]</Date>
+    <Item ID="[Item]uint32|{unique:true}" @note.ID="item id"
+        Name="string|{unique:true}" @note.Name="item name"
+        Num="int32" @note.Num="item count"/>
 </ListConf2>
 -->
 

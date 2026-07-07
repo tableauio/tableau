@@ -200,16 +200,16 @@ func TestNewDescWrapKVOverJoin(t *testing.T) {
 	require.NotNil(t, md)
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: ValidateFieldLevel 
+Workbook: Validate#*.csv
+Worksheet: ValidateFieldLevel
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "800" violates rule: item_map[1].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: ValidateFieldLevel 
+Workbook: Validate#*.csv
+Worksheet: ValidateFieldLevel
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
@@ -233,8 +233,8 @@ func TestNewDescWrapKVOverJoinSingleChild(t *testing.T) {
 	require.NotNil(t, d)
 
 	wantNoDebug := `error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: ValidateFieldLevel 
+Workbook: Validate#*.csv
+Worksheet: ValidateFieldLevel
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "800" violates rule: score: value must be > 0 and <= 100
@@ -253,9 +253,9 @@ func TestNewDescOuterFieldDoesNotOverrideInner(t *testing.T) {
 	d := NewDesc(wrapped)
 	require.NotNil(t, d)
 
-	want := `
-Workbook: <no value> 
-Worksheet: <no value> 
+	want := `error[E0004]: unknown error
+Workbook: <no value>
+Worksheet: <no value>
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: inner error
@@ -297,32 +297,32 @@ func TestNewDescTwoLayerJoinMultiOuter(t *testing.T) {
 	require.NotNil(t, md)
 
 	want := `[1] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: Sheet1 
+Workbook: Validate#*.csv
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "800" violates rule: item_map[1].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: Sheet1 
+Workbook: Validate#*.csv
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [3] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: Sheet2 
+Workbook: Validate#*.csv
+Worksheet: Sheet2
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: item_map[3].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [4] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: Sheet2 
+Workbook: Validate#*.csv
+Worksheet: Sheet2
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "-1" violates rule: item_map[4].score: value must be > 0 and <= 100
@@ -362,32 +362,32 @@ func TestNewDescThreeLayerJoin(t *testing.T) {
 	require.NotNil(t, md)
 
 	want := `[1] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: Sheet1 
+Workbook: Validate#*.csv
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "800" violates rule: item_map[1].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: Sheet1 
+Workbook: Validate#*.csv
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [3] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: Sheet2 
+Workbook: Validate#*.csv
+Worksheet: Sheet2
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: item_map[3].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [4] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: Sheet2 
+Workbook: Validate#*.csv
+Worksheet: Sheet2
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "-1" violates rule: item_map[4].score: value must be > 0 and <= 100
@@ -433,16 +433,16 @@ func TestNewDescTwoLayerJoin(t *testing.T) {
 	require.NotNil(t, md)
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: ValidateFieldLevel 
+Workbook: Validate#*.csv
+Worksheet: ValidateFieldLevel
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "800" violates rule: item_map[1].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Validate#*.csv 
-Worksheet: ValidateFieldLevel 
+Workbook: Validate#*.csv
+Worksheet: ValidateFieldLevel
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
@@ -550,16 +550,16 @@ func TestNewDesc_TwoLevelWithWrapKV(t *testing.T) {
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
-Workbook: Items#*.csv 
-Worksheet: ItemConf 
+Workbook: Items#*.csv
+Worksheet: ItemConf
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "800" violates rule: item.score: must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Items#*.csv 
-Worksheet: Item2Conf 
+Workbook: Items#*.csv
+Worksheet: Item2Conf
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "abcdefghijklmnop" violates rule: item.name: too long
@@ -592,16 +592,16 @@ func TestNewDesc_TwoLevelWrapKVOnJoin(t *testing.T) {
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
-Workbook: Items#*.csv 
-Worksheet: ItemConf 
+Workbook: Items#*.csv
+Worksheet: ItemConf
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "800" violates rule: item.score: must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Items#*.csv 
-Worksheet: ItemConf 
+Workbook: Items#*.csv
+Worksheet: ItemConf
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "abcdefghijklmnop" violates rule: item.name: too long
@@ -688,24 +688,24 @@ func TestNewDesc_ThreeLevelWithWrapKV(t *testing.T) {
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
-Workbook: Items#*.csv 
-Worksheet: Sheet1 
+Workbook: Items#*.csv
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Items#*.csv 
-Worksheet: Sheet1 
+Workbook: Items#*.csv
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "abcdefghijk" violates rule: name: too long
 Help: fix the field value to satisfy the protovalidate rule
 
 [3] error[E2005]: map key not unique
-Workbook: Items#*.csv 
-Worksheet: Sheet2 
+Workbook: Items#*.csv
+Worksheet: Sheet2
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: map key "dup_key" already exists
@@ -746,24 +746,24 @@ func TestNewDesc_ThreeLevelWrapKVOnJoin(t *testing.T) {
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
-Workbook: Items#*.csv 
-Worksheet: Sheet1 
+Workbook: Items#*.csv
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Items#*.csv 
-Worksheet: Sheet1 
+Workbook: Items#*.csv
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "abcdefghijk" violates rule: name: too long
 Help: fix the field value to satisfy the protovalidate rule
 
 [3] error[E2005]: map key not unique
-Workbook: Items#*.csv 
-Worksheet: Sheet2 
+Workbook: Items#*.csv
+Worksheet: Sheet2
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: map key "dup_key" already exists
@@ -825,24 +825,24 @@ func TestNewDesc_MultipleWorkbookSiblings(t *testing.T) {
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+Workbook: Items.xlsx
+Worksheet: ItemConf
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] error[E2027]: protovalidate violation
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+Workbook: Items.xlsx
+Worksheet: ItemConf
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "abcdefghijk" violates rule: name: too long
 Help: fix the field value to satisfy the protovalidate rule
 
 [3] error[E2003]: illegal sequence number
-Workbook: Quests.xlsx 
-Worksheet: QuestConf 
+Workbook: Quests.xlsx
+Worksheet: QuestConf
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: value "5" does not meet sequence requirement: "sequence:1"
@@ -892,8 +892,8 @@ Help: fix the field value to satisfy the protovalidate rule
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
-Workbook: Items.xlsx 
-Worksheet: Sheet1 
+Workbook: Items.xlsx
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
@@ -919,8 +919,8 @@ Help: fix the field value to satisfy the protovalidate rule
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
-Workbook: Items.xlsx 
-Worksheet: Sheet1 
+Workbook: Items.xlsx
+Worksheet: Sheet1
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
@@ -947,8 +947,8 @@ func TestNewDesc_InnerFieldWins(t *testing.T) {
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
-Workbook: Test.xlsx 
-Worksheet: InnerSheet 
+Workbook: Test.xlsx
+Worksheet: InnerSheet
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
@@ -972,8 +972,8 @@ Help: fix the field value to satisfy the protovalidate rule
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
-Workbook: Test.xlsx 
-Worksheet: InnerSheet 
+Workbook: Test.xlsx
+Worksheet: InnerSheet
 DataCellPos: <no value>
 DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
@@ -998,8 +998,8 @@ func TestNewDesc_EmptyCollectorTree(t *testing.T) {
 // protogen template, with subtests for WrapKV before Collect and on Join.
 func TestNewDesc_ProtogenModule(t *testing.T) {
 	want := `error[E0003]: duplicate column name
-Workbook: Items.xlsx 
-Worksheet: ItemConf 
+Workbook: Items.xlsx
+Worksheet: ItemConf
 NameCellPos: A1
 NameCell: ID
 TypeCellPos: A2

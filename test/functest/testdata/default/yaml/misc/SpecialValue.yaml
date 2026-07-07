@@ -3,8 +3,8 @@
 ---
 # define schema
 "@sheet": "@YamlSpecialValueConf"
-NameWithSpace: string
-IntegerWithFractionalPart: int32
+NameWithSpace: string # name with leading/trailing spaces
+IntegerWithFractionalPart: int32 # integer with fractional part
 
 ---
 "@sheet": YamlSpecialValueConf

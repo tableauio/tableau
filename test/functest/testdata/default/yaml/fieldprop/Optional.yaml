@@ -3,29 +3,29 @@
 ---
 # define schema
 "@sheet": "@YamlFieldPropOptionalConf"
-ID: uint32
-Num: "int32|{optional:true}"
-Type: "enum<.FruitType>|{optional:true}"
-OptionalStruct:
+ID: uint32 # unique id
+Num: "int32|{optional:true}" # optional num
+Type: "enum<.FruitType>|{optional:true}" # optional type enum
+OptionalStruct:  # optional struct
   "@type": "{Struct}|{optional:true}"
-  Type: string
-  Price: int32
-StructMap:
+  Type: string # struct type
+  Price: int32 # struct price
+StructMap:  # struct map
   "@type": "map<uint32, Item>"
   "@struct":
-    Name: string
-    Num: "int32|{optional:true}"
-OptionalStructMap:
+    Name: string # item name
+    Num: "int32|{optional:true}" # optional item num
+OptionalStructMap:  # optional struct map
   "@type": "map<uint32, Item2>|{optional:true}"
   "@struct":
-    Name: string
-    Num: "int32"
-StructList:
+    Name: string # item name
+    Num: "int32" # item num
+StructList:  # struct list
   "@type": "[Fruit]"
   "@struct":
-    Name: string
-    Num: "int32|{optional:true}"
-OptionalStructList: "[Fruit]|{optional:true}"
+    Name: string # fruit name
+    Num: "int32|{optional:true}" # optional fruit num
+OptionalStructList: "[Fruit]|{optional:true}" # optional struct list
 ---
 "@sheet": YamlFieldPropOptionalConf
 ID: 1

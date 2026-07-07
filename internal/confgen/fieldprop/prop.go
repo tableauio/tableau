@@ -143,5 +143,3 @@ func CheckPresence(prop *tableaupb.FieldProp, present bool) error {
 	}
 	return nil
 }
-
-

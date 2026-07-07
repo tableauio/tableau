@@ -57,6 +57,15 @@ func (p *documentParser) parseField(field *internalpb.Field, node *book.Node) (p
 		proto.Merge(field, scalarField)
 	}
 
+	// Attach the field-level note extracted from the source document
+	// (e.g. YAML `#` comment) so that protogen can emit it as the
+	// generated proto field's comment. Sub-fields fabricated internally
+	// (map key/value, inner-cell struct members, etc.) have no source
+	// node and thus no note.
+	if note := strings.TrimSpace(node.Note); note != "" {
+		field.Note = note
+	}
+
 	return true, nil
 }
 
@@ -195,6 +204,15 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 			xerrors.KeyPBFieldOpts, desc.Prop.Text)
 	}
 	scalarField.Name = strcase.FromContext(p.gen.ctx).ToSnake(strings.TrimPrefix(node.GetMetaKey(), book.MetaSign))
+	// Attach a note extracted from the source document onto the key field.
+	// For a vertical struct map the key is a real field, and a `@note.X`
+	// note on the key attribute was attached to the @key node by the
+	// importer.
+	if keyNode := node.GetMetaKeyNode(); keyNode != nil {
+		if note := strings.TrimSpace(keyNode.Note); note != "" {
+			scalarField.Note = note
+		}
+	}
 	field.Fields = append(field.Fields, scalarField)
 	// parse other value fields
 	structNode := node.GetMetaStructNode()

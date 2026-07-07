@@ -320,9 +320,9 @@ func WithMessagerOptions(options map[string]*MessagerOptions) Option {
 // MaxErrorsPerSheet caps how many errors loadOrigin aggregates while
 // loading a single messager (one sheet) before bailing out.
 //
-//   <=0 : fail-fast (1, current behavior).
-//    1  : fail-fast.
-//   >1  : aggregate up to n errors.
+//	<=0 : fail-fast (1, current behavior).
+//	 1  : fail-fast.
+//	>1  : aggregate up to n errors.
 //
 // NOTE: only input formats (Excel, CSV, XML, YAML) are supported.
 func MaxErrorsPerSheet(n int) Option {

@@ -3,11 +3,11 @@
 ---
 # define schema
 "@sheet": "@YamlUnionConf"
-PredefinedUnion: "{union.Target}"
-PredefinedIncellUnion:
+PredefinedUnion: "{union.Target}" # predefined union
+PredefinedIncellUnion:  # predefined incell union
   "@type": "{union.Target}|{form:FORM_TEXT}"
   "@incell": true
-UnionList: "[union.Target]"
+UnionList: "[union.Target]" # union list
 ---
 "@sheet": YamlUnionConf
 PredefinedUnion:

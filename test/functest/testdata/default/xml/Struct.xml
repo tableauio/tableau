@@ -6,20 +6,22 @@
 </@TABLEAU>
 
 <XMLStructConf>
-    <Item ID="uint32" Name="string" />
-    <Item2 ID="{OtherItem}uint32" Name="string" />
-    <FruitShopData @type="{.FruitInfo}" />
-    <Empty>
+    <Item ID="uint32" @note.ID="item id"
+        Name="string" @note.Name="item name" />
+    <Item2 ID="{OtherItem}uint32" @note.ID="item2 id"
+        Name="string" @note.Name="item2 name" />
+    <FruitShopData @type="{.FruitInfo}" @note="fruit shop data" />
+    <Empty @note="empty placeholder struct">
     </Empty>
-    <Award>{uint32 ID, int32 Num}Award</Award>
-    <Vector>{.Vector3}</Vector>
-    <Date>date</Date>
-    <Text>string</Text>
-    <Attr Value="int32" />
+    <Award @note="award struct">{uint32 ID, int32 Num}Award</Award>
+    <Vector @note="vector struct">{.Vector3}</Vector>
+    <Date @note="creation date">date</Date>
+    <Text @note="display text">string</Text>
+    <Attr Value="int32" @note.Value="attr value" />
 </XMLStructConf>
 
 <XMLStructConf2>
-    <Node desc="string" />
+    <Node desc="string" @note.desc="node description" />
 </XMLStructConf2>
 -->
 

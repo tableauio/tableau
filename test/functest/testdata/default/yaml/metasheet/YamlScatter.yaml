@@ -5,11 +5,11 @@
 ---
 # define schema
 "@sheet": "@YamlScatterConf"
-StrictStruct:
+StrictStruct:  # strict struct
   "@type": "{Fruit}"
   "@struct":
-    ID: uint32
-    Name: string
+    ID: uint32 # fruit id
+    Name: string # fruit name
 ---
 "@sheet": YamlScatterConf
 StrictStruct:

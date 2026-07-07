@@ -229,9 +229,9 @@ func TestCollectorHierarchy_StructuredErrors_NewKV(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `
-Workbook: Hero.csv 
-Worksheet: HeroConf 
+	want := `error[E0004]: unknown error
+Workbook: Hero.csv
+Worksheet: HeroConf
 NameCellPos: B1
 NameCell: Attack
 TypeCellPos: B2
@@ -272,18 +272,18 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `[1] 
-Workbook: Hero.csv 
-Worksheet: HeroConf 
+	want := `[1] error[E0004]: unknown error
+Workbook: Hero.csv
+Worksheet: HeroConf
 NameCellPos: B1
 NameCell: Attack
 TypeCellPos: B2
 TypeCell: int32
 Reason: field1 error
 
-[2] 
-Workbook: Hero.csv 
-Worksheet: HeroConf 
+[2] error[E0004]: unknown error
+Workbook: Hero.csv
+Worksheet: HeroConf
 NameCellPos: C1
 NameCell: Defense
 TypeCellPos: C2
@@ -315,8 +315,8 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV_Ecode(t *testing.T) {
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `error[E0003]: duplicate column name
-Workbook: Hero.csv 
-Worksheet: HeroConf 
+Workbook: Hero.csv
+Worksheet: HeroConf
 NameCellPos: A1
 NameCell: ID
 TypeCellPos: A2
@@ -364,9 +364,9 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	got := xerrors.NewDesc(joined).Stringify(false)
 	// Order: sheet own errors first, then children (msg) errors flattened.
 	want := `[1] row5: duplicate key
-[2] 
-Workbook: Hero.csv 
-Worksheet: HeroConf 
+[2] error[E0004]: unknown error
+Workbook: Hero.csv
+Worksheet: HeroConf
 NameCellPos: B1
 NameCell: Attack
 TypeCellPos: B2
@@ -374,8 +374,8 @@ TypeCell: int32
 Reason: invalid integer
 
 [3] error[E0003]: duplicate column name
-Workbook: Hero.csv 
-Worksheet: HeroConf 
+Workbook: Hero.csv
+Worksheet: HeroConf
 NameCellPos: C1
 NameCell: Score
 TypeCellPos: C2

@@ -1,0 +1,14 @@
+"@sheet": "@NoteConf"
+ID: uint32   # primary key
+Name: string # display name
+# nickname above the field
+Nickname: string
+Fruits:  # fruit list
+  "@type": "[Fruit]"
+  "@struct":
+    ID: uint32   # fruit id
+    Name: string # fruit name
+Countries:  # country map
+  "@type": "map<string, Country>"
+  "@struct":
+    Desc: string   # short description

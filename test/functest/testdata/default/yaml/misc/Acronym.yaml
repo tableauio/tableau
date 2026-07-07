@@ -3,8 +3,8 @@
 ---
 # define schema
 "@sheet": "@YamlAcronymConf"
-InK8s: book
-APIV3Spec: string
+InK8s: book # k8s flag
+APIV3Spec: string # api v3 spec
 ---
 "@sheet": YamlAcronymConf
 InK8s: true
