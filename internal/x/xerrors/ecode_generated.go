@@ -4,6 +4,7 @@ package xerrors
 var ErrE0001 = newEcode("E0001", `sheet not found in book`)
 var ErrE0002 = newEcode("E0002", `cannot unmarshal file content to given proto.Message`)
 var ErrE0003 = newEcode("E0003", `duplicate column name`)
+var ErrE0004 = newEcode("E0004", `unknown error`)
 var ErrE2000 = newEcode("E2000", `integer overflow`)
 var ErrE2001 = newEcode("E2001", `field prop "refer" not configured correctly`)
 var ErrE2002 = newEcode("E2002", `field value not in referred space`)
@@ -66,6 +67,11 @@ func E0003(name string, position1 string, position2 string) error {
 		"Position1": position1,
 		"Position2": position2,
 	})
+}
+
+// E0004: unknown error
+func E0004() error {
+	return renderEcode(ErrE0004, map[string]any{})
 }
 
 // E2000: integer overflow

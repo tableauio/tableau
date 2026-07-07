@@ -10,6 +10,9 @@ E0003:
   desc: duplicate column name
   text: '"{{.Position1}}" 和 "{{.Position2}}" 存在相同的列名 "{{.Name}}"'
   help: 修改冲突的列名，以确保唯一性
+E0004:
+  desc: 未知错误
+  text: 未知错误
 # [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2000:

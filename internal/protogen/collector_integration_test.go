@@ -174,7 +174,8 @@ func TestCollectorIntegration_BookLevelCapped(t *testing.T) {
 // docErr returns the rendered error text for a single document parser
 // "predefined type not found" error.
 func docErr(workbook, worksheet, nameCellPos, nameCell, typeCellPos, typeCell string) string {
-	return `Workbook: ` + workbook + "\n" +
+	return `error[E0004]: unknown error` + "\n" +
+		`Workbook: ` + workbook + "\n" +
 		`Worksheet: ` + worksheet + "\n" +
 		`NameCellPos: ` + nameCellPos + "\n" +
 		`NameCell: ` + nameCell + "\n" +

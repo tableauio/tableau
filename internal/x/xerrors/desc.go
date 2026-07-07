@@ -244,6 +244,7 @@ func (d *Desc) Stringify(withDebug bool) string {
 	}
 	switch module {
 	case ModuleDefault, ModuleProto, ModuleConf:
+		ensureEcode(d.fields)
 		errmsg := renderSummary(module, d.fields)
 		if withDebug {
 			errmsg += "\n--- debugging ---\n" + d.fieldsString() + "\n" + d.stackString() + "\n"

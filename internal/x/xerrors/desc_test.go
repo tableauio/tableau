@@ -253,7 +253,8 @@ func TestNewDescOuterFieldDoesNotOverrideInner(t *testing.T) {
 	d := NewDesc(wrapped)
 	require.NotNil(t, d)
 
-	want := `Workbook: <no value>
+	want := `error[E0004]: unknown error
+Workbook: <no value>
 Worksheet: <no value>
 DataCellPos: <no value>
 DataCell: <no value>

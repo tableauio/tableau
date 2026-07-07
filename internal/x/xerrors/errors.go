@@ -354,6 +354,27 @@ func renderSummary(module string, kv map[string]any) string {
 	return localizer.Default.RenderMessage(module, kv)
 }
 
+// defaultErrCode is assigned to structured errors that carry no explicit
+// ecode, so every rendered error has a consistent "error[...]: desc" header
+// (matching ecoded errors like E2005). E0004 is "unknown error".
+const defaultErrCode = "E0004"
+
+// ensureEcode populates the ecode fields (keyErrCode, keyErrDesc) when the
+// error has none, defaulting to E0004. This lets the protogen/confgen
+// message templates always render the "error[{{.ErrCode}}]: {{.ErrDesc}}"
+// header line instead of special-casing the no-ecode case.
+func ensureEcode(fields map[string]any) {
+	if fields[keyErrCode] != nil {
+		return
+	}
+	fields[keyErrCode] = defaultErrCode
+	desc := "unknown error"
+	if detail := localizer.Default.RenderEcode(defaultErrCode, nil); detail != nil && detail.Desc != "" {
+		desc = detail.Desc
+	}
+	fields[keyErrDesc] = desc
+}
+
 func renderEcode(ec *ecode, kv map[string]any) error {
 	detail := localizer.Default.RenderEcode(ec.code, kv)
 	fields := make(map[string]any, len(kv)+4)

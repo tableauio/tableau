@@ -264,7 +264,8 @@ func TestCollectorHierarchy_StructuredErrors_NewKV(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `Workbook: Items.xlsx
+	want := `error[E0004]: unknown error
+Workbook: Items.xlsx
 Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc
@@ -300,13 +301,15 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `[1] Workbook: Items.xlsx
+	want := `[1] error[E0004]: unknown error
+Workbook: Items.xlsx
 Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc
 Reason: field1 error
 
-[2] Workbook: Items.xlsx
+[2] error[E0004]: unknown error
+Workbook: Items.xlsx
 Worksheet: ItemConf
 DataCellPos: D3
 DataCell: def
@@ -378,7 +381,8 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	got := xerrors.NewDesc(joined).Stringify(false)
 	// Order: sheet own errors first, then children (msg) errors flattened.
 	want := `[1] row5: duplicate key
-[2] Workbook: Items.xlsx
+[2] error[E0004]: unknown error
+Workbook: Items.xlsx
 Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc

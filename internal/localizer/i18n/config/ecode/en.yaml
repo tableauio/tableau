@@ -22,6 +22,9 @@ E0003:
     - Name: string
     - Position1: string
     - Position2: string
+E0004:
+  desc: unknown error
+  text: unknown error
 # [1000, 1999]: protogen error
 # [2000, 2999]: confgen error
 E2000:
