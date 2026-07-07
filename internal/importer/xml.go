@@ -45,29 +45,44 @@ const (
 	xmlNoteAttr = atNoteDisplacement
 )
 
-// xmlMetaAttrsAfterDisplacement is the set of attribute names that were
-// originally @-prefixed in the source XML and displaced to A-prefixed
-// names by extractXMLMetasheetInComment. These are meta attributes, not
-// field definitions.
-var xmlMetaAttrsAfterDisplacement = map[string]bool{
-	atTypeDisplacement: true, // @type
-	atNoteDisplacement: true, // @note
+// metaAttrDisplacements maps source @-meta attribute names to the
+// A-prefixed displacement names used inside the extracted metasheet XML.
+// It is the single source of truth from which both the metasheet replacer
+// and the predefined-struct meta-attribute allowlist (metaAttrsAfterDisplacement)
+// are derived, so adding a new meta-attribute keyword only requires an
+// entry here.
+var metaAttrDisplacements = map[string]string{
+	book.KeywordType: atTypeDisplacement,
+	book.KeywordNote: atNoteDisplacement,
 }
 
-// metasheetDisplacer rewrites @-prefixed meta markers in the metasheet
-// comment into A-prefixed displacement names in a single pass, so the
-// extracted content parses as valid XML (element/attribute names cannot
-// start with "@").
-var metasheetDisplacer = strings.NewReplacer(
-	"</@", "</AT",
-	"<@", "<AT",
-	book.KeywordType, atTypeDisplacement,
-	book.KeywordNote, atNoteDisplacement,
+var (
+	// metasheetDisplacer rewrites @-prefixed meta markers in the metasheet
+	// comment into A-prefixed displacement names in a single pass, so the
+	// extracted content parses as valid XML (element/attribute names cannot
+	// start with "@").
+	metasheetDisplacer *strings.Replacer
+	// metaAttrsAfterDisplacement is the set of attribute names that were
+	// originally @-prefixed in the source XML and displaced to A-prefixed
+	// names. These are meta attributes, not field definitions. Derived from
+	// metaAttrDisplacements so the two cannot drift.
+	metaAttrsAfterDisplacement map[string]bool
 )
 
 func init() {
 	attrRegexp = regexp.MustCompile(`\s*=\s*("|')` + types.TypeGroup + ungreedyPropGroup + `("|')`) // e.g.: = "int32|{range:"1,~"}"
 	tagRegexp = regexp.MustCompile(`>` + types.TypeGroup + ungreedyPropGroup + `</`)                // e.g.: >int32|{range:"1,~"}</
+
+	// Element-tag names cannot start with "@" either, so the opening and
+	// closing meta tag markers are displaced too. These are tag names, not
+	// attribute names, so they are not part of metaAttrDisplacements.
+	oldnew := []string{"</@", "</AT", "<@", "<AT"}
+	metaAttrsAfterDisplacement = make(map[string]bool, len(metaAttrDisplacements))
+	for src, dst := range metaAttrDisplacements {
+		oldnew = append(oldnew, src, dst)
+		metaAttrsAfterDisplacement[dst] = true
+	}
+	metasheetDisplacer = strings.NewReplacer(oldnew...)
 }
 
 func NewXMLImporter(ctx context.Context, filename string, setters ...Option) (*XMLImporter, error) {
@@ -267,7 +282,7 @@ func parseXMLNode(node *xmldom.Node, bnode *book.Node, mode ImporterMode) error 
 			for _, attr := range node.Attributes {
 				if attr.Name == atNoteDisplacement {
 					note = attr.Value
-				} else if !xmlMetaAttrsAfterDisplacement[attr.Name] {
+				} else if !metaAttrsAfterDisplacement[attr.Name] {
 					return xerrors.Newf("predefined struct should not have non-meta attributes|name: %s, attr: %s", node.Name, attr.Name)
 				}
 			}
