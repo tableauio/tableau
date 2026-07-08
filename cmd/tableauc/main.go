@@ -26,6 +26,8 @@ var (
 	indir        string
 	outdir       string
 
+	preserveFieldNumbers bool
+
 	confInputIgnoreUnknownWorkbook bool
 	confOutputSubdir               string
 	confOutputFormats              []string
@@ -48,6 +50,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&protoPackage, "proto-package", "p", "protoconf", "Protobuf package name.")
 	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "Input directory, default is current directory.")
 	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "Output directory, default is current directory.")
+	rootCmd.Flags().BoolVarP(&preserveFieldNumbers, "preserve-field-numbers", "", false, `Preserve protobuf field numbers for backward/forward compatibility (assign new fields the max field number + 1), set it to override proto.output.preserveFieldNumbers.`)
 	rootCmd.Flags().StringVarP(&confOutputSubdir, "conf-output-subdir", "", "", "Conf output sub-directory, set it to override conf.output.subdir.")
 	rootCmd.Flags().StringSliceVarP(&confOutputFormats, "conf-output-formats", "", nil, "Available format: json, binpb, and txtpb, set it to override conf.output.formats.")
 	rootCmd.Flags().BoolVarP(&confInputIgnoreUnknownWorkbook, "conf-input-ignore-unknown-workbook", "", false, `Whether converter will not report an error and abort if a workbook
@@ -76,7 +79,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 }
 
-func runE(_ *cobra.Command, args []string) error {
+func runE(cmd *cobra.Command, args []string) error {
 	if showConfigSample {
 		return ShowConfigSample()
 	}
@@ -90,6 +93,11 @@ func runE(_ *cobra.Command, args []string) error {
 	}
 	if err := log.Init(config.Log); err != nil {
 		return fmt.Errorf("init log failed: %s", err)
+	}
+	if cmd.Flags().Changed("preserve-field-numbers") {
+		// override proto.output.preserveFieldNumbers in config file if the
+		// flag is explicitly set (either true or false).
+		config.Proto.Output.PreserveFieldNumbers = preserveFieldNumbers
 	}
 	if len(confOutputFormats) != 0 {
 		var formats []format.Format
