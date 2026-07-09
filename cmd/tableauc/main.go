@@ -39,7 +39,17 @@ var (
 )
 
 func main() {
-	var rootCmd = &cobra.Command{
+	rootCmd := newRootCmd()
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(-1)
+	}
+}
+
+// newRootCmd builds the root cobra command with all flags registered.
+// Extracted from main for testability.
+func newRootCmd() *cobra.Command {
+	rootCmd := &cobra.Command{
 		Use:     "tableauc [FILE]...",
 		Version: genVersion(),
 		Short:   "tableauc is a modern configuration converter.",
@@ -65,10 +75,7 @@ is not recognized in proto files.`)
 	rootCmd.Flags().BoolVarP(&showConfigSample, "show-config-sample", "s", false, "Show config sample.")
 	rootCmd.Flags().StringVarP(&dryRun, "dry-run", "", "", "Preview the final result, available: patch.")
 
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(-1)
-	}
+	return rootCmd
 }
 
 func run(cmd *cobra.Command, args []string) {
@@ -94,26 +101,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	if err := log.Init(config.Log); err != nil {
 		return fmt.Errorf("init log failed: %s", err)
 	}
-	if cmd.Flags().Changed("preserve-field-numbers") {
-		// override proto.output.preserveFieldNumbers in config file if the
-		// flag is explicitly set (either true or false).
-		config.Proto.Output.PreserveFieldNumbers = preserveFieldNumbers
-	}
-	if len(confOutputFormats) != 0 {
-		var formats []format.Format
-		for _, fmt := range confOutputFormats {
-			formats = append(formats, format.Format(fmt))
-		}
-		config.Conf.Output.Formats = formats
-	}
-	if confInputIgnoreUnknownWorkbook {
-		// use command argument if provided
-		config.Conf.Input.IgnoreUnknownWorkbook = true
-	}
-	if dryRun != "" {
-		// use command argument if provided
-		config.Conf.Output.DryRun = dryRun
-	}
+	applyFlags(cmd, config)
 	yamlOut, _ := yaml.Marshal(config)
 	log.Debugf("loaded config:\n%s", string(yamlOut))
 
@@ -134,6 +122,48 @@ func runE(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// applyFlags applies command-line flag overrides to the loaded config. Each
+// override takes effect only when its flag is explicitly provided on the
+// command line, so config-file values are preserved when a flag is omitted.
+//
+// --preserve-field-numbers is bidirectional: both --preserve-field-numbers
+// and --preserve-field-numbers=false override the config value (the latter
+// disables it even when set to true in the config file). The other flags
+// preserve their pre-existing, one-directional override semantics.
+//
+// NOTE: --conf-output-subdir is applied later in genConf to gain dynamic
+// output subdir ability, so it is intentionally not handled here.
+func applyFlags(cmd *cobra.Command, config *options.Options) {
+	if cmd.Flags().Changed("preserve-field-numbers") {
+		// override proto.output.preserveFieldNumbers in config file if the
+		// flag is explicitly set (either true or false).
+		v, _ := cmd.Flags().GetBool("preserve-field-numbers")
+		config.Proto.Output.PreserveFieldNumbers = v
+	}
+	if cmd.Flags().Changed("conf-output-formats") {
+		formats, _ := cmd.Flags().GetStringSlice("conf-output-formats")
+		if len(formats) != 0 {
+			var fs []format.Format
+			for _, f := range formats {
+				fs = append(fs, format.Format(f))
+			}
+			config.Conf.Output.Formats = fs
+		}
+	}
+	if cmd.Flags().Changed("conf-input-ignore-unknown-workbook") {
+		// use command argument if provided
+		if v, _ := cmd.Flags().GetBool("conf-input-ignore-unknown-workbook"); v {
+			config.Conf.Input.IgnoreUnknownWorkbook = true
+		}
+	}
+	if cmd.Flags().Changed("dry-run") {
+		// use command argument if provided
+		if v, _ := cmd.Flags().GetString("dry-run"); v != "" {
+			config.Conf.Output.DryRun = options.DryRun(v)
+		}
+	}
 }
 
 // genProto runs the proto generator to convert the specified workbooks into .proto files.
