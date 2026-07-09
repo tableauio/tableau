@@ -91,18 +91,15 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 	gen.ProtoRegistryFiles = registryFiles
 	gen.ProtoRegistryTypes = dynamicpb.NewTypes(registryFiles)
-	// NOTE: ProtoRegistryFilesWithGenerated is lazily computed by
-	// GetProtoRegistryFilesWithGenerated() on first use.
+	// NOTE: protoRegistryFilesWithGenerated is lazily computed by
+	// getProtoRegistryFilesWithGenerated() on first use.
 	return gen
 }
 
-// GetProtoRegistryFilesWithGenerated returns a registry that includes both
-// the user-specified imported protos and the previously generated protos
-// under outdir. It parses on first call (under sync.Once) and caches the
-// result in [Generator.ProtoRegistryFilesWithGenerated]; subsequent calls
-// return the cached value. If the field is already set (e.g. by tests),
-// it is returned as-is without invoking the parser.
-func (gen *Generator) GetProtoRegistryFilesWithGenerated() *protoregistry.Files {
+// getProtoRegistryFilesWithGenerated returns a registry including both the
+// imported and previously generated protos, computing and caching it on
+// first use.
+func (gen *Generator) getProtoRegistryFilesWithGenerated() *protoregistry.Files {
 	if gen.protoRegistryFilesWithGenerated != nil {
 		return gen.protoRegistryFilesWithGenerated
 	}
@@ -137,13 +134,10 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	// parse custom imported proto files
 	protoRegistryFiles := gen.ProtoRegistryFiles
-	if useGeneratedProtos {
-		protoRegistryFiles = gen.GetProtoRegistryFilesWithGenerated()
-	}
-	if gen.OutputOpt.PreserveFieldNumbers {
-		// if preserveFieldNumbers enabled, parse generated protos before they
-		// are deleted
-		_ = gen.GetProtoRegistryFilesWithGenerated()
+	// preserveFieldNumbers also needs generated protos parsed before they
+	// are deleted below.
+	if useGeneratedProtos || gen.OutputOpt.PreserveFieldNumbers {
+		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
