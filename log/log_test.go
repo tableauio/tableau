@@ -123,7 +123,7 @@ func Test_logs(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	defaultLogger = &Logger{
+	defaultLogger = &sugaredLogger{
 		level: core.DebugLevel,
 		// driver: &defaultdriver.DefaultDriver{
 		// 	CallerSkip: 1,
