@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -29,6 +30,18 @@ func (p *tableParser) Parse(protomsg proto.Message, sheet *book.Sheet) error {
 		table = sheet.Table.Transpose()
 	} else {
 		table = sheet.Table
+	}
+	// Parallel confgen is enabled automatically whenever the sheet is eligible:
+	// callers no longer opt in via a worksheet/metasheet toggle. The
+	// eligibility predicate (canParallelizeSheet) is the sole authority --
+	// ineligible sheets transparently fall back to the serial path with a
+	// debug log explaining why, so a regression in eligibility never silently
+	// degrades correctness, only performance.
+	md := protomsg.ProtoReflect().Descriptor()
+	if plan := canParallelizeSheet(p.sheetParser, md); plan.ok {
+		return p.parseTableInParallel(protomsg, table, plan)
+	} else if plan.reason != "" {
+		log.Debugf("parallel confgen disabled for sheet %s: %s", p.sheetOpts.GetName(), plan.reason)
 	}
 	return p.parse(protomsg, table)
 }
