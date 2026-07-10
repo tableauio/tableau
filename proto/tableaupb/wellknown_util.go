@@ -37,9 +37,12 @@ func Compare(left *Fraction, cmp *Comparator) bool {
 	return left.Match(cmp)
 }
 
+// Match reports whether the fraction satisfies the comparator's
+// relational condition (==, !=, <, <=, >, >=). Comparison is done by
+// cross-multiplication to stay in exact integer arithmetic for performance
+// and accuracy.
 func (f *Fraction) Match(cmp *Comparator) bool {
 	other := cmp.GetValue()
-	// cross-multiply to compare
 	lval := int64(f.GetNum()) * int64(other.GetDen())
 	rval := int64(other.GetNum()) * int64(f.GetDen())
 	switch cmp.GetSign() {
@@ -56,7 +59,8 @@ func (f *Fraction) Match(cmp *Comparator) bool {
 	case Comparator_SIGN_GREATER_OR_EQUAL:
 		return lval >= rval
 	default:
-		panic("invalid compare operator")
+		// Unknown sign is treated as no-match; proto enums are open-ended (forward-compat), not a bug.
+		return false
 	}
 }
 

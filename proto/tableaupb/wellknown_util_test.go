@@ -71,6 +71,14 @@ func TestMatch(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "unknown sign",
+			args: args{
+				left: NewFraction(1, 2),
+				cmp:  NewComparator(Comparator_Sign(42), 1, 2), // unrecognized sign → no match
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
