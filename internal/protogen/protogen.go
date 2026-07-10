@@ -47,12 +47,16 @@ type Generator struct {
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
 
-	ProtoRegistryFiles, ProtoRegistryFilesWithGenerated *protoregistry.Files
-	ProtoRegistryTypes                                  *dynamicpb.Types
+	ProtoRegistryFiles *protoregistry.Files
+	ProtoRegistryTypes *dynamicpb.Types
 
 	// internal
 	typeInfos *xproto.TypeInfos  // predefined type infos
 	collector *xerrors.Collector // concurrent error collector shared across the generator.
+
+	// used in advanced mode or when preserveFieldNumbers is set to true
+	registryWithGeneratedOnce       sync.Once
+	protoRegistryFilesWithGenerated *protoregistry.Files
 
 	cacheMu         sync.RWMutex                 // guard fields below
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
@@ -86,13 +90,27 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		panic(err)
 	}
 	gen.ProtoRegistryFiles = registryFiles
-	registryFiles, err = gen.parseProtoRegistryFiles(true)
-	if err != nil {
-		panic(err)
-	}
-	gen.ProtoRegistryFilesWithGenerated = registryFiles
 	gen.ProtoRegistryTypes = dynamicpb.NewTypes(registryFiles)
+	// NOTE: protoRegistryFilesWithGenerated is lazily computed by
+	// getProtoRegistryFilesWithGenerated() on first use.
 	return gen
+}
+
+// getProtoRegistryFilesWithGenerated returns a registry including both the
+// imported and previously generated protos, computing and caching it on
+// first use.
+func (gen *Generator) getProtoRegistryFilesWithGenerated() *protoregistry.Files {
+	if gen.protoRegistryFilesWithGenerated != nil {
+		return gen.protoRegistryFilesWithGenerated
+	}
+	gen.registryWithGeneratedOnce.Do(func() {
+		files, err := gen.parseProtoRegistryFiles(true)
+		if err != nil {
+			panic(err)
+		}
+		gen.protoRegistryFilesWithGenerated = files
+	})
+	return gen.protoRegistryFilesWithGenerated
 }
 
 func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protoregistry.Files, error) {
@@ -116,8 +134,10 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	// parse custom imported proto files
 	protoRegistryFiles := gen.ProtoRegistryFiles
-	if useGeneratedProtos {
-		protoRegistryFiles = gen.ProtoRegistryFilesWithGenerated
+	// preserveFieldNumbers also needs generated protos parsed before they
+	// are deleted below.
+	if useGeneratedProtos || gen.OutputOpt.PreserveFieldNumbers {
+		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
