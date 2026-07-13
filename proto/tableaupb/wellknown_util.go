@@ -1,5 +1,7 @@
 package tableaupb
 
+import "slices"
+
 // NewFraction creates a new fraction.
 func NewFraction(num, den int32) *Fraction {
 	return &Fraction{Num: num, Den: den}
@@ -29,13 +31,18 @@ func NewIntegerComparator(sign Comparator_Sign, num int32) *Comparator {
 }
 
 // Compare returns true if the given fraction matches the given comparator.
+//
+// Deprecated: Use [Fraction.Match] instead.
 func Compare(left *Fraction, cmp *Comparator) bool {
-	return left.Cmp(cmp)
+	return left.Match(cmp)
 }
 
-func (f *Fraction) Cmp(cmp *Comparator) bool {
+// Match reports whether the fraction satisfies the comparator's
+// relational condition (==, !=, <, <=, >, >=). Comparison is done by
+// cross-multiplication to stay in exact integer arithmetic for performance
+// and accuracy.
+func (f *Fraction) Match(cmp *Comparator) bool {
 	other := cmp.GetValue()
-	// cross-multiply to compare
 	lval := int64(f.GetNum()) * int64(other.GetDen())
 	rval := int64(other.GetNum()) * int64(f.GetDen())
 	switch cmp.GetSign() {
@@ -52,6 +59,24 @@ func (f *Fraction) Cmp(cmp *Comparator) bool {
 	case Comparator_SIGN_GREATER_OR_EQUAL:
 		return lval >= rval
 	default:
-		panic("invalid compare operator")
+		// Unknown sign is treated as no-match; proto enums are open-ended (forward-compat), not a bug.
+		return false
 	}
+}
+
+// MatchAny reports whether the fraction matches any of the given comparators (OR logic).
+// It returns false if no comparators are provided.
+func (f *Fraction) MatchAny(cmps ...*Comparator) bool {
+	return slices.ContainsFunc(cmps, f.Match)
+}
+
+// MatchAll reports whether the fraction matches all of the given comparators (AND logic).
+// It returns true if no comparators are provided (vacuous truth).
+func (f *Fraction) MatchAll(cmps ...*Comparator) bool {
+	for _, cmp := range cmps {
+		if !f.Match(cmp) {
+			return false
+		}
+	}
+	return true
 }
