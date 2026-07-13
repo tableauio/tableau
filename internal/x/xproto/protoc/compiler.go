@@ -1,15 +1,38 @@
+// Package protoc compiles .proto sources into a [protoregistry.Files].
+//
+// It is built on top of bufbuild/protocompile's experimental incremental
+// compiler, which is the only backend that supports Protobuf Edition 2024.
+// The stable [github.com/bufbuild/protocompile.Compiler] was bypassed in
+// favor of the experimental pipeline because:
+//
+//   - Edition 2024 features are implemented exclusively on the experimental
+//     side (the stable compiler caps its MaxSupportedEdition at 2023).
+//   - buf v1.69+ has fully migrated to the experimental compiler.
+//
+// The experimental compiler only accepts .proto source files (via
+// [source.Opener]); it cannot consume pre-compiled descriptors from
+// [protoregistry.GlobalFiles]. To preserve the previous behaviour where
+// the well-known imports of tableau and protovalidate are resolvable
+// without the user supplying them explicitly, this package embeds those
+// .proto sources via [embed.FS]. See [embed.go].
 package protoc
 
 import (
 	"context"
-	"io"
+	"errors"
+	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
-	"github.com/bufbuild/protocompile"
-	"github.com/bufbuild/protocompile/linker"
-	"github.com/bufbuild/protocompile/protoutil"
+	"github.com/bufbuild/protocompile/experimental/incremental"
+	"github.com/bufbuild/protocompile/experimental/incremental/queries"
+	"github.com/bufbuild/protocompile/experimental/ir"
+	"github.com/bufbuild/protocompile/experimental/report"
+	"github.com/bufbuild/protocompile/experimental/source"
 	"github.com/bufbuild/protocompile/walk"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
@@ -19,14 +42,11 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
-
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/tableauio/tableau/proto/tableaupb"
 )
 
-type fileDescriptorProtoMap map[string]*descriptorpb.FileDescriptorProto // file path -> file desc proto
-
-// NewFiles creates a new protoregistry.Files from the provided proto paths, files, and excluded proto files.
+// NewFiles creates a new [protoregistry.Files] from the provided proto
+// import paths, proto files (globs accepted), and excluded proto files
+// (globs accepted).
 func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...string) (*protoregistry.Files, error) {
 	cleanSlashProtoPaths := make([]string, len(protoPaths))
 	for i, protoPath := range protoPaths {
@@ -57,7 +77,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 			}
 		}
 	}
-	return parseProtos(protoPaths, parsedProtoFiles)
+	return parseProtos(cleanSlashProtoPaths, parsedProtoFiles)
 }
 
 func rel(filename string, protoPaths []string) string {
@@ -69,82 +89,177 @@ func rel(filename string, protoPaths []string) string {
 	return filename
 }
 
-// parseProtos parses the proto paths and proto files to protoregistry.Files.
+// parseProtos parses the proto paths and proto files to protoregistry.Files
+// using protocompile's experimental incremental compiler.
 func parseProtos(protoPaths []string, protoFilesMap map[string]string) (*protoregistry.Files, error) {
 	log.Debugf("proto paths: %v", protoPaths)
 	log.Debugf("proto files: %v", protoFilesMap)
-	var protoFiles []string
-	for _, path := range protoFilesMap {
-		protoFiles = append(protoFiles, path)
-	}
-	compiler := protocompile.Compiler{
-		Resolver: protocompile.CompositeResolver{
-			protocompile.ResolverFunc(resolveGlobalFiles),
-			&protocompile.SourceResolver{
-				ImportPaths: protoPaths,
-				Accessor: func(path string) (io.ReadCloser, error) {
-					if _, ok := protoFilesMap[xfs.CleanSlashPath(path)]; !ok {
-						return nil, fs.ErrNotExist
-					}
-					return os.Open(path)
-				},
-			},
+
+	protoFiles := slices.Collect(maps.Values(protoFilesMap))
+
+	query := queries.FDS{
+		Opener: &source.Openers{
+			// Build a layered Opener:
+			//   1. user sources (resolved against protoPaths, gated by protoFilesMap)
+			//   2. embedded sources (tableau + buf/validate)
+			//   3. WKTs (google/protobuf/*)
+			&filesystemOpener{importPaths: protoPaths},
+			&fsOpener{fs: embeddedFS(), tag: "<tableau-embedded>"},
+			source.WKTs(),
 		},
-		MaxParallelism: 1,
+		Session:   new(ir.Session),
+		Workspace: source.NewWorkspace(protoFiles...),
 	}
-	results, err := compiler.Compile(context.Background(), protoFiles...)
+
+	results, rpt, err := incremental.Run(context.Background(), incremental.New(), query)
 	if err != nil {
 		return nil, err
 	}
-	return protodesc.NewFiles(toFDS(results))
+	if err := reportToError(rpt); err != nil {
+		return nil, err
+	}
+	if len(results) == 0 {
+		return nil, fmt.Errorf("protocompile: no result returned")
+	}
+	if results[0].Fatal != nil {
+		return nil, results[0].Fatal
+	}
+	fds := results[0].Value
+	if fds == nil {
+		return nil, fmt.Errorf("protocompile: nil FileDescriptorSet")
+	}
+
+	// The experimental compiler emits custom options as unknown wire bytes
+	// (it has no notion of Go-side extension types, unlike the stable
+	// Compiler which used [protoregistry.GlobalFiles] to drive linking).
+	// Re-parse each FileDescriptorProto using [protoregistry.GlobalTypes]
+	// as the extension resolver so that statically-known extensions
+	// (e.g. tableau.workbook, buf.validate.field, ...) become typed
+	// fields rather than opaque unknown bytes. Then strip any leftover
+	// dynamic extensions, mirroring the previous stable-Compiler flow.
+	if err := resolveTypedExtensions(fds); err != nil {
+		return nil, err
+	}
+	for _, fdp := range fds.GetFile() {
+		removeDynamicExtensionsFromProto(fdp)
+	}
+	return protodesc.NewFiles(fds)
 }
 
-func resolveGlobalFiles(path string) (protocompile.SearchResult, error) {
-	fd, err := protoregistry.GlobalFiles.FindFileByPath(path)
+// resolveTypedExtensions rewrites each FileDescriptorProto in fds so that
+// any custom options that arrived as unknown wire bytes are re-decoded
+// using the linked-in extension registry ([protoregistry.GlobalTypes]).
+//
+// This is the bridge between protocompile/experimental's
+// "extension-agnostic" output and the rest of tableau, which relies on
+// [proto.GetExtension] of typed extensions.
+func resolveTypedExtensions(fds *descriptorpb.FileDescriptorSet) error {
+	resolver := protoregistry.GlobalTypes
+	for i, fdp := range fds.GetFile() {
+		data, err := proto.Marshal(fdp)
+		if err != nil {
+			return xerrors.Wrapf(err, "marshal FileDescriptorProto %q", fdp.GetName())
+		}
+		clone := &descriptorpb.FileDescriptorProto{}
+		if err := (proto.UnmarshalOptions{Resolver: resolver, AllowPartial: true}).Unmarshal(data, clone); err != nil {
+			return xerrors.Wrapf(err, "re-unmarshal FileDescriptorProto %q with extension resolver", fdp.GetName())
+		}
+		fds.File[i] = clone
+	}
+	return nil
+}
+
+// filesystemOpener resolves a proto path against a list of import roots,
+// matching the semantics of the stable [protocompile.SourceResolver]:
+//
+//   - When importPaths is non-empty, the requested path is treated as
+//     relative to one of the roots; the verbatim path is NOT tried.
+//   - When importPaths is empty, the path is opened verbatim relative to
+//     the current working directory.
+//
+// Opener implementations are required by protocompile to be comparable;
+// we use a pointer receiver so identity equality holds across query reuse.
+type filesystemOpener struct {
+	importPaths []string
+}
+
+// Open implements [source.Opener].
+func (o *filesystemOpener) Open(path string) (*source.File, error) {
+	clean := xfs.CleanSlashPath(path)
+	for _, root := range o.importPaths {
+		full := xfs.CleanSlashPath(filepath.Join(root, clean))
+		if data, err := os.ReadFile(full); err == nil {
+			return source.NewFile(path, string(data)), nil
+		}
+	}
+	return nil, fs.ErrNotExist
+}
+
+// fsOpener adapts an [fs.FS] (e.g. an embed.FS) to [source.Opener].
+//
+// Like [filesystemOpener], it must be comparable; we use a pointer receiver
+// and only pointer-compare the wrapped fs.FS handle for query caching.
+type fsOpener struct {
+	fs  fs.FS
+	tag string // used as the prefix of File.Path() for diagnostics
+}
+
+// Open implements [source.Opener].
+func (o *fsOpener) Open(path string) (*source.File, error) {
+	clean := strings.TrimPrefix(xfs.CleanSlashPath(path), "./")
+	data, err := fs.ReadFile(o.fs, clean)
 	if err != nil {
-		return protocompile.SearchResult{}, err
+		return nil, err
 	}
-	return protocompile.SearchResult{Desc: fd}, nil
+	return source.NewFile(o.tag+"/"+path, string(data)), nil
 }
 
-// toFDS converts linker.Files to *descriptorpb.FileDescriptorSet.
-func toFDS(results linker.Files) *descriptorpb.FileDescriptorSet {
-	fdpMap := make(fileDescriptorProtoMap)
-	for _, res := range results {
-		convertFile(res, fdpMap)
+// reportToError converts protocompile diagnostics into a single error if
+// any diagnostic at Error level or above was emitted. Warnings are logged
+// but not treated as failures.
+//
+// Each diagnostic is formatted to match buf's convention:
+//
+//	<file>:<line>:<col>:<message>
+//
+// When no source span is available, the line/column components are
+// omitted. When no file is available, only the message is emitted.
+func reportToError(r *report.Report) error {
+	if r == nil {
+		return nil
 	}
-	fdps := make([]*descriptorpb.FileDescriptorProto, 0, len(fdpMap))
-	for _, fdp := range fdpMap {
-		fdps = append(fdps, fdp)
+	var errs []error
+	for _, d := range r.Diagnostics {
+		errs = append(errs, formatDiagnostic(&d))
 	}
-	return &descriptorpb.FileDescriptorSet{File: fdps}
+	if len(errs) == 0 {
+		return nil
+	}
+	return errors.Join(errs...)
 }
 
-func convertFile(d protoreflect.FileDescriptor, fdpMap fileDescriptorProtoMap) {
-	if _, ok := fdpMap[d.Path()]; ok {
-		// skip duplicate conversion
-		return
-	}
-	fdp := protoutil.ProtoFromFileDescriptor(d)
-	removeDynamicExtensionsFromProto(fdp)
-	fdpMap[d.Path()] = fdp
-	// convert imports recursively
-	imports := d.Imports()
-	for i := 0; i < imports.Len(); i++ {
-		convertFile(imports.Get(i).FileDescriptor, fdpMap)
+// formatDiagnostic renders a single diagnostic in buf's
+// "<file>:<line>:<col>:<message>" format. Missing components are skipped.
+func formatDiagnostic(d *report.Diagnostic) error {
+	switch d.Level() {
+	case report.Error, report.ICE:
+		span := d.Primary()
+		loc := span.StartLoc()
+		return fmt.Errorf("%s:%d:%d:%s", span.Path(), loc.Line, loc.Column, d.Message())
+	default:
+		return nil
 	}
 }
 
+// removeDynamicExtensionsFromProto rewrites *FileDescriptorProto-tree
+// options so that custom options known to the linked-in Go runtime
+// surface as concrete generated types (e.g. *tableaupb.UnionOptions)
+// instead of dynamicpb messages.
+//
+// Refer:
+//
+//	https://github.com/jhump/protoreflect/blob/v1.17.0/desc/protoparse/parser.go#L724
 func removeDynamicExtensionsFromProto(fd *descriptorpb.FileDescriptorProto) {
-	// protocompile returns descriptors with dynamic extension fields for custom options.
-	// But tableau only uses known custom options (*tableaupb.UnionOptions rather than
-	// *dynamicpb.Message for example). So to bridge the difference in behavior, we need
-	// to remove custom options from the given file and add them back via
-	// serializing-then-de-serializing them back into the options messages. That way,
-	// statically known options will be properly typed and others will be unrecognized.
-	//
-	// Refer:
-	//   https://github.com/jhump/protoreflect/blob/v1.17.0/desc/protoparse/parser.go#L724
 	fd.Options = removeDynamicExtensionsFromOptions(fd.Options)
 	err := walk.DescriptorProtos(fd, func(_ protoreflect.FullName, msg proto.Message) error {
 		switch msg := msg.(type) {
@@ -194,7 +309,8 @@ func removeOne(opts protoreflect.Message) {
 		log.Warnf("marshal dynamic options failed: %v", err)
 		return
 	}
-	// and then replace values by clearing these custom options and deserializing
+	// and then replace values by clearing these custom options and
+	// deserializing.
 	err = proto.UnmarshalOptions{AllowPartial: true, Merge: true}.Unmarshal(data, opts.Interface())
 	if err != nil {
 		// oh, well... can't fix this one
