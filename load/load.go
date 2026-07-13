@@ -8,6 +8,7 @@ import (
 	"context"
 	"path/filepath"
 
+	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
@@ -202,12 +203,18 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 	case sheetInfo.HasScatter() && sheetInfo.HasMerger():
 		return xerrors.Newf("option Scatter and Merger cannot be both set at one sheet: %s#%s", bookName, sheetName)
 	case sheetInfo.HasScatter():
-		return loadOriginScatter(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
+		err = loadOriginScatter(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
 	case sheetInfo.HasMerger():
-		return loadOriginMerger(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
+		err = loadOriginMerger(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
 	default:
-		return loadOriginMain(msg, sheetInfo, mainImpInfo, collector)
+		err = loadOriginMain(msg, sheetInfo, mainImpInfo, collector)
 	}
+	if err != nil {
+		return err
+	}
+	// protovalidate the fully-assembled message, giving the load path the same
+	// coverage as confgen's storeMessage step.
+	return confgen.Validate(msg, protovalidate.GlobalValidator)
 }
 
 // loadOriginScatter handles the scatter branch of loadOrigin.
