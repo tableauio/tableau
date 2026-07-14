@@ -23,7 +23,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 // Error collection limits at each level.
@@ -98,9 +97,7 @@ func (gen *Generator) GenAll() error {
 		return err
 	}
 	// Create a validator with extension type resolver for custom predefined rules.
-	gen.validator, err = protovalidate.New(
-		protovalidate.WithExtensionTypeResolver(dynamicpb.NewTypes(prFiles)),
-	)
+	gen.validator, err = NewValidator(prFiles)
 	if err != nil {
 		return err
 	}
@@ -126,9 +123,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		return err
 	}
 	// Create a validator with extension type resolver for custom predefined rules.
-	gen.validator, err = protovalidate.New(
-		protovalidate.WithExtensionTypeResolver(dynamicpb.NewTypes(prFiles)),
-	)
+	gen.validator, err = NewValidator(prFiles)
 	if err != nil {
 		return err
 	}

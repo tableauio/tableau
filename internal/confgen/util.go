@@ -26,6 +26,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 var fieldOptionsPool *sync.Pool
@@ -314,9 +315,19 @@ func parseOutputFormats(msg proto.Message, opt *options.ConfOutputOption) []form
 	return format.OutputFormats
 }
 
-// validate validates a proto message using the provided validator. Each violation
+// NewValidator creates a protovalidate validator whose extension type resolver
+// is built from prFiles, so custom predefined rules can be recognized. It is
+// shared by both the confgen (generate) and load (checker) paths to keep
+// validation behavior consistent.
+func NewValidator(prFiles *protoregistry.Files) (protovalidate.Validator, error) {
+	return protovalidate.New(
+		protovalidate.WithExtensionTypeResolver(dynamicpb.NewTypes(prFiles)),
+	)
+}
+
+// Validate validates a proto message using the provided validator. Each violation
 // is wrapped as an E2027 error and all violations are joined together.
-func validate(msg proto.Message, validator protovalidate.Validator) error {
+func Validate(msg proto.Message, validator protovalidate.Validator) error {
 	err := validator.Validate(msg)
 	if err == nil {
 		return nil
@@ -342,7 +353,7 @@ func validate(msg proto.Message, validator protovalidate.Validator) error {
 
 // storeMessage stores a message to one or multiple file formats.
 func storeMessage(msg proto.Message, name, locationName, outputDir string, opt *options.ConfOutputOption, validator protovalidate.Validator) error {
-	if err := validate(msg, validator); err != nil {
+	if err := Validate(msg, validator); err != nil {
 		return err
 	}
 	outputDir = filepath.Join(outputDir, opt.Subdir)

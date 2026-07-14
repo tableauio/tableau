@@ -1,0 +1,4 @@
+ID,Name,Tag,Prop
+uint32,string,"[]string","map<string, int32>"
+Conf ID,Conf name,Tags,Props
+0,this name is too long,"a,b","x:1"

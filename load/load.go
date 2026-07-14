@@ -8,6 +8,7 @@ import (
 	"context"
 	"path/filepath"
 
+	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
@@ -24,6 +25,16 @@ import (
 
 // LoadMessagerInDir loads message's content in the given dir, based on format and messager options.
 func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
+	if err := loadMessagerInDir(msg, dir, fmt, opts); err != nil {
+		return err
+	}
+	// protovalidate the fully-assembled message. protovalidate operates on the
+	// final in-memory protobuf, so both input (excel/csv/xml/yaml) and output
+	// (json/binpb/txtpb) formats get the same coverage as confgen's storeMessage.
+	return confgen.Validate(msg, protovalidate.GlobalValidator)
+}
+
+func loadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, opts)
 	}

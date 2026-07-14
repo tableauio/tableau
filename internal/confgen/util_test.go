@@ -412,7 +412,7 @@ func Test_validate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create validator: %v", err)
 			}
-			err = validate(tt.args.msg, validator)
+			err = Validate(tt.args.msg, validator)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("validate() error = %v, wantErr %v", err, tt.wantErr)
 				return
