@@ -25,6 +25,16 @@ import (
 
 // LoadMessagerInDir loads message's content in the given dir, based on format and messager options.
 func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
+	if err := loadMessagerInDir(msg, dir, fmt, opts); err != nil {
+		return err
+	}
+	// protovalidate the fully-assembled message. protovalidate operates on the
+	// final in-memory protobuf, so both input (excel/csv/xml/yaml) and output
+	// (json/binpb/txtpb) formats get the same coverage as confgen's storeMessage.
+	return confgen.Validate(msg, protovalidate.GlobalValidator)
+}
+
+func loadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
 	if format.IsInputFormat(fmt) {
 		return loadOrigin(msg, dir, opts)
 	}
@@ -203,18 +213,12 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 	case sheetInfo.HasScatter() && sheetInfo.HasMerger():
 		return xerrors.Newf("option Scatter and Merger cannot be both set at one sheet: %s#%s", bookName, sheetName)
 	case sheetInfo.HasScatter():
-		err = loadOriginScatter(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
+		return loadOriginScatter(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
 	case sheetInfo.HasMerger():
-		err = loadOriginMerger(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
+		return loadOriginMerger(msg, sheetInfo, mainImpInfo, dir, subdirRewrites, collector)
 	default:
-		err = loadOriginMain(msg, sheetInfo, mainImpInfo, collector)
+		return loadOriginMain(msg, sheetInfo, mainImpInfo, collector)
 	}
-	if err != nil {
-		return err
-	}
-	// protovalidate the fully-assembled message, giving the load path the same
-	// coverage as confgen's storeMessage step.
-	return confgen.Validate(msg, protovalidate.GlobalValidator)
 }
 
 // loadOriginScatter handles the scatter branch of loadOrigin.

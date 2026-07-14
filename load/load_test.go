@@ -299,15 +299,26 @@ func TestLoadJSON_E0002(t *testing.T) {
 	t.Logf("error: %s", xerrors.NewDesc(err).String())
 }
 
-// TestLoadOriginProtovalidate guards the protovalidate step in loadOrigin:
-// ValidateConf constrains Name to max_len:10, and the input row supplies a
+// TestLoadProtovalidate guards the protovalidate step in LoadMessagerInDir:
+// protovalidate operates on the final in-memory message, so it must run for
+// both input (excel/csv/xml/yaml) and output (json/binpb/txtpb) formats.
+// ValidateConf constrains Name to max_len:10, and each fixture supplies a
 // longer value, so a fully-assembled message must surface an E2027 violation.
 // This catches regressions if the confgen.Validate call is ever dropped.
-func TestLoadOriginProtovalidate(t *testing.T) {
-	err := LoadMessagerInDir(&unittestpb.ValidateConf{}, "../testdata/", format.CSV, &MessagerOptions{})
-	require.Error(t, err)
-	require.ErrorIs(t, err, xerrors.ErrE2027)
-	t.Logf("error: %s", xerrors.NewDesc(err).String())
+func TestLoadProtovalidate(t *testing.T) {
+	t.Run("input-format-csv", func(t *testing.T) {
+		err := LoadMessagerInDir(&unittestpb.ValidateConf{}, "../testdata/", format.CSV, &MessagerOptions{})
+		require.Error(t, err)
+		require.ErrorIs(t, err, xerrors.ErrE2027)
+		t.Logf("error: %s", xerrors.NewDesc(err).String())
+	})
+
+	t.Run("output-format-json", func(t *testing.T) {
+		err := LoadMessagerInDir(&unittestpb.ValidateConf{}, "../testdata/unittest/conf/", format.JSON, &MessagerOptions{})
+		require.Error(t, err)
+		require.ErrorIs(t, err, xerrors.ErrE2027)
+		t.Logf("error: %s", xerrors.NewDesc(err).String())
+	})
 }
 
 func TestLoadWithPatch(t *testing.T) {
