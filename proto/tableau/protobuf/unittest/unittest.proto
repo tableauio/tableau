@@ -951,3 +951,25 @@ message HorizontalAggregateList {
     }];
   }
 }
+
+message HorizontalListFieldConf {
+  option (tableau.worksheet) = {
+    name: "HorizontalListFieldConf"
+    namerow: 1
+    typerow: 2
+    noterow: 3
+    datarow: 4
+  };
+
+  map<uint32, Reward> reward_map = 1 [(tableau.field) = {
+    key: "ID"
+    layout: LAYOUT_VERTICAL
+  }];
+  message Reward {
+    uint32 id = 1 [(tableau.field) = {name: "ID"}];
+    repeated unittest.Item item_list = 2 [(tableau.field) = {
+      name: "Item"
+      layout: LAYOUT_HORIZONTAL
+    }];
+  }
+}

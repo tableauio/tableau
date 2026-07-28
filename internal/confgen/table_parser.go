@@ -211,7 +211,7 @@ func (p *tableParser) parseHorizontalMapField(field *Field, msg protoreflect.Mes
 			// map field not found and is optional, just return false, nil.
 			return false, nil
 		}
-		return false, xerrors.Newf("no cell found with digit suffix for horizontal map field")
+		return false, xerrors.WrapKV(xerrors.E2029(field.opts.Name, "map"), r.CellDebugKV(newPrefix)...)
 	}
 	fixedSize := fieldprop.GetSize(field.opts.Prop, detectedSize)
 	size := detectedSize
@@ -488,7 +488,7 @@ func (p *tableParser) parseHorizontalListField(field *Field, msg protoreflect.Me
 			// list field not found and is optional, just return false, nil.
 			return false, nil
 		}
-		return false, xerrors.Newf("no cell found with digit suffix for horizontal list field")
+		return false, xerrors.WrapKV(xerrors.E2029(field.opts.Name, "list"), r.CellDebugKV(newPrefix)...)
 	}
 	fixedSize := fieldprop.GetSize(field.opts.Prop, detectedSize)
 	size := detectedSize

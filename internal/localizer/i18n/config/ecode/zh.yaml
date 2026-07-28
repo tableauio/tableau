@@ -131,6 +131,10 @@ E2028:
   desc: duplicate elements in incell keyed-list
   text: "keyed-list元素 {{ quote .Elem }} 已存在"
   help: 确保keyed-list的元素唯一, 不能配置相同元素
+E2029:
+  desc: no cell found with digit suffix for horizontal list/map field
+  text: '横向 {{.FieldType}} 字段 "{{.FieldName}}" 未找到带数字后缀的单元格'
+  help: '请按横向布局添加带数字后缀的列（如 "{{.FieldName}}1"、"{{.FieldName}}2"），或设置字段属性 "optional:true" 表示该字段可缺省'
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
