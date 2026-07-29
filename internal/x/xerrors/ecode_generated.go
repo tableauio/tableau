@@ -34,6 +34,7 @@ var ErrE2025 = newEcode("E2025", `version value mismatches pattern`)
 var ErrE2026 = newEcode("E2026", `illegally ordered values`)
 var ErrE2027 = newEcode("E2027", `protovalidate violation`)
 var ErrE2028 = newEcode("E2028", `duplicate elements in incell keyed-list`)
+var ErrE2029 = newEcode("E2029", `no cell with digit suffix for horizontal list/map field`)
 var ErrE3000 = newEcode("E3000", `no workbook file found about sheet specifier`)
 var ErrE3001 = newEcode("E3001", `no worksheet found in workbook`)
 var ErrE3002 = newEcode("E3002", `failed to open file`)
@@ -323,6 +324,14 @@ func E2027(violation string, fieldValue any) error {
 func E2028(elem any) error {
 	return renderEcode(ErrE2028, map[string]any{
 		"Elem": elem,
+	})
+}
+
+// E2029: no cell with digit suffix for horizontal list/map field
+func E2029(fieldName string, fieldType string) error {
+	return renderEcode(ErrE2029, map[string]any{
+		"FieldName": fieldName,
+		"FieldType": fieldType,
 	})
 }
 

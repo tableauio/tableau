@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Tableau is a Go-based configuration converter that transforms Excel/CSV/XML/YAML files into protobuf-defined configuration files (JSON, Text, Bin). It uses Protocol Buffers (proto3) to define the structure of input data, extended with custom tableau options (field numbers 50000-99999 on `google.protobuf.*Options`).
+Tableau is a Go-based configuration converter that transforms Excel/CSV/XML/YAML files into protobuf-defined configuration files (JSON, Text, Bin). It uses Protocol Buffers (proto3), extended with custom tableau options on `google.protobuf.*Options` (field numbers 50000-99999).
 
 ## Common Commands
 
@@ -35,7 +35,7 @@ go tool pprof -http :8888 cpu.prof
 ```bash
 go vet ./...
 
-# Full lint (CI uses golangci-lint v2.2.1)
+# Full lint (CI runs golangci-lint)
 golangci-lint run
 
 # Buf proto linting & build
@@ -144,7 +144,7 @@ Tableau extends protobuf descriptors at field numbers 50000:
 
 ### Concurrency Model
 
-- `xerrors.Collector`: Thread-safe error accumulator with configurable max capacity. Forms parent-child hierarchies. Uses `golang.org/x/sync/errgroup` for goroutine management.
+- `xerrors.Collector`: Thread-safe error accumulator with configurable max capacity, forming parent-child hierarchies.
 - `Collector.NewGroup()`: Creates an errgroup with the collector's context; goroutines call `g.Go()`.
 - `Collector.NewChild()`: Creates a child collector with its own capacity, registered under the parent.
 - The collector stops accepting new errors once full (`IsFull()` returns true), propagating early termination up the tree.
@@ -152,8 +152,8 @@ Tableau extends protobuf descriptors at field numbers 50000:
 ### Error Handling
 
 - Structured errors with key-value fields (`xerrors.NewKV`, `xerrors.WrapKV`).
-- Each error chain has exactly one stack trace (captured at creation via `callers()`).
-- Error codes (E0001-E3003) are generated from i18n config via `internal/tools/cmd/ecode`. Source: `internal/x/xerrors/ecode_generated.go`.
+- Each error chain has exactly one stack trace.
+- Error codes (E0001-E3003) are generated from i18n config via `internal/tools/cmd/ecode` into `internal/x/xerrors/ecode_generated.go`.
 - Errors carry structured fields: `module`, `bookName`, `sheetName`, `pbMessage`, `position` (Excel cell coordinates).
 - At debug log level, errors include full stack traces (`%+v`); at higher levels, concise format (`%v`).
 
@@ -167,7 +167,6 @@ Tableau extends protobuf descriptors at field numbers 50000:
 
 - Proto definitions live in `proto/tableau/protobuf/` and are published to the Buf Schema Registry (BSR) as `buf.build/tableauio/tableau`.
 - `buf.yaml` defines two modules: a named one (published, excludes `internal/` and `unittest/`) and an unnamed one (for internal protos used in testing).
-- Generated Go code goes to `proto/tableaupb/` via `buf generate`.
 - CI checks that generated `.pb.go` files are committed and up-to-date.
 - Dependency: `buf.build/bufbuild/protovalidate` for field validation.
 

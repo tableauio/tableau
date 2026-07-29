@@ -203,6 +203,13 @@ E2028:
   desc: duplicate elements in incell keyed-list
   text: keyed-list element {{ quote .Elem }} already exists
   help: fix duplicate elements and ensure keyed-list elements are unique
+E2029:
+  desc: no cell with digit suffix for horizontal list/map field
+  text: 'horizontal {{.FieldType}} field "{{.FieldName}}" has no cell with a digit suffix'
+  help: 'add columns "{{.FieldName}}1", "{{.FieldName}}2", ...; or set prop "optional:true" if the field may be absent'
+  fields:
+    - FieldName: string
+    - FieldType: string
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

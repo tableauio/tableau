@@ -462,6 +462,84 @@ func TestTableParser_parseHorizontalMapWithEmptyKey(t *testing.T) {
 	}
 }
 
+func TestTableParser_parseHorizontalMapWithNoDigitSuffix(t *testing.T) {
+	parser := newTableParserForTest()
+	sheet := book.NewTableSheet(
+		"RewardConf",
+		[][]string{
+			// "ItemID"/"ItemNum" share the "Item" prefix but lack the digit
+			// suffix that a horizontal map field requires.
+			{"RewardID", "ItemID", "ItemNum"},
+			{"1", "100", "200"},
+		})
+	err := parser.Parse(&unittestpb.RewardConf{}, sheet)
+	require.Error(t, err)
+	// Error code: E2029 (no cell with digit suffix for horizontal map field).
+	require.ErrorIs(t, err, xerrors.ErrE2029)
+
+	desc := xerrors.NewDesc(err)
+	require.Equal(t, xerrors.ModuleConf, desc.GetValue(xerrors.KeyModule))
+	// Semantic details from the ecode.
+	require.Equal(t, "Item", desc.GetValue("FieldName"))
+	require.Equal(t, "map", desc.GetValue("FieldType"))
+	// Excel position details: the matched prefix range and data row.
+	require.Equal(t, "Item", desc.GetValue(xerrors.KeyColumnName))
+	require.Equal(t, "[B...C]2", desc.GetValue(xerrors.KeyDataCellPos))
+	require.Equal(t, "[100...200]", desc.GetValue(xerrors.KeyDataCell))
+
+	// Rendered summary carries the code, position, and reason.
+	rendered := desc.String()
+	require.Contains(t, rendered, "error[E2029]:")
+	require.Contains(t, rendered, "DataCellPos: [B...C]2")
+	require.Contains(t, rendered, `horizontal map field "Item" has no cell with a digit suffix`)
+}
+
+func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
+	// Realistic shape: a vertical map keyed by ID, with each value containing
+	// a horizontal list of predefined unittest.Item elements (columns like
+	// "Item1ID", "Item1Num", "Item2ID", "Item2Num"). Verify the proto parses
+	// valid data before exercising the error path.
+	validSheet := book.NewTableSheet(
+		"HorizontalListFieldConf",
+		[][]string{
+			{"ID", "Item1ID", "Item1Num", "Item2ID", "Item2Num"},
+			{"1", "100", "10", "200", "20"},
+		})
+	if err := newTableParserForTest().Parse(&unittestpb.HorizontalListFieldConf{}, validSheet); err != nil {
+		t.Fatalf("valid sheet should parse without error, got: %v", err)
+	}
+
+	// Error case: "ItemID"/"ItemNum" share the "Item" prefix but lack the
+	// digit suffix that a horizontal list field requires.
+	parser := newTableParserForTest()
+	sheet := book.NewTableSheet(
+		"HorizontalListFieldConf",
+		[][]string{
+			{"ID", "ItemID", "ItemNum"},
+			{"1", "100", "200"},
+		})
+	err := parser.Parse(&unittestpb.HorizontalListFieldConf{}, sheet)
+	require.Error(t, err)
+	// Error code: E2029 (no cell with digit suffix for horizontal list field).
+	require.ErrorIs(t, err, xerrors.ErrE2029)
+
+	desc := xerrors.NewDesc(err)
+	require.Equal(t, xerrors.ModuleConf, desc.GetValue(xerrors.KeyModule))
+	// Semantic details from the ecode.
+	require.Equal(t, "Item", desc.GetValue("FieldName"))
+	require.Equal(t, "list", desc.GetValue("FieldType"))
+	// Excel position details: the matched prefix range and data row.
+	require.Equal(t, "Item", desc.GetValue(xerrors.KeyColumnName))
+	require.Equal(t, "[B...C]2", desc.GetValue(xerrors.KeyDataCellPos))
+	require.Equal(t, "[100...200]", desc.GetValue(xerrors.KeyDataCell))
+
+	// Rendered summary carries the code, position, and reason.
+	rendered := desc.String()
+	require.Contains(t, rendered, "error[E2029]:")
+	require.Contains(t, rendered, "DataCellPos: [B...C]2")
+	require.Contains(t, rendered, `horizontal list field "Item" has no cell with a digit suffix`)
+}
+
 func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 	parserWithBookSep := NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
 		&tableaupb.WorkbookOptions{
