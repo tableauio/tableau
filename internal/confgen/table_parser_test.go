@@ -474,7 +474,7 @@ func TestTableParser_parseHorizontalMapWithNoDigitSuffix(t *testing.T) {
 		})
 	err := parser.Parse(&unittestpb.RewardConf{}, sheet)
 	require.Error(t, err)
-	// Error code: E2029 (no cell found with digit suffix for horizontal map field).
+	// Error code: E2029 (no cell with digit suffix for horizontal map field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
 	desc := xerrors.NewDesc(err)
@@ -491,7 +491,7 @@ func TestTableParser_parseHorizontalMapWithNoDigitSuffix(t *testing.T) {
 	rendered := desc.String()
 	require.Contains(t, rendered, "error[E2029]:")
 	require.Contains(t, rendered, "DataCellPos: [B...C]2")
-	require.Contains(t, rendered, `no cell found with digit suffix for horizontal map field "Item"`)
+	require.Contains(t, rendered, `horizontal map field "Item" has no cell with a digit suffix`)
 }
 
 func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
@@ -520,7 +520,7 @@ func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
 		})
 	err := parser.Parse(&unittestpb.HorizontalListFieldConf{}, sheet)
 	require.Error(t, err)
-	// Error code: E2029 (no cell found with digit suffix for horizontal list field).
+	// Error code: E2029 (no cell with digit suffix for horizontal list field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
 	desc := xerrors.NewDesc(err)
@@ -537,7 +537,7 @@ func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
 	rendered := desc.String()
 	require.Contains(t, rendered, "error[E2029]:")
 	require.Contains(t, rendered, "DataCellPos: [B...C]2")
-	require.Contains(t, rendered, `no cell found with digit suffix for horizontal list field "Item"`)
+	require.Contains(t, rendered, `horizontal list field "Item" has no cell with a digit suffix`)
 }
 
 func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
