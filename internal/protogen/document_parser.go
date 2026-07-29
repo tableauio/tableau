@@ -96,7 +96,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
-			xerrors.KeyPBFieldOpts, desc.Prop.Text)
+			xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 	}
 
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, valueTypeDesc.Name)
@@ -112,9 +112,9 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 		layout = tableaupb.Layout_LAYOUT_INCELL
 	}
 
-	prop, err := desc.Prop.FieldProp()
+	prop, err := desc.KeyProp.FieldProp()
 	if err != nil {
-		return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.Prop.Text)
+		return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 	}
 
 	// scalar map
@@ -123,7 +123,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 		if err != nil {
 			return errWithNodeKV(err, typeNode,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text)
+				xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 		}
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
@@ -150,21 +150,26 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 			ValueType:     parsedValueName,
 			ValueFullType: parsedValueFullName,
 		}
+		vprop, err := desc.ValueProp.FieldProp()
+		if err != nil {
+			return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.ValueProp.Text)
+		}
 		field.Options = &tableaupb.FieldOptions{
 			Name:   node.Name,
 			Layout: layout,
 			Prop:   ExtractMapFieldProp(prop, layout),
+			Vprop:  vprop,
 		}
 
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = keyCell
 			// 1. append key to the first value struct field
-			scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.Prop.RawProp(), "")
+			scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.KeyProp.RawProp(), "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-					xerrors.KeyPBFieldOpts, desc.Prop.Text)
+					xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 			}
 			field.Fields = append(field.Fields, scalarField)
 			// 2. append value to the second value struct field
@@ -172,7 +177,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
-					xerrors.KeyPBFieldOpts, desc.Prop.Text)
+					xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 			}
 			field.Fields = append(field.Fields, scalarField)
 			field.Options.Span = tableaupb.Span_SPAN_INNER_CELL
@@ -197,11 +202,11 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 	field.Options.Key = keyCell
 	// struct map
 	// auto append key to the first value struct field
-	scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.Prop.RawProp(), "")
+	scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.KeyProp.RawProp(), "")
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-			xerrors.KeyPBFieldOpts, desc.Prop.Text)
+			xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 	}
 	scalarField.Name = strcase.FromContext(p.gen.ctx).ToSnake(strings.TrimPrefix(node.GetMetaKey(), book.MetaSign))
 	// Attach a note extracted from the source document onto the key field.

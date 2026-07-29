@@ -148,3 +148,12 @@ message FieldPropUnique {
     repeated int32 num_list = 2 [(tableau.field) = {name:"Num" layout:LAYOUT_INCELL prop:{aggregate:true}}]; // Item num
   }
 }
+
+message FieldPropVProp {
+  option (tableau.worksheet) = {name:"FieldPropVProp"};
+
+  map<int64, int64> item_map_map = 1 [(tableau.field) = {name:"ItemMap" layout:LAYOUT_INCELL vprop:{refer:"ItemConf.ID"}}]; // Item map
+  map<int32, int32> range_map_map = 2 [(tableau.field) = {name:"RangeMap" layout:LAYOUT_INCELL vprop:{range:"1,10"}}]; // Range map
+  map<int32, string> present_map_map = 3 [(tableau.field) = {name:"PresentMap" layout:LAYOUT_INCELL vprop:{present:true}}]; // Present map
+  map<int32, int64> combo_map_map = 4 [(tableau.field) = {name:"ComboMap" layout:LAYOUT_INCELL prop:{refer:"ItemConf.ID"} vprop:{range:"1,10"}}]; // Combo map
+}

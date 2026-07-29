@@ -34,7 +34,37 @@ const TypeGroup = `(` + nestedTypeCharClass + `*?)`
 //   - map<KeyType, .PredefinedValueType>
 //   - map<.PredefinedKeyType, ValueType>
 //   - map<.PredefinedKeyType, .PredefinedValueType>
-var mapRegexp = regexp.MustCompile(`^map<` + `(?P<KeyType>` + nestedTypeCharClass + `+)` + `,` + `(?P<ValueType>` + nestedTypeCharClass + `+)` + `>` + rawPropGroup)
+//
+// For incell scalar map, a second prop group is allowed for the value:
+//
+//	map<int64, int64>|{refer:"K.ID"}|{range:"0,~"}
+//
+// When only the value prop is needed, the empty key prop group can be
+// omitted with the shorthand form:
+//
+//	map<int64, int64>||{range:"0,~"}   // equivalent to |{}|{range:"0,~"}
+//
+// Alternatives are ordered by decreasing specificity so that the
+// leftmost-first match picks the correct form:
+//  1. `|{K}|{V}` — key prop + value prop (greedy `.*` naturally splits
+//     on the LAST `}|{` boundary; any earlier `}|{` inside a nested
+//     prototext message is absorbed into K).
+//  2. `||{V}`    — value-only shorthand.
+//  3. `|{K}`     — single (key/map) prop.
+//
+// Constraint: prop text MUST NOT contain the literal 3-char sequence
+// `}|{`, as it is unconditionally treated as the K/V separator (the
+// regex is quote-unaware). Bare `|` inside prop text is fine — only
+// the exact `}|{` boundary is reserved. If such a literal is truly
+// required inside a string value, use the protobuf text-format hex
+// escape `\x7d\x7c\x7b`.
+const rawMapPropGroup = `(?:` +
+	` *\| *\{(?P<KeyProp>.*)\} *\| *\{(?P<ValueProp>.*)\}` + `|` +
+	` *\|\| *\{(?P<ValueOnlyProp>.*)\}` + `|` +
+	` *\| *\{(?P<KeyOnlyProp>.*)\}` +
+	`)?`
+
+var mapRegexp = regexp.MustCompile(`^map<` + `(?P<KeyType>` + nestedTypeCharClass + `+)` + `,` + `(?P<ValueType>` + nestedTypeCharClass + `+)` + `>` + rawMapPropGroup)
 
 // List definition patterns:
 //   - [ElemType]
@@ -79,7 +109,12 @@ var boringIntegerRegexp = regexp.MustCompile(`([-+]?[0-9]+)\.0+$`)
 type MapDescriptor struct {
 	KeyType   string
 	ValueType string
-	Prop      PropDescriptor
+	// KeyProp is the first (and default) prop group, applied to the map
+	// key. For non-scalar-value maps it also carries the map-level prop.
+	KeyProp PropDescriptor
+	// ValueProp is the second prop group, dedicated for incell scalar
+	// map's value. Only set when the type text has "|{...}|{...}" form.
+	ValueProp PropDescriptor
 }
 
 // MatchMap matches the map type patterns. For example:
@@ -100,8 +135,14 @@ func MatchMap(text string) *MapDescriptor {
 			desc.KeyType = value
 		case "ValueType":
 			desc.ValueType = value
-		case "Prop":
-			desc.Prop.Text = value
+		case "KeyProp", "KeyOnlyProp":
+			if value != "" {
+				desc.KeyProp.Text = value
+			}
+		case "ValueProp", "ValueOnlyProp":
+			if value != "" {
+				desc.ValueProp.Text = value
+			}
 		}
 	}
 	return desc

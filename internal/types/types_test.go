@@ -52,14 +52,122 @@ func TestMatchMap(t *testing.T) {
 			want: &MapDescriptor{
 				KeyType:   "int32",
 				ValueType: "ValueType",
-				Prop:      PropDescriptor{Text: `range:"1,10"`},
+				KeyProp:   PropDescriptor{Text: `range:"1,10"`},
+			},
+		},
+		{
+			name: "map-with-key-and-value-prop",
+			args: args{
+				text: `map<int32, int32>|{refer:"K.ID"}|{range:"0,~"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "int32",
+				KeyProp:   PropDescriptor{Text: `refer:"K.ID"`},
+				ValueProp: PropDescriptor{Text: `range:"0,~"`},
+			},
+		},
+		{
+			name: "map-with-empty-key-prop-and-value-prop",
+			args: args{
+				text: `map<int32, int32>|{}|{refer:"V.ID"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "int32",
+				ValueProp: PropDescriptor{Text: `refer:"V.ID"`},
+			},
+		},
+		{
+			name: "map-with-value-only-shorthand",
+			args: args{
+				text: `map<int32, int32>||{refer:"V.ID"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "int32",
+				ValueProp: PropDescriptor{Text: `refer:"V.ID"`},
+			},
+		},
+		{
+			name: "map-with-value-only-shorthand-and-spaces",
+			args: args{
+				text: `map<int32, int32> || {range:"0,~"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "int32",
+				ValueProp: PropDescriptor{Text: `range:"0,~"`},
+			},
+		},
+		{
+			// Bare `|` inside a prop string is allowed; only the exact
+			// 3-char `}|{` sequence is reserved as the K/V separator.
+			name: "map-with-bare-pipe-in-key-prop",
+			args: args{
+				text: `map<int32, string>|{default:"|"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "string",
+				KeyProp:   PropDescriptor{Text: `default:"|"`},
+			},
+		},
+		{
+			name: "map-with-bare-pipe-in-both-props",
+			args: args{
+				text: `map<int32, string>|{default:"a|b"}|{default:"c|d"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "string",
+				KeyProp:   PropDescriptor{Text: `default:"a|b"`},
+				ValueProp: PropDescriptor{Text: `default:"c|d"`},
+			},
+		},
+		{
+			name: "map-with-bare-pipe-in-value-only-shorthand",
+			args: args{
+				text: `map<int32, string>||{default:"|"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "string",
+				ValueProp: PropDescriptor{Text: `default:"|"`},
+			},
+		},
+		{
+			// The 3-char sequence `}|{` is reserved as the K/V separator.
+			// To carry it as a literal inside a string, use the protobuf
+			// text-format hex escape `\x7d\x7c\x7b`, which is opaque to
+			// the parser and preserved as-is.
+			name: "map-with-escaped-separator-in-key-prop",
+			args: args{
+				text: `map<int32, string>|{default:"\x7d\x7c\x7b"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "string",
+				KeyProp:   PropDescriptor{Text: `default:"\x7d\x7c\x7b"`},
+			},
+		},
+		{
+			name: "map-with-escaped-separator-in-value-prop",
+			args: args{
+				text: `map<int32, string>|{refer:"K.ID"}|{default:"\x7d\x7c\x7b"}`,
+			},
+			want: &MapDescriptor{
+				KeyType:   "int32",
+				ValueType: "string",
+				KeyProp:   PropDescriptor{Text: `refer:"K.ID"`},
+				ValueProp: PropDescriptor{Text: `default:"\x7d\x7c\x7b"`},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := MatchMap(tt.args.text); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MatchMap() = %T, want %v", got, tt.want)
+				t.Errorf("MatchMap() = %v, want %v", got, tt.want)
 			}
 		})
 	}

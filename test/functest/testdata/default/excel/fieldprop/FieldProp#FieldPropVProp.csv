@@ -1,0 +1,4 @@
+ItemMap,RangeMap,PresentMap,ComboMap
+"map<int64, int64>||{refer:""ItemConf.ID""}","map<int32, int32>||{range:""1,10""}","map<int32, string>||{present:true}","map<int32, int64>|{refer:""ItemConf.ID""}|{range:""1,10""}"
+Item map,Range map,Present map,Combo map
+"1:1,2:2","1:5,2:8","1:hello,2:world","1:5,2:8"
