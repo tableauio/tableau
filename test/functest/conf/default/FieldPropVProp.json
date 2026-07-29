@@ -14,5 +14,15 @@
     "comboMapMap": {
         "1": "5",
         "2": "8"
+    },
+    "enumRangeMapMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": 5
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": 8
+        }
     }
 }

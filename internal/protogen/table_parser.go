@@ -390,14 +390,20 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			}
 			field.Fields = append(field.Fields, scalarField)
 
-			scalarField, err = p.parseBasicField(types.DefaultMapValueOptName, desc.ValueType, "")
+			// vprop sinks into the generated Value field's prop; drop it from map field.
+			valueTypeWithProp := desc.ValueType
+			if desc.ValueProp.Text != "" {
+				valueTypeWithProp += desc.ValueProp.RawProp()
+			}
+			scalarField, err = p.parseBasicField(types.DefaultMapValueOptName, valueTypeWithProp, "")
 			if err != nil {
 				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
-					xerrors.KeyPBFieldOpts, desc.KeyProp.Text,
+					xerrors.KeyPBFieldOpts, desc.ValueProp.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
 			}
 			field.Fields = append(field.Fields, scalarField)
+			field.Options.Vprop = nil
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		return cursor, xerrors.Newf("should not reach default layout: %v", layout)
