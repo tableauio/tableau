@@ -450,8 +450,8 @@ func (p *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protor
 			// incell map key must be unique
 			return xerrors.WrapKV(xerrors.E2005(key))
 		}
-		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
-		fieldValue, valuePresent, err := p.parseFieldValue(valueFd, value, nil)
+		// field.opts.Vprop is dedicated for checking scalar map value.
+		fieldValue, valuePresent, err := p.parseFieldValue(valueFd, value, field.opts.GetVprop())
 		if err != nil {
 			return err
 		}

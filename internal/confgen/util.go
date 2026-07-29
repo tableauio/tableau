@@ -15,7 +15,6 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
-	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/internal/x/xproto/protoc"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
@@ -81,7 +80,7 @@ func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fie
 	key := ""
 	layout := tableaupb.Layout_LAYOUT_DEFAULT
 	var sep, subsep string
-	var prop *tableaupb.FieldProp
+	var prop, vprop *tableaupb.FieldProp
 
 	// opts := fd.Options().(*descriptorpb.FieldOptions)
 	fieldOpts := proto.GetExtension(fd.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
@@ -93,7 +92,8 @@ func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fie
 		layout = fieldOpts.Layout
 		sep = fieldOpts.Prop.GetSep()
 		subsep = fieldOpts.Prop.GetSubsep()
-		prop = xproto.Clone(fieldOpts.Prop)
+		prop = proto.CloneOf(fieldOpts.Prop)
+		vprop = proto.CloneOf(fieldOpts.Vprop)
 	} else {
 		// default processing
 		if fd.IsList() {
@@ -120,6 +120,7 @@ func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fie
 	pooledOpts.Layout = layout
 	pooledOpts.Span = span
 	pooledOpts.Prop = prop
+	pooledOpts.Vprop = vprop
 
 	return &Field{
 		fd:     fd,
