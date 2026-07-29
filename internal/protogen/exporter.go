@@ -387,7 +387,7 @@ func (x *sheetExporter) exportUnion() error {
 // NOTE: Even if the message is moved to another proto file, we still can find it
 // in the generated proto files.
 func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.MessageDescriptor {
-	if !x.be.gen.OutputOpt.PreserveFieldNumbers {
+	if !x.be.gen.preserveFieldNumbers() {
 		return nil
 	}
 	fullName := protoreflect.FullName(x.be.ProtoPackage).Append(protoreflect.Name(name))

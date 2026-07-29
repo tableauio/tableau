@@ -47,6 +47,12 @@ type Generator struct {
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
 
+	// ConfOutputOpt is the conf output options, used to determine whether
+	// field-number preservation is actually necessary (it only matters when
+	// binpb is among the conf output formats). May be nil in programmatic
+	// use, in which case preservation behaves as before (treated as needed).
+	ConfOutputOpt *options.ConfOutputOption
+
 	ProtoRegistryFiles *protoregistry.Files
 	ProtoRegistryTypes *dynamicpb.Types
 
@@ -80,10 +86,13 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
 		ctx:          ctx,
-		typeInfos:    xproto.NewTypeInfos(protoPackage),
-		collector:    xerrors.NewCollector(maxErrors),
 
+		typeInfos:       xproto.NewTypeInfos(protoPackage),
+		collector:       xerrors.NewCollector(maxErrors),
 		cachedImporters: make(map[string]importer.Importer),
+	}
+	if opts.Conf != nil {
+		gen.ConfOutputOpt = opts.Conf.Output
 	}
 	registryFiles, err := gen.parseProtoRegistryFiles(false)
 	if err != nil {
@@ -136,11 +145,27 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	protoRegistryFiles := gen.ProtoRegistryFiles
 	// preserveFieldNumbers also needs generated protos parsed before they
 	// are deleted below.
-	if useGeneratedProtos || gen.OutputOpt.PreserveFieldNumbers {
+	if useGeneratedProtos || gen.preserveFieldNumbers() {
 		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
+}
+
+// preserveFieldNumbers reports whether field-number preservation should
+// actually run. Preservation only matters for the binary wire format, so even
+// when PreserveFieldNumbers is set it is a no-op unless binpb is among the conf
+// output formats (ConfOutputOpt). A nil ConfOutputOpt (programmatic use without
+// conf options) is treated as binpb-needed, preserving the previous behavior.
+func (gen *Generator) preserveFieldNumbers() bool {
+	if !gen.OutputOpt.PreserveFieldNumbers {
+		return false
+	}
+	if gen.ConfOutputOpt == nil || gen.ConfOutputOpt.NeedBinpb() {
+		return true
+	}
+	log.Infof("preserveFieldNumbers is a no-op: conf output does not include binpb (field numbers only matter for the binary wire format); add binpb to conf.output.formats to keep it active")
+	return false
 }
 
 // Generate generates proto files for the specified workbooks. If no workbook paths are provided,

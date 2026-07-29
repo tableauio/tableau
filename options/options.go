@@ -221,6 +221,13 @@ type ProtoOutputOption struct {
 	// numbering. Compared with the old generated proto message, if a new field
 	// name occurs, then assign the max field number plus 1 in the same level.
 	//
+	// NOTE: field numbers only appear in the binary (binpb) wire format; JSON
+	// and txtpb encode field names. So this option takes effect only when
+	// binpb is among the conf output formats (conf.output.formats, or
+	// conf.output.messagerFormats). It is a no-op for json/txtpb-only output.
+	// If you reuse the generated protos for binpb data outside tableau's
+	// confgen, add binpb to conf.output.formats to keep preservation active.
+	//
 	// Default: false.
 	PreserveFieldNumbers bool `yaml:"preserveFieldNumbers"`
 }
@@ -352,6 +359,34 @@ type ConfOutputOption struct {
 	//
 	// Default: "".
 	DryRun DryRun `yaml:"dryRun"`
+}
+
+// NeedBinpb reports whether any messager will be emitted in binary (binpb)
+// format.
+//
+// Field-number preservation (ProtoOutputOption.PreserveFieldNumbers) only
+// matters for the binary wire format — JSON and txtpb encode field names, not
+// numbers — so protogen uses this to skip preservation work when no binpb is
+// generated.
+//
+// The resolution mirrors confgen's parseOutputFormats: a messager uses
+// MessagerFormats[name] if set, else Formats if non-empty, else all output
+// formats (which includes binpb). NeedBinpb is therefore conservative: when
+// Formats is empty, every messager not explicitly overridden defaults to all
+// formats, so binpb is produced and it returns true.
+func (o *ConfOutputOption) NeedBinpb() bool {
+	if len(o.Formats) == 0 {
+		return true // default: all formats, including binpb
+	}
+	if format.Amongst(format.Bin, o.Formats) {
+		return true
+	}
+	for _, fs := range o.MessagerFormats {
+		if format.Amongst(format.Bin, fs) {
+			return true
+		}
+	}
+	return false
 }
 
 type FirstPassMode = string
