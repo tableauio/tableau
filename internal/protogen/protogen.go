@@ -60,8 +60,7 @@ type Generator struct {
 	registryWithGeneratedOnce       sync.Once
 	protoRegistryFilesWithGenerated *protoregistry.Files
 
-	// preserveRulesOnce lazily compiles PreserveFieldNumbersRules into
-	// preserveRules on first use.
+	// lazily compiled from PreserveFieldNumbersRules on first use
 	preserveRulesOnce sync.Once
 	preserveRules     []compiledPreserveRule
 
@@ -144,8 +143,8 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 }
 
 func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
-	// Validate (and cache) messagerPreserveFieldNumbers regexes up front so
-	// an invalid pattern fails fast, before any output is deleted/regenerated.
+	// Compile (and cache) preserveFieldNumbersRules regexes up front so an
+	// invalid pattern fails fast, before any output is regenerated.
 	gen.compiledPreserveRules()
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	// parse custom imported proto files
@@ -159,13 +158,9 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
 }
 
-// preserveFieldNumbers reports whether field-number preservation should run
-// for the named messager. The OutputOpt.PreserveFieldNumbersRules rules
-// are evaluated in order (first regex match wins); a messager matching no
-// rule falls back to the global OutputOpt.PreserveFieldNumbers default. This
-// keeps the decision inside proto.output — no coupling to conf.output — so
-// users can skip preservation for json/txtpb-only messagers without affecting
-// binpb-consuming ones.
+// preserveFieldNumbers reports whether preservation should run for the named
+// messager: first matching rule in PreserveFieldNumbersRules wins, else the
+// global PreserveFieldNumbers default.
 func (gen *Generator) preserveFieldNumbers(name string) bool {
 	for _, r := range gen.compiledPreserveRules() {
 		if r.re.MatchString(name) {
@@ -177,9 +172,8 @@ func (gen *Generator) preserveFieldNumbers(name string) bool {
 
 // anyPreserveFieldNumbers reports whether preservation is needed for at least
 // one messager, and thus whether the previously generated protos must be
-// parsed (the expensive part of preservation). It is conservative: true if
-// the global default is true or any rule would preserve. When it returns
-// false, preservation is entirely skipped.
+// parsed (the expensive part). Conservative: true if the global default is
+// true or any rule preserves.
 func (gen *Generator) anyPreserveFieldNumbers() bool {
 	if gen.OutputOpt.PreserveFieldNumbers {
 		return true
@@ -192,11 +186,9 @@ func (gen *Generator) anyPreserveFieldNumbers() bool {
 	return false
 }
 
-// compiledPreserveRules lazily compiles OutputOpt.PreserveFieldNumbersRules
-// into regexes, caching the result. An invalid pattern is a config error and
-// panics with a clear message, consistent with how the generator panics on
-// other unrecoverable config/parse errors. Compilation is triggered eagerly
-// from preprocess (before any export) so an invalid pattern fails fast.
+// compiledPreserveRules lazily compiles PreserveFieldNumbersRules into
+// regexes, caching the result. An invalid pattern panics (a config error),
+// triggered eagerly from preprocess so it fails fast.
 func (gen *Generator) compiledPreserveRules() []compiledPreserveRule {
 	gen.preserveRulesOnce.Do(func() {
 		for _, r := range gen.OutputOpt.PreserveFieldNumbersRules {

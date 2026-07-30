@@ -221,25 +221,19 @@ type ProtoOutputOption struct {
 	// numbering. Compared with the old generated proto message, if a new field
 	// name occurs, then assign the max field number plus 1 in the same level.
 	//
-	// NOTE: field numbers only appear in the binary (binpb) wire format; JSON
-	// and txtpb encode field names, so preservation only matters for messagers
-	// consumed as binpb. To skip the overhead for json/txtpb-only messagers,
-	// override them to false in MessagerPreserveFieldNumbers rather than
-	// disabling preservation globally.
+	// NOTE: field numbers only appear in the binpb wire format; JSON and txtpb
+	// encode field names, so preservation only matters for binpb-consuming
+	// messagers. Use PreserveFieldNumbersRules to skip it for the rest.
 	//
 	// Default: false.
 	PreserveFieldNumbers bool `yaml:"preserveFieldNumbers"`
 
 	// PreserveFieldNumbersRules overrides PreserveFieldNumbers per messager
-	// using regex rules, so preservation can be toggled for whole groups of
-	// messagers at once. Each rule's Messager pattern (Go regexp, matched
-	// against the message name, unanchored) is evaluated in order; the first
-	// match wins and its Preserve value applies. A messager matching no rule
-	// falls back to PreserveFieldNumbers.
+	// by regex. Rules are evaluated in order; the first whose Messager
+	// pattern matches the message name wins, else PreserveFieldNumbers
+	// applies. Messager is a Go regexp, matched unanchored.
 	//
-	// This keeps the decision inside proto.output (no coupling to
-	// conf.output) and lets you enable preservation only for binpb-consuming
-	// messagers while skipping json/txtpb-only ones, e.g.:
+	// Example (preserve all except scratch messagers):
 	//  preserveFieldNumbers: true
 	//  preserveFieldNumbersRules:
 	//    - { messager: "Temp.*|Test.*", preserve: false }
@@ -251,13 +245,11 @@ type ProtoOutputOption struct {
 // PreserveFieldNumbersRule is a single regex-based override rule for
 // PreserveFieldNumbers.
 type PreserveFieldNumbersRule struct {
-	// Messager is a Go regular expression matched (unanchored) against the
-	// messager's message name. Use ^...$ to anchor when an exact match is
-	// needed.
+	// Messager is a Go regexp matched (unanchored) against the messager's
+	// message name. Use ^...$ to anchor.
 	Messager string `yaml:"messager"`
 
-	// Preserve is the preservation decision for messagers whose name matches
-	// Messager.
+	// Preserve is the preservation decision for messagers matching Messager.
 	Preserve bool `yaml:"preserve"`
 }
 
