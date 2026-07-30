@@ -60,7 +60,7 @@ type Generator struct {
 	registryWithGeneratedOnce       sync.Once
 	protoRegistryFilesWithGenerated *protoregistry.Files
 
-	// preserveRulesOnce lazily compiles MessagerPreserveFieldNumbers into
+	// preserveRulesOnce lazily compiles PreserveFieldNumbersRules into
 	// preserveRules on first use.
 	preserveRulesOnce sync.Once
 	preserveRules     []compiledPreserveRule
@@ -160,7 +160,7 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 }
 
 // preserveFieldNumbers reports whether field-number preservation should run
-// for the named messager. The OutputOpt.MessagerPreserveFieldNumbers rules
+// for the named messager. The OutputOpt.PreserveFieldNumbersRules rules
 // are evaluated in order (first regex match wins); a messager matching no
 // rule falls back to the global OutputOpt.PreserveFieldNumbers default. This
 // keeps the decision inside proto.output — no coupling to conf.output — so
@@ -184,7 +184,7 @@ func (gen *Generator) anyPreserveFieldNumbers() bool {
 	if gen.OutputOpt.PreserveFieldNumbers {
 		return true
 	}
-	for _, r := range gen.OutputOpt.MessagerPreserveFieldNumbers {
+	for _, r := range gen.OutputOpt.PreserveFieldNumbersRules {
 		if r.Preserve {
 			return true
 		}
@@ -192,17 +192,17 @@ func (gen *Generator) anyPreserveFieldNumbers() bool {
 	return false
 }
 
-// compiledPreserveRules lazily compiles OutputOpt.MessagerPreserveFieldNumbers
+// compiledPreserveRules lazily compiles OutputOpt.PreserveFieldNumbersRules
 // into regexes, caching the result. An invalid pattern is a config error and
 // panics with a clear message, consistent with how the generator panics on
 // other unrecoverable config/parse errors. Compilation is triggered eagerly
 // from preprocess (before any export) so an invalid pattern fails fast.
 func (gen *Generator) compiledPreserveRules() []compiledPreserveRule {
 	gen.preserveRulesOnce.Do(func() {
-		for _, r := range gen.OutputOpt.MessagerPreserveFieldNumbers {
-			re, err := regexp.Compile(r.Pattern)
+		for _, r := range gen.OutputOpt.PreserveFieldNumbersRules {
+			re, err := regexp.Compile(r.Messager)
 			if err != nil {
-				panic(fmt.Errorf("invalid messagerPreserveFieldNumbers pattern %q: %w", r.Pattern, err))
+				panic(fmt.Errorf("invalid preserveFieldNumbersRules messager pattern %q: %w", r.Messager, err))
 			}
 			gen.preserveRules = append(gen.preserveRules, compiledPreserveRule{re: re, preserve: r.Preserve})
 		}
