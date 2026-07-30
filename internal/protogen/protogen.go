@@ -47,12 +47,6 @@ type Generator struct {
 	InputOpt     *options.ProtoInputOption
 	OutputOpt    *options.ProtoOutputOption
 
-	// ConfOutputOpt is the conf output options, used to determine whether
-	// field-number preservation is actually necessary (it only matters when
-	// binpb is among the conf output formats). May be nil in programmatic
-	// use, in which case preservation behaves as before (treated as needed).
-	ConfOutputOpt *options.ConfOutputOption
-
 	ProtoRegistryFiles *protoregistry.Files
 	ProtoRegistryTypes *dynamicpb.Types
 
@@ -90,9 +84,6 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		typeInfos:       xproto.NewTypeInfos(protoPackage),
 		collector:       xerrors.NewCollector(maxErrors),
 		cachedImporters: make(map[string]importer.Importer),
-	}
-	if opts.Conf != nil {
-		gen.ConfOutputOpt = opts.Conf.Output
 	}
 	registryFiles, err := gen.parseProtoRegistryFiles(false)
 	if err != nil {
@@ -145,26 +136,41 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	protoRegistryFiles := gen.ProtoRegistryFiles
 	// preserveFieldNumbers also needs generated protos parsed before they
 	// are deleted below.
-	if useGeneratedProtos || gen.preserveFieldNumbers() {
+	if useGeneratedProtos || gen.anyPreserveFieldNumbers() {
 		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
 }
 
-// preserveFieldNumbers reports whether field-number preservation should
-// actually run. Preservation only matters for the binary wire format, so even
-// when PreserveFieldNumbers is set it is a no-op unless binpb is among the conf
-// output formats (ConfOutputOpt). A nil ConfOutputOpt (programmatic use without
-// conf options) is treated as binpb-needed, preserving the previous behavior.
-func (gen *Generator) preserveFieldNumbers() bool {
-	if !gen.OutputOpt.PreserveFieldNumbers {
-		return false
+// preserveFieldNumbers reports whether field-number preservation should run
+// for the named messager. A per-messager override in
+// OutputOpt.MessagerPreserveFieldNumbers (keyed by message name) takes
+// precedence; otherwise the global OutputOpt.PreserveFieldNumbers default
+// applies. This keeps the decision inside proto.output — no coupling to
+// conf.output — so users can skip preservation for json/txtpb-only messagers
+// without affecting binpb-consuming ones.
+func (gen *Generator) preserveFieldNumbers(name string) bool {
+	if v, ok := gen.OutputOpt.MessagerPreserveFieldNumbers[name]; ok {
+		return v
 	}
-	if gen.ConfOutputOpt == nil || gen.ConfOutputOpt.NeedBinpb() {
+	return gen.OutputOpt.PreserveFieldNumbers
+}
+
+// anyPreserveFieldNumbers reports whether preservation is needed for at least
+// one messager, and thus whether the previously generated protos must be
+// parsed (the expensive part of preservation). It is conservative: true if
+// the global default is true or any per-messager override is true. When it
+// returns false, preservation is entirely skipped.
+func (gen *Generator) anyPreserveFieldNumbers() bool {
+	if gen.OutputOpt.PreserveFieldNumbers {
 		return true
 	}
-	log.Infof("preserveFieldNumbers is a no-op: conf output does not include binpb (field numbers only matter for the binary wire format); add binpb to conf.output.formats to keep it active")
+	for _, v := range gen.OutputOpt.MessagerPreserveFieldNumbers {
+		if v {
+			return true
+		}
+	}
 	return false
 }
 
