@@ -2,9 +2,11 @@ package protogen
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -58,8 +60,19 @@ type Generator struct {
 	registryWithGeneratedOnce       sync.Once
 	protoRegistryFilesWithGenerated *protoregistry.Files
 
+	// preserveRulesOnce lazily compiles MessagerPreserveFieldNumbers into
+	// preserveRules on first use.
+	preserveRulesOnce sync.Once
+	preserveRules     []compiledPreserveRule
+
 	cacheMu         sync.RWMutex                 // guard fields below
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
+}
+
+// compiledPreserveRule is a compiled regex paired with its preserve decision.
+type compiledPreserveRule struct {
+	re       *regexp.Regexp
+	preserve bool
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -131,6 +144,9 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 }
 
 func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
+	// Validate (and cache) messagerPreserveFieldNumbers regexes up front so
+	// an invalid pattern fails fast, before any output is deleted/regenerated.
+	gen.compiledPreserveRules()
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	// parse custom imported proto files
 	protoRegistryFiles := gen.ProtoRegistryFiles
@@ -144,15 +160,17 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 }
 
 // preserveFieldNumbers reports whether field-number preservation should run
-// for the named messager. A per-messager override in
-// OutputOpt.MessagerPreserveFieldNumbers (keyed by message name) takes
-// precedence; otherwise the global OutputOpt.PreserveFieldNumbers default
-// applies. This keeps the decision inside proto.output — no coupling to
-// conf.output — so users can skip preservation for json/txtpb-only messagers
-// without affecting binpb-consuming ones.
+// for the named messager. The OutputOpt.MessagerPreserveFieldNumbers rules
+// are evaluated in order (first regex match wins); a messager matching no
+// rule falls back to the global OutputOpt.PreserveFieldNumbers default. This
+// keeps the decision inside proto.output — no coupling to conf.output — so
+// users can skip preservation for json/txtpb-only messagers without affecting
+// binpb-consuming ones.
 func (gen *Generator) preserveFieldNumbers(name string) bool {
-	if v, ok := gen.OutputOpt.MessagerPreserveFieldNumbers[name]; ok {
-		return v
+	for _, r := range gen.compiledPreserveRules() {
+		if r.re.MatchString(name) {
+			return r.preserve
+		}
 	}
 	return gen.OutputOpt.PreserveFieldNumbers
 }
@@ -160,18 +178,36 @@ func (gen *Generator) preserveFieldNumbers(name string) bool {
 // anyPreserveFieldNumbers reports whether preservation is needed for at least
 // one messager, and thus whether the previously generated protos must be
 // parsed (the expensive part of preservation). It is conservative: true if
-// the global default is true or any per-messager override is true. When it
-// returns false, preservation is entirely skipped.
+// the global default is true or any rule would preserve. When it returns
+// false, preservation is entirely skipped.
 func (gen *Generator) anyPreserveFieldNumbers() bool {
 	if gen.OutputOpt.PreserveFieldNumbers {
 		return true
 	}
-	for _, v := range gen.OutputOpt.MessagerPreserveFieldNumbers {
-		if v {
+	for _, r := range gen.OutputOpt.MessagerPreserveFieldNumbers {
+		if r.Preserve {
 			return true
 		}
 	}
 	return false
+}
+
+// compiledPreserveRules lazily compiles OutputOpt.MessagerPreserveFieldNumbers
+// into regexes, caching the result. An invalid pattern is a config error and
+// panics with a clear message, consistent with how the generator panics on
+// other unrecoverable config/parse errors. Compilation is triggered eagerly
+// from preprocess (before any export) so an invalid pattern fails fast.
+func (gen *Generator) compiledPreserveRules() []compiledPreserveRule {
+	gen.preserveRulesOnce.Do(func() {
+		for _, r := range gen.OutputOpt.MessagerPreserveFieldNumbers {
+			re, err := regexp.Compile(r.Pattern)
+			if err != nil {
+				panic(fmt.Errorf("invalid messagerPreserveFieldNumbers pattern %q: %w", r.Pattern, err))
+			}
+			gen.preserveRules = append(gen.preserveRules, compiledPreserveRule{re: re, preserve: r.Preserve})
+		}
+	})
+	return gen.preserveRules
 }
 
 // Generate generates proto files for the specified workbooks. If no workbook paths are provided,

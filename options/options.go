@@ -230,19 +230,35 @@ type ProtoOutputOption struct {
 	// Default: false.
 	PreserveFieldNumbers bool `yaml:"preserveFieldNumbers"`
 
-	// MessagerPreserveFieldNumbers overrides PreserveFieldNumbers per
-	// messager, keyed by message name (the same key as
-	// conf.output.messagerFormats). A messager present in this map uses the
-	// mapped value; otherwise it falls back to PreserveFieldNumbers.
+	// MessagerPreserveFieldNumbers overrides PreserveFieldNumbers per messager
+	// using regex rules, so preservation can be toggled for whole groups of
+	// messagers at once. Each rule's Pattern (Go regexp, matched against the
+	// message name, unanchored) is evaluated in order; the first match wins
+	// and its Preserve value applies. A messager matching no rule falls back
+	// to PreserveFieldNumbers.
 	//
 	// This keeps the decision inside proto.output (no coupling to
 	// conf.output) and lets you enable preservation only for binpb-consuming
 	// messagers while skipping json/txtpb-only ones, e.g.:
 	//  preserveFieldNumbers: true
-	//  messagerPreserveFieldNumbers: { ItemConf: false }
+	//  messagerPreserveFieldNumbers:
+	//    - { pattern: "Temp.*|Test.*", preserve: false }
 	//
 	// Default: nil.
-	MessagerPreserveFieldNumbers map[string]bool `yaml:"messagerPreserveFieldNumbers"`
+	MessagerPreserveFieldNumbers []PreserveFieldNumbersRule `yaml:"messagerPreserveFieldNumbers"`
+}
+
+// PreserveFieldNumbersRule is a single regex-based override rule for
+// PreserveFieldNumbers.
+type PreserveFieldNumbersRule struct {
+	// Pattern is a Go regular expression matched (unanchored) against the
+	// messager's message name. Use ^...$ to anchor when an exact match is
+	// needed.
+	Pattern string `yaml:"pattern"`
+
+	// Preserve is the preservation decision for messagers whose name matches
+	// Pattern.
+	Preserve bool `yaml:"preserve"`
 }
 
 // Options for generating conf files. Only for confgen.

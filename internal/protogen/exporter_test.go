@@ -668,7 +668,9 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 							// Item is overridden to false: preservation is
 							// skipped even though the global default is true,
 							// so fields are numbered sequentially.
-							MessagerPreserveFieldNumbers: map[string]bool{"Item": false},
+							MessagerPreserveFieldNumbers: []options.PreserveFieldNumbersRule{
+								{Pattern: "Item", Preserve: false},
+							},
 						},
 						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
 					},
