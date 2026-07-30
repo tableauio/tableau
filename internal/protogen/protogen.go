@@ -2,9 +2,11 @@ package protogen
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -58,8 +60,18 @@ type Generator struct {
 	registryWithGeneratedOnce       sync.Once
 	protoRegistryFilesWithGenerated *protoregistry.Files
 
+	// lazily compiled from PreserveFieldNumbersRules on first use
+	preserveRulesOnce sync.Once
+	preserveRules     []compiledPreserveRule
+
 	cacheMu         sync.RWMutex                 // guard fields below
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
+}
+
+// compiledPreserveRule is a compiled regex paired with its preserve decision.
+type compiledPreserveRule struct {
+	re       *regexp.Regexp
+	preserve bool
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -80,9 +92,9 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
 		ctx:          ctx,
-		typeInfos:    xproto.NewTypeInfos(protoPackage),
-		collector:    xerrors.NewCollector(maxErrors),
 
+		typeInfos:       xproto.NewTypeInfos(protoPackage),
+		collector:       xerrors.NewCollector(maxErrors),
 		cachedImporters: make(map[string]importer.Importer),
 	}
 	registryFiles, err := gen.parseProtoRegistryFiles(false)
@@ -131,16 +143,63 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 }
 
 func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
+	// Compile (and cache) preserveFieldNumbersRules regexes up front so an
+	// invalid pattern fails fast, before any output is regenerated.
+	gen.compiledPreserveRules()
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	// parse custom imported proto files
 	protoRegistryFiles := gen.ProtoRegistryFiles
 	// preserveFieldNumbers also needs generated protos parsed before they
 	// are deleted below.
-	if useGeneratedProtos || gen.OutputOpt.PreserveFieldNumbers {
+	if useGeneratedProtos || gen.anyPreserveFieldNumbers() {
 		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
+}
+
+// preserveFieldNumbers reports whether preservation should run for the named
+// messager: first matching rule in PreserveFieldNumbersRules wins, else the
+// global PreserveFieldNumbers default.
+func (gen *Generator) preserveFieldNumbers(name string) bool {
+	for _, r := range gen.compiledPreserveRules() {
+		if r.re.MatchString(name) {
+			return r.preserve
+		}
+	}
+	return gen.OutputOpt.PreserveFieldNumbers
+}
+
+// anyPreserveFieldNumbers reports whether preservation is needed for at least
+// one messager, and thus whether the previously generated protos must be
+// parsed (the expensive part). Conservative: true if the global default is
+// true or any rule preserves.
+func (gen *Generator) anyPreserveFieldNumbers() bool {
+	if gen.OutputOpt.PreserveFieldNumbers {
+		return true
+	}
+	for _, r := range gen.OutputOpt.PreserveFieldNumbersRules {
+		if r.Preserve {
+			return true
+		}
+	}
+	return false
+}
+
+// compiledPreserveRules lazily compiles PreserveFieldNumbersRules into
+// regexes, caching the result. An invalid pattern panics (a config error),
+// triggered eagerly from preprocess so it fails fast.
+func (gen *Generator) compiledPreserveRules() []compiledPreserveRule {
+	gen.preserveRulesOnce.Do(func() {
+		for _, r := range gen.OutputOpt.PreserveFieldNumbersRules {
+			re, err := regexp.Compile(r.Messager)
+			if err != nil {
+				panic(fmt.Errorf("invalid preserveFieldNumbersRules messager pattern %q: %w", r.Messager, err))
+			}
+			gen.preserveRules = append(gen.preserveRules, compiledPreserveRule{re: re, preserve: r.Preserve})
+		}
+	})
+	return gen.preserveRules
 }
 
 // Generate generates proto files for the specified workbooks. If no workbook paths are provided,

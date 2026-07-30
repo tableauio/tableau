@@ -221,8 +221,36 @@ type ProtoOutputOption struct {
 	// numbering. Compared with the old generated proto message, if a new field
 	// name occurs, then assign the max field number plus 1 in the same level.
 	//
+	// NOTE: field numbers only appear in the binpb wire format; JSON and txtpb
+	// encode field names, so preservation only matters for binpb-consuming
+	// messagers. Use PreserveFieldNumbersRules to skip it for the rest.
+	//
 	// Default: false.
 	PreserveFieldNumbers bool `yaml:"preserveFieldNumbers"`
+
+	// PreserveFieldNumbersRules overrides PreserveFieldNumbers per messager
+	// by regex. Rules are evaluated in order; the first whose Messager
+	// pattern matches the message name wins, else PreserveFieldNumbers
+	// applies. Messager is a Go regexp, matched unanchored.
+	//
+	// Example (preserve all except scratch messagers):
+	//  preserveFieldNumbers: true
+	//  preserveFieldNumbersRules:
+	//    - { messager: "Temp.*|Test.*", preserve: false }
+	//
+	// Default: nil.
+	PreserveFieldNumbersRules []PreserveFieldNumbersRule `yaml:"preserveFieldNumbersRules"`
+}
+
+// PreserveFieldNumbersRule is a single regex-based override rule for
+// PreserveFieldNumbers.
+type PreserveFieldNumbersRule struct {
+	// Messager is a Go regexp matched (unanchored) against the messager's
+	// message name. Use ^...$ to anchor.
+	Messager string `yaml:"messager"`
+
+	// Preserve is the preservation decision for messagers matching Messager.
+	Preserve bool `yaml:"preserve"`
 }
 
 // Options for generating conf files. Only for confgen.

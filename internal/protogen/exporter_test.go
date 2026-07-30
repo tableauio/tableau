@@ -646,6 +646,50 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "field-number-compatibility-per-messager-override-skips-preservation",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "Item", // use message unittest.Item to test
+					Options: &tableaupb.WorksheetOptions{
+						Name: "StructItem",
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						{Name: "fruit_type", Type: "FruitType", FullType: "protoconf.FruitType", Predefined: true, Options: &tableaupb.FieldOptions{Name: "FruitType"}},
+						{Name: "num", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Num"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+							// Item is overridden to false: preservation is
+							// skipped even though the global default is true,
+							// so fields are numbered sequentially.
+							PreserveFieldNumbersRules: []options.PreserveFieldNumbersRule{
+								{Messager: "Item", Preserve: false},
+							},
+						},
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message Item {
+  option (tableau.struct) = {name:"StructItem"};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  protoconf.FruitType fruit_type = 2 [(tableau.field) = {name:"FruitType"}];
+  int32 num = 3 [(tableau.field) = {name:"Num"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
 			name: "field-number-compatibility-delete-old-field-and-add-new-field",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
