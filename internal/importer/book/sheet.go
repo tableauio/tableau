@@ -164,6 +164,9 @@ func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 			WithParentDir:          s.Meta.WithParentDir,
 			ScatterWithoutBookName: s.Meta.ScatterWithoutBookName,
 			Validate:               s.Meta.Validate,
+			// Union split options:
+			UnionSplitThreshold: s.Meta.UnionSplitThreshold,
+			UnionSplitShardSize: s.Meta.UnionSplitShardSize,
 			// Loader options:
 			OrderedMap:   s.Meta.OrderedMap,
 			Index:        parseIndexes(s.Meta.Index),

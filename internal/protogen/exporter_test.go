@@ -694,10 +694,16 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 }
 
 func Test_sheetExporter_exportUnion(t *testing.T) {
+	// auxWant describes an expected shard file emitted by union splitting.
+	type auxWant struct {
+		relPath string
+		body    string
+	}
 	tests := []struct {
 		name    string
 		x       *sheetExporter
 		want    string
+		wantAux []auxWant
 		wantErr bool
 	}{
 		{
@@ -832,6 +838,89 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 `,
 			wantErr: false,
 		},
+		{
+			// export-union-split verifies that when the sheet's
+			// WorksheetOptions.UnionSplitThreshold (set per-sheet via the
+			// @TABLEAU metasheet's UnionSplitThreshold column) is set and
+			// exceeded, sub-messages are extracted into shard files as
+			// top-level messages with the "T_" separator, and the main
+			// union body no longer emits nested message blocks.
+			name: "export-union-split",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name: "UnionTaskTarget",
+						// Threshold=1 with 2 sub-messages triggers split.
+						// ShardSize=1 puts each sub-message in its own shard,
+						// yielding exactly 2 shards for deterministic asserts.
+						UnionSplitThreshold: 1,
+						UnionSplitShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "PveBattle", Alias: "SoloPVEBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "level", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Level"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					// wb.Name drives GetProtoFilePath(); we use "task" so the
+					// shards are named task_task_target_{1,2}.proto.
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetT_PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    TaskTargetT_PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+    TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "SoloPVEBattle"]; // SoloPVEBattle
+  }
+}
+
+`,
+			wantAux: []auxWant{
+				{
+					relPath: "task_task_target_1.proto",
+					body: `message TaskTargetT_PvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+				{
+					relPath: "task_task_target_2.proto",
+					body: `message TaskTargetT_PveBattle {
+  uint32 level = 1 [(tableau.field) = {name:"Level"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -839,6 +928,28 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 				t.Errorf("sheetExporter.exportUnion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assert.Equal(t, tt.want, tt.x.p.String())
+			// Verify shard files if the test case expects splitting.
+			if len(tt.wantAux) > 0 {
+				assert.Equal(t, len(tt.wantAux), len(tt.x.be.auxFiles),
+					"unexpected number of aux shard files")
+				assert.Equal(t, len(tt.wantAux), len(tt.x.be.auxImportPaths),
+					"aux shard count mismatch with import paths")
+				for i, want := range tt.wantAux {
+					if i >= len(tt.x.be.auxFiles) {
+						break
+					}
+					got := tt.x.be.auxFiles[i]
+					assert.Equal(t, want.relPath, got.RelPath,
+						"aux[%d] RelPath mismatch", i)
+					assert.Equal(t, want.body, got.Printer.String(),
+						"aux[%d] body mismatch", i)
+					assert.Equal(t, want.relPath, tt.x.be.auxImportPaths[i],
+						"aux[%d] import path mismatch", i)
+				}
+			} else {
+				assert.Empty(t, tt.x.be.auxFiles,
+					"unexpected aux files for non-split case")
+			}
 		})
 	}
 }
