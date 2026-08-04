@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/x/xerrors"
+	"github.com/tableauio/tableau/options"
 )
 
 // TestCollectorHierarchy_MessageLevel tests that message-level (field parsing)
@@ -14,8 +15,8 @@ import (
 func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 	// protogen uses: global(10) -> book(5)
 	// We simulate a deeper hierarchy: global -> book -> sheet -> message.
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook)
+	global := xerrors.NewCollector(options.DefaultProtoMaxErrors)
+	book := global.NewChild(options.DefaultProtoMaxErrorsPerBook)
 	sheet := book.NewChild(3) // sheet-level limit
 	msg := sheet.NewChild(2)  // message-level limit
 
@@ -41,8 +42,8 @@ func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 // TestCollectorHierarchy_SheetLevel tests that multiple message errors
 // accumulate at the sheet level in protogen.
 func TestCollectorHierarchy_SheetLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook)
+	global := xerrors.NewCollector(options.DefaultProtoMaxErrors)
+	book := global.NewChild(options.DefaultProtoMaxErrorsPerBook)
 	sheet := book.NewChild(5)
 
 	// Simulate 3 field-level errors across different messages.
@@ -65,8 +66,8 @@ func TestCollectorHierarchy_SheetLevel(t *testing.T) {
 // TestCollectorHierarchy_BookLevel tests that errors from multiple sheets
 // accumulate at the book level in protogen.
 func TestCollectorHierarchy_BookLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook)
+	global := xerrors.NewCollector(options.DefaultProtoMaxErrors)
+	book := global.NewChild(options.DefaultProtoMaxErrorsPerBook)
 
 	// Simulate 2 sheets, each with 2 errors.
 	for s := 1; s <= 2; s++ {
@@ -92,8 +93,8 @@ func TestCollectorHierarchy_BookLevel(t *testing.T) {
 // becomes full when its limit is reached, and the total stored errors
 // across all child sheets are capped by the book limit.
 func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook) // limit = 5
+	global := xerrors.NewCollector(options.DefaultProtoMaxErrors)
+	book := global.NewChild(options.DefaultProtoMaxErrorsPerBook) // limit = 5
 
 	// Simulate 3 sheets, each with 2 errors = 6 total (exceeds book limit of 5).
 	for s := 1; s <= 3; s++ {
@@ -122,11 +123,11 @@ func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
 // TestCollectorHierarchy_GlobalLevel tests that errors from multiple books
 // accumulate at the global level in protogen.
 func TestCollectorHierarchy_GlobalLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
+	global := xerrors.NewCollector(options.DefaultProtoMaxErrors)
 
 	// Simulate 3 books, each with 1 sheet, each with 1 error.
 	for b := 1; b <= 3; b++ {
-		book := global.NewChild(maxErrorsPerBook)
+		book := global.NewChild(options.DefaultProtoMaxErrorsPerBook)
 		sheet := book.NewChild(5)
 		_ = sheet.Collect(fmt.Errorf("book%d: schema error", b))
 	}
@@ -145,11 +146,11 @@ func TestCollectorHierarchy_GlobalLevel(t *testing.T) {
 // TestCollectorHierarchy_GlobalLevelFull tests that the global collector
 // stops storing errors when its limit is reached across books.
 func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors) // limit = 10
+	global := xerrors.NewCollector(options.DefaultProtoMaxErrors) // limit = 10
 
 	// Simulate 4 books, each with 1 sheet, each with 3 errors = 12 total.
 	for b := 1; b <= 4; b++ {
-		book := global.NewChild(maxErrorsPerBook)
+		book := global.NewChild(options.DefaultProtoMaxErrorsPerBook)
 		sheet := book.NewChild(10)
 		for r := 1; r <= 3; r++ {
 			_ = sheet.Collect(fmt.Errorf("book%d_field%d: error", b, r))
@@ -167,7 +168,7 @@ func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
 	for b := 1; b <= 4; b++ {
 		for r := 1; r <= 3; r++ {
 			idx := (b-1)*3 + r
-			if idx > maxErrors {
+			if idx > options.DefaultProtoMaxErrors {
 				break
 			}
 			if idx > 1 {

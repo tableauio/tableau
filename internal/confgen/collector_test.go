@@ -7,32 +7,29 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/x/xerrors"
+	"github.com/tableauio/tableau/options"
 )
 
-// TestCollectorHierarchy_MessageLevel tests that message-level errors are
-// collected and surfaced through the sheet collector.
-func TestCollectorHierarchy_MessageLevel(t *testing.T) {
-	// global(20) -> book(10) -> sheet(5) -> message(3)
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook)
-	sheet := book.NewChild(maxErrorsPerSheet)
-	msg := sheet.NewChild(maxErrorsPerMessage)
+// TestCollectorHierarchy_SheetFieldErrors tests that field-level errors are
+// collected into the sheet collector.
+func TestCollectorHierarchy_SheetFieldErrors(t *testing.T) {
+	// global(20) -> book(10) -> sheet(5)
+	global := xerrors.NewCollector(options.DefaultConfMaxErrors)
+	book := global.NewChild(options.DefaultConfMaxErrorsPerBook)
+	sheet := book.NewChild(options.DefaultConfMaxErrorsPerSheet)
 
-	// Simulate 3 field-level errors in one message parse.
-	_ = msg.Collect(fmt.Errorf("field1: invalid type"))
-	_ = msg.Collect(fmt.Errorf("field2: value out of range"))
-	err := msg.Collect(fmt.Errorf("field3: missing required"))
+	// Simulate 3 field-level errors collected into sheet.
+	_ = sheet.Collect(fmt.Errorf("field1: invalid type"))
+	_ = sheet.Collect(fmt.Errorf("field2: value out of range"))
+	_ = sheet.Collect(fmt.Errorf("field3: missing required"))
 
-	// message collector is full (3/3), returns joined error.
-	require.Error(t, err)
-	assert.True(t, msg.IsFull())
-	// Ancestors are NOT full yet.
+	// Sheet collector is NOT full yet (3/5).
 	assert.False(t, sheet.IsFull())
 	assert.False(t, book.IsFull())
 	assert.False(t, global.IsFull())
 
 	// Verify rendered text via NewDesc.Stringify(false).
-	joined := msg.Join()
+	joined := sheet.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
 	want := `[1] field1: invalid type
@@ -41,36 +38,34 @@ func TestCollectorHierarchy_MessageLevel(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-// TestCollectorHierarchy_SheetLevel tests that multiple message errors
+// TestCollectorHierarchy_SheetLevel tests that multiple field errors
 // accumulate at the sheet level.
 func TestCollectorHierarchy_SheetLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook)
-	sheet := book.NewChild(maxErrorsPerSheet)
+	global := xerrors.NewCollector(options.DefaultConfMaxErrors)
+	book := global.NewChild(options.DefaultConfMaxErrorsPerBook)
+	sheet := book.NewChild(options.DefaultConfMaxErrorsPerSheet)
 
-	// Simulate 2 messages, each producing 1 error.
+	// Simulate 2 field errors collected into sheet.
 	for i := 1; i <= 2; i++ {
-		msg := sheet.NewChild(maxErrorsPerMessage)
-		_ = msg.Collect(fmt.Errorf("msg%d: parse error", i))
+		_ = sheet.Collect(fmt.Errorf("field%d: parse error", i))
 	}
 
 	assert.False(t, sheet.IsFull())
 
-	// sheet.Join() includes errors from both message children.
 	joined := sheet.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `[1] msg1: parse error
-[2] msg2: parse error`
+	want := `[1] field1: parse error
+[2] field2: parse error`
 	assert.Equal(t, want, got)
 }
 
 // TestCollectorHierarchy_SheetLevelFull tests that the sheet collector
 // stops accepting errors when its limit is reached.
 func TestCollectorHierarchy_SheetLevelFull(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook)
-	sheet := book.NewChild(maxErrorsPerSheet) // limit = 5
+	global := xerrors.NewCollector(options.DefaultConfMaxErrors)
+	book := global.NewChild(options.DefaultConfMaxErrorsPerBook)
+	sheet := book.NewChild(options.DefaultConfMaxErrorsPerSheet) // limit = 5
 
 	// Simulate 6 row-level errors (exceeds sheet limit of 5).
 	for i := 1; i <= 6; i++ {
@@ -95,12 +90,12 @@ func TestCollectorHierarchy_SheetLevelFull(t *testing.T) {
 // TestCollectorHierarchy_BookLevel tests that errors from multiple sheets
 // accumulate at the book level.
 func TestCollectorHierarchy_BookLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook)
+	global := xerrors.NewCollector(options.DefaultConfMaxErrors)
+	book := global.NewChild(options.DefaultConfMaxErrorsPerBook)
 
 	// Simulate 3 sheets, each with 1 error.
 	for i := 1; i <= 3; i++ {
-		sheet := book.NewChild(maxErrorsPerSheet)
+		sheet := book.NewChild(options.DefaultConfMaxErrorsPerSheet)
 		_ = sheet.Collect(fmt.Errorf("sheet%d: header error", i))
 	}
 
@@ -119,12 +114,12 @@ func TestCollectorHierarchy_BookLevel(t *testing.T) {
 // becomes full when its limit is reached, and the total stored errors
 // across all child sheets are capped by the book limit.
 func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
-	book := global.NewChild(maxErrorsPerBook) // limit = 10
+	global := xerrors.NewCollector(options.DefaultConfMaxErrors)
+	book := global.NewChild(options.DefaultConfMaxErrorsPerBook) // limit = 10
 
 	// Simulate 3 sheets, each with 4 errors = 12 total (exceeds book limit of 10).
 	for s := 1; s <= 3; s++ {
-		sheet := book.NewChild(maxErrorsPerSheet)
+		sheet := book.NewChild(options.DefaultConfMaxErrorsPerSheet)
 		for r := 1; r <= 4; r++ {
 			_ = sheet.Collect(fmt.Errorf("sheet%d_row%d: error", s, r))
 		}
@@ -154,12 +149,12 @@ func TestCollectorHierarchy_BookLevelFull(t *testing.T) {
 // TestCollectorHierarchy_GlobalLevel tests that errors from multiple books
 // accumulate at the global level.
 func TestCollectorHierarchy_GlobalLevel(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors)
+	global := xerrors.NewCollector(options.DefaultConfMaxErrors)
 
 	// Simulate 2 books, each with 1 sheet, each with 1 error.
 	for b := 1; b <= 2; b++ {
-		book := global.NewChild(maxErrorsPerBook)
-		sheet := book.NewChild(maxErrorsPerSheet)
+		book := global.NewChild(options.DefaultConfMaxErrorsPerBook)
+		sheet := book.NewChild(options.DefaultConfMaxErrorsPerSheet)
 		_ = sheet.Collect(fmt.Errorf("book%d_sheet1: error", b))
 	}
 
@@ -176,13 +171,13 @@ func TestCollectorHierarchy_GlobalLevel(t *testing.T) {
 // TestCollectorHierarchy_GlobalLevelFull tests that the global collector
 // stops storing errors when its limit is reached across books.
 func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
-	global := xerrors.NewCollector(maxErrors) // limit = 20
+	global := xerrors.NewCollector(options.DefaultConfMaxErrors) // limit = 20
 
 	// Simulate 5 books, each with 2 sheets, each with 3 errors = 30 total.
 	for b := 1; b <= 5; b++ {
-		book := global.NewChild(maxErrorsPerBook)
+		book := global.NewChild(options.DefaultConfMaxErrorsPerBook)
 		for s := 1; s <= 2; s++ {
-			sheet := book.NewChild(maxErrorsPerSheet)
+			sheet := book.NewChild(options.DefaultConfMaxErrorsPerSheet)
 			for r := 1; r <= 3; r++ {
 				_ = sheet.Collect(fmt.Errorf("book%d_sheet%d_row%d: error", b, s, r))
 			}
@@ -201,7 +196,7 @@ func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
 		for s := 1; s <= 2; s++ {
 			for r := 1; r <= 3; r++ {
 				idx := (b-1)*6 + (s-1)*3 + r
-				if idx > maxErrors {
+				if idx > options.DefaultConfMaxErrors {
 					break
 				}
 				if idx > 1 {
@@ -214,46 +209,45 @@ func TestCollectorHierarchy_GlobalLevelFull(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-// TestCollectorHierarchy_FourLevelRenderedText tests the complete four-level
-// hierarchy (global -> book -> sheet -> message) and verifies the final
+// TestCollectorHierarchy_ThreeLevelRenderedText tests the three-level
+// hierarchy (global -> book -> sheet) and verifies the final
 // rendered error text with exact string comparison.
-func TestCollectorHierarchy_FourLevelRenderedText(t *testing.T) {
+func TestCollectorHierarchy_ThreeLevelRenderedText(t *testing.T) {
 	// Use small limits for easy verification.
 	global := xerrors.NewCollector(10) // global limit
 	book := global.NewChild(5)         // book limit
 	sheet := book.NewChild(3)          // sheet limit
-	msg := sheet.NewChild(2)           // message limit
 
-	// Collect 2 field errors at message level.
-	_ = msg.Collect(fmt.Errorf("field_a: type mismatch"))
-	err := msg.Collect(fmt.Errorf("field_b: null value"))
-	require.Error(t, err, "message collector should be full (2/2)")
-	assert.True(t, msg.IsFull())
+	// Collect 2 field errors at sheet level.
+	_ = sheet.Collect(fmt.Errorf("field_a: type mismatch"))
+	_ = sheet.Collect(fmt.Errorf("field_b: null value"))
+	assert.False(t, sheet.IsFull())
 
 	// Collect 1 more error directly at sheet level (e.g., row-level error).
 	_ = sheet.Collect(fmt.Errorf("row2: missing key"))
 
+	// sheet is full (3/3).
+	assert.True(t, sheet.IsFull())
+
 	// Verify the full tree from global.Join().
-	// Join order: own errors first, then children's errors (flattened).
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	want := `[1] row2: missing key
-[2] field_a: type mismatch
-[3] field_b: null value`
+	want := `[1] field_a: type mismatch
+[2] field_b: null value
+[3] row2: missing key`
 	assert.Equal(t, want, got)
 }
 
-// TestCollectorHierarchy_StructuredErrors_NewKV tests the four-level hierarchy
+// TestCollectorHierarchy_StructuredErrors_NewKV tests the three-level hierarchy
 // with NewKV structured errors that render via the confgen template.
 func TestCollectorHierarchy_StructuredErrors_NewKV(t *testing.T) {
 	global := xerrors.NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(3)
-	msg := sheet.NewChild(2)
 
-	// Simulate a confgen-style structured error at message level.
-	_ = msg.Collect(xerrors.NewKV("invalid integer value",
+	// Simulate a confgen-style structured error at sheet level.
+	_ = sheet.Collect(xerrors.NewKV("invalid integer value",
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -280,17 +274,16 @@ func TestCollectorHierarchy_StructuredErrors_WrapKV(t *testing.T) {
 	global := xerrors.NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(3)
-	msg := sheet.NewChild(3)
 
-	// Collect 2 NewKV errors at message level.
-	_ = msg.Collect(xerrors.NewKV("field1 error",
+	// Collect 2 NewKV errors at sheet level.
+	_ = sheet.Collect(xerrors.NewKV("field1 error",
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
 		xerrors.KeyDataCellPos, "C3",
 		xerrors.KeyDataCell, "abc",
 	))
-	_ = msg.Collect(xerrors.NewKV("field2 error",
+	_ = sheet.Collect(xerrors.NewKV("field2 error",
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -354,10 +347,9 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	global := xerrors.NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
-	msg := sheet.NewChild(3)
 
-	// Message level: 1 NewKV + 1 WrapKV(ecode).
-	_ = msg.Collect(xerrors.NewKV("invalid integer",
+	// Sheet level: 1 NewKV + 1 WrapKV(ecode).
+	_ = sheet.Collect(xerrors.NewKV("invalid integer",
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -365,7 +357,7 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 		xerrors.KeyDataCell, "abc",
 	))
 	// E2000: integer overflow
-	_ = msg.Collect(xerrors.WrapKV(xerrors.E2000("int32", "999999999999", int32(-2147483648), int32(2147483647)),
+	_ = sheet.Collect(xerrors.WrapKV(xerrors.E2000("int32", "999999999999", int32(-2147483648), int32(2147483647)),
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, "Items.xlsx",
 		xerrors.KeySheetName, "ItemConf",
@@ -379,23 +371,23 @@ func TestCollectorHierarchy_MixedErrors(t *testing.T) {
 	joined := global.Join()
 	require.Error(t, joined)
 	got := xerrors.NewDesc(joined).Stringify(false)
-	// Order: sheet own errors first, then children (msg) errors flattened.
-	want := `[1] row5: duplicate key
-[2] error[E0004]: unknown error
+	// Order: all errors at sheet level in collection order.
+	want := `[1] error[E0004]: unknown error
 Workbook: Items.xlsx
 Worksheet: ItemConf
 DataCellPos: C3
 DataCell: abc
 Reason: invalid integer
 
-[3] error[E2000]: integer overflow
+[2] error[E2000]: integer overflow
 Workbook: Items.xlsx
 Worksheet: ItemConf
 DataCellPos: D3
 DataCell: 999999999999
 Reason: value "999999999999" is outside of range [-2147483648,2147483647] of type int32
 Help: check field value and make sure it in representable range
-`
+
+[3] row5: duplicate key`
 	assert.Equal(t, want, got)
 }
 

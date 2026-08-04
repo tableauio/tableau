@@ -39,8 +39,6 @@ func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error 
 // parseMessage parses all fields of a protobuf message.
 func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
 	md := msg.Descriptor()
-	// Per-message child collector
-	messageCollector := p.sheetCollector.NewChild(maxErrorsPerMessage)
 	for i := 0; i < md.Fields().Len(); i++ {
 		// Only check at top-level fields (parentField == nil), consistent with
 		// table_parser's row-level sheetCollector fullness check.
@@ -104,13 +102,10 @@ func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Messa
 			return nil
 		}()
 		if fieldErr != nil {
-			if err := messageCollector.Collect(fieldErr); err != nil {
+			if err := p.sheetCollector.Collect(fieldErr); err != nil {
 				return false, err
 			}
 		}
-	}
-	if messageCollector.HasErrors() {
-		return false, messageCollector.Join()
 	}
 	return present, nil
 }

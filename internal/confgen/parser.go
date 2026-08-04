@@ -224,6 +224,10 @@ func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, 
 	// Overwrite the default single-error collector (set by NewExtendedSheetParser for
 	// fail-fast use) with a child collector scoped to this sheet and capped at
 	// maxErrorsPerSheet, so one sheet cannot exhaust the parent book-level collector.
+	maxErrorsPerSheet := options.DefaultConfMaxErrorsPerSheet
+	if info.ExtInfo.ErrorLimits != nil {
+		maxErrorsPerSheet = info.ExtInfo.ErrorLimits.MaxErrorsPerSheet
+	}
 	parser.sheetCollector = collector.NewChild(maxErrorsPerSheet)
 	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
 	protomsg := dynamicpb.NewMessage(info.MD)
@@ -310,8 +314,9 @@ type SheetParserExtInfo struct {
 	InputDir       string
 	SubdirRewrites map[string]string
 	PRFiles        *protoregistry.Files
-	BookFormat     format.Format // workbook format
+	BookFormat     format.Format                  // workbook format
 	DryRun         options.DryRun
+	ErrorLimits    *options.ErrorLimitOption  // error collection limits
 }
 
 // NewSheetParser creates a new sheet parser.

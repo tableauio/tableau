@@ -90,6 +90,30 @@ type HeaderOption struct {
 	Subsep string
 }
 
+// ErrorLimitOption is the error collection limit configuration shared by protogen and confgen.
+type ErrorLimitOption struct {
+	// Generator level: across concurrent workbooks.
+	MaxErrors int `yaml:"maxErrors"`
+
+	// Book level: across sheets in one workbook.
+	MaxErrorsPerBook int `yaml:"maxErrorsPerBook"`
+
+	// Sheet level: across messages/fields/blocks in one sheet.
+	MaxErrorsPerSheet int `yaml:"maxErrorsPerSheet"`
+}
+
+const (
+	// protogen defaults.
+	DefaultProtoMaxErrors         = 10
+	DefaultProtoMaxErrorsPerBook  = 5
+	DefaultProtoMaxErrorsPerSheet = 3
+
+	// confgen defaults.
+	DefaultConfMaxErrors         = 20
+	DefaultConfMaxErrorsPerBook  = 10
+	DefaultConfMaxErrorsPerSheet = 5
+)
+
 // Options for generating proto files. Only for protogen.
 type ProtoOption struct {
 	// Input options for generating proto files.
@@ -97,6 +121,9 @@ type ProtoOption struct {
 
 	// Output options for generating proto files.
 	Output *ProtoOutputOption `yaml:"output"`
+
+	// Error limits for protogen error collection at each level.
+	ErrorLimits *ErrorLimitOption `yaml:"errorLimits"`
 }
 
 // Input options for generating proto files.
@@ -232,6 +259,9 @@ type ConfOption struct {
 
 	// Output options for generating conf files.
 	Output *ConfOutputOption `yaml:"output"`
+
+	// Error limits for confgen error collection at each level.
+	ErrorLimits *ErrorLimitOption `yaml:"errorLimits"`
 }
 
 // Input options for generating conf files.
@@ -452,6 +482,11 @@ func NewDefault() *Options {
 				ProtoPaths: []string{"."},
 			},
 			Output: &ProtoOutputOption{},
+			ErrorLimits: &ErrorLimitOption{
+				MaxErrors:         DefaultProtoMaxErrors,
+				MaxErrorsPerBook:  DefaultProtoMaxErrorsPerBook,
+				MaxErrorsPerSheet: DefaultProtoMaxErrorsPerSheet,
+			},
 		},
 		Conf: &ConfOption{
 			Input: &ConfInputOption{
@@ -461,6 +496,11 @@ func NewDefault() *Options {
 			Output: &ConfOutputOption{
 				Formats: []format.Format{format.JSON},
 				Pretty:  true,
+			},
+			ErrorLimits: &ErrorLimitOption{
+				MaxErrors:         DefaultConfMaxErrors,
+				MaxErrorsPerBook:  DefaultConfMaxErrorsPerBook,
+				MaxErrorsPerSheet: DefaultConfMaxErrorsPerSheet,
 			},
 		},
 	}

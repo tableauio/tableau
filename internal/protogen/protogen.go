@@ -30,22 +30,16 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-// Error collection limits at each level.
-const (
-	maxErrors         = 10 // generator level: across concurrent workbooks
-	maxErrorsPerBook  = 5  // book level: across sheets in one workbook
-	maxErrorsPerSheet = 3  // sheet level: across fields/blocks in one sheet
-)
-
 type Generator struct {
 	ctx          context.Context
 	ProtoPackage string // protobuf package name.
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated protoconf files.
 
-	LocationName string // TZ location name.
-	InputOpt     *options.ProtoInputOption
-	OutputOpt    *options.ProtoOutputOption
+	LocationName string                        // TZ location name.
+	InputOpt     *options.ProtoInputOption     // Input settings.
+	OutputOpt    *options.ProtoOutputOption    // Output settings.
+	ErrorLimits  *options.ErrorLimitOption // error collection limits.
 
 	ProtoRegistryFiles *protoregistry.Files
 	ProtoRegistryTypes *dynamicpb.Types
@@ -72,6 +66,15 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
 
+	errorLimits := opts.Proto.ErrorLimits
+	if errorLimits == nil {
+		errorLimits = &options.ErrorLimitOption{
+			MaxErrors:         options.DefaultProtoMaxErrors,
+			MaxErrorsPerBook:  options.DefaultProtoMaxErrorsPerBook,
+			MaxErrorsPerSheet: options.DefaultProtoMaxErrorsPerSheet,
+		}
+	}
+
 	gen := &Generator{
 		ProtoPackage: protoPackage,
 		InputDir:     indir,
@@ -79,9 +82,10 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		LocationName: opts.LocationName,
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
+		ErrorLimits:  errorLimits,
 		ctx:          ctx,
 		typeInfos:    xproto.NewTypeInfos(protoPackage),
-		collector:    xerrors.NewCollector(maxErrors),
+		collector:    xerrors.NewCollector(errorLimits.MaxErrors),
 
 		cachedImporters: make(map[string]importer.Importer),
 	}
@@ -396,7 +400,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		debugBookName += " (alias: " + alias + ")"
 	}
 	bp := newDocumentParser(bookName, alias, rewrittenBookName, gen)
-	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimits.MaxErrorsPerBook)
 	for _, sheet := range imp.GetSheets() {
 		sheetErr := gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
 		if err := bookCollector.Collect(sheetErr); err != nil {
@@ -461,7 +465,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	}
 	// create a book parser
 	bp := newTableParser(bookName, alias, rewrittenBookName, gen)
-	bookCollector := gen.collector.NewChild(maxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimits.MaxErrorsPerBook)
 	for _, sheet := range imp.GetSheets() {
 		sheetErr := gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
 		if err := bookCollector.Collect(sheetErr); err != nil {
@@ -505,7 +509,7 @@ func (gen *Generator) convertDocumentSheet(bp *documentParser, bookCollector *xe
 		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)
 	}
 
-	sheetCollector := bookCollector.NewChild(maxErrorsPerSheet)
+	sheetCollector := bookCollector.NewChild(gen.ErrorLimits.MaxErrorsPerSheet)
 	// get the first child (map node) in document
 	child := sheet.Document.Children[0]
 	for _, node := range child.Children {
@@ -543,7 +547,7 @@ func (gen *Generator) convertTableSheet(bp *tableParser, bookCollector *xerrors.
 	}
 
 	tableHeader := newTableHeader(ws.Options, bookOpts, gen.InputOpt.Header, sheet.Tabler())
-	sheetCollector := bookCollector.NewChild(maxErrorsPerSheet)
+	sheetCollector := bookCollector.NewChild(gen.ErrorLimits.MaxErrorsPerSheet)
 
 	if pass == firstPass && ws.Options.Mode != tableaupb.Mode_MODE_DEFAULT {
 		log.Debugf("first pass: extract type info from %s", debugSheetName)

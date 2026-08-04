@@ -21,6 +21,10 @@ proto:
     filenameSuffix: _conf
     fileOptions:
       go_package: '"github.com/tableauio/tableau/protoconf"'
+  errorLimits:
+    maxErrors: 10
+    maxErrorsPerBook: 5
+    maxErrorsPerSheet: 3
 conf:
   input:
     protoPaths: ["testdata/_proto/", "."]
@@ -31,3 +35,7 @@ conf:
     # formats: ["json", "txt", "bin"]
     pretty: true
     emitUnpopulated: true
+  errorLimits:
+    maxErrors: 20
+    maxErrorsPerBook: 10
+    maxErrorsPerSheet: 5
