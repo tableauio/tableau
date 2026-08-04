@@ -32,6 +32,9 @@ type Options struct {
 
 	Log *log.Options // Log options.
 
+	// Error limits for error collection at each level, shared by protogen and confgen.
+	ErrorLimits *ErrorLimitOption `yaml:"errorLimits"`
+
 	Proto *ProtoOption `yaml:"proto"` // Proto generation options.
 	Conf  *ConfOption  `yaml:"conf"`  // Conf generation options.
 }
@@ -103,15 +106,10 @@ type ErrorLimitOption struct {
 }
 
 const (
-	// protogen defaults.
-	DefaultProtoMaxErrors         = 10
-	DefaultProtoMaxErrorsPerBook  = 5
-	DefaultProtoMaxErrorsPerSheet = 3
-
-	// confgen defaults.
-	DefaultConfMaxErrors         = 20
-	DefaultConfMaxErrorsPerBook  = 10
-	DefaultConfMaxErrorsPerSheet = 5
+	// Default error collection limits, shared by protogen and confgen.
+	DefaultMaxErrors         = 20
+	DefaultMaxErrorsPerBook  = 10
+	DefaultMaxErrorsPerSheet = 5
 )
 
 // Options for generating proto files. Only for protogen.
@@ -121,9 +119,6 @@ type ProtoOption struct {
 
 	// Output options for generating proto files.
 	Output *ProtoOutputOption `yaml:"output"`
-
-	// Error limits for protogen error collection at each level.
-	ErrorLimits *ErrorLimitOption `yaml:"errorLimits"`
 }
 
 // Input options for generating proto files.
@@ -259,9 +254,6 @@ type ConfOption struct {
 
 	// Output options for generating conf files.
 	Output *ConfOutputOption `yaml:"output"`
-
-	// Error limits for confgen error collection at each level.
-	ErrorLimits *ErrorLimitOption `yaml:"errorLimits"`
 }
 
 // Input options for generating conf files.
@@ -459,6 +451,13 @@ func Conf(o *ConfOption) Option {
 	}
 }
 
+// ErrorLimits sets the error collection limits shared by protogen and confgen.
+func ErrorLimits(o *ErrorLimitOption) Option {
+	return func(opts *Options) {
+		opts.ErrorLimits = o
+	}
+}
+
 // NewDefault returns a default Options.
 func NewDefault() *Options {
 	return &Options{
@@ -468,6 +467,11 @@ func NewDefault() *Options {
 			Mode:  "SIMPLE",
 			Level: "INFO",
 			Sink:  "CONSOLE",
+		},
+		ErrorLimits: &ErrorLimitOption{
+			MaxErrors:         DefaultMaxErrors,
+			MaxErrorsPerBook:  DefaultMaxErrorsPerBook,
+			MaxErrorsPerSheet: DefaultMaxErrorsPerSheet,
 		},
 		Proto: &ProtoOption{
 			Input: &ProtoInputOption{
@@ -482,11 +486,6 @@ func NewDefault() *Options {
 				ProtoPaths: []string{"."},
 			},
 			Output: &ProtoOutputOption{},
-			ErrorLimits: &ErrorLimitOption{
-				MaxErrors:         DefaultProtoMaxErrors,
-				MaxErrorsPerBook:  DefaultProtoMaxErrorsPerBook,
-				MaxErrorsPerSheet: DefaultProtoMaxErrorsPerSheet,
-			},
 		},
 		Conf: &ConfOption{
 			Input: &ConfInputOption{
@@ -496,11 +495,6 @@ func NewDefault() *Options {
 			Output: &ConfOutputOption{
 				Formats: []format.Format{format.JSON},
 				Pretty:  true,
-			},
-			ErrorLimits: &ErrorLimitOption{
-				MaxErrors:         DefaultConfMaxErrors,
-				MaxErrorsPerBook:  DefaultConfMaxErrorsPerBook,
-				MaxErrorsPerSheet: DefaultConfMaxErrorsPerSheet,
 			},
 		},
 	}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // ---------------------------------------------------------------------------
@@ -651,6 +652,259 @@ func TestGroup_ContextCancelled(t *testing.T) {
 	err := g.Wait()
 	assert.Error(t, err)
 	assert.True(t, c.IsFull())
+}
+
+// ---------------------------------------------------------------------------
+// Structured error rendering via Stringify (Collector hierarchy)
+// ---------------------------------------------------------------------------
+
+// Three-level hierarchy with exact rendered text.
+func TestCollector_Stringify_ThreeLevel(t *testing.T) {
+	global := NewCollector(10)
+	book := global.NewChild(5)
+	sheet := book.NewChild(3)
+
+	_ = sheet.Collect(fmt.Errorf("field_a: type mismatch"))
+	_ = sheet.Collect(fmt.Errorf("field_b: null value"))
+	_ = sheet.Collect(fmt.Errorf("row3: missing key"))
+	assert.True(t, sheet.IsFull())
+
+	joined := global.Join()
+	require.Error(t, joined)
+	got := NewDesc(joined).Stringify(false)
+	want := `[1] field_a: type mismatch
+[2] field_b: null value
+[3] row3: missing key`
+	assert.Equal(t, want, got)
+}
+
+// NewKV with structured fields renders module-specific template.
+func TestCollector_Stringify_StructuredNewKV(t *testing.T) {
+	global := NewCollector(10)
+	book := global.NewChild(5)
+	sheet := book.NewChild(5)
+
+	_ = sheet.Collect(NewKV("invalid integer value",
+		KeyModule, ModuleConf,
+		KeyBookName, "Items.xlsx",
+		KeySheetName, "ItemConf",
+		KeyDataCellPos, "C3",
+		KeyDataCell, "abc",
+	))
+
+	joined := global.Join()
+	require.Error(t, joined)
+	got := NewDesc(joined).Stringify(false)
+	want := `error[E0004]: unknown error
+Workbook: Items.xlsx
+Worksheet: ItemConf
+DataCellPos: C3
+DataCell: abc
+Reason: invalid integer value
+`
+	assert.Equal(t, want, got)
+}
+
+// Multiple NewKV errors produce a numbered list.
+func TestCollector_Stringify_MultipleStructured(t *testing.T) {
+	global := NewCollector(10)
+	book := global.NewChild(5)
+	sheet := book.NewChild(5)
+
+	_ = sheet.Collect(NewKV("field1 error",
+		KeyModule, ModuleProto,
+		KeyBookName, "Hero.csv",
+		KeySheetName, "HeroConf",
+		KeyNameCellPos, "B1",
+		KeyNameCell, "Attack",
+		KeyTypeCellPos, "B2",
+		KeyTypeCell, "int32",
+	))
+	_ = sheet.Collect(NewKV("field2 error",
+		KeyModule, ModuleProto,
+		KeyBookName, "Hero.csv",
+		KeySheetName, "HeroConf",
+		KeyNameCellPos, "C1",
+		KeyNameCell, "Defense",
+		KeyTypeCellPos, "C2",
+		KeyTypeCell, "string",
+	))
+
+	joined := global.Join()
+	require.Error(t, joined)
+	got := NewDesc(joined).Stringify(false)
+	want := `[1] error[E0004]: unknown error
+Workbook: Hero.csv
+Worksheet: HeroConf
+NameCellPos: B1
+NameCell: Attack
+TypeCellPos: B2
+TypeCell: int32
+Reason: field1 error
+
+[2] error[E0004]: unknown error
+Workbook: Hero.csv
+Worksheet: HeroConf
+NameCellPos: C1
+NameCell: Defense
+TypeCellPos: C2
+TypeCell: string
+Reason: field2 error
+`
+	assert.Equal(t, want, got)
+}
+
+// WrapKV with ecode error renders code, desc, reason, and help.
+func TestCollector_Stringify_WrapKV_Ecode(t *testing.T) {
+	// confgen-style E2005 (map key not unique).
+	t.Run("conf", func(t *testing.T) {
+		global := NewCollector(10)
+		book := global.NewChild(5)
+		sheet := book.NewChild(3)
+
+		_ = sheet.Collect(WrapKV(E2005("dup_key"),
+			KeyModule, ModuleConf,
+			KeyBookName, "Items.xlsx",
+			KeySheetName, "ItemConf",
+			KeyDataCellPos, "B3",
+			KeyDataCell, "dup_key",
+		))
+
+		joined := global.Join()
+		require.Error(t, joined)
+		got := NewDesc(joined).Stringify(false)
+		want := `error[E2005]: map key not unique
+Workbook: Items.xlsx
+Worksheet: ItemConf
+DataCellPos: B3
+DataCell: dup_key
+Reason: map key "dup_key" already exists
+Help: fix duplicate keys and ensure map key is unique
+`
+		assert.Equal(t, want, got)
+	})
+
+	// protogen-style E0003 (duplicate column name).
+	t.Run("proto", func(t *testing.T) {
+		global := NewCollector(10)
+		book := global.NewChild(5)
+		sheet := book.NewChild(3)
+
+		_ = sheet.Collect(WrapKV(E0003("ID", "A1", "B1"),
+			KeyModule, ModuleProto,
+			KeyBookName, "Hero.csv",
+			KeySheetName, "HeroConf",
+			KeyNameCellPos, "A1",
+			KeyNameCell, "ID",
+			KeyTypeCellPos, "A2",
+			KeyTypeCell, "int32",
+		))
+
+		joined := global.Join()
+		require.Error(t, joined)
+		got := NewDesc(joined).Stringify(false)
+		want := `error[E0003]: duplicate column name
+Workbook: Hero.csv
+Worksheet: HeroConf
+NameCellPos: A1
+NameCell: ID
+TypeCellPos: A2
+TypeCell: int32
+Reason: duplicate column name "ID" in both "A1" and "B1"
+Help: rename column name and keep sure it is unique in name row
+`
+		assert.Equal(t, want, got)
+	})
+}
+
+// Mix of plain, NewKV, and WrapKV(ecode) errors.
+func TestCollector_Stringify_MixedErrors(t *testing.T) {
+	global := NewCollector(10)
+	book := global.NewChild(5)
+	sheet := book.NewChild(5)
+
+	_ = sheet.Collect(NewKV("invalid integer",
+		KeyModule, ModuleConf,
+		KeyBookName, "Items.xlsx",
+		KeySheetName, "ItemConf",
+		KeyDataCellPos, "C3",
+		KeyDataCell, "abc",
+	))
+	// E2000: integer overflow
+	_ = sheet.Collect(WrapKV(E2000("int32", "999999999999", int32(-2147483648), int32(2147483647)),
+		KeyModule, ModuleConf,
+		KeyBookName, "Items.xlsx",
+		KeySheetName, "ItemConf",
+		KeyDataCellPos, "D3",
+		KeyDataCell, "999999999999",
+	))
+	_ = sheet.Collect(fmt.Errorf("row5: duplicate key"))
+
+	joined := global.Join()
+	require.Error(t, joined)
+	got := NewDesc(joined).Stringify(false)
+	want := `[1] error[E0004]: unknown error
+Workbook: Items.xlsx
+Worksheet: ItemConf
+DataCellPos: C3
+DataCell: abc
+Reason: invalid integer
+
+[2] error[E2000]: integer overflow
+Workbook: Items.xlsx
+Worksheet: ItemConf
+DataCellPos: D3
+DataCell: 999999999999
+Reason: value "999999999999" is outside of range [-2147483648,2147483647] of type int32
+Help: check field value and make sure it in representable range
+
+[3] row5: duplicate key`
+	assert.Equal(t, want, got)
+}
+
+// Mid-level (book) full stops sibling sheets.
+func TestCollector_Stringify_MidLevelFull(t *testing.T) {
+	global := NewCollector(100)
+	book := global.NewChild(3)
+
+	sheet1 := book.NewChild(10)
+	_ = sheet1.Collect(fmt.Errorf("sheet1: err1"))
+	_ = sheet1.Collect(fmt.Errorf("sheet1: err2"))
+	assert.False(t, book.IsFull())
+
+	sheet2 := book.NewChild(10)
+	err := sheet2.Collect(fmt.Errorf("sheet2: err1"))
+	require.Error(t, err)
+	assert.True(t, book.IsFull())
+	assert.True(t, sheet2.IsFull())
+	assert.False(t, global.IsFull())
+
+	joined := global.Join()
+	require.Error(t, joined)
+	got := NewDesc(joined).Stringify(false)
+	want := `[1] sheet1: err1
+[2] sheet1: err2
+[3] sheet2: err1`
+	assert.Equal(t, want, got)
+}
+
+// Simple numbered list output.
+func TestCollector_Stringify_NumberedList(t *testing.T) {
+	global := NewCollector(10)
+	book := global.NewChild(10)
+	sheet := book.NewChild(10)
+
+	_ = sheet.Collect(fmt.Errorf("error alpha"))
+	_ = sheet.Collect(fmt.Errorf("error beta"))
+	_ = sheet.Collect(fmt.Errorf("error gamma"))
+
+	joined := global.Join()
+	require.Error(t, joined)
+	got := NewDesc(joined).Stringify(false)
+	want := `[1] error alpha
+[2] error beta
+[3] error gamma`
+	assert.Equal(t, want, got)
 }
 
 // ---------------------------------------------------------------------------

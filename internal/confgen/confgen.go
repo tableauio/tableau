@@ -31,9 +31,9 @@ type Generator struct {
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated files.
 
-	LocationName string                        // TZ location name.
-	InputOpt     *options.ConfInputOption      // Input settings.
-	OutputOpt    *options.ConfOutputOption     // output settings.
+	LocationName string                    // TZ location name.
+	InputOpt     *options.ConfInputOption  // Input settings.
+	OutputOpt    *options.ConfOutputOption // output settings.
 	ErrorLimits  *options.ErrorLimitOption // error collection limits.
 
 	validator protovalidate.Validator // validator with extension type resolver for custom predefined rules.
@@ -58,12 +58,12 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: metasheetName})
 
-	errorLimits := opts.Conf.ErrorLimits
+	errorLimits := opts.ErrorLimits
 	if errorLimits == nil {
 		errorLimits = &options.ErrorLimitOption{
-			MaxErrors:         options.DefaultConfMaxErrors,
-			MaxErrorsPerBook:  options.DefaultConfMaxErrorsPerBook,
-			MaxErrorsPerSheet: options.DefaultConfMaxErrorsPerSheet,
+			MaxErrors:         options.DefaultMaxErrors,
+			MaxErrorsPerBook:  options.DefaultMaxErrorsPerBook,
+			MaxErrorsPerSheet: options.DefaultMaxErrorsPerSheet,
 		}
 	}
 

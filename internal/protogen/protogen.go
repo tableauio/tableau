@@ -66,12 +66,12 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
 
-	errorLimits := opts.Proto.ErrorLimits
+	errorLimits := opts.ErrorLimits
 	if errorLimits == nil {
 		errorLimits = &options.ErrorLimitOption{
-			MaxErrors:         options.DefaultProtoMaxErrors,
-			MaxErrorsPerBook:  options.DefaultProtoMaxErrorsPerBook,
-			MaxErrorsPerSheet: options.DefaultProtoMaxErrorsPerSheet,
+			MaxErrors:         options.DefaultMaxErrors,
+			MaxErrorsPerBook:  options.DefaultMaxErrorsPerBook,
+			MaxErrorsPerSheet: options.DefaultMaxErrorsPerSheet,
 		}
 	}
 

@@ -11,32 +11,22 @@ import (
 )
 
 // newCollectorTestGenerator creates a Generator pointing to the given
-// testdata subdirectory with CSV-only input format.
-func newCollectorTestGenerator(inputDir string) *Generator {
+// testdata subdirectory with the specified input format.
+func newCollectorTestGenerator(inputDir string, f format.Format) *Generator {
 	return NewGenerator("collectortest", inputDir, "./testdata/_collector_out/",
 		options.Proto(
 			&options.ProtoOption{
 				Input: &options.ProtoInputOption{
-					Formats: []format.Format{format.CSV},
+					Formats: []format.Format{f},
 				},
 				Output: &options.ProtoOutputOption{},
 			},
 		),
-	)
-}
-
-// newCollectorTestGeneratorYAML creates a Generator pointing to the given
-// testdata subdirectory with YAML-only input format.
-func newCollectorTestGeneratorYAML(inputDir string) *Generator {
-	return NewGenerator("collectortest", inputDir, "./testdata/_collector_out/",
-		options.Proto(
-			&options.ProtoOption{
-				Input: &options.ProtoInputOption{
-					Formats: []format.Format{format.YAML},
-				},
-				Output: &options.ProtoOutputOption{},
-			},
-		),
+		options.ErrorLimits(&options.ErrorLimitOption{
+			MaxErrors:         10,
+			MaxErrorsPerBook:  5,
+			MaxErrorsPerSheet: 3,
+		}),
 	)
 }
 
@@ -60,7 +50,7 @@ func e0003(workbook, worksheet, nameCellPos, nameCell, typeCellPos, typeCell, du
 //
 // Collector hierarchy: global -> book -> sheet(HeroConf)
 func TestCollectorIntegration_SingleSheet(t *testing.T) {
-	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/")
+	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/", format.CSV)
 	err := gen.Generate("Collector2#HeroConf.csv")
 	require.Error(t, err)
 
@@ -79,7 +69,7 @@ func TestCollectorIntegration_SingleSheet(t *testing.T) {
 //
 // Collector hierarchy: global -> book -> sheet(ItemConf) + sheet(SkillConf)
 func TestCollectorIntegration_MultiSheet(t *testing.T) {
-	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/")
+	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/", format.CSV)
 	err := gen.Generate("Collector#ItemConf.csv")
 	require.Error(t, err)
 
@@ -101,7 +91,7 @@ func TestCollectorIntegration_MultiSheet(t *testing.T) {
 // NOTE: workbook processing order is non-deterministic (concurrent), so we
 // verify each error is present rather than asserting exact order.
 func TestCollectorIntegration_MultiBook(t *testing.T) {
-	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/")
+	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/", format.CSV)
 	err := gen.Generate()
 	require.Error(t, err)
 
@@ -128,7 +118,7 @@ func TestCollectorIntegration_MultiBook(t *testing.T) {
 // NOTE: workbook processing order is non-deterministic (concurrent), so we
 // verify each error is present and total count rather than asserting exact order.
 func TestCollectorIntegration_MultiBookCapped(t *testing.T) {
-	gen := newCollectorTestGenerator("./testdata/collector/csv/overflow/")
+	gen := newCollectorTestGenerator("./testdata/collector/csv/overflow/", format.CSV)
 	err := gen.Generate()
 	require.Error(t, err)
 
@@ -158,7 +148,7 @@ func TestCollectorIntegration_MultiBookCapped(t *testing.T) {
 //
 // Collector hierarchy: global(10) -> book(5)
 func TestCollectorIntegration_BookLevelCapped(t *testing.T) {
-	gen := newCollectorTestGenerator("./testdata/collector/csv/overflow/")
+	gen := newCollectorTestGenerator("./testdata/collector/csv/overflow/", format.CSV)
 	err := gen.Generate("Collector#Sheet1.csv")
 	require.Error(t, err)
 
@@ -191,7 +181,7 @@ func docErr(workbook, worksheet, nameCellPos, nameCell, typeCellPos, typeCell st
 //
 // Collector hierarchy: global -> book -> sheet(@HeroConf)
 func TestCollectorIntegration_DocSingleSheet(t *testing.T) {
-	gen := newCollectorTestGeneratorYAML("./testdata/collector/yaml/normal/")
+	gen := newCollectorTestGenerator("./testdata/collector/yaml/normal/", format.YAML)
 	err := gen.Generate("DocCollector.yaml")
 	require.Error(t, err)
 
@@ -210,7 +200,7 @@ func TestCollectorIntegration_DocSingleSheet(t *testing.T) {
 //
 // Collector hierarchy: global -> book -> sheet(@ItemConf) + sheet(@SkillConf)
 func TestCollectorIntegration_DocMultiSheet(t *testing.T) {
-	gen := newCollectorTestGeneratorYAML("./testdata/collector/yaml/normal/")
+	gen := newCollectorTestGenerator("./testdata/collector/yaml/normal/", format.YAML)
 	err := gen.Generate("DocCollector2.yaml")
 	require.Error(t, err)
 
@@ -228,7 +218,7 @@ func TestCollectorIntegration_DocMultiSheet(t *testing.T) {
 //
 // Collector hierarchy: global(10) -> book(5) -> sheet(each)
 func TestCollectorIntegration_DocBookLevelCapped(t *testing.T) {
-	gen := newCollectorTestGeneratorYAML("./testdata/collector/yaml/overflow/")
+	gen := newCollectorTestGenerator("./testdata/collector/yaml/overflow/", format.YAML)
 	err := gen.Generate("DocCollector.yaml")
 	require.Error(t, err)
 
@@ -250,7 +240,7 @@ func TestCollectorIntegration_DocBookLevelCapped(t *testing.T) {
 // NOTE: workbook processing order is non-deterministic (concurrent), so we
 // verify each error is present and total count rather than asserting exact order.
 func TestCollectorIntegration_DocMultiBookCapped(t *testing.T) {
-	gen := newCollectorTestGeneratorYAML("./testdata/collector/yaml/overflow/")
+	gen := newCollectorTestGenerator("./testdata/collector/yaml/overflow/", format.YAML)
 	err := gen.Generate()
 	require.Error(t, err)
 
@@ -280,7 +270,7 @@ func TestCollectorIntegration_DocMultiBookCapped(t *testing.T) {
 //
 // Collector hierarchy: global(10) -> book(5) -> sheet(@MultiErrConf, cap=3)
 func TestCollectorIntegration_DocSheetLevelCapped(t *testing.T) {
-	gen := newCollectorTestGeneratorYAML("./testdata/collector/yaml/sheet_overflow/")
+	gen := newCollectorTestGenerator("./testdata/collector/yaml/sheet_overflow/", format.YAML)
 	err := gen.Generate("DocCollector.yaml")
 	require.Error(t, err)
 

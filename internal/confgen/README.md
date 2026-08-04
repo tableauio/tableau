@@ -33,13 +33,11 @@ parseMessageFromOneImporter(info, collector, impInfo)
  └── sheetParser.Parse(protomsg, sheet)
       ├── [document sheet] → documentParser.Parse
       │    └── parseMessage(node)                    ← recursive tree walk
-      │         └── messageCollector = sheetCollector.NewChild(maxErrorsPerMessage=3)
       │
       └── [table sheet]    → tableParser.Parse
            └── tableParser.parse
                 └── RangeDataRows(row callback)
                      └── parseMessage(row)           ← per row
-                          └── messageCollector = sheetCollector.NewChild(maxErrorsPerMessage=3)
 ```
 
 ## Concurrent Model
@@ -47,7 +45,7 @@ parseMessageFromOneImporter(info, collector, impInfo)
 ```mermaid
 flowchart TB
     subgraph Generator
-        C["gen.collector (maxParseErrors=20)"]
+        C["gen.collector (maxErrors=20)"]
     end
 
     subgraph "Workbook Group (concurrent)"
@@ -76,12 +74,11 @@ flowchart TB
     S1 & S2 --> SC --> TP & DP
 ```
 
-| Level         | Collector                                       | Limit | Scope                             |
-| ------------- | ----------------------------------------------- | ----- | --------------------------------- |
-| **Generator** | `gen.collector`                                 | 20    | across all concurrent workbooks   |
-| **Book**      | `bookCollector = gen.collector.NewChild(10)`    | 10    | across sheets in one workbook     |
-| **Sheet**     | `sheetCollector = bookCollector.NewChild(5)`    | 5     | across messages/rows in one sheet |
-| **Message**   | `messageCollector = sheetCollector.NewChild(3)` | 3     | across fields in one message/row  |
+| Level         | Collector                                       | Limit | Scope                           |
+| ------------- | ----------------------------------------------- | ----- | ------------------------------- |
+| **Generator** | `gen.collector`                                 | 20    | across all concurrent workbooks |
+| **Book**      | `bookCollector = gen.collector.NewChild(10)`    | 10    | across sheets in one workbook   |
+| **Sheet**     | `sheetCollector = bookCollector.NewChild(5)`    | 5     | across fields/rows in one sheet |
 
 ## Error Collector
 
@@ -106,19 +103,14 @@ flowchart TB
         Sheet["sheetCollector = bookCollector.NewChild(5)"]
     end
 
-    subgraph "parseMessage (per row/node)"
-        Message["messageCollector = sheetCollector.NewChild(3)"]
-    end
-
-    Root --> Book --> Sheet --> Message
-    Message -- "Collect(err) → increments self + sheet + book + root" --> Root
-    Sheet -- "IsFull() → fail-fast: skip remaining rows" --> Sheet
+    Root --> Book --> Sheet
+    Sheet -- "Collect(err) → increments self + book + root" --> Root
+    Sheet -- "IsFull() → fail-fast: skip remaining rows/fields" --> Sheet
     Book -- "Join() → assembles all children errors" --> Book
 ```
 
 ### Fail-fast Behavior
 
-- **Message level**: stops iterating fields when `messageCollector.IsFull()`.
-- **Sheet level**: `tableParser.parse` checks `sheetCollector.IsFull()` before each row; returns early if full.
+- **Sheet level**: `sheetCollector.IsFull()` is checked before each row; returns early if full.
 - **Book level**: `convert` checks the error returned by `bookCollector.Collect()`; breaks the sheet loop if full.
 - **Generator level**: `collector.NewGroup` propagates the first fatal error (book-full) to stop the workbook goroutine.
