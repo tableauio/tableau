@@ -25,6 +25,14 @@ const (
 	KeyPrimaryBookName  = "PrimaryBookName"  // primary workbook name
 	KeySheetName        = "SheetName"        // worksheet name
 	KeyPrimarySheetName = "PrimarySheetName" // primary worksheet name
+	// KeyReferBookName / KeyReferSheetName identify the referred target
+	// workbook / worksheet whose data actually triggered the error, when the
+	// current error is raised during refer value-space loading (see
+	// fieldprop.InReferredSpace). BookName / SheetName still identify the
+	// source sheet under generation, which is what users need to locate the
+	// refer expression in the schema.
+	KeyReferBookName  = "ReferBookName"
+	KeyReferSheetName = "ReferSheetName"
 	KeyNameCellPos      = "NameCellPos"      // name cell position
 	KeyNameCell         = "NameCell"         // name cell value
 	KeyTrimmedNameCell  = "TrimmedNameCell"  // trimmed name cell value
@@ -60,6 +68,8 @@ var keys = []string{
 	KeyPrimaryBookName,
 	KeySheetName,
 	KeyPrimarySheetName,
+	KeyReferBookName,
+	KeyReferSheetName,
 	KeyNameCellPos,
 	KeyNameCell,
 	KeyTrimmedNameCell,

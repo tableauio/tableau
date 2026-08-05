@@ -36,6 +36,12 @@ var referredCache *ReferredCache
 type ReferredCache struct {
 	sync.RWMutex
 	references map[string]*ValueSpace // message name -> sheet column value space
+	// failed records refer expressions whose value space failed to load.
+	// The first failure is still surfaced to the caller; subsequent
+	// ExistsValue calls for the same refer short-circuit to "present" so
+	// one broken refer target does not spam N duplicate errors (one per
+	// row of the referring sheet).
+	failed map[string]struct{}
 }
 
 type ValueSpace struct {
@@ -49,7 +55,7 @@ func NewValueSpace() *ValueSpace {
 }
 
 func (v *ValueSpace) AddFromTable(header *tableparser.Header, table book.Tabler, columnName, bookName, sheetName string) error {
-	return tableparser.RangeDataRows(table, header, func(r *book.Row) error {
+	err := tableparser.RangeDataRows(table, header, func(r *book.Row) error {
 		cell, err := r.Cell(columnName, false)
 		if err != nil {
 			return xerrors.E2015(columnName, bookName, sheetName)
@@ -57,11 +63,22 @@ func (v *ValueSpace) AddFromTable(header *tableparser.Header, table book.Tabler,
 		v.Add(cell.Data)
 		return nil
 	})
+	if err != nil {
+		// Tag with the referred target so outer confgen wrappers (which set
+		// BookName/SheetName to the source sheet under generation) don't
+		// obscure where the offending row actually lives.
+		return xerrors.WrapKV(err,
+			xerrors.KeyReferBookName, bookName,
+			xerrors.KeyReferSheetName, sheetName,
+		)
+	}
+	return nil
 }
 
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
 		references: make(map[string]*ValueSpace),
+		failed:     make(map[string]struct{}),
 	}
 }
 
@@ -77,7 +94,13 @@ type loadValueSpaceFunc = func(refer string) (*ValueSpace, error)
 func (r *ReferredCache) ExistsValue(refer string, value string, loadFunc loadValueSpaceFunc) (bool, error) {
 	r.RLock()
 	valueSpace, ok := r.references[refer]
+	_, isFailed := r.failed[refer]
 	r.RUnlock()
+	if isFailed {
+		// A prior load surfaced the real error already; silence follow-ups
+		// on the same refer target.
+		return true, nil
+	}
 	if ok {
 		return valueSpace.Contains(value), nil
 	}
@@ -85,12 +108,18 @@ func (r *ReferredCache) ExistsValue(refer string, value string, loadFunc loadVal
 	// load value space once
 	r.Lock()
 	defer r.Unlock()
+	if _, isFailed = r.failed[refer]; isFailed {
+		return true, nil
+	}
 	valueSpace, ok = r.references[refer]
 	if ok {
 		return valueSpace.Contains(value), nil
 	}
 	valueSpace, err := loadFunc(refer)
 	if err != nil {
+		// Remember the failure so future callers short-circuit instead of
+		// re-triggering loadFunc (and re-emitting the same error).
+		r.failed[refer] = struct{}{}
 		return false, err
 	}
 	r.references[refer] = valueSpace
