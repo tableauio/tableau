@@ -22,7 +22,7 @@ func newCollectorTestGenerator(inputDir string, f format.Format) *Generator {
 				Output: &options.ProtoOutputOption{},
 			},
 		),
-		options.ErrorLimits(&options.ErrorLimitOption{
+		options.ErrorLimit(&options.ErrorLimitOption{
 			MaxErrors:         10,
 			MaxErrorsPerBook:  5,
 			MaxErrorsPerSheet: 3,

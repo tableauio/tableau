@@ -34,7 +34,7 @@ type Generator struct {
 	LocationName string                    // TZ location name.
 	InputOpt     *options.ConfInputOption  // Input settings.
 	OutputOpt    *options.ConfOutputOption // output settings.
-	ErrorLimits  *options.ErrorLimitOption // error collection limits.
+	ErrorLimit   *options.ErrorLimitOption // error collection limits.
 
 	validator protovalidate.Validator // validator with extension type resolver for custom predefined rules.
 	collector *xerrors.Collector      // concurrent error collector shared across the generator.
@@ -58,7 +58,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: metasheetName})
 
-	errorLimits := opts.ErrorLimits
+	errorLimits := opts.ErrorLimit
 	if errorLimits == nil {
 		errorLimits = &options.ErrorLimitOption{
 			MaxErrors:         options.DefaultMaxErrors,
@@ -74,7 +74,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		LocationName: opts.LocationName,
 		InputOpt:     opts.Conf.Input,
 		OutputOpt:    opts.Conf.Output,
-		ErrorLimits:  errorLimits,
+		ErrorLimit:   errorLimits,
 		ctx:          ctx,
 		collector:    xerrors.NewCollector(errorLimits.MaxErrors),
 		PerfStats:    sync.Map{},
@@ -211,7 +211,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				PRFiles:        prFiles,
 				BookFormat:     workbookFormat,
 				DryRun:         gen.OutputOpt.DryRun,
-				ErrorLimits:    gen.ErrorLimits,
+				ErrorLimit:     gen.ErrorLimit,
 			},
 		})
 		// NOTE: one sheet may be generated to multiple messages (e.g.: full version and lite version) in the same workbook.
@@ -225,7 +225,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
-	bookCollector := gen.collector.NewChild(gen.ErrorLimits.MaxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimit.MaxErrorsPerBook)
 	worksheetFound := false
 	for _, sheetInfo := range sheets {
 		sheetName := sheetInfo.SheetName()

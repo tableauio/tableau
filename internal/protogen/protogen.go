@@ -36,10 +36,10 @@ type Generator struct {
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated protoconf files.
 
-	LocationName string                        // TZ location name.
-	InputOpt     *options.ProtoInputOption     // Input settings.
-	OutputOpt    *options.ProtoOutputOption    // Output settings.
-	ErrorLimits  *options.ErrorLimitOption // error collection limits.
+	LocationName string                     // TZ location name.
+	InputOpt     *options.ProtoInputOption  // Input settings.
+	OutputOpt    *options.ProtoOutputOption // Output settings.
+	ErrorLimit   *options.ErrorLimitOption  // error collection limits.
 
 	ProtoRegistryFiles *protoregistry.Files
 	ProtoRegistryTypes *dynamicpb.Types
@@ -66,7 +66,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
 
-	errorLimits := opts.ErrorLimits
+	errorLimits := opts.ErrorLimit
 	if errorLimits == nil {
 		errorLimits = &options.ErrorLimitOption{
 			MaxErrors:         options.DefaultMaxErrors,
@@ -82,7 +82,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		LocationName: opts.LocationName,
 		InputOpt:     opts.Proto.Input,
 		OutputOpt:    opts.Proto.Output,
-		ErrorLimits:  errorLimits,
+		ErrorLimit:   errorLimits,
 		ctx:          ctx,
 		typeInfos:    xproto.NewTypeInfos(protoPackage),
 		collector:    xerrors.NewCollector(errorLimits.MaxErrors),
@@ -400,7 +400,7 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		debugBookName += " (alias: " + alias + ")"
 	}
 	bp := newDocumentParser(bookName, alias, rewrittenBookName, gen)
-	bookCollector := gen.collector.NewChild(gen.ErrorLimits.MaxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimit.MaxErrorsPerBook)
 	for _, sheet := range imp.GetSheets() {
 		sheetErr := gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
 		if err := bookCollector.Collect(sheetErr); err != nil {
@@ -465,7 +465,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	}
 	// create a book parser
 	bp := newTableParser(bookName, alias, rewrittenBookName, gen)
-	bookCollector := gen.collector.NewChild(gen.ErrorLimits.MaxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimit.MaxErrorsPerBook)
 	for _, sheet := range imp.GetSheets() {
 		sheetErr := gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
 		if err := bookCollector.Collect(sheetErr); err != nil {
@@ -509,7 +509,7 @@ func (gen *Generator) convertDocumentSheet(bp *documentParser, bookCollector *xe
 		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)
 	}
 
-	sheetCollector := bookCollector.NewChild(gen.ErrorLimits.MaxErrorsPerSheet)
+	sheetCollector := bookCollector.NewChild(gen.ErrorLimit.MaxErrorsPerSheet)
 	// get the first child (map node) in document
 	child := sheet.Document.Children[0]
 	for _, node := range child.Children {
@@ -547,7 +547,7 @@ func (gen *Generator) convertTableSheet(bp *tableParser, bookCollector *xerrors.
 	}
 
 	tableHeader := newTableHeader(ws.Options, bookOpts, gen.InputOpt.Header, sheet.Tabler())
-	sheetCollector := bookCollector.NewChild(gen.ErrorLimits.MaxErrorsPerSheet)
+	sheetCollector := bookCollector.NewChild(gen.ErrorLimit.MaxErrorsPerSheet)
 
 	if pass == firstPass && ws.Options.Mode != tableaupb.Mode_MODE_DEFAULT {
 		log.Debugf("first pass: extract type info from %s", debugSheetName)

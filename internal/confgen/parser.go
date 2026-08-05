@@ -225,8 +225,8 @@ func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, 
 	// fail-fast use) with a child collector scoped to this sheet and capped at
 	// maxErrorsPerSheet, so one sheet cannot exhaust the parent book-level collector.
 	maxErrorsPerSheet := options.DefaultMaxErrorsPerSheet
-	if info.ExtInfo.ErrorLimits != nil {
-		maxErrorsPerSheet = info.ExtInfo.ErrorLimits.MaxErrorsPerSheet
+	if info.ExtInfo.ErrorLimit != nil {
+		maxErrorsPerSheet = info.ExtInfo.ErrorLimit.MaxErrorsPerSheet
 	}
 	parser.sheetCollector = collector.NewChild(maxErrorsPerSheet)
 	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
@@ -316,7 +316,7 @@ type SheetParserExtInfo struct {
 	PRFiles        *protoregistry.Files
 	BookFormat     format.Format // workbook format
 	DryRun         options.DryRun
-	ErrorLimits    *options.ErrorLimitOption // error collection limits
+	ErrorLimit     *options.ErrorLimitOption // error collection limits
 }
 
 // NewSheetParser creates a new sheet parser.

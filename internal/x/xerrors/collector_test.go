@@ -658,7 +658,6 @@ func TestGroup_ContextCancelled(t *testing.T) {
 // Structured error rendering via Stringify (Collector hierarchy)
 // ---------------------------------------------------------------------------
 
-// Three-level hierarchy with exact rendered text.
 func TestCollector_Stringify_ThreeLevel(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
@@ -678,8 +677,7 @@ func TestCollector_Stringify_ThreeLevel(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-// NewKV with structured fields renders module-specific template.
-func TestCollector_Stringify_StructuredNewKV(t *testing.T) {
+func TestCollector_Stringify_NewKV(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
@@ -705,8 +703,7 @@ Reason: invalid integer value
 	assert.Equal(t, want, got)
 }
 
-// Multiple NewKV errors produce a numbered list.
-func TestCollector_Stringify_MultipleStructured(t *testing.T) {
+func TestCollector_Stringify_WrapKV(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
@@ -754,10 +751,8 @@ Reason: field2 error
 	assert.Equal(t, want, got)
 }
 
-// WrapKV with ecode error renders code, desc, reason, and help.
 func TestCollector_Stringify_WrapKV_Ecode(t *testing.T) {
-	// confgen-style E2005 (map key not unique).
-	t.Run("conf", func(t *testing.T) {
+	t.Run("modulconf", func(t *testing.T) {
 		global := NewCollector(10)
 		book := global.NewChild(5)
 		sheet := book.NewChild(3)
@@ -784,8 +779,7 @@ Help: fix duplicate keys and ensure map key is unique
 		assert.Equal(t, want, got)
 	})
 
-	// protogen-style E0003 (duplicate column name).
-	t.Run("proto", func(t *testing.T) {
+	t.Run("moduleproto", func(t *testing.T) {
 		global := NewCollector(10)
 		book := global.NewChild(5)
 		sheet := book.NewChild(3)
@@ -817,7 +811,6 @@ Help: rename column name and keep sure it is unique in name row
 	})
 }
 
-// Mix of plain, NewKV, and WrapKV(ecode) errors.
 func TestCollector_Stringify_MixedErrors(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
@@ -830,7 +823,6 @@ func TestCollector_Stringify_MixedErrors(t *testing.T) {
 		KeyDataCellPos, "C3",
 		KeyDataCell, "abc",
 	))
-	// E2000: integer overflow
 	_ = sheet.Collect(WrapKV(E2000("int32", "999999999999", int32(-2147483648), int32(2147483647)),
 		KeyModule, ModuleConf,
 		KeyBookName, "Items.xlsx",
@@ -862,7 +854,6 @@ Help: check field value and make sure it in representable range
 	assert.Equal(t, want, got)
 }
 
-// Mid-level (book) full stops sibling sheets.
 func TestCollector_Stringify_MidLevelFull(t *testing.T) {
 	global := NewCollector(100)
 	book := global.NewChild(3)
@@ -888,7 +879,6 @@ func TestCollector_Stringify_MidLevelFull(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-// Simple numbered list output.
 func TestCollector_Stringify_NumberedList(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(10)

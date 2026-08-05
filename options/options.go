@@ -33,7 +33,7 @@ type Options struct {
 	Log *log.Options // Log options.
 
 	// Error limits for error collection at each level, shared by protogen and confgen.
-	ErrorLimits *ErrorLimitOption `yaml:"errorLimits"`
+	ErrorLimit *ErrorLimitOption `yaml:"errorLimits"`
 
 	Proto *ProtoOption `yaml:"proto"` // Proto generation options.
 	Conf  *ConfOption  `yaml:"conf"`  // Conf generation options.
@@ -451,10 +451,10 @@ func Conf(o *ConfOption) Option {
 	}
 }
 
-// ErrorLimits sets the error collection limits shared by protogen and confgen.
-func ErrorLimits(o *ErrorLimitOption) Option {
+// ErrorLimit sets the error collection limits shared by protogen and confgen.
+func ErrorLimit(o *ErrorLimitOption) Option {
 	return func(opts *Options) {
-		opts.ErrorLimits = o
+		opts.ErrorLimit = o
 	}
 }
 
@@ -468,7 +468,7 @@ func NewDefault() *Options {
 			Level: "INFO",
 			Sink:  "CONSOLE",
 		},
-		ErrorLimits: &ErrorLimitOption{
+		ErrorLimit: &ErrorLimitOption{
 			MaxErrors:         DefaultMaxErrors,
 			MaxErrorsPerBook:  DefaultMaxErrorsPerBook,
 			MaxErrorsPerSheet: DefaultMaxErrorsPerSheet,
