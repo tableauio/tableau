@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bufbuild/protocompile"
 	"github.com/bufbuild/protocompile/linker"
@@ -61,10 +62,34 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 }
 
 func rel(filename string, protoPaths []string) string {
+	bestRel := ""
+	fallbackRel := ""
 	for _, protoPath := range protoPaths {
-		if rel, err := filepath.Rel(protoPath, filename); err == nil {
-			return xfs.CleanSlashPath(rel)
+		rel, err := filepath.Rel(protoPath, filename)
+		if err != nil {
+			continue
 		}
+		rel = xfs.CleanSlashPath(rel)
+		if fallbackRel == "" {
+			// Preserve the previous behavior for explicitly listed files that
+			// are outside every import root.
+			fallbackRel = rel
+		}
+		if rel == ".." || filepath.IsAbs(rel) || strings.HasPrefix(rel, "../") {
+			continue
+		}
+		// Proto roots can overlap (for example "." and "Temp/proto"). Use
+		// the most specific root so a generated file is compiled under the
+		// same import path that SourceResolver will use for its imports.
+		if bestRel == "" || len(rel) < len(bestRel) {
+			bestRel = rel
+		}
+	}
+	if bestRel != "" {
+		return bestRel
+	}
+	if fallbackRel != "" {
+		return fallbackRel
 	}
 	return filename
 }
