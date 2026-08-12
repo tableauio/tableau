@@ -3,7 +3,6 @@ package protoc
 import (
 	"context"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -108,9 +107,9 @@ func parseProtos(protoPaths []string, protoFilesMap map[string]string) (*protore
 			&protocompile.SourceResolver{
 				ImportPaths: protoPaths,
 				Accessor: func(path string) (io.ReadCloser, error) {
-					if _, ok := protoFilesMap[xfs.CleanSlashPath(path)]; !ok {
-						return nil, fs.ErrNotExist
-					}
+					// protoFilesMap selects the compilation entry points. Their imports
+					// must still be resolved from the configured proto paths, even when
+					// an imported dependency is not matched by protoFiles.
 					return os.Open(path)
 				},
 			},
