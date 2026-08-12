@@ -787,6 +787,85 @@ func TestCollected_ErrorDelegates(t *testing.T) {
 	assert.Contains(t, joined.Error(), "hello")
 }
 
+// collected marker is transparent to field propagation: outer WrapKV fields
+// must reach the joined children when rendering via Error(), so the
+// module-specific template (confgen) is used instead of the default one.
+//
+// This mirrors the real confgen chain:
+//
+//	parseFieldValue             -> E2002
+//	tableParser.Parse           -> WrapKV(DataCellPos/DataCell/ColumnName)
+//	sheetCollector.Join         -> collected{withMessage{joinError}}
+//	sheetParser.Parse           -> WrapKV(Module)
+//	parseMessageFromOneImporter -> WrapKV(Module/BookName/SheetName)
+func TestCollected_ErrorPropagatesOuterFields(t *testing.T) {
+	cellErr := WrapKV(E2002("100033333", "ItemConf.ID"),
+		KeyDataCellPos, "F12",
+		KeyDataCell, "100033333",
+		KeyColumnName, "ItemID",
+	)
+
+	child := NewCollector(10).NewChild(5)
+	_ = child.Collect(cellErr)
+
+	err := WrapKV(WrapKV(child.Join(), KeyModule, ModuleConf),
+		KeyModule, ModuleConf,
+		KeyBookName, "Activity.xlsx",
+		KeySheetName, "SectionConf",
+	)
+
+	want := `error[E2002]: field value not in referred space
+Workbook: Activity.xlsx
+Worksheet: SectionConf
+DataCellPos: F12
+DataCell: 100033333
+Reason: value "100033333" not in referred space "ItemConf.ID"
+Help: guarantee value "100033333" was configured in referred space "ItemConf.ID" ahead
+`
+	assert.Equal(t, want, err.Error())
+}
+
+// Re-collecting an already-collected same-tree error must preserve the fields
+// of every wrapper layer, not just the outermost one.
+//
+// This mirrors the real confgen chain of a merger/scatter sheet, where Module
+// and BookName/SheetName are added by different layers:
+//
+//	tableParser.Parse           -> sheetCollector.Join() == collected
+//	sheetParser.Parse           -> WrapKV(Module)
+//	parseMessageFromOneImporter -> WrapKV(Module/BookName/SheetName/PBMessage)
+//	ParseMessage's Group.Go     -> WrapKV(BookName/SheetName/Primary*)  <- outermost, no Module
+//	Group.Wait                  -> bookCollector.Join()
+func TestCollected_ReCollectPreservesAllWrapperFields(t *testing.T) {
+	cellErr := WrapKV(E2002("100033333", "ItemConf.ID"),
+		KeyDataCellPos, "F12",
+		KeyDataCell, "100033333",
+	)
+
+	book := NewCollector(10)
+	sheet := book.NewChild(5)
+	_ = sheet.Collect(cellErr)
+
+	// Module is added by an intermediate layer, while the outermost layer only
+	// carries book/sheet names.
+	err := WrapKV(WrapKV(sheet.Join(),
+		KeyModule, ModuleConf,
+		KeyBookName, "Activity.xlsx",
+		KeySheetName, "SectionConf",
+	), KeyPrimaryBookName, "Activity.xlsx", KeyPrimarySheetName, "SectionConf")
+	_ = book.Collect(err)
+
+	want := `error[E2002]: field value not in referred space
+Workbook: Activity.xlsx
+Worksheet: SectionConf
+DataCellPos: F12
+DataCell: 100033333
+Reason: value "100033333" not in referred space "ItemConf.ID"
+Help: guarantee value "100033333" was configured in referred space "ItemConf.ID" ahead
+`
+	assert.Equal(t, want, book.Join().Error())
+}
+
 // collected marker is transparent: errors.Is works through it.
 func TestCollected_ErrorsIsWorksThrough(t *testing.T) {
 	target := fmt.Errorf("target")
