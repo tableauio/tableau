@@ -5,7 +5,10 @@
             "prop": {
                 "id": 1,
                 "name": "Apple",
-                "desc": "A kind of delicious fruit."
+                "descList": [
+                    "A kind of delicious fruit.",
+                    "Sweet and juicy."
+                ]
             }
         },
         "2": {
@@ -13,7 +16,9 @@
             "prop": {
                 "id": 2,
                 "name": "Orange",
-                "desc": ""
+                "descList": [
+                    "Sour"
+                ]
             }
         },
         "3": {
@@ -21,7 +26,7 @@
             "prop": {
                 "id": 3,
                 "name": "",
-                "desc": ""
+                "descList": []
             }
         }
     }

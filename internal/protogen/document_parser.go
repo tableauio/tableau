@@ -373,7 +373,7 @@ func (p *documentParser) parseStructField(field *internalpb.Field, node *book.No
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
-			scalarField, err := p.parseBasicField(fieldName, fieldType, "")
+			scalarField, err := p.parseIncellStructField(fieldName, fieldType, "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldName, fieldName,

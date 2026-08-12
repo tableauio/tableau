@@ -14,10 +14,14 @@ import (
 // refer: https://github.com/google/re2/wiki/Syntax
 const nameCharSet = `0-9A-Za-z_`
 const typeCharSet = `0-9A-Za-z _,\.<>`
+// structTypeCharSet allows `[]` so that incell struct fields can declare
+// repeated element types, e.g. `{[]int32 ID, string Name}Property`.
+const structTypeCharSet = typeCharSet + `\[\]`
 const nestedTypeCharSet = typeCharSet + `<>\[\]\{\}`
 
 const nameCharClass = `[` + nameCharSet + `]`
 const typeCharClass = `[` + typeCharSet + `]`
+const structTypeCharClass = `[` + structTypeCharSet + `]`
 const nestedTypeCharClass = `[` + nestedTypeCharSet + `]`
 
 const rawPropGroup = `( *\| *\{(?P<Prop>.+)\})?`
@@ -49,7 +53,7 @@ var keyedListRegexp = regexp.MustCompile(`^\[` + `(?P<ElemType>` + nestedTypeCha
 //   - {StructType(CustomName)}ColumnType
 //   - {.PredefinedStructType}ColumnType
 //   - {.PredefinedStructType(CustomName)}ColumnType
-const structTypeGroup = `(?P<StructType>` + typeCharClass + `*?)` + `(\((?P<CustomName>` + nameCharClass + `*?)\))?`
+const structTypeGroup = `(?P<StructType>` + structTypeCharClass + `*?)` + `(\((?P<CustomName>` + nameCharClass + `*?)\))?`
 
 var structRegexp = regexp.MustCompile(`^\{` + structTypeGroup + `\}` + `(?P<ColumnType>` + nestedTypeCharClass + `+)?` + rawPropGroup)
 

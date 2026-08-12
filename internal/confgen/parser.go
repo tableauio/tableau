@@ -866,6 +866,26 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 				subField.mergeParentFieldProp(field)
 				defer subField.release()
 				// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
+				if fd.IsList() {
+					// repeated sub-field: split by subsep, and require
+					// subsep to be different from the struct-field sep,
+					// otherwise the two levels cannot be distinguished.
+					if subField.subsep == "" || subField.subsep == sep {
+						return xerrors.Newf("repeated field in incell struct requires a distinct subsep (sep=%q, subsep=%q)", sep, subField.subsep)
+					}
+					listValue := structValue.Message().Mutable(fd).List()
+					for _, elem := range strings.Split(rawValue, subField.subsep) {
+						elemValue, elemPresent, err := p.parseFieldValue(fd, elem, subField.opts.Prop)
+						if err != nil {
+							return err
+						}
+						if elemPresent {
+							present = true
+							listValue.Append(elemValue)
+						}
+					}
+					return nil
+				}
 				value, fieldPresent, err := p.parseFieldValue(fd, rawValue, subField.opts.Prop)
 				if err != nil {
 					return err

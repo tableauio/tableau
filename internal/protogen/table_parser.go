@@ -657,7 +657,7 @@ func (p *tableParser) parseListField(field *internalpb.Field, header *tableHeade
 					for i := 0; i < len(fieldPairs); i += 2 {
 						fieldType := fieldPairs[i]
 						fieldName := fieldPairs[i+1]
-						scalarField, err := p.parseBasicField(fieldName, fieldType, "")
+						scalarField, err := p.parseIncellStructField(fieldName, fieldType, "")
 						if err != nil {
 							return cursor, xerrors.WrapKV(err,
 								xerrors.KeyPBFieldType, fieldType,
@@ -762,7 +762,7 @@ func (p *tableParser) parseStructField(field *internalpb.Field, header *tableHea
 		for i := 0; i < len(fieldPairs); i += 2 {
 			fieldType := fieldPairs[i]
 			fieldName := fieldPairs[i+1]
-			scalarField, err := p.parseBasicField(fieldName, fieldType, "")
+			scalarField, err := p.parseIncellStructField(fieldName, fieldType, "")
 			if err != nil {
 				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, fieldType,
