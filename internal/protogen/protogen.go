@@ -134,10 +134,19 @@ func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	// parse custom imported proto files
 	protoRegistryFiles := gen.ProtoRegistryFiles
-	// preserveFieldNumbers also needs generated protos parsed before they
-	// are deleted below.
-	if useGeneratedProtos || gen.OutputOpt.PreserveFieldNumbers {
+	if useGeneratedProtos {
+		// NOTE: the advanced first-pass mode parses only the specified
+		// workbooks, so the previously generated protos are intended to serve
+		// as the predefined types of the others. They are not deleted in this
+		// mode, hence still importable.
 		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
+	} else if gen.OutputOpt.PreserveFieldNumbers {
+		// Cache the previously generated protos before they are deleted below,
+		// as they are not parsable any more once deleted. The result is
+		// deliberately discarded rather than used as the type infos, otherwise
+		// the types only existing in them would be mistaken for predefined
+		// ones, whose proto file is never regenerated in this run.
+		_ = gen.getProtoRegistryFilesWithGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
