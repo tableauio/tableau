@@ -5,6 +5,7 @@ var ErrE0001 = newEcode("E0001", `sheet not found in book`)
 var ErrE0002 = newEcode("E0002", `cannot unmarshal file content to given proto.Message`)
 var ErrE0003 = newEcode("E0003", `duplicate column name`)
 var ErrE0004 = newEcode("E0004", `unknown error`)
+var ErrE1000 = newEcode("E1000", `duplicate generated proto file`)
 var ErrE2000 = newEcode("E2000", `integer overflow`)
 var ErrE2001 = newEcode("E2001", `field prop "refer" not configured correctly`)
 var ErrE2002 = newEcode("E2002", `field value not in referred space`)
@@ -73,6 +74,15 @@ func E0003(name string, position1 string, position2 string) error {
 // E0004: unknown error
 func E0004() error {
 	return renderEcode(ErrE0004, map[string]any{})
+}
+
+// E1000: duplicate generated proto file
+func E1000(filename string, bookName1 string, bookName2 string) error {
+	return renderEcode(ErrE1000, map[string]any{
+		"Filename":  filename,
+		"BookName1": bookName1,
+		"BookName2": bookName2,
+	})
 }
 
 // E2000: integer overflow

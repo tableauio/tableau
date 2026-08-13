@@ -56,28 +56,31 @@ func newPreserveFieldNumbersGenerator(t *testing.T, subdir string) *Generator {
 }
 
 // Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos asserts that
-// preserveFieldNumbers only warms up the registry cache, without leaking the
-// previously generated protos into type infos, otherwise the types only
-// existing in them would be mistaken for predefined ones, which makes the
-// exporter import a proto file that no longer exists.
+// preserveFieldNumbers only snapshots the previously generated protos, without
+// leaking them into type infos, otherwise the types only existing in them would
+// be mistaken for predefined ones, which makes the exporter import a proto file
+// that is never regenerated.
 func Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
 	gen := newPreserveFieldNumbersGenerator(t, "default")
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 
-	require.NoError(t, gen.preprocess(false, true))
+	require.NoError(t, gen.preprocess(false))
 
 	// The message only exists in the previously generated proto, so it must not
 	// be treated as a predefined type.
 	assert.Nil(t, gen.typeInfos.Get("protoconf.StaleConf"),
 		"type in previously generated proto should not be in type infos")
 
-	// Meanwhile the registry including generated protos should be cached before
-	// the generated protos were deleted by prepareOutdir, so that
-	// preserveFieldNumbers still works afterwards.
-	require.NoFileExists(t, filepath.Join(outdir, "stale_conf.proto"), "generated proto should have been deleted")
+	// NOTE: preprocess must never remove anything, so that a failed run leaves
+	// the previously generated proto files intact.
+	require.FileExists(t, filepath.Join(outdir, "stale_conf.proto"))
+
+	// Meanwhile the registry including generated protos should be snapshotted,
+	// so that preserveFieldNumbers keeps the previous field numbers even if the
+	// proto files are truncated later.
 	files := gen.getProtoRegistryFilesWithGenerated()
 	_, err := files.FindDescriptorByName("protoconf.StaleConf")
-	assert.NoError(t, err, "registry with generated protos should be cached before deletion")
+	assert.NoError(t, err, "registry with generated protos should be snapshotted in preprocess")
 }
 
 // Test_preprocess_useGeneratedProtosPopulatesTypeInfos asserts that the
@@ -86,7 +89,7 @@ func Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
 func Test_preprocess_useGeneratedProtosPopulatesTypeInfos(t *testing.T) {
 	gen := newPreserveFieldNumbersGenerator(t, "default")
 
-	require.NoError(t, gen.preprocess(true, false))
+	require.NoError(t, gen.preprocess(true))
 
 	assert.NotNil(t, gen.typeInfos.Get("protoconf.StaleConf"),
 		"type in previously generated proto should be in type infos")
