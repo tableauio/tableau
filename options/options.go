@@ -140,6 +140,11 @@ type ProtoInputOption struct {
 	//  - FirstPassMode "advanced" and Output.PreserveFieldNumbers rely on the
 	//    previously generated proto files, which should also be included in the
 	//    descriptor set, as they are not compiled at runtime any more.
+	//  - As the proto paths are lost in a descriptor set, the previously
+	//    generated proto files are told apart from the predefined ones by the
+	//    file-level (tableau.workbook) option, which protogen always generates.
+	//    Therefore the predefined proto files must not have this option, and
+	//    must not import the generated ones.
 	//
 	// Default: "".
 	DescriptorSetIn string `yaml:"descriptorSetIn"`
@@ -279,6 +284,18 @@ type ConfInputOption struct {
 	// Default: nil.
 	ProtoFiles []string `yaml:"protoFiles"`
 
+	// The files not to be parsed to generate configurations.
+	//
+	// NOTE:
+	//  - Glob patterns are supported, which can specify sets of filenames
+	//    with wildcard characters. Double asterisk (**) for recursive globbing
+	//    is not supported.
+	//  - It only applies to the proto source files specified by ProtoFiles, so
+	//    it is ignored if DescriptorSetIn is set.
+	//
+	// Default: nil.
+	ExcludedProtoFiles []string `yaml:"excludedProtoFiles"`
+
 	// The pre-compiled descriptor set file to be loaded, which stores a
 	// serialized FileDescriptorSet, as protoc's --descriptor_set_in does.
 	// If set, ProtoPaths, ProtoFiles and ExcludedProtoFiles are ignored, and no
@@ -302,18 +319,6 @@ type ConfInputOption struct {
 	//
 	// Default: "".
 	DescriptorSetIn string `yaml:"descriptorSetIn"`
-
-	// The files not to be parsed to generate configurations.
-	//
-	// NOTE:
-	//  - Glob patterns are supported, which can specify sets of filenames
-	//    with wildcard characters. Double asterisk (**) for recursive globbing
-	//    is not supported.
-	//  - It only applies to the proto source files specified by ProtoFiles, so
-	//    it is ignored if DescriptorSetIn is set.
-	//
-	// Default: nil.
-	ExcludedProtoFiles []string `yaml:"excludedProtoFiles"`
 
 	// Specify input file formats to be parsed.
 	// Note: recognize all formats (Excel/CSV/XML/YAML) if not set (value is
