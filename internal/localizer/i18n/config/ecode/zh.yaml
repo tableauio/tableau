@@ -14,6 +14,10 @@ E0004:
   desc: 未知错误
   text: 未知错误
 # [1000, 1999]: protogen error
+E1000:
+  desc: 生成的proto文件重复
+  text: 工作簿 "{{.BookName1}}" 和 "{{.BookName2}}" 生成了相同的proto文件 "{{.Filename}}"
+  help: 重命名其中一个工作簿，或为其设置唯一的别名
 # [2000, 2999]: confgen error
 E2000:
   desc: integer overflow

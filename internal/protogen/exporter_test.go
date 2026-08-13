@@ -458,7 +458,7 @@ func Test_bookExporter_export(t *testing.T) {
 				},
 			}
 			be := newBookExporter("protoconf", tt.edition, tt.protoFileOptions, tmpDir, "", wb, gen)
-			err := be.export(false)
+			err := be.export()
 			assert.NoError(t, err)
 
 			// read the generated file and verify
@@ -521,15 +521,20 @@ func Test_bookExporter_export_shardFileConflict(t *testing.T) {
 		},
 	}
 	shardPath := filepath.Join(tmpDir, "task_task_target_1.proto")
-	assert.NoError(t, os.WriteFile(shardPath, []byte("already exists"), 0644))
+	assert.NoError(t, gen.registerGeneratedProtoFile(shardPath, "other.xlsx"))
 
 	be := newBookExporter("protoconf", "", nil, tmpDir, "", wb, gen)
-	err := be.export(true)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "file already exists")
+	err := be.export()
+	if !assert.Error(t, err) {
+		return
+	}
+	assert.Contains(t, err.Error(), "other.xlsx")
+	assert.Contains(t, err.Error(), "task.xlsx")
 	assert.Contains(t, err.Error(), "task_task_target_1.proto")
 	_, statErr := os.Stat(filepath.Join(tmpDir, "task.proto"))
 	assert.True(t, os.IsNotExist(statErr), "main proto must not be written when a shard path conflicts")
+	_, statErr = os.Stat(shardPath)
+	assert.True(t, os.IsNotExist(statErr), "conflicting shard proto must not be written")
 }
 
 func Test_sheetExporter_exportEnum(t *testing.T) {
