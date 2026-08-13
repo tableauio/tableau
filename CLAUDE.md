@@ -109,7 +109,7 @@ GetVersionInfo() *VersionInfo
 | `internal/x/xerrors/` | Hierarchical error collection, structured key-value errors, stack traces, error codes (E0001-E3003). |
 | `internal/x/xfs/` | Filesystem utilities (subdir rewrite, path cleaning, permissions). |
 | `internal/x/xproto/` | Protobuf helpers: value parsing, merge, patch, union detection, type info. |
-| `internal/x/xproto/protoc/` | Protobuf compiler wrapper using `protocompile`. |
+| `internal/x/xproto/protoc/` | Protobuf compiler wrapper using `protocompile`, or loading pre-compiled descriptor sets (`descriptorSetIn`). |
 | `internal/strcase/` | CamelCase/snake_case conversion with configurable acronyms. |
 | `internal/types/` | Type matching (map, list, well-known messages), regex patterns for type DSL. |
 | `internal/localizer/` | i18n support (BCP 47 language tags: en, zh). |

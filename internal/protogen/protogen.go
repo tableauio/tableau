@@ -114,6 +114,14 @@ func (gen *Generator) getProtoRegistryFilesWithGenerated() *protoregistry.Files 
 }
 
 func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protoregistry.Files, error) {
+	if gen.InputOpt.DescriptorSetIn != "" {
+		// NOTE: no proto source file is compiled at runtime, so the previously
+		// generated proto files, which are needed by the advanced first-pass
+		// mode and preserveFieldNumbers, should also be included in the
+		// descriptor set by the external compiler.
+		log.Debugf("parse proto registry files from descriptor set: %s", gen.InputOpt.DescriptorSetIn)
+		return protoc.NewFilesFromDescriptorSet(gen.InputOpt.DescriptorSetIn)
+	}
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	var protoFiles []string
 	protoFiles = append(protoFiles, gen.InputOpt.ProtoFiles...)

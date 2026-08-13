@@ -287,8 +287,10 @@ func getRelBookName(basepath, filename string) string {
 	}
 }
 
-// loadProtoRegistryFiles auto loads all protoregistry.Files in protoregistry.GlobalFiles or parsed from proto files.
-func loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles []string, excludeProtoFiles ...string) (*protoregistry.Files, error) {
+// loadProtoRegistryFiles auto loads all protoregistry.Files in
+// protoregistry.GlobalFiles, or loaded from pre-compiled descriptor set files,
+// or parsed from proto source files.
+func loadProtoRegistryFiles(protoPackage string, inputOpt *options.ConfInputOption) (*protoregistry.Files, error) {
 	count := 0
 	protoregistry.GlobalFiles.RangeFilesByPackage(
 		protoreflect.FullName(protoPackage),
@@ -300,7 +302,11 @@ func loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles
 		log.Debugf("use already injected protoregistry.GlobalFiles")
 		return protoregistry.GlobalFiles, nil
 	}
-	return protoc.NewFiles(protoPaths, protoFiles, excludeProtoFiles...)
+	if inputOpt.DescriptorSetIn != "" {
+		log.Debugf("load proto registry files from descriptor set: %s", inputOpt.DescriptorSetIn)
+		return protoc.NewFilesFromDescriptorSet(inputOpt.DescriptorSetIn)
+	}
+	return protoc.NewFiles(inputOpt.ProtoPaths, inputOpt.ProtoFiles, inputOpt.ExcludedProtoFiles...)
 }
 
 // parseOutputFormats parses the output formats of the specified message.

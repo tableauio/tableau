@@ -92,7 +92,7 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 }
 
 func (gen *Generator) GenAll() error {
-	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (gen *Generator) GenAll() error {
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
-	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt)
 	if err != nil {
 		return err
 	}
