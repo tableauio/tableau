@@ -32,6 +32,9 @@ type Options struct {
 
 	Log *log.Options // Log options.
 
+	// Error limits for error collection at each level, shared by protogen and confgen.
+	ErrorLimit *ErrorLimitOption `yaml:"errorLimit"`
+
 	Proto *ProtoOption `yaml:"proto"` // Proto generation options.
 	Conf  *ConfOption  `yaml:"conf"`  // Conf generation options.
 }
@@ -89,6 +92,25 @@ type HeaderOption struct {
 	// Default: ":".
 	Subsep string
 }
+
+// ErrorLimitOption is the error collection limit configuration shared by protogen and confgen.
+type ErrorLimitOption struct {
+	// Generator level: across concurrent workbooks.
+	MaxErrors int `yaml:"maxErrors"`
+
+	// Book level: across sheets in one workbook.
+	MaxErrorsPerBook int `yaml:"maxErrorsPerBook"`
+
+	// Sheet level: across messages/fields/blocks in one sheet.
+	MaxErrorsPerSheet int `yaml:"maxErrorsPerSheet"`
+}
+
+const (
+	// Default error collection limits, shared by protogen and confgen.
+	DefaultMaxErrors         = 20
+	DefaultMaxErrorsPerBook  = 10
+	DefaultMaxErrorsPerSheet = 5
+)
 
 // Options for generating proto files. Only for protogen.
 type ProtoOption struct {
@@ -429,6 +451,13 @@ func Conf(o *ConfOption) Option {
 	}
 }
 
+// ErrorLimit sets the error collection limits shared by protogen and confgen.
+func ErrorLimit(o *ErrorLimitOption) Option {
+	return func(opts *Options) {
+		opts.ErrorLimit = o
+	}
+}
+
 // NewDefault returns a default Options.
 func NewDefault() *Options {
 	return &Options{
@@ -438,6 +467,11 @@ func NewDefault() *Options {
 			Mode:  "SIMPLE",
 			Level: "INFO",
 			Sink:  "CONSOLE",
+		},
+		ErrorLimit: &ErrorLimitOption{
+			MaxErrors:         DefaultMaxErrors,
+			MaxErrorsPerBook:  DefaultMaxErrorsPerBook,
+			MaxErrorsPerSheet: DefaultMaxErrorsPerSheet,
 		},
 		Proto: &ProtoOption{
 			Input: &ProtoInputOption{

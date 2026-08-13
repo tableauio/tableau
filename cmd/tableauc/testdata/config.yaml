@@ -5,6 +5,10 @@ log:
   mode: FULL
   filename: ./testdata/_log/log.txt
   sink: MULTI
+errorLimit:
+  maxErrors: 20
+  maxErrorsPerBook: 10
+  maxErrorsPerSheet: 5
 proto:
   input:
     header:

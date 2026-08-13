@@ -65,8 +65,6 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 	if xproto.IsUnion(md) {
 		return p.parseUnionMessage(msg, parentField, r, prefix, cardPrefix)
 	}
-	// Per-message child collector
-	messageCollector := p.sheetCollector.NewChild(maxErrorsPerMessage)
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		fieldErr := func() error {
@@ -89,13 +87,10 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 			return nil
 		}()
 		if fieldErr != nil {
-			if err := messageCollector.Collect(fieldErr); err != nil {
+			if err := p.sheetCollector.Collect(fieldErr); err != nil {
 				return false, err
 			}
 		}
-	}
-	if messageCollector.HasErrors() {
-		return false, messageCollector.Join()
 	}
 	return present, nil
 }
