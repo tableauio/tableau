@@ -150,19 +150,21 @@ func parseTypeDescriptor(typeInfos *xproto.TypeInfos, rawType string) (*types.De
 }
 
 // parseIncellStructField parses one field of an incell struct definition.
-// It accepts scalar/enum types, and also a "repeated" form `[]ElemType` which
-// produces a repeated proto field. The generated field name is auto-suffixed
-// with "_list", so users should declare the singular form (e.g. `[]int32 ID`
-// generates `repeated int32 id_list`).
+// It accepts scalar (including well-known types, e.g. datetime, duration,
+// fraction, comparator, version) and enum types, and also a "repeated" form
+// `[]ElemType` which produces a repeated proto field. The generated field
+// name is auto-suffixed with "_list", so users should declare the singular
+// form (e.g. `[]int32 ID` generates `repeated int32 id_list`).
 func (p *bookParser) parseIncellStructField(name, typ, note string) (*internalpb.Field, error) {
 	return parseIncellStructField(p.gen.ctx, p.gen.typeInfos, name, typ, note)
 }
 
 // parseIncellStructField parses one field of an incell struct definition.
-// It accepts scalar/enum types, and also a "repeated" form `[]ElemType` which
-// produces a repeated proto field. The generated field name is auto-suffixed
-// with "_list", so users should declare the singular form (e.g. `[]int32 ID`
-// generates `repeated int32 id_list`).
+// It accepts scalar (including well-known types, e.g. datetime, duration,
+// fraction, comparator, version) and enum types, and also a "repeated" form
+// `[]ElemType` which produces a repeated proto field. The generated field
+// name is auto-suffixed with "_list", so users should declare the singular
+// form (e.g. `[]int32 ID` generates `repeated int32 id_list`).
 func parseIncellStructField(ctx context.Context, typeInfos *xproto.TypeInfos, name, typ, note string) (*internalpb.Field, error) {
 	if !strings.HasPrefix(typ, "[]") {
 		return parseBasicField(ctx, typeInfos, name, typ, note)
@@ -174,7 +176,10 @@ func parseIncellStructField(ctx context.Context, typeInfos *xproto.TypeInfos, na
 	if strings.ContainsAny(elemType, "[{") {
 		return nil, xerrors.Newf("nested composite type is not allowed in incell struct repeated field: %s", typ)
 	}
-	// Element kind check: only scalar or enum is allowed.
+	// Element kind check: only scalar or enum is allowed. Well-known types
+	// (e.g. datetime, duration, fraction, comparator, version) are already
+	// classified as types.ScalarKind by types.ParseTypeDescriptor, so they
+	// are supported here too.
 	elemTypeForDesc := elemType
 	if desc := types.MatchEnum(elemTypeForDesc); desc != nil {
 		elemTypeForDesc = desc.EnumType
@@ -186,7 +191,7 @@ func parseIncellStructField(ctx context.Context, typeInfos *xproto.TypeInfos, na
 		return nil, err
 	}
 	if elemDesc.Kind != types.ScalarKind && elemDesc.Kind != types.EnumKind {
-		return nil, xerrors.Newf("only scalar or enum element type is allowed in incell struct repeated field: %s", typ)
+		return nil, xerrors.Newf("only scalar (including well-known types) or enum element type is allowed in incell struct repeated field: %s", typ)
 	}
 	// Reuse parseBasicField to build the element field, then promote it to a
 	// repeated field by setting ListEntry and adjusting Type/FullType.
@@ -218,16 +223,12 @@ func parseIncellStruct(structType string) ([]string, error) {
 
 	fieldPairs := make([]string, 0, len(fields)*2)
 	for _, pair := range fields {
-		// A pair is "<type> <name>". Only split by the LAST space so that the
-		// type part can contain spaces (currently not used, but safer against
-		// future extension).
+		// A pair is "<type> <name>", strictly separated by one space.
 		tokens := strings.Fields(strings.TrimSpace(pair))
-		if len(tokens) < 2 {
+		if len(tokens) != 2 {
 			return nil, xerrors.Newf("illegal type-variable pair: %v in incell struct: %s", pair, structType)
 		}
-		fieldName := tokens[len(tokens)-1]
-		fieldType := strings.Join(tokens[:len(tokens)-1], " ")
-		fieldPairs = append(fieldPairs, fieldType, fieldName)
+		fieldPairs = append(fieldPairs, tokens[0], tokens[1])
 	}
 	return fieldPairs, nil
 }

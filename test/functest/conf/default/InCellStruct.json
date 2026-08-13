@@ -8,6 +8,10 @@
                 "descList": [
                     "A kind of delicious fruit.",
                     "Sweet and juicy."
+                ],
+                "createdAtsList": [
+                    "2020-01-01T00:00:00+08:00",
+                    "2020-06-15T00:00:00+08:00"
                 ]
             }
         },
@@ -18,6 +22,9 @@
                 "name": "Orange",
                 "descList": [
                     "Sour"
+                ],
+                "createdAtsList": [
+                    "2021-03-10T00:00:00+08:00"
                 ]
             }
         },
@@ -26,7 +33,8 @@
             "prop": {
                 "id": 3,
                 "name": "",
-                "descList": []
+                "descList": [],
+                "createdAtsList": []
             }
         }
     }

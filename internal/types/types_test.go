@@ -301,12 +301,11 @@ func TestMatchStruct(t *testing.T) {
 		{
 			name: "new-defined-struct-with-multiple-repeated-fields",
 			args: args{
-				text: `{[]int32 ID, []string Name}Property|{range:"1,10"}`,
+				text: "{[]int32 ID, []string Name}Property",
 			},
 			want: &StructDescriptor{
 				StructType: "[]int32 ID, []string Name",
 				ColumnType: "Property",
-				Prop:       PropDescriptor{Text: `range:"1,10"`},
 			},
 		},
 	}

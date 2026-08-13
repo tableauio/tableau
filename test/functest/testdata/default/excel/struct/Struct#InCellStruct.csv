@@ -1,6 +1,6 @@
 ID,Prop
-"map<int32, Item>","{int32 ID,string Name,[]string Desc}Property"
+"map<int32, Item>","{int32 ID,string Name,[]string Desc,[]datetime CreatedAts}Property"
 Item ID,Item property
-1,"1,Apple,A kind of delicious fruit.:Sweet and juicy."
-2,"2,Orange,Sour"
+1,"1,Apple,A kind of delicious fruit.:Sweet and juicy.,2020-01-01:2020-06-15"
+2,"2,Orange,Sour,2021-03-10"
 3,3

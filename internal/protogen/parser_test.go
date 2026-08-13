@@ -298,6 +298,36 @@ func Test_parseIncellStructField(t *testing.T) {
 				Options: &tableaupb.FieldOptions{Name: "Type"},
 			},
 		},
+		{
+			name: "repeated wellknown datetime field",
+			args: args{name: "CreatedAt", typ: "[]datetime"},
+			want: &internalpb.Field{
+				Type:       "repeated google.protobuf.Timestamp",
+				FullType:   "repeated google.protobuf.Timestamp",
+				Name:       "created_at_list",
+				Predefined: true,
+				ListEntry: &internalpb.Field_ListEntry{
+					ElemType:     "google.protobuf.Timestamp",
+					ElemFullType: "google.protobuf.Timestamp",
+				},
+				Options: &tableaupb.FieldOptions{Name: "CreatedAt"},
+			},
+		},
+		{
+			name: "repeated wellknown duration field",
+			args: args{name: "Cost", typ: "[]duration"},
+			want: &internalpb.Field{
+				Type:       "repeated google.protobuf.Duration",
+				FullType:   "repeated google.protobuf.Duration",
+				Name:       "cost_list",
+				Predefined: true,
+				ListEntry: &internalpb.Field_ListEntry{
+					ElemType:     "google.protobuf.Duration",
+					ElemFullType: "google.protobuf.Duration",
+				},
+				Options: &tableaupb.FieldOptions{Name: "Cost"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
