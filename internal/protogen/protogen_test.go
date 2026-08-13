@@ -1004,7 +1004,7 @@ func TestGenerator_parseSpecialSheetMode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sheetCollector := tt.gen.collector.NewChild(tt.gen.ErrorLimit.MaxErrorsPerSheet)
+			sheetCollector := tt.gen.collector.NewChild(tt.gen.ErrorLimitOpt.MaxErrorsPerSheet)
 			got, err := tt.gen.parseSpecialSheetMode(tt.args.mode, tt.args.ws, tt.args.sheet, "", "", sheetCollector)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Generator.parseSpecialSheetMode() error = %v, wantErr %v", err, tt.wantErr)

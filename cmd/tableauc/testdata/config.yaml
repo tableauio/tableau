@@ -5,7 +5,7 @@ log:
   mode: FULL
   filename: ./testdata/_log/log.txt
   sink: MULTI
-errorLimits:
+errorLimit:
   maxErrors: 20
   maxErrorsPerBook: 10
   maxErrorsPerSheet: 5

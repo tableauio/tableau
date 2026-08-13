@@ -31,10 +31,10 @@ type Generator struct {
 	InputDir     string // input dir of workbooks.
 	OutputDir    string // output dir of generated files.
 
-	LocationName string                    // TZ location name.
-	InputOpt     *options.ConfInputOption  // Input settings.
-	OutputOpt    *options.ConfOutputOption // output settings.
-	ErrorLimit   *options.ErrorLimitOption // error collection limits.
+	LocationName  string                    // TZ location name.
+	InputOpt      *options.ConfInputOption  // Input settings.
+	OutputOpt     *options.ConfOutputOption // output settings.
+	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
 	validator protovalidate.Validator // validator with extension type resolver for custom predefined rules.
 	collector *xerrors.Collector      // concurrent error collector shared across the generator.
@@ -58,9 +58,9 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: metasheetName})
 
-	errorLimits := opts.ErrorLimit
-	if errorLimits == nil {
-		errorLimits = &options.ErrorLimitOption{
+	errorLimit := opts.ErrorLimit
+	if errorLimit == nil {
+		errorLimit = &options.ErrorLimitOption{
 			MaxErrors:         options.DefaultMaxErrors,
 			MaxErrorsPerBook:  options.DefaultMaxErrorsPerBook,
 			MaxErrorsPerSheet: options.DefaultMaxErrorsPerSheet,
@@ -68,16 +68,16 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 
 	g := &Generator{
-		ProtoPackage: protoPackage,
-		InputDir:     indir,
-		OutputDir:    outdir,
-		LocationName: opts.LocationName,
-		InputOpt:     opts.Conf.Input,
-		OutputOpt:    opts.Conf.Output,
-		ErrorLimit:   errorLimits,
-		ctx:          ctx,
-		collector:    xerrors.NewCollector(errorLimits.MaxErrors),
-		PerfStats:    sync.Map{},
+		ProtoPackage:  protoPackage,
+		InputDir:      indir,
+		OutputDir:     outdir,
+		LocationName:  opts.LocationName,
+		InputOpt:      opts.Conf.Input,
+		OutputOpt:     opts.Conf.Output,
+		ErrorLimitOpt: errorLimit,
+		ctx:           ctx,
+		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
+		PerfStats:     sync.Map{},
 	}
 	return g
 }
@@ -211,7 +211,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				PRFiles:        prFiles,
 				BookFormat:     workbookFormat,
 				DryRun:         gen.OutputOpt.DryRun,
-				ErrorLimit:     gen.ErrorLimit,
+				ErrorLimit:     gen.ErrorLimitOpt,
 			},
 		})
 		// NOTE: one sheet may be generated to multiple messages (e.g.: full version and lite version) in the same workbook.
@@ -225,7 +225,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
-	bookCollector := gen.collector.NewChild(gen.ErrorLimit.MaxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook)
 	worksheetFound := false
 	for _, sheetInfo := range sheets {
 		sheetName := sheetInfo.SheetName()

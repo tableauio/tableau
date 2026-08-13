@@ -104,24 +104,24 @@ func TestMatchAny(t *testing.T) {
 		{
 			name: "any match (first)",
 			cmps: []*Comparator{
-				NewComparator(Comparator_SIGN_EQUAL, 1, 2),   // 1/2 == 1/2 → true
-				NewComparator(Comparator_SIGN_LESS, 1, 4),   // 1/2 < 1/4 → false
+				NewComparator(Comparator_SIGN_EQUAL, 1, 2), // 1/2 == 1/2 → true
+				NewComparator(Comparator_SIGN_LESS, 1, 4),  // 1/2 < 1/4 → false
 			},
 			want: true,
 		},
 		{
 			name: "any match (last)",
 			cmps: []*Comparator{
-				NewComparator(Comparator_SIGN_LESS, 1, 4),            // 1/2 < 1/4 → false
-				NewComparator(Comparator_SIGN_GREATER, 1, 4),         // 1/2 > 1/4 → true
+				NewComparator(Comparator_SIGN_LESS, 1, 4),    // 1/2 < 1/4 → false
+				NewComparator(Comparator_SIGN_GREATER, 1, 4), // 1/2 > 1/4 → true
 			},
 			want: true,
 		},
 		{
 			name: "no match",
 			cmps: []*Comparator{
-				NewComparator(Comparator_SIGN_LESS, 1, 4),                 // 1/2 < 1/4 → false
-				NewComparator(Comparator_SIGN_GREATER_OR_EQUAL, 3, 4),    // 1/2 >= 3/4 → false
+				NewComparator(Comparator_SIGN_LESS, 1, 4),             // 1/2 < 1/4 → false
+				NewComparator(Comparator_SIGN_GREATER_OR_EQUAL, 3, 4), // 1/2 >= 3/4 → false
 			},
 			want: false,
 		},
@@ -150,17 +150,17 @@ func TestMatchAll(t *testing.T) {
 		{
 			name: "all match",
 			cmps: []*Comparator{
-				NewComparator(Comparator_SIGN_EQUAL, 2, 4),            // 1/2 == 2/4 → true
-				NewComparator(Comparator_SIGN_GREATER, 1, 4),         // 1/2 > 1/4 → true
-				NewComparator(Comparator_SIGN_LESS_OR_EQUAL, 3, 4),   // 1/2 <= 3/4 → true
+				NewComparator(Comparator_SIGN_EQUAL, 2, 4),         // 1/2 == 2/4 → true
+				NewComparator(Comparator_SIGN_GREATER, 1, 4),       // 1/2 > 1/4 → true
+				NewComparator(Comparator_SIGN_LESS_OR_EQUAL, 3, 4), // 1/2 <= 3/4 → true
 			},
 			want: true,
 		},
 		{
 			name: "one fails",
 			cmps: []*Comparator{
-				NewComparator(Comparator_SIGN_EQUAL, 2, 4),   // 1/2 == 2/4 → true
-				NewComparator(Comparator_SIGN_LESS, 1, 4),    // 1/2 < 1/4 → false
+				NewComparator(Comparator_SIGN_EQUAL, 2, 4), // 1/2 == 2/4 → true
+				NewComparator(Comparator_SIGN_LESS, 1, 4),  // 1/2 < 1/4 → false
 			},
 			want: false,
 		},

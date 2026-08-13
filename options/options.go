@@ -33,7 +33,7 @@ type Options struct {
 	Log *log.Options // Log options.
 
 	// Error limits for error collection at each level, shared by protogen and confgen.
-	ErrorLimit *ErrorLimitOption `yaml:"errorLimits"`
+	ErrorLimit *ErrorLimitOption `yaml:"errorLimit"`
 
 	Proto *ProtoOption `yaml:"proto"` // Proto generation options.
 	Conf  *ConfOption  `yaml:"conf"`  // Conf generation options.
