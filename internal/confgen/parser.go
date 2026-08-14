@@ -867,17 +867,8 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 				defer subField.release()
 				// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
 				if fd.IsList() {
-					// repeated sub-field: split by subsep, and require
-					// subsep to be different from the struct-field sep,
-					// otherwise the two levels cannot be distinguished.
-					// NOTE: subField.subsep is guaranteed non-empty (falls
-					// back to options.DefaultSubsep), so only need to check
-					// it's distinct from sep here.
-					if subField.subsep == sep {
-						return xerrors.Newf("repeated field in incell struct requires a distinct subsep (sep=%q, subsep=%q)", sep, subField.subsep)
-					}
 					listValue := structValue.Message().Mutable(fd).List()
-					for _, elem := range strings.Split(rawValue, subField.subsep) {
+					for elem := range strings.SplitSeq(rawValue, subField.subsep) {
 						elemValue, elemPresent, err := p.parseFieldValue(fd, elem, subField.opts.Prop)
 						if err != nil {
 							return err

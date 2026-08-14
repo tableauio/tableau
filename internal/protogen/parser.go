@@ -159,12 +159,6 @@ func (p *bookParser) parseIncellStructField(name, typ, note string) (*internalpb
 	return parseIncellStructField(p.gen.ctx, p.gen.typeInfos, name, typ, note)
 }
 
-// parseIncellStructField parses one field of an incell struct definition.
-// It accepts scalar (including well-known types, e.g. datetime, duration,
-// fraction, comparator, version) and enum types, and also a "repeated" form
-// `[]ElemType` which produces a repeated proto field. The generated field
-// name is auto-suffixed with "_list", so users should declare the singular
-// form (e.g. `[]int32 ID` generates `repeated int32 id_list`).
 func parseIncellStructField(ctx context.Context, typeInfos *xproto.TypeInfos, name, typ, note string) (*internalpb.Field, error) {
 	if !strings.HasPrefix(typ, "[]") {
 		return parseBasicField(ctx, typeInfos, name, typ, note)
