@@ -121,10 +121,6 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	var protoFiles []string
 	protoFiles = append(protoFiles, gen.InputOpt.ProtoFiles...)
-	importProtos := make(map[string]bool)
-	for _, path := range gen.InputOpt.ProtoFiles {
-		importProtos[path] = true
-	}
 	if useGeneratedProtos {
 		protoFiles = append(protoFiles, xfs.CleanSlashPath(filepath.Join(outdir, "*.proto")))
 	}
