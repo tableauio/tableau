@@ -458,7 +458,7 @@ func Test_bookExporter_export(t *testing.T) {
 				},
 			}
 			be := newBookExporter("protoconf", tt.edition, tt.protoFileOptions, tmpDir, "", wb, gen)
-			err := be.export(false)
+			err := be.export()
 			assert.NoError(t, err)
 
 			// read the generated file and verify
