@@ -210,19 +210,18 @@ func parseIncellStructField(ctx context.Context, typeInfos *xproto.TypeInfos, na
 //   - []int32 ID, string Name (repeated field, generates `id_list`)
 func parseIncellStruct(structType string) ([]string, error) {
 	fields := strings.Split(structType, ",")
-	if len(fields) == 1 && len(strings.Fields(fields[0])) == 1 {
+	if len(fields) == 1 && len(strings.Split(fields[0], " ")) == 1 {
 		// cross cell struct
 		return nil, nil
 	}
 
-	fieldPairs := make([]string, 0, len(fields)*2)
-	for _, pair := range fields {
-		// A pair is "<type> <name>", strictly separated by one space.
-		tokens := strings.Fields(strings.TrimSpace(pair))
-		if len(tokens) != 2 {
+	fieldPairs := make([]string, 0)
+	for _, pair := range strings.Split(structType, ",") {
+		kv := strings.Split(strings.TrimSpace(pair), " ")
+		if len(kv) != 2 {
 			return nil, xerrors.Newf("illegal type-variable pair: %v in incell struct: %s", pair, structType)
 		}
-		fieldPairs = append(fieldPairs, tokens[0], tokens[1])
+		fieldPairs = append(fieldPairs, kv...)
 	}
 	return fieldPairs, nil
 }
