@@ -164,26 +164,15 @@ message Metasheet {
     name: "Validate"
     prop: {optional: true}
   }];
-  // Threshold for splitting a huge union sheet into auxiliary shard proto
-  // files. Only takes effect when this sheet's Mode is
-  // MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI. When the number of sub-messages
-  // in the union exceeds this threshold, sub-messages are extracted out of
-  // the union as top-level messages named `<Union>T_<SubType>` placed in
-  // shard files. This shrinks the biggest generated `.pb.cc` translation
-  // unit and enables parallel C++ back-end compilation for huge unions.
+  // Number of oneof sub-messages placed in each shard file for Union Type
+  // definition. Only takes effect when this sheet's Mode is
+  // MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI. Set to 0 to disable splitting
+  // (the default): the union is emitted with all sub-messages nested inline
+  // as usual.
   //
-  // Set to 0 to disable (the default).
-  int32 union_split_threshold = 26 [(tableau.field) = {
-    name: "UnionSplitThreshold"
-    prop: {optional: true}
-  }];
-  // Number of extracted sub-messages placed in each shard file when
-  // `union_split_threshold` triggers splitting. Only used when
-  // `union_split_threshold > 0`.
-  //
-  // Default: 40.
-  int32 union_split_shard_size = 27 [(tableau.field) = {
-    name: "UnionSplitShardSize"
+  // Default: 0 (disabled).
+  int32 union_shard_size = 26 [(tableau.field) = {
+    name: "UnionShardSize"
     prop: {optional: true}
   }];
 

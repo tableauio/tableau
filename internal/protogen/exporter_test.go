@@ -840,22 +840,20 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		},
 		{
 			// export-union-split verifies that when the sheet's
-			// WorksheetOptions.UnionSplitThreshold (set per-sheet via the
-			// @TABLEAU metasheet's UnionSplitThreshold column) is set and
-			// exceeded, sub-messages are extracted into shard files as
-			// top-level messages with the "T_" separator, and the main
-			// union body no longer emits nested message blocks.
+			// Worksheet.union_shard_size (set per-sheet via the @TABLEAU
+			// metasheet's UnionShardSize column) is positive, sub-messages are
+			// extracted into shard files as top-level messages named
+			// `<Union><SubType>`, and the main union body no longer emits
+			// nested message blocks.
 			name: "export-union-split",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "TaskTarget",
+					// ShardSize=1 puts each sub-message in its own shard,
+					// yielding exactly 2 shards for deterministic asserts.
+					UnionShardSize: 1,
 					Options: &tableaupb.WorksheetOptions{
 						Name: "UnionTaskTarget",
-						// Threshold=1 with 2 sub-messages triggers split.
-						// ShardSize=1 puts each sub-message in its own shard,
-						// yielding exactly 2 shards for deterministic asserts.
-						UnionSplitThreshold: 1,
-						UnionSplitShardSize: 1,
 					},
 					Fields: []*internalpb.Field{
 						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
@@ -891,8 +889,8 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
   oneof value {
     option (tableau.oneof) = {field:"Field"};
 
-    TaskTargetT_PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
-    TaskTargetT_PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    TaskTargetPveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
   }
 
   enum Type {
@@ -906,15 +904,193 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantAux: []auxWant{
 				{
 					relPath: "task_task_target_1.proto",
-					body: `message TaskTargetT_PvpBattle {
+					body: `message TaskTargetPvpBattle {
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }
 `,
 				},
 				{
 					relPath: "task_task_target_2.proto",
-					body: `message TaskTargetT_PveBattle {
+					body: `message TaskTargetPveBattle {
   uint32 level = 1 [(tableau.field) = {name:"Level"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			// union_shard_size=0 explicitly keeps the default inline behavior.
+			name: "export-union-split-shard-size-zero",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name:           "TaskTarget",
+					UnionShardSize: 0,
+					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "PveBattle", Alias: "SoloPVEBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "level", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Level"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+    TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "SoloPVEBattle"]; // SoloPVEBattle
+  }
+
+  message PvpBattle {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  }
+  message PveBattle {
+    uint32 level = 1 [(tableau.field) = {name:"Level"}];
+  }
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			// A single sub-message yields exactly one shard file.
+			name: "export-union-split-single-shard",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name:           "TaskTarget",
+					UnionShardSize: 1,
+					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+  }
+}
+
+`,
+			wantAux: []auxWant{
+				{
+					relPath: "task_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			// Predefined external types are excluded from shards and keep
+			// their fully-qualified names in the oneof.
+			name: "export-union-split-mixed-predefined",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name:           "TaskTarget",
+					UnionShardSize: 1,
+					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "Predefined", Alias: "PredefinedAlias",
+							Type: "protoconf.Item", FullType: "protoconf.Item", Predefined: true},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    protoconf.Item predefined = 2; // Bound to enum value: TYPE_PREDEFINED.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+    TYPE_PREDEFINED = 2 [(tableau.evalue).name = "PredefinedAlias"]; // PredefinedAlias
+  }
+}
+
+`,
+			wantAux: []auxWant{
+				{
+					relPath: "task_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }
 `,
 				},

@@ -6,6 +6,8 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "excel__metasheet__sheet_mode_split_target_1.proto";
+import "excel__metasheet__sheet_mode_split_target_2.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
@@ -222,6 +224,26 @@ message SimpleTarget {
   message Skill {
     google.protobuf.Timestamp start_time = 1 [(tableau.field) = {name:"StartTime"}]; // Note
     google.protobuf.Duration duration = 2 [(tableau.field) = {name:"Duration"}]; // Note
+  }
+}
+
+message SplitTarget {
+  option (tableau.union) = {name:"UnionSplitTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    SplitTargetPVP pvp = 1; // Bound to enum value: TYPE_PVP.
+    SplitTargetPVE pve = 2; // Bound to enum value: TYPE_PVE.
+    SplitTargetSkill skill = 3; // Bound to enum value: TYPE_SKILL.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP = 1 [(tableau.evalue).name = "AliasPVP"]; // AliasPVP
+    TYPE_PVE = 2 [(tableau.evalue).name = "AliasPVE"]; // AliasPVE
+    TYPE_SKILL = 3 [(tableau.evalue).name = "AliasSkill"]; // AliasSkill
   }
 }
 

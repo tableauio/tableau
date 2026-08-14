@@ -213,32 +213,6 @@ message WorksheetOptions {
   //
   // See https://github.com/bufbuild/protovalidate.
   string validate = 24;
-  // Threshold for splitting a huge union sheet into auxiliary shard proto
-  // files. Only takes effect when this sheet's mode is
-  // MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI. When the number of sub-messages
-  // in the union exceeds this threshold, sub-messages are extracted out of
-  // the union as top-level messages named `<Union>T_<SubType>` placed in
-  // shard files, and the main proto imports those shards. This substantially
-  // shrinks any single generated `.pb.cc` translation unit and lets the C++
-  // back-end compile the shards in parallel.
-  //
-  // Extracted sub-messages are renamed to `<Union>T_<SubType>` (the "T_"
-  // separator avoids colliding with protoc-gen-go's oneof wrapper naming
-  // `<Parent>_<CamelField>`, which is only disambiguated intra-file). Code
-  // that only depends on the union's `Type` enum and generated field
-  // accessors is unaffected by this rename.
-  //
-  // Set to 0 to disable (the default): the union is emitted with all
-  // sub-messages nested inline as usual.
-  //
-  // Default: 0 (disabled).
-  int32 union_split_threshold = 25;
-  // Number of extracted sub-messages placed in each shard file when
-  // `union_split_threshold` triggers splitting. Only used when
-  // `union_split_threshold > 0`.
-  //
-  // Default: 40.
-  int32 union_split_shard_size = 26;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
