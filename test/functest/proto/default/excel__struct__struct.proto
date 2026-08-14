@@ -42,7 +42,7 @@ message InCellStruct {
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
     int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
-    Property prop = 2 [(tableau.field) = {name:"Prop" span:SPAN_INNER_CELL}]; // Item property
+    Property prop = 2 [(tableau.field) = {name:"Prop" span:SPAN_INNER_CELL prop:{subsep:";"}}]; // Item property
     message Property {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       string name = 2 [(tableau.field) = {name:"Name"}];
