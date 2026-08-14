@@ -1097,6 +1097,158 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			// Mixed union values: a locally-defined struct plus scalar,
+			// predefined, and reused types. Splitting must extract only the
+			// locally-defined struct; scalar/predefined/reused values keep
+			// their original oneof types and are not sharded.
+			name: "export-union-split-mixed-types",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name:           "TaskTarget",
+					UnionShardSize: 1,
+					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "Point", Alias: "Point",
+							Type: "int32", FullType: "int32"},
+						{Number: 3, Name: "Item", Alias: "Item",
+							Type: "Item", FullType: "protoconf.Item", Predefined: true},
+						{Number: 4, Name: "Friend", Alias: "Friend",
+							Type: "Player", FullType: "Player"},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    int32 point = 2; // Bound to enum value: TYPE_POINT.
+    protoconf.Item item = 3; // Bound to enum value: TYPE_ITEM.
+    Player friend = 4; // Bound to enum value: TYPE_FRIEND.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+    TYPE_POINT = 2 [(tableau.evalue).name = "Point"]; // Point
+    TYPE_ITEM = 3 [(tableau.evalue).name = "Item"]; // Item
+    TYPE_FRIEND = 4 [(tableau.evalue).name = "Friend"]; // Friend
+  }
+}
+
+`,
+			wantAux: []auxWant{
+				{
+					relPath: "task_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			// Reused local types and custom-named structs must also be
+			// rewritten to the extracted top-level names, so the oneof keeps
+			// referencing types that still exist after splitting.
+			name: "export-union-split-reused-local-types",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name:           "TaskTarget",
+					UnionShardSize: 1,
+					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "Player", Alias: "Player",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "Friend", Alias: "Friend",
+							Type: "Player", FullType: "Player"},
+						{Number: 3, Name: "Monster", Alias: "Monster",
+							Type: "CustomMonster", FullType: "CustomMonster",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "health", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Health"}},
+							},
+						},
+						{Number: 4, Name: "Boss", Alias: "Boss",
+							Type: "CustomMonster", FullType: "CustomMonster"},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPlayer player = 1; // Bound to enum value: TYPE_PLAYER.
+    TaskTargetPlayer friend = 2; // Bound to enum value: TYPE_FRIEND.
+    TaskTargetCustomMonster monster = 3; // Bound to enum value: TYPE_MONSTER.
+    TaskTargetCustomMonster boss = 4; // Bound to enum value: TYPE_BOSS.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PLAYER = 1 [(tableau.evalue).name = "Player"]; // Player
+    TYPE_FRIEND = 2 [(tableau.evalue).name = "Friend"]; // Friend
+    TYPE_MONSTER = 3 [(tableau.evalue).name = "Monster"]; // Monster
+    TYPE_BOSS = 4 [(tableau.evalue).name = "Boss"]; // Boss
+  }
+}
+
+`,
+			wantAux: []auxWant{
+				{
+					relPath: "task_task_target_1.proto",
+					body: `message TaskTargetPlayer {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+				{
+					relPath: "task_task_target_2.proto",
+					body: `message TaskTargetCustomMonster {
+  int32 health = 1 [(tableau.field) = {name:"Health"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

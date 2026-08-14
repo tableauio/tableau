@@ -234,16 +234,26 @@ message SplitTarget {
   oneof value {
     option (tableau.oneof) = {field:"Field"};
 
-    SplitTargetPVP pvp = 1; // Bound to enum value: TYPE_PVP.
-    SplitTargetPVE pve = 2; // Bound to enum value: TYPE_PVE.
-    SplitTargetSkill skill = 3; // Bound to enum value: TYPE_SKILL.
+    protoconf.FruitType fruit = 1; // Bound to enum value: TYPE_FRUIT.
+    int32 point = 2; // Bound to enum value: TYPE_POINT.
+    protoconf.Item item = 3; // Bound to enum value: TYPE_ITEM.
+    SplitTargetPlayer player = 4; // Bound to enum value: TYPE_PLAYER.
+    SplitTargetPlayer friend = 5; // Bound to enum value: TYPE_FRIEND.
+    SplitTargetCustomMonster monster = 6; // Bound to enum value: TYPE_MONSTER.
+    SplitTargetCustomMonster boss = 7; // Bound to enum value: TYPE_BOSS.
+    SplitTargetSkill skill = 8; // Bound to enum value: TYPE_SKILL.
   }
 
   enum Type {
     TYPE_INVALID = 0;
-    TYPE_PVP = 1 [(tableau.evalue).name = "AliasPVP"]; // AliasPVP
-    TYPE_PVE = 2 [(tableau.evalue).name = "AliasPVE"]; // AliasPVE
-    TYPE_SKILL = 3 [(tableau.evalue).name = "AliasSkill"]; // AliasSkill
+    TYPE_FRUIT = 1 [(tableau.evalue).name = "Fruit"]; // Fruit
+    TYPE_POINT = 2 [(tableau.evalue).name = "Point"]; // Point
+    TYPE_ITEM = 3 [(tableau.evalue).name = "Item"]; // Item
+    TYPE_PLAYER = 4 [(tableau.evalue).name = "Player"]; // Player
+    TYPE_FRIEND = 5 [(tableau.evalue).name = "Friend"]; // Friend
+    TYPE_MONSTER = 6 [(tableau.evalue).name = "Monster"]; // Monster
+    TYPE_BOSS = 7 [(tableau.evalue).name = "Boss"]; // Boss
+    TYPE_SKILL = 8 [(tableau.evalue).name = "Skill"]; // Skill
   }
 }
 

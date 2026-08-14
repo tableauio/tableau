@@ -10,12 +10,12 @@ import "tableau/protobuf/tableau.proto";
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
 option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
 
-message SplitTargetPVP {
-  uint32 id = 1 [(tableau.field) = {name:"ID"}]; // Note
-  int64 damage = 2 [(tableau.field) = {name:"Damage"}]; // Note
+message SplitTargetPlayer {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  string name = 2 [(tableau.field) = {name:"Name"}];
 }
 
-message SplitTargetPVE {
-  repeated uint32 hero_list = 1 [(tableau.field) = {name:"Hero" layout:LAYOUT_INCELL}]; // Note
-  map<int32, int64> dungeon_map = 2 [(tableau.field) = {name:"Dungeon" layout:LAYOUT_INCELL}]; // Note
+message SplitTargetCustomMonster {
+  int32 health = 1 [(tableau.field) = {name:"Health"}];
+  int32 attack = 2 [(tableau.field) = {name:"Attack"}];
 }

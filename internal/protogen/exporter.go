@@ -342,7 +342,10 @@ func (x *sheetExporter) exportUnion() error {
 	}
 
 	// Collect sub-messages that carry a message body (candidates for splitting).
+	// splitTypes records their sub-message type names so the oneof can rewrite
+	// references to extracted types (including reused/custom-named ones).
 	var subMsgs []unionSubMsg
+	splitTypes := make(map[string]bool)
 	for _, msgField := range x.ws.Fields {
 		if len(msgField.Fields) == 0 {
 			continue
@@ -352,6 +355,7 @@ func (x *sheetExporter) exportUnion() error {
 			typ = msgField.Type
 		}
 		subMsgs = append(subMsgs, unionSubMsg{field: msgField, typ: typ})
+		splitTypes[typ] = true
 	}
 
 	// Split only when explicitly enabled (union_shard_size > 0).
@@ -405,10 +409,10 @@ func (x *sheetExporter) exportUnion() error {
 			continue
 		}
 		// When splitting, the oneof references the extracted top-level type
-		// name (`<Union><SubType>`). Otherwise keep the original nested name
-		// so single-file unions are unchanged. Predefined external types keep
-		// their original fully-qualified names.
-		if shouldSplit && len(field.Fields) > 0 && fullTypeName == "" {
+		// name (`<Union><SubType>`). This covers locally-defined structs,
+		// custom-named structs, and reused local types; scalar and predefined
+		// types are never in splitTypes, so they keep their original names.
+		if shouldSplit && splitTypes[typ] {
 			typ = x.ws.Name + typ
 		}
 		x.p.P("    ", typ, " ", strcase.FromContext(x.be.gen.ctx).ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
