@@ -202,6 +202,31 @@ func Test_parseIncellStruct(t *testing.T) {
 			},
 			want: []string{"int32", "ID", "string", "Name"},
 		},
+		{
+			name: "repeated scalar field",
+			args: args{
+				structType: "[]int32 ID, string Name",
+			},
+			want: []string{"[]int32", "ID", "string", "Name"},
+		},
+		{
+			name: "mixed repeated fields",
+			args: args{
+				structType: "[]int32 ID, []string Name, int32 Age",
+			},
+			want: []string{"[]int32", "ID", "[]string", "Name", "int32", "Age"},
+		},
+		{
+			name:    "invalid: missing name",
+			args:    args{structType: "int32"},
+			wantErr: false, // treated as cross cell struct, returns nil,nil
+			want:    nil,
+		},
+		{
+			name:    "invalid: pair missing name",
+			args:    args{structType: "int32 ID, string"},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -212,6 +237,107 @@ func Test_parseIncellStruct(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("parseIncellStruct() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_parseIncellStructField(t *testing.T) {
+	typeInfos := xproto.NewTypeInfos("protoconf")
+	typeInfos.Put(&xproto.TypeInfo{
+		FullName:       "protoconf.ItemType",
+		ParentFilename: "common.proto",
+		Kind:           types.EnumKind,
+	})
+	type args struct {
+		name string
+		typ  string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *internalpb.Field
+		wantErr bool
+	}{
+		{
+			name: "scalar field",
+			args: args{name: "ID", typ: "int32"},
+			want: &internalpb.Field{
+				Type:     "int32",
+				FullType: "int32",
+				Name:     "id",
+				Options:  &tableaupb.FieldOptions{Name: "ID"},
+			},
+		},
+		{
+			name: "repeated scalar field",
+			args: args{name: "ID", typ: "[]int32"},
+			want: &internalpb.Field{
+				Type:     "repeated int32",
+				FullType: "repeated int32",
+				Name:     "id_list",
+				ListEntry: &internalpb.Field_ListEntry{
+					ElemType:     "int32",
+					ElemFullType: "int32",
+				},
+				Options: &tableaupb.FieldOptions{Name: "ID"},
+			},
+		},
+		{
+			name: "repeated enum field",
+			args: args{name: "Type", typ: "[]enum<.ItemType>"},
+			want: &internalpb.Field{
+				Type:       "repeated ItemType",
+				FullType:   "repeated protoconf.ItemType",
+				Name:       "type_list",
+				Predefined: true,
+				ListEntry: &internalpb.Field_ListEntry{
+					ElemType:     "ItemType",
+					ElemFullType: "protoconf.ItemType",
+				},
+				Options: &tableaupb.FieldOptions{Name: "Type"},
+			},
+		},
+		{
+			name: "repeated wellknown datetime field",
+			args: args{name: "CreatedAt", typ: "[]datetime"},
+			want: &internalpb.Field{
+				Type:       "repeated google.protobuf.Timestamp",
+				FullType:   "repeated google.protobuf.Timestamp",
+				Name:       "created_at_list",
+				Predefined: true,
+				ListEntry: &internalpb.Field_ListEntry{
+					ElemType:     "google.protobuf.Timestamp",
+					ElemFullType: "google.protobuf.Timestamp",
+				},
+				Options: &tableaupb.FieldOptions{Name: "CreatedAt"},
+			},
+		},
+		{
+			name: "repeated wellknown duration field",
+			args: args{name: "Cost", typ: "[]duration"},
+			want: &internalpb.Field{
+				Type:       "repeated google.protobuf.Duration",
+				FullType:   "repeated google.protobuf.Duration",
+				Name:       "cost_list",
+				Predefined: true,
+				ListEntry: &internalpb.Field_ListEntry{
+					ElemType:     "google.protobuf.Duration",
+					ElemFullType: "google.protobuf.Duration",
+				},
+				Options: &tableaupb.FieldOptions{Name: "Cost"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseIncellStructField(context.Background(), typeInfos, tt.args.name, tt.args.typ, "")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseIncellStructField() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseIncellStructField() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}

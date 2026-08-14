@@ -149,9 +149,65 @@ func parseTypeDescriptor(typeInfos *xproto.TypeInfos, rawType string) (*types.De
 	return types.ParseTypeDescriptor(rawType), nil
 }
 
+// parseIncellStructField parses one field of an incell struct definition.
+// It accepts scalar (including well-known types, e.g. datetime, duration,
+// fraction, comparator, version) and enum types, and also a "repeated" form
+// `[]ElemType` which produces a repeated proto field. The generated field
+// name is auto-suffixed with "_list", so users should declare the singular
+// form (e.g. `[]int32 ID` generates `repeated int32 id_list`).
+func (p *bookParser) parseIncellStructField(name, typ, note string) (*internalpb.Field, error) {
+	return parseIncellStructField(p.gen.ctx, p.gen.typeInfos, name, typ, note)
+}
+
+func parseIncellStructField(ctx context.Context, typeInfos *xproto.TypeInfos, name, typ, note string) (*internalpb.Field, error) {
+	if !strings.HasPrefix(typ, "[]") {
+		return parseBasicField(ctx, typeInfos, name, typ, note)
+	}
+	elemType := strings.TrimSpace(typ[2:])
+	if elemType == "" {
+		return nil, xerrors.Newf("empty element type in incell struct repeated field: %s", typ)
+	}
+	if strings.ContainsAny(elemType, "[{") {
+		return nil, xerrors.Newf("nested composite type is not allowed in incell struct repeated field: %s", typ)
+	}
+	// Element kind check: only scalar or enum is allowed. Well-known types
+	// (e.g. datetime, duration, fraction, comparator, version) are already
+	// classified as types.ScalarKind by types.ParseTypeDescriptor, so they
+	// are supported here too.
+	elemTypeForDesc := elemType
+	if desc := types.MatchEnum(elemTypeForDesc); desc != nil {
+		elemTypeForDesc = desc.EnumType
+	} else if desc := types.MatchScalar(elemTypeForDesc); desc != nil {
+		elemTypeForDesc = desc.ScalarType
+	}
+	elemDesc, err := parseTypeDescriptor(typeInfos, elemTypeForDesc)
+	if err != nil {
+		return nil, err
+	}
+	if elemDesc.Kind != types.ScalarKind && elemDesc.Kind != types.EnumKind {
+		return nil, xerrors.Newf("only scalar (including well-known types) or enum element type is allowed in incell struct repeated field: %s", typ)
+	}
+	// Reuse parseBasicField to build the element field, then promote it to a
+	// repeated field by setting ListEntry and adjusting Type/FullType.
+	field, err := parseBasicField(ctx, typeInfos, name, elemType, note)
+	if err != nil {
+		return nil, err
+	}
+	field.ListEntry = &internalpb.Field_ListEntry{
+		ElemType:     field.Type,
+		ElemFullType: field.FullType,
+	}
+	field.Type = "repeated " + field.Type
+	field.FullType = "repeated " + field.FullType
+	// Auto-append "_list" suffix so users don't need to pluralize the name.
+	field.Name = strcase.FromContext(ctx).ToSnake(strings.TrimPrefix(name, book.MetaSign)) + listVarSuffix
+	return field, nil
+}
+
 // parseIncellStruct parses incell struct type definition. For example:
 //   - int32 ID
 //   - int32 ID, string Name
+//   - []int32 ID, string Name (repeated field, generates `id_list`)
 func parseIncellStruct(structType string) ([]string, error) {
 	fields := strings.Split(structType, ",")
 	if len(fields) == 1 && len(strings.Split(fields[0], " ")) == 1 {

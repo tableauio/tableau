@@ -5,7 +5,14 @@
             "prop": {
                 "id": 1,
                 "name": "Apple",
-                "desc": "A kind of delicious fruit."
+                "descList": [
+                    "A kind of delicious fruit.",
+                    "Sweet and juicy."
+                ],
+                "createdAtList": [
+                    "2020-01-01T00:00:00+08:00",
+                    "2020-06-15T00:00:00+08:00"
+                ]
             }
         },
         "2": {
@@ -13,7 +20,12 @@
             "prop": {
                 "id": 2,
                 "name": "Orange",
-                "desc": ""
+                "descList": [
+                    "Sour"
+                ],
+                "createdAtList": [
+                    "2021-03-10T00:00:00+08:00"
+                ]
             }
         },
         "3": {
@@ -21,7 +33,11 @@
             "prop": {
                 "id": 3,
                 "name": "",
-                "desc": ""
+                "descList": [],
+                "createdAtList": [
+                    "2020-10-01T05:00:00+08:00",
+                    "2021-10-01T05:00:00+08:00"
+                ]
             }
         }
     }

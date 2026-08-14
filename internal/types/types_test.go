@@ -288,6 +288,26 @@ func TestMatchStruct(t *testing.T) {
 				Prop:       PropDescriptor{Text: `range:"~,10"`},
 			},
 		},
+		{
+			name: "new-defined-struct-with-repeated-field",
+			args: args{
+				text: "{[]int32 ID, string Name}Property",
+			},
+			want: &StructDescriptor{
+				StructType: "[]int32 ID, string Name",
+				ColumnType: "Property",
+			},
+		},
+		{
+			name: "new-defined-struct-with-multiple-repeated-fields",
+			args: args{
+				text: "{[]int32 ID, []string Name}Property",
+			},
+			want: &StructDescriptor{
+				StructType: "[]int32 ID, []string Name",
+				ColumnType: "Property",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

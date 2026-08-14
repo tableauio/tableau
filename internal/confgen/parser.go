@@ -871,6 +871,20 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 				subField.mergeParentFieldProp(field)
 				defer subField.release()
 				// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
+				if fd.IsList() {
+					listValue := structValue.Message().Mutable(fd).List()
+					for elem := range strings.SplitSeq(rawValue, field.subsep) {
+						elemValue, elemPresent, err := p.parseFieldValue(fd, elem, subField.opts.Prop)
+						if err != nil {
+							return err
+						}
+						if elemPresent {
+							present = true
+							listValue.Append(elemValue)
+						}
+					}
+					return nil
+				}
 				value, fieldPresent, err := p.parseFieldValue(fd, rawValue, subField.opts.Prop)
 				if err != nil {
 					return err

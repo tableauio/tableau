@@ -7,6 +7,7 @@ package protoconf;
 
 import "common/base.proto";
 import "common/common.proto";
+import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -41,11 +42,12 @@ message InCellStruct {
   map<int32, Item> item_map = 1 [(tableau.field) = {key:"ID" layout:LAYOUT_VERTICAL}];
   message Item {
     int32 id = 1 [(tableau.field) = {name:"ID"}]; // Item ID
-    Property prop = 2 [(tableau.field) = {name:"Prop" span:SPAN_INNER_CELL}]; // Item property
+    Property prop = 2 [(tableau.field) = {name:"Prop" span:SPAN_INNER_CELL prop:{subsep:";"}}]; // Item property
     message Property {
       int32 id = 1 [(tableau.field) = {name:"ID"}];
       string name = 2 [(tableau.field) = {name:"Name"}];
-      string desc = 3 [(tableau.field) = {name:"Desc"}];
+      repeated string desc_list = 3 [(tableau.field) = {name:"Desc"}];
+      repeated google.protobuf.Timestamp created_at_list = 4 [(tableau.field) = {name:"CreatedAt"}];
     }
   }
 }
