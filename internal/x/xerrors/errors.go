@@ -135,13 +135,7 @@ func (b *base) Format(s fmt.State, verb rune) {
 
 // renderWithFields delegates to the cause, passing outerFields through the stack wrapper.
 func (b *base) renderWithFields(outerFields map[string]any) string {
-	if b.cause != nil {
-		if r, ok := b.cause.(fieldsRenderer); ok {
-			return r.renderWithFields(outerFields)
-		}
-		return b.cause.Error()
-	}
-	return ""
+	return renderCause(b.cause, outerFields)
 }
 
 // withMessage wraps a cause with an optional message and structured fields.
@@ -163,6 +157,18 @@ func (w *withMessage) Fields() map[string]any {
 // fieldsRenderer renders an error string with outer fields merged in (inner fields win).
 type fieldsRenderer interface {
 	renderWithFields(outerFields map[string]any) string
+}
+
+// renderCause renders cause with outerFields propagated into it, falling back
+// to plain Error() for causes that do not carry fields.
+func renderCause(cause error, outerFields map[string]any) string {
+	if cause == nil {
+		return ""
+	}
+	if r, ok := cause.(fieldsRenderer); ok {
+		return r.renderWithFields(outerFields)
+	}
+	return cause.Error()
 }
 
 func (w *withMessage) Error() string {
@@ -205,13 +211,7 @@ func (w *withMessage) renderWithFields(outerFields map[string]any) string {
 	merged := make(map[string]any, len(outerFields)+len(w.fields))
 	maps.Copy(merged, outerFields)
 	maps.Copy(merged, w.fields)
-	if w.cause != nil {
-		if r, ok := w.cause.(fieldsRenderer); ok {
-			return r.renderWithFields(merged)
-		}
-		return w.cause.Error()
-	}
-	return ""
+	return renderCause(w.cause, merged)
 }
 
 func (w *withMessage) Format(s fmt.State, verb rune) {

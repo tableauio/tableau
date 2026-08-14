@@ -80,6 +80,22 @@ var keys = []string{
 	keyHelp,
 }
 
+// scopeKeys are the keys identifying the enclosing scope (which dir, book,
+// sheet, message) rather than a location inside it. Only these may be shared
+// across the errors of a joined tree: a cell position or field name describes
+// one error alone, so broadcasting it would point the others at a wrong cell.
+var scopeKeys = map[string]bool{
+	KeyModule:           true,
+	KeyIndir:            true,
+	KeySubdir:           true,
+	KeyOutdir:           true,
+	KeyBookName:         true,
+	KeyPrimaryBookName:  true,
+	KeySheetName:        true,
+	KeyPrimarySheetName: true,
+	KeyPBMessage:        true,
+}
+
 // multiUnwrapper is implemented by joined errors (e.g. errors.Join).
 type multiUnwrapper interface {
 	Unwrap() []error
