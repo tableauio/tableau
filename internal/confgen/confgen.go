@@ -10,6 +10,7 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/strcase"
@@ -95,6 +96,8 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 }
 
 func (gen *Generator) GenAll() error {
+	// Drop refer value spaces from a previous run in this process.
+	fieldprop.ResetReferredCache()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
@@ -121,6 +124,8 @@ func (gen *Generator) GenAll() error {
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
+	// Drop refer value spaces from a previous run in this process.
+	fieldprop.ResetReferredCache()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err

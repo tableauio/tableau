@@ -82,6 +82,21 @@ func NewReferredCache() *ReferredCache {
 	}
 }
 
+// Reset clears both successful value spaces and remembered load failures.
+func (r *ReferredCache) Reset() {
+	r.Lock()
+	defer r.Unlock()
+	r.references = make(map[string]*ValueSpace)
+	r.failed = make(map[string]struct{})
+}
+
+// ResetReferredCache clears the process-level refer value-space cache.
+// Confgen calls this at the start of each GenAll/GenWorkbook so a previous
+// run's failures or stale workbook snapshot cannot leak into the next run.
+func ResetReferredCache() {
+	referredCache.Reset()
+}
+
 func (r *ReferredCache) Exists(refer string) bool {
 	r.RLock()
 	defer r.RUnlock()
