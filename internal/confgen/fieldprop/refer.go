@@ -27,34 +27,31 @@ func init() {
 	// - Item(ItemConf).ID
 	// - Item-(Award)(ItemConf).ID
 	referRegexp = regexp.MustCompile(`(?P<Sheet>.+?)` + `(\((?P<Alias>\w+)\))?` + `\.` + `(?P<Column>\w+)`)
-
-	referredCache = NewReferredCache()
 }
 
-var referredCache *ReferredCache
-
+// ReferredCache holds refer target column value spaces for one generate/load run.
 type ReferredCache struct {
-	sync.RWMutex
-	references map[string]*ValueSpace // message name -> sheet column value space
+	mu         sync.RWMutex
+	references map[string]*valueSpace // message name -> sheet column value space
 	// failed records refer expressions whose value space failed to load.
 	// The first failure is still surfaced to the caller; subsequent
-	// ExistsValue calls for the same refer short-circuit to "present" so
+	// InReferredSpace calls for the same refer short-circuit to "present" so
 	// one broken refer target does not spam N duplicate errors (one per
 	// row of the referring sheet).
 	failed map[string]struct{}
 }
 
-type ValueSpace struct {
+type valueSpace struct {
 	*hashset.Set
 }
 
-func NewValueSpace() *ValueSpace {
-	return &ValueSpace{
+func newValueSpace() *valueSpace {
+	return &valueSpace{
 		Set: hashset.New(),
 	}
 }
 
-func (v *ValueSpace) AddFromTable(header *tableparser.Header, table book.Tabler, columnName, bookName, sheetName string) error {
+func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler, columnName, bookName, sheetName string) error {
 	err := tableparser.RangeDataRows(table, header, func(r *book.Row) error {
 		cell, err := r.Cell(columnName, false)
 		if err != nil {
@@ -77,95 +74,87 @@ func (v *ValueSpace) AddFromTable(header *tableparser.Header, table book.Tabler,
 
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
-		references: make(map[string]*ValueSpace),
+		references: make(map[string]*valueSpace),
 		failed:     make(map[string]struct{}),
 	}
 }
 
-// Reset clears both successful value spaces and remembered load failures.
-func (r *ReferredCache) Reset() {
-	r.Lock()
-	defer r.Unlock()
-	r.references = make(map[string]*ValueSpace)
+func (r *ReferredCache) reset() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.references = make(map[string]*valueSpace)
 	r.failed = make(map[string]struct{})
 }
 
-// ResetReferredCache clears the process-level refer value-space cache.
-// Confgen calls this at the start of each GenAll/GenWorkbook so a previous
-// run's failures or stale workbook snapshot cannot leak into the next run.
-func ResetReferredCache() {
-	referredCache.Reset()
-}
-
-func (r *ReferredCache) Exists(refer string) bool {
-	r.RLock()
-	defer r.RUnlock()
+func (r *ReferredCache) exists(refer string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	_, ok := r.references[refer]
 	return ok
 }
 
-type loadValueSpaceFunc = func(refer string) (*ValueSpace, error)
+type loadValueSpaceFunc = func(refer string) (*valueSpace, error)
 
-func (r *ReferredCache) ExistsValue(refer string, value string, loadFunc loadValueSpaceFunc) (bool, error) {
-	r.RLock()
-	valueSpace, ok := r.references[refer]
+func (r *ReferredCache) existsValue(refer string, value string, loadFunc loadValueSpaceFunc) (bool, error) {
+	r.mu.RLock()
+	space, ok := r.references[refer]
 	_, isFailed := r.failed[refer]
-	r.RUnlock()
+	r.mu.RUnlock()
 	if isFailed {
 		// A prior load surfaced the real error already; silence follow-ups
 		// on the same refer target.
 		return true, nil
 	}
 	if ok {
-		return valueSpace.Contains(value), nil
+		return space.Contains(value), nil
 	}
 
 	// load value space once
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if _, isFailed = r.failed[refer]; isFailed {
 		return true, nil
 	}
-	valueSpace, ok = r.references[refer]
+	space, ok = r.references[refer]
 	if ok {
-		return valueSpace.Contains(value), nil
+		return space.Contains(value), nil
 	}
-	valueSpace, err := loadFunc(refer)
+	space, err := loadFunc(refer)
 	if err != nil {
 		// Remember the failure so future callers short-circuit instead of
 		// re-triggering loadFunc (and re-emitting the same error).
 		r.failed[refer] = struct{}{}
 		return false, err
 	}
-	r.references[refer] = valueSpace
-	return valueSpace.Contains(value), nil
+	r.references[refer] = space
+	return space.Contains(value), nil
 }
 
-func (r *ReferredCache) Put(refer string, valueSpace *ValueSpace) {
-	r.Lock()
-	defer r.Unlock()
-	r.references[refer] = valueSpace
+func (r *ReferredCache) put(refer string, space *valueSpace) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.references[refer] = space
 }
 
-type ReferDesc struct {
+type referDesc struct {
 	Sheet  string // sheet name in workbook.
 	Alias  string // sheet alias: if set, used as protobuf message name.
 	Column string // sheet column name in name row.
 }
 
-func (r *ReferDesc) GetMessageName() string {
-	if r.Alias != "" {
-		return r.Alias
+func (d *referDesc) getMessageName() string {
+	if d.Alias != "" {
+		return d.Alias
 	}
-	return r.Sheet
+	return d.Sheet
 }
 
-func parseRefer(text string) (*ReferDesc, error) {
+func parseRefer(text string) (*referDesc, error) {
 	match := referRegexp.FindStringSubmatch(text)
 	if match == nil {
 		return nil, xerrors.Newf("invalid refer pattern: %s", text)
 	}
-	desc := &ReferDesc{}
+	desc := &referDesc{}
 	for i, name := range referRegexp.SubexpNames() {
 		value := strings.TrimSpace(match[i])
 		switch name {
@@ -180,6 +169,7 @@ func parseRefer(text string) (*ReferDesc, error) {
 	return desc, nil
 }
 
+// Input is the workbook lookup context for InReferredSpace.
 type Input struct {
 	ProtoPackage   string
 	InputDir       string
@@ -188,15 +178,15 @@ type Input struct {
 	Present        bool // field presence
 }
 
-func loadValueSpace(ctx context.Context, refer string, input *Input) (*ValueSpace, error) {
+func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpace, error) {
 	referInfo, err := parseRefer(refer)
 	if err != nil {
 		return nil, err
 	}
-	fullName := protoreflect.FullName(input.ProtoPackage + "." + referInfo.GetMessageName())
+	fullName := protoreflect.FullName(input.ProtoPackage + "." + referInfo.getMessageName())
 	desc, err := input.PRFiles.FindDescriptorByName(fullName)
 	if err != nil {
-		return nil, xerrors.E2001(refer, referInfo.GetMessageName())
+		return nil, xerrors.E2001(refer, referInfo.getMessageName())
 	}
 
 	// get workbook name and worksheet name
@@ -226,7 +216,7 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*ValueSpac
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})
 	header := tableparser.NewHeader(sheetOpts, bookOpts, nil)
 	// new empty referred value space set
-	valueSpace := NewValueSpace()
+	space := newValueSpace()
 	for _, impInfo := range impInfos {
 		specifiedSheetName := sheetName
 		if impInfo.SpecifiedSheetName != "" {
@@ -240,22 +230,22 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*ValueSpac
 		}
 
 		if sheetOpts.Transpose {
-			err = valueSpace.AddFromTable(header, sheet.Table.Transpose(), referInfo.Column, bookName, sheetName)
+			err = space.addFromTable(header, sheet.Table.Transpose(), referInfo.Column, bookName, sheetName)
 		} else {
-			err = valueSpace.AddFromTable(header, sheet.Table, referInfo.Column, bookName, sheetName)
+			err = space.addFromTable(header, sheet.Table, referInfo.Column, bookName, sheetName)
 		}
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return valueSpace, nil
+	return space, nil
 }
 
 // InReferredSpace checks whether the cell data is at least in one of the other sheets'
 // column value space (aka message's field value space). prop.Refer is comma separated,
 // e.g.: "SheetName(SheetAlias).ColumnName[,SheetName(SheetAlias).ColumnName]..."
-func InReferredSpace(ctx context.Context, prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
+func (r *ReferredCache) InReferredSpace(ctx context.Context, prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
 	if prop == nil || strings.TrimSpace(prop.Refer) == "" {
 		return true, nil
 	}
@@ -263,14 +253,17 @@ func InReferredSpace(ctx context.Context, prop *tableaupb.FieldProp, cellData st
 	if !input.Present && !prop.Present {
 		return true, nil
 	}
+	if r == nil {
+		r = NewReferredCache()
+	}
 
-	loadFunc := func(refer string) (*ValueSpace, error) {
+	loadFunc := func(refer string) (*valueSpace, error) {
 		return loadValueSpace(ctx, refer, input)
 	}
 
 	// NOTE: prop.Refer is comma separated, e.g.: "SheetName(SheetAlias).ColumnName[,SheetName(SheetAlias).ColumnName]..."
 	for _, refer := range strings.Split(prop.Refer, ",") {
-		ok, err := referredCache.ExistsValue(refer, cellData, loadFunc)
+		ok, err := r.existsValue(refer, cellData, loadFunc)
 		if err != nil {
 			return false, err
 		}

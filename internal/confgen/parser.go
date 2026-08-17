@@ -317,6 +317,7 @@ type SheetParserExtInfo struct {
 	BookFormat     format.Format // workbook format
 	DryRun         options.DryRun
 	ErrorLimit     *options.ErrorLimitOption // error collection limits
+	ReferredCache  *fieldprop.ReferredCache
 }
 
 // NewSheetParser creates a new sheet parser.
@@ -992,7 +993,7 @@ func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue 
 				PRFiles:        p.extInfo.PRFiles,
 				Present:        present,
 			}
-			ok, err := fieldprop.InReferredSpace(p.ctx, fprop, rawValue, input)
+			ok, err := p.extInfo.ReferredCache.InReferredSpace(p.ctx, fprop, rawValue, input)
 			if err != nil {
 				return v, present, err
 			}
