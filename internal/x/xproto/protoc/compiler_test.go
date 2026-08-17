@@ -1,6 +1,8 @@
 package protoc
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -59,6 +61,114 @@ func TestNewFiles(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func Test_rel(t *testing.T) {
+	tests := []struct {
+		name       string
+		filename   string
+		protoPaths []string
+		want       string
+	}{
+		{
+			name:     "sibling protoPaths prefer containing dir not parent-relative",
+			filename: "Temp/proto/generated/common_enum_conf.proto",
+			protoPaths: []string{
+				"Temp/proto/common",
+				"Temp/proto/generated",
+			},
+			want: "common_enum_conf.proto",
+		},
+		{
+			name:     "most specific protoPath wins",
+			filename: "Temp/proto/generated/common_enum_conf.proto",
+			protoPaths: []string{
+				"Temp/proto",
+				"Temp/proto/generated",
+			},
+			want: "common_enum_conf.proto",
+		},
+		{
+			name:     "nested under first protoPath",
+			filename: "proto/tableau/protobuf/unittest/common.proto",
+			protoPaths: []string{
+				"proto",
+			},
+			want: "tableau/protobuf/unittest/common.proto",
+		},
+		{
+			name:     "no containing protoPath falls back to filename",
+			filename: "Temp/proto/generated/foo.proto",
+			protoPaths: []string{
+				"Temp/proto/common",
+			},
+			want: "Temp/proto/generated/foo.proto",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := rel(tt.filename, tt.protoPaths); got != tt.want {
+				t.Errorf("rel() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewFiles_siblingProtoPathsNoDuplicateSymbols(t *testing.T) {
+	root := t.TempDir()
+	commonDir := filepath.Join(root, "common")
+	generatedDir := filepath.Join(root, "generated")
+	if err := os.MkdirAll(commonDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(generatedDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	commonProto := `syntax = "proto3";
+package protoconf;
+message Item { int32 id = 1; }
+`
+	enumProto := `syntax = "proto3";
+package protoconf;
+enum AttributeId { ATTRIBUTE_ID_UNSPECIFIED = 0; }
+`
+	bookProto := `syntax = "proto3";
+package protoconf;
+import "common.proto";
+import "enum.proto";
+message Book {
+  Item item = 1;
+  AttributeId attr = 2;
+}
+`
+	if err := os.WriteFile(filepath.Join(commonDir, "common.proto"), []byte(commonProto), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(generatedDir, "enum.proto"), []byte(enumProto), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(generatedDir, "book.proto"), []byte(bookProto), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	files, err := NewFiles(
+		[]string{commonDir, generatedDir},
+		[]string{
+			filepath.Join(commonDir, "common.proto"),
+			filepath.Join(generatedDir, "*.proto"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("NewFiles() unexpected error: %v", err)
+	}
+	for _, path := range []string{"common.proto", "enum.proto", "book.proto"} {
+		if _, err := files.FindFileByPath(path); err != nil {
+			t.Errorf("FindFileByPath(%q) = %v", path, err)
+		}
+	}
+	if _, err := files.FindFileByPath("../generated/enum.proto"); err == nil {
+		t.Error("FindFileByPath(../generated/enum.proto) succeeded; file should be registered as enum.proto")
 	}
 }
 

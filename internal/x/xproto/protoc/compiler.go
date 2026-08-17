@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bufbuild/protocompile"
 	"github.com/bufbuild/protocompile/linker"
@@ -61,12 +62,39 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 }
 
 func rel(filename string, protoPaths []string) string {
+	best := ""
+	bestBaseLen := -1
 	for _, protoPath := range protoPaths {
-		if rel, err := filepath.Rel(protoPath, filename); err == nil {
-			return xfs.CleanSlashPath(rel)
+		relPath, err := filepath.Rel(filepath.FromSlash(protoPath), filepath.FromSlash(filename))
+		if err != nil {
+			continue
+		}
+		clean := xfs.CleanSlashPath(relPath)
+		if !isContainedImportPath(clean) {
+			// filepath.Rel succeeds for sibling directories (e.g. Rel("common",
+			// "generated/foo.proto") == "../generated/foo.proto"). Using that
+			// as the protobuf import name makes the same file appear twice:
+			// once as "../generated/foo.proto" (explicit protoFiles) and once
+			// as "foo.proto" (import resolved via another protoPath).
+			continue
+		}
+		baseLen := len(xfs.CleanSlashPath(protoPath))
+		if baseLen > bestBaseLen {
+			best = clean
+			bestBaseLen = baseLen
 		}
 	}
+	if bestBaseLen >= 0 {
+		return best
+	}
 	return filename
+}
+
+// isContainedImportPath reports whether rel is a path inside the protoPath
+// (no ".." escape). Such a path is a valid protobuf import name relative to
+// that protoPath.
+func isContainedImportPath(rel string) bool {
+	return rel != ".." && !strings.HasPrefix(rel, "../")
 }
 
 // parseProtos parses the proto paths and proto files to protoregistry.Files.
