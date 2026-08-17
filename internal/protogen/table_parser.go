@@ -144,7 +144,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 	if err != nil {
 		return cursor, xerrors.WrapKV(err,
 			xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
-			xerrors.KeyPBFieldOpts, desc.Prop.Text)
+			xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 	}
 
 	mapType := fmt.Sprintf("map<%s, %s>", parsedKeyType, valueTypeDesc.Name)
@@ -189,6 +189,12 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		}
 	}
 
+	incellScalarMap := layout == tableaupb.Layout_LAYOUT_INCELL &&
+		(mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind)
+	if err := checkVpropAllowed(desc, incellScalarMap); err != nil {
+		return cursor, err
+	}
+
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		if opts.Nested {
@@ -211,11 +217,11 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix)
 		// extract map field property
-		prop, err := desc.Prop.FieldProp()
+		prop, err := desc.KeyProp.FieldProp()
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
+				xerrors.KeyPBFieldOpts, desc.KeyProp.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		field.Options = &tableaupb.FieldOptions{
@@ -226,11 +232,11 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		if opts.Nested {
 			field.Options.Name = valueTypeDesc.Name
 		}
-		keyField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp(), header.getNoteCell(cursor))
+		keyField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.KeyProp.RawProp(), header.getNoteCell(cursor))
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
+				xerrors.KeyPBFieldOpts, desc.KeyProp.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 
@@ -277,11 +283,11 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		trimmedNameCell := strings.TrimPrefix(nameCell, prefix+"1")
 		trimmedNoteCell := strings.TrimPrefix(noteCell, notePrefix+"1")
 		// extract map field property
-		prop, err := desc.Prop.FieldProp()
+		prop, err := desc.KeyProp.FieldProp()
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
+				xerrors.KeyPBFieldOpts, desc.KeyProp.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		field.Options = &tableaupb.FieldOptions{
@@ -290,11 +296,11 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			Layout: layout,
 			Prop:   ExtractMapFieldProp(prop, layout),
 		}
-		keyField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.Prop.RawProp(), trimmedNoteCell)
+		keyField, err := p.parseBasicField(trimmedNameCell, desc.KeyType+desc.KeyProp.RawProp(), trimmedNoteCell)
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
+				xerrors.KeyPBFieldOpts, desc.KeyProp.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		field.Fields = append(field.Fields, keyField)
@@ -329,8 +335,8 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		keyTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.KeyType)
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
-				xerrors.KeyPBFieldType, desc.ValueType+" (map key)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text)
+				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
+				xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 		}
 
 		// special process for key as enum type
@@ -355,40 +361,51 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			ValueType:     parsedValueName,
 			ValueFullType: parsedValueFullName,
 		}
-		prop, err := desc.Prop.FieldProp()
+		prop, err := desc.KeyProp.FieldProp()
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
 				xerrors.KeyPBFieldType, mapType+" (incell map)",
-				xerrors.KeyPBFieldOpts, desc.Prop.Text,
+				xerrors.KeyPBFieldOpts, desc.KeyProp.Text,
+				xerrors.KeyTrimmedNameCell, trimmedNameCell)
+		}
+		// Second prop group is dedicated for incell scalar map's value.
+		vprop, err := desc.ValueProp.FieldProp()
+		if err != nil {
+			return cursor, xerrors.WrapKV(err,
+				xerrors.KeyPBFieldType, mapType+" (incell map value)",
+				xerrors.KeyPBFieldOpts, desc.ValueProp.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
 		field.Options = &tableaupb.FieldOptions{
 			Name:   trimmedNameCell,
 			Layout: layout,
 			Prop:   prop, // for incell scalar map, need whole prop
+			Vprop:  vprop,
 		}
 
 		// special process for key as enum type: create a new simple KV message as map value type.
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = types.DefaultMapKeyOptName
 
-			scalarField, err := p.parseBasicField(types.DefaultMapKeyOptName, desc.KeyType+desc.Prop.RawProp(), "")
+			scalarField, err := p.parseBasicField(types.DefaultMapKeyOptName, desc.KeyType+desc.KeyProp.RawProp(), "")
 			if err != nil {
 				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
-					xerrors.KeyPBFieldOpts, desc.Prop.Text,
+					xerrors.KeyPBFieldOpts, desc.KeyProp.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
 			}
 			field.Fields = append(field.Fields, scalarField)
 
-			scalarField, err = p.parseBasicField(types.DefaultMapValueOptName, desc.ValueType, "")
+			// vprop sinks into the generated Value field's prop; drop it from map field.
+			scalarField, err = p.parseBasicField(types.DefaultMapValueOptName, typeWithValueProp(desc.ValueType, desc.ValueProp), "")
 			if err != nil {
 				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
-					xerrors.KeyPBFieldOpts, desc.Prop.Text,
+					xerrors.KeyPBFieldOpts, desc.ValueProp.Text,
 					xerrors.KeyTrimmedNameCell, trimmedNameCell)
 			}
 			field.Fields = append(field.Fields, scalarField)
+			field.Options.Vprop = nil
 		}
 	case tableaupb.Layout_LAYOUT_DEFAULT:
 		return cursor, xerrors.Newf("should not reach default layout: %v", layout)

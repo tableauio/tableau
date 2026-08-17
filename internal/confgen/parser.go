@@ -428,8 +428,11 @@ func (p *sheetParser) parseIncellMap(field *Field, reflectMap protoreflect.Map, 
 //   - map<int32, EnumType>
 func (p *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protoreflect.Map, cellData string) (err error) {
 	if cellData == "" {
-		// check presence
-		return fieldprop.CheckPresence(field.opts.Prop, false)
+		// check presence on both key (prop) and value (vprop)
+		if err := fieldprop.CheckPresence(field.opts.Prop, false); err != nil {
+			return err
+		}
+		return fieldprop.CheckPresence(field.opts.GetVprop(), false)
 	}
 	// If s does not contain sep and sep is not empty, Split returns a
 	// slice of length 1 whose only element is s.
@@ -455,8 +458,8 @@ func (p *sheetParser) parseIncellMapWithSimpleKV(field *Field, reflectMap protor
 			// incell map key must be unique
 			return xerrors.WrapKV(xerrors.E2005(key))
 		}
-		// Currently, we cannot check scalar map value, so do not input field.opts.Prop.
-		fieldValue, valuePresent, err := p.parseFieldValue(valueFd, value, nil)
+		// field.opts.Vprop is dedicated for checking scalar map value.
+		fieldValue, valuePresent, err := p.parseFieldValue(valueFd, value, field.opts.GetVprop())
 		if err != nil {
 			return err
 		}

@@ -268,6 +268,11 @@ message FieldOptions {
   Span span = 5; // For list element or map value types. Default: SPAN_CROSS_CELL.
 
   FieldProp prop = 15; // Property of field.
+  // Property dedicated for incell scalar map's value (range/refer/present).
+  // Only valid for incell scalar maps (Excel/CSV incell layout, YAML/XML
+  // @incell). Protogen rejects it on vertical/horizontal maps and on
+  // message-valued maps.
+  FieldProp vprop = 16;
 }
 
 message FieldProp {

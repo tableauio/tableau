@@ -1,0 +1,28 @@
+{
+    "itemMap": {
+        "1": "1",
+        "2": "2"
+    },
+    "rangeMap": {
+        "1": 5,
+        "2": 8
+    },
+    "presentMap": {
+        "1": "hello",
+        "2": "world"
+    },
+    "comboMap": {
+        "1": "5",
+        "2": "8"
+    },
+    "enumRangeMap": {
+        "1": {
+            "key": "FRUIT_TYPE_APPLE",
+            "value": 5
+        },
+        "3": {
+            "key": "FRUIT_TYPE_ORANGE",
+            "value": 8
+        }
+    }
+}
