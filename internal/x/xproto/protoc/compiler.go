@@ -3,6 +3,7 @@ package protoc
 import (
 	"context"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,45 +53,50 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 		for _, match := range matches {
 			cleanSlashPath := xfs.CleanSlashPath(match)
 			if !parsedExcludedProtoFiles[cleanSlashPath] {
-				rel := rel(cleanSlashPath, cleanSlashProtoPaths)
-				parsedProtoFiles[cleanSlashPath] = rel
+				relPath, err := rel(cleanSlashPath, cleanSlashProtoPaths)
+				if err != nil {
+					return nil, err
+				}
+				parsedProtoFiles[cleanSlashPath] = relPath
 			}
 		}
 	}
 	return parseProtos(protoPaths, parsedProtoFiles)
 }
 
-func rel(filename string, protoPaths []string) string {
-	bestRel := ""
-	fallbackRel := ""
+func rel(filename string, protoPaths []string) (string, error) {
+	best := ""
 	for _, protoPath := range protoPaths {
-		rel, err := filepath.Rel(protoPath, filename)
+		relPath, err := filepath.Rel(filepath.FromSlash(protoPath), filepath.FromSlash(filename))
 		if err != nil {
 			continue
 		}
-		rel = xfs.CleanSlashPath(rel)
-		if fallbackRel == "" {
-			// Preserve the previous behavior for explicitly listed files that
-			// are outside every import root.
-			fallbackRel = rel
-		}
-		if rel == ".." || filepath.IsAbs(rel) || strings.HasPrefix(rel, "../") {
+		clean := xfs.CleanSlashPath(relPath)
+		if !isContainedImportPath(clean) {
+			// filepath.Rel succeeds for sibling directories (e.g. Rel("common",
+			// "generated/foo.proto") == "../generated/foo.proto"). Using that
+			// as the protobuf import name makes the same file appear twice:
+			// once as "../generated/foo.proto" (explicit protoFiles) and once
+			// as "foo.proto" (import resolved via another protoPath).
 			continue
 		}
-		// Proto roots can overlap (for example "." and "Temp/proto"). Use
-		// the most specific root so a generated file is compiled under the
-		// same import path that SourceResolver will use for its imports.
-		if bestRel == "" || len(rel) < len(bestRel) {
-			bestRel = rel
+		// Nested protoPaths that both contain the file yield a shorter relative
+		// path for the more specific root (e.g. "foo.proto" vs "generated/foo.proto").
+		if best == "" || len(clean) < len(best) {
+			best = clean
 		}
 	}
-	if bestRel != "" {
-		return bestRel
+	if best == "" {
+		return "", xerrors.Newf("proto file %s is not under any protoPath %v", filename, protoPaths)
 	}
-	if fallbackRel != "" {
-		return fallbackRel
-	}
-	return filename
+	return best, nil
+}
+
+// isContainedImportPath reports whether rel is a path inside the protoPath
+// (no ".." escape). Such a path is a valid protobuf import name relative to
+// that protoPath.
+func isContainedImportPath(rel string) bool {
+	return rel != ".." && !strings.HasPrefix(rel, "../")
 }
 
 // parseProtos parses the proto paths and proto files to protoregistry.Files.
@@ -107,9 +113,9 @@ func parseProtos(protoPaths []string, protoFilesMap map[string]string) (*protore
 			&protocompile.SourceResolver{
 				ImportPaths: protoPaths,
 				Accessor: func(path string) (io.ReadCloser, error) {
-					// protoFilesMap selects the compilation entry points. Their imports
-					// must still be resolved from the configured proto paths, even when
-					// an imported dependency is not matched by protoFiles.
+					if _, ok := protoFilesMap[xfs.CleanSlashPath(path)]; !ok {
+						return nil, fs.ErrNotExist
+					}
 					return os.Open(path)
 				},
 			},
