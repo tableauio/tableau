@@ -10,6 +10,7 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/strcase"
@@ -36,8 +37,9 @@ type Generator struct {
 	OutputOpt     *options.ConfOutputOption // output settings.
 	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
-	validator protovalidate.Validator // validator with extension type resolver for custom predefined rules.
-	collector *xerrors.Collector      // concurrent error collector shared across the generator.
+	validator     protovalidate.Validator  // validator with extension type resolver for custom predefined rules.
+	collector     *xerrors.Collector       // concurrent error collector shared across the generator.
+	referredCache *fieldprop.ReferredCache // refer value-space cache for this generate run
 
 	// Performance stats
 	PerfStats sync.Map
@@ -77,6 +79,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		ErrorLimitOpt: errorLimit,
 		ctx:           ctx,
 		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
+		referredCache: fieldprop.NewReferredCache(),
 		PerfStats:     sync.Map{},
 	}
 	return g
@@ -212,6 +215,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				BookFormat:     workbookFormat,
 				DryRun:         gen.OutputOpt.DryRun,
 				ErrorLimit:     gen.ErrorLimitOpt,
+				ReferredCache:  gen.referredCache,
 			},
 		})
 		// NOTE: one sheet may be generated to multiple messages (e.g.: full version and lite version) in the same workbook.

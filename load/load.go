@@ -11,6 +11,7 @@ import (
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
+	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
@@ -203,6 +204,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 			SubdirRewrites: subdirRewrites,
 			PRFiles:        protoregistry.GlobalFiles,
 			BookFormat:     self.Format(),
+			ReferredCache:  fieldprop.NewReferredCache(),
 		},
 	}
 	collector := xerrors.NewCollector(opts.GetMaxErrorsPerSheet())

@@ -25,15 +25,23 @@ const (
 	KeyPrimaryBookName  = "PrimaryBookName"  // primary workbook name
 	KeySheetName        = "SheetName"        // worksheet name
 	KeyPrimarySheetName = "PrimarySheetName" // primary worksheet name
-	KeyNameCellPos      = "NameCellPos"      // name cell position
-	KeyNameCell         = "NameCell"         // name cell value
-	KeyTrimmedNameCell  = "TrimmedNameCell"  // trimmed name cell value
-	KeyTypeCellPos      = "TypeCellPos"      // type cell position
-	KeyTypeCell         = "TypeCell"         // type cell value
-	KeyNoteCellPos      = "NoteCellPos"      // note cell position
-	KeyNoteCell         = "NoteCell"         // note cell value
-	KeyDataCellPos      = "DataCellPos"      // data cell position
-	KeyDataCell         = "DataCell"         // data data value
+	// KeyReferBookName / KeyReferSheetName identify the referred target
+	// workbook / worksheet whose data actually triggered the error, when the
+	// current error is raised during refer value-space loading (see
+	// fieldprop.ReferredCache.InReferredSpace). BookName / SheetName still identify the
+	// source sheet under generation, which is what users need to locate the
+	// refer expression in the schema.
+	KeyReferBookName   = "ReferBookName"
+	KeyReferSheetName  = "ReferSheetName"
+	KeyNameCellPos     = "NameCellPos"     // name cell position
+	KeyNameCell        = "NameCell"        // name cell value
+	KeyTrimmedNameCell = "TrimmedNameCell" // trimmed name cell value
+	KeyTypeCellPos     = "TypeCellPos"     // type cell position
+	KeyTypeCell        = "TypeCell"        // type cell value
+	KeyNoteCellPos     = "NoteCellPos"     // note cell position
+	KeyNoteCell        = "NoteCell"        // note cell value
+	KeyDataCellPos     = "DataCellPos"     // data cell position
+	KeyDataCell        = "DataCell"        // data data value
 
 	KeyPBMessage   = "PBMessage"   // protobuf message name
 	KeyPBFieldName = "PBFieldName" // protobuf message field name
@@ -60,6 +68,8 @@ var keys = []string{
 	KeyPrimaryBookName,
 	KeySheetName,
 	KeyPrimarySheetName,
+	KeyReferBookName,
+	KeyReferSheetName,
 	KeyNameCellPos,
 	KeyNameCell,
 	KeyTrimmedNameCell,
