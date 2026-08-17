@@ -1207,8 +1207,10 @@ type FieldOptions struct {
 	Layout Layout     `protobuf:"varint,4,opt,name=layout,proto3,enum=tableau.Layout" json:"layout,omitempty"` // For map/list types with cardinality. Default: LAYOUT_DEFAULT.
 	Span   Span       `protobuf:"varint,5,opt,name=span,proto3,enum=tableau.Span" json:"span,omitempty"`       // For list element or map value types. Default: SPAN_CROSS_CELL.
 	Prop   *FieldProp `protobuf:"bytes,15,opt,name=prop,proto3" json:"prop,omitempty"`                         // Property of field.
-	// Property dedicated for incell scalar map's value.
-	// Only takes effect when this field is an incell scalar map.
+	// Property dedicated for incell scalar map's value (range/refer/present).
+	// Only valid for incell scalar maps (Excel/CSV incell layout, YAML/XML
+	// @incell). Protogen rejects it on vertical/horizontal maps and on
+	// message-valued maps.
 	Vprop *FieldProp `protobuf:"bytes,16,opt,name=vprop,proto3" json:"vprop,omitempty"`
 }
 

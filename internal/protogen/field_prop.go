@@ -1,9 +1,30 @@
 package protogen
 
 import (
+	"github.com/tableauio/tableau/internal/types"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 )
+
+// checkVpropAllowed rejects ValueProp unless the map is an incell scalar
+// (or enum-value) map. Vertical/horizontal and message-valued maps do not
+// consume vprop, so a non-empty second prop group is a user error.
+func checkVpropAllowed(desc *types.MapDescriptor, incellScalar bool) error {
+	if desc.ValueProp.Text != "" && !incellScalar {
+		return xerrors.Newf("vprop is only valid for incell scalar maps, got: %s", desc.ValueProp.Text)
+	}
+	return nil
+}
+
+// typeWithValueProp appends the raw second prop group to a value type so
+// parseBasicField can sink vprop onto a generated Key/Value struct field.
+func typeWithValueProp(valueType string, valueProp types.PropDescriptor) string {
+	if valueProp.Text == "" {
+		return valueType
+	}
+	return valueType + valueProp.RawProp()
+}
 
 var emptyFieldProp = &tableaupb.FieldProp{}
 

@@ -189,6 +189,12 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		}
 	}
 
+	incellScalarMap := layout == tableaupb.Layout_LAYOUT_INCELL &&
+		(mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind)
+	if err := checkVpropAllowed(desc, incellScalarMap); err != nil {
+		return cursor, err
+	}
+
 	switch layout {
 	case tableaupb.Layout_LAYOUT_VERTICAL:
 		if opts.Nested {
@@ -329,7 +335,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		keyTypeDesc, err := parseTypeDescriptor(p.gen.typeInfos, desc.KeyType)
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
-				xerrors.KeyPBFieldType, desc.ValueType+" (map key)",
+				xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
 				xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
 		}
 
@@ -391,11 +397,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			field.Fields = append(field.Fields, scalarField)
 
 			// vprop sinks into the generated Value field's prop; drop it from map field.
-			valueTypeWithProp := desc.ValueType
-			if desc.ValueProp.Text != "" {
-				valueTypeWithProp += desc.ValueProp.RawProp()
-			}
-			scalarField, err = p.parseBasicField(types.DefaultMapValueOptName, valueTypeWithProp, "")
+			scalarField, err = p.parseBasicField(types.DefaultMapValueOptName, typeWithValueProp(desc.ValueType, desc.ValueProp), "")
 			if err != nil {
 				return cursor, xerrors.WrapKV(err,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
