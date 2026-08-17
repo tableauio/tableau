@@ -3,9 +3,26 @@ package protogen
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 )
+
+func TestCheckVpropAllowed(t *testing.T) {
+	desc := &types.MapDescriptor{ValueProp: types.PropDescriptor{Text: `range:"1,10"`}}
+	require.NoError(t, checkVpropAllowed(desc, true))
+	err := checkVpropAllowed(desc, false)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "vprop is only valid for incell scalar maps")
+	require.NoError(t, checkVpropAllowed(&types.MapDescriptor{}, false))
+}
+
+func TestTypeWithValueProp(t *testing.T) {
+	assert.Equal(t, "int32", typeWithValueProp("int32", types.PropDescriptor{}))
+	assert.Equal(t, `int32|{range:"1,10"}`, typeWithValueProp("int32", types.PropDescriptor{Text: `range:"1,10"`}))
+}
 
 func TestIsEmptyFieldProp(t *testing.T) {
 	type args struct {

@@ -125,6 +125,7 @@ func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fie
 			Layout: layout,
 			Span:   span,
 			Prop:   prop,
+			Vprop:  vprop,
 		},
 	}
 	p.fields[fd] = field

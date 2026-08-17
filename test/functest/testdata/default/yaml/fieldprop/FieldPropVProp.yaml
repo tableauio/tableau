@@ -1,0 +1,27 @@
+# define metasheet: generate all sheets
+"@sheet": "@TABLEAU"
+---
+# define schema
+"@sheet": "@YamlFieldPropVPropConf"
+ItemMap: # Item map
+  "@type": 'map<int64, int64>||{refer:"ItemConf.ID"}'
+  "@incell": true
+RangeMap: # Range map
+  "@type": 'map<int32, int32>||{range:"1,10"}'
+  "@incell": true
+PresentMap: # Present map
+  "@type": "map<int32, string>||{present:true}"
+  "@incell": true
+ComboMap: # Combo map
+  "@type": 'map<int32, int64>|{refer:"ItemConf.ID"}|{range:"1,10"}'
+  "@incell": true
+EnumRangeMap: # Enum range map
+  "@type": 'map<enum<.FruitType>, int32>||{range:"1,10"}'
+  "@incell": true
+---
+"@sheet": YamlFieldPropVPropConf
+ItemMap: "1:1,2:2"
+RangeMap: "1:5,2:8"
+PresentMap: "1:hello,2:world"
+ComboMap: "1:5,2:8"
+EnumRangeMap: "Apple:5,Orange:8"

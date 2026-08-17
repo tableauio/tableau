@@ -112,6 +112,12 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 		layout = tableaupb.Layout_LAYOUT_INCELL
 	}
 
+	incellScalarMap := layout == tableaupb.Layout_LAYOUT_INCELL &&
+		(mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind)
+	if err := checkVpropAllowed(desc, incellScalarMap); err != nil {
+		return err
+	}
+
 	prop, err := desc.KeyProp.FieldProp()
 	if err != nil {
 		return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.KeyProp.Text)
@@ -150,9 +156,12 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 			ValueType:     parsedValueName,
 			ValueFullType: parsedValueFullName,
 		}
-		vprop, err := desc.ValueProp.FieldProp()
-		if err != nil {
-			return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.ValueProp.Text)
+		var vprop *tableaupb.FieldProp
+		if incellScalarMap {
+			vprop, err = desc.ValueProp.FieldProp()
+			if err != nil {
+				return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.ValueProp.Text)
+			}
 		}
 		field.Options = &tableaupb.FieldOptions{
 			Name:   node.Name,
@@ -174,11 +183,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 			field.Fields = append(field.Fields, scalarField)
 			// 2. append value to the second value struct field
 			// vprop sinks into the generated Value field's prop; drop it from map field.
-			valueTypeWithProp := desc.ValueType
-			if desc.ValueProp.Text != "" {
-				valueTypeWithProp += desc.ValueProp.RawProp()
-			}
-			scalarField, err = p.parseBasicField(book.KeywordValue, valueTypeWithProp, "")
+			scalarField, err = p.parseBasicField(book.KeywordValue, typeWithValueProp(desc.ValueType, desc.ValueProp), "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.ValueType+" (map value)",
