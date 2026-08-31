@@ -6,36 +6,73 @@ package log
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/tableauio/tableau/log/core"
 	"github.com/tableauio/tableau/log/driver"
+	"github.com/tableauio/tableau/log/driver/customdriver"
 	"github.com/tableauio/tableau/log/driver/zapdriver"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var defaultLogger *Logger
+// Logger is the minimal Printf-style logging interface expected by
+// SetLogger. *zap.SugaredLogger satisfies it directly; other logging
+// systems (e.g. slog, logrus) can be plugged in via a thin adapter.
+type Logger = customdriver.Logger
+
+var defaultLogger *sugaredLogger
 
 var gOpts *Options
 var atomicLevel zap.AtomicLevel
 
+// mu guards hasCustomLogger, which is read/written by SetLogger and Init.
+var mu sync.Mutex
+var hasCustomLogger bool
+
 func init() {
-	defaultLogger = &Logger{
+	defaultLogger = &sugaredLogger{
 		level: core.DebugLevel,
 	}
 	gOpts = &Options{}
 	atomicLevel = zap.NewAtomicLevelAt(zap.DebugLevel)
 }
 
+// SetLogger installs a user-provided logger (e.g. *zap.SugaredLogger, or a
+// custom adapter around slog/logrus/etc.) as tableau's log destination.
+//
+// Once set, subsequent calls to Init (triggered internally by
+// tableau.GenProto/GenConf via log.Options) will no longer install the
+// built-in zap-based driver, so the custom logger keeps taking effect.
+func SetLogger(logger Logger) {
+	mu.Lock()
+	hasCustomLogger = true
+	mu.Unlock()
+	SetDriver(customdriver.New(logger))
+}
+
+// Init initializes the built-in zap-based logger from opts.
+//
+// NOTE: if a custom logger has already been installed via SetLogger, Init
+// only updates the log level used for LevelEnabled, and leaves the custom
+// logger driver untouched.
 func Init(opts *Options) error {
 	gOpts = opts // remember as global options.
+
+	if err := atomicLevel.UnmarshalText([]byte(opts.Level)); err != nil {
+		return fmt.Errorf("illegal log level: %s", opts.Level)
+	}
+
+	mu.Lock()
+	skip := hasCustomLogger
+	mu.Unlock()
+	if skip {
+		return nil
+	}
 
 	logger, err := zapdriver.NewLogger(opts.Mode, opts.Level, opts.Filename, opts.Sink)
 	if err != nil {
 		return err
-	}
-	if err := atomicLevel.UnmarshalText([]byte(opts.Level)); err != nil {
-		return fmt.Errorf("illegal log level: %s", opts.Level)
 	}
 	SetDriver(zapdriver.NewWithLogger(atomicLevel, logger))
 	return nil

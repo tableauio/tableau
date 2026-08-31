@@ -78,6 +78,23 @@ func SetLang(lang string) error {
 	return localizer.SetLang(lang)
 }
 
+// SetLogger installs a user-provided logger as tableau's log destination,
+// so that log output produced by tableau (including when invoked
+// indirectly, e.g. via load.LoadMessagerInDir) can be routed into the
+// caller's own logging system.
+//
+// logger only needs to implement 7 Printf-style methods (Debugf, Infof,
+// Warnf, Errorf, DPanicf, Panicf, Fatalf; see log.Logger), so most loggers
+// (e.g. *zap.SugaredLogger) satisfy it directly, and others (e.g. slog,
+// logrus) can be adapted with a thin wrapper.
+//
+// Once set, it takes effect immediately and is not overridden by the log
+// options (options.Log) passed to Generate/GenProto/GenConf, regardless of
+// call order.
+func SetLogger(logger log.Logger) {
+	log.SetLogger(logger)
+}
+
 // NewImporter creates a new importer of the specified workbook.
 func NewImporter(workbookPath string) (importer.Importer, error) {
 	ctx := context.Background()

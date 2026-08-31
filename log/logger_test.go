@@ -14,13 +14,13 @@ func TestDefaultLogger_Debugf(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		l    *Logger
+		l    *sugaredLogger
 		args args
 	}{
 		// TODO: Add test cases.
 		{
 			name: "test",
-			l: &Logger{
+			l: &sugaredLogger{
 				level:  core.DebugLevel,
 				driver: &defaultdriver.DefaultDriver{},
 			},
