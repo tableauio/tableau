@@ -6,8 +6,8 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
-import "excel__metasheet__sheet_mode_split_target_1.proto";
-import "excel__metasheet__sheet_mode_split_target_2.proto";
+import "excel__metasheet__sheet_mode_shard_target_1.proto";
+import "excel__metasheet__sheet_mode_shard_target_2.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
@@ -227,8 +227,8 @@ message SimpleTarget {
   }
 }
 
-message SplitTarget {
-  option (tableau.union) = {name:"UnionSplitTarget"};
+message ShardTarget {
+  option (tableau.union) = {name:"UnionShardTarget"};
 
   Type type = 9999 [(tableau.field) = {name:"Type"}];
   oneof value {
@@ -237,11 +237,11 @@ message SplitTarget {
     protoconf.FruitType fruit = 1; // Bound to enum value: TYPE_FRUIT.
     int32 point = 2; // Bound to enum value: TYPE_POINT.
     protoconf.Item item = 3; // Bound to enum value: TYPE_ITEM.
-    SplitTargetPlayer player = 4; // Bound to enum value: TYPE_PLAYER.
-    SplitTargetPlayer friend = 5; // Bound to enum value: TYPE_FRIEND.
-    SplitTargetCustomMonster monster = 6; // Bound to enum value: TYPE_MONSTER.
-    SplitTargetCustomMonster boss = 7; // Bound to enum value: TYPE_BOSS.
-    SplitTargetSkill skill = 8; // Bound to enum value: TYPE_SKILL.
+    ShardTargetPlayer player = 4; // Bound to enum value: TYPE_PLAYER.
+    ShardTargetPlayer friend = 5; // Bound to enum value: TYPE_FRIEND.
+    ShardTargetCustomMonster monster = 6; // Bound to enum value: TYPE_MONSTER.
+    ShardTargetCustomMonster boss = 7; // Bound to enum value: TYPE_BOSS.
+    ShardTargetSkill skill = 8; // Bound to enum value: TYPE_SKILL.
   }
 
   enum Type {

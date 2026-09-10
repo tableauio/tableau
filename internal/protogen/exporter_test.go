@@ -694,7 +694,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 }
 
 func Test_sheetExporter_exportUnion(t *testing.T) {
-	// auxiliaryWant describes an expected shard file emitted by union splitting.
+	// auxiliaryWant describes an expected shard file emitted by union sharding.
 	type auxiliaryWant struct {
 		importPath string
 		body       string
@@ -839,13 +839,13 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// export-union-split verifies that when the sheet's
+			// export-union-shard verifies that when the sheet's
 			// WorksheetOptions.union_shard_size (set per-sheet via the @TABLEAU
 			// metasheet's UnionShardSize column) is positive, sub-messages are
 			// extracted into shard files as top-level messages named
 			// `<Union><SubType>`, and the main union body no longer emits
 			// nested message blocks.
-			name: "export-union-split",
+			name: "export-union-shard",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "TaskTarget",
@@ -921,7 +921,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		},
 		{
 			// union_shard_size=0 explicitly keeps the default inline behavior.
-			name: "export-union-split-shard-size-zero",
+			name: "export-union-shard-size-zero",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name:    "TaskTarget",
@@ -981,7 +981,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		},
 		{
 			// A single sub-message yields exactly one shard file.
-			name: "export-union-split-single-shard",
+			name: "export-union-single-shard",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "TaskTarget",
@@ -1040,7 +1040,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		{
 			// Predefined external types are excluded from shards and keep
 			// their fully-qualified names in the oneof.
-			name: "export-union-split-mixed-predefined",
+			name: "export-union-shard-mixed-predefined",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "TaskTarget",
@@ -1102,10 +1102,10 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		},
 		{
 			// Mixed union values: a locally-defined struct plus scalar,
-			// predefined, and reused types. Splitting must extract only the
+			// predefined, and reused types. Sharding must extract only the
 			// locally-defined struct; scalar/predefined/reused values keep
 			// their original oneof types and are not sharded.
-			name: "export-union-split-mixed-types",
+			name: "export-union-shard-mixed-types",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "TaskTarget",
@@ -1176,8 +1176,8 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		{
 			// Reused local types and custom-named structs must also be
 			// rewritten to the extracted top-level names, so the oneof keeps
-			// referencing types that still exist after splitting.
-			name: "export-union-split-reused-local-types",
+			// referencing types that still exist after sharding.
+			name: "export-union-shard-reused-local-types",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "TaskTarget",
@@ -1263,7 +1263,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 				t.Errorf("sheetExporter.exportUnion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assert.Equal(t, tt.want, tt.x.p.String())
-			// Verify shard files if the test case expects splitting.
+			// Verify shard files if the test case expects sharding.
 			if len(tt.wantAuxiliary) > 0 {
 				assert.Equal(t, len(tt.wantAuxiliary), len(tt.x.be.auxiliaryFiles),
 					"unexpected number of auxiliary shard files")
@@ -1279,7 +1279,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 				}
 			} else {
 				assert.Empty(t, tt.x.be.auxiliaryFiles,
-					"unexpected auxiliary files for non-split case")
+					"unexpected auxiliary files for non-shard case")
 			}
 		})
 	}

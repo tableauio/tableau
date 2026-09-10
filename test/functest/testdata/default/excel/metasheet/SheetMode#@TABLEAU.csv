@@ -3,7 +3,7 @@ ItemType,,MODE_ENUM_TYPE,,
 StructTaskReward,TaskReward,MODE_STRUCT_TYPE,,
 UnionTaskTarget,TaskTarget,MODE_UNION_TYPE,,
 UnionSimpleTarget,SimpleTarget,MODE_UNION_TYPE,,
-UnionSplitTarget,SplitTarget,MODE_UNION_TYPE,,2
+UnionShardTarget,ShardTarget,MODE_UNION_TYPE,,2
 EnumTypeReuseInBook,,,,
 StructTypeReuseInBook,,,,
 UnionTypeReuseInBook,,,,

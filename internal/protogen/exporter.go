@@ -37,8 +37,8 @@ type bookExporter struct {
 	messagerPatternRegexp *regexp.Regexp
 
 	// auxiliaryFiles holds auxiliary shard proto files produced by union
-	// splitting (see WorksheetOptions.union_shard_size). Empty when no union
-	// is split.
+	// sharding (see WorksheetOptions.union_shard_size). Empty when no union
+	// is sharded.
 	auxiliaryFiles []*unionAuxiliaryFile
 }
 
@@ -103,7 +103,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 		}
 	}
 
-	// Add auxiliary-file imports (populated by union split, if any).
+	// Add auxiliary-file imports (populated by union sharding, if any).
 	for _, auxiliary := range x.auxiliaryFiles {
 		set.Add(auxiliary.ImportPath)
 	}
@@ -155,7 +155,7 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 		}
 	}
 
-	// Write any auxiliary shard files produced by union splitting.
+	// Write any auxiliary shard files produced by union sharding.
 	for _, auxiliary := range x.auxiliaryFiles {
 		auxiliaryPath := filepath.Join(x.OutputDir, auxiliary.ImportPath)
 		if err := x.writeAuxiliaryFile(auxiliary, auxiliaryPath); err != nil {
@@ -198,7 +198,7 @@ func (x *bookExporter) writeProtoHeader(p *printer.Printer, imports *treeset.Set
 	}
 }
 
-// writeAuxiliaryFile writes a union split shard proto file.
+// writeAuxiliaryFile writes a union shard proto file.
 func (x *bookExporter) writeAuxiliaryFile(auxiliary *unionAuxiliaryFile, path string) error {
 	header := printer.New()
 	importSet := treeset.NewWithStringComparator()
@@ -325,8 +325,10 @@ func (x *sheetExporter) exportStruct() error {
 	return nil
 }
 
-// unionSubMsg describes an extracted sub-message of a split union.
-type unionSubMsg struct {
+// unionSubMessage is a union oneof variant that has a message body.
+// It is emitted either nested inside the union, or as a top-level message
+// in a shard file when union_shard_size is enabled.
+type unionSubMessage struct {
 	field *internalpb.Field
 	typ   string // sub-message type name (without parent prefix)
 }
@@ -339,11 +341,11 @@ func (x *sheetExporter) exportUnion() error {
 		x.ws.Options.Validate = ""
 	}
 
-	// Collect sub-messages that carry a message body (candidates for splitting).
-	// splitTypes records their sub-message type names so the oneof can rewrite
+	// Collect sub-messages that carry a message body (candidates for sharding).
+	// shardTypes records their sub-message type names so the oneof can rewrite
 	// references to extracted types (including reused/custom-named ones).
-	var subMsgs []unionSubMsg
-	splitTypes := make(map[string]bool)
+	var subMessages []unionSubMessage
+	shardTypes := make(map[string]bool)
 	for _, msgField := range x.ws.Fields {
 		if len(msgField.Fields) == 0 {
 			continue
@@ -352,13 +354,13 @@ func (x *sheetExporter) exportUnion() error {
 		if msgField.Type != "" {
 			typ = msgField.Type
 		}
-		subMsgs = append(subMsgs, unionSubMsg{field: msgField, typ: typ})
-		splitTypes[typ] = true
+		subMessages = append(subMessages, unionSubMessage{field: msgField, typ: typ})
+		shardTypes[typ] = true
 	}
 
-	// Split only when explicitly enabled (union_shard_size > 0).
+	// Shard only when explicitly enabled (union_shard_size > 0).
 	shardSize := int(x.ws.GetOptions().GetUnionShardSize())
-	shouldSplit := shardSize > 0
+	shouldShard := shardSize > 0
 
 	x.p.P("message ", x.ws.Name, " {")
 	opts := &tableaupb.UnionOptions{Name: x.ws.GetOptions().GetName(), Note: x.ws.Note}
@@ -406,11 +408,11 @@ func (x *sheetExporter) exportUnion() error {
 			x.p.P("    // No field bound to enum value: ", ename, ".")
 			continue
 		}
-		// When splitting, the oneof references the extracted top-level type
+		// When sharding, the oneof references the extracted top-level type
 		// name (`<Union><SubType>`). This covers locally-defined structs,
 		// custom-named structs, and reused local types; scalar and predefined
-		// types are never in splitTypes, so they keep their original names.
-		if shouldSplit && splitTypes[typ] {
+		// types are never in shardTypes, so they keep their original names.
+		if shouldShard && shardTypes[typ] {
 			typ = x.ws.Name + typ
 		}
 		x.p.P("    ", typ, " ", strcase.FromContext(x.be.gen.ctx).ToSnake(field.Name), " = ", field.Number, `; // Bound to enum value: `, ename, ".")
@@ -434,12 +436,12 @@ func (x *sheetExporter) exportUnion() error {
 	}
 	x.p.P("  }")
 
-	if shouldSplit {
+	if shouldShard {
 		// Extract sub-messages into shard files as top-level messages. The
 		// parent union body remains, but no `message ... { ... }` block is
 		// emitted inside it for the extracted sub-messages, so the enum
 		// block above is the last content within the union body.
-		if err := x.exportUnionSplit(subMsgs); err != nil {
+		if err := x.exportUnionShards(subMessages); err != nil {
 			return err
 		}
 	} else {
@@ -448,7 +450,7 @@ func (x *sheetExporter) exportUnion() error {
 		x.p.P()
 		// generate nested sub-message types (original behavior)
 		parentMD := x.findMDFromGeneratedProtos(x.ws.Name)
-		for _, sm := range subMsgs {
+		for _, sm := range subMessages {
 			x.p.P("  message ", sm.typ, " {")
 			depth := 2
 			var oldMD protoreflect.MessageDescriptor
@@ -477,13 +479,13 @@ func (x *sheetExporter) exportUnion() error {
 	return nil
 }
 
-// exportUnionSplit emits the given sub-messages into one or more shard proto
+// exportUnionShards emits the given sub-messages into one or more shard proto
 // files as top-level messages named `<Union><SubType>`. Each shard is
 // registered on the parent bookExporter for later writing, and its relative
 // path is added to the main file's imports so protoc resolves the type.
-func (x *sheetExporter) exportUnionSplit(subMsgs []unionSubMsg) error {
+func (x *sheetExporter) exportUnionShards(subMessages []unionSubMessage) error {
 	shardSize := int(x.ws.GetOptions().GetUnionShardSize())
-	numShards := (len(subMsgs) + shardSize - 1) / shardSize
+	numShards := (len(subMessages) + shardSize - 1) / shardSize
 
 	mainPath := x.be.GetProtoFilePath()
 	ext := filepath.Ext(mainPath)
@@ -493,16 +495,16 @@ func (x *sheetExporter) exportUnionSplit(subMsgs []unionSubMsg) error {
 	for shardIdx := 0; shardIdx < numShards; shardIdx++ {
 		start := shardIdx * shardSize
 		end := start + shardSize
-		if end > len(subMsgs) {
-			end = len(subMsgs)
+		if end > len(subMessages) {
+			end = len(subMessages)
 		}
-		shardMsgs := subMsgs[start:end]
+		shardMessages := subMessages[start:end]
 
 		shardRelPath := fmt.Sprintf("%s_%s_%d%s", base, shardTag, shardIdx+1, ext)
 		shardPrinter := printer.New()
 		shardImports := map[string]bool{tableauProtoPath: true}
 
-		for i, sm := range shardMsgs {
+		for i, sm := range shardMessages {
 			prefixedTyp := x.ws.Name + sm.typ
 			shardPrinter.P("message ", prefixedTyp, " {")
 			// Use a temporary sheetExporter so the extracted sub-message
@@ -530,7 +532,7 @@ func (x *sheetExporter) exportUnionSplit(subMsgs []unionSubMsg) error {
 				}
 			}
 			shardPrinter.P("}")
-			if i < len(shardMsgs)-1 {
+			if i < len(shardMessages)-1 {
 				shardPrinter.P("")
 			}
 			for imp := range tempSe.Imports {

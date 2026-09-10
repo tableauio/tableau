@@ -926,7 +926,7 @@ type WorksheetOptions struct {
 	Validate string `protobuf:"bytes,24,opt,name=validate,proto3" json:"validate,omitempty"`
 	// Number of oneof sub-messages placed in each shard file for Union Type
 	// definition. Only takes effect when this sheet's mode is
-	// MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI. Set to 0 to disable splitting
+	// MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI. Set to 0 to disable sharding
 	// (the default): the union is emitted with all sub-messages nested inline
 	// as usual.
 	//
