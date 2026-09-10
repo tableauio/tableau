@@ -129,11 +129,12 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	// refer: https://go.googlesource.com/proposal/+/master/design/33974-add-public-lockedfile-pkg.md
 
 	if checkProtoFileConflicts {
-		if existed, err := xfs.Exists(path); err != nil {
-			return xerrors.WrapKV(err)
-		} else {
-			if existed {
-				return xerrors.Newf("file already exists: %s", path)
+		if err := x.ensureProtoFileNotExists(path); err != nil {
+			return err
+		}
+		for _, auxiliary := range x.auxiliaryFiles {
+			if err := x.ensureProtoFileNotExists(filepath.Join(x.OutputDir, auxiliary.ImportPath)); err != nil {
+				return err
 			}
 		}
 	}
@@ -164,6 +165,20 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 		log.Infof("%15s: %s", "generated proto", auxiliary.ImportPath)
 	}
 
+	return nil
+}
+
+// ensureProtoFileNotExists returns an error if path already exists. Used when
+// checkProtoFileConflicts is enabled so the main proto and union shard files
+// are all checked before any of them is written.
+func (x *bookExporter) ensureProtoFileNotExists(path string) error {
+	existed, err := xfs.Exists(path)
+	if err != nil {
+		return xerrors.WrapKV(err)
+	}
+	if existed {
+		return xerrors.Newf("file already exists: %s", path)
+	}
 	return nil
 }
 
@@ -521,13 +536,15 @@ func (x *sheetExporter) exportUnionShards(subMessages []unionSubMessage) error {
 				Imports:        make(map[string]bool),
 			}
 			depth := 1
-			// The shard message is a fresh top-level definition with no
-			// previous descriptor to diff against, so assign field numbers
-			// in sequence starting from 1.
-			reserved := tempSe.assignFieldNumbers(sm.field.Fields, nil)
+			oldMD := tempSe.findUnionSubMessageMD(x.ws.Name, sm.typ)
+			reserved := tempSe.assignFieldNumbers(sm.field.Fields, oldMD)
 			tempSe.printReserved(depth, reserved)
 			for _, field := range sm.field.Fields {
-				if err := tempSe.exportField(depth, field, sm.field.Name, nil); err != nil {
+				var oldFD protoreflect.FieldDescriptor
+				if oldMD != nil {
+					oldFD = oldMD.Fields().ByNumber(protoreflect.FieldNumber(field.GetNumber()))
+				}
+				if err := tempSe.exportField(depth, field, sm.field.Name, oldFD); err != nil {
 					return err
 				}
 			}
@@ -564,6 +581,23 @@ func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.Mess
 		return nil
 	}
 	return descriptor.(protoreflect.MessageDescriptor)
+}
+
+// findUnionSubMessageMD finds the previous descriptor of a union oneof
+// sub-message when PreserveFieldNumbers is enabled.
+//
+// Lookup order:
+//  1. Already-extracted top-level type `<Union><SubType>` (subsequent
+//     regenerations after sharding).
+//  2. Nested message `<Union>.<SubType>` (first nested → sharded migration).
+func (x *sheetExporter) findUnionSubMessageMD(unionName, subType string) protoreflect.MessageDescriptor {
+	if md := x.findMDFromGeneratedProtos(unionName + subType); md != nil {
+		return md
+	}
+	if parentMD := x.findMDFromGeneratedProtos(unionName); parentMD != nil {
+		return parentMD.Messages().ByName(protoreflect.Name(subType))
+	}
+	return nil
 }
 
 // assignFieldNumbers assigns the field numbers to the fields. It uses the old
@@ -730,6 +764,19 @@ func (x *sheetExporter) printReserved(depth int, reserved []int32) {
 	x.p.P(printer.Indent(depth), "reserved ", formatReservedNumbers(reserved), ";")
 }
 
+// worksheetOptionsForProto returns worksheet options suitable for emitting into
+// generated `option (tableau.worksheet)`. Generation-only knobs such as
+// union_shard_size are cleared so they do not leak into default-mode sheets.
+func (x *sheetExporter) worksheetOptionsForProto() *tableaupb.WorksheetOptions {
+	opts := x.ws.GetOptions()
+	if opts.GetUnionShardSize() == 0 {
+		return opts
+	}
+	cloned := proto.Clone(opts).(*tableaupb.WorksheetOptions)
+	cloned.UnionShardSize = 0
+	return cloned
+}
+
 func (x *sheetExporter) exportMessager() error {
 	// log.Debugf("workbook: %s", x.ws.String())
 	if x.be.messagerPatternRegexp != nil && !x.be.messagerPatternRegexp.MatchString(x.ws.Name) {
@@ -742,7 +789,7 @@ func (x *sheetExporter) exportMessager() error {
 		x.ws.Options.Validate = ""
 	}
 	x.p.P("message ", x.ws.Name, " {")
-	x.p.P("  option (tableau.worksheet) = {", x.be.marshalToText(x.ws.Options), "};")
+	x.p.P("  option (tableau.worksheet) = {", x.be.marshalToText(x.worksheetOptionsForProto()), "};")
 	if validateMessage != "" {
 		rules := &validate.MessageRules{}
 		if err := x.be.unmarshalFromText(rules, validateMessage); err != nil {

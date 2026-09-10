@@ -488,6 +488,50 @@ func Test_bookExporter_export(t *testing.T) {
 	}
 }
 
+func Test_bookExporter_export_shardFileConflict(t *testing.T) {
+	tmpDir := t.TempDir()
+	gen := &Generator{
+		ctx: context.Background(),
+		InputOpt: &options.ProtoInputOption{
+			MessagerPattern: `.*`,
+		},
+		OutputOpt: &options.ProtoOutputOption{},
+	}
+	wb := &internalpb.Workbook{
+		Name: "task",
+		Options: &tableaupb.WorkbookOptions{
+			Name: "task.xlsx",
+		},
+		Worksheets: []*internalpb.Worksheet{
+			{
+				Name: "TaskTarget",
+				Options: &tableaupb.WorksheetOptions{
+					Name:           "UnionTaskTarget",
+					Mode:           tableaupb.Mode_MODE_UNION_TYPE,
+					UnionShardSize: 1,
+				},
+				Fields: []*internalpb.Field{
+					{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+						Fields: []*internalpb.Field{
+							{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						},
+					},
+				},
+			},
+		},
+	}
+	shardPath := filepath.Join(tmpDir, "task_task_target_1.proto")
+	assert.NoError(t, os.WriteFile(shardPath, []byte("already exists"), 0644))
+
+	be := newBookExporter("protoconf", "", nil, tmpDir, "", wb, gen)
+	err := be.export(true)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "file already exists")
+	assert.Contains(t, err.Error(), "task_task_target_1.proto")
+	_, statErr := os.Stat(filepath.Join(tmpDir, "task.proto"))
+	assert.True(t, os.IsNotExist(statErr), "main proto must not be written when a shard path conflicts")
+}
+
 func Test_sheetExporter_exportEnum(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -1256,6 +1300,199 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			// FilenameSuffix is part of the main proto basename, so shards
+			// must keep it: task_conf.proto → task_conf_task_target_1.proto.
+			name: "export-union-shard-filename-suffix",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "_conf",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_conf_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			// Nested → sharded migration: look up Target.Pvp in generated
+			// unittest protos and preserve/reserve its field numbers.
+			name: "export-union-shard-preserve-field-numbers-nested",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "Target",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "Pvp", Alias: "PVP",
+							Fields: []*internalpb.Field{
+								{Name: "type", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Type"}},
+								{Name: "armor", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Armor"}},
+								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					wb:           &internalpb.Workbook{Name: "task"},
+					gen: &Generator{
+						ctx: context.Background(),
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message Target {
+  option (tableau.union) = {name:"UnionTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TargetPvp pvp = 1; // Bound to enum value: TYPE_PVP.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP = 1 [(tableau.evalue).name = "PVP"]; // PVP
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_target_1.proto",
+					body: `message TargetPvp {
+  reserved 2, 4;
+  int32 type = 1 [(tableau.field) = {name:"Type"}];
+  uint32 armor = 5 [(tableau.field) = {name:"Armor"}];
+  int64 damage = 3 [(tableau.field) = {name:"Damage"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			// Subsequent regeneration after sharding: look up top-level
+			// unittest.ShardedUnionPvp rather than a nested message.
+			name: "export-union-shard-preserve-field-numbers-top-level",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ShardedUnion",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionSharded",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "Pvp", Alias: "PVP",
+							Fields: []*internalpb.Field{
+								{Name: "type", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Type"}},
+								{Name: "armor", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Armor"}},
+								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					wb:           &internalpb.Workbook{Name: "task"},
+					gen: &Generator{
+						ctx: context.Background(),
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message ShardedUnion {
+  option (tableau.union) = {name:"UnionSharded"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    ShardedUnionPvp pvp = 1; // Bound to enum value: TYPE_PVP.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP = 1 [(tableau.evalue).name = "PVP"]; // PVP
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_sharded_union_1.proto",
+					body: `message ShardedUnionPvp {
+  reserved 2, 4;
+  int32 type = 1 [(tableau.field) = {name:"Type"}];
+  uint32 armor = 5 [(tableau.field) = {name:"Armor"}];
+  int64 damage = 3 [(tableau.field) = {name:"Damage"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1313,6 +1550,40 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 			},
 			want: `message ItemConf {
   option (tableau.worksheet) = {};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			// union_shard_size is a generation-only knob and must not appear
+			// in generated option (tableau.worksheet) for default-mode sheets.
+			name: "export-messager-omits-union-shard-size",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ItemConf",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "ItemConf",
+						UnionShardSize: 2,
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					messagerPatternRegexp: regexp.MustCompile(`Conf$`),
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message ItemConf {
+  option (tableau.worksheet) = {name:"ItemConf"};
 
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }

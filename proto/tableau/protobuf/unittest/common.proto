@@ -62,3 +62,11 @@ message Target {
     }
   }
 }
+
+// Top-level extracted form of a sharded union sub-message. Used to test
+// PreserveFieldNumbers after `<Union><SubType>` extraction.
+message ShardedUnionPvp {
+  int32 type = 1;
+  uint32 health = 4;
+  int64 damage = 3;
+}
