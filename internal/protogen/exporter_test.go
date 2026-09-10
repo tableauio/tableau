@@ -694,17 +694,17 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 }
 
 func Test_sheetExporter_exportUnion(t *testing.T) {
-	// auxWant describes an expected shard file emitted by union splitting.
-	type auxWant struct {
-		relPath string
-		body    string
+	// auxiliaryWant describes an expected shard file emitted by union splitting.
+	type auxiliaryWant struct {
+		importPath string
+		body       string
 	}
 	tests := []struct {
-		name    string
-		x       *sheetExporter
-		want    string
-		wantAux []auxWant
-		wantErr bool
+		name          string
+		x             *sheetExporter
+		want          string
+		wantAuxiliary []auxiliaryWant
+		wantErr       bool
 	}{
 		{
 			name: "export-union",
@@ -840,7 +840,7 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 		},
 		{
 			// export-union-split verifies that when the sheet's
-			// Worksheet.union_shard_size (set per-sheet via the @TABLEAU
+			// WorksheetOptions.union_shard_size (set per-sheet via the @TABLEAU
 			// metasheet's UnionShardSize column) is positive, sub-messages are
 			// extracted into shard files as top-level messages named
 			// `<Union><SubType>`, and the main union body no longer emits
@@ -851,9 +851,9 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 					Name: "TaskTarget",
 					// ShardSize=1 puts each sub-message in its own shard,
 					// yielding exactly 2 shards for deterministic asserts.
-					UnionShardSize: 1,
 					Options: &tableaupb.WorksheetOptions{
-						Name: "UnionTaskTarget",
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
 					},
 					Fields: []*internalpb.Field{
 						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
@@ -901,16 +901,16 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 }
 
 `,
-			wantAux: []auxWant{
+			wantAuxiliary: []auxiliaryWant{
 				{
-					relPath: "task_task_target_1.proto",
+					importPath: "task_task_target_1.proto",
 					body: `message TaskTargetPvpBattle {
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }
 `,
 				},
 				{
-					relPath: "task_task_target_2.proto",
+					importPath: "task_task_target_2.proto",
 					body: `message TaskTargetPveBattle {
   uint32 level = 1 [(tableau.field) = {name:"Level"}];
 }
@@ -924,9 +924,8 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			name: "export-union-split-shard-size-zero",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
-					Name:           "TaskTarget",
-					UnionShardSize: 0,
-					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Name:    "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
 					Fields: []*internalpb.Field{
 						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
 							Fields: []*internalpb.Field{
@@ -985,9 +984,11 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			name: "export-union-split-single-shard",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
-					Name:           "TaskTarget",
-					UnionShardSize: 1,
-					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
 					Fields: []*internalpb.Field{
 						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
 							Fields: []*internalpb.Field{
@@ -1025,9 +1026,9 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 }
 
 `,
-			wantAux: []auxWant{
+			wantAuxiliary: []auxiliaryWant{
 				{
-					relPath: "task_task_target_1.proto",
+					importPath: "task_task_target_1.proto",
 					body: `message TaskTargetPvpBattle {
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }
@@ -1042,9 +1043,11 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			name: "export-union-split-mixed-predefined",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
-					Name:           "TaskTarget",
-					UnionShardSize: 1,
-					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
 					Fields: []*internalpb.Field{
 						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
 							Fields: []*internalpb.Field{
@@ -1086,9 +1089,9 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 }
 
 `,
-			wantAux: []auxWant{
+			wantAuxiliary: []auxiliaryWant{
 				{
-					relPath: "task_task_target_1.proto",
+					importPath: "task_task_target_1.proto",
 					body: `message TaskTargetPvpBattle {
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }
@@ -1105,9 +1108,11 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			name: "export-union-split-mixed-types",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
-					Name:           "TaskTarget",
-					UnionShardSize: 1,
-					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
 					Fields: []*internalpb.Field{
 						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
 							Fields: []*internalpb.Field{
@@ -1157,9 +1162,9 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 }
 
 `,
-			wantAux: []auxWant{
+			wantAuxiliary: []auxiliaryWant{
 				{
-					relPath: "task_task_target_1.proto",
+					importPath: "task_task_target_1.proto",
 					body: `message TaskTargetPvpBattle {
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }
@@ -1175,9 +1180,11 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			name: "export-union-split-reused-local-types",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
-					Name:           "TaskTarget",
-					UnionShardSize: 1,
-					Options:        &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
 					Fields: []*internalpb.Field{
 						{Number: 1, Name: "Player", Alias: "Player",
 							Fields: []*internalpb.Field{
@@ -1231,16 +1238,16 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 }
 
 `,
-			wantAux: []auxWant{
+			wantAuxiliary: []auxiliaryWant{
 				{
-					relPath: "task_task_target_1.proto",
+					importPath: "task_task_target_1.proto",
 					body: `message TaskTargetPlayer {
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }
 `,
 				},
 				{
-					relPath: "task_task_target_2.proto",
+					importPath: "task_task_target_2.proto",
 					body: `message TaskTargetCustomMonster {
   int32 health = 1 [(tableau.field) = {name:"Health"}];
 }
@@ -1257,26 +1264,22 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			}
 			assert.Equal(t, tt.want, tt.x.p.String())
 			// Verify shard files if the test case expects splitting.
-			if len(tt.wantAux) > 0 {
-				assert.Equal(t, len(tt.wantAux), len(tt.x.be.auxFiles),
-					"unexpected number of aux shard files")
-				assert.Equal(t, len(tt.wantAux), len(tt.x.be.auxImportPaths),
-					"aux shard count mismatch with import paths")
-				for i, want := range tt.wantAux {
-					if i >= len(tt.x.be.auxFiles) {
+			if len(tt.wantAuxiliary) > 0 {
+				assert.Equal(t, len(tt.wantAuxiliary), len(tt.x.be.auxiliaryFiles),
+					"unexpected number of auxiliary shard files")
+				for i, want := range tt.wantAuxiliary {
+					if i >= len(tt.x.be.auxiliaryFiles) {
 						break
 					}
-					got := tt.x.be.auxFiles[i]
-					assert.Equal(t, want.relPath, got.RelPath,
-						"aux[%d] RelPath mismatch", i)
+					got := tt.x.be.auxiliaryFiles[i]
+					assert.Equal(t, want.importPath, got.ImportPath,
+						"auxiliary[%d] ImportPath mismatch", i)
 					assert.Equal(t, want.body, got.Printer.String(),
-						"aux[%d] body mismatch", i)
-					assert.Equal(t, want.relPath, tt.x.be.auxImportPaths[i],
-						"aux[%d] import path mismatch", i)
+						"auxiliary[%d] body mismatch", i)
 				}
 			} else {
-				assert.Empty(t, tt.x.be.auxFiles,
-					"unexpected aux files for non-split case")
+				assert.Empty(t, tt.x.be.auxiliaryFiles,
+					"unexpected auxiliary files for non-split case")
 			}
 		})
 	}

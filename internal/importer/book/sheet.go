@@ -134,9 +134,8 @@ func (s *Sheet) GetProtoName() string {
 // based on this sheet's info.
 func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 	return &internalpb.Worksheet{
-		Name:           s.GetProtoName(),
-		Note:           "", // NOTE: maybe will be used in the future
-		UnionShardSize: s.Meta.UnionShardSize,
+		Name: s.GetProtoName(),
+		Note: "", // NOTE: maybe will be used in the future
 		Options: &tableaupb.WorksheetOptions{
 			Name: s.GetDataName(),
 
@@ -165,6 +164,7 @@ func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 			WithParentDir:          s.Meta.WithParentDir,
 			ScatterWithoutBookName: s.Meta.ScatterWithoutBookName,
 			Validate:               s.Meta.Validate,
+			UnionShardSize:         s.Meta.UnionShardSize,
 			// Loader options:
 			OrderedMap:   s.Meta.OrderedMap,
 			Index:        parseIndexes(s.Meta.Index),

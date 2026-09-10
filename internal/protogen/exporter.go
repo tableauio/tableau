@@ -36,20 +36,18 @@ type bookExporter struct {
 
 	messagerPatternRegexp *regexp.Regexp
 
-	// auxFiles holds auxiliary shard proto files produced by union splitting
-	// (see Worksheet.union_shard_size). Empty when no union is split.
-	auxFiles []*unionAuxFile
-	// auxImportPaths holds the relative paths of aux files that the main proto
-	// file needs to `import`. Populated together with auxFiles.
-	auxImportPaths []string
+	// auxiliaryFiles holds auxiliary shard proto files produced by union
+	// splitting (see WorksheetOptions.union_shard_size). Empty when no union
+	// is split.
+	auxiliaryFiles []*unionAuxiliaryFile
 }
 
-// unionAuxFile is a shard proto file emitted for a large union, holding a
-// slice of extracted top-level sub-messages.
-type unionAuxFile struct {
-	RelPath string           // relative proto path, e.g. "foo_targets_1.proto"
-	Printer *printer.Printer // body: `message ... {...}` for each extracted sub-message
-	Imports map[string]bool  // proto imports needed by the shard body
+// unionAuxiliaryFile is a shard proto file emitted for a large union, holding
+// a slice of extracted top-level sub-messages.
+type unionAuxiliaryFile struct {
+	ImportPath string           // relative proto path, e.g. "foo_targets_1.proto"; also used as `import`
+	Printer    *printer.Printer // body: `message ... {...}` for each extracted sub-message
+	Imports    map[string]bool  // proto imports needed by the shard body
 }
 
 func newBookExporter(protoPackage string, edition string, protoFileOptions map[string]string, outputDir, filenameSuffix string, wb *internalpb.Workbook, gen *Generator) *bookExporter {
@@ -105,9 +103,9 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 		}
 	}
 
-	// Add aux-file imports (populated by union split, if any).
-	for _, auxPath := range x.auxImportPaths {
-		set.Add(auxPath)
+	// Add auxiliary-file imports (populated by union split, if any).
+	for _, auxiliary := range x.auxiliaryFiles {
+		set.Add(auxiliary.ImportPath)
 	}
 
 	header := printer.New()
@@ -158,12 +156,12 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	}
 
 	// Write any auxiliary shard files produced by union splitting.
-	for _, aux := range x.auxFiles {
-		auxPath := filepath.Join(x.OutputDir, aux.RelPath)
-		if err := x.writeAuxFile(aux, auxPath); err != nil {
+	for _, auxiliary := range x.auxiliaryFiles {
+		auxiliaryPath := filepath.Join(x.OutputDir, auxiliary.ImportPath)
+		if err := x.writeAuxiliaryFile(auxiliary, auxiliaryPath); err != nil {
 			return err
 		}
-		log.Infof("%15s: %s", "generated proto", aux.RelPath)
+		log.Infof("%15s: %s", "generated proto", auxiliary.ImportPath)
 	}
 
 	return nil
@@ -200,11 +198,11 @@ func (x *bookExporter) writeProtoHeader(p *printer.Printer, imports *treeset.Set
 	}
 }
 
-// writeAuxFile writes a union split shard proto file.
-func (x *bookExporter) writeAuxFile(aux *unionAuxFile, path string) error {
+// writeAuxiliaryFile writes a union split shard proto file.
+func (x *bookExporter) writeAuxiliaryFile(auxiliary *unionAuxiliaryFile, path string) error {
 	header := printer.New()
 	importSet := treeset.NewWithStringComparator()
-	for imp := range aux.Imports {
+	for imp := range auxiliary.Imports {
 		importSet.Add(imp)
 	}
 	x.writeProtoHeader(header, importSet)
@@ -223,7 +221,7 @@ func (x *bookExporter) writeAuxFile(aux *unionAuxFile, path string) error {
 	if _, err = f.Write(header.Bytes()); err != nil {
 		return xerrors.WrapKV(err)
 	}
-	if _, err = f.Write(aux.Printer.Bytes()); err != nil {
+	if _, err = f.Write(auxiliary.Printer.Bytes()); err != nil {
 		return xerrors.WrapKV(err)
 	}
 	return nil
@@ -359,7 +357,7 @@ func (x *sheetExporter) exportUnion() error {
 	}
 
 	// Split only when explicitly enabled (union_shard_size > 0).
-	shardSize := int(x.ws.GetUnionShardSize())
+	shardSize := int(x.ws.GetOptions().GetUnionShardSize())
 	shouldSplit := shardSize > 0
 
 	x.p.P("message ", x.ws.Name, " {")
@@ -484,7 +482,7 @@ func (x *sheetExporter) exportUnion() error {
 // registered on the parent bookExporter for later writing, and its relative
 // path is added to the main file's imports so protoc resolves the type.
 func (x *sheetExporter) exportUnionSplit(subMsgs []unionSubMsg) error {
-	shardSize := int(x.ws.GetUnionShardSize())
+	shardSize := int(x.ws.GetOptions().GetUnionShardSize())
 	numShards := (len(subMsgs) + shardSize - 1) / shardSize
 
 	mainPath := x.be.GetProtoFilePath()
@@ -540,12 +538,11 @@ func (x *sheetExporter) exportUnionSplit(subMsgs []unionSubMsg) error {
 			}
 		}
 
-		x.be.auxFiles = append(x.be.auxFiles, &unionAuxFile{
-			RelPath: shardRelPath,
-			Printer: shardPrinter,
-			Imports: shardImports,
+		x.be.auxiliaryFiles = append(x.be.auxiliaryFiles, &unionAuxiliaryFile{
+			ImportPath: shardRelPath,
+			Printer:    shardPrinter,
+			Imports:    shardImports,
 		})
-		x.be.auxImportPaths = append(x.be.auxImportPaths, shardRelPath)
 	}
 	return nil
 }

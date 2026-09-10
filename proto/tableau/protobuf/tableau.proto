@@ -213,6 +213,14 @@ message WorksheetOptions {
   //
   // See https://github.com/bufbuild/protovalidate.
   string validate = 24;
+  // Number of oneof sub-messages placed in each shard file for Union Type
+  // definition. Only takes effect when this sheet's mode is
+  // MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI. Set to 0 to disable splitting
+  // (the default): the union is emitted with all sub-messages nested inline
+  // as usual.
+  //
+  // Default: 0 (disabled).
+  int32 union_shard_size = 25;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
