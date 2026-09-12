@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bufbuild/protocompile"
 	"github.com/bufbuild/protocompile/linker"
@@ -52,21 +53,50 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 		for _, match := range matches {
 			cleanSlashPath := xfs.CleanSlashPath(match)
 			if !parsedExcludedProtoFiles[cleanSlashPath] {
-				rel := rel(cleanSlashPath, cleanSlashProtoPaths)
-				parsedProtoFiles[cleanSlashPath] = rel
+				relPath, err := rel(cleanSlashPath, cleanSlashProtoPaths)
+				if err != nil {
+					return nil, err
+				}
+				parsedProtoFiles[cleanSlashPath] = relPath
 			}
 		}
 	}
 	return parseProtos(protoPaths, parsedProtoFiles)
 }
 
-func rel(filename string, protoPaths []string) string {
+func rel(filename string, protoPaths []string) (string, error) {
+	best := ""
 	for _, protoPath := range protoPaths {
-		if rel, err := filepath.Rel(protoPath, filename); err == nil {
-			return xfs.CleanSlashPath(rel)
+		relPath, err := filepath.Rel(filepath.FromSlash(protoPath), filepath.FromSlash(filename))
+		if err != nil {
+			continue
+		}
+		clean := xfs.CleanSlashPath(relPath)
+		if !isContainedImportPath(clean) {
+			// filepath.Rel succeeds for sibling directories (e.g. Rel("common",
+			// "generated/foo.proto") == "../generated/foo.proto"). Using that
+			// as the protobuf import name makes the same file appear twice:
+			// once as "../generated/foo.proto" (explicit protoFiles) and once
+			// as "foo.proto" (import resolved via another protoPath).
+			continue
+		}
+		// Nested protoPaths that both contain the file yield a shorter relative
+		// path for the more specific root (e.g. "foo.proto" vs "generated/foo.proto").
+		if best == "" || len(clean) < len(best) {
+			best = clean
 		}
 	}
-	return filename
+	if best == "" {
+		return "", xerrors.Newf("proto file %s is not under any protoPath %v", filename, protoPaths)
+	}
+	return best, nil
+}
+
+// isContainedImportPath reports whether rel is a path inside the protoPath
+// (no ".." escape). Such a path is a valid protobuf import name relative to
+// that protoPath.
+func isContainedImportPath(rel string) bool {
+	return rel != ".." && !strings.HasPrefix(rel, "../")
 }
 
 // parseProtos parses the proto paths and proto files to protoregistry.Files.
