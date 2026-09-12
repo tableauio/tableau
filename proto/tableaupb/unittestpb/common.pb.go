@@ -321,8 +321,7 @@ func (*Target_Pvp_) isTarget_Value() {}
 
 func (*Target_Pve_) isTarget_Value() {}
 
-// Top-level extracted form of a sharded union sub-message. Used to test
-// PreserveFieldNumbers after `<Union><SubType>` extraction.
+// Extracted `<Union><SubType>` used to test PreserveFieldNumbers after sharding.
 type ShardedUnionPvp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

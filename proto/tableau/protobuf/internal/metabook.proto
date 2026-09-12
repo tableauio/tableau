@@ -164,13 +164,8 @@ message Metasheet {
     name: "Validate"
     prop: {optional: true}
   }];
-  // Number of oneof sub-messages placed in each shard file for Union Type
-  // definition. Only takes effect when this sheet's Mode is
-  // MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI. Set to 0 to disable sharding
-  // (the default): the union is emitted with all sub-messages nested inline
-  // as usual.
-  //
-  // Default: 0 (disabled).
+  // Oneof sub-messages per shard for MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI.
+  // 0 (default) keeps nested inline messages.
   int32 union_shard_size = 26 [(tableau.field) = {
     name: "UnionShardSize"
     prop: {optional: true}

@@ -789,8 +789,7 @@ func (gen *Generator) parseSpecialSheetMode(mode tableaupb.Mode, ws *internalpb.
 		}
 		return []*internalpb.Worksheet{ws}, nil
 	case tableaupb.Mode_MODE_UNION_TYPE_MULTI:
-		// UnionShardSize is a per-sheet knob on WorksheetOptions, so each
-		// cloned block inherits it and is sharded independently if > 0.
+		// Each block clones the sheet options, including UnionShardSize.
 		var worksheets []*internalpb.Worksheet
 		for row := table.BeginRow(); row < table.EndRow(); row++ {
 			if sheetCollector.IsFull() {

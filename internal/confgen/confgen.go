@@ -216,8 +216,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		}
 	}
 
-	// Skip proto files that carry a (tableau.workbook) option but define no
-	// worksheet messages (e.g. union shard protos): there is nothing to convert.
+	// Skip workbook protos with no worksheet messages (e.g. union shards).
 	if len(sheets) == 0 {
 		return nil
 	}

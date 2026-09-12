@@ -146,13 +146,8 @@ type Metasheet struct {
 	//
 	// See https://github.com/bufbuild/protovalidate.
 	Validate string `protobuf:"bytes,25,opt,name=validate,proto3" json:"validate,omitempty"`
-	// Number of oneof sub-messages placed in each shard file for Union Type
-	// definition. Only takes effect when this sheet's Mode is
-	// MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI. Set to 0 to disable sharding
-	// (the default): the union is emitted with all sub-messages nested inline
-	// as usual.
-	//
-	// Default: 0 (disabled).
+	// Oneof sub-messages per shard for MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI.
+	// 0 (default) keeps nested inline messages.
 	UnionShardSize int32 `protobuf:"varint,26,opt,name=union_shard_size,json=unionShardSize,proto3" json:"union_shard_size,omitempty"`
 	// //////// Loader related options below //////////
 	// Generate ordered map accessers

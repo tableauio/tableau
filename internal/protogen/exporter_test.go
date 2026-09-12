@@ -738,7 +738,7 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 }
 
 func Test_sheetExporter_exportUnion(t *testing.T) {
-	// auxiliaryWant describes an expected shard file emitted by union sharding.
+	// auxiliaryWant is an expected union shard proto.
 	type auxiliaryWant struct {
 		importPath string
 		body       string
@@ -883,18 +883,10 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// export-union-shard verifies that when the sheet's
-			// WorksheetOptions.union_shard_size (set per-sheet via the @TABLEAU
-			// metasheet's UnionShardSize column) is positive, sub-messages are
-			// extracted into shard files as top-level messages named
-			// `<Union><SubType>`, and the main union body no longer emits
-			// nested message blocks.
 			name: "export-union-shard",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
 					Name: "TaskTarget",
-					// ShardSize=1 puts each sub-message in its own shard,
-					// yielding exactly 2 shards for deterministic asserts.
 					Options: &tableaupb.WorksheetOptions{
 						Name:           "UnionTaskTarget",
 						UnionShardSize: 1,
@@ -919,8 +911,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 						ctx:       context.Background(),
 						OutputOpt: &options.ProtoOutputOption{},
 					},
-					// wb.Name drives GetProtoFilePath(); we use "task" so the
-					// shards are named task_task_target_{1,2}.proto.
 					wb: &internalpb.Workbook{Name: "task"},
 				},
 				typeInfos:      &xproto.TypeInfos{},
@@ -964,7 +954,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// union_shard_size=0 explicitly keeps the default inline behavior.
 			name: "export-union-shard-size-zero",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -1024,7 +1013,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// A single sub-message yields exactly one shard file.
 			name: "export-union-single-shard",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -1082,8 +1070,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// Predefined external types are excluded from shards and keep
-			// their fully-qualified names in the oneof.
 			name: "export-union-shard-mixed-predefined",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -1145,10 +1131,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// Mixed union values: a locally-defined struct plus scalar,
-			// predefined, and reused types. Sharding must extract only the
-			// locally-defined struct; scalar/predefined/reused values keep
-			// their original oneof types and are not sharded.
 			name: "export-union-shard-mixed-types",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -1218,9 +1200,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// Reused local types and custom-named structs must also be
-			// rewritten to the extracted top-level names, so the oneof keeps
-			// referencing types that still exist after sharding.
 			name: "export-union-shard-reused-local-types",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -1301,8 +1280,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// FilenameSuffix is part of the main proto basename, so shards
-			// must keep it: task_conf.proto → task_conf_task_target_1.proto.
 			name: "export-union-shard-filename-suffix",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -1360,8 +1337,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// Nested → sharded migration: look up Target.Pvp in generated
-			// unittest protos and preserve/reserve its field numbers.
 			name: "export-union-shard-preserve-field-numbers-nested",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -1427,8 +1402,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// Subsequent regeneration after sharding: look up top-level
-			// unittest.ShardedUnionPvp rather than a nested message.
 			name: "export-union-shard-preserve-field-numbers-top-level",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
@@ -1500,7 +1473,6 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 				t.Errorf("sheetExporter.exportUnion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assert.Equal(t, tt.want, tt.x.p.String())
-			// Verify shard files if the test case expects sharding.
 			if len(tt.wantAuxiliary) > 0 {
 				assert.Equal(t, len(tt.wantAuxiliary), len(tt.x.be.auxiliaryFiles),
 					"unexpected number of auxiliary shard files")
@@ -1558,8 +1530,6 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// union_shard_size is a generation-only knob and must not appear
-			// in generated option (tableau.worksheet) for default-mode sheets.
 			name: "export-messager-omits-union-shard-size",
 			x: &sheetExporter{
 				ws: &internalpb.Worksheet{
