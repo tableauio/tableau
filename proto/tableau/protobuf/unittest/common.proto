@@ -62,3 +62,10 @@ message Target {
     }
   }
 }
+
+// Extracted `<Union><SubType>` used to test PreserveFieldNumbers after sharding.
+message ShardedUnionPvp {
+  int32 type = 1;
+  uint32 health = 4;
+  int64 damage = 3;
+}

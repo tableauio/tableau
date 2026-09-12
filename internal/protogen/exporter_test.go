@@ -488,6 +488,50 @@ func Test_bookExporter_export(t *testing.T) {
 	}
 }
 
+func Test_bookExporter_export_shardFileConflict(t *testing.T) {
+	tmpDir := t.TempDir()
+	gen := &Generator{
+		ctx: context.Background(),
+		InputOpt: &options.ProtoInputOption{
+			MessagerPattern: `.*`,
+		},
+		OutputOpt: &options.ProtoOutputOption{},
+	}
+	wb := &internalpb.Workbook{
+		Name: "task",
+		Options: &tableaupb.WorkbookOptions{
+			Name: "task.xlsx",
+		},
+		Worksheets: []*internalpb.Worksheet{
+			{
+				Name: "TaskTarget",
+				Options: &tableaupb.WorksheetOptions{
+					Name:           "UnionTaskTarget",
+					Mode:           tableaupb.Mode_MODE_UNION_TYPE,
+					UnionShardSize: 1,
+				},
+				Fields: []*internalpb.Field{
+					{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+						Fields: []*internalpb.Field{
+							{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+						},
+					},
+				},
+			},
+		},
+	}
+	shardPath := filepath.Join(tmpDir, "task_task_target_1.proto")
+	assert.NoError(t, os.WriteFile(shardPath, []byte("already exists"), 0644))
+
+	be := newBookExporter("protoconf", "", nil, tmpDir, "", wb, gen)
+	err := be.export(true)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "file already exists")
+	assert.Contains(t, err.Error(), "task_task_target_1.proto")
+	_, statErr := os.Stat(filepath.Join(tmpDir, "task.proto"))
+	assert.True(t, os.IsNotExist(statErr), "main proto must not be written when a shard path conflicts")
+}
+
 func Test_sheetExporter_exportEnum(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -694,11 +738,17 @@ func Test_sheetExporter_exportStruct(t *testing.T) {
 }
 
 func Test_sheetExporter_exportUnion(t *testing.T) {
+	// auxiliaryWant is an expected union shard proto.
+	type auxiliaryWant struct {
+		importPath string
+		body       string
+	}
 	tests := []struct {
-		name    string
-		x       *sheetExporter
-		want    string
-		wantErr bool
+		name          string
+		x             *sheetExporter
+		want          string
+		wantAuxiliary []auxiliaryWant
+		wantErr       bool
 	}{
 		{
 			name: "export-union",
@@ -832,6 +882,590 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 `,
 			wantErr: false,
 		},
+		{
+			name: "export-union-shard",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "PveBattle", Alias: "SoloPVEBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "level", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Level"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    TaskTargetPveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+    TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "SoloPVEBattle"]; // SoloPVEBattle
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+				{
+					importPath: "task_task_target_2.proto",
+					body: `message TaskTargetPveBattle {
+  uint32 level = 1 [(tableau.field) = {name:"Level"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-union-shard-size-zero",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name:    "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{Name: "UnionTaskTarget"},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "PveBattle", Alias: "SoloPVEBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "level", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Level"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    PvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    PveBattle pve_battle = 2; // Bound to enum value: TYPE_PVE_BATTLE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+    TYPE_PVE_BATTLE = 2 [(tableau.evalue).name = "SoloPVEBattle"]; // SoloPVEBattle
+  }
+
+  message PvpBattle {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+  }
+  message PveBattle {
+    uint32 level = 1 [(tableau.field) = {name:"Level"}];
+  }
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			name: "export-union-single-shard",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-union-shard-mixed-predefined",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "Predefined", Alias: "PredefinedAlias",
+							Type: "protoconf.Item", FullType: "protoconf.Item", Predefined: true},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    protoconf.Item predefined = 2; // Bound to enum value: TYPE_PREDEFINED.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+    TYPE_PREDEFINED = 2 [(tableau.evalue).name = "PredefinedAlias"]; // PredefinedAlias
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-union-shard-mixed-types",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "Point", Alias: "Point",
+							Type: "int32", FullType: "int32"},
+						{Number: 3, Name: "Item", Alias: "Item",
+							Type: "Item", FullType: "protoconf.Item", Predefined: true},
+						{Number: 4, Name: "Friend", Alias: "Friend",
+							Type: "Player", FullType: "Player"},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+    int32 point = 2; // Bound to enum value: TYPE_POINT.
+    protoconf.Item item = 3; // Bound to enum value: TYPE_ITEM.
+    Player friend = 4; // Bound to enum value: TYPE_FRIEND.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+    TYPE_POINT = 2 [(tableau.evalue).name = "Point"]; // Point
+    TYPE_ITEM = 3 [(tableau.evalue).name = "Item"]; // Item
+    TYPE_FRIEND = 4 [(tableau.evalue).name = "Friend"]; // Friend
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-union-shard-reused-local-types",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "Player", Alias: "Player",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+						{Number: 2, Name: "Friend", Alias: "Friend",
+							Type: "Player", FullType: "Player"},
+						{Number: 3, Name: "Monster", Alias: "Monster",
+							Type: "CustomMonster", FullType: "CustomMonster",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "health", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Health"}},
+							},
+						},
+						{Number: 4, Name: "Boss", Alias: "Boss",
+							Type: "CustomMonster", FullType: "CustomMonster"},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPlayer player = 1; // Bound to enum value: TYPE_PLAYER.
+    TaskTargetPlayer friend = 2; // Bound to enum value: TYPE_FRIEND.
+    TaskTargetCustomMonster monster = 3; // Bound to enum value: TYPE_MONSTER.
+    TaskTargetCustomMonster boss = 4; // Bound to enum value: TYPE_BOSS.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PLAYER = 1 [(tableau.evalue).name = "Player"]; // Player
+    TYPE_FRIEND = 2 [(tableau.evalue).name = "Friend"]; // Friend
+    TYPE_MONSTER = 3 [(tableau.evalue).name = "Monster"]; // Monster
+    TYPE_BOSS = 4 [(tableau.evalue).name = "Boss"]; // Boss
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_task_target_1.proto",
+					body: `message TaskTargetPlayer {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+				{
+					importPath: "task_task_target_2.proto",
+					body: `message TaskTargetCustomMonster {
+  int32 health = 1 [(tableau.field) = {name:"Health"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-union-shard-filename-suffix",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "TaskTarget",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTaskTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "PvpBattle", Alias: "SoloPVPBattle",
+							Fields: []*internalpb.Field{
+								{Number: 1, Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					FilenameSuffix: "_conf",
+					gen: &Generator{
+						ctx:       context.Background(),
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					wb: &internalpb.Workbook{Name: "task"},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message TaskTarget {
+  option (tableau.union) = {name:"UnionTaskTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TaskTargetPvpBattle pvp_battle = 1; // Bound to enum value: TYPE_PVP_BATTLE.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP_BATTLE = 1 [(tableau.evalue).name = "SoloPVPBattle"]; // SoloPVPBattle
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_conf_task_target_1.proto",
+					body: `message TaskTargetPvpBattle {
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-union-shard-preserve-field-numbers-nested",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "Target",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionTarget",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "Pvp", Alias: "PVP",
+							Fields: []*internalpb.Field{
+								{Name: "type", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Type"}},
+								{Name: "armor", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Armor"}},
+								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					wb:           &internalpb.Workbook{Name: "task"},
+					gen: &Generator{
+						ctx: context.Background(),
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message Target {
+  option (tableau.union) = {name:"UnionTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    TargetPvp pvp = 1; // Bound to enum value: TYPE_PVP.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP = 1 [(tableau.evalue).name = "PVP"]; // PVP
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_target_1.proto",
+					body: `message TargetPvp {
+  reserved 2, 4;
+  int32 type = 1 [(tableau.field) = {name:"Type"}];
+  uint32 armor = 5 [(tableau.field) = {name:"Armor"}];
+  int64 damage = 3 [(tableau.field) = {name:"Damage"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "export-union-shard-preserve-field-numbers-top-level",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ShardedUnion",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "UnionSharded",
+						UnionShardSize: 1,
+					},
+					Fields: []*internalpb.Field{
+						{Number: 1, Name: "Pvp", Alias: "PVP",
+							Fields: []*internalpb.Field{
+								{Name: "type", Type: "int32", FullType: "int32", Options: &tableaupb.FieldOptions{Name: "Type"}},
+								{Name: "armor", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "Armor"}},
+								{Name: "damage", Type: "int64", FullType: "int64", Options: &tableaupb.FieldOptions{Name: "Damage"}},
+							},
+						},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					ProtoPackage: "unittest",
+					wb:           &internalpb.Workbook{Name: "task"},
+					gen: &Generator{
+						ctx: context.Background(),
+						OutputOpt: &options.ProtoOutputOption{
+							PreserveFieldNumbers: true,
+						},
+						protoRegistryFilesWithGenerated: protoregistry.GlobalFiles,
+					},
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message ShardedUnion {
+  option (tableau.union) = {name:"UnionSharded"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    ShardedUnionPvp pvp = 1; // Bound to enum value: TYPE_PVP.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_PVP = 1 [(tableau.evalue).name = "PVP"]; // PVP
+  }
+}
+
+`,
+			wantAuxiliary: []auxiliaryWant{
+				{
+					importPath: "task_sharded_union_1.proto",
+					body: `message ShardedUnionPvp {
+  reserved 2, 4;
+  int32 type = 1 [(tableau.field) = {name:"Type"}];
+  uint32 armor = 5 [(tableau.field) = {name:"Armor"}];
+  int64 damage = 3 [(tableau.field) = {name:"Damage"}];
+}
+`,
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -839,6 +1473,23 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 				t.Errorf("sheetExporter.exportUnion() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assert.Equal(t, tt.want, tt.x.p.String())
+			if len(tt.wantAuxiliary) > 0 {
+				assert.Equal(t, len(tt.wantAuxiliary), len(tt.x.be.unionShardFiles),
+					"unexpected number of union shard files")
+				for i, want := range tt.wantAuxiliary {
+					if i >= len(tt.x.be.unionShardFiles) {
+						break
+					}
+					got := tt.x.be.unionShardFiles[i]
+					assert.Equal(t, want.importPath, got.ImportPath,
+						"unionShardFiles[%d] ImportPath mismatch", i)
+					assert.Equal(t, want.body, got.Printer.String(),
+						"unionShardFiles[%d] body mismatch", i)
+				}
+			} else {
+				assert.Empty(t, tt.x.be.unionShardFiles,
+					"unexpected union shard files for non-shard case")
+			}
 		})
 	}
 }
@@ -871,6 +1522,38 @@ func Test_sheetExporter_exportMessager(t *testing.T) {
 			},
 			want: `message ItemConf {
   option (tableau.worksheet) = {};
+
+  uint32 id = 1 [(tableau.field) = {name:"ID"}];
+}
+
+`,
+			wantErr: false,
+		},
+		{
+			name: "export-messager-omits-union-shard-size",
+			x: &sheetExporter{
+				ws: &internalpb.Worksheet{
+					Name: "ItemConf",
+					Options: &tableaupb.WorksheetOptions{
+						Name:           "ItemConf",
+						UnionShardSize: 2,
+					},
+					Fields: []*internalpb.Field{
+						{Name: "id", Type: "uint32", FullType: "uint32", Options: &tableaupb.FieldOptions{Name: "ID"}},
+					},
+				},
+				p: printer.New(),
+				be: &bookExporter{
+					gen: &Generator{
+						OutputOpt: &options.ProtoOutputOption{},
+					},
+					messagerPatternRegexp: regexp.MustCompile(`Conf$`),
+				},
+				typeInfos:      &xproto.TypeInfos{},
+				nestedMessages: make(map[string]*internalpb.Field),
+			},
+			want: `message ItemConf {
+  option (tableau.worksheet) = {name:"ItemConf"};
 
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
 }

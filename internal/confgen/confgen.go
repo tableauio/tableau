@@ -220,6 +220,11 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		}
 	}
 
+	// Skip workbook protos with no worksheet messages (e.g. union shards).
+	if len(sheets) == 0 {
+		return nil
+	}
+
 	imp, err := importer.New(gen.ctx, absWbPath, importer.Sheets(sheetNames), importer.Mode(importer.Confgen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)

@@ -164,6 +164,12 @@ message Metasheet {
     name: "Validate"
     prop: {optional: true}
   }];
+  // Oneof sub-messages per shard for MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI.
+  // 0 (default) keeps nested inline messages.
+  int32 union_shard_size = 26 [(tableau.field) = {
+    name: "UnionShardSize"
+    prop: {optional: true}
+  }];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers

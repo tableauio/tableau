@@ -6,6 +6,8 @@ syntax = "proto3";
 package protoconf;
 
 import "common/common.proto";
+import "excel__metasheet__sheet_mode_shard_target_1.proto";
+import "excel__metasheet__sheet_mode_shard_target_2.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
@@ -188,6 +190,36 @@ message ActivityTarget {
   }
   message Task {
     bool hidden_on_finish = 1 [(tableau.field) = {name:"HiddenOnFinish"}];
+  }
+}
+
+message ShardTarget {
+  option (tableau.union) = {name:"UnionShardTarget"};
+
+  Type type = 9999 [(tableau.field) = {name:"Type"}];
+  oneof value {
+    option (tableau.oneof) = {field:"Field"};
+
+    protoconf.FruitType fruit = 1; // Bound to enum value: TYPE_FRUIT.
+    int32 point = 2; // Bound to enum value: TYPE_POINT.
+    protoconf.Item item = 3; // Bound to enum value: TYPE_ITEM.
+    ShardTargetPlayer player = 4; // Bound to enum value: TYPE_PLAYER.
+    ShardTargetPlayer friend = 5; // Bound to enum value: TYPE_FRIEND.
+    ShardTargetCustomMonster monster = 6; // Bound to enum value: TYPE_MONSTER.
+    ShardTargetCustomMonster boss = 7; // Bound to enum value: TYPE_BOSS.
+    ShardTargetSkill skill = 8; // Bound to enum value: TYPE_SKILL.
+  }
+
+  enum Type {
+    TYPE_INVALID = 0;
+    TYPE_FRUIT = 1 [(tableau.evalue).name = "Fruit"]; // Fruit
+    TYPE_POINT = 2 [(tableau.evalue).name = "Point"]; // Point
+    TYPE_ITEM = 3 [(tableau.evalue).name = "Item"]; // Item
+    TYPE_PLAYER = 4 [(tableau.evalue).name = "Player"]; // Player
+    TYPE_FRIEND = 5 [(tableau.evalue).name = "Friend"]; // Friend
+    TYPE_MONSTER = 6 [(tableau.evalue).name = "Monster"]; // Monster
+    TYPE_BOSS = 7 [(tableau.evalue).name = "Boss"]; // Boss
+    TYPE_SKILL = 8 [(tableau.evalue).name = "Skill"]; // Skill
   }
 }
 
