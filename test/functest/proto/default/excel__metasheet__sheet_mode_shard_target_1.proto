@@ -5,6 +5,7 @@ syntax = "proto3";
 
 package protoconf;
 
+import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
@@ -13,6 +14,8 @@ option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv" namerow:1 ty
 message ShardTargetPlayer {
   uint32 id = 1 [(tableau.field) = {name:"ID"}];
   string name = 2 [(tableau.field) = {name:"Name"}];
+  protoconf.FruitType fruit_type = 3 [(tableau.field) = {name:"FruitType"}];
+  protoconf.Item item = 4 [(tableau.field) = {name:"Item"}];
 }
 
 message ShardTargetCustomMonster {
