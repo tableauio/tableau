@@ -1474,21 +1474,21 @@ func Test_sheetExporter_exportUnion(t *testing.T) {
 			}
 			assert.Equal(t, tt.want, tt.x.p.String())
 			if len(tt.wantAuxiliary) > 0 {
-				assert.Equal(t, len(tt.wantAuxiliary), len(tt.x.be.auxiliaryFiles),
-					"unexpected number of auxiliary shard files")
+				assert.Equal(t, len(tt.wantAuxiliary), len(tt.x.be.unionShardFiles),
+					"unexpected number of union shard files")
 				for i, want := range tt.wantAuxiliary {
-					if i >= len(tt.x.be.auxiliaryFiles) {
+					if i >= len(tt.x.be.unionShardFiles) {
 						break
 					}
-					got := tt.x.be.auxiliaryFiles[i]
+					got := tt.x.be.unionShardFiles[i]
 					assert.Equal(t, want.importPath, got.ImportPath,
-						"auxiliary[%d] ImportPath mismatch", i)
+						"unionShardFiles[%d] ImportPath mismatch", i)
 					assert.Equal(t, want.body, got.Printer.String(),
-						"auxiliary[%d] body mismatch", i)
+						"unionShardFiles[%d] body mismatch", i)
 				}
 			} else {
-				assert.Empty(t, tt.x.be.auxiliaryFiles,
-					"unexpected auxiliary files for non-shard case")
+				assert.Empty(t, tt.x.be.unionShardFiles,
+					"unexpected union shard files for non-shard case")
 			}
 		})
 	}

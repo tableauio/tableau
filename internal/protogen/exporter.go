@@ -36,12 +36,12 @@ type bookExporter struct {
 
 	messagerPatternRegexp *regexp.Regexp
 
-	// auxiliaryFiles are union shard proto files (empty if union_shard_size is 0).
-	auxiliaryFiles []*unionAuxiliaryFile
+	// unionShardFiles are union shard proto files (empty if union_shard_size is 0).
+	unionShardFiles []*unionShardFile
 }
 
-// unionAuxiliaryFile is one generated union shard proto.
-type unionAuxiliaryFile struct {
+// unionShardFile is one generated union shard proto.
+type unionShardFile struct {
 	ImportPath string // relative path; also used as `import`
 	Printer    *printer.Printer
 	Imports    map[string]bool
@@ -100,8 +100,8 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 		}
 	}
 
-	for _, auxiliary := range x.auxiliaryFiles {
-		set.Add(auxiliary.ImportPath)
+	for _, shardFile := range x.unionShardFiles {
+		set.Add(shardFile.ImportPath)
 	}
 
 	header := printer.New()
@@ -133,11 +133,11 @@ func (x *bookExporter) export(checkProtoFileConflicts bool) error {
 	if err := x.writeProtoFile(path, header.Bytes(), p3.Bytes()); err != nil {
 		return err
 	}
-	for _, auxiliary := range x.auxiliaryFiles {
-		if err := x.writeAuxiliaryFile(auxiliary); err != nil {
+	for _, shardFile := range x.unionShardFiles {
+		if err := x.writeUnionShardFile(shardFile); err != nil {
 			return err
 		}
-		log.Infof("%15s: %s", "generated proto", auxiliary.ImportPath)
+		log.Infof("%15s: %s", "generated proto", shardFile.ImportPath)
 	}
 
 	return nil
@@ -147,8 +147,8 @@ func (x *bookExporter) checkOutputConflicts(mainPath string) error {
 	if err := x.ensureProtoFileNotExists(mainPath); err != nil {
 		return err
 	}
-	for _, auxiliary := range x.auxiliaryFiles {
-		if err := x.ensureProtoFileNotExists(filepath.Join(x.OutputDir, auxiliary.ImportPath)); err != nil {
+	for _, shardFile := range x.unionShardFiles {
+		if err := x.ensureProtoFileNotExists(filepath.Join(x.OutputDir, shardFile.ImportPath)); err != nil {
 			return err
 		}
 	}
@@ -195,16 +195,16 @@ func (x *bookExporter) writeProtoHeader(p *printer.Printer, imports *treeset.Set
 	}
 }
 
-func (x *bookExporter) writeAuxiliaryFile(auxiliary *unionAuxiliaryFile) error {
+func (x *bookExporter) writeUnionShardFile(shardFile *unionShardFile) error {
 	header := printer.New()
 	importSet := treeset.NewWithStringComparator()
-	for imp := range auxiliary.Imports {
+	for imp := range shardFile.Imports {
 		importSet.Add(imp)
 	}
 	x.writeProtoHeader(header, importSet)
 	header.P("option (tableau.workbook) = {", x.marshalToText(x.wb.Options), "};")
 	header.P("")
-	return x.writeProtoFile(filepath.Join(x.OutputDir, auxiliary.ImportPath), header.Bytes(), auxiliary.Printer.Bytes())
+	return x.writeProtoFile(filepath.Join(x.OutputDir, shardFile.ImportPath), header.Bytes(), shardFile.Printer.Bytes())
 }
 
 func (x *bookExporter) writeProtoFile(path string, parts ...[]byte) error {
@@ -499,7 +499,7 @@ func (x *sheetExporter) exportUnionShards(subMessages []unionSubMessage, shardSi
 			}
 		}
 
-		x.be.auxiliaryFiles = append(x.be.auxiliaryFiles, &unionAuxiliaryFile{
+		x.be.unionShardFiles = append(x.be.unionShardFiles, &unionShardFile{
 			ImportPath: fmt.Sprintf("%s_%s_%d%s", base, shardTag, shardIdx+1, ext),
 			Printer:    shardPrinter,
 			Imports:    shardImports,
