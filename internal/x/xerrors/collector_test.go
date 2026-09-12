@@ -970,9 +970,9 @@ func TestCollected_CollectForeignWrappedCollectedIsNotDropped(t *testing.T) {
 	assert.Contains(t, got.Error(), "err 1")
 }
 
-// Collecting a WrapKV'd same-tree collected error records the outer WrapKV
-// layer on the originating collector so Join() can re-apply the fields.
-func TestCollected_CollectSameTreeWrappedCollectedRecordsOuterWM(t *testing.T) {
+// Collecting a WrapKV'd same-tree collected error records the outer wrapper's
+// scope fields on the originating collector so Join() can re-apply them.
+func TestCollected_CollectSameTreeWrappedCollectedRecordsOuterFields(t *testing.T) {
 	root := NewCollector(10)
 	child := root.NewChild(0)
 	_ = child.Collect(fmt.Errorf("err 1"))
@@ -985,8 +985,8 @@ func TestCollected_CollectSameTreeWrappedCollectedRecordsOuterWM(t *testing.T) {
 	// and the outer WrapKV layer is recorded on child (origin) for Join().
 	_ = root.Collect(wrapped)
 
-	if assert.NotNil(t, child.outerWM, "outer WrapKV layer should be recorded on the originating collector") {
-		assert.Equal(t, "test.xlsx", child.outerWM.fields[KeyBookName])
+	if assert.NotNil(t, child.outerFields, "outer scope fields should be recorded on the originating collector") {
+		assert.Equal(t, "test.xlsx", child.outerFields[KeyBookName])
 	}
 
 	// child.Join() re-applies the recorded fields, surfacing them in its Desc.
@@ -1029,6 +1029,148 @@ func TestCollected_ErrorDelegates(t *testing.T) {
 
 	joined := c.Join()
 	assert.Contains(t, joined.Error(), "hello")
+}
+
+// collected marker is transparent to field propagation: outer WrapKV fields
+// must reach the joined children when rendering via Error(), so the
+// module-specific template (confgen) is used instead of the default one.
+//
+// This mirrors the real confgen chain:
+//
+//	parseFieldValue             -> E2002
+//	tableParser.Parse           -> WrapKV(DataCellPos/DataCell/ColumnName)
+//	sheetCollector.Join         -> collected{withMessage{joinError}}
+//	sheetParser.Parse           -> WrapKV(Module)
+//	parseMessageFromOneImporter -> WrapKV(Module/BookName/SheetName)
+func TestCollected_ErrorPropagatesOuterFields(t *testing.T) {
+	cellErr := WrapKV(E2002("100033333", "ItemConf.ID"),
+		KeyDataCellPos, "F12",
+		KeyDataCell, "100033333",
+		KeyColumnName, "ItemID",
+	)
+
+	child := NewCollector(10).NewChild(5)
+	_ = child.Collect(cellErr)
+
+	err := WrapKV(WrapKV(child.Join(), KeyModule, ModuleConf),
+		KeyModule, ModuleConf,
+		KeyBookName, "Activity.xlsx",
+		KeySheetName, "SectionConf",
+	)
+
+	want := `error[E2002]: field value not in referred space
+Workbook: Activity.xlsx
+Worksheet: SectionConf
+DataCellPos: F12
+DataCell: 100033333
+Reason: value "100033333" not in referred space "ItemConf.ID"
+Help: guarantee value "100033333" was configured in referred space "ItemConf.ID" ahead
+`
+	assert.Equal(t, want, err.Error())
+}
+
+// Re-collecting an already-collected same-tree error must preserve the fields
+// of every wrapper layer, not just the outermost one.
+//
+// This mirrors the real confgen chain of a merger/scatter sheet, where Module
+// and BookName/SheetName are added by different layers:
+//
+//	tableParser.Parse           -> sheetCollector.Join() == collected
+//	sheetParser.Parse           -> WrapKV(Module)
+//	parseMessageFromOneImporter -> WrapKV(Module/BookName/SheetName/PBMessage)
+//	ParseMessage's Group.Go     -> WrapKV(BookName/SheetName/Primary*)  <- outermost, no Module
+//	Group.Wait                  -> bookCollector.Join()
+func TestCollected_ReCollectPreservesAllWrapperFields(t *testing.T) {
+	cellErr := WrapKV(E2002("100033333", "ItemConf.ID"),
+		KeyDataCellPos, "F12",
+		KeyDataCell, "100033333",
+	)
+
+	book := NewCollector(10)
+	sheet := book.NewChild(5)
+	_ = sheet.Collect(cellErr)
+
+	// Module is added by an intermediate layer, while the outermost layer only
+	// carries book/sheet names.
+	err := WrapKV(WrapKV(sheet.Join(),
+		KeyModule, ModuleConf,
+		KeyBookName, "Activity.xlsx",
+		KeySheetName, "SectionConf",
+	), KeyPrimaryBookName, "Activity.xlsx", KeyPrimarySheetName, "SectionConf")
+	_ = book.Collect(err)
+
+	want := `error[E2002]: field value not in referred space
+Workbook: Activity.xlsx
+Worksheet: SectionConf
+DataCellPos: F12
+DataCell: 100033333
+Reason: value "100033333" not in referred space "ItemConf.ID"
+Help: guarantee value "100033333" was configured in referred space "ItemConf.ID" ahead
+`
+	assert.Equal(t, want, book.Join().Error())
+}
+
+// Only scope fields (which book/sheet/message) may be broadcast to the joined
+// children; per-cell fields belong to a single error. Recording a wrapper's
+// DataCellPos/DataCell would point every sibling at a cell it never touched.
+//
+// This mirrors the real confgen chain of a horizontal map, where the wrapper
+// around the nested join carries the *key* column's cell:
+//
+//	parseMessage               -> messageCollector.Join() == collected
+//	parseHorizontalMapField    -> WrapKV(CellDebugKV of the key column)
+//	parseMessage (parent)      -> messageCollector.Collect(...)  <- same tree
+func TestCollected_ReCollectDropsNonScopeFields(t *testing.T) {
+	sheet := NewCollector(10)
+	nested := sheet.NewChild(5)
+	// Sibling 1 owns its cell; sibling 2 has no cell of its own.
+	_ = nested.Collect(WrapKV(E2002("100033333", "ItemConf.ID"),
+		KeyDataCellPos, "B4",
+		KeyDataCell, "100033333",
+	))
+	_ = nested.Collect(E2014("Item1Miss"))
+
+	// The wrapper carries the key column's cell alongside the scope fields.
+	_ = sheet.Collect(WrapKV(nested.Join(),
+		KeyModule, ModuleConf,
+		KeyBookName, "Activity.xlsx",
+		KeySheetName, "SectionConf",
+		KeyDataCellPos, "A4",
+		KeyDataCell, "7",
+		KeyColumnName, "Item1ID",
+	))
+
+	got := sheet.Join().Error()
+	// Scope fields are broadcast to both children.
+	assert.Contains(t, got, "Workbook: Activity.xlsx")
+	assert.Contains(t, got, "Worksheet: SectionConf")
+	// Sibling 1 keeps its own cell; the wrapper's cell reaches neither.
+	assert.Contains(t, got, "DataCellPos: B4")
+	assert.NotContains(t, got, "DataCellPos: A4",
+		"wrapper cell position must not be broadcast to the joined children")
+	assert.NotContains(t, got, "DataCell: 7",
+		"wrapper cell data must not be broadcast to the joined children")
+}
+
+// A wrapper carrying no scope fields must clear the previously recorded ones,
+// so a stale book/sheet name is never re-applied to an unrelated join.
+func TestCollected_ReCollectFieldlessWrapperClearsStaleFields(t *testing.T) {
+	book := NewCollector(10)
+	first := book.NewChild(5)
+	_ = first.Collect(E2002("v1", "ItemConf.ID"))
+	_ = book.Collect(WrapKV(book.Join(),
+		KeyModule, ModuleConf,
+		KeyBookName, "First.xlsx",
+		KeySheetName, "S1",
+	))
+
+	second := book.NewChild(5)
+	_ = second.Collect(E2002("v2", "ShopConf.ID"))
+	_ = book.Collect(Wrap(book.Join()))
+
+	got := book.Join().Error()
+	assert.NotContains(t, got, "First.xlsx", "stale book name must not survive")
+	assert.NotContains(t, got, "Worksheet: S1", "stale sheet name must not survive")
 }
 
 // collected marker is transparent: errors.Is works through it.
