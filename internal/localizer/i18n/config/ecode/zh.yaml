@@ -77,7 +77,7 @@ E2014:
   help: 新增工作表的列 "{{.Column}}"
 E2015:
   desc: referred sheet column not found
-  text: 在工作簿 "{{.BookName}}" 的工作表 "{{.SheetName}}" 中未找到外键对应的列 "{{.Column}}"
+  text: 在工作簿 "{{.ReferBookName}}" 的工作表 "{{.ReferSheetName}}" 中未找到外键对应的列 "{{.Column}}"
   help: 修改字段属性 "refer", 或新增外键的列 "{{.Column}}"
 E2016:
   desc: list elements are not present continuously
@@ -135,6 +135,10 @@ E2029:
   desc: no cell with digit suffix for horizontal list/map field
   text: '横向 {{.FieldType}} 字段 "{{.FieldName}}" 未找到带数字后缀的单元格'
   help: '添加列 "{{.FieldName}}1"、"{{.FieldName}}2" 等；或设置属性 "optional:true" 表示字段可缺省'
+E2030:
+  desc: referred sheet not found
+  text: 在工作簿 "{{.ReferBookName}}" 中未找到引用的工作表 "{{.ReferSheetName}}"
+  help: 修改字段属性 "refer", 或新增引用的工作表 "{{.ReferSheetName}}"
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

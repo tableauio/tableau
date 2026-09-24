@@ -3,6 +3,8 @@ package fieldprop
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -295,6 +297,12 @@ func TestValueSpace_AddFromTable(t *testing.T) {
 		if got := d.GetValue(xerrors.KeyReferSheetName); got != "AssistSkill" {
 			t.Errorf("ReferSheetName = %v, want AssistSkill", got)
 		}
+		if got := d.GetValue(xerrors.KeyBookName); got != nil {
+			t.Errorf("BookName = %v, want nil", got)
+		}
+		if got := d.GetValue(xerrors.KeySheetName); got != nil {
+			t.Errorf("SheetName = %v, want nil", got)
+		}
 	})
 
 	t.Run("ignore parse error", func(t *testing.T) {
@@ -401,39 +409,6 @@ func TestReferredCache_ExistsValue_loadFailureDedupConcurrent(t *testing.T) {
 	}
 }
 
-func TestReferredCache_Reset(t *testing.T) {
-	cache := NewReferredCache()
-	vs := newValueSpace()
-	vs.Add("1")
-	cache.put("OK.ID", vs)
-
-	var loads int32
-	_, err := cache.existsValue("Broken.ID", "1", func(string) (*valueSpace, error) {
-		atomic.AddInt32(&loads, 1)
-		return nil, errors.New("load failed")
-	})
-	if err == nil {
-		t.Fatal("ExistsValue() error = nil, want error")
-	}
-
-	cache.reset()
-
-	if cache.exists("OK.ID") {
-		t.Error("Exists(OK.ID) = true after Reset, want false")
-	}
-
-	_, err = cache.existsValue("Broken.ID", "1", func(string) (*valueSpace, error) {
-		atomic.AddInt32(&loads, 1)
-		return nil, errors.New("load failed")
-	})
-	if err == nil {
-		t.Fatal("ExistsValue() after Reset error = nil, want load to be retried")
-	}
-	if got := atomic.LoadInt32(&loads); got != 2 {
-		t.Errorf("loadFunc calls = %d, want 2 (retried after Reset)", got)
-	}
-}
-
 func TestInReferredSpace_nilReceiver(t *testing.T) {
 	var cache *ReferredCache
 	input := &Input{
@@ -444,7 +419,10 @@ func TestInReferredSpace_nilReceiver(t *testing.T) {
 	}
 	_, err := cache.InReferredSpace(context.Background(), &tableaupb.FieldProp{Refer: "DoesNotExistConf.ID"}, "1", input)
 	if err == nil {
-		t.Fatal("nil receiver InReferredSpace() error = nil, want load error")
+		t.Fatal("nil receiver InReferredSpace() error = nil, want nil-cache error")
+	}
+	if got := err.Error(); got != "referred cache is nil" {
+		t.Errorf("nil receiver InReferredSpace() error = %q, want %q", got, "referred cache is nil")
 	}
 }
 
@@ -461,5 +439,134 @@ func TestInReferredSpace_cacheIsolation(t *testing.T) {
 	}
 	if _, err := NewReferredCache().InReferredSpace(context.Background(), prop, "1", input); err == nil {
 		t.Fatal("isolated cache should retry load, want error")
+	}
+}
+
+func TestLoadValueSpace_mergerErrorLocation(t *testing.T) {
+	inputDir := t.TempDir()
+	writeCSV := func(name, content string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(inputDir, name), []byte(content), 0o600); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	writeCSV("Unittest#MergerSingleConf.csv", "ID,Name\nuint32,string\nid,name\n1,main\n")
+	writeCSV("UnittestMerger1#MergerSingleConf.csv", "Wrong,Name\nuint32,string\nwrong,name\n2,shard\n")
+
+	_, err := loadValueSpace(context.Background(), "MergerSingleConf.ID", &Input{
+		ProtoPackage: "unittest",
+		InputDir:     inputDir,
+		SubdirRewrites: map[string]string{
+			"unittest/": "",
+		},
+		PRFiles: protoregistry.GlobalFiles,
+		Present: true,
+	})
+	if err == nil {
+		t.Fatal("loadValueSpace() error = nil, want missing-column error")
+	}
+	d := xerrors.NewDesc(err)
+	if got := d.GetValue(xerrors.KeyReferBookName); got != "UnittestMerger1#*.csv" {
+		t.Errorf("ReferBookName = %v, want UnittestMerger1#*.csv", got)
+	}
+	if got := d.GetValue(xerrors.KeyReferSheetName); got != "MergerSingleConf" {
+		t.Errorf("ReferSheetName = %v, want MergerSingleConf", got)
+	}
+	if got := d.GetValue(xerrors.KeyBookName); got != nil {
+		t.Errorf("BookName = %v, want nil", got)
+	}
+	if got := d.GetValue(xerrors.KeySheetName); got != nil {
+		t.Errorf("SheetName = %v, want nil", got)
+	}
+
+	d = xerrors.NewDesc(xerrors.WrapKV(err,
+		xerrors.KeyBookName, "Source#*.csv",
+		xerrors.KeySheetName, "SourceConf",
+	))
+	if got := d.GetValue(xerrors.KeyBookName); got != "Source#*.csv" {
+		t.Errorf("wrapped BookName = %v, want Source#*.csv", got)
+	}
+	if got := d.GetValue(xerrors.KeySheetName); got != "SourceConf" {
+		t.Errorf("wrapped SheetName = %v, want SourceConf", got)
+	}
+}
+
+func TestLoadValueSpace_preTableErrorLocations(t *testing.T) {
+	t.Run("primary importer", func(t *testing.T) {
+		_, err := loadValueSpace(context.Background(), "ItemConf.ID", &Input{
+			ProtoPackage: "unittest",
+			InputDir:     t.TempDir(),
+			SubdirRewrites: map[string]string{
+				"unittest/": "",
+			},
+			PRFiles: protoregistry.GlobalFiles,
+			Present: true,
+		})
+		assertReferLocation(t, err, "unittest/Unittest#*.csv", "ItemConf")
+	})
+
+	t.Run("merger discovery", func(t *testing.T) {
+		inputDir := t.TempDir()
+		if err := os.WriteFile(
+			filepath.Join(inputDir, "Unittest#MergerSingleConf.csv"),
+			[]byte("ID,Name\nuint32,string\nid,name\n1,main\n"),
+			0o600,
+		); err != nil {
+			t.Fatalf("write primary CSV: %v", err)
+		}
+		_, err := loadValueSpace(context.Background(), "MergerSingleConf.ID", &Input{
+			ProtoPackage: "unittest",
+			InputDir:     inputDir,
+			SubdirRewrites: map[string]string{
+				"unittest/": "",
+			},
+			PRFiles: protoregistry.GlobalFiles,
+			Present: true,
+		})
+		assertReferLocation(t, err, "unittest/Unittest#*.csv", "MergerSingleConf")
+	})
+
+	t.Run("missing sheet", func(t *testing.T) {
+		inputDir := t.TempDir()
+		if err := os.WriteFile(
+			filepath.Join(inputDir, "Unittest#Other.csv"),
+			[]byte("ID\nuint32\nid\n1\n"),
+			0o600,
+		); err != nil {
+			t.Fatalf("write unrelated CSV: %v", err)
+		}
+		_, err := loadValueSpace(context.Background(), "ItemConf.ID", &Input{
+			ProtoPackage: "unittest",
+			InputDir:     inputDir,
+			SubdirRewrites: map[string]string{
+				"unittest/": "",
+			},
+			PRFiles: protoregistry.GlobalFiles,
+			Present: true,
+		})
+		assertReferLocation(t, err, "Unittest#*.csv", "ItemConf")
+		if !errors.Is(err, xerrors.ErrE2030) {
+			t.Errorf("loadValueSpace() error = %v, want E2030", err)
+		}
+	})
+}
+
+func assertReferLocation(t *testing.T, err error, wantBook, wantSheet string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("loadValueSpace() error = nil")
+	}
+	d := xerrors.NewDesc(err)
+	if got := d.GetValue(xerrors.KeyReferBookName); got != wantBook {
+		t.Errorf("ReferBookName = %v, want %s", got, wantBook)
+	}
+	if got := d.GetValue(xerrors.KeyReferSheetName); got != wantSheet {
+		t.Errorf("ReferSheetName = %v, want %s", got, wantSheet)
+	}
+	if got := d.GetValue(xerrors.KeyBookName); got != nil {
+		t.Errorf("BookName = %v, want nil", got)
+	}
+	if got := d.GetValue(xerrors.KeySheetName); got != nil {
+		t.Errorf("SheetName = %v, want nil", got)
 	}
 }

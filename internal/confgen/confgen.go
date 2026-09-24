@@ -38,8 +38,8 @@ type Generator struct {
 	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
 	validator     protovalidate.Validator  // validator with extension type resolver for custom predefined rules.
-	collector     *xerrors.Collector       // concurrent error collector shared across the generator.
-	referredCache *fieldprop.ReferredCache // refer value-space cache for this generate run
+	collector     *xerrors.Collector       // concurrent error collector for the current generate run.
+	referredCache *fieldprop.ReferredCache // refer value-space cache for the current generate run.
 
 	// Performance stats
 	PerfStats sync.Map
@@ -85,6 +85,12 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return g
 }
 
+func (gen *Generator) resetRunState() {
+	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
+	gen.referredCache = fieldprop.NewReferredCache()
+	gen.PerfStats = sync.Map{}
+}
+
 // bookSpecifier can be:
 //   - only workbook: excel/Item.xlsx
 //   - specific worksheet: excel/Item.xlsx#Item (To be implemented)
@@ -98,6 +104,7 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 }
 
 func (gen *Generator) GenAll() error {
+	gen.resetRunState()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
@@ -124,6 +131,7 @@ func (gen *Generator) GenAll() error {
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
+	gen.resetRunState()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err

@@ -79,20 +79,6 @@ func NewReferredCache() *ReferredCache {
 	}
 }
 
-func (r *ReferredCache) reset() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.references = make(map[string]*valueSpace)
-	r.failed = make(map[string]struct{})
-}
-
-func (r *ReferredCache) exists(refer string) bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	_, ok := r.references[refer]
-	return ok
-}
-
 type loadValueSpaceFunc = func(refer string) (*valueSpace, error)
 
 func (r *ReferredCache) existsValue(refer string, value string, loadFunc loadValueSpaceFunc) (bool, error) {
@@ -128,12 +114,6 @@ func (r *ReferredCache) existsValue(refer string, value string, loadFunc loadVal
 	}
 	r.references[refer] = space
 	return space.Contains(value), nil
-}
-
-func (r *ReferredCache) put(refer string, space *valueSpace) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.references[refer] = space
 }
 
 type referDesc struct {
@@ -203,13 +183,19 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
 	primaryImporter, err := importer.New(ctx, absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
-		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName)
+		return nil, xerrors.WrapKV(err,
+			xerrors.KeyReferBookName, bookName,
+			xerrors.KeyReferSheetName, sheetName,
+		)
 	}
 
 	// get merger importer infos
 	impInfos, err := importer.GetMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
-		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName)
+		return nil, xerrors.WrapKV(err,
+			xerrors.KeyReferBookName, bookName,
+			xerrors.KeyReferSheetName, sheetName,
+		)
 	}
 
 	// append self
@@ -223,16 +209,19 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 			// sheet name is specified
 			specifiedSheetName = impInfo.SpecifiedSheetName
 		}
+		referredBookName := impInfo.Filename()
+		if relBookName, err := xfs.Rel(input.InputDir, referredBookName); err == nil {
+			referredBookName = relBookName
+		}
 		sheet := impInfo.GetSheet(specifiedSheetName)
 		if sheet == nil {
-			err := xerrors.E0001(sheetName, impInfo.Filename())
-			return nil, xerrors.WrapKV(err, xerrors.KeySheetName, sheetName, xerrors.KeyBookName, impInfo.Filename())
+			return nil, xerrors.E2030(referredBookName, specifiedSheetName)
 		}
 
 		if sheetOpts.Transpose {
-			err = space.addFromTable(header, sheet.Table.Transpose(), referInfo.Column, bookName, sheetName)
+			err = space.addFromTable(header, sheet.Table.Transpose(), referInfo.Column, referredBookName, specifiedSheetName)
 		} else {
-			err = space.addFromTable(header, sheet.Table, referInfo.Column, bookName, sheetName)
+			err = space.addFromTable(header, sheet.Table, referInfo.Column, referredBookName, specifiedSheetName)
 		}
 		if err != nil {
 			return nil, err
@@ -254,7 +243,7 @@ func (r *ReferredCache) InReferredSpace(ctx context.Context, prop *tableaupb.Fie
 		return true, nil
 	}
 	if r == nil {
-		r = NewReferredCache()
+		return false, xerrors.New("referred cache is nil")
 	}
 
 	loadFunc := func(refer string) (*valueSpace, error) {

@@ -327,6 +327,9 @@ func NewSheetParser(ctx context.Context, protoPackage, locationName string, opts
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
 func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName string, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
+	if extInfo != nil && extInfo.ReferredCache == nil {
+		extInfo.ReferredCache = fieldprop.NewReferredCache()
+	}
 	sp := &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
