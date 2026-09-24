@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -74,6 +75,9 @@ type BaseOptions struct {
 	//
 	// Default: 0 (=> 1, fail-fast).
 	MaxErrorsPerSheet int
+
+	// Shared by all messager options derived from the same Options.
+	referredCache *fieldprop.ReferredCache
 }
 
 // MessagerOptions is the options struct for a messager.
@@ -95,6 +99,13 @@ type MessagerOptions struct {
 	//
 	// Default: nil.
 	PatchPaths []string
+}
+
+func (o *MessagerOptions) getReferredCache() *fieldprop.ReferredCache {
+	if o == nil || o.referredCache == nil {
+		return fieldprop.NewReferredCache()
+	}
+	return o.referredCache
 }
 
 // GetLocationName returns the location name.
@@ -225,6 +236,7 @@ func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
 	if mopts.MaxErrorsPerSheet == 0 {
 		mopts.MaxErrorsPerSheet = o.MaxErrorsPerSheet
 	}
+	mopts.referredCache = o.referredCache
 	return &mopts
 }
 
@@ -255,6 +267,7 @@ func ParseOptions(setters ...Option) *Options {
 	for _, setter := range setters {
 		setter(opts)
 	}
+	opts.referredCache = fieldprop.NewReferredCache()
 	return opts
 }
 

@@ -121,10 +121,31 @@ func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := ParseOptions(tt.args.o...)
-			if got := opts.ParseMessagerOptionsByName(tt.args.name); !reflect.DeepEqual(got, tt.want) {
+			got := opts.ParseMessagerOptionsByName(tt.args.name)
+			want := *tt.want
+			want.referredCache = opts.referredCache
+			if !reflect.DeepEqual(got, &want) {
 				t.Errorf("Options.ParseMessagerOptionsByName() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestOptions_ReferredCacheScope(t *testing.T) {
+	opts := ParseOptions()
+	if opts.referredCache == nil {
+		t.Fatal("ParseOptions() referredCache = nil")
+	}
+
+	itemOpts := opts.ParseMessagerOptionsByName("ItemConf")
+	mallOpts := opts.ParseMessagerOptionsByName("MallConf")
+	if itemOpts.referredCache != opts.referredCache || mallOpts.referredCache != opts.referredCache {
+		t.Fatal("messager options do not share their parent Options cache")
+	}
+
+	otherOpts := ParseOptions().ParseMessagerOptionsByName("ItemConf")
+	if itemOpts.referredCache == otherOpts.referredCache {
+		t.Fatal("separate Options instances share a referred cache")
 	}
 }
 
