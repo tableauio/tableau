@@ -28,8 +28,8 @@ func TestGeneratorResetRunStateRetriesFailedRefer(t *testing.T) {
 	}
 
 	previous := gen.referredCache
-	if _, err := previous.InReferredSpace(context.Background(), prop, "1", input); err == nil {
-		t.Fatal("first InReferredSpace() error = nil, want load error")
+	if err := previous.CheckRefer(context.Background(), prop, "1", input); err == nil {
+		t.Fatal("first CheckRefer() error = nil, want load error")
 	}
 	previousCollector := gen.collector
 	if err := gen.collector.Collect(errors.New("first run failed")); err != nil {
@@ -40,8 +40,8 @@ func TestGeneratorResetRunStateRetriesFailedRefer(t *testing.T) {
 	if gen.referredCache == previous {
 		t.Fatal("resetRunState() reused the previous referred cache")
 	}
-	if _, err := gen.referredCache.InReferredSpace(context.Background(), prop, "1", input); err == nil {
-		t.Fatal("InReferredSpace() after reset error = nil, want load to be retried")
+	if err := gen.referredCache.CheckRefer(context.Background(), prop, "1", input); err == nil {
+		t.Fatal("CheckRefer() after reset error = nil, want load to be retried")
 	}
 	if gen.collector == previousCollector {
 		t.Fatal("resetRunState() reused the previous error collector")

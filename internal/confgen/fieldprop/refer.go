@@ -31,9 +31,14 @@ func init() {
 
 // ReferredCache caches referred column values for one generation or load.
 type ReferredCache struct {
-	mu         sync.RWMutex
-	references map[string]*valueSpace
-	failed     map[string]struct{}
+	mu      sync.RWMutex
+	entries map[string]referCacheEntry // refer expression -> cached result
+}
+
+// referCacheEntry holds a value space or a previously reported load failure.
+type referCacheEntry struct {
+	space       *valueSpace
+	unavailable bool // loading failed and its error was already returned
 }
 
 type valueSpace struct {
@@ -67,42 +72,35 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
-		references: make(map[string]*valueSpace),
-		failed:     make(map[string]struct{}),
+		entries: make(map[string]referCacheEntry),
 	}
 }
 
 type loadValueSpaceFunc = func() (*valueSpace, error)
 
-func (r *ReferredCache) existsValue(refer, value string, loadFunc loadValueSpaceFunc) (bool, error) {
+func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
 	r.mu.RLock()
-	space, ok := r.references[refer]
-	_, isFailed := r.failed[refer]
+	entry, ok := r.entries[refer]
 	r.mu.RUnlock()
-	if isFailed {
-		// The load error for this reference was already returned.
-		return true, nil
-	}
 	if ok {
-		return space.Contains(value), nil
+		return entry, nil
 	}
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, isFailed = r.failed[refer]; isFailed {
-		return true, nil
-	}
-	space, ok = r.references[refer]
+	entry, ok = r.entries[refer]
 	if ok {
-		return space.Contains(value), nil
+		return entry, nil
 	}
 	space, err := loadFunc()
 	if err != nil {
-		r.failed[refer] = struct{}{}
-		return false, err
+		entry = referCacheEntry{unavailable: true}
+		r.entries[refer] = entry
+		return entry, err
 	}
-	r.references[refer] = space
-	return space.Contains(value), nil
+	entry = referCacheEntry{space: space}
+	r.entries[refer] = entry
+	return entry, nil
 }
 
 type referDesc struct {
@@ -138,7 +136,7 @@ func parseRefer(text string) (*referDesc, error) {
 	return desc, nil
 }
 
-// Input is the workbook lookup context for InReferredSpace.
+// Input is the workbook lookup context for CheckRefer.
 type Input struct {
 	ProtoPackage   string
 	InputDir       string
@@ -220,29 +218,29 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	return space, nil
 }
 
-// InReferredSpace reports whether cellData exists in a column named by prop.Refer.
-func (r *ReferredCache) InReferredSpace(ctx context.Context, prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
+// CheckRefer validates cellData against prop.Refer.
+func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldProp, cellData string, input *Input) error {
 	if prop == nil || strings.TrimSpace(prop.Refer) == "" {
-		return true, nil
+		return nil
 	}
 	// not present, and presence not required
 	if !input.Present && !prop.Present {
-		return true, nil
+		return nil
 	}
 	if r == nil {
-		return false, xerrors.New("referred cache is nil")
+		return xerrors.New("referred cache is nil")
 	}
 
 	for _, refer := range strings.Split(prop.Refer, ",") {
-		ok, err := r.existsValue(refer, cellData, func() (*valueSpace, error) {
+		entry, err := r.getEntry(refer, func() (*valueSpace, error) {
 			return loadValueSpace(ctx, refer, input)
 		})
 		if err != nil {
-			return false, err
+			return err
 		}
-		if ok {
-			return true, nil
+		if entry.unavailable || entry.space.Contains(cellData) {
+			return nil
 		}
 	}
-	return false, nil
+	return xerrors.E2002(cellData, prop.Refer)
 }

@@ -64,7 +64,7 @@ func Test_parseRefer(t *testing.T) {
 	}
 }
 
-func TestInReferredSpace(t *testing.T) {
+func TestCheckRefer(t *testing.T) {
 	type args struct {
 		prop     *tableaupb.FieldProp
 		cellData string
@@ -73,8 +73,7 @@ func TestInReferredSpace(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    bool
-		wantErr bool
+		wantErr error
 	}{
 		{
 			name: "in referred value space",
@@ -91,8 +90,7 @@ func TestInReferredSpace(t *testing.T) {
 					Present:        true,
 				},
 			},
-			want:    true,
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
 			name: "not in referred value space",
@@ -109,8 +107,7 @@ func TestInReferredSpace(t *testing.T) {
 					Present:        true,
 				},
 			},
-			want:    false,
-			wantErr: false,
+			wantErr: xerrors.ErrE2002,
 		},
 		{
 			name: "in ignored referred value space",
@@ -127,8 +124,7 @@ func TestInReferredSpace(t *testing.T) {
 					Present:        true,
 				},
 			},
-			want:    false,
-			wantErr: false,
+			wantErr: xerrors.ErrE2002,
 		},
 		{
 			name: "in referred value space with subdir rewrites",
@@ -147,8 +143,7 @@ func TestInReferredSpace(t *testing.T) {
 					Present: true,
 				},
 			},
-			want:    true,
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
 			name: "not in referred value space with subdir rewrites",
@@ -167,8 +162,7 @@ func TestInReferredSpace(t *testing.T) {
 					Present: true,
 				},
 			},
-			want:    false,
-			wantErr: false,
+			wantErr: xerrors.ErrE2002,
 		},
 		{
 			name: "in referred value space(transposed)",
@@ -185,8 +179,7 @@ func TestInReferredSpace(t *testing.T) {
 					Present:        true,
 				},
 			},
-			want:    true,
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
 			name: "not referred value space(transposed)",
@@ -203,26 +196,21 @@ func TestInReferredSpace(t *testing.T) {
 					Present:        true,
 				},
 			},
-			want:    false,
-			wantErr: false,
+			wantErr: xerrors.ErrE2002,
 		},
 	}
 	cache := NewReferredCache()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := cache.InReferredSpace(context.Background(), tt.args.prop, tt.args.cellData, tt.args.input)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("InReferredSpace() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("InReferredSpace() = %v, want %v", got, tt.want)
+			err := cache.CheckRefer(context.Background(), tt.args.prop, tt.args.cellData, tt.args.input)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("CheckRefer() error = %v, want %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestInReferredSpace_loadFailureDedup(t *testing.T) {
+func TestCheckRefer_loadFailureDedup(t *testing.T) {
 	cache := NewReferredCache()
 	input := &Input{
 		ProtoPackage:   "unittest",
@@ -233,20 +221,13 @@ func TestInReferredSpace_loadFailureDedup(t *testing.T) {
 	}
 	prop := &tableaupb.FieldProp{Refer: "DoesNotExistConf.ID"}
 
-	ok, err := cache.InReferredSpace(context.Background(), prop, "1", input)
+	err := cache.CheckRefer(context.Background(), prop, "1", input)
 	if err == nil {
-		t.Fatal("first InReferredSpace() error = nil, want load error")
-	}
-	if ok {
-		t.Errorf("first InReferredSpace() = true, want false")
+		t.Fatal("first CheckRefer() error = nil, want load error")
 	}
 
-	ok, err = cache.InReferredSpace(context.Background(), prop, "2", input)
-	if err != nil {
-		t.Fatalf("second InReferredSpace() error = %v, want nil (deduped)", err)
-	}
-	if !ok {
-		t.Errorf("second InReferredSpace() = false, want true (treat as present after first failure)")
+	if err := cache.CheckRefer(context.Background(), prop, "2", input); err != nil {
+		t.Fatalf("second CheckRefer() error = %v, want nil", err)
 	}
 }
 
@@ -326,7 +307,7 @@ func TestValueSpace_AddFromTable(t *testing.T) {
 	})
 }
 
-func TestReferredCache_ExistsValue_loadFailureDedup(t *testing.T) {
+func TestReferredCache_GetEntry_loadFailureDedup(t *testing.T) {
 	cache := NewReferredCache()
 	var loads int32
 	loadFunc := func() (*valueSpace, error) {
@@ -335,27 +316,24 @@ func TestReferredCache_ExistsValue_loadFailureDedup(t *testing.T) {
 	}
 	refer := "Broken.ID"
 
-	ok, err := cache.existsValue(refer, "1", loadFunc)
+	_, err := cache.getEntry(refer, loadFunc)
 	if err == nil {
-		t.Fatal("first ExistsValue() error = nil, want error")
-	}
-	if ok {
-		t.Errorf("first ExistsValue() = true, want false")
+		t.Fatal("first getEntry() error = nil, want error")
 	}
 
-	ok, err = cache.existsValue(refer, "2", loadFunc)
+	entry, err := cache.getEntry(refer, loadFunc)
 	if err != nil {
-		t.Fatalf("second ExistsValue() error = %v, want nil", err)
+		t.Fatalf("second getEntry() error = %v, want nil", err)
 	}
-	if !ok {
-		t.Errorf("second ExistsValue() = false, want true")
+	if !entry.unavailable {
+		t.Error("second getEntry() entry is available, want unavailable")
 	}
 	if got := atomic.LoadInt32(&loads); got != 1 {
 		t.Errorf("loadFunc calls = %d, want 1", got)
 	}
 }
 
-func TestReferredCache_ExistsValue_loadFailureDedupConcurrent(t *testing.T) {
+func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 	cache := NewReferredCache()
 	var loads int32
 	start := make(chan struct{})
@@ -367,8 +345,8 @@ func TestReferredCache_ExistsValue_loadFailureDedupConcurrent(t *testing.T) {
 
 	const n = 32
 	type result struct {
-		ok  bool
-		err error
+		entry referCacheEntry
+		err   error
 	}
 	results := make([]result, n)
 	var wg sync.WaitGroup
@@ -377,8 +355,8 @@ func TestReferredCache_ExistsValue_loadFailureDedupConcurrent(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			<-start
-			ok, err := cache.existsValue(refer, "v", loadFunc)
-			results[i] = result{ok, err}
+			entry, err := cache.getEntry(refer, loadFunc)
+			results[i] = result{entry, err}
 		}(i)
 	}
 	close(start)
@@ -387,29 +365,26 @@ func TestReferredCache_ExistsValue_loadFailureDedupConcurrent(t *testing.T) {
 	if got := atomic.LoadInt32(&loads); got != 1 {
 		t.Errorf("loadFunc calls = %d, want 1", got)
 	}
-	var nErr, nOK int
+	var nErr, nUnavailable int
 	for _, res := range results {
 		if res.err != nil {
 			nErr++
-			if res.ok {
-				t.Errorf("failed ExistsValue() = true, want false")
-			}
 			continue
 		}
-		nOK++
-		if !res.ok {
-			t.Errorf("deduped ExistsValue() = false, want true")
+		if !res.entry.unavailable {
+			t.Error("deduped getEntry() entry is available, want unavailable")
 		}
+		nUnavailable++
 	}
 	if nErr != 1 {
 		t.Errorf("error returns = %d, want 1", nErr)
 	}
-	if nOK != n-1 {
-		t.Errorf("deduped returns = %d, want %d", nOK, n-1)
+	if nUnavailable != n-1 {
+		t.Errorf("unavailable returns = %d, want %d", nUnavailable, n-1)
 	}
 }
 
-func TestInReferredSpace_nilReceiver(t *testing.T) {
+func TestCheckRefer_nilReceiver(t *testing.T) {
 	var cache *ReferredCache
 	input := &Input{
 		ProtoPackage: "unittest",
@@ -417,16 +392,16 @@ func TestInReferredSpace_nilReceiver(t *testing.T) {
 		PRFiles:      protoregistry.GlobalFiles,
 		Present:      true,
 	}
-	_, err := cache.InReferredSpace(context.Background(), &tableaupb.FieldProp{Refer: "DoesNotExistConf.ID"}, "1", input)
+	err := cache.CheckRefer(context.Background(), &tableaupb.FieldProp{Refer: "DoesNotExistConf.ID"}, "1", input)
 	if err == nil {
-		t.Fatal("nil receiver InReferredSpace() error = nil, want nil-cache error")
+		t.Fatal("nil receiver CheckRefer() error = nil, want nil-cache error")
 	}
 	if got := err.Error(); got != "referred cache is nil" {
-		t.Errorf("nil receiver InReferredSpace() error = %q, want %q", got, "referred cache is nil")
+		t.Errorf("nil receiver CheckRefer() error = %q, want %q", got, "referred cache is nil")
 	}
 }
 
-func TestInReferredSpace_cacheIsolation(t *testing.T) {
+func TestCheckRefer_cacheIsolation(t *testing.T) {
 	prop := &tableaupb.FieldProp{Refer: "DoesNotExistConf.ID"}
 	input := &Input{
 		ProtoPackage: "unittest",
@@ -434,10 +409,10 @@ func TestInReferredSpace_cacheIsolation(t *testing.T) {
 		PRFiles:      protoregistry.GlobalFiles,
 		Present:      true,
 	}
-	if _, err := NewReferredCache().InReferredSpace(context.Background(), prop, "1", input); err == nil {
-		t.Fatal("first cache InReferredSpace() error = nil, want load error")
+	if err := NewReferredCache().CheckRefer(context.Background(), prop, "1", input); err == nil {
+		t.Fatal("first cache CheckRefer() error = nil, want load error")
 	}
-	if _, err := NewReferredCache().InReferredSpace(context.Background(), prop, "1", input); err == nil {
+	if err := NewReferredCache().CheckRefer(context.Background(), prop, "1", input); err == nil {
 		t.Fatal("isolated cache should retry load, want error")
 	}
 }

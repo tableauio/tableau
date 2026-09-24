@@ -996,12 +996,8 @@ func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue 
 				PRFiles:        p.extInfo.PRFiles,
 				Present:        present,
 			}
-			ok, err := p.extInfo.ReferredCache.InReferredSpace(p.ctx, fprop, rawValue, input)
-			if err != nil {
+			if err := p.extInfo.ReferredCache.CheckRefer(p.ctx, fprop, rawValue, input); err != nil {
 				return v, present, err
-			}
-			if !ok {
-				return v, present, xerrors.E2002(rawValue, fprop.Refer)
 			}
 		}
 	}
