@@ -76,7 +76,7 @@ type BaseOptions struct {
 	// Default: 0 (=> 1, fail-fast).
 	MaxErrorsPerSheet int
 
-	// Shared by all messager options derived from the same Options.
+	// Shared by all messager options in the same load scope.
 	referredCache *fieldprop.ReferredCache
 }
 
@@ -190,8 +190,8 @@ func (o *MessagerOptions) GetPatchPaths() []string {
 	return o.PatchPaths
 }
 
-// Options is the options struct, which contains both global-level and
-// messager-level options.
+// Options contains global-level and messager-level options. Each instance is
+// scoped to one input directory and one SubdirRewrites configuration.
 type Options struct {
 	BaseOptions
 	// MessagerOptions maps each messager name to a MessageOptions.

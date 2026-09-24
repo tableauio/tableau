@@ -26,7 +26,7 @@ E2001:
 E2002:
   desc: field value not in referred space
   text: 值 "{{.Value}}" 不在 "{{.Refer}}" 所指定的值空间中
-  help: 请确保在 "{{.Refer}}" 所指定的值空间中提前配置好值 "{{.Value}}"
+  help: 请更正值 "{{.Value}}"，或将其添加到 "{{.Refer}}" 引用的任一列中
 E2003:
   desc: illegal sequence number
   text: '值 "{{.Value}}" 不符合序列 "sequence:{{.Sequence}}" 要求'

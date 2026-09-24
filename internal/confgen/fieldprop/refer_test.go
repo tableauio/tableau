@@ -329,12 +329,13 @@ func TestValueSpace_AddFromTable(t *testing.T) {
 func TestReferredCache_ExistsValue_loadFailureDedup(t *testing.T) {
 	cache := NewReferredCache()
 	var loads int32
-	loadFunc := func(refer string) (*valueSpace, error) {
+	loadFunc := func() (*valueSpace, error) {
 		atomic.AddInt32(&loads, 1)
 		return nil, errors.New("load failed")
 	}
+	refer := "Broken.ID"
 
-	ok, err := cache.existsValue("Broken.ID", "1", loadFunc)
+	ok, err := cache.existsValue(refer, "1", loadFunc)
 	if err == nil {
 		t.Fatal("first ExistsValue() error = nil, want error")
 	}
@@ -342,7 +343,7 @@ func TestReferredCache_ExistsValue_loadFailureDedup(t *testing.T) {
 		t.Errorf("first ExistsValue() = true, want false")
 	}
 
-	ok, err = cache.existsValue("Broken.ID", "2", loadFunc)
+	ok, err = cache.existsValue(refer, "2", loadFunc)
 	if err != nil {
 		t.Fatalf("second ExistsValue() error = %v, want nil", err)
 	}
@@ -355,15 +356,14 @@ func TestReferredCache_ExistsValue_loadFailureDedup(t *testing.T) {
 }
 
 func TestReferredCache_ExistsValue_loadFailureDedupConcurrent(t *testing.T) {
-	// All callers pass the RLock check before any one takes the write lock,
-	// so losers hit the double-checked `failed` branch under Lock.
 	cache := NewReferredCache()
 	var loads int32
 	start := make(chan struct{})
-	loadFunc := func(refer string) (*valueSpace, error) {
+	loadFunc := func() (*valueSpace, error) {
 		atomic.AddInt32(&loads, 1)
 		return nil, errors.New("load failed")
 	}
+	refer := "BrokenConcurrent.ID"
 
 	const n = 32
 	type result struct {
@@ -377,7 +377,7 @@ func TestReferredCache_ExistsValue_loadFailureDedupConcurrent(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			<-start
-			ok, err := cache.existsValue("BrokenConcurrent.ID", "v", loadFunc)
+			ok, err := cache.existsValue(refer, "v", loadFunc)
 			results[i] = result{ok, err}
 		}(i)
 	}

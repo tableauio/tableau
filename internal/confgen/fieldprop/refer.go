@@ -29,16 +29,11 @@ func init() {
 	referRegexp = regexp.MustCompile(`(?P<Sheet>.+?)` + `(\((?P<Alias>\w+)\))?` + `\.` + `(?P<Column>\w+)`)
 }
 
-// ReferredCache holds refer target column value spaces for one generate/load run.
+// ReferredCache caches referred column values for one generation or load.
 type ReferredCache struct {
 	mu         sync.RWMutex
-	references map[string]*valueSpace // message name -> sheet column value space
-	// failed records refer expressions whose value space failed to load.
-	// The first failure is still surfaced to the caller; subsequent
-	// InReferredSpace calls for the same refer short-circuit to "present" so
-	// one broken refer target does not spam N duplicate errors (one per
-	// row of the referring sheet).
-	failed map[string]struct{}
+	references map[string]*valueSpace
+	failed     map[string]struct{}
 }
 
 type valueSpace struct {
@@ -61,9 +56,7 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 		return nil
 	})
 	if err != nil {
-		// Tag with the referred target so outer confgen wrappers (which set
-		// BookName/SheetName to the source sheet under generation) don't
-		// obscure where the offending row actually lives.
+		// Keep the referred location distinct from the source sheet.
 		return xerrors.WrapKV(err,
 			xerrors.KeyReferBookName, bookName,
 			xerrors.KeyReferSheetName, sheetName,
@@ -79,23 +72,21 @@ func NewReferredCache() *ReferredCache {
 	}
 }
 
-type loadValueSpaceFunc = func(refer string) (*valueSpace, error)
+type loadValueSpaceFunc = func() (*valueSpace, error)
 
-func (r *ReferredCache) existsValue(refer string, value string, loadFunc loadValueSpaceFunc) (bool, error) {
+func (r *ReferredCache) existsValue(refer, value string, loadFunc loadValueSpaceFunc) (bool, error) {
 	r.mu.RLock()
 	space, ok := r.references[refer]
 	_, isFailed := r.failed[refer]
 	r.mu.RUnlock()
 	if isFailed {
-		// A prior load surfaced the real error already; silence follow-ups
-		// on the same refer target.
+		// The load error for this reference was already returned.
 		return true, nil
 	}
 	if ok {
 		return space.Contains(value), nil
 	}
 
-	// load value space once
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if _, isFailed = r.failed[refer]; isFailed {
@@ -105,10 +96,8 @@ func (r *ReferredCache) existsValue(refer string, value string, loadFunc loadVal
 	if ok {
 		return space.Contains(value), nil
 	}
-	space, err := loadFunc(refer)
+	space, err := loadFunc()
 	if err != nil {
-		// Remember the failure so future callers short-circuit instead of
-		// re-triggering loadFunc (and re-emitting the same error).
 		r.failed[refer] = struct{}{}
 		return false, err
 	}
@@ -231,9 +220,7 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	return space, nil
 }
 
-// InReferredSpace checks whether the cell data is at least in one of the other sheets'
-// column value space (aka message's field value space). prop.Refer is comma separated,
-// e.g.: "SheetName(SheetAlias).ColumnName[,SheetName(SheetAlias).ColumnName]..."
+// InReferredSpace reports whether cellData exists in a column named by prop.Refer.
 func (r *ReferredCache) InReferredSpace(ctx context.Context, prop *tableaupb.FieldProp, cellData string, input *Input) (bool, error) {
 	if prop == nil || strings.TrimSpace(prop.Refer) == "" {
 		return true, nil
@@ -246,13 +233,10 @@ func (r *ReferredCache) InReferredSpace(ctx context.Context, prop *tableaupb.Fie
 		return false, xerrors.New("referred cache is nil")
 	}
 
-	loadFunc := func(refer string) (*valueSpace, error) {
-		return loadValueSpace(ctx, refer, input)
-	}
-
-	// NOTE: prop.Refer is comma separated, e.g.: "SheetName(SheetAlias).ColumnName[,SheetName(SheetAlias).ColumnName]..."
 	for _, refer := range strings.Split(prop.Refer, ",") {
-		ok, err := r.existsValue(refer, cellData, loadFunc)
+		ok, err := r.existsValue(refer, cellData, func() (*valueSpace, error) {
+			return loadValueSpace(ctx, refer, input)
+		})
 		if err != nil {
 			return false, err
 		}

@@ -37,9 +37,9 @@ type Generator struct {
 	OutputOpt     *options.ConfOutputOption // output settings.
 	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
-	validator     protovalidate.Validator  // validator with extension type resolver for custom predefined rules.
-	collector     *xerrors.Collector       // concurrent error collector for the current generate run.
-	referredCache *fieldprop.ReferredCache // refer value-space cache for the current generate run.
+	validator     protovalidate.Validator // validator with extension type resolver for custom predefined rules.
+	collector     *xerrors.Collector
+	referredCache *fieldprop.ReferredCache
 
 	// Performance stats
 	PerfStats sync.Map
