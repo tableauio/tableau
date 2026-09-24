@@ -1097,3 +1097,23 @@ func TestNewDesc_GroupEndToEnd(t *testing.T) {
 		assertGroupOutput(t, NewDesc(root.Join()))
 	})
 }
+
+func TestNewDescReferBookAndSheet(t *testing.T) {
+	err := WrapKV(E2013("not-a-bool", errors.New("parse")),
+		KeyModule, ModuleConf,
+		KeyBookName, "Affix.xlsx",
+		KeySheetName, "AffixConf",
+		KeyReferBookName, "AssistSkill.xlsx",
+		KeyReferSheetName, "AssistSkill",
+		KeyDataCellPos, "C4",
+		KeyDataCell, "not-a-bool",
+	)
+	d := NewDesc(err)
+	require.NotNil(t, d)
+	got := d.Stringify(false)
+	assert.Contains(t, got, "Workbook: Affix.xlsx")
+	assert.Contains(t, got, "Worksheet: AffixConf")
+	assert.Contains(t, got, "ReferWorkbook: AssistSkill.xlsx")
+	assert.Contains(t, got, "ReferWorksheet: AssistSkill")
+	assert.Contains(t, got, "DataCellPos: C4")
+}

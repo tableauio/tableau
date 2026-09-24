@@ -317,6 +317,7 @@ type SheetParserExtInfo struct {
 	BookFormat     format.Format // workbook format
 	DryRun         options.DryRun
 	ErrorLimit     *options.ErrorLimitOption // error collection limits
+	ReferredCache  *fieldprop.ReferredCache
 }
 
 // NewSheetParser creates a new sheet parser.
@@ -326,6 +327,9 @@ func NewSheetParser(ctx context.Context, protoPackage, locationName string, opts
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
 func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName string, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
+	if extInfo != nil && extInfo.ReferredCache == nil {
+		extInfo.ReferredCache = fieldprop.NewReferredCache()
+	}
 	sp := &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
@@ -992,12 +996,8 @@ func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue 
 				PRFiles:        p.extInfo.PRFiles,
 				Present:        present,
 			}
-			ok, err := fieldprop.InReferredSpace(p.ctx, fprop, rawValue, input)
-			if err != nil {
+			if err := p.extInfo.ReferredCache.CheckRefer(p.ctx, fprop, rawValue, input); err != nil {
 				return v, present, err
-			}
-			if !ok {
-				return v, present, xerrors.E2002(rawValue, fprop.Refer)
 			}
 		}
 	}

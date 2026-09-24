@@ -203,6 +203,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 			SubdirRewrites: subdirRewrites,
 			PRFiles:        protoregistry.GlobalFiles,
 			BookFormat:     self.Format(),
+			ReferredCache:  opts.getReferredCache(),
 		},
 	}
 	collector := xerrors.NewCollector(opts.GetMaxErrorsPerSheet())

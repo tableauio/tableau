@@ -20,6 +20,10 @@ confgen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
   Workbook: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
   Worksheet: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (Primary: {{.PrimarySheetName}}){{ end }}
+  {{- if .ReferBookName }}
+  ReferWorkbook: {{.ReferBookName}}
+  ReferWorksheet: {{.ReferSheetName}}
+  {{- end }}
   DataCellPos: {{.DataCellPos}}
   DataCell: {{.DataCell}}
   Reason: {{.Reason}}

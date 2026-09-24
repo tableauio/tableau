@@ -10,6 +10,7 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/strcase"
@@ -36,8 +37,9 @@ type Generator struct {
 	OutputOpt     *options.ConfOutputOption // output settings.
 	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
-	validator protovalidate.Validator // validator with extension type resolver for custom predefined rules.
-	collector *xerrors.Collector      // concurrent error collector shared across the generator.
+	validator     protovalidate.Validator // validator with extension type resolver for custom predefined rules.
+	collector     *xerrors.Collector
+	referredCache *fieldprop.ReferredCache
 
 	// Performance stats
 	PerfStats sync.Map
@@ -77,9 +79,16 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		ErrorLimitOpt: errorLimit,
 		ctx:           ctx,
 		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
+		referredCache: fieldprop.NewReferredCache(),
 		PerfStats:     sync.Map{},
 	}
 	return g
+}
+
+func (gen *Generator) resetRunState() {
+	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
+	gen.referredCache = fieldprop.NewReferredCache()
+	gen.PerfStats = sync.Map{}
 }
 
 // bookSpecifier can be:
@@ -95,6 +104,7 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 }
 
 func (gen *Generator) GenAll() error {
+	gen.resetRunState()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
@@ -121,6 +131,7 @@ func (gen *Generator) GenAll() error {
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
+	gen.resetRunState()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
@@ -212,6 +223,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				BookFormat:     workbookFormat,
 				DryRun:         gen.OutputOpt.DryRun,
 				ErrorLimit:     gen.ErrorLimitOpt,
+				ReferredCache:  gen.referredCache,
 			},
 		})
 		// NOTE: one sheet may be generated to multiple messages (e.g.: full version and lite version) in the same workbook.

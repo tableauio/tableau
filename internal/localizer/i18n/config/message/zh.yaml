@@ -16,6 +16,10 @@ confgen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
   工作簿: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (主工作簿: {{.PrimaryBookName}}){{ end }}
   工作表: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (主工作表: {{.PrimarySheetName}}){{ end }}
+  {{- if .ReferBookName }}
+  引用工作簿: {{.ReferBookName}}
+  引用工作表: {{.ReferSheetName}}
+  {{- end }}
   单元格位置: {{.DataCellPos}}
   单元格数据: {{.DataCell}}
   错误原因: {{.Reason}}

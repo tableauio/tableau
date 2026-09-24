@@ -25,15 +25,18 @@ const (
 	KeyPrimaryBookName  = "PrimaryBookName"  // primary workbook name
 	KeySheetName        = "SheetName"        // worksheet name
 	KeyPrimarySheetName = "PrimarySheetName" // primary worksheet name
-	KeyNameCellPos      = "NameCellPos"      // name cell position
-	KeyNameCell         = "NameCell"         // name cell value
-	KeyTrimmedNameCell  = "TrimmedNameCell"  // trimmed name cell value
-	KeyTypeCellPos      = "TypeCellPos"      // type cell position
-	KeyTypeCell         = "TypeCell"         // type cell value
-	KeyNoteCellPos      = "NoteCellPos"      // note cell position
-	KeyNoteCell         = "NoteCell"         // note cell value
-	KeyDataCellPos      = "DataCellPos"      // data cell position
-	KeyDataCell         = "DataCell"         // data data value
+	KeyReferBookName    = "ReferBookName"    // referred workbook name
+	KeyReferSheetName   = "ReferSheetName"   // referred worksheet name
+
+	KeyNameCellPos     = "NameCellPos"     // name cell position
+	KeyNameCell        = "NameCell"        // name cell value
+	KeyTrimmedNameCell = "TrimmedNameCell" // trimmed name cell value
+	KeyTypeCellPos     = "TypeCellPos"     // type cell position
+	KeyTypeCell        = "TypeCell"        // type cell value
+	KeyNoteCellPos     = "NoteCellPos"     // note cell position
+	KeyNoteCell        = "NoteCell"        // note cell value
+	KeyDataCellPos     = "DataCellPos"     // data cell position
+	KeyDataCell        = "DataCell"        // data data value
 
 	KeyPBMessage   = "PBMessage"   // protobuf message name
 	KeyPBFieldName = "PBFieldName" // protobuf message field name
@@ -60,6 +63,8 @@ var keys = []string{
 	KeyPrimaryBookName,
 	KeySheetName,
 	KeyPrimarySheetName,
+	KeyReferBookName,
+	KeyReferSheetName,
 	KeyNameCellPos,
 	KeyNameCell,
 	KeyTrimmedNameCell,

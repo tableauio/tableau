@@ -35,6 +35,7 @@ var ErrE2026 = newEcode("E2026", `illegally ordered values`)
 var ErrE2027 = newEcode("E2027", `protovalidate violation`)
 var ErrE2028 = newEcode("E2028", `duplicate elements in incell keyed-list`)
 var ErrE2029 = newEcode("E2029", `no cell with digit suffix for horizontal list/map field`)
+var ErrE2030 = newEcode("E2030", `referred sheet not found`)
 var ErrE3000 = newEcode("E3000", `no workbook file found about sheet specifier`)
 var ErrE3001 = newEcode("E3001", `no worksheet found in workbook`)
 var ErrE3002 = newEcode("E3002", `failed to open file`)
@@ -206,11 +207,11 @@ func E2014(column string) error {
 }
 
 // E2015: referred sheet column not found
-func E2015(column string, bookName string, sheetName string) error {
+func E2015(column string, referBookName string, referSheetName string) error {
 	return renderEcode(ErrE2015, map[string]any{
-		"Column":    column,
-		"BookName":  bookName,
-		"SheetName": sheetName,
+		"Column":         column,
+		"ReferBookName":  referBookName,
+		"ReferSheetName": referSheetName,
 	})
 }
 
@@ -332,6 +333,14 @@ func E2029(fieldName string, fieldType string) error {
 	return renderEcode(ErrE2029, map[string]any{
 		"FieldName": fieldName,
 		"FieldType": fieldType,
+	})
+}
+
+// E2030: referred sheet not found
+func E2030(referBookName string, referSheetName string) error {
+	return renderEcode(ErrE2030, map[string]any{
+		"ReferBookName":  referBookName,
+		"ReferSheetName": referSheetName,
 	})
 }
 
