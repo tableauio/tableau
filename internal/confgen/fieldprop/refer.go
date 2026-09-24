@@ -38,7 +38,7 @@ type ReferredCache struct {
 // referCacheEntry holds a value space or a previously reported load failure.
 type referCacheEntry struct {
 	space       *valueSpace
-	unavailable bool // loading failed and its error was already returned
+	unavailable bool // target load failed
 }
 
 type valueSpace struct {
@@ -94,6 +94,7 @@ func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (ref
 	}
 	space, err := loadFunc()
 	if err != nil {
+		// Return the first load error and remember it to suppress repeats.
 		entry = referCacheEntry{unavailable: true}
 		r.entries[refer] = entry
 		return entry, err
@@ -238,7 +239,11 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 		if err != nil {
 			return err
 		}
-		if entry.unavailable || entry.space.Contains(cellData) {
+		if entry.unavailable {
+			// The first lookup already returned the load error.
+			return nil
+		}
+		if entry.space.Contains(cellData) {
 			return nil
 		}
 	}
