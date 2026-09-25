@@ -27,6 +27,11 @@ import (
 //	removeStagingDir
 //
 // Publication starts after every worker has reserved and staged its output.
+//
+// This keeps parsing and rendering failures from changing existing output. Path
+// reservations detect filename conflicts before publication, and publication
+// preserves imported and handwritten protos while removing stale generated files
+// only after replacements succeed.
 type protoOutput struct {
 	outputDir  string
 	stagingDir string
