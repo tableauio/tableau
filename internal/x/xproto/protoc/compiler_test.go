@@ -236,3 +236,67 @@ func Test_parseProtos(t *testing.T) {
 		})
 	}
 }
+
+func TestNewFiles_nestedRootsUseParentImportName(t *testing.T) {
+	root := t.TempDir()
+	commonDir := filepath.Join(root, "common")
+	if err := os.MkdirAll(commonDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	common := `syntax = "proto3";
+package protoconf;
+message Common {}
+`
+	book := `syntax = "proto3";
+package protoconf;
+import "common/common.proto";
+message Book { Common common = 1; }
+`
+	if err := os.WriteFile(filepath.Join(commonDir, "common.proto"), []byte(common), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "book.proto"), []byte(book), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	files, err := NewFiles(
+		[]string{root, commonDir},
+		[]string{filepath.Join(commonDir, "common.proto"), filepath.Join(root, "book.proto")},
+	)
+	if err != nil {
+		t.Fatalf("NewFiles() unexpected error: %v", err)
+	}
+	if _, err := files.FindFileByPath("common/common.proto"); err != nil {
+		t.Fatalf("FindFileByPath(common/common.proto) = %v", err)
+	}
+	if _, err := files.FindFileByPath("common.proto"); err == nil {
+		t.Fatal("common.proto was registered separately from common/common.proto")
+	}
+}
+
+func TestNewFiles_rejectsDuplicateImportPaths(t *testing.T) {
+	root := t.TempDir()
+	commonDir := filepath.Join(root, "common")
+	generatedDir := filepath.Join(root, "generated")
+	for _, dir := range []string{commonDir, generatedDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, path := range []string{
+		filepath.Join(commonDir, "shared.proto"),
+		filepath.Join(generatedDir, "shared.proto"),
+	} {
+		if err := os.WriteFile(path, []byte("syntax = \"proto3\";\npackage protoconf;\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	_, err := NewFiles(
+		[]string{commonDir, generatedDir},
+		[]string{filepath.Join(commonDir, "shared.proto"), filepath.Join(generatedDir, "shared.proto")},
+	)
+	if err == nil {
+		t.Fatal("NewFiles() error = nil, want duplicate import-path error")
+	}
+}

@@ -9,8 +9,11 @@ import (
 	"strings"
 
 	"github.com/bufbuild/protocompile"
+	"github.com/bufbuild/protocompile/ast"
 	"github.com/bufbuild/protocompile/linker"
+	"github.com/bufbuild/protocompile/parser"
 	"github.com/bufbuild/protocompile/protoutil"
+	"github.com/bufbuild/protocompile/reporter"
 	"github.com/bufbuild/protocompile/walk"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
@@ -53,13 +56,12 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 		for _, match := range matches {
 			cleanSlashPath := xfs.CleanSlashPath(match)
 			if !parsedExcludedProtoFiles[cleanSlashPath] {
-				relPath, err := rel(cleanSlashPath, cleanSlashProtoPaths)
-				if err != nil {
-					return nil, err
-				}
-				parsedProtoFiles[cleanSlashPath] = relPath
+				parsedProtoFiles[cleanSlashPath] = ""
 			}
 		}
+	}
+	if err := assignProtoImportPaths(cleanSlashProtoPaths, parsedProtoFiles); err != nil {
+		return nil, err
 	}
 	return parseProtos(protoPaths, parsedProtoFiles)
 }
@@ -90,6 +92,76 @@ func rel(filename string, protoPaths []string) (string, error) {
 		return "", xerrors.Newf("proto file %s is not under any protoPath %v", filename, protoPaths)
 	}
 	return best, nil
+}
+
+// assignProtoImportPaths gives selected files the path used by their importers.
+// Files that no selected proto imports use their shortest containing proto path.
+func assignProtoImportPaths(protoPaths []string, protoFiles map[string]string) error {
+	importedPaths := make(map[string]string) // selected file -> import path
+	for filename := range protoFiles {
+		imports, err := readProtoImports(filename)
+		if err != nil {
+			return err
+		}
+		for _, importPath := range imports {
+			importedFile, ok := resolveSelectedImportPath(importPath, protoPaths, protoFiles)
+			if !ok {
+				continue
+			}
+			if existing, ok := importedPaths[importedFile]; ok && existing != importPath {
+				return xerrors.Newf("proto file %s is imported as both %s and %s", importedFile, existing, importPath)
+			}
+			importedPaths[importedFile] = importPath
+		}
+	}
+
+	paths := make(map[string]string) // import path -> selected file
+	for filename := range protoFiles {
+		importPath := importedPaths[filename]
+		if importPath == "" {
+			var err error
+			importPath, err = rel(filename, protoPaths)
+			if err != nil {
+				return err
+			}
+		}
+		if other, ok := paths[importPath]; ok && other != filename {
+			return xerrors.Newf("proto import path %s resolves to both %s and %s", importPath, other, filename)
+		}
+		paths[importPath] = filename
+		protoFiles[filename] = importPath
+	}
+	return nil
+}
+
+func readProtoImports(filename string) ([]string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, xerrors.WrapKV(err)
+	}
+	defer func() { _ = file.Close() }()
+
+	parsed, err := parser.Parse(filename, file, reporter.NewHandler(nil))
+	if err != nil {
+		return nil, err
+	}
+	var imports []string
+	for _, declaration := range parsed.Decls {
+		if importDeclaration, ok := declaration.(*ast.ImportNode); ok {
+			imports = append(imports, importDeclaration.Name.AsString())
+		}
+	}
+	return imports, nil
+}
+
+func resolveSelectedImportPath(importPath string, protoPaths []string, protoFiles map[string]string) (string, bool) {
+	for _, protoPath := range protoPaths {
+		filename := xfs.CleanSlashPath(filepath.Join(filepath.FromSlash(protoPath), filepath.FromSlash(importPath)))
+		if _, ok := protoFiles[filename]; ok {
+			return filename, true
+		}
+	}
+	return "", false
 }
 
 // isContainedImportPath reports whether rel is a path inside the protoPath
