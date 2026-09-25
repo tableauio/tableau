@@ -15,9 +15,9 @@ import (
 // Collectors form a hierarchy via [Collector.NewChild]; [Collector.Join]
 // recursively merges own errors with children's.
 //
-// When a child's [collected] error is wrapped (e.g. via [WrapKV]), the scope
-// fields of the wrapper layers are remembered and re-applied in
-// [Collector.Join], producing: collected → withMessage{fields} → joinError{…}.
+// When a child's [collected] error is wrapped (e.g. via [WrapKV]), the outer
+// fields are remembered and re-applied in [Collector.Join]. Fields describing
+// one error are applied only when the joined subtree has a single leaf.
 type Collector struct {
 	mu          sync.Mutex
 	errs        []error
@@ -25,7 +25,7 @@ type Collector struct {
 	counter     atomic.Int32
 	maxErrs     int32
 	parent      *Collector
-	outerFields map[string]any // scope fields of the outer wrappers, re-applied in Join()
+	outerFields map[string]any // fields of the outer wrappers, re-applied in Join()
 }
 
 // NewCollector creates a root Collector.
@@ -60,7 +60,7 @@ func normalizeMax(maxErrs int) int32 {
 //   - nil err: no-op unless this collector (or an ancestor) is already full,
 //     in which case the joined error tree is returned immediately.
 //   - already-collected err (*collected): records the outer wrapper layers'
-//     scope fields for re-wrapping in Join; does not increment any counter.
+//     fields for re-wrapping in Join; does not increment any counter.
 //   - ordinary err: increments every ancestor's counter, stores the error if
 //     it is within every ancestor's budget, and returns the joined error tree
 //     if any ancestor has now reached its limit (nil otherwise).
@@ -76,9 +76,9 @@ func (c *Collector) Collect(err error) error {
 	// error originates from the same collector tree as c (shares the same
 	// root), it is or will be reachable from the root via tree auto-join, so
 	// we must not double-count it here. We only record the outer wrapper
-	// layers' scope fields on the originating collector for re-wrapping in
-	// its Join(). The assignment is unconditional: a wrapper carrying no
-	// scope fields must clear the previously recorded ones instead of
+	// layers' fields on the originating collector for re-wrapping in its
+	// Join(). The assignment is unconditional: a wrapper carrying no
+	// fields must clear the previously recorded ones instead of
 	// leaving them to be re-applied to this unrelated join.
 	//
 	// Otherwise (foreign collected, e.g. from an unrelated parser-local
@@ -87,7 +87,7 @@ func (c *Collector) Collect(err error) error {
 	// this collector; without this fallback the error would silently vanish.
 	var ce *collected
 	if errors.As(err, &ce) && ce.origin != nil && ce.origin.sameTreeAs(c) {
-		fields := outerScopeFields(err, ce)
+		fields := outerWrapperFields(err, ce)
 		ce.origin.mu.Lock()
 		ce.origin.outerFields = fields
 		ce.origin.mu.Unlock()
@@ -182,9 +182,8 @@ func (c *Collector) Join() error {
 		return nil
 	}
 	var inner error = &joinError{errs: nonNil, stack: callers(1)}
-	// Re-wrap with the recorded outer scope fields if present.
-	if len(outerFields) > 0 {
-		inner = &withMessage{cause: inner, fields: outerFields}
+	if fields := fieldsForJoinedError(inner, outerFields); len(fields) > 0 {
+		inner = &withMessage{cause: inner, fields: fields}
 	}
 	return &collected{
 		error:  inner,
@@ -192,19 +191,11 @@ func (c *Collector) Join() error {
 	}
 }
 
-// outerScopeFields merges the [scopeKeys] fields of every wrapper layer between
-// err and the collected marker ce, with inner layers winning on key conflicts.
-// Returns nil if no layer carries one.
+// outerWrapperFields merges the fields of every wrapper layer between err and
+// the collected marker ce. Inner layers win on key conflicts.
 //
-// All intermediate layers must be walked, not just the outermost one: a wrapper
-// chain often spreads its fields across several layers (e.g. confgen adds
-// Module in one layer and BookName/SheetName in another), so keeping only the
-// outermost layer would silently drop the rest.
-//
-// Non-scope fields are skipped because Join() re-applies these to the whole
-// subtree: a cell position or field name belongs to a single error, and
-// broadcasting it would point sibling errors at a cell they never touched.
-func outerScopeFields(err error, ce *collected) map[string]any {
+// Confgen, for example, adds Module and BookName/SheetName in separate layers.
+func outerWrapperFields(err error, ce *collected) map[string]any {
 	var fields map[string]any
 	for cur := err; cur != nil && cur != error(ce); cur = errors.Unwrap(cur) {
 		fc, ok := cur.(fieldsCarrier)
@@ -213,9 +204,6 @@ func outerScopeFields(err error, ce *collected) map[string]any {
 		}
 		// Walking outer -> inner, so inner layers win.
 		for k, v := range fc.Fields() {
-			if !scopeKeys[k] {
-				continue
-			}
 			if fields == nil {
 				fields = make(map[string]any)
 			}
@@ -223,6 +211,56 @@ func outerScopeFields(err error, ce *collected) map[string]any {
 		}
 	}
 	return fields
+}
+
+// fieldsForJoinedError keeps per-error fields only when the join has one leaf.
+func fieldsForJoinedError(err error, fields map[string]any) map[string]any {
+	if len(fields) == 0 || hasSingleLeaf(err) {
+		return fields
+	}
+	return scopeFields(fields)
+}
+
+// scopeFields keeps only fields that may be shared across joined errors.
+func scopeFields(fields map[string]any) map[string]any {
+	var scope map[string]any
+	for k, v := range fields {
+		if scopeKeys[k] {
+			if scope == nil {
+				scope = make(map[string]any)
+			}
+			scope[k] = v
+		}
+	}
+	return scope
+}
+
+// hasSingleLeaf follows wrappers and joins until it finds one leaf or a fork.
+func hasSingleLeaf(err error) bool {
+	for err != nil {
+		if joined, ok := err.(multiUnwrapper); ok {
+			var only error
+			for _, child := range joined.Unwrap() {
+				if child != nil {
+					if only != nil {
+						return false
+					}
+					only = child
+				}
+			}
+			if only == nil {
+				return false
+			}
+			err = only
+			continue
+		}
+		if next := errors.Unwrap(err); next != nil {
+			err = next
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 // collected marks an error as already joined. Delegates to the inner error.
@@ -234,14 +272,10 @@ type collected struct {
 func (c *collected) Error() string { return c.error.Error() }
 func (c *collected) Unwrap() error { return c.error }
 
-// renderWithFields implements [fieldsRenderer], so that outer fields (e.g.
-// Module, BookName, SheetName added by an enclosing [WrapKV]) are propagated
-// into the joined children instead of being dropped. Without this, rendering
-// falls back to the inner error's Error(), which loses the outer fields and
-// thus renders the default message template rather than the module-specific
-// one (e.g. confgen).
+// renderWithFields passes enclosing fields to the joined errors, keeping
+// per-error fields only when the join has one leaf.
 func (c *collected) renderWithFields(outerFields map[string]any) string {
-	return renderCause(c.error, outerFields)
+	return renderCause(c.error, fieldsForJoinedError(c.error, outerFields))
 }
 func (c *collected) Format(s fmt.State, verb rune) {
 	if f, ok := c.error.(fmt.Formatter); ok {

@@ -95,7 +95,8 @@ func Wrapf(err error, format string, args ...any) error {
 	}
 }
 
-// WrapKV wraps err with structured key-value fields (visible via NewDesc, not in Error()) and a stack trace.
+// WrapKV wraps err with structured key-value fields and a stack trace.
+// Fields are visible via NewDesc and can affect Error() when rendering a join.
 // Returns nil if err is nil.
 func WrapKV(err error, keysAndValues ...any) error {
 	if err == nil {
@@ -145,7 +146,7 @@ func (b *base) renderWithFields(outerFields map[string]any) string {
 type withMessage struct {
 	cause         error
 	message       string
-	fields        map[string]any // structured key-value metadata; never encoded into Error()
+	fields        map[string]any // structured key-value metadata
 	replacesCause bool
 }
 

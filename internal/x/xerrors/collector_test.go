@@ -1069,8 +1069,31 @@ Help: guarantee value "100033333" was configured in referred space "ItemConf.ID"
 	assert.Equal(t, want, err.Error())
 }
 
-// Re-collecting an already-collected same-tree error must preserve the fields
-// of every wrapper layer, not just the outermost one.
+// Rendering a wrapped join must not assign one cell to all its errors.
+func TestCollected_ErrorDoesNotBroadcastCellFields(t *testing.T) {
+	child := NewCollector(10)
+	_ = child.Collect(WrapKV(E2002("bad", "ID"),
+		KeyDataCellPos, "B4",
+		KeyDataCell, "bad",
+	))
+	_ = child.Collect(E2014("missing"))
+
+	err := WrapKV(child.Join(),
+		KeyModule, ModuleConf,
+		KeyBookName, "Book.xlsx",
+		KeySheetName, "Sheet",
+		KeyDataCellPos, "A4",
+		KeyDataCell, "key",
+	)
+	got := err.Error()
+	assert.Contains(t, got, "Workbook: Book.xlsx")
+	assert.Contains(t, got, "DataCellPos: B4")
+	assert.NotContains(t, got, "DataCellPos: A4")
+	assert.NotContains(t, got, "DataCell: key")
+}
+
+// Re-collecting an already-collected same-tree error must preserve scope
+// fields from every wrapper layer, not just the outermost one.
 //
 // This mirrors the real confgen chain of a merger/scatter sheet, where Module
 // and BookName/SheetName are added by different layers:
@@ -1080,7 +1103,7 @@ Help: guarantee value "100033333" was configured in referred space "ItemConf.ID"
 //	parseMessageFromOneImporter -> WrapKV(Module/BookName/SheetName/PBMessage)
 //	ParseMessage's Group.Go     -> WrapKV(BookName/SheetName/Primary*)  <- outermost, no Module
 //	Group.Wait                  -> bookCollector.Join()
-func TestCollected_ReCollectPreservesAllWrapperFields(t *testing.T) {
+func TestCollected_ReCollectPreservesScopeFieldsAcrossWrappers(t *testing.T) {
 	cellErr := WrapKV(E2002("100033333", "ItemConf.ID"),
 		KeyDataCellPos, "F12",
 		KeyDataCell, "100033333",
@@ -1108,6 +1131,32 @@ Reason: value "100033333" not in referred space "ItemConf.ID"
 Help: guarantee value "100033333" was configured in referred space "ItemConf.ID" ahead
 `
 	assert.Equal(t, want, book.Join().Error())
+}
+
+// A wrapper's cell fields still apply when the joined subtree has one error.
+func TestCollected_ReCollectPreservesCellFieldsForSingleLeaf(t *testing.T) {
+	book := NewCollector(10)
+	sheet := book.NewChild(5)
+	_ = sheet.Collect(E2002("bad", "ID"))
+	wrapped := WrapKV(sheet.Join(),
+		KeyModule, ModuleConf,
+		KeyBookName, "Book.xlsx",
+		KeySheetName, "Sheet",
+		KeyDataCellPos, "A4",
+		KeyDataCell, "bad",
+	)
+	assert.Contains(t, wrapped.Error(), "DataCellPos: A4")
+	_ = book.Collect(wrapped)
+
+	got := book.Join().Error()
+	assert.Contains(t, got, "DataCellPos: A4")
+	assert.Contains(t, got, "DataCell: bad")
+
+	// If another error is collected later, the cell must not reach its sibling.
+	_ = sheet.Collect(E2014("missing"))
+	got = book.Join().Error()
+	assert.NotContains(t, got, "DataCellPos: A4")
+	assert.NotContains(t, got, "DataCell: bad")
 }
 
 // Only scope fields (which book/sheet/message) may be broadcast to the joined
