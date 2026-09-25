@@ -158,6 +158,11 @@ func readExcelSheetRows(f *excelize.File, sheetName string, topN uint, opts ...e
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to get topN(%d) rows of sheet: %s#%s", topN, f.Path, sheetName)
 	}
+	defer func() {
+		if closeErr := excelRows.Close(); closeErr != nil && err == nil {
+			err = xerrors.Wrapf(closeErr, "failed to close row iterator: %s#%s", f.Path, sheetName)
+		}
+	}()
 	var nrow uint
 	for excelRows.Next() {
 		nrow++

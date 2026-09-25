@@ -43,7 +43,8 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 			parsedExcludedProtoFiles[cleanSlashPath] = true
 		}
 	}
-	parsedProtoFiles := make(map[string]string) // full path -> rel path
+	parsedProtoFiles := make(map[string]string) // full path -> import path
+	protoFilesByImportPath := make(map[string]string)
 	for _, filename := range protoFiles {
 		matches, err := filepath.Glob(filename)
 		if err != nil {
@@ -51,22 +52,33 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 		}
 		for _, match := range matches {
 			cleanSlashPath := xfs.CleanSlashPath(match)
-			if !parsedExcludedProtoFiles[cleanSlashPath] {
-				rel := rel(cleanSlashPath, cleanSlashProtoPaths)
-				parsedProtoFiles[cleanSlashPath] = rel
+			if parsedExcludedProtoFiles[cleanSlashPath] {
+				continue
 			}
+			importPath, err := rel(cleanSlashPath, cleanSlashProtoPaths)
+			if err != nil {
+				return nil, err
+			}
+			if other, ok := protoFilesByImportPath[importPath]; ok && other != cleanSlashPath {
+				return nil, xerrors.Newf("proto import path %s resolves to both %s and %s", importPath, other, cleanSlashPath)
+			}
+			protoFilesByImportPath[importPath] = cleanSlashPath
+			parsedProtoFiles[cleanSlashPath] = importPath
 		}
 	}
 	return parseProtos(protoPaths, parsedProtoFiles)
 }
 
-func rel(filename string, protoPaths []string) string {
+func rel(filename string, protoPaths []string) (string, error) {
 	for _, protoPath := range protoPaths {
-		if rel, err := filepath.Rel(protoPath, filename); err == nil {
-			return xfs.CleanSlashPath(rel)
+		relPath, err := xfs.Rel(protoPath, filename)
+		// A sibling yields ../...; try the next configured import root.
+		if err != nil || !filepath.IsLocal(relPath) {
+			continue
 		}
+		return relPath, nil
 	}
-	return filename
+	return "", xerrors.Newf("proto file %s is not under any protoPath %v", filename, protoPaths)
 }
 
 // parseProtos parses the proto paths and proto files to protoregistry.Files.
