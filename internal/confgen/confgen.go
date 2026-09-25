@@ -232,7 +232,8 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
 	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook,
 		xerrors.KeyModule, xerrors.ModuleConf,
-		xerrors.KeyBookName, workbook.Name)
+		xerrors.KeyBookName, workbook.Name,
+		xerrors.KeyPrimaryBookName, rewrittenWorkbookName)
 	worksheetFound := false
 	for _, sheetInfo := range sheets {
 		sheetName := sheetInfo.SheetName()
@@ -245,23 +246,25 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		}
 		// log.Debugf("%s", md.FullName())
 		log.Infof("%15s: %s#%s (%s#%s)", "parsing sheet", fd.Path(), sheetInfo.MD.Name(), workbook.Name, sheetName)
+		messageCollector := bookCollector.NewChild(0,
+			xerrors.KeySheetName, sheetName,
+			xerrors.KeyPrimarySheetName, sheetName,
+			xerrors.KeyPBMessage, string(sheetInfo.MD.Name()))
 
 		if sheetInfo.HasScatter() {
 			if sheetInfo.HasMerger() {
 				return xerrors.NewKV("option Scatter and Merger cannot be both set at one sheet",
 					xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
 			}
-			if err := gen.processScatter(imp, sheetInfo, bookCollector); err != nil {
-				err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
-				if err := bookCollector.Collect(err); err != nil {
+			if err := gen.processScatter(imp, sheetInfo, messageCollector); err != nil {
+				if err := messageCollector.Collect(err); err != nil {
 					return err
 				}
 				continue
 			}
 		} else {
-			if err := gen.processMerger(imp, sheetInfo, bookCollector); err != nil {
-				err = xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name, xerrors.KeySheetName, sheetName)
-				if err := bookCollector.Collect(err); err != nil {
+			if err := gen.processMerger(imp, sheetInfo, messageCollector); err != nil {
+				if err := messageCollector.Collect(err); err != nil {
 					return err
 				}
 				continue
@@ -283,26 +286,26 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	return nil
 }
 
-func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, bookCollector *xerrors.Collector) error {
+func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, messageCollector *xerrors.Collector) error {
 	importers, err := importer.GetScatterImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
 	mainImporter := importer.ImporterInfo{Importer: self}
-	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, bookCollector)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, messageCollector)
 	if err := exporter.ScatterAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, bookCollector *xerrors.Collector) error {
+func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, messageCollector *xerrors.Collector) error {
 	importers, err := importer.GetMergerImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
 	mainImporter := importer.ImporterInfo{Importer: self}
-	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, bookCollector)
+	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, messageCollector)
 	if err := exporter.MergeAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
