@@ -170,14 +170,14 @@ func (gen *Generator) GenAll() error {
 	if err := gen.preprocess(false); err != nil {
 		return err
 	}
-	if err := gen.firstPassAll(); err != nil {
+	if err := gen.parseAllInFirstPass(); err != nil {
 		return err
 	}
 	if err := gen.output.start(); err != nil {
 		return err
 	}
 	defer gen.output.discard()
-	if err := gen.secondPassAll(); err != nil {
+	if err := gen.parseAllInSecondPass(); err != nil {
 		return err
 	}
 	// Generation errors leave prior outputs untouched. GenAll alone owns the
@@ -199,21 +199,21 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		if err := gen.preprocess(false); err != nil {
 			return err
 		}
-		if err := gen.firstPassAll(); err != nil {
+		if err := gen.parseAllInFirstPass(); err != nil {
 			return err
 		}
 	case options.FirstPassModeAdvanced:
 		if err := gen.preprocess(true); err != nil {
 			return err
 		}
-		if err := gen.firstPassWorkbooks(relWorkbookPaths...); err != nil {
+		if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
 			return err
 		}
 	default:
 		if err := gen.preprocess(false); err != nil {
 			return err
 		}
-		if err := gen.firstPassWorkbooks(relWorkbookPaths...); err != nil {
+		if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
 			return err
 		}
 	}
@@ -222,30 +222,30 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		return err
 	}
 	defer gen.output.discard()
-	if err := gen.secondPassWorkbooks(relWorkbookPaths...); err != nil {
+	if err := gen.parseWorkbooksInSecondPass(relWorkbookPaths...); err != nil {
 		return err
 	}
 	// Other workbooks' outputs remain valid when generating a selection.
 	return gen.output.publish(false)
 }
 
-// firstPassAll discovers the declarations from every configured input workbook.
-func (gen *Generator) firstPassAll() error {
+// parseAllInFirstPass discovers the declarations from every configured input workbook.
+func (gen *Generator) parseAllInFirstPass() error {
 	log.Infof("%15s: parsing all books", "first-pass")
 	if len(gen.InputOpt.Subdirs) == 0 {
-		return gen.firstPassDir(gen.InputDir)
+		return gen.parseDirInFirstPass(gen.InputDir)
 	}
 	for _, subdir := range gen.InputOpt.Subdirs {
 		dir := filepath.Join(gen.InputDir, subdir)
-		if err := gen.firstPassDir(dir); err != nil {
+		if err := gen.parseDirInFirstPass(dir); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// firstPassWorkbooks discovers declarations from the specified workbooks.
-func (gen *Generator) firstPassWorkbooks(relWorkbookPaths ...string) error {
+// parseWorkbooksInFirstPass discovers declarations from the specified workbooks.
+func (gen *Generator) parseWorkbooksInFirstPass(relWorkbookPaths ...string) error {
 	g := gen.collector.NewGroup(context.Background())
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
@@ -256,8 +256,8 @@ func (gen *Generator) firstPassWorkbooks(relWorkbookPaths ...string) error {
 	return g.Wait()
 }
 
-// firstPassDir discovers declarations from workbooks in dir and its subdirectories.
-func (gen *Generator) firstPassDir(dir string) (err error) {
+// parseDirInFirstPass discovers declarations from workbooks in dir and its subdirectories.
+func (gen *Generator) parseDirInFirstPass(dir string) (err error) {
 	g := gen.collector.NewGroup(context.Background())
 	defer func() {
 		if err == nil {
@@ -276,7 +276,7 @@ func (gen *Generator) firstPassDir(dir string) (err error) {
 		if entry.IsDir() {
 			// Scan nested input directories recursively.
 			subdir := filepath.Join(dir, entry.Name())
-			err = gen.firstPassDir(subdir)
+			err = gen.parseDirInFirstPass(subdir)
 			if err != nil {
 				return xerrors.WrapKV(err, xerrors.KeySubdir, subdir)
 			}
@@ -295,7 +295,7 @@ func (gen *Generator) firstPassDir(dir string) (err error) {
 				log.Warnf("symlink: %s is not a directory, skipping", dstPath)
 				continue
 			}
-			err = gen.firstPassDir(dstPath)
+			err = gen.parseDirInFirstPass(dstPath)
 			if err != nil {
 				return xerrors.WrapKV(err, xerrors.KeySubdir, dstPath)
 			}
@@ -333,9 +333,9 @@ func (gen *Generator) firstPassDir(dir string) (err error) {
 	return nil
 }
 
-// secondPassAll parses every workbook discovered during the first pass and
+// parseAllInSecondPass parses every workbook discovered during the first pass and
 // writes its proto files.
-func (gen *Generator) secondPassAll() error {
+func (gen *Generator) parseAllInSecondPass() error {
 	gen.cacheMu.RLock()
 	absPaths := []string{}
 	for absPath := range gen.cachedImporters {
@@ -352,8 +352,8 @@ func (gen *Generator) secondPassAll() error {
 	return g.Wait()
 }
 
-// secondPassWorkbooks parses the specified workbooks and writes their proto files.
-func (gen *Generator) secondPassWorkbooks(relWorkbookPaths ...string) error {
+// parseWorkbooksInSecondPass parses the specified workbooks and writes their proto files.
+func (gen *Generator) parseWorkbooksInSecondPass(relWorkbookPaths ...string) error {
 	g := gen.collector.NewGroup(context.Background())
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
