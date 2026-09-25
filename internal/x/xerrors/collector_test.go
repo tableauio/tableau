@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -41,7 +43,7 @@ func TestCollector_MaxErrors(t *testing.T) {
 		}
 	}
 
-	// Only max errors are stored (overflow is counted but not stored).
+	// Only max errors are stored.
 	assert.Equal(t, max, countJoinedErrors(c.Join()))
 }
 
@@ -91,6 +93,18 @@ func TestCollector_Unlimited(t *testing.T) {
 	}
 	assert.False(t, c.IsFull())
 	assert.Equal(t, 100, countJoinedErrors(c.Join()))
+}
+
+func TestCollector_LimitAboveInt32DoesNotWrap(t *testing.T) {
+	if strconv.IntSize == 32 {
+		t.Skip("int cannot exceed MaxInt32 on this architecture")
+	}
+	limit := int(int64(math.MaxInt32) + 1)
+	root := NewCollector(limit)
+	child := root.NewChild(limit)
+	require.NoError(t, child.Collect(New("first")))
+	assert.False(t, child.IsFull())
+	assert.False(t, root.IsFull())
 }
 
 func TestCollector_FailFast(t *testing.T) {
@@ -401,7 +415,7 @@ func TestTree_MixedOwnAndChildErrors(t *testing.T) {
 	assert.Equal(t, 2, countJoinedErrors(root.Join()))
 }
 
-// Overflow: errors beyond the collector's own limit are counted but not stored.
+// Once a collector is full, later errors are neither counted nor stored.
 func TestTree_OverflowNotStored(t *testing.T) {
 	root := NewCollector(10)
 	child := root.NewChild(2) // child stores at most 2
@@ -411,10 +425,11 @@ func TestTree_OverflowNotStored(t *testing.T) {
 	_ = child.Collect(fmt.Errorf("err 3 (overflow)"))
 	_ = child.Collect(fmt.Errorf("err 4 (overflow)"))
 
-	// Only 2 errors stored (child's own limit), even though 4 were collected.
+	// Only 2 errors stored (child's own limit).
 	assert.Equal(t, 2, countJoinedErrors(child.Join()))
-	// Root counter reflects all 4.
-	assert.False(t, root.IsFull(), "root should not be full (4 < 10)")
+	// Overflow in the child does not consume the root's remaining budget.
+	assert.EqualValues(t, 2, root.counter.Load())
+	assert.False(t, root.IsFull())
 }
 
 // Parent limit caps child storage: child has a large limit but parent's
@@ -1247,6 +1262,214 @@ func TestCollected_TreeAutoJoinStillWorks(t *testing.T) {
 	assert.Error(t, rootJoined)
 	// 1 child join (containing 2 inner errors)
 	assert.Equal(t, 1, countJoinedErrors(rootJoined))
+}
+
+// The book, message, and imported-sheet scopes describe progressively narrower
+// context. A shard overrides only the actual source names; primary names stay
+// inherited from the book and message.
+func TestCollected_FourLevelScopes(t *testing.T) {
+	root := NewCollector(20)
+	book := root.NewChild(10,
+		KeyModule, ModuleConf,
+		KeyBookName, "Main.xlsx",
+		KeyPrimaryBookName, "Main.xlsx",
+		"trace", "book",
+	)
+	message := book.NewChild(0,
+		KeySheetName, "ItemConf",
+		KeyPrimarySheetName, "ItemConf",
+		KeyPBMessage, "ItemConf",
+		"trace", "message",
+	)
+	main := message.NewChild(5, KeyBookName, "Main.xlsx", KeySheetName, "ItemConf")
+	shard := message.NewChild(5,
+		KeyBookName, "Shard.xlsx",
+		KeySheetName, "ShardItem",
+		"trace", "shard",
+	)
+
+	require.NoError(t, book.Collect(New("book error")))
+	require.NoError(t, message.Collect(New("message error")))
+	require.NoError(t, main.Collect(WrapKV(New("main cell"),
+		KeyDataCellPos, "A4")))
+	require.NoError(t, shard.Collect(WrapKV(New("shard cell"),
+		KeyDataCellPos, "B5")))
+
+	// Returning a descendant's Join through any ancestor must not count it
+	// again or replace its own scope.
+	require.NoError(t, book.Collect(shard.Join()))
+	require.NoError(t, root.Collect(message.Join()))
+	assert.EqualValues(t, 4, root.counter.Load())
+	assert.EqualValues(t, 3, message.counter.Load())
+
+	desc := NewDesc(root.Join())
+	require.NotNil(t, desc)
+	require.Len(t, desc.children, 4)
+	byReason := make(map[string]*Desc, 4)
+	for _, leaf := range desc.children {
+		reason, ok := leaf.GetValue(KeyReason).(string)
+		require.True(t, ok)
+		byReason[reason] = leaf
+	}
+	require.Len(t, byReason, 4)
+
+	bookError := byReason["book error"]
+	require.NotNil(t, bookError)
+	assert.Equal(t, ModuleConf, bookError.GetValue(KeyModule))
+	assert.Equal(t, "Main.xlsx", bookError.GetValue(KeyBookName))
+	assert.Equal(t, "Main.xlsx", bookError.GetValue(KeyPrimaryBookName))
+	assert.Equal(t, "book", bookError.GetValue("trace"))
+	assert.Nil(t, bookError.GetValue(KeySheetName))
+	assert.Nil(t, bookError.GetValue(KeyPBMessage))
+
+	messageError := byReason["message error"]
+	require.NotNil(t, messageError)
+	assert.Equal(t, "Main.xlsx", messageError.GetValue(KeyBookName))
+	assert.Equal(t, "ItemConf", messageError.GetValue(KeySheetName))
+	assert.Equal(t, "ItemConf", messageError.GetValue(KeyPrimarySheetName))
+	assert.Equal(t, "ItemConf", messageError.GetValue(KeyPBMessage))
+	assert.Equal(t, "message", messageError.GetValue("trace"))
+	assert.Nil(t, messageError.GetValue(KeyDataCellPos))
+
+	mainError := byReason["main cell"]
+	require.NotNil(t, mainError)
+	assert.Equal(t, "Main.xlsx", mainError.GetValue(KeyBookName))
+	assert.Equal(t, "ItemConf", mainError.GetValue(KeySheetName))
+	assert.Equal(t, "Main.xlsx", mainError.GetValue(KeyPrimaryBookName))
+	assert.Equal(t, "ItemConf", mainError.GetValue(KeyPrimarySheetName))
+	assert.Equal(t, "ItemConf", mainError.GetValue(KeyPBMessage))
+	assert.Equal(t, "message", mainError.GetValue("trace"))
+	assert.Equal(t, "A4", mainError.GetValue(KeyDataCellPos))
+
+	shardError := byReason["shard cell"]
+	require.NotNil(t, shardError)
+	assert.Equal(t, "Shard.xlsx", shardError.GetValue(KeyBookName))
+	assert.Equal(t, "ShardItem", shardError.GetValue(KeySheetName))
+	assert.Equal(t, "Main.xlsx", shardError.GetValue(KeyPrimaryBookName))
+	assert.Equal(t, "ItemConf", shardError.GetValue(KeyPrimarySheetName))
+	assert.Equal(t, "ItemConf", shardError.GetValue(KeyPBMessage))
+	assert.Equal(t, "shard", shardError.GetValue("trace"))
+	assert.Equal(t, "B5", shardError.GetValue(KeyDataCellPos))
+}
+
+// When one branch fills an ancestor, a previously untouched sibling gets
+// a non-nil stop signal without storing or counting another error.
+func TestTree_FullAncestorSignalsUntouchedSibling(t *testing.T) {
+	root := NewCollector(1)
+	first := root.NewChild(0, KeyBookName, "First.xlsx")
+	second := root.NewChild(0, KeyBookName, "Second.xlsx")
+
+	require.Error(t, first.Collect(New("first")))
+	require.Error(t, second.Collect(New("ignored")))
+	require.Error(t, second.Collect(nil))
+	assert.NoError(t, second.Join())
+	assert.EqualValues(t, 1, root.counter.Load())
+	assert.Equal(t, "First.xlsx", NewDesc(root.Join()).GetValue(KeyBookName))
+	assert.NotContains(t, root.Join().Error(), "ignored")
+}
+
+// A sheet limit stops that sheet without filling its message or its sibling.
+// The book limit still caps the combined accepted errors.
+func TestTree_FourLevelLimitsAcrossSiblings(t *testing.T) {
+	root := NewCollector(6)
+	book := root.NewChild(4, KeyBookName, "Main.xlsx")
+	message := book.NewChild(0, KeySheetName, "ItemConf")
+	main := message.NewChild(1, KeyBookName, "Main.xlsx")
+	shard := message.NewChild(5, KeyBookName, "Shard.xlsx")
+
+	require.Error(t, main.Collect(New("main 1")))
+	assert.True(t, main.IsFull())
+	assert.False(t, message.IsFull())
+	assert.False(t, shard.IsFull())
+	assert.False(t, book.IsFull())
+
+	require.NoError(t, shard.Collect(New("shard 1")))
+	require.NoError(t, shard.Collect(New("shard 2")))
+	require.Error(t, shard.Collect(New("shard 3")))
+	assert.True(t, book.IsFull())
+	assert.True(t, message.IsFull())
+	assert.True(t, shard.IsFull())
+	assert.False(t, root.IsFull())
+
+	// Once the book is full, no descendant can store another error.
+	require.Error(t, shard.Collect(New("shard overflow")))
+	require.Error(t, main.Collect(New("main overflow")))
+	assert.EqualValues(t, 4, book.counter.Load())
+	assert.EqualValues(t, 4, root.counter.Load())
+	desc := NewDesc(root.Join())
+	require.Len(t, desc.children, 4)
+	assert.Equal(t, "main 1", desc.children[0].GetValue(KeyReason))
+	assert.Equal(t, "shard 1", desc.children[1].GetValue(KeyReason))
+	assert.Equal(t, "shard 2", desc.children[2].GetValue(KeyReason))
+	assert.Equal(t, "shard 3", desc.children[3].GetValue(KeyReason))
+}
+
+// Each concurrent importer owns its scope, while Group.Go receives its Join
+// result without adding the same errors a second time.
+func TestGroup_ConcurrentImporterScopes(t *testing.T) {
+	const importers = 16
+	root := NewCollector(0)
+	book := root.NewChild(0, KeyBookName, "Main.xlsx")
+	message := book.NewChild(0, KeySheetName, "ItemConf", KeyPBMessage, "ItemConf")
+	group := message.NewGroup(context.Background())
+
+	for i := range importers {
+		group.Go(func(ctx context.Context) error {
+			sheet := message.NewChild(1,
+				KeyBookName, fmt.Sprintf("Shard%d.xlsx", i),
+				KeySheetName, fmt.Sprintf("Item%d", i),
+			)
+			_ = sheet.Collect(Newf("error %d", i))
+			return sheet.Join()
+		})
+	}
+
+	joined := group.Wait()
+	require.Error(t, joined)
+	assert.EqualValues(t, importers, root.counter.Load())
+	assert.EqualValues(t, importers, message.counter.Load())
+	desc := NewDesc(joined)
+	require.Len(t, desc.children, importers)
+	byReason := make(map[string]*Desc, importers)
+	for _, leaf := range desc.children {
+		reason, ok := leaf.GetValue(KeyReason).(string)
+		require.True(t, ok)
+		byReason[reason] = leaf
+	}
+	require.Len(t, byReason, importers)
+	for i := range importers {
+		leaf := byReason[fmt.Sprintf("error %d", i)]
+		require.NotNil(t, leaf)
+		assert.Equal(t, fmt.Sprintf("Shard%d.xlsx", i), leaf.GetValue(KeyBookName))
+		assert.Equal(t, fmt.Sprintf("Item%d", i), leaf.GetValue(KeySheetName))
+		assert.Equal(t, "ItemConf", leaf.GetValue(KeyPBMessage))
+	}
+}
+
+// A Join result is a snapshot: later errors appear in a new Join, with the
+// same inherited scope, but do not change the earlier result.
+func TestCollected_JoinSnapshotAcrossHierarchy(t *testing.T) {
+	root := NewCollector(0)
+	book := root.NewChild(0, KeyBookName, "Main.xlsx")
+	message := book.NewChild(0, KeySheetName, "ItemConf")
+	first := message.NewChild(0, KeyBookName, "First.xlsx")
+	require.NoError(t, first.Collect(New("first")))
+	snapshot := root.Join()
+
+	second := message.NewChild(0, KeyBookName, "Second.xlsx")
+	require.NoError(t, second.Collect(New("second")))
+
+	earlier := NewDesc(snapshot)
+	require.NotNil(t, earlier)
+	assert.Empty(t, earlier.children)
+	assert.Equal(t, "first", earlier.GetValue(KeyReason))
+	assert.Equal(t, "First.xlsx", earlier.GetValue(KeyBookName))
+	assert.Equal(t, "ItemConf", earlier.GetValue(KeySheetName))
+
+	latest := NewDesc(root.Join())
+	require.Len(t, latest.children, 2)
+	assert.Equal(t, "First.xlsx", latest.children[0].GetValue(KeyBookName))
+	assert.Equal(t, "Second.xlsx", latest.children[1].GetValue(KeyBookName))
 }
 
 // ---------------------------------------------------------------------------

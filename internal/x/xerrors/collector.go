@@ -47,41 +47,28 @@ func (c *Collector) NewChild(maxErrs int, scope ...any) *Collector {
 
 // normalizeMax converts user-facing maxErrs to internal representation.
 func normalizeMax(maxErrs int) int32 {
-	if maxErrs <= 0 {
-		return math.MaxInt32 // unlimited
+	if maxErrs <= 0 || maxErrs > math.MaxInt32 {
+		return math.MaxInt32 // unlimited or larger than the counter can represent
 	}
 	return int32(maxErrs)
 }
 
 // Collect accumulates err into the collector.
 //
-//   - nil err: no-op unless this collector (or an ancestor) is already full,
-//     in which case the joined error tree is returned immediately.
-//   - a Join result from this tree: no-op because its errors are already
-//     reachable through the collector hierarchy.
-//   - ordinary err: increments every ancestor's counter, stores the error if
-//     it is within every ancestor's budget, and returns the joined error tree
-//     if any ancestor has now reached its limit (nil otherwise).
+// A nil error or a Join result already in this tree adds nothing. Once this
+// collector or an ancestor is full, further calls stop without consuming
+// another level's budget. The call that reaches a limit is still stored and
+// returns the joined errors.
 func (c *Collector) Collect(err error) error {
-	if err == nil {
-		if c.IsFull() {
-			return c.Join()
-		}
+	if c.IsFull() {
+		return c.joinAtOrAbove()
+	}
+	if err == nil || c.isCollectedFromTree(err) {
 		return nil
 	}
 
-	// A Join result from this tree is already included through its origin.
-	// A result from another tree is an ordinary error here.
-	if c.isCollectedFromTree(err) {
-		if c.IsFull() {
-			return c.Join()
-		}
-		return nil
-	}
-
-	// Increment all ancestor counters; track whether any hit the limit (anyFull)
-	// and whether this error is within every ancestor's budget (store).
-	// n == maxErrs is the last accepted slot; n > maxErrs means overflow.
+	// n == maxErrs is the last accepted slot. Concurrent calls may still
+	// increment past a limit; those overflow errors are not stored.
 	anyFull, store := false, true
 	for cur := c; cur != nil; cur = cur.parent {
 		n := cur.counter.Add(1)
@@ -100,7 +87,18 @@ func (c *Collector) Collect(err error) error {
 	}
 
 	if anyFull {
-		return c.Join()
+		return c.joinAtOrAbove()
+	}
+	return nil
+}
+
+// joinAtOrAbove returns this subtree's errors, or an ancestor's when the
+// subtree is empty because a sibling filled the shared budget.
+func (c *Collector) joinAtOrAbove() error {
+	for cur := c; cur != nil; cur = cur.parent {
+		if joined := cur.Join(); joined != nil {
+			return joined
+		}
 	}
 	return nil
 }
