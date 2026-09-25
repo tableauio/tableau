@@ -2,11 +2,11 @@ package confgen
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
 	"sync"
-	"time"
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
@@ -37,12 +37,13 @@ type Generator struct {
 	OutputOpt     *options.ConfOutputOption // output settings.
 	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
-	validator     protovalidate.Validator // validator with extension type resolver for custom predefined rules.
-	collector     *xerrors.Collector
-	referredCache *fieldprop.ReferredCache
+	enableProfiling bool
+	validator       protovalidate.Validator // validator with extension type resolver for custom predefined rules.
+	collector       *xerrors.Collector
+	referredCache   *fieldprop.ReferredCache
 
 	// Performance stats
-	PerfStats sync.Map
+	SheetParserStats sync.Map
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -70,17 +71,18 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 
 	g := &Generator{
-		ProtoPackage:  protoPackage,
-		InputDir:      indir,
-		OutputDir:     outdir,
-		LocationName:  opts.LocationName,
-		InputOpt:      opts.Conf.Input,
-		OutputOpt:     opts.Conf.Output,
-		ErrorLimitOpt: errorLimit,
-		ctx:           ctx,
-		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
-		referredCache: fieldprop.NewReferredCache(),
-		PerfStats:     sync.Map{},
+		ProtoPackage:     protoPackage,
+		InputDir:         indir,
+		OutputDir:        outdir,
+		LocationName:     opts.LocationName,
+		InputOpt:         opts.Conf.Input,
+		OutputOpt:        opts.Conf.Output,
+		ErrorLimitOpt:    errorLimit,
+		enableProfiling:  opts.Profiling,
+		ctx:              ctx,
+		collector:        xerrors.NewCollector(errorLimit.MaxErrors),
+		referredCache:    fieldprop.NewReferredCache(),
+		SheetParserStats: sync.Map{},
 	}
 	return g
 }
@@ -88,23 +90,29 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 func (gen *Generator) resetRunState() {
 	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
 	gen.referredCache = fieldprop.NewReferredCache()
-	gen.PerfStats = sync.Map{}
+	gen.SheetParserStats = sync.Map{}
 }
 
 // bookSpecifier can be:
 //   - only workbook: excel/Item.xlsx
 //   - specific worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
-	defer PrintPerfStats(gen)
-
 	if len(bookSpecifiers) == 0 {
 		return gen.GenAll()
 	}
 	return gen.GenWorkbook(bookSpecifiers...)
 }
 
-func (gen *Generator) GenAll() error {
+func (gen *Generator) GenAll() (err error) {
 	gen.resetRunState()
+	defer PrintPerfStats(gen)
+	stopProfiling, err := gen.startProfiling()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = errors.Join(err, stopProfiling())
+	}()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
@@ -130,8 +138,16 @@ func (gen *Generator) GenAll() error {
 // bookSpecifier can be:
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
-func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
+func (gen *Generator) GenWorkbook(bookSpecifiers ...string) (err error) {
 	gen.resetRunState()
+	defer PrintPerfStats(gen)
+	stopProfiling, err := gen.startProfiling()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = errors.Join(err, stopProfiling())
+	}()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
@@ -175,7 +191,6 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 // convert a workbook related to parameter fd, and only convert the
 // specified worksheet if the input parameter worksheetName is not empty.
 func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.FileDescriptor, specifiedSheetName string) (err error) {
-	bookBeginTime := time.Now()
 	_, workbook := ParseFileOptions(fd)
 	if workbook == nil {
 		return nil
@@ -224,6 +239,12 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				DryRun:         gen.OutputOpt.DryRun,
 				ErrorLimit:     gen.ErrorLimitOpt,
 				ReferredCache:  gen.referredCache,
+				SheetParserStats: func() *sync.Map {
+					if gen.enableProfiling {
+						return &gen.SheetParserStats
+					}
+					return nil
+				}(),
 			},
 		})
 		// NOTE: one sheet may be generated to multiple messages (e.g.: full version and lite version) in the same workbook.
@@ -241,7 +262,6 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
-	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
 	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook,
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, workbook.Name,
@@ -249,7 +269,6 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	worksheetFound := false
 	for _, sheetInfo := range sheets {
 		sheetName := sheetInfo.SheetName()
-		sheetBeginTime := time.Now()
 		if specifiedSheetName != "" {
 			if specifiedSheetName != sheetName {
 				continue
@@ -283,8 +302,6 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 			}
 		}
 
-		seconds := time.Since(sheetBeginTime).Milliseconds() + bookPrepareMilliseconds
-		gen.PerfStats.Store(sheetInfo.MD.Name(), seconds)
 	}
 	if specifiedSheetName != "" && !worksheetFound {
 		return xerrors.NewKV(fmt.Sprintf("worksheet not found: %s", specifiedSheetName),

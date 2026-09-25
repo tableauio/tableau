@@ -232,9 +232,21 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 	parser.sheetCollector = messageCollector.NewChild(maxErrorsPerSheet,
 		xerrors.KeyBookName, bookName,
 		xerrors.KeySheetName, sheetName)
+	key := sheetPerfKey{book: bookName, sheet: sheetName, message: string(info.MD.FullName())}
 	protomsg := dynamicpb.NewMessage(info.MD)
-	if err := parser.Parse(protomsg, sheet); err != nil {
-		return nil, xerrors.WrapKV(err,
+	var parseErr error
+	if info.ExtInfo.SheetParserStats == nil {
+		parseErr = parser.Parse(protomsg, sheet)
+	} else {
+		shape := measureSheet(sheet)
+		elapsed, cpuTime, cpuMeasured, err := measureSheetParse(key, func() error {
+			return parser.Parse(protomsg, sheet)
+		})
+		recordSheetPerf(info.ExtInfo.SheetParserStats, key, shape, elapsed, cpuTime, cpuMeasured, err != nil)
+		parseErr = err
+	}
+	if parseErr != nil {
+		return nil, xerrors.WrapKV(parseErr,
 			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyBookName, bookName,
 			xerrors.KeySheetName, sheetName,
@@ -313,13 +325,14 @@ type orderField struct {
 
 // SheetParserExtInfo is the extended info for refer check and so on.
 type SheetParserExtInfo struct {
-	InputDir       string
-	SubdirRewrites map[string]string
-	PRFiles        *protoregistry.Files
-	BookFormat     format.Format // workbook format
-	DryRun         options.DryRun
-	ErrorLimit     *options.ErrorLimitOption // error collection limits
-	ReferredCache  *fieldprop.ReferredCache
+	InputDir         string
+	SubdirRewrites   map[string]string
+	PRFiles          *protoregistry.Files
+	BookFormat       format.Format // workbook format
+	DryRun           options.DryRun
+	ErrorLimit       *options.ErrorLimitOption // error collection limits
+	ReferredCache    *fieldprop.ReferredCache
+	SheetParserStats *sync.Map
 }
 
 // NewSheetParser creates a new sheet parser.

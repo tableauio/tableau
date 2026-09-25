@@ -24,6 +24,10 @@ type Options struct {
 	// Default: "Local".
 	LocationName string `yaml:"locationName"`
 
+	// Profiling enables performance profiles and detailed runtime statistics.
+	// It is a runtime option and is not serialized to configuration files.
+	Profiling bool `yaml:"-"`
+
 	// Configure your custom acronyms(regexp supported). Out of the box, "ID" -> "id" is auto configured.
 	//
 	// For example, if you configure K8s -> k8s, then the field name in PascalCase "InK8s"
