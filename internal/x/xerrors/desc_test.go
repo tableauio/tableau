@@ -179,18 +179,18 @@ Help: fix the field value to satisfy the protovalidate rule
 	assert.Equal(t, wantNoDebug, md.Stringify(false))
 }
 
-// TestNewDescWrapKVOverJoin verifies outer WrapKV fields merge into every child Desc,
+// TestNewDescWrapScopeKVOverJoin verifies shared fields merge into every child Desc,
 // while each child's own fields (Reason) still win.
 //
-//	WrapKV(errors.Join(e1, e2), Module, BookName, SheetName)
+//	WrapScopeKV(errors.Join(e1, e2), Module, BookName, SheetName)
 //	  └── joinError
 //	        ├── e1 (E2027)
 //	        └── e2 (E2027)
-func TestNewDescWrapKVOverJoin(t *testing.T) {
+func TestNewDescWrapScopeKVOverJoin(t *testing.T) {
 	e1 := E2027("item_map[1].score: value must be > 0 and <= 100", "800")
 	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
 	joined := errors.Join(e1, e2)
-	wrapped := WrapKV(joined,
+	wrapped := WrapScopeKV(joined,
 		KeyModule, ModuleConf,
 		KeyBookName, "Validate#*.csv",
 		KeySheetName, "ValidateFieldLevel",
@@ -218,9 +218,9 @@ Help: fix the field value to satisfy the protovalidate rule
 	assert.Equal(t, wantNoDebug, md.Stringify(false))
 }
 
-// TestNewDescWrapKVOverJoinSingleChild verifies WrapKV wrapping errors.Join
+// TestNewDescWrapScopeKVOverJoinSingleChild verifies WrapKV wrapping errors.Join
 // with exactly one non-nil child → single Desc (not numbered list).
-func TestNewDescWrapKVOverJoinSingleChild(t *testing.T) {
+func TestNewDescWrapScopeKVOverJoinSingleChild(t *testing.T) {
 	e1 := E2027("score: value must be > 0 and <= 100", "800")
 	joined := errors.Join(e1)
 	wrapped := WrapKV(joined,
@@ -267,9 +267,9 @@ Reason: inner error
 // multiple children, each wrapping an inner join:
 //
 //	outerJoinError
-//	  ├── WrapKV(innerJoin1, Sheet1)
+//	  ├── WrapScopeKV(innerJoin1, Sheet1)
 //	  │     └── innerJoin1: {e1, e2}
-//	  └── WrapKV(innerJoin2, Sheet2)
+//	  └── WrapScopeKV(innerJoin2, Sheet2)
 //	        └── innerJoin2: {e3, e4}
 //
 // All 4 leaf errors must appear as a flat numbered list.
@@ -280,13 +280,13 @@ func TestNewDescTwoLayerJoinMultiOuter(t *testing.T) {
 	e4 := E2027("item_map[4].score: value must be > 0 and <= 100", "-1")
 
 	innerJoin1 := &joinError{errs: []error{e1, e2}}
-	wrapped1 := WrapKV(innerJoin1,
+	wrapped1 := WrapScopeKV(innerJoin1,
 		KeyModule, ModuleConf,
 		KeyBookName, "Validate#*.csv",
 		KeySheetName, "Sheet1",
 	)
 	innerJoin2 := &joinError{errs: []error{e3, e4}}
-	wrapped2 := WrapKV(innerJoin2,
+	wrapped2 := WrapScopeKV(innerJoin2,
 		KeyModule, ModuleConf,
 		KeyBookName, "Validate#*.csv",
 		KeySheetName, "Sheet2",
@@ -331,13 +331,13 @@ Help: fix the field value to satisfy the protovalidate rule
 	assert.Equal(t, want, md.Stringify(false))
 }
 
-// TestNewDescThreeLayerJoin verifies arbitrary-depth flattening with layered WrapKV:
+// TestNewDescThreeLayerJoin verifies arbitrary-depth flattening with layered scopes:
 //
-//	WrapKV(outerJoin, Module, BookName)
+//	WrapScopeKV(outerJoin, Module, BookName)
 //	  └── outerJoinError
-//	        ├── WrapKV(innerJoin1, Sheet1)
+//	        ├── WrapScopeKV(innerJoin1, Sheet1)
 //	        │     └── innerJoin1: {e1, e2}
-//	        └── WrapKV(innerJoin2, Sheet2)
+//	        └── WrapScopeKV(innerJoin2, Sheet2)
 //	              └── innerJoin2: {e3, e4}
 //
 // All 4 leaf errors carry BookName + SheetName.
@@ -348,12 +348,12 @@ func TestNewDescThreeLayerJoin(t *testing.T) {
 	e4 := E2027("item_map[4].score: value must be > 0 and <= 100", "-1")
 
 	innerJoin1 := &joinError{errs: []error{e1, e2}}
-	wrapped1 := WrapKV(innerJoin1, KeySheetName, "Sheet1")
+	wrapped1 := WrapScopeKV(innerJoin1, KeySheetName, "Sheet1")
 	innerJoin2 := &joinError{errs: []error{e3, e4}}
-	wrapped2 := WrapKV(innerJoin2, KeySheetName, "Sheet2")
+	wrapped2 := WrapScopeKV(innerJoin2, KeySheetName, "Sheet2")
 
 	outerJoin := &joinError{errs: []error{wrapped1, wrapped2}}
-	top := WrapKV(outerJoin,
+	top := WrapScopeKV(outerJoin,
 		KeyModule, ModuleConf,
 		KeyBookName, "Validate#*.csv",
 	)
@@ -411,7 +411,7 @@ Help: fix the field value to satisfy the protovalidate rule
 // TestNewDescTwoLayerJoin verifies the real-world Generator+parser collector pattern:
 //
 //	outerJoinError                              ← Generator collector.Join()
-//	  └── WrapKV(innerJoinError, Module, Book, Sheet)
+//	  └── WrapScopeKV(innerJoinError, Module, Book, Sheet)
 //	        └── innerJoinError                  ← parser collector.Join()
 //	              ├── e1 (E2027)
 //	              └── e2 (E2027)
@@ -422,7 +422,7 @@ func TestNewDescTwoLayerJoin(t *testing.T) {
 	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
 
 	innerJoin := &joinError{errs: []error{e1, e2}}
-	wrapped := WrapKV(innerJoin,
+	wrapped := WrapScopeKV(innerJoin,
 		KeyModule, ModuleConf,
 		KeyBookName, "Validate#*.csv",
 		KeySheetName, "ValidateFieldLevel",
@@ -568,21 +568,21 @@ Help: fix the field value to satisfy the protovalidate rule
 	assert.Equal(t, want, d.Stringify(false))
 }
 
-// TestNewDesc_TwoLevelWrapKVOnJoin verifies WrapKV applied on Join() result
+// TestNewDesc_TwoLevelWrapScopeKVOnJoin verifies WrapScopeKV applied on Join() result
 // (not re-Collect'd) for direct display:
 //
-//	WrapKV(child.Join(), Module, Book, Sheet)
+//	WrapScopeKV(child.Join(), Module, Book, Sheet)
 //	  └── collected(joinError)
 //	        ├── E2027
 //	        └── E2027
-func TestNewDesc_TwoLevelWrapKVOnJoin(t *testing.T) {
+func TestNewDesc_TwoLevelWrapScopeKVOnJoin(t *testing.T) {
 	root := NewCollector(10)
 	child := root.NewChild(0)
 
 	_ = child.Collect(E2027("item.score: must be > 0 and <= 100", "800"))
 	_ = child.Collect(E2027("item.name: too long", "abcdefghijklmnop"))
 
-	wrapped := WrapKV(child.Join(),
+	wrapped := WrapScopeKV(child.Join(),
 		KeyModule, ModuleConf,
 		KeyBookName, "Items#*.csv",
 		KeySheetName, "ItemConf",
@@ -714,16 +714,16 @@ Help: fix duplicate keys and ensure map key is unique
 	assert.Equal(t, want, d.Stringify(false))
 }
 
-// TestNewDesc_ThreeLevelWrapKVOnJoin verifies layered WrapKV on Join() results
+// TestNewDesc_ThreeLevelWrapScopeKVOnJoin verifies layered WrapScopeKV on Join() results
 // (not re-Collect'd) for direct display:
 //
 //	WrapKV(outerJoin, Module, Book:"Items#*.csv")
 //	  └── outerJoinError
-//	        ├── WrapKV(grandchild1.Join(), Sheet:"Sheet1")
+//	        ├── WrapScopeKV(grandchild1.Join(), Sheet:"Sheet1")
 //	        │     └── joinError: {E2027, E2027}
-//	        └── WrapKV(grandchild2.Join(), Sheet:"Sheet2")
+//	        └── WrapScopeKV(grandchild2.Join(), Sheet:"Sheet2")
 //	              └── joinError: {E2005}
-func TestNewDesc_ThreeLevelWrapKVOnJoin(t *testing.T) {
+func TestNewDesc_ThreeLevelWrapScopeKVOnJoin(t *testing.T) {
 	root := NewCollector(20)
 	child := root.NewChild(0)
 	grandchild1 := child.NewChild(0)
@@ -733,11 +733,11 @@ func TestNewDesc_ThreeLevelWrapKVOnJoin(t *testing.T) {
 	_ = grandchild1.Collect(E2027("name: too long", "abcdefghijk"))
 	_ = grandchild2.Collect(E2005("dup_key"))
 
-	grandchild1Wrapped := WrapKV(grandchild1.Join(), KeySheetName, "Sheet1")
-	grandchild2Wrapped := WrapKV(grandchild2.Join(), KeySheetName, "Sheet2")
+	grandchild1Wrapped := WrapScopeKV(grandchild1.Join(), KeySheetName, "Sheet1")
+	grandchild2Wrapped := WrapScopeKV(grandchild2.Join(), KeySheetName, "Sheet2")
 
 	outerJoin := &joinError{errs: []error{grandchild1Wrapped, grandchild2Wrapped}}
-	top := WrapKV(outerJoin,
+	top := WrapScopeKV(outerJoin,
 		KeyModule, ModuleConf,
 		KeyBookName, "Items#*.csv",
 	)

@@ -89,6 +89,12 @@ Errors are counted at **field level**. The `Collector` forms a tree via
 counters on self and all ancestors; when any level is full, further errors
 are dropped at that level. `Join()` recursively assembles the error tree.
 
+A child collector can carry fields shared by its subtree. The book collector
+supplies workbook context, and each sheet collector adds its worksheet context.
+`Join()` inherits those fields into each error; fields attached to an individual
+error remain local to it. Outside a collector tree, `WrapScopeKV` explicitly
+shares fields across a joined error, while `WrapKV` describes one error.
+
 ```mermaid
 flowchart TB
     subgraph "Generator"

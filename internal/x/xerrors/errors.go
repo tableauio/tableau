@@ -95,9 +95,8 @@ func Wrapf(err error, format string, args ...any) error {
 	}
 }
 
-// WrapKV wraps err with structured key-value fields and a stack trace.
-// Fields are visible via NewDesc and can affect Error() when rendering a join.
-// Returns nil if err is nil.
+// WrapKV adds fields to an error. If err is a join, these fields reach its
+// leaves only when it contains one error. Returns nil if err is nil.
 func WrapKV(err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
@@ -105,6 +104,19 @@ func WrapKV(err error, keysAndValues ...any) error {
 	return &withMessage{
 		cause:  withStack(1, err),
 		fields: parseKV(keysAndValues...),
+	}
+}
+
+// WrapScopeKV adds fields shared by every error in err, including joined errors.
+// Use it only for context that belongs to the whole error subtree.
+func WrapScopeKV(err error, keysAndValues ...any) error {
+	if err == nil {
+		return nil
+	}
+	return &withMessage{
+		cause:  withStack(1, err),
+		fields: parseKV(keysAndValues...),
+		shared: true,
 	}
 }
 
@@ -134,11 +146,6 @@ func (b *base) Format(s fmt.State, verb rune) {
 	format(b, s, verb)
 }
 
-// renderWithFields delegates to the cause, passing outerFields through the stack wrapper.
-func (b *base) renderWithFields(outerFields map[string]any) string {
-	return renderCause(b.cause, outerFields)
-}
-
 // withMessage wraps a cause with an optional message and structured fields.
 // If replacesCause is true, message fully replaces the cause text in Error();
 // the cause is kept only for errors.Is/As and stack retrieval.
@@ -148,28 +155,12 @@ type withMessage struct {
 	message       string
 	fields        map[string]any // structured key-value metadata
 	replacesCause bool
+	shared        bool // fields belong to the entire wrapped subtree
 }
 
 // Fields implements fieldsCarrier.
 func (w *withMessage) Fields() map[string]any {
 	return w.fields
-}
-
-// fieldsRenderer renders an error string with outer fields merged in (inner fields win).
-type fieldsRenderer interface {
-	renderWithFields(outerFields map[string]any) string
-}
-
-// renderCause renders cause with outerFields propagated into it, falling back
-// to plain Error() for causes that do not carry fields.
-func renderCause(cause error, outerFields map[string]any) string {
-	if cause == nil {
-		return ""
-	}
-	if r, ok := cause.(fieldsRenderer); ok {
-		return r.renderWithFields(outerFields)
-	}
-	return cause.Error()
 }
 
 func (w *withMessage) Error() string {
@@ -186,13 +177,11 @@ func (w *withMessage) Error() string {
 		}
 		return w.message
 	}
-	// No message but has fields: propagate to cause.
-	if len(w.fields) > 0 && w.cause != nil {
-		if r, ok := w.cause.(fieldsRenderer); ok {
-			return r.renderWithFields(w.fields)
-		}
+	// Joined errors need the wrapper's sharing rule while they are flattened.
+	if d := NewDesc(w); d != nil && d.err != w {
+		return d.String()
 	}
-	// No message: delegate to cause.
+	// No join: delegate to cause.
 	if w.cause != nil {
 		return w.cause.Error()
 	}
@@ -201,19 +190,6 @@ func (w *withMessage) Error() string {
 
 // Unwrap returns the cause for error chain traversal.
 func (w *withMessage) Unwrap() error { return w.cause }
-
-// renderWithFields merges outerFields with w.fields (inner wins) and propagates down.
-// If w has a message it is not a transparent wrapper, so Error() is returned directly.
-func (w *withMessage) renderWithFields(outerFields map[string]any) string {
-	if w.message != "" {
-		return w.Error()
-	}
-	// Merge outerFields then overlay w.fields (inner wins).
-	merged := make(map[string]any, len(outerFields)+len(w.fields))
-	maps.Copy(merged, outerFields)
-	maps.Copy(merged, w.fields)
-	return renderCause(w.cause, merged)
-}
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
 	format(w, s, verb)
@@ -283,25 +259,18 @@ type joinError struct {
 
 func (j *joinError) Unwrap() []error { return j.errs }
 
-// Error renders all children via renderWithFields(nil).
+// Error renders the joined errors from their structured descriptions.
 func (j *joinError) Error() string {
-	return j.renderWithFields(nil)
-}
-
-// renderWithFields renders children with outerFields merged in (inner fields win),
-// propagating fields such as Module, BookName, SheetName from an enclosing WrapKV.
-func (j *joinError) renderWithFields(outerFields map[string]any) string {
-	if d := newDescWithOuter(j, outerFields); d != nil {
+	if d := NewDesc(j); d != nil {
 		return d.String()
 	}
-	// Fallback: plain join.
 	var sb strings.Builder
-	for i, e := range j.errs {
+	for i, err := range j.errs {
 		if i > 0 {
 			sb.WriteByte('\n')
 		}
-		if e != nil {
-			sb.WriteString(e.Error())
+		if err != nil {
+			sb.WriteString(err.Error())
 		}
 	}
 	return sb.String()

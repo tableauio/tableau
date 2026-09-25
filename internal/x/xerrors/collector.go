@@ -34,11 +34,6 @@ func NewCollector(maxErrs int) *Collector {
 // its own cell and field details. maxErrs follows [NewCollector].
 func (c *Collector) NewChild(maxErrs int, scope ...any) *Collector {
 	fields := parseKV(scope...)
-	for key := range fields {
-		if !scopeKeys[key] {
-			panic("collector scope cannot contain " + key)
-		}
-	}
 	child := &Collector{
 		maxErrs: normalizeMax(maxErrs),
 		parent:  c,
@@ -181,7 +176,7 @@ func (c *Collector) Join() error {
 	}
 	var inner error = &joinError{errs: nonNil, stack: callers(1)}
 	if len(c.scope) > 0 {
-		inner = &withMessage{cause: inner, fields: c.scope}
+		inner = &withMessage{cause: inner, fields: c.scope, shared: true}
 	}
 	return &collected{
 		error:  inner,
@@ -198,10 +193,6 @@ type collected struct {
 func (c *collected) Error() string { return c.error.Error() }
 func (c *collected) Unwrap() error { return c.error }
 
-// renderWithFields passes enclosing fields through the collected marker.
-func (c *collected) renderWithFields(outerFields map[string]any) string {
-	return renderCause(c.error, outerFields)
-}
 func (c *collected) Format(s fmt.State, verb rune) {
 	if f, ok := c.error.(fmt.Formatter); ok {
 		f.Format(s, verb)

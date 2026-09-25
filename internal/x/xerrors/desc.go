@@ -80,22 +80,6 @@ var keys = []string{
 	keyHelp,
 }
 
-// scopeKeys are the keys identifying the enclosing scope (which dir, book,
-// sheet, message) rather than a location inside it. Only these may be shared
-// across the errors of a joined tree: a cell position or field name describes
-// one error alone, so broadcasting it would point the others at a wrong cell.
-var scopeKeys = map[string]bool{
-	KeyModule:           true,
-	KeyIndir:            true,
-	KeySubdir:           true,
-	KeyOutdir:           true,
-	KeyBookName:         true,
-	KeyPrimaryBookName:  true,
-	KeySheetName:        true,
-	KeyPrimarySheetName: true,
-	KeyPBMessage:        true,
-}
-
 // multiUnwrapper is implemented by joined errors (e.g. errors.Join).
 type multiUnwrapper interface {
 	Unwrap() []error
@@ -109,37 +93,33 @@ type Desc struct {
 	children []*Desc
 }
 
-// NewDesc builds a *Desc from err. Joins are flattened; enclosing scope
-// fields reach every leaf, while cell details reach only a single leaf.
+// NewDesc builds a *Desc from err. Joins are flattened; shared fields reach
+// every leaf, while ordinary wrapper fields reach only a single leaf.
 // Innermost values win. Returns nil for nil err.
 func NewDesc(err error) *Desc {
 	if err == nil {
 		return nil
 	}
-	// Collect outer fields while walking the chain; stop at the first multi-error.
-	outerFields := make(map[string]any)
-	cur := err
-	for cur != nil {
+	// Each wrapper states whether its fields describe the whole subtree.
+	var layers []fieldLayer
+	for cur := err; cur != nil; cur = errors.Unwrap(cur) {
 		if fc, ok := cur.(fieldsCarrier); ok {
-			maps.Copy(outerFields, fc.Fields())
+			wrapper, ok := cur.(*withMessage)
+			layers = append(layers, fieldLayer{fields: fc.Fields(), shared: ok && wrapper.shared})
 		}
 		if mu, ok := cur.(multiUnwrapper); ok {
-			return buildFromChildren(cur, mu.Unwrap(), outerFields)
+			return buildFromChildren(cur, mu.Unwrap(), layers)
 		}
-		cur = errors.Unwrap(cur)
 	}
 	// No multi-error found: treat as a single error.
 	return &Desc{err: err, fields: collectFields(err)}
 }
 
-// newDescWithOuter builds a *Desc for a joinError using pre-supplied outerFields,
-// avoiding a re-entrant call to Error().
-func newDescWithOuter(err error, outerFields map[string]any) *Desc {
-	mu, ok := err.(multiUnwrapper)
-	if !ok {
-		return nil
-	}
-	return buildFromChildren(err, mu.Unwrap(), outerFields)
+// fieldLayer records whether a wrapper's fields apply to one error or all
+// errors in the wrapped subtree.
+type fieldLayer struct {
+	fields map[string]any
+	shared bool
 }
 
 // collectFields walks the error chain and collects fields from every
@@ -168,17 +148,6 @@ func collectFields(err error) map[string]any {
 	return fields
 }
 
-// sharedFields keeps only context that applies to every error in a join.
-func sharedFields(fields map[string]any) map[string]any {
-	shared := make(map[string]any)
-	for key, value := range fields {
-		if scopeKeys[key] {
-			shared[key] = value
-		}
-	}
-	return shared
-}
-
 // flattenDescs appends all leaf *Desc nodes from d into dst.
 func flattenDescs(d *Desc, dst *[]*Desc) {
 	if len(d.children) == 0 {
@@ -190,23 +159,23 @@ func flattenDescs(d *Desc, dst *[]*Desc) {
 	}
 }
 
-// buildFromChildren flattens a join and applies enclosing fields to its leaves.
-// Cell and field details belong to a single error, so only scope fields are
-// shared when the join contains multiple leaves.
-func buildFromChildren(err error, errs []error, outerFields map[string]any) *Desc {
+// buildFromChildren flattens a join and applies its enclosing field layers.
+// Inner fields win; ordinary wrapper fields never leak to sibling errors.
+func buildFromChildren(err error, errs []error, layers []fieldLayer) *Desc {
 	var leaves []*Desc
 	for _, child := range errs {
 		if inner := NewDesc(child); inner != nil {
 			flattenDescs(inner, &leaves)
 		}
 	}
-	if len(outerFields) > 0 {
-		if len(leaves) > 1 {
-			outerFields = sharedFields(outerFields)
+	for i := len(layers) - 1; i >= 0; i-- {
+		layer := layers[i]
+		if len(layer.fields) == 0 || (!layer.shared && len(leaves) != 1) {
+			continue
 		}
 		for _, leaf := range leaves {
-			merged := make(map[string]any, len(outerFields)+len(leaf.fields))
-			maps.Copy(merged, outerFields)
+			merged := make(map[string]any, len(layer.fields)+len(leaf.fields))
+			maps.Copy(merged, layer.fields)
 			maps.Copy(merged, leaf.fields) // inner fields win
 			leaf.fields = merged
 		}

@@ -983,6 +983,20 @@ func TestCollected_CollectSameTreeKeepsChildScope(t *testing.T) {
 	assert.Equal(t, "test.xlsx", got.GetValue(KeyBookName))
 }
 
+// Collector scopes inherit by ancestry, including keys unknown to the renderer.
+func TestCollected_ChildScopeInheritsArbitraryFields(t *testing.T) {
+	root := NewCollector(10)
+	book := root.NewChild(10, "source", "book")
+	sheet := book.NewChild(10, "source", "sheet")
+	_ = book.Collect(New("book error"))
+	_ = sheet.Collect(New("sheet error"))
+
+	desc := NewDesc(root.Join())
+	require.Len(t, desc.children, 2)
+	assert.Equal(t, "book", desc.children[0].GetValue("source"))
+	assert.Equal(t, "sheet", desc.children[1].GetValue("source"))
+}
+
 // A multi-error containing a Join result may also contain a new error.
 func TestCollected_MultiErrorKeepsNewError(t *testing.T) {
 	root := NewCollector(10)
@@ -1078,12 +1092,12 @@ func TestCollected_ErrorDoesNotBroadcastCellFields(t *testing.T) {
 	))
 	_ = child.Collect(E2014("missing"))
 
-	err := WrapKV(child.Join(),
-		KeyModule, ModuleConf,
-		KeyBookName, "Book.xlsx",
-		KeySheetName, "Sheet",
+	err := WrapScopeKV(WrapKV(child.Join(),
 		KeyDataCellPos, "A4",
 		KeyDataCell, "key",
+	), KeyModule, ModuleConf,
+		KeyBookName, "Book.xlsx",
+		KeySheetName, "Sheet",
 	)
 	got := err.Error()
 	assert.Contains(t, got, "Workbook: Book.xlsx")

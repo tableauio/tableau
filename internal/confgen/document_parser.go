@@ -31,7 +31,7 @@ func (p *documentParser) Parse(protomsg proto.Message, sheet *book.Sheet) error 
 		return xerrors.WrapKV(err, xerrors.KeySheetName, sheet.Name)
 	}
 	if p.sheetCollector.HasErrors() {
-		return xerrors.WrapKV(p.sheetCollector.Join(), xerrors.KeySheetName, sheet.Name)
+		return p.sheetCollector.Join()
 	}
 	return nil
 }
