@@ -132,3 +132,53 @@ func TestGenerator_refusesImportedOutputEvenWithGeneratedHeader(t *testing.T) {
 	require.NoError(t, readErr)
 	require.Equal(t, content, got)
 }
+
+func TestGenerator_commitOutputsRestoresPromotedFile(t *testing.T) {
+	dir := t.TempDir()
+	gen := newSweepGenerator(t, dir)
+	outdir := filepath.Join(dir, "default")
+	require.NoError(t, os.MkdirAll(outdir, 0o755))
+	require.NoError(t, gen.beginRun())
+	require.NoError(t, gen.startStaging())
+	defer gen.discardStaging()
+
+	first := filepath.Join(outdir, "a.proto")
+	oldContent := []byte(generatedFileHeaderLine() + "old\n")
+	require.NoError(t, os.WriteFile(first, oldContent, 0o644))
+	require.NoError(t, gen.registerGeneratedProtoFile(first, "A.xlsx"))
+	require.NoError(t, gen.stageProtoFile(first, []byte(generatedFileHeaderLine()+"new\n")))
+
+	second := filepath.Join(outdir, "z.proto")
+	require.NoError(t, gen.registerGeneratedProtoFile(second, "Z.xlsx"))
+	require.NoError(t, gen.stageProtoFile(second, []byte(generatedFileHeaderLine())))
+	key, err := absoluteProtoPath(second)
+	require.NoError(t, err)
+	require.NoError(t, os.Remove(gen.stagedProtoFiles[key]))
+
+	require.Error(t, gen.commitOutputs(false))
+	content, err := os.ReadFile(first)
+	require.NoError(t, err)
+	require.Equal(t, oldContent, content)
+	require.NoFileExists(t, second)
+}
+
+func TestGenerator_commitOutputsRejectsLateHandwrittenFile(t *testing.T) {
+	dir := t.TempDir()
+	gen := newSweepGenerator(t, dir)
+	outdir := filepath.Join(dir, "default")
+	require.NoError(t, os.MkdirAll(outdir, 0o755))
+	require.NoError(t, gen.beginRun())
+	require.NoError(t, gen.startStaging())
+	defer gen.discardStaging()
+
+	path := filepath.Join(outdir, "item.proto")
+	require.NoError(t, gen.registerGeneratedProtoFile(path, "Item.xlsx"))
+	require.NoError(t, gen.stageProtoFile(path, []byte(generatedFileHeaderLine())))
+	handwritten := []byte("syntax = \"proto3\";\n")
+	require.NoError(t, os.WriteFile(path, handwritten, 0o644))
+
+	require.ErrorContains(t, gen.commitOutputs(false), "non-generated")
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+	require.Equal(t, handwritten, content)
+}
