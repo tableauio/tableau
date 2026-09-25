@@ -9,7 +9,6 @@ import (
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/rogpeppe/go-internal/lockedfile"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
@@ -125,7 +124,7 @@ func (x *bookExporter) export() error {
 		}
 	}
 
-	if err := x.writeProtoFile(path, header.Bytes(), p3.Bytes()); err != nil {
+	if err := x.gen.output.stage(path, header.Bytes(), p3.Bytes()); err != nil {
 		return err
 	}
 	for _, shardFile := range x.unionShardFiles {
@@ -176,28 +175,7 @@ func (x *bookExporter) writeUnionShardFile(shardFile *unionShardFile) error {
 	x.writeProtoHeader(header, importSet)
 	header.P("option (tableau.workbook) = {", x.marshalToText(x.wb.Options), "};")
 	header.P("")
-	return x.writeProtoFile(filepath.Join(x.OutputDir, shardFile.ImportPath), header.Bytes(), shardFile.Printer.Bytes())
-}
-
-func (x *bookExporter) writeProtoFile(path string, parts ...[]byte) error {
-	if x.gen.output.stageDir != "" {
-		return x.gen.output.stage(path, parts...)
-	}
-	f, err := lockedfile.Create(path)
-	if err != nil {
-		return xerrors.WrapKV(err)
-	}
-	defer func() {
-		if cerr := f.Close(); cerr != nil {
-			log.Panicf("failed to close file: %s", path)
-		}
-	}()
-	for _, part := range parts {
-		if _, err = f.Write(part); err != nil {
-			return xerrors.WrapKV(err)
-		}
-	}
-	return nil
+	return x.gen.output.stage(filepath.Join(x.OutputDir, shardFile.ImportPath), header.Bytes(), shardFile.Printer.Bytes())
 }
 
 type sheetExporter struct {

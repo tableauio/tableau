@@ -10,6 +10,7 @@ import (
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/internal/x/xproto/protoc"
@@ -458,9 +459,11 @@ func Test_bookExporter_export(t *testing.T) {
 					},
 				},
 			}
+			require.NoError(t, gen.output.start())
+			defer gen.output.discard()
 			be := newBookExporter("protoconf", tt.edition, tt.protoFileOptions, tmpDir, "", wb, gen)
-			err := be.export()
-			assert.NoError(t, err)
+			require.NoError(t, be.export())
+			require.NoError(t, gen.output.publish(false))
 
 			// read the generated file and verify
 			content, err := os.ReadFile(filepath.Join(tmpDir, "item.proto"))
