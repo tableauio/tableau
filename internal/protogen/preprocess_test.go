@@ -78,7 +78,7 @@ func Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
 	// Meanwhile the registry including generated protos should be snapshotted,
 	// so that preserveFieldNumbers keeps the previous field numbers even if the
 	// proto files are truncated later.
-	files := gen.getProtoRegistryFilesWithGenerated()
+	files := gen.getProtoRegistryFilesIncludingGenerated()
 	_, err := files.FindDescriptorByName("protoconf.StaleConf")
 	assert.NoError(t, err, "registry with generated protos should be snapshotted during type preparation")
 }

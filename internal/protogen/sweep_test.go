@@ -36,9 +36,9 @@ message HandBase { uint32 id = 1; }
 `), xfs.DefaultFilePerm))
 
 	// nothing is generated in this run, aka all workbooks were deleted
-	require.NoError(t, gen.output.start())
-	defer gen.output.discard()
-	require.NoError(t, gen.output.publish(true))
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
+	require.NoError(t, gen.output.publishAll())
 
 	assert.FileExists(t, handwritten, "handwritten proto in outdir must never be swept")
 }
@@ -55,22 +55,22 @@ func TestProtoOutput_publishRemovesStaleProto(t *testing.T) {
 	require.NoError(t, os.WriteFile(kept, []byte(header), xfs.DefaultFilePerm))
 	require.NoError(t, os.WriteFile(stale, []byte(header), xfs.DefaultFilePerm))
 
-	require.NoError(t, gen.output.register(kept, "Item.xlsx"))
-	require.NoError(t, gen.output.start())
-	defer gen.output.discard()
-	require.NoError(t, gen.output.publish(true))
+	require.NoError(t, gen.output.reservePath(kept, "Item.xlsx"))
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
+	require.NoError(t, gen.output.publishAll())
 
 	assert.FileExists(t, kept, "proto generated in this run must be kept")
 	assert.NoFileExists(t, stale, "proto not generated in this run must be swept")
 }
 
-func TestProtoOutput_registerConflict(t *testing.T) {
+func TestProtoOutput_reservePathConflict(t *testing.T) {
 	gen := newSweepGenerator(t, t.TempDir())
 	path := filepath.Join(gen.OutputDir, "default", "shop_conf.proto")
 
-	require.NoError(t, gen.output.register(path, "conf/server/Shop.xlsx"))
+	require.NoError(t, gen.output.reservePath(path, "conf/server/Shop.xlsx"))
 
-	err := gen.output.register(path, "conf/server/Activity/Shop.xlsx")
+	err := gen.output.reservePath(path, "conf/server/Activity/Shop.xlsx")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, xerrors.ErrE1000)
 	// NOTE: the two conflicting workbooks share the same basename, so the error
@@ -79,10 +79,10 @@ func TestProtoOutput_registerConflict(t *testing.T) {
 	assert.ErrorContains(t, err, "conf/server/Activity/Shop.xlsx")
 }
 
-func TestProtoOutput_registerDistinctPaths(t *testing.T) {
+func TestProtoOutput_reservePathDistinctPaths(t *testing.T) {
 	gen := newSweepGenerator(t, t.TempDir())
 	outdir := filepath.Join(gen.OutputDir, "default")
 
-	require.NoError(t, gen.output.register(filepath.Join(outdir, "item_conf.proto"), "Item.xlsx"))
-	require.NoError(t, gen.output.register(filepath.Join(outdir, "skill_conf.proto"), "Skill.xlsx"))
+	require.NoError(t, gen.output.reservePath(filepath.Join(outdir, "item_conf.proto"), "Item.xlsx"))
+	require.NoError(t, gen.output.reservePath(filepath.Join(outdir, "skill_conf.proto"), "Skill.xlsx"))
 }

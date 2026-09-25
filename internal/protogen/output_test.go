@@ -74,23 +74,23 @@ func TestProtoOutput_publishStopsBeforeStaleCleanup(t *testing.T) {
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
-	require.NoError(t, gen.beginRun())
-	require.NoError(t, gen.output.start())
-	defer gen.output.discard()
+	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
 
 	first := filepath.Join(outdir, "a.proto")
 	require.NoError(t, os.WriteFile(first, []byte(generatedFileHeaderLine()+"old\\n"), 0o644))
-	require.NoError(t, gen.output.register(first, "A.xlsx"))
-	require.NoError(t, gen.output.stage(first, []byte(generatedFileHeaderLine()+"new\\n")))
+	require.NoError(t, gen.output.reservePath(first, "A.xlsx"))
+	require.NoError(t, gen.output.stageFile(first, []byte(generatedFileHeaderLine()+"new\\n")))
 
 	blocked := filepath.Join(outdir, "z.proto")
-	require.NoError(t, gen.output.register(blocked, "Z.xlsx"))
-	require.NoError(t, gen.output.stage(blocked, []byte(generatedFileHeaderLine())))
+	require.NoError(t, gen.output.reservePath(blocked, "Z.xlsx"))
+	require.NoError(t, gen.output.stageFile(blocked, []byte(generatedFileHeaderLine())))
 	require.NoError(t, os.Mkdir(blocked, 0o755))
 
 	stale := filepath.Join(outdir, "stale.proto")
 	require.NoError(t, os.WriteFile(stale, []byte(generatedFileHeaderLine()), 0o644))
-	require.Error(t, gen.output.publish(true))
+	require.Error(t, gen.output.publishAll())
 	content, err := os.ReadFile(first)
 	require.NoError(t, err)
 	require.Equal(t, generatedFileHeaderLine()+"new\\n", string(content))
@@ -98,7 +98,7 @@ func TestProtoOutput_publishStopsBeforeStaleCleanup(t *testing.T) {
 	require.DirExists(t, blocked)
 }
 
-func TestProtoOutput_registerRejectsNonGenerated(t *testing.T) {
+func TestProtoOutput_reservePathRejectsNonGenerated(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
@@ -107,15 +107,15 @@ func TestProtoOutput_registerRejectsNonGenerated(t *testing.T) {
 	handwritten := []byte("syntax = \"proto3\";\n")
 	require.NoError(t, os.WriteFile(path, handwritten, 0o644))
 
-	require.NoError(t, gen.beginRun())
-	err := gen.output.register(path, "Item.xlsx")
+	require.NoError(t, gen.resetRunState())
+	err := gen.output.reservePath(path, "Item.xlsx")
 	require.ErrorContains(t, err, "non-generated")
 	content, readErr := os.ReadFile(path)
 	require.NoError(t, readErr)
 	require.Equal(t, handwritten, content)
 }
 
-func TestProtoOutput_registerRejectsImported(t *testing.T) {
+func TestProtoOutput_reservePathRejectsImported(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
@@ -125,12 +125,12 @@ func TestProtoOutput_registerRejectsImported(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, content, 0o644))
 	gen.InputOpt.ProtoFiles = []string{path}
 
-	require.NoError(t, gen.beginRun())
-	err := gen.output.register(path, "Shared.xlsx")
+	require.NoError(t, gen.resetRunState())
+	err := gen.output.reservePath(path, "Shared.xlsx")
 	require.ErrorContains(t, err, "imported proto")
-	require.NoError(t, gen.output.start())
-	defer gen.output.discard()
-	require.NoError(t, gen.output.publish(true))
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
+	require.NoError(t, gen.output.publishAll())
 	got, readErr := os.ReadFile(path)
 	require.NoError(t, readErr)
 	require.Equal(t, content, got)
@@ -141,17 +141,17 @@ func TestProtoOutput_publishReplacesExistingFile(t *testing.T) {
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
-	require.NoError(t, gen.beginRun())
-	require.NoError(t, gen.output.start())
-	defer gen.output.discard()
+	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
 
 	path := filepath.Join(outdir, "item.proto")
 	require.NoError(t, os.WriteFile(path, []byte(generatedFileHeaderLine()+"old\\n"), 0o644))
-	require.NoError(t, gen.output.register(path, "Item.xlsx"))
+	require.NoError(t, gen.output.reservePath(path, "Item.xlsx"))
 	replacement := generatedFileHeaderLine() + "new\\n"
-	require.NoError(t, gen.output.stage(path, []byte(replacement)))
+	require.NoError(t, gen.output.stageFile(path, []byte(replacement)))
 
-	require.NoError(t, gen.output.publish(false))
+	require.NoError(t, gen.output.publishSelected())
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	require.Equal(t, replacement, string(content))
@@ -162,18 +162,31 @@ func TestProtoOutput_publishRejectsLateHandwrittenFile(t *testing.T) {
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
-	require.NoError(t, gen.beginRun())
-	require.NoError(t, gen.output.start())
-	defer gen.output.discard()
+	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
 
 	path := filepath.Join(outdir, "item.proto")
-	require.NoError(t, gen.output.register(path, "Item.xlsx"))
-	require.NoError(t, gen.output.stage(path, []byte(generatedFileHeaderLine())))
+	require.NoError(t, gen.output.reservePath(path, "Item.xlsx"))
+	require.NoError(t, gen.output.stageFile(path, []byte(generatedFileHeaderLine())))
 	handwritten := []byte("syntax = \"proto3\";\n")
 	require.NoError(t, os.WriteFile(path, handwritten, 0o644))
 
-	require.ErrorContains(t, gen.output.publish(false), "non-generated")
+	require.ErrorContains(t, gen.output.publishSelected(), "non-generated")
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	require.Equal(t, handwritten, content)
+}
+
+func TestProtoOutput_stageFileRequiresReservation(t *testing.T) {
+	dir := t.TempDir()
+	gen := newSweepGenerator(t, dir)
+	outdir := filepath.Join(dir, "default")
+	require.NoError(t, os.MkdirAll(outdir, 0o755))
+	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
+
+	err := gen.output.stageFile(filepath.Join(outdir, "item.proto"), []byte(generatedFileHeaderLine()))
+	require.ErrorContains(t, err, "was not reserved")
 }

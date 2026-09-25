@@ -114,17 +114,17 @@ func (x *bookExporter) export() error {
 	// Register every output before writing so conflicts cannot leave partial
 	// output behind.
 	bookPath := x.wb.GetOptions().GetName()
-	if err := x.gen.output.register(path, bookPath); err != nil {
+	if err := x.gen.output.reservePath(path, bookPath); err != nil {
 		return xerrors.WrapKV(err)
 	}
 	for _, shardFile := range x.unionShardFiles {
 		shardPath := filepath.Join(x.OutputDir, shardFile.ImportPath)
-		if err := x.gen.output.register(shardPath, bookPath); err != nil {
+		if err := x.gen.output.reservePath(shardPath, bookPath); err != nil {
 			return xerrors.WrapKV(err)
 		}
 	}
 
-	if err := x.gen.output.stage(path, header.Bytes(), p3.Bytes()); err != nil {
+	if err := x.gen.output.stageFile(path, header.Bytes(), p3.Bytes()); err != nil {
 		return err
 	}
 	for _, shardFile := range x.unionShardFiles {
@@ -175,7 +175,7 @@ func (x *bookExporter) writeUnionShardFile(shardFile *unionShardFile) error {
 	x.writeProtoHeader(header, importSet)
 	header.P("option (tableau.workbook) = {", x.marshalToText(x.wb.Options), "};")
 	header.P("")
-	return x.gen.output.stage(filepath.Join(x.OutputDir, shardFile.ImportPath), header.Bytes(), shardFile.Printer.Bytes())
+	return x.gen.output.stageFile(filepath.Join(x.OutputDir, shardFile.ImportPath), header.Bytes(), shardFile.Printer.Bytes())
 }
 
 type sheetExporter struct {
@@ -486,7 +486,7 @@ func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.Mess
 		return nil
 	}
 	fullName := protoreflect.FullName(x.be.ProtoPackage).Append(protoreflect.Name(name))
-	descriptor, err := x.be.gen.getProtoRegistryFilesWithGenerated().FindDescriptorByName(fullName)
+	descriptor, err := x.be.gen.getProtoRegistryFilesIncludingGenerated().FindDescriptorByName(fullName)
 	if err != nil {
 		return nil
 	}

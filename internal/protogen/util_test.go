@@ -12,10 +12,10 @@ import (
 	"github.com/tableauio/tableau/internal/x/xfs"
 )
 
-func Test_prepareOutdir(t *testing.T) {
+func Test_ensureOutputDir(t *testing.T) {
 	t.Run("new-outdir", func(t *testing.T) {
 		outdir := filepath.Join(t.TempDir(), "path/to/dir")
-		require.NoError(t, prepareOutdir(outdir))
+		require.NoError(t, ensureOutputDir(outdir))
 		require.DirExists(t, outdir)
 	})
 
@@ -23,8 +23,8 @@ func Test_prepareOutdir(t *testing.T) {
 		outdir := t.TempDir()
 		existed := filepath.Join(outdir, "common.proto")
 		require.NoError(t, os.WriteFile(existed, []byte("// handwritten\n"), 0o644))
-		require.NoError(t, prepareOutdir(outdir))
-		// NOTE: prepareOutdir must never remove anything, so that a failed run
+		require.NoError(t, ensureOutputDir(outdir))
+		// NOTE: ensureOutputDir must never remove anything, so that a failed run
 		// leaves the previously generated proto files intact.
 		require.FileExists(t, existed)
 	})
@@ -88,7 +88,7 @@ func Test_isGeneratedProtoFile(t *testing.T) {
 	}
 }
 
-func Test_staleProtoFiles(t *testing.T) {
+func Test_findStaleProtoFiles(t *testing.T) {
 	generatedHeader := generatedFileHeaderLine()
 
 	// setupOutdir creates an outdir with the given files, whose content is
@@ -114,7 +114,7 @@ func Test_staleProtoFiles(t *testing.T) {
 		generatedPaths := map[string]string{
 			xfs.CleanSlashPath(filepath.Join(outdir, "item_conf.proto")): "Item.xlsx",
 		}
-		stale, err := staleProtoFiles(outdir, generatedPaths, nil)
+		stale, err := findStaleProtoFiles(outdir, generatedPaths, nil)
 		require.NoError(t, err)
 		require.Equal(t, []string{filepath.Join(outdir, "stale_conf.proto")}, stale)
 	})
@@ -124,7 +124,7 @@ func Test_staleProtoFiles(t *testing.T) {
 			"custom/item_conf.proto": generatedHeader,
 			"stale_conf.proto":       generatedHeader,
 		})
-		stale, err := staleProtoFiles(outdir, nil, nil)
+		stale, err := findStaleProtoFiles(outdir, nil, nil)
 		require.NoError(t, err)
 		require.Equal(t, []string{filepath.Join(outdir, "stale_conf.proto")}, stale)
 	})
@@ -137,7 +137,7 @@ func Test_staleProtoFiles(t *testing.T) {
 		shared := filepath.Join(outdir, "shared.proto")
 		key, err := xfs.Abs(shared)
 		require.NoError(t, err)
-		stale, err := staleProtoFiles(outdir, nil, map[string]bool{key: true})
+		stale, err := findStaleProtoFiles(outdir, nil, map[string]bool{key: true})
 		require.NoError(t, err)
 		require.Equal(t, []string{filepath.Join(outdir, "stale.proto")}, stale)
 	})
@@ -147,7 +147,7 @@ func Test_staleProtoFiles(t *testing.T) {
 		generatedPaths := map[string]string{
 			xfs.CleanSlashPath(filepath.Join(outdir, "item_conf.proto")): "Item.xlsx",
 		}
-		stale, err := staleProtoFiles(outdir, generatedPaths, nil)
+		stale, err := findStaleProtoFiles(outdir, generatedPaths, nil)
 		require.NoError(t, err)
 		require.Empty(t, stale)
 	})

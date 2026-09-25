@@ -100,14 +100,14 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	gen.ProtoRegistryFiles = registryFiles
 	gen.ProtoRegistryTypes = dynamicpb.NewTypes(registryFiles)
 	// NOTE: protoRegistryFilesWithGenerated is lazily computed by
-	// getProtoRegistryFilesWithGenerated() on first use.
+	// getProtoRegistryFilesIncludingGenerated() on first use.
 	return gen
 }
 
-// getProtoRegistryFilesWithGenerated returns a registry including both the
+// getProtoRegistryFilesIncludingGenerated returns a registry including both the
 // imported and previously generated protos, computing and caching it on
 // first use.
-func (gen *Generator) getProtoRegistryFilesWithGenerated() *protoregistry.Files {
+func (gen *Generator) getProtoRegistryFilesIncludingGenerated() *protoregistry.Files {
 	if gen.protoRegistryFilesWithGenerated != nil {
 		return gen.protoRegistryFilesWithGenerated
 	}
@@ -142,14 +142,14 @@ func (gen *Generator) preprocess(includeGeneratedProtos bool) error {
 	if includeGeneratedProtos {
 		// Advanced mode parses only the selected workbooks. Existing generated
 		// protos provide the types from every other workbook.
-		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
+		protoRegistryFiles = gen.getProtoRegistryFilesIncludingGenerated()
 	} else if gen.OutputOpt.PreserveFieldNumbers {
 		// Keep the previous schema available for field-number preservation,
 		// without treating its types as inputs to this run.
-		_ = gen.getProtoRegistryFilesWithGenerated()
+		_ = gen.getProtoRegistryFilesIncludingGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
-	return prepareOutdir(outdir)
+	return ensureOutputDir(outdir)
 }
 
 // Generate generates proto files for the specified workbooks. If no workbook paths are provided,
@@ -164,7 +164,7 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 func (gen *Generator) GenAll() error {
 	gen.runMu.Lock()
 	defer gen.runMu.Unlock()
-	if err := gen.beginRun(); err != nil {
+	if err := gen.resetRunState(); err != nil {
 		return err
 	}
 	if err := gen.preprocess(false); err != nil {
@@ -173,22 +173,22 @@ func (gen *Generator) GenAll() error {
 	if err := gen.parseAllInFirstPass(); err != nil {
 		return err
 	}
-	if err := gen.output.start(); err != nil {
+	if err := gen.output.createStagingDir(); err != nil {
 		return err
 	}
-	defer gen.output.discard()
+	defer gen.output.removeStagingDir()
 	if err := gen.parseAllInSecondPass(); err != nil {
 		return err
 	}
 	// Generation errors leave prior outputs untouched. GenAll alone owns the
 	// top-level output directory, so it also removes stale files on commit.
-	return gen.output.publish(true)
+	return gen.output.publishAll()
 }
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	gen.runMu.Lock()
 	defer gen.runMu.Unlock()
-	if err := gen.beginRun(); err != nil {
+	if err := gen.resetRunState(); err != nil {
 		return err
 	}
 
@@ -218,15 +218,15 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		}
 	}
 
-	if err := gen.output.start(); err != nil {
+	if err := gen.output.createStagingDir(); err != nil {
 		return err
 	}
-	defer gen.output.discard()
+	defer gen.output.removeStagingDir()
 	if err := gen.parseWorkbooksInSecondPass(relWorkbookPaths...); err != nil {
 		return err
 	}
 	// Other workbooks' outputs remain valid when generating a selection.
-	return gen.output.publish(false)
+	return gen.output.publishSelected()
 }
 
 // parseAllInFirstPass discovers the declarations from every configured input workbook.

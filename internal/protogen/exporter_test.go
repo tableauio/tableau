@@ -459,11 +459,11 @@ func Test_bookExporter_export(t *testing.T) {
 					},
 				},
 			}
-			require.NoError(t, gen.output.start())
-			defer gen.output.discard()
+			require.NoError(t, gen.output.createStagingDir())
+			defer gen.output.removeStagingDir()
 			be := newBookExporter("protoconf", tt.edition, tt.protoFileOptions, tmpDir, "", wb, gen)
 			require.NoError(t, be.export())
-			require.NoError(t, gen.output.publish(false))
+			require.NoError(t, gen.output.publishSelected())
 
 			// read the generated file and verify
 			content, err := os.ReadFile(filepath.Join(tmpDir, "item.proto"))
@@ -526,7 +526,7 @@ func Test_bookExporter_export_shardFileConflict(t *testing.T) {
 		},
 	}
 	shardPath := filepath.Join(tmpDir, "task_task_target_1.proto")
-	assert.NoError(t, gen.output.register(shardPath, "other.xlsx"))
+	assert.NoError(t, gen.output.reservePath(shardPath, "other.xlsx"))
 
 	be := newBookExporter("protoconf", "", nil, tmpDir, "", wb, gen)
 	err := be.export()
