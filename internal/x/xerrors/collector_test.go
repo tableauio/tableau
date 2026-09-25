@@ -970,29 +970,27 @@ func TestCollected_CollectForeignWrappedCollectedIsNotDropped(t *testing.T) {
 	assert.Contains(t, got.Error(), "err 1")
 }
 
-// Collecting a WrapKV'd same-tree collected error records the outer wrapper's
-// scope fields on the originating collector so Join() can re-apply them.
-func TestCollected_CollectSameTreeWrappedCollectedRecordsOuterFields(t *testing.T) {
+// A wrapped Join result is only a signal; the child owns its scope.
+func TestCollected_CollectSameTreeKeepsChildScope(t *testing.T) {
 	root := NewCollector(10)
-	child := root.NewChild(0)
-	_ = child.Collect(fmt.Errorf("err 1"))
+	child := root.NewChild(0, KeyBookName, "test.xlsx")
+	_ = child.Collect(New("err 1"))
 
-	joined := child.Join()
-	assert.Error(t, joined)
-	wrapped := WrapKV(joined, KeyBookName, "test.xlsx")
+	_ = root.Collect(WrapKV(child.Join(), KeyBookName, "unrelated.xlsx"))
 
-	// root and child share a tree, so the collected marker is recognized
-	// and the outer WrapKV layer is recorded on child (origin) for Join().
-	_ = root.Collect(wrapped)
+	got := NewDesc(root.Join())
+	require.NotNil(t, got)
+	assert.Equal(t, "test.xlsx", got.GetValue(KeyBookName))
+}
 
-	if assert.NotNil(t, child.outerFields, "outer scope fields should be recorded on the originating collector") {
-		assert.Equal(t, "test.xlsx", child.outerFields[KeyBookName])
-	}
+// A multi-error containing a Join result may also contain a new error.
+func TestCollected_MultiErrorKeepsNewError(t *testing.T) {
+	root := NewCollector(10)
+	child := root.NewChild(10)
+	_ = child.Collect(New("existing"))
 
-	// child.Join() re-applies the recorded fields, surfacing them in its Desc.
-	rejoined := child.Join()
-	assert.NotNil(t, rejoined)
-	assert.Equal(t, "test.xlsx", NewDesc(rejoined).fields[KeyBookName])
+	_ = root.Collect(errors.Join(child.Join(), New("new")))
+	assert.Contains(t, root.Join().Error(), "new")
 }
 
 // Collecting a same-tree collected error when the receiver is already full
@@ -1094,136 +1092,88 @@ func TestCollected_ErrorDoesNotBroadcastCellFields(t *testing.T) {
 	assert.NotContains(t, got, "DataCell: key")
 }
 
-// Re-collecting an already-collected same-tree error must preserve scope
-// fields from every wrapper layer, not just the outermost one.
-//
-// This mirrors the real confgen chain of a merger/scatter sheet, where Module
-// and BookName/SheetName are added by different layers:
-//
-//	tableParser.Parse           -> sheetCollector.Join() == collected
-//	sheetParser.Parse           -> WrapKV(Module)
-//	parseMessageFromOneImporter -> WrapKV(Module/BookName/SheetName/PBMessage)
-//	ParseMessage's Group.Go     -> WrapKV(BookName/SheetName/Primary*)  <- outermost, no Module
-//	Group.Wait                  -> bookCollector.Join()
-func TestCollected_ReCollectPreservesScopeFieldsAcrossWrappers(t *testing.T) {
-	cellErr := WrapKV(E2002("100033333", "ItemConf.ID"),
-		KeyDataCellPos, "F12",
-		KeyDataCell, "100033333",
-	)
-
+// A sheet's scope survives when its Join result passes through a parent.
+func TestCollected_SheetScopeSurvivesRecollection(t *testing.T) {
 	book := NewCollector(10)
-	sheet := book.NewChild(5)
-	_ = sheet.Collect(cellErr)
-
-	// Module is added by an intermediate layer, while the outermost layer only
-	// carries book/sheet names.
-	err := WrapKV(WrapKV(sheet.Join(),
+	sheet := book.NewChild(5,
 		KeyModule, ModuleConf,
 		KeyBookName, "Activity.xlsx",
 		KeySheetName, "SectionConf",
-	), KeyPrimaryBookName, "Activity.xlsx", KeyPrimarySheetName, "SectionConf")
-	_ = book.Collect(err)
+	)
+	_ = sheet.Collect(WrapKV(E2002("100033333", "ItemConf.ID"),
+		KeyDataCellPos, "F12",
+		KeyDataCell, "100033333",
+	))
 
+	_ = book.Collect(WrapKV(sheet.Join(), KeyBookName, "unrelated.xlsx"))
 	got := book.Join().Error()
-	for _, line := range []string{
-		"error[E2002]: field value not in referred space",
-		"Workbook: Activity.xlsx",
-		"Worksheet: SectionConf",
-		"DataCellPos: F12",
-		"DataCell: 100033333",
-		"Reason: value \"100033333\" not in referred space \"ItemConf.ID\"",
-	} {
-		assert.Contains(t, got, line)
-	}
+	assert.Contains(t, got, "Workbook: Activity.xlsx")
+	assert.Contains(t, got, "Worksheet: SectionConf")
+	assert.Contains(t, got, "DataCellPos: F12")
+	assert.NotContains(t, got, "unrelated.xlsx")
 }
 
-// A wrapper's cell fields still apply when the joined subtree has one error.
-func TestCollected_ReCollectPreservesCellFieldsForSingleLeaf(t *testing.T) {
+// Cell details stay with the error that produced them, even as siblings arrive.
+func TestCollected_CellFieldsStayOnTheirError(t *testing.T) {
 	book := NewCollector(10)
-	sheet := book.NewChild(5)
-	_ = sheet.Collect(E2002("bad", "ID"))
-	wrapped := WrapKV(sheet.Join(),
+	sheet := book.NewChild(5,
 		KeyModule, ModuleConf,
 		KeyBookName, "Book.xlsx",
 		KeySheetName, "Sheet",
+	)
+	_ = sheet.Collect(WrapKV(E2002("bad", "ID"),
 		KeyDataCellPos, "A4",
 		KeyDataCell, "bad",
-	)
-	assert.Contains(t, wrapped.Error(), "DataCellPos: A4")
-	_ = book.Collect(wrapped)
+	))
+	_ = book.Collect(sheet.Join())
+	assert.Contains(t, book.Join().Error(), "DataCellPos: A4")
 
-	got := book.Join().Error()
-	assert.Contains(t, got, "DataCellPos: A4")
-	assert.Contains(t, got, "DataCell: bad")
-
-	// If another error is collected later, the cell must not reach its sibling.
 	_ = sheet.Collect(E2014("missing"))
-	got = book.Join().Error()
-	assert.NotContains(t, got, "DataCellPos: A4")
-	assert.NotContains(t, got, "DataCell: bad")
+	desc := NewDesc(book.Join())
+	require.Len(t, desc.children, 2)
+	assert.Equal(t, "A4", desc.children[0].GetValue(KeyDataCellPos))
+	assert.Nil(t, desc.children[1].GetValue(KeyDataCellPos))
 }
 
-// Only scope fields (which book/sheet/message) may be broadcast to the joined
-// children; per-cell fields belong to a single error. Recording a wrapper's
-// DataCellPos/DataCell would point every sibling at a cell it never touched.
-//
-// This mirrors the real confgen chain of a horizontal map, where the wrapper
-// around the nested join carries the *key* column's cell:
-//
-//	parseMessage               -> messageCollector.Join() == collected
-//	parseHorizontalMapField    -> WrapKV(CellDebugKV of the key column)
-//	parseMessage (parent)      -> messageCollector.Collect(...)  <- same tree
-func TestCollected_ReCollectDropsNonScopeFields(t *testing.T) {
+// Per-cell fields on a joined snapshot must not reach unrelated errors.
+func TestCollected_RecollectionDoesNotBroadcastCellFields(t *testing.T) {
 	sheet := NewCollector(10)
-	nested := sheet.NewChild(5)
-	// Sibling 1 owns its cell; sibling 2 has no cell of its own.
+	nested := sheet.NewChild(5,
+		KeyModule, ModuleConf,
+		KeyBookName, "Activity.xlsx",
+		KeySheetName, "SectionConf",
+	)
 	_ = nested.Collect(WrapKV(E2002("100033333", "ItemConf.ID"),
 		KeyDataCellPos, "B4",
 		KeyDataCell, "100033333",
 	))
 	_ = nested.Collect(E2014("Item1Miss"))
 
-	// The wrapper carries the key column's cell alongside the scope fields.
 	_ = sheet.Collect(WrapKV(nested.Join(),
-		KeyModule, ModuleConf,
-		KeyBookName, "Activity.xlsx",
-		KeySheetName, "SectionConf",
 		KeyDataCellPos, "A4",
 		KeyDataCell, "7",
-		KeyColumnName, "Item1ID",
 	))
 
 	got := sheet.Join().Error()
-	// Scope fields are broadcast to both children.
 	assert.Contains(t, got, "Workbook: Activity.xlsx")
-	assert.Contains(t, got, "Worksheet: SectionConf")
-	// Sibling 1 keeps its own cell; the wrapper's cell reaches neither.
 	assert.Contains(t, got, "DataCellPos: B4")
-	assert.NotContains(t, got, "DataCellPos: A4",
-		"wrapper cell position must not be broadcast to the joined children")
-	assert.NotContains(t, got, "DataCell: 7",
-		"wrapper cell data must not be broadcast to the joined children")
+	assert.NotContains(t, got, "DataCellPos: A4")
+	assert.NotContains(t, got, "DataCell: 7")
 }
 
-// A wrapper carrying no scope fields must clear the previously recorded ones,
-// so a stale book/sheet name is never re-applied to an unrelated join.
-func TestCollected_ReCollectFieldlessWrapperClearsStaleFields(t *testing.T) {
-	book := NewCollector(10)
-	first := book.NewChild(5)
-	_ = first.Collect(E2002("v1", "ItemConf.ID"))
-	_ = book.Collect(WrapKV(book.Join(),
-		KeyModule, ModuleConf,
-		KeyBookName, "First.xlsx",
-		KeySheetName, "S1",
-	))
+// Sibling scopes remain independent when their parent joins them.
+func TestCollected_SiblingScopesRemainIndependent(t *testing.T) {
+	root := NewCollector(10)
+	first := root.NewChild(5, KeyBookName, "First.xlsx")
+	second := root.NewChild(5, KeyBookName, "Second.xlsx")
+	_ = first.Collect(New("first"))
+	_ = second.Collect(New("second"))
+	_ = root.Collect(Wrap(root.Join()))
 
-	second := book.NewChild(5)
-	_ = second.Collect(E2002("v2", "ShopConf.ID"))
-	_ = book.Collect(Wrap(book.Join()))
-
-	got := book.Join().Error()
-	assert.NotContains(t, got, "First.xlsx", "stale book name must not survive")
-	assert.NotContains(t, got, "Worksheet: S1", "stale sheet name must not survive")
+	desc := NewDesc(root.Join())
+	require.Len(t, desc.children, 2)
+	assert.Equal(t, "First.xlsx", desc.children[0].GetValue(KeyBookName))
+	assert.Equal(t, "Second.xlsx", desc.children[1].GetValue(KeyBookName))
 }
 
 // collected marker is transparent: errors.Is works through it.

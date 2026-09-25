@@ -12,20 +12,15 @@ import (
 )
 
 // Collector accumulates errors concurrently up to a configurable limit.
-// Collectors form a hierarchy via [Collector.NewChild]; [Collector.Join]
-// recursively merges own errors with children's.
-//
-// When a child's [collected] error is wrapped (e.g. via [WrapKV]), the outer
-// fields are remembered and re-applied in [Collector.Join]. Fields describing
-// one error are applied only when the joined subtree has a single leaf.
+// Children represent narrower scopes; Join includes their errors automatically.
 type Collector struct {
-	mu          sync.Mutex
-	errs        []error
-	children    []*Collector
-	counter     atomic.Int32
-	maxErrs     int32
-	parent      *Collector
-	outerFields map[string]any // fields of the outer wrappers, re-applied in Join()
+	mu       sync.Mutex
+	errs     []error
+	children []*Collector
+	counter  atomic.Int32
+	maxErrs  int32
+	parent   *Collector
+	scope    map[string]any // context shared by errors in this subtree
 }
 
 // NewCollector creates a root Collector.
@@ -35,11 +30,19 @@ func NewCollector(maxErrs int) *Collector {
 }
 
 // NewChild creates a child collector registered under the receiver.
-// maxErrs semantics are the same as [NewCollector].
-func (c *Collector) NewChild(maxErrs int) *Collector {
+// Scope fields describe every error in the child's subtree; each leaf keeps
+// its own cell and field details. maxErrs follows [NewCollector].
+func (c *Collector) NewChild(maxErrs int, scope ...any) *Collector {
+	fields := parseKV(scope...)
+	for key := range fields {
+		if !scopeKeys[key] {
+			panic("collector scope cannot contain " + key)
+		}
+	}
 	child := &Collector{
 		maxErrs: normalizeMax(maxErrs),
 		parent:  c,
+		scope:   fields,
 	}
 	c.mu.Lock()
 	c.children = append(c.children, child)
@@ -59,8 +62,8 @@ func normalizeMax(maxErrs int) int32 {
 //
 //   - nil err: no-op unless this collector (or an ancestor) is already full,
 //     in which case the joined error tree is returned immediately.
-//   - already-collected err (*collected): records the outer wrapper layers'
-//     fields for re-wrapping in Join; does not increment any counter.
+//   - a Join result from this tree: no-op because its errors are already
+//     reachable through the collector hierarchy.
 //   - ordinary err: increments every ancestor's counter, stores the error if
 //     it is within every ancestor's budget, and returns the joined error tree
 //     if any ancestor has now reached its limit (nil otherwise).
@@ -72,25 +75,9 @@ func (c *Collector) Collect(err error) error {
 		return nil
 	}
 
-	// Already-collected error (from a Join() somewhere): if the collected
-	// error originates from the same collector tree as c (shares the same
-	// root), it is or will be reachable from the root via tree auto-join, so
-	// we must not double-count it here. We only record the outer wrapper
-	// layers' fields on the originating collector for re-wrapping in its
-	// Join(). The assignment is unconditional: a wrapper carrying no
-	// fields must clear the previously recorded ones instead of
-	// leaving them to be re-applied to this unrelated join.
-	//
-	// Otherwise (foreign collected, e.g. from an unrelated parser-local
-	// fail-fast collector that is not part of c's tree), fall through and
-	// treat it as an ordinary error so it is still stored and counted on
-	// this collector; without this fallback the error would silently vanish.
-	var ce *collected
-	if errors.As(err, &ce) && ce.origin != nil && ce.origin.sameTreeAs(c) {
-		fields := outerWrapperFields(err, ce)
-		ce.origin.mu.Lock()
-		ce.origin.outerFields = fields
-		ce.origin.mu.Unlock()
+	// A Join result from this tree is already included through its origin.
+	// A result from another tree is an ordinary error here.
+	if c.isCollectedFromTree(err) {
 		if c.IsFull() {
 			return c.Join()
 		}
@@ -151,6 +138,18 @@ func (c *Collector) sameTreeAs(other *Collector) bool {
 	return c.root() == other.root()
 }
 
+// isCollectedFromTree recognizes only a single wrapper chain. A multi-error
+// containing a collected error may also contain new errors and must be stored.
+func (c *Collector) isCollectedFromTree(err error) bool {
+	for err != nil {
+		if joined, ok := err.(*collected); ok {
+			return joined.origin != nil && joined.origin.sameTreeAs(c)
+		}
+		err = errors.Unwrap(err)
+	}
+	return false
+}
+
 // HasErrors reports whether this collector's subtree has any errors.
 // It is a fast, lock-free check suitable for guarding expensive [Collector.Join] calls.
 func (c *Collector) HasErrors() bool {
@@ -164,7 +163,6 @@ func (c *Collector) Join() error {
 	copy(ownErrs, c.errs)
 	kids := make([]*Collector, len(c.children))
 	copy(kids, c.children)
-	outerFields := c.outerFields
 	c.mu.Unlock()
 
 	var nonNil []error
@@ -182,85 +180,13 @@ func (c *Collector) Join() error {
 		return nil
 	}
 	var inner error = &joinError{errs: nonNil, stack: callers(1)}
-	if fields := fieldsForJoinedError(inner, outerFields); len(fields) > 0 {
-		inner = &withMessage{cause: inner, fields: fields}
+	if len(c.scope) > 0 {
+		inner = &withMessage{cause: inner, fields: c.scope}
 	}
 	return &collected{
 		error:  inner,
 		origin: c,
 	}
-}
-
-// outerWrapperFields merges the fields of every wrapper layer between err and
-// the collected marker ce. Inner layers win on key conflicts.
-//
-// Confgen, for example, adds Module and BookName/SheetName in separate layers.
-func outerWrapperFields(err error, ce *collected) map[string]any {
-	var fields map[string]any
-	for cur := err; cur != nil && cur != error(ce); cur = errors.Unwrap(cur) {
-		fc, ok := cur.(fieldsCarrier)
-		if !ok {
-			continue
-		}
-		// Walking outer -> inner, so inner layers win.
-		for k, v := range fc.Fields() {
-			if fields == nil {
-				fields = make(map[string]any)
-			}
-			fields[k] = v
-		}
-	}
-	return fields
-}
-
-// fieldsForJoinedError keeps per-error fields only when the join has one leaf.
-func fieldsForJoinedError(err error, fields map[string]any) map[string]any {
-	if len(fields) == 0 || hasSingleLeaf(err) {
-		return fields
-	}
-	return scopeFields(fields)
-}
-
-// scopeFields keeps only fields that may be shared across joined errors.
-func scopeFields(fields map[string]any) map[string]any {
-	var scope map[string]any
-	for k, v := range fields {
-		if scopeKeys[k] {
-			if scope == nil {
-				scope = make(map[string]any)
-			}
-			scope[k] = v
-		}
-	}
-	return scope
-}
-
-// hasSingleLeaf follows wrappers and joins until it finds one leaf or a fork.
-func hasSingleLeaf(err error) bool {
-	for err != nil {
-		if joined, ok := err.(multiUnwrapper); ok {
-			var only error
-			for _, child := range joined.Unwrap() {
-				if child != nil {
-					if only != nil {
-						return false
-					}
-					only = child
-				}
-			}
-			if only == nil {
-				return false
-			}
-			err = only
-			continue
-		}
-		if next := errors.Unwrap(err); next != nil {
-			err = next
-			continue
-		}
-		return true
-	}
-	return false
 }
 
 // collected marks an error as already joined. Delegates to the inner error.
@@ -272,10 +198,9 @@ type collected struct {
 func (c *collected) Error() string { return c.error.Error() }
 func (c *collected) Unwrap() error { return c.error }
 
-// renderWithFields passes enclosing fields to the joined errors, keeping
-// per-error fields only when the join has one leaf.
+// renderWithFields passes enclosing fields through the collected marker.
 func (c *collected) renderWithFields(outerFields map[string]any) string {
-	return renderCause(c.error, fieldsForJoinedError(c.error, outerFields))
+	return renderCause(c.error, outerFields)
 }
 func (c *collected) Format(s fmt.State, verb rune) {
 	if f, ok := c.error.(fmt.Formatter); ok {

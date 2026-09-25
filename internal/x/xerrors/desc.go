@@ -109,9 +109,9 @@ type Desc struct {
 	children []*Desc
 }
 
-// NewDesc builds a *Desc from err. Single-chain wrappers are traversed to find
-// inner multi-errors; all nested joins are fully flattened with outer fields
-// (e.g. Module, BookName) merged in (innermost wins). Returns nil for nil err.
+// NewDesc builds a *Desc from err. Joins are flattened; enclosing scope
+// fields reach every leaf, while cell details reach only a single leaf.
+// Innermost values win. Returns nil for nil err.
 func NewDesc(err error) *Desc {
 	if err == nil {
 		return nil
@@ -168,21 +168,15 @@ func collectFields(err error) map[string]any {
 	return fields
 }
 
-// mergeOuterFields merges outerFields into d and its descendants; inner fields win.
-func mergeOuterFields(d *Desc, outerFields map[string]any) {
-	if len(outerFields) == 0 {
-		return
-	}
-	if len(d.children) > 0 {
-		for _, child := range d.children {
-			mergeOuterFields(child, outerFields)
+// sharedFields keeps only context that applies to every error in a join.
+func sharedFields(fields map[string]any) map[string]any {
+	shared := make(map[string]any)
+	for key, value := range fields {
+		if scopeKeys[key] {
+			shared[key] = value
 		}
-		return
 	}
-	merged := make(map[string]any, len(outerFields)+len(d.fields))
-	maps.Copy(merged, outerFields)
-	maps.Copy(merged, d.fields) // inner fields win
-	d.fields = merged
+	return shared
 }
 
 // flattenDescs appends all leaf *Desc nodes from d into dst.
@@ -196,20 +190,26 @@ func flattenDescs(d *Desc, dst *[]*Desc) {
 	}
 }
 
-// buildFromChildren expands errs into leaf *Desc nodes with outerFields merged in
-// (inner fields win) and returns a *Desc rooted at err.
+// buildFromChildren flattens a join and applies enclosing fields to its leaves.
+// Cell and field details belong to a single error, so only scope fields are
+// shared when the join contains multiple leaves.
 func buildFromChildren(err error, errs []error, outerFields map[string]any) *Desc {
 	var leaves []*Desc
-	for _, c := range errs {
-		if c == nil {
-			continue
+	for _, child := range errs {
+		if inner := NewDesc(child); inner != nil {
+			flattenDescs(inner, &leaves)
 		}
-		inner := NewDesc(c)
-		if inner == nil {
-			continue
+	}
+	if len(outerFields) > 0 {
+		if len(leaves) > 1 {
+			outerFields = sharedFields(outerFields)
 		}
-		mergeOuterFields(inner, outerFields)
-		flattenDescs(inner, &leaves)
+		for _, leaf := range leaves {
+			merged := make(map[string]any, len(outerFields)+len(leaf.fields))
+			maps.Copy(merged, outerFields)
+			maps.Copy(merged, leaf.fields) // inner fields win
+			leaf.fields = merged
+		}
 	}
 	switch len(leaves) {
 	case 0:

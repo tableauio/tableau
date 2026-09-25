@@ -400,7 +400,9 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		debugBookName += " (alias: " + alias + ")"
 	}
 	bp := newDocumentParser(bookName, alias, rewrittenBookName, gen)
-	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook,
+		xerrors.KeyModule, xerrors.ModuleProto,
+		xerrors.KeyBookName, debugBookName)
 	for _, sheet := range imp.GetSheets() {
 		sheetErr := gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
 		if err := bookCollector.Collect(sheetErr); err != nil {
@@ -465,7 +467,9 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 	}
 	// create a book parser
 	bp := newTableParser(bookName, alias, rewrittenBookName, gen)
-	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook,
+		xerrors.KeyModule, xerrors.ModuleProto,
+		xerrors.KeyBookName, debugBookName)
 	for _, sheet := range imp.GetSheets() {
 		sheetErr := gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
 		if err := bookCollector.Collect(sheetErr); err != nil {
@@ -509,7 +513,8 @@ func (gen *Generator) convertDocumentSheet(bp *documentParser, bookCollector *xe
 		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName, xerrors.KeySheetName, debugSheetName)
 	}
 
-	sheetCollector := bookCollector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerSheet)
+	sheetCollector := bookCollector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerSheet,
+		xerrors.KeySheetName, debugSheetName)
 	// get the first child (map node) in document
 	child := sheet.Document.Children[0]
 	for _, node := range child.Children {
@@ -547,7 +552,8 @@ func (gen *Generator) convertTableSheet(bp *tableParser, bookCollector *xerrors.
 	}
 
 	tableHeader := newTableHeader(ws.Options, bookOpts, gen.InputOpt.Header, sheet.Tabler())
-	sheetCollector := bookCollector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerSheet)
+	sheetCollector := bookCollector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerSheet,
+		xerrors.KeySheetName, debugSheetName)
 
 	if pass == firstPass && ws.Options.Mode != tableaupb.Mode_MODE_DEFAULT {
 		log.Debugf("first pass: extract type info from %s", debugSheetName)

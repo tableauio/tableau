@@ -193,12 +193,8 @@ func TestCollectorIntegration_MultiBookCapped(t *testing.T) {
 //   - shard workbook  "MergerShard1#*.csv"   / sheet MergerCollectorItemConf
 //     contains one invalid Num cell ("bad_num") that triggers E2012.
 //
-// The shard is merged via `merger: "MergerShard*.csv#MergerCollectorItemConf"`
-// in merger.proto. parseMessageFromOneImporter fails on the shard, the
-// merger goroutine WrapKV's the error with both the shard names AND the
-// primary names; the fix ensures the shard names survive into the final
-// error description (regression: previously only the primary names were
-// kept and the user could not tell which shard actually broke).
+// The shard's sheet collector carries its workbook and worksheet names,
+// plus the primary workbook names, so the error identifies the failing shard.
 //
 // Note: uses a separate proto package + testdata tree so its workbook
 // options don't perturb the other TestCollectorIntegration_* tests above.
@@ -232,8 +228,7 @@ func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
 		"shard BookName must appear in the rendered error")
 	assert.Contains(t, got, "Worksheet: MergerCollectorItemConf",
 		"shard SheetName must appear in the rendered error")
-	// And the main workbook must be annotated as Primary, proving both
-	// (BookName, PrimaryBookName) survived WrapKV layering.
+	// The main workbook is annotated as Primary alongside the shard name.
 	assert.Contains(t, got, "(Primary: MergerCollector#*.csv)",
 		"primary BookName must be annotated alongside the shard BookName")
 	// The error must NOT point at the main workbook as the offending one.

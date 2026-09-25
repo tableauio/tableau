@@ -230,7 +230,9 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
 	bookPrepareMilliseconds := time.Since(bookBeginTime).Milliseconds()
-	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook)
+	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook,
+		xerrors.KeyModule, xerrors.ModuleConf,
+		xerrors.KeyBookName, workbook.Name)
 	worksheetFound := false
 	for _, sheetInfo := range sheets {
 		sheetName := sheetInfo.SheetName()
