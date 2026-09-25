@@ -82,13 +82,13 @@ func Test_rel(t *testing.T) {
 			want: "common_enum_conf.proto",
 		},
 		{
-			name:     "most specific protoPath wins",
+			name:     "first containing protoPath wins",
 			filename: "Temp/proto/generated/common_enum_conf.proto",
 			protoPaths: []string{
 				"Temp/proto",
 				"Temp/proto/generated",
 			},
-			want: "common_enum_conf.proto",
+			want: "generated/common_enum_conf.proto",
 		},
 		{
 			name:     "nested under first protoPath",
