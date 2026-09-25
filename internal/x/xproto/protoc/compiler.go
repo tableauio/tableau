@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/bufbuild/protocompile"
 	"github.com/bufbuild/protocompile/linker"
@@ -73,19 +72,13 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 func rel(filename string, protoPaths []string) (string, error) {
 	for _, protoPath := range protoPaths {
 		relPath, err := xfs.Rel(protoPath, filename)
-		if err != nil || !isContainedImportPath(relPath) {
+		// A sibling yields ../...; try the next configured import root.
+		if err != nil || !filepath.IsLocal(relPath) {
 			continue
 		}
 		return relPath, nil
 	}
 	return "", xerrors.Newf("proto file %s is not under any protoPath %v", filename, protoPaths)
-}
-
-// isContainedImportPath reports whether rel is a path inside the protoPath
-// (no ".." escape). Such a path is a valid protobuf import name relative to
-// that protoPath.
-func isContainedImportPath(rel string) bool {
-	return rel != ".." && !strings.HasPrefix(rel, "../")
 }
 
 // parseProtos parses the proto paths and proto files to protoregistry.Files.

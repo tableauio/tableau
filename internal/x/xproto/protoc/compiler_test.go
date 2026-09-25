@@ -44,7 +44,7 @@ func TestRel(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name:       "skip sibling root",
+			name:       "use configured root for sibling directory",
 			filename:   "proto/generated/item.proto",
 			protoPaths: []string{"proto/common", "proto/generated"},
 			want:       "item.proto",
