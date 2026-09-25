@@ -10,6 +10,7 @@ import (
 
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/printer"
 	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/internal/x/xproto/protoc"
@@ -433,7 +434,8 @@ func Test_bookExporter_export(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
 			gen := &Generator{
-				ctx: context.Background(),
+				ctx:    context.Background(),
+				output: newProtoOutput(tmpDir, nil),
 				InputOpt: &options.ProtoInputOption{
 					MessagerPattern: `Conf$`,
 				},
@@ -457,9 +459,11 @@ func Test_bookExporter_export(t *testing.T) {
 					},
 				},
 			}
+			require.NoError(t, gen.output.createStagingDir())
+			defer gen.output.removeStagingDir()
 			be := newBookExporter("protoconf", tt.edition, tt.protoFileOptions, tmpDir, "", wb, gen)
-			err := be.export(false)
-			assert.NoError(t, err)
+			require.NoError(t, be.export())
+			require.NoError(t, gen.output.publishSelected())
 
 			// read the generated file and verify
 			content, err := os.ReadFile(filepath.Join(tmpDir, "item.proto"))
@@ -491,7 +495,8 @@ func Test_bookExporter_export(t *testing.T) {
 func Test_bookExporter_export_shardFileConflict(t *testing.T) {
 	tmpDir := t.TempDir()
 	gen := &Generator{
-		ctx: context.Background(),
+		ctx:    context.Background(),
+		output: newProtoOutput(tmpDir, nil),
 		InputOpt: &options.ProtoInputOption{
 			MessagerPattern: `.*`,
 		},
@@ -521,15 +526,20 @@ func Test_bookExporter_export_shardFileConflict(t *testing.T) {
 		},
 	}
 	shardPath := filepath.Join(tmpDir, "task_task_target_1.proto")
-	assert.NoError(t, os.WriteFile(shardPath, []byte("already exists"), 0644))
+	assert.NoError(t, gen.output.reservePath(shardPath, "other.xlsx"))
 
 	be := newBookExporter("protoconf", "", nil, tmpDir, "", wb, gen)
-	err := be.export(true)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "file already exists")
+	err := be.export()
+	if !assert.Error(t, err) {
+		return
+	}
+	assert.Contains(t, err.Error(), "other.xlsx")
+	assert.Contains(t, err.Error(), "task.xlsx")
 	assert.Contains(t, err.Error(), "task_task_target_1.proto")
 	_, statErr := os.Stat(filepath.Join(tmpDir, "task.proto"))
 	assert.True(t, os.IsNotExist(statErr), "main proto must not be written when a shard path conflicts")
+	_, statErr = os.Stat(shardPath)
+	assert.True(t, os.IsNotExist(statErr), "conflicting shard proto must not be written")
 }
 
 func Test_sheetExporter_exportEnum(t *testing.T) {

@@ -26,6 +26,14 @@ E0004:
   desc: unknown error
   text: unknown error
 # [1000, 1999]: protogen error
+E1000:
+  desc: generated proto filename conflict
+  text: workbooks "{{.BookName1}}" and "{{.BookName2}}" generate the same proto filename "{{.Filename}}"
+  help: rename one workbook or give it a unique alias
+  fields:
+    - Filename: string
+    - BookName1: string
+    - BookName2: string
 # [2000, 2999]: confgen error
 E2000:
   desc: integer overflow

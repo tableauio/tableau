@@ -54,6 +54,9 @@ type Generator struct {
 
 	cacheMu         sync.RWMutex                 // guard fields below
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
+
+	runMu  sync.Mutex // public generation calls run one at a time
+	output *protoOutput
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -88,6 +91,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
 
 		cachedImporters: make(map[string]importer.Importer),
+		output:          newProtoOutput(filepath.Join(outdir, opts.Proto.Output.Subdir), nil),
 	}
 	registryFiles, err := gen.parseProtoRegistryFiles(false)
 	if err != nil {
@@ -96,14 +100,34 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	gen.ProtoRegistryFiles = registryFiles
 	gen.ProtoRegistryTypes = dynamicpb.NewTypes(registryFiles)
 	// NOTE: protoRegistryFilesWithGenerated is lazily computed by
-	// getProtoRegistryFilesWithGenerated() on first use.
+	// getProtoRegistryFilesIncludingGenerated() on first use.
 	return gen
 }
 
-// getProtoRegistryFilesWithGenerated returns a registry including both the
+// resetRunState clears state from the previous generation run and prepares its output.
+func (gen *Generator) resetRunState() error {
+	outputDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
+	if err := ensureOutputDir(outputDir); err != nil {
+		return err
+	}
+	protectedPaths, err := resolveImportedProtoPaths(gen.InputOpt.ProtoFiles)
+	if err != nil {
+		return err
+	}
+	gen.output = newProtoOutput(outputDir, protectedPaths)
+	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
+	gen.registryWithGeneratedOnce = sync.Once{}
+	gen.protoRegistryFilesWithGenerated = nil
+	gen.cacheMu.Lock()
+	gen.cachedImporters = make(map[string]importer.Importer)
+	gen.cacheMu.Unlock()
+	return nil
+}
+
+// getProtoRegistryFilesIncludingGenerated returns a registry including both the
 // imported and previously generated protos, computing and caching it on
 // first use.
-func (gen *Generator) getProtoRegistryFilesWithGenerated() *protoregistry.Files {
+func (gen *Generator) getProtoRegistryFilesIncludingGenerated() *protoregistry.Files {
 	if gen.protoRegistryFilesWithGenerated != nil {
 		return gen.protoRegistryFilesWithGenerated
 	}
@@ -121,10 +145,6 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	var protoFiles []string
 	protoFiles = append(protoFiles, gen.InputOpt.ProtoFiles...)
-	importProtos := make(map[string]bool)
-	for _, path := range gen.InputOpt.ProtoFiles {
-		importProtos[path] = true
-	}
 	if useGeneratedProtos {
 		protoFiles = append(protoFiles, xfs.CleanSlashPath(filepath.Join(outdir, "*.proto")))
 	}
@@ -134,26 +154,21 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 		protoFiles)
 }
 
-func (gen *Generator) preprocess(useGeneratedProtos, delExisted bool) error {
-	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	// parse custom imported proto files
+// preprocess loads external declarations for the parsing passes.
+// Generated protos are included only for advanced selected generation.
+func (gen *Generator) preprocess(includeGeneratedProtos bool) error {
 	protoRegistryFiles := gen.ProtoRegistryFiles
-	if useGeneratedProtos {
-		// NOTE: the advanced first-pass mode parses only the specified
-		// workbooks, so the previously generated protos are intended to serve
-		// as the predefined types of the others. They are not deleted in this
-		// mode, hence still importable.
-		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
+	if includeGeneratedProtos {
+		// Advanced mode parses only the selected workbooks. Existing generated
+		// protos provide the types from every other workbook.
+		protoRegistryFiles = gen.getProtoRegistryFilesIncludingGenerated()
 	} else if gen.OutputOpt.PreserveFieldNumbers {
-		// Cache the previously generated protos before they are deleted below,
-		// as they are not parsable any more once deleted. The result is
-		// deliberately discarded rather than used as the type infos, otherwise
-		// the types only existing in them would be mistaken for predefined
-		// ones, whose proto file is never regenerated in this run.
-		_ = gen.getProtoRegistryFilesWithGenerated()
+		// Keep the previous schema available for field-number preservation,
+		// without treating its types as inputs to this run.
+		_ = gen.getProtoRegistryFilesIncludingGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
-	return prepareOutdir(outdir, gen.InputOpt.ProtoFiles, delExisted)
+	return nil
 }
 
 // Generate generates proto files for the specified workbooks. If no workbook paths are provided,
@@ -165,104 +180,108 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 	return gen.GenWorkbook(relWorkbookPaths...)
 }
 
+// GenAll generates proto files for every input workbook.
 func (gen *Generator) GenAll() error {
-	if err := gen.preprocess(false, true); err != nil {
+	gen.runMu.Lock()
+	defer gen.runMu.Unlock()
+	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	// first pass
-	log.Infof("%15s: parsing all books", "first-pass")
-	if err := gen.processFirstPass(true); err != nil {
+	if err := gen.output.createStagingDir(); err != nil {
 		return err
 	}
-	// second pass
-	return gen.processSecondPass()
+	defer gen.output.removeStagingDir()
+	if err := gen.preprocess(false); err != nil {
+		return err
+	}
+	if err := gen.parseAllInFirstPass(); err != nil {
+		return err
+	}
+	if err := gen.parseAllInSecondPass(); err != nil {
+		return err
+	}
+	// Generation errors leave prior outputs untouched. GenAll alone owns the
+	// top-level output directory, so it also removes stale files on commit.
+	return gen.output.publishAll()
 }
 
+// GenWorkbook generates proto files for the specified input workbooks.
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
-	// first pass
+	gen.runMu.Lock()
+	defer gen.runMu.Unlock()
+	if err := gen.resetRunState(); err != nil {
+		return err
+	}
+	if err := gen.output.createStagingDir(); err != nil {
+		return err
+	}
+	defer gen.output.removeStagingDir()
+
+	// Preprocess and first-pass parsing establish the declarations needed to
+	// parse the selected workbooks in the second pass.
 	switch gen.InputOpt.FirstPassMode {
 	case options.FirstPassModeNormal:
-		if err := gen.preprocess(false, false); err != nil {
+		// Parse all input workbooks so declarations come from source files.
+		if err := gen.preprocess(false); err != nil {
 			return err
 		}
-		log.Infof("%15s: parsing all books", "first-pass")
-		if err := gen.processFirstPass(false); err != nil {
+		if err := gen.parseAllInFirstPass(); err != nil {
 			return err
 		}
 	case options.FirstPassModeAdvanced:
-		log.Infof("%15s: parsing previous generated proto files", "first-pass")
-		if err := gen.preprocess(true, false); err != nil {
+		// Reuse generated declarations for workbooks outside this selection.
+		if err := gen.preprocess(true); err != nil {
 			return err
 		}
-		log.Infof("%15s: parsing only specified books", "first-pass")
-		if err := gen.processWorkbookOnFirstPass(relWorkbookPaths...); err != nil {
+		if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
 			return err
 		}
 	default:
-		if err := gen.preprocess(false, false); err != nil {
+		// Build declarations only from the selected input workbooks.
+		if err := gen.preprocess(false); err != nil {
 			return err
 		}
-		log.Infof("%15s: parsing only specified books", "first-pass")
-		if err := gen.processWorkbookOnFirstPass(relWorkbookPaths...); err != nil {
+		if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
 			return err
 		}
 	}
-	// second pass
-	g := gen.collector.NewGroup(context.Background())
-	for _, relWorkbookPath := range relWorkbookPaths {
-		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-		g.Go(func(ctx context.Context) error {
-			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, secondPass)
-		})
+
+	if err := gen.parseWorkbooksInSecondPass(relWorkbookPaths...); err != nil {
+		return err
 	}
-	return g.Wait()
+	// Other workbooks' outputs remain valid when generating a selection.
+	return gen.output.publishSelected()
 }
 
-func (gen *Generator) processWorkbookOnFirstPass(relWorkbookPaths ...string) error {
-	g := gen.collector.NewGroup(context.Background())
-	for _, relWorkbookPath := range relWorkbookPaths {
-		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
-		g.Go(func(ctx context.Context) error {
-			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), false, firstPass)
-		})
-	}
-	return g.Wait()
-}
-
-func (gen *Generator) processFirstPass(checkProtoFileConflicts bool) error {
-	// first pass
+// parseAllInFirstPass discovers the declarations from every configured input workbook.
+func (gen *Generator) parseAllInFirstPass() error {
+	log.Infof("%15s: parsing all books", "first-pass")
 	if len(gen.InputOpt.Subdirs) == 0 {
-		return gen.processDirFirstPass(gen.InputDir, checkProtoFileConflicts)
+		return gen.parseDirInFirstPass(gen.InputDir)
 	}
 	for _, subdir := range gen.InputOpt.Subdirs {
 		dir := filepath.Join(gen.InputDir, subdir)
-		if err := gen.processDirFirstPass(dir, checkProtoFileConflicts); err != nil {
+		if err := gen.parseDirInFirstPass(dir); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (gen *Generator) processSecondPass() error {
-	// second pass
-	gen.cacheMu.RLock()
-	absPaths := []string{}
-	for absPath := range gen.cachedImporters {
-		absPaths = append(absPaths, absPath)
-	}
-	gen.cacheMu.RUnlock()
-
-	// second pass
+// parseWorkbooksInFirstPass discovers declarations from the specified workbooks.
+func (gen *Generator) parseWorkbooksInFirstPass(relWorkbookPaths ...string) error {
 	g := gen.collector.NewGroup(context.Background())
-	for _, absPath := range absPaths {
+	for _, relWorkbookPath := range relWorkbookPaths {
+		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
 		g.Go(func(ctx context.Context) error {
-			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), true, secondPass)
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), firstPass)
 		})
 	}
 	return g.Wait()
 }
 
-func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bool) (err error) {
+// parseDirInFirstPass discovers declarations from workbooks in dir and its subdirectories.
+func (gen *Generator) parseDirInFirstPass(dir string) (err error) {
 	g := gen.collector.NewGroup(context.Background())
 	defer func() {
 		if err == nil {
@@ -275,18 +294,19 @@ func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bo
 		return xerrors.WrapKV(err, xerrors.KeyIndir, gen.InputDir)
 	}
 
-	// book name -> existence(bool)
+	// A CSV workbook may consist of multiple files; parse it once.
 	csvBooks := map[string]bool{}
 	for _, entry := range dirEntries {
 		if entry.IsDir() {
-			// scan and generate subdir recursively
+			// Scan nested input directories recursively.
 			subdir := filepath.Join(dir, entry.Name())
-			err = gen.processDirFirstPass(subdir, checkProtoFileConflicts)
+			err = gen.parseDirInFirstPass(subdir)
 			if err != nil {
 				return xerrors.WrapKV(err, xerrors.KeySubdir, subdir)
 			}
 			continue
-		} else if gen.InputOpt.FollowSymlink && entry.Type() == fs.ModeSymlink {
+		}
+		if gen.InputOpt.FollowSymlink && entry.Type() == fs.ModeSymlink {
 			dstPath, err := os.Readlink(filepath.Join(dir, entry.Name()))
 			if err != nil {
 				return xerrors.WrapKV(err)
@@ -295,12 +315,11 @@ func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bo
 			if err != nil {
 				return xerrors.WrapKV(err)
 			}
-
 			if !fileInfo.IsDir() {
-				// is not a directory
-				log.Warnf("symlink: %s is not a directory, currently not processed", dstPath)
+				log.Warnf("symlink: %s is not a directory, skipping", dstPath)
+				continue
 			}
-			err = gen.processDirFirstPass(dstPath, checkProtoFileConflicts)
+			err = gen.parseDirInFirstPass(dstPath)
 			if err != nil {
 				return xerrors.WrapKV(err, xerrors.KeySubdir, dstPath)
 			}
@@ -308,7 +327,7 @@ func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bo
 		}
 
 		if strings.HasPrefix(entry.Name(), "~$") {
-			// ignore temp file named with prefix "~$"
+			// Skip Office temporary files.
 			continue
 		}
 		// log.Debugf("generating %s, %s", entry.Name(), filepath.Ext(entry.Name()))
@@ -332,10 +351,41 @@ func (gen *Generator) processDirFirstPass(dir string, checkProtoFileConflicts bo
 
 		filename := entry.Name()
 		g.Go(func(ctx context.Context) error {
-			return gen.convertWithErrorModule(dir, filename, checkProtoFileConflicts, firstPass)
+			return gen.convertWithErrorModule(dir, filename, firstPass)
 		})
 	}
 	return nil
+}
+
+// parseAllInSecondPass parses every workbook discovered during the first pass and
+// writes its proto files.
+func (gen *Generator) parseAllInSecondPass() error {
+	gen.cacheMu.RLock()
+	absPaths := []string{}
+	for absPath := range gen.cachedImporters {
+		absPaths = append(absPaths, absPath)
+	}
+	gen.cacheMu.RUnlock()
+
+	g := gen.collector.NewGroup(context.Background())
+	for _, absPath := range absPaths {
+		g.Go(func(ctx context.Context) error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), secondPass)
+		})
+	}
+	return g.Wait()
+}
+
+// parseWorkbooksInSecondPass parses the specified workbooks and writes their proto files.
+func (gen *Generator) parseWorkbooksInSecondPass(relWorkbookPaths ...string) error {
+	g := gen.collector.NewGroup(context.Background())
+	for _, relWorkbookPath := range relWorkbookPaths {
+		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
+		g.Go(func(ctx context.Context) error {
+			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), secondPass)
+		})
+	}
+	return g.Wait()
 }
 
 func (gen *Generator) addImporter(absPath string, imp importer.Importer) {
@@ -350,21 +400,21 @@ func (gen *Generator) getImporter(absPath string) importer.Importer {
 	return gen.cachedImporters[absPath]
 }
 
-func (gen *Generator) convertWithErrorModule(dir, filename string, checkProtoFileConflicts bool, pass parsePass) error {
+func (gen *Generator) convertWithErrorModule(dir, filename string, pass parsePass) error {
 	fmt := format.GetFormat(filename)
 	if format.IsInputDocumentFormat(fmt) {
-		if err := gen.convertDocument(dir, filename, checkProtoFileConflicts, pass); err != nil {
+		if err := gen.convertDocument(dir, filename, pass); err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 		}
 		return nil
 	}
-	if err := gen.convertTable(dir, filename, checkProtoFileConflicts, pass); err != nil {
+	if err := gen.convertTable(dir, filename, pass); err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleProto)
 	}
 	return nil
 }
 
-func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
+func (gen *Generator) convertDocument(dir, filename string, pass parsePass) (err error) {
 	if pass == secondPass {
 		// NOTE: currently, document do not support two-pass parsing, so just return nil.
 		return nil
@@ -422,13 +472,13 @@ func (gen *Generator) convertDocument(dir, filename string, checkProtoFileConfli
 		bp.wb,
 		bp.gen,
 	)
-	if err := be.export(checkProtoFileConflicts); err != nil {
+	if err := be.export(); err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)
 	}
 	return nil
 }
 
-func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts bool, pass parsePass) (err error) {
+func (gen *Generator) convertTable(dir, filename string, pass parsePass) (err error) {
 	absPath := filepath.Join(dir, filename)
 	imp := gen.getImporter(absPath)
 	if imp == nil {
@@ -491,7 +541,7 @@ func (gen *Generator) convertTable(dir, filename string, checkProtoFileConflicts
 			bp.wb,
 			bp.gen,
 		)
-		if err := be.export(checkProtoFileConflicts); err != nil {
+		if err := be.export(); err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)
 		}
 	}
