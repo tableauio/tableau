@@ -104,13 +104,17 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return gen
 }
 
-// resetRunState clears state created by the previous generation run.
+// resetRunState clears state from the previous generation run and prepares its output.
 func (gen *Generator) resetRunState() error {
+	outputDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
+	if err := ensureOutputDir(outputDir); err != nil {
+		return err
+	}
 	protectedPaths, err := resolveImportedProtoPaths(gen.InputOpt.ProtoFiles)
 	if err != nil {
 		return err
 	}
-	gen.output = newProtoOutput(filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir), protectedPaths)
+	gen.output = newProtoOutput(outputDir, protectedPaths)
 	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
 	gen.registryWithGeneratedOnce = sync.Once{}
 	gen.protoRegistryFilesWithGenerated = nil
@@ -150,10 +154,9 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 		protoFiles)
 }
 
-// preprocess loads external declarations and prepares the output directory.
+// preprocess loads external declarations for the parsing passes.
 // Generated protos are included only for advanced selected generation.
 func (gen *Generator) preprocess(includeGeneratedProtos bool) error {
-	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	protoRegistryFiles := gen.ProtoRegistryFiles
 	if includeGeneratedProtos {
 		// Advanced mode parses only the selected workbooks. Existing generated
@@ -165,7 +168,7 @@ func (gen *Generator) preprocess(includeGeneratedProtos bool) error {
 		_ = gen.getProtoRegistryFilesIncludingGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
-	return ensureOutputDir(outdir)
+	return nil
 }
 
 // Generate generates proto files for the specified workbooks. If no workbook paths are provided,
@@ -184,16 +187,16 @@ func (gen *Generator) GenAll() error {
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
+	if err := gen.output.createStagingDir(); err != nil {
+		return err
+	}
+	defer gen.output.removeStagingDir()
 	if err := gen.preprocess(false); err != nil {
 		return err
 	}
 	if err := gen.parseAllInFirstPass(); err != nil {
 		return err
 	}
-	if err := gen.output.createStagingDir(); err != nil {
-		return err
-	}
-	defer gen.output.removeStagingDir()
 	if err := gen.parseAllInSecondPass(); err != nil {
 		return err
 	}
@@ -209,6 +212,10 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
+	if err := gen.output.createStagingDir(); err != nil {
+		return err
+	}
+	defer gen.output.removeStagingDir()
 
 	// Preprocess and first-pass parsing establish the declarations needed to
 	// parse the selected workbooks in the second pass.
@@ -239,10 +246,6 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		}
 	}
 
-	if err := gen.output.createStagingDir(); err != nil {
-		return err
-	}
-	defer gen.output.removeStagingDir()
 	if err := gen.parseWorkbooksInSecondPass(relWorkbookPaths...); err != nil {
 		return err
 	}
