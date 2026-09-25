@@ -53,6 +53,10 @@ func newProtoOutput(outputDir string, protectedPaths map[string]bool) *protoOutp
 }
 
 // createStagingDir creates a private directory for files produced by this run.
+//
+// It is created under outputDir so staged files and their destinations are on
+// the same volume. This lets publication replace files with os.Rename, which
+// is atomic and does not support cross-volume moves on Windows.
 func (out *protoOutput) createStagingDir() error {
 	stagingDir, err := os.MkdirTemp(out.outputDir, ".tableau-staging-")
 	if err != nil {
