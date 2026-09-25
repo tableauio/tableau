@@ -104,6 +104,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return gen
 }
 
+// resetRunState clears state created by the previous generation run.
 func (gen *Generator) resetRunState() error {
 	protectedPaths, err := resolveImportedProtoPaths(gen.InputOpt.ProtoFiles)
 	if err != nil {
@@ -176,6 +177,7 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 	return gen.GenWorkbook(relWorkbookPaths...)
 }
 
+// GenAll generates proto files for every input workbook.
 func (gen *Generator) GenAll() error {
 	gen.runMu.Lock()
 	defer gen.runMu.Unlock()
@@ -200,6 +202,7 @@ func (gen *Generator) GenAll() error {
 	return gen.output.publishAll()
 }
 
+// GenWorkbook generates proto files for the specified input workbooks.
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	gen.runMu.Lock()
 	defer gen.runMu.Unlock()

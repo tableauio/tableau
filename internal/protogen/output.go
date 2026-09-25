@@ -23,6 +23,7 @@ type protoOutput struct {
 	protectedPaths map[string]bool   // configured ProtoFiles
 }
 
+// newProtoOutput creates the per-run coordinator for generated proto files.
 func newProtoOutput(outputDir string, protectedPaths map[string]bool) *protoOutput {
 	return &protoOutput{
 		outputDir:      outputDir,
@@ -32,6 +33,7 @@ func newProtoOutput(outputDir string, protectedPaths map[string]bool) *protoOutp
 	}
 }
 
+// createStagingDir creates a private directory for files produced by this run.
 func (out *protoOutput) createStagingDir() error {
 	stagingDir, err := os.MkdirTemp(out.outputDir, ".tableau-staging-")
 	if err != nil {
@@ -41,6 +43,7 @@ func (out *protoOutput) createStagingDir() error {
 	return nil
 }
 
+// removeStagingDir removes staged files after publication or a failed run.
 func (out *protoOutput) removeStagingDir() {
 	if out.stagingDir == "" {
 		return
@@ -51,6 +54,7 @@ func (out *protoOutput) removeStagingDir() {
 	out.stagingDir = ""
 }
 
+// reservePath assigns an output path to one workbook before that workbook writes it.
 func (out *protoOutput) reservePath(outputPath, workbookPath string) error {
 	key, err := xfs.Abs(outputPath)
 	if err != nil {
@@ -71,6 +75,7 @@ func (out *protoOutput) reservePath(outputPath, workbookPath string) error {
 	return nil
 }
 
+// stageFile writes a reserved output to the staging directory.
 func (out *protoOutput) stageFile(outputPath string, parts ...[]byte) error {
 	key, err := xfs.Abs(outputPath)
 	if err != nil {
