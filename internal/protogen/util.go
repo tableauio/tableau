@@ -51,9 +51,49 @@ func isGeneratedProtoFile(path string) (bool, error) {
 	return string(header) == generatedFileHeaderPrefix, nil
 }
 
+// validateExistingGeneratedProto permits a missing path or an existing generated file.
+func validateExistingGeneratedProto(path string) error {
+	info, err := os.Lstat(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return xerrors.WrapKV(err)
+	}
+	if !info.Mode().IsRegular() {
+		return xerrors.Newf("proto output is not a regular file: %s", path)
+	}
+	generated, err := isGeneratedProtoFile(path)
+	if err != nil {
+		return err
+	}
+	if !generated {
+		return xerrors.Newf("refusing to overwrite non-generated proto file: %s", path)
+	}
+	return nil
+}
+
+func resolveImportedProtoPaths(patterns []string) (map[string]bool, error) {
+	protectedPaths := make(map[string]bool)
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			return nil, xerrors.WrapKV(err)
+		}
+		for _, match := range matches {
+			path, err := xfs.Abs(match)
+			if err != nil {
+				return nil, err
+			}
+			protectedPaths[path] = true
+		}
+	}
+	return protectedPaths, nil
+}
+
 // findStaleProtoFiles only inspects this generator's output directory. Nested
 // directories may belong to a separate generator.
-func findStaleProtoFiles(outdir string, generatedPaths map[string]string, protectedPaths map[string]bool) ([]string, error) {
+func findStaleProtoFiles(outdir string, reservedPaths map[string]string, protectedPaths map[string]bool) ([]string, error) {
 	entries, err := os.ReadDir(outdir)
 	if err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
@@ -68,7 +108,7 @@ func findStaleProtoFiles(outdir string, generatedPaths map[string]string, protec
 		if err != nil {
 			return nil, err
 		}
-		if _, generated := generatedPaths[key]; generated || protectedPaths[key] {
+		if _, reserved := reservedPaths[key]; reserved || protectedPaths[key] {
 			continue
 		}
 		generated, err := isGeneratedProtoFile(path)

@@ -104,6 +104,21 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return gen
 }
 
+func (gen *Generator) resetRunState() error {
+	protectedPaths, err := resolveImportedProtoPaths(gen.InputOpt.ProtoFiles)
+	if err != nil {
+		return err
+	}
+	gen.output = newProtoOutput(filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir), protectedPaths)
+	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
+	gen.registryWithGeneratedOnce = sync.Once{}
+	gen.protoRegistryFilesWithGenerated = nil
+	gen.cacheMu.Lock()
+	gen.cachedImporters = make(map[string]importer.Importer)
+	gen.cacheMu.Unlock()
+	return nil
+}
+
 // getProtoRegistryFilesIncludingGenerated returns a registry including both the
 // imported and previously generated protos, computing and caching it on
 // first use.
@@ -196,6 +211,7 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	// parse the selected workbooks in the second pass.
 	switch gen.InputOpt.FirstPassMode {
 	case options.FirstPassModeNormal:
+		// Parse all input workbooks so declarations come from source files.
 		if err := gen.preprocess(false); err != nil {
 			return err
 		}
@@ -203,6 +219,7 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 			return err
 		}
 	case options.FirstPassModeAdvanced:
+		// Reuse generated declarations for workbooks outside this selection.
 		if err := gen.preprocess(true); err != nil {
 			return err
 		}
@@ -210,6 +227,7 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 			return err
 		}
 	default:
+		// Build declarations only from the selected input workbooks.
 		if err := gen.preprocess(false); err != nil {
 			return err
 		}

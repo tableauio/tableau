@@ -3,11 +3,9 @@ package protogen
 import (
 	"maps"
 	"os"
-	"path/filepath"
 	"slices"
 	"sync"
 
-	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
@@ -34,45 +32,12 @@ func newProtoOutput(outputDir string, protectedPaths map[string]bool) *protoOutp
 	}
 }
 
-func resolveImportedProtoPaths(patterns []string) (map[string]bool, error) {
-	paths := make(map[string]bool)
-	for _, pattern := range patterns {
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			return nil, xerrors.WrapKV(err)
-		}
-		for _, match := range matches {
-			path, err := xfs.Abs(match)
-			if err != nil {
-				return nil, err
-			}
-			paths[path] = true
-		}
-	}
-	return paths, nil
-}
-
-func (gen *Generator) resetRunState() error {
-	protectedPaths, err := resolveImportedProtoPaths(gen.InputOpt.ProtoFiles)
-	if err != nil {
-		return err
-	}
-	gen.output = newProtoOutput(filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir), protectedPaths)
-	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
-	gen.registryWithGeneratedOnce = sync.Once{}
-	gen.protoRegistryFilesWithGenerated = nil
-	gen.cacheMu.Lock()
-	gen.cachedImporters = make(map[string]importer.Importer)
-	gen.cacheMu.Unlock()
-	return nil
-}
-
 func (out *protoOutput) createStagingDir() error {
-	stageDir, err := os.MkdirTemp(out.outputDir, ".tableau-stage-")
+	stagingDir, err := os.MkdirTemp(out.outputDir, ".tableau-staging-")
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyOutdir, out.outputDir)
 	}
-	out.stagingDir = stageDir
+	out.stagingDir = stagingDir
 	return nil
 }
 
@@ -81,55 +46,33 @@ func (out *protoOutput) removeStagingDir() {
 		return
 	}
 	if err := os.RemoveAll(out.stagingDir); err != nil {
-		log.Warnf("failed to remove temporary proto files in %s: %v", out.stagingDir, err)
+		log.Warnf("failed to remove staging proto files in %s: %v", out.stagingDir, err)
 	}
 	out.stagingDir = ""
 }
 
-// validateExistingGeneratedProto permits a missing path or an existing generated file.
-func validateExistingGeneratedProto(path string) error {
-	info, err := os.Lstat(path)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return xerrors.WrapKV(err)
-	}
-	if !info.Mode().IsRegular() {
-		return xerrors.Newf("proto output is not a regular file: %s", path)
-	}
-	generated, err := isGeneratedProtoFile(path)
-	if err != nil {
-		return err
-	}
-	if !generated {
-		return xerrors.Newf("refusing to overwrite non-generated proto file: %s", path)
-	}
-	return nil
-}
-
-func (out *protoOutput) reservePath(path, bookPath string) error {
-	key, err := xfs.Abs(path)
+func (out *protoOutput) reservePath(outputPath, workbookPath string) error {
+	key, err := xfs.Abs(outputPath)
 	if err != nil {
 		return err
 	}
 	out.mu.Lock()
 	defer out.mu.Unlock()
 	if owner, ok := out.reservations[key]; ok {
-		return xerrors.E1000(key, owner, bookPath)
+		return xerrors.E1000(key, owner, workbookPath)
 	}
 	if out.protectedPaths[key] {
 		return xerrors.Newf("proto output conflicts with imported proto file: %s", key)
 	}
-	if err := validateExistingGeneratedProto(path); err != nil {
+	if err := validateExistingGeneratedProto(outputPath); err != nil {
 		return err
 	}
-	out.reservations[key] = bookPath
+	out.reservations[key] = workbookPath
 	return nil
 }
 
-func (out *protoOutput) stageFile(path string, parts ...[]byte) error {
-	key, err := xfs.Abs(path)
+func (out *protoOutput) stageFile(outputPath string, parts ...[]byte) error {
+	key, err := xfs.Abs(outputPath)
 	if err != nil {
 		return err
 	}
@@ -137,7 +80,7 @@ func (out *protoOutput) stageFile(path string, parts ...[]byte) error {
 	_, reserved := out.reservations[key]
 	out.mu.Unlock()
 	if !reserved {
-		return xerrors.Newf("proto output path was not reserved: %s", path)
+		return xerrors.Newf("proto output path was not reserved: %s", outputPath)
 	}
 	f, err := os.CreateTemp(out.stagingDir, "proto-*.tmp")
 	if err != nil {
@@ -178,7 +121,7 @@ func (out *protoOutput) publishSelected() error {
 func (out *protoOutput) publish(stalePaths []string) error {
 	paths := slices.Sorted(maps.Keys(out.stagedFiles))
 	for _, path := range paths {
-		if err := validateExistingGeneratedProto(path); err != nil {
+		if err := validateExistingGeneratedProto(outputPath); err != nil {
 			return err
 		}
 		if err := os.Rename(out.stagedFiles[path], path); err != nil {
@@ -186,7 +129,7 @@ func (out *protoOutput) publish(stalePaths []string) error {
 		}
 	}
 	for _, path := range stalePaths {
-		if err := validateExistingGeneratedProto(path); err != nil {
+		if err := validateExistingGeneratedProto(outputPath); err != nil {
 			return err
 		}
 		if err := os.Remove(path); err != nil {
