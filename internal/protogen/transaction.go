@@ -7,198 +7,83 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"sync"
 
-	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/log"
 )
 
-// importedProtoPaths expands configured imports so they are never swept or
-// replaced by generated output.
-func importedProtoPaths(patterns []string) (map[string]bool, error) {
-	paths := make(map[string]bool)
-	for _, pattern := range patterns {
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			return nil, xerrors.WrapKV(err)
-		}
-		for _, match := range matches {
-			path, err := absoluteProtoPath(match)
-			if err != nil {
-				return nil, err
-			}
-			paths[path] = true
-		}
-	}
-	return paths, nil
-}
-
-func (gen *Generator) beginRun() error {
-	if gen.preserveStage {
-		return xerrors.Newf("previous proto files still need recovery from %s", gen.stageDir)
-	}
-	gen.stageDir = ""
-	protected, err := importedProtoPaths(gen.InputOpt.ProtoFiles)
-	if err != nil {
-		return err
-	}
-	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
-	gen.registryWithGeneratedOnce = sync.Once{}
-	gen.protoRegistryFilesWithGenerated = nil
-	gen.cacheMu.Lock()
-	gen.cachedImporters = make(map[string]importer.Importer)
-	gen.cacheMu.Unlock()
-	gen.generatedMu.Lock()
-	gen.generatedProtoFiles = make(map[string]string)
-	gen.stagedProtoFiles = make(map[string]string)
-	gen.protectedProtoFiles = protected
-	gen.generatedMu.Unlock()
-	return nil
-}
-
-func (gen *Generator) startStaging() error {
-	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	stageDir, err := os.MkdirTemp(outdir, ".tableau-stage-")
-	if err != nil {
-		return xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
-	}
-	gen.stageDir = stageDir
-	return nil
-}
-
-func (gen *Generator) discardStaging() {
-	if gen.stageDir == "" || gen.preserveStage {
-		return
-	}
-	if err := os.RemoveAll(gen.stageDir); err != nil {
-		log.Warnf("failed to remove temporary proto files in %s: %v", gen.stageDir, err)
-	}
-	gen.stageDir = ""
-}
-
-func (gen *Generator) stageProtoFile(path string, parts ...[]byte) (err error) {
-	f, err := os.CreateTemp(gen.stageDir, "proto-*.tmp")
-	if err != nil {
-		return xerrors.WrapKV(err)
-	}
-	defer func() {
-		if err != nil {
-			_ = f.Close()
-			_ = os.Remove(f.Name())
-		}
-	}()
-	for _, part := range parts {
-		if _, err = f.Write(part); err != nil {
-			return xerrors.WrapKV(err)
-		}
-	}
-	if err = f.Close(); err != nil {
-		return xerrors.WrapKV(err)
-	}
-	key, err := absoluteProtoPath(path)
-	if err != nil {
-		return err
-	}
-	gen.generatedMu.Lock()
-	gen.stagedProtoFiles[key] = f.Name()
-	gen.generatedMu.Unlock()
-	return nil
-}
-
-// commitOutputs replaces generated files and removes stale files only after
-// parsing and rendering have succeeded. If a filesystem step fails, it restores
-// the previous files from backups in the staging directory.
-func (gen *Generator) commitOutputs(removeStale bool) error {
-	gen.generatedMu.Lock()
-	generated := make(map[string]bool, len(gen.generatedProtoFiles))
-	for path := range gen.generatedProtoFiles {
-		generated[path] = true
-	}
-	staged := maps.Clone(gen.stagedProtoFiles)
-	protected := maps.Clone(gen.protectedProtoFiles)
-	gen.generatedMu.Unlock()
-
+// commit backs up affected files, publishes staged files, and drops stale files.
+// A failed filesystem step restores the backups before returning.
+func (out *protoOutput) commit(removeStale bool) error {
+	files := maps.Clone(out.staged)
 	var stale []string
 	if removeStale {
 		var err error
-		stale, err = staleProtoFiles(filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir), generated, protected)
+		stale, err = staleProtoFiles(out.dir, out.owners, out.imports)
 		if err != nil {
 			return err
+		}
+		for _, path := range stale {
+			key, err := absoluteProtoPath(path)
+			if err != nil {
+				return err
+			}
+			files[key] = ""
 		}
 	}
 
-	affected := make(map[string]bool, len(staged)+len(stale))
-	for path := range staged {
-		affected[path] = true
-	}
-	for _, path := range stale {
-		key, err := absoluteProtoPath(path)
-		if err != nil {
-			return err
-		}
-		affected[key] = true
-	}
-	paths := slices.Sorted(maps.Keys(affected))
+	paths := slices.Sorted(maps.Keys(files))
 	backups := make(map[string]string)
-	var promoted []string
-	rollback := func(cause error) error {
-		var rollbackErrors []error
-		for _, path := range promoted {
-			if err := os.Remove(path); err != nil {
-				rollbackErrors = append(rollbackErrors, fmt.Errorf("remove new proto %s: %w", path, err))
-			}
-		}
-		for _, path := range paths {
-			if backup, ok := backups[path]; ok {
-				if err := os.Rename(backup, path); err != nil {
-					rollbackErrors = append(rollbackErrors, fmt.Errorf("restore proto %s: %w", path, err))
-				}
-			}
-		}
-		if len(rollbackErrors) > 0 {
-			gen.preserveStage = true
-			rollbackErrors = append(rollbackErrors, fmt.Errorf("previous files remain in %s", gen.stageDir))
-		}
-		return errors.Join(append([]error{cause}, rollbackErrors...)...)
+	var published []string
+	fail := func(err error) error {
+		return errors.Join(err, out.restore(backups, published))
 	}
 
 	for i, path := range paths {
-		info, err := os.Lstat(path)
-		if os.IsNotExist(err) {
+		exists, err := existingGeneratedProto(path)
+		if err != nil {
+			return fail(err)
+		}
+		if !exists {
 			continue
 		}
-		if err != nil {
-			return rollback(xerrors.WrapKV(err))
-		}
-		if !info.Mode().IsRegular() {
-			return rollback(xerrors.Newf("proto output is not a regular file: %s", path))
-		}
-		generated, err := isGeneratedProtoFile(path)
-		if err != nil {
-			return rollback(err)
-		}
-		if !generated {
-			return rollback(xerrors.Newf("refusing to overwrite non-generated proto file: %s", path))
-		}
-		backup := filepath.Join(gen.stageDir, fmt.Sprintf("backup-%d.tmp", i))
+		backup := filepath.Join(out.stageDir, fmt.Sprintf("backup-%d.tmp", i))
 		if err := os.Rename(path, backup); err != nil {
-			return rollback(xerrors.WrapKV(err))
+			return fail(xerrors.WrapKV(err))
 		}
 		backups[path] = backup
 	}
 	for _, path := range paths {
-		stage, ok := staged[path]
-		if !ok {
+		stage := files[path]
+		if stage == "" {
 			continue
 		}
 		if err := os.Rename(stage, path); err != nil {
-			return rollback(xerrors.WrapKV(err))
+			return fail(xerrors.WrapKV(err))
 		}
-		promoted = append(promoted, path)
+		published = append(published, path)
 	}
 	for _, path := range stale {
 		log.Infof("%15s: %s", "removed stale proto", path)
 	}
 	return nil
+}
+
+func (out *protoOutput) restore(backups map[string]string, published []string) error {
+	var failures []error
+	for _, path := range published {
+		if err := os.Remove(path); err != nil {
+			failures = append(failures, fmt.Errorf("remove new proto %s: %w", path, err))
+		}
+	}
+	for path, backup := range backups {
+		if err := os.Rename(backup, path); err != nil {
+			failures = append(failures, fmt.Errorf("restore proto %s: %w", path, err))
+		}
+	}
+	if len(failures) > 0 {
+		out.keepStage = true
+		failures = append(failures, fmt.Errorf("previous files remain in %s", out.stageDir))
+	}
+	return errors.Join(failures...)
 }

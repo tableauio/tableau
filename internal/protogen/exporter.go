@@ -115,12 +115,12 @@ func (x *bookExporter) export() error {
 	// Register every output before writing so conflicts cannot leave partial
 	// output behind.
 	bookPath := x.wb.GetOptions().GetName()
-	if err := x.gen.registerGeneratedProtoFile(path, bookPath); err != nil {
+	if err := x.gen.output.register(path, bookPath); err != nil {
 		return xerrors.WrapKV(err)
 	}
 	for _, shardFile := range x.unionShardFiles {
 		shardPath := filepath.Join(x.OutputDir, shardFile.ImportPath)
-		if err := x.gen.registerGeneratedProtoFile(shardPath, bookPath); err != nil {
+		if err := x.gen.output.register(shardPath, bookPath); err != nil {
 			return xerrors.WrapKV(err)
 		}
 	}
@@ -180,8 +180,8 @@ func (x *bookExporter) writeUnionShardFile(shardFile *unionShardFile) error {
 }
 
 func (x *bookExporter) writeProtoFile(path string, parts ...[]byte) error {
-	if x.gen.stageDir != "" {
-		return x.gen.stageProtoFile(path, parts...)
+	if x.gen.output.stageDir != "" {
+		return x.gen.output.stage(path, parts...)
 	}
 	f, err := lockedfile.Create(path)
 	if err != nil {

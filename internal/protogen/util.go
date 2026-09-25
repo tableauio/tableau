@@ -8,7 +8,6 @@ import (
 
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
-	"github.com/tableauio/tableau/log"
 )
 
 type parsePass int
@@ -62,7 +61,7 @@ func absoluteProtoPath(path string) (string, error) {
 
 // staleProtoFiles only inspects this generator's output directory. Nested
 // directories may belong to a separate generator.
-func staleProtoFiles(outdir string, generatedPaths, protectedPaths map[string]bool) ([]string, error) {
+func staleProtoFiles(outdir string, generatedPaths map[string]string, protectedPaths map[string]bool) ([]string, error) {
 	entries, err := os.ReadDir(outdir)
 	if err != nil {
 		return nil, xerrors.WrapKV(err, xerrors.KeyOutdir, outdir)
@@ -77,7 +76,7 @@ func staleProtoFiles(outdir string, generatedPaths, protectedPaths map[string]bo
 		if err != nil {
 			return nil, err
 		}
-		if generatedPaths[key] || protectedPaths[key] {
+		if _, generated := generatedPaths[key]; generated || protectedPaths[key] {
 			continue
 		}
 		generated, err := isGeneratedProtoFile(path)
@@ -89,21 +88,6 @@ func staleProtoFiles(outdir string, generatedPaths, protectedPaths map[string]bo
 		}
 	}
 	return stale, nil
-}
-
-// sweepOutdir removes stale generated protos owned by this output directory.
-func sweepOutdir(outdir string, generatedPaths, protectedPaths map[string]bool) error {
-	stale, err := staleProtoFiles(outdir, generatedPaths, protectedPaths)
-	if err != nil {
-		return err
-	}
-	for _, path := range stale {
-		if err := os.Remove(path); err != nil {
-			return xerrors.WrapKV(err)
-		}
-		log.Infof("%15s: %s", "removed stale proto", path)
-	}
-	return nil
 }
 
 func getRelCleanSlashPath(rootdir, dir, filename string) (string, error) {

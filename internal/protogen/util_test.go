@@ -88,7 +88,7 @@ func Test_isGeneratedProtoFile(t *testing.T) {
 	}
 }
 
-func Test_sweepOutdir(t *testing.T) {
+func Test_staleProtoFiles(t *testing.T) {
 	generatedHeader := generatedFileHeaderLine()
 
 	// setupOutdir creates an outdir with the given files, whose content is
@@ -111,18 +111,12 @@ func Test_sweepOutdir(t *testing.T) {
 			"handwritten.proto": "syntax = \"proto3\";\n",
 			"not_a_proto.txt":   generatedHeader,
 		})
-		generatedPaths := map[string]bool{
-			xfs.CleanSlashPath(filepath.Join(outdir, "item_conf.proto")): true,
+		generatedPaths := map[string]string{
+			xfs.CleanSlashPath(filepath.Join(outdir, "item_conf.proto")): "Item.xlsx",
 		}
-		require.NoError(t, sweepOutdir(outdir, generatedPaths, nil))
-
-		require.FileExists(t, filepath.Join(outdir, "item_conf.proto"))
-		// the handwritten one has no generated header, so it must be kept even
-		// though it is not generated in this run
-		require.FileExists(t, filepath.Join(outdir, "handwritten.proto"))
-		// non-proto files are never touched
-		require.FileExists(t, filepath.Join(outdir, "not_a_proto.txt"))
-		require.NoFileExists(t, filepath.Join(outdir, "stale_conf.proto"))
+		stale, err := staleProtoFiles(outdir, generatedPaths, nil)
+		require.NoError(t, err)
+		require.Equal(t, []string{filepath.Join(outdir, "stale_conf.proto")}, stale)
 	})
 
 	t.Run("keep nested generator outputs", func(t *testing.T) {
@@ -130,9 +124,9 @@ func Test_sweepOutdir(t *testing.T) {
 			"custom/item_conf.proto": generatedHeader,
 			"stale_conf.proto":       generatedHeader,
 		})
-		require.NoError(t, sweepOutdir(outdir, nil, nil))
-		require.FileExists(t, filepath.Join(outdir, "custom/item_conf.proto"))
-		require.NoFileExists(t, filepath.Join(outdir, "stale_conf.proto"))
+		stale, err := staleProtoFiles(outdir, nil, nil)
+		require.NoError(t, err)
+		require.Equal(t, []string{filepath.Join(outdir, "stale_conf.proto")}, stale)
 	})
 
 	t.Run("keep configured generated imports", func(t *testing.T) {
@@ -143,18 +137,19 @@ func Test_sweepOutdir(t *testing.T) {
 		shared := filepath.Join(outdir, "shared.proto")
 		key, err := absoluteProtoPath(shared)
 		require.NoError(t, err)
-		require.NoError(t, sweepOutdir(outdir, nil, map[string]bool{key: true}))
-		require.FileExists(t, shared)
-		require.NoFileExists(t, filepath.Join(outdir, "stale.proto"))
+		stale, err := staleProtoFiles(outdir, nil, map[string]bool{key: true})
+		require.NoError(t, err)
+		require.Equal(t, []string{filepath.Join(outdir, "stale.proto")}, stale)
 	})
 
 	t.Run("nothing to sweep", func(t *testing.T) {
 		outdir := setupOutdir(t, map[string]string{"item_conf.proto": generatedHeader})
-		generatedPaths := map[string]bool{
-			xfs.CleanSlashPath(filepath.Join(outdir, "item_conf.proto")): true,
+		generatedPaths := map[string]string{
+			xfs.CleanSlashPath(filepath.Join(outdir, "item_conf.proto")): "Item.xlsx",
 		}
-		require.NoError(t, sweepOutdir(outdir, generatedPaths, nil))
-		require.FileExists(t, filepath.Join(outdir, "item_conf.proto"))
+		stale, err := staleProtoFiles(outdir, generatedPaths, nil)
+		require.NoError(t, err)
+		require.Empty(t, stale)
 	})
 }
 

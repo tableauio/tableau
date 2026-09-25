@@ -433,7 +433,8 @@ func Test_bookExporter_export(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
 			gen := &Generator{
-				ctx: context.Background(),
+				ctx:    context.Background(),
+				output: newProtoOutput(tmpDir, nil),
 				InputOpt: &options.ProtoInputOption{
 					MessagerPattern: `Conf$`,
 				},
@@ -491,7 +492,8 @@ func Test_bookExporter_export(t *testing.T) {
 func Test_bookExporter_export_shardFileConflict(t *testing.T) {
 	tmpDir := t.TempDir()
 	gen := &Generator{
-		ctx: context.Background(),
+		ctx:    context.Background(),
+		output: newProtoOutput(tmpDir, nil),
 		InputOpt: &options.ProtoInputOption{
 			MessagerPattern: `.*`,
 		},
@@ -521,7 +523,7 @@ func Test_bookExporter_export_shardFileConflict(t *testing.T) {
 		},
 	}
 	shardPath := filepath.Join(tmpDir, "task_task_target_1.proto")
-	assert.NoError(t, gen.registerGeneratedProtoFile(shardPath, "other.xlsx"))
+	assert.NoError(t, gen.output.register(shardPath, "other.xlsx"))
 
 	be := newBookExporter("protoconf", "", nil, tmpDir, "", wb, gen)
 	err := be.export()

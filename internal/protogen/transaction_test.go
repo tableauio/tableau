@@ -69,35 +69,35 @@ Bad: .MissingType
 
 }
 
-func TestGenerator_commitOutputsRollsBackOnCollision(t *testing.T) {
+func TestProtoOutput_commitRollsBackOnCollision(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
 	require.NoError(t, gen.beginRun())
-	require.NoError(t, gen.startStaging())
-	defer gen.discardStaging()
+	require.NoError(t, gen.output.start())
+	defer gen.output.discard()
 
 	old := filepath.Join(outdir, "a.proto")
 	oldContent := []byte(generatedFileHeaderLine() + "old\n")
 	require.NoError(t, os.WriteFile(old, oldContent, 0o644))
-	require.NoError(t, gen.registerGeneratedProtoFile(old, "A.xlsx"))
-	require.NoError(t, gen.stageProtoFile(old, []byte(generatedFileHeaderLine()+"new\n")))
+	require.NoError(t, gen.output.register(old, "A.xlsx"))
+	require.NoError(t, gen.output.stage(old, []byte(generatedFileHeaderLine()+"new\n")))
 
 	blocked := filepath.Join(outdir, "z.proto")
-	require.NoError(t, gen.registerGeneratedProtoFile(blocked, "Z.xlsx"))
-	require.NoError(t, gen.stageProtoFile(blocked, []byte(generatedFileHeaderLine())))
+	require.NoError(t, gen.output.register(blocked, "Z.xlsx"))
+	require.NoError(t, gen.output.stage(blocked, []byte(generatedFileHeaderLine())))
 	// Another writer claims the target after registration.
 	require.NoError(t, os.Mkdir(blocked, 0o755))
 
-	require.Error(t, gen.commitOutputs(false))
+	require.Error(t, gen.output.commit(false))
 	content, err := os.ReadFile(old)
 	require.NoError(t, err)
 	require.Equal(t, oldContent, content)
 	require.DirExists(t, blocked)
 }
 
-func TestGenerator_refusesExistingNonGeneratedOutput(t *testing.T) {
+func TestProtoOutput_registerRejectsNonGenerated(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
@@ -107,14 +107,14 @@ func TestGenerator_refusesExistingNonGeneratedOutput(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, handwritten, 0o644))
 
 	require.NoError(t, gen.beginRun())
-	err := gen.registerGeneratedProtoFile(path, "Item.xlsx")
+	err := gen.output.register(path, "Item.xlsx")
 	require.ErrorContains(t, err, "non-generated")
 	content, readErr := os.ReadFile(path)
 	require.NoError(t, readErr)
 	require.Equal(t, handwritten, content)
 }
 
-func TestGenerator_refusesImportedOutputEvenWithGeneratedHeader(t *testing.T) {
+func TestProtoOutput_registerRejectsImported(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
@@ -125,59 +125,61 @@ func TestGenerator_refusesImportedOutputEvenWithGeneratedHeader(t *testing.T) {
 	gen.InputOpt.ProtoFiles = []string{path}
 
 	require.NoError(t, gen.beginRun())
-	err := gen.registerGeneratedProtoFile(path, "Shared.xlsx")
+	err := gen.output.register(path, "Shared.xlsx")
 	require.ErrorContains(t, err, "imported proto")
-	require.NoError(t, gen.sweepOutdir())
+	require.NoError(t, gen.output.start())
+	defer gen.output.discard()
+	require.NoError(t, gen.output.commit(true))
 	got, readErr := os.ReadFile(path)
 	require.NoError(t, readErr)
 	require.Equal(t, content, got)
 }
 
-func TestGenerator_commitOutputsRestoresPromotedFile(t *testing.T) {
+func TestProtoOutput_commitRestoresPublishedFile(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
 	require.NoError(t, gen.beginRun())
-	require.NoError(t, gen.startStaging())
-	defer gen.discardStaging()
+	require.NoError(t, gen.output.start())
+	defer gen.output.discard()
 
 	first := filepath.Join(outdir, "a.proto")
 	oldContent := []byte(generatedFileHeaderLine() + "old\n")
 	require.NoError(t, os.WriteFile(first, oldContent, 0o644))
-	require.NoError(t, gen.registerGeneratedProtoFile(first, "A.xlsx"))
-	require.NoError(t, gen.stageProtoFile(first, []byte(generatedFileHeaderLine()+"new\n")))
+	require.NoError(t, gen.output.register(first, "A.xlsx"))
+	require.NoError(t, gen.output.stage(first, []byte(generatedFileHeaderLine()+"new\n")))
 
 	second := filepath.Join(outdir, "z.proto")
-	require.NoError(t, gen.registerGeneratedProtoFile(second, "Z.xlsx"))
-	require.NoError(t, gen.stageProtoFile(second, []byte(generatedFileHeaderLine())))
+	require.NoError(t, gen.output.register(second, "Z.xlsx"))
+	require.NoError(t, gen.output.stage(second, []byte(generatedFileHeaderLine())))
 	key, err := absoluteProtoPath(second)
 	require.NoError(t, err)
-	require.NoError(t, os.Remove(gen.stagedProtoFiles[key]))
+	require.NoError(t, os.Remove(gen.output.staged[key]))
 
-	require.Error(t, gen.commitOutputs(false))
+	require.Error(t, gen.output.commit(false))
 	content, err := os.ReadFile(first)
 	require.NoError(t, err)
 	require.Equal(t, oldContent, content)
 	require.NoFileExists(t, second)
 }
 
-func TestGenerator_commitOutputsRejectsLateHandwrittenFile(t *testing.T) {
+func TestProtoOutput_commitRejectsLateHandwrittenFile(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
 	require.NoError(t, gen.beginRun())
-	require.NoError(t, gen.startStaging())
-	defer gen.discardStaging()
+	require.NoError(t, gen.output.start())
+	defer gen.output.discard()
 
 	path := filepath.Join(outdir, "item.proto")
-	require.NoError(t, gen.registerGeneratedProtoFile(path, "Item.xlsx"))
-	require.NoError(t, gen.stageProtoFile(path, []byte(generatedFileHeaderLine())))
+	require.NoError(t, gen.output.register(path, "Item.xlsx"))
+	require.NoError(t, gen.output.stage(path, []byte(generatedFileHeaderLine())))
 	handwritten := []byte("syntax = \"proto3\";\n")
 	require.NoError(t, os.WriteFile(path, handwritten, 0o644))
 
-	require.ErrorContains(t, gen.commitOutputs(false), "non-generated")
+	require.ErrorContains(t, gen.output.commit(false), "non-generated")
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	require.Equal(t, handwritten, content)
