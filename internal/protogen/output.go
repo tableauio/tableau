@@ -121,7 +121,7 @@ func (out *protoOutput) publishSelected() error {
 func (out *protoOutput) publish(stalePaths []string) error {
 	paths := slices.Sorted(maps.Keys(out.stagedFiles))
 	for _, path := range paths {
-		if err := validateExistingGeneratedProto(outputPath); err != nil {
+		if err := validateExistingGeneratedProto(path); err != nil {
 			return err
 		}
 		if err := os.Rename(out.stagedFiles[path], path); err != nil {
@@ -129,7 +129,7 @@ func (out *protoOutput) publish(stalePaths []string) error {
 		}
 	}
 	for _, path := range stalePaths {
-		if err := validateExistingGeneratedProto(outputPath); err != nil {
+		if err := validateExistingGeneratedProto(path); err != nil {
 			return err
 		}
 		if err := os.Remove(path); err != nil {
