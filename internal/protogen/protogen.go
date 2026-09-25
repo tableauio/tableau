@@ -134,21 +134,19 @@ func (gen *Generator) parseProtoRegistryFiles(useGeneratedProtos bool) (*protore
 		protoFiles)
 }
 
-func (gen *Generator) preprocess(useGeneratedProtos bool) error {
+// prepareTypeInfo builds the type information used while parsing workbooks.
+// Generated protos are included only when a selected generation needs types
+// from workbooks that are not part of this run.
+func (gen *Generator) prepareTypeInfo(includeGeneratedProtos bool) error {
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
-	// parse custom imported proto files
 	protoRegistryFiles := gen.ProtoRegistryFiles
-	if useGeneratedProtos {
-		// NOTE: the advanced first-pass mode parses only the specified
-		// workbooks, so the previously generated protos are intended to serve
-		// as the predefined types of the others. They are not swept in this
-		// mode, hence still importable.
+	if includeGeneratedProtos {
+		// Advanced mode parses only the selected workbooks. Existing generated
+		// protos provide the types from every other workbook.
 		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
 	} else if gen.OutputOpt.PreserveFieldNumbers {
-		// Snapshot previous generated protos before rendering, so exported
-		// fields can retain their numbers. Do not add these types to typeInfos:
-		// a type that is absent from the current inputs must not be treated as
-		// predefined.
+		// Keep the previous schema available for field-number preservation,
+		// without treating its types as inputs to this run.
 		_ = gen.getProtoRegistryFilesWithGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
@@ -170,18 +168,16 @@ func (gen *Generator) GenAll() error {
 	if err := gen.beginRun(); err != nil {
 		return err
 	}
-	if err := gen.preprocess(false); err != nil {
+	if err := gen.prepareTypeInfo(false); err != nil {
+		return err
+	}
+	if err := gen.runFirstPassForAllBooks(); err != nil {
 		return err
 	}
 	if err := gen.output.start(); err != nil {
 		return err
 	}
 	defer gen.output.discard()
-
-	log.Infof("%15s: parsing all books", "first-pass")
-	if err := gen.processFirstPass(); err != nil {
-		return err
-	}
 	if err := gen.processSecondPass(); err != nil {
 		return err
 	}
@@ -196,27 +192,51 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	if err := gen.beginRun(); err != nil {
 		return err
 	}
-	advanced := gen.InputOpt.FirstPassMode == options.FirstPassModeAdvanced
-	if err := gen.preprocess(advanced); err != nil {
+	if err := gen.runFirstPassForWorkbooks(relWorkbookPaths...); err != nil {
 		return err
 	}
 	if err := gen.output.start(); err != nil {
 		return err
 	}
 	defer gen.output.discard()
-
-	if gen.InputOpt.FirstPassMode == options.FirstPassModeNormal {
-		log.Infof("%15s: parsing all books", "first-pass")
-		if err := gen.processFirstPass(); err != nil {
-			return err
-		}
-	} else {
-		log.Infof("%15s: parsing only specified books", "first-pass")
-		if err := gen.processWorkbookOnFirstPass(relWorkbookPaths...); err != nil {
-			return err
-		}
+	if err := gen.runSecondPass(relWorkbookPaths...); err != nil {
+		return err
 	}
+	// Other workbooks' outputs remain valid when generating a selection.
+	return gen.output.publish(false)
+}
 
+// runFirstPassForAllBooks discovers the types declared by every input workbook.
+func (gen *Generator) runFirstPassForAllBooks() error {
+	log.Infof("%15s: parsing all books", "first-pass")
+	return gen.processFirstPass()
+}
+
+// runFirstPassForWorkbooks selects the source of type information before
+// discovering the types declared by the requested workbooks.
+func (gen *Generator) runFirstPassForWorkbooks(relWorkbookPaths ...string) error {
+	switch gen.InputOpt.FirstPassMode {
+	case options.FirstPassModeNormal:
+		if err := gen.prepareTypeInfo(false); err != nil {
+			return err
+		}
+		return gen.runFirstPassForAllBooks()
+	case options.FirstPassModeAdvanced:
+		if err := gen.prepareTypeInfo(true); err != nil {
+			return err
+		}
+		log.Infof("%15s: parsing selected books with generated protos", "first-pass")
+	default:
+		if err := gen.prepareTypeInfo(false); err != nil {
+			return err
+		}
+		log.Infof("%15s: parsing selected books", "first-pass")
+	}
+	return gen.processWorkbookOnFirstPass(relWorkbookPaths...)
+}
+
+// runSecondPass parses workbook schemas and writes their proto files.
+func (gen *Generator) runSecondPass(relWorkbookPaths ...string) error {
 	g := gen.collector.NewGroup(context.Background())
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
@@ -224,13 +244,10 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), secondPass)
 		})
 	}
-	if err := g.Wait(); err != nil {
-		return err
-	}
-	// Other workbooks' outputs remain valid when generating a selection.
-	return gen.output.publish(false)
+	return g.Wait()
 }
 
+// processWorkbookOnFirstPass discovers types declared by selected workbooks.
 func (gen *Generator) processWorkbookOnFirstPass(relWorkbookPaths ...string) error {
 	g := gen.collector.NewGroup(context.Background())
 	for _, relWorkbookPath := range relWorkbookPaths {
@@ -242,8 +259,8 @@ func (gen *Generator) processWorkbookOnFirstPass(relWorkbookPaths ...string) err
 	return g.Wait()
 }
 
+// processFirstPass discovers types from every configured input directory.
 func (gen *Generator) processFirstPass() error {
-	// first pass
 	if len(gen.InputOpt.Subdirs) == 0 {
 		return gen.processDirFirstPass(gen.InputDir)
 	}
@@ -256,8 +273,8 @@ func (gen *Generator) processFirstPass() error {
 	return nil
 }
 
+// processSecondPass parses every workbook discovered during the first pass.
 func (gen *Generator) processSecondPass() error {
-	// second pass
 	gen.cacheMu.RLock()
 	absPaths := []string{}
 	for absPath := range gen.cachedImporters {
@@ -265,7 +282,6 @@ func (gen *Generator) processSecondPass() error {
 	}
 	gen.cacheMu.RUnlock()
 
-	// second pass
 	g := gen.collector.NewGroup(context.Background())
 	for _, absPath := range absPaths {
 		g.Go(func(ctx context.Context) error {

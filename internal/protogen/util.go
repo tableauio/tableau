@@ -13,8 +13,8 @@ import (
 type parsePass int
 
 const (
-	firstPass  parsePass = iota // only generate type definitions from sheets
-	secondPass                  // generate config messagers from sheets
+	firstPass  parsePass = iota // discover types declared by special table sheets
+	secondPass                  // parse workbook schemas and generate proto files
 )
 
 // generatedFileHeaderPrefix is the prefix of the first line of each proto file

@@ -55,23 +55,23 @@ func newPreserveFieldNumbersGenerator(t *testing.T, subdir string) *Generator {
 	})
 }
 
-// Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos asserts that
+// Test_prepareTypeInfo_preserveFieldNumbersNotPollutingTypeInfos asserts that
 // preserveFieldNumbers only snapshots the previously generated protos, without
 // leaking them into type infos, otherwise the types only existing in them would
 // be mistaken for predefined ones, which makes the exporter import a proto file
 // that is never regenerated.
-func Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
+func Test_prepareTypeInfo_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
 	gen := newPreserveFieldNumbersGenerator(t, "default")
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 
-	require.NoError(t, gen.preprocess(false))
+	require.NoError(t, gen.prepareTypeInfo(false))
 
 	// The message only exists in the previously generated proto, so it must not
 	// be treated as a predefined type.
 	assert.Nil(t, gen.typeInfos.Get("protoconf.StaleConf"),
 		"type in previously generated proto should not be in type infos")
 
-	// NOTE: preprocess must never remove anything, so that a failed run leaves
+	// NOTE: type preparation must never remove anything, so that a failed run leaves
 	// the previously generated proto files intact.
 	require.FileExists(t, filepath.Join(outdir, "stale_conf.proto"))
 
@@ -80,16 +80,16 @@ func Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
 	// proto files are truncated later.
 	files := gen.getProtoRegistryFilesWithGenerated()
 	_, err := files.FindDescriptorByName("protoconf.StaleConf")
-	assert.NoError(t, err, "registry with generated protos should be snapshotted in preprocess")
+	assert.NoError(t, err, "registry with generated protos should be snapshotted during type preparation")
 }
 
-// Test_preprocess_useGeneratedProtosPopulatesTypeInfos asserts that the
+// Test_prepareTypeInfo_withGeneratedProtosPopulatesTypeInfos asserts that the
 // advanced first-pass mode still sees the previously generated protos as
 // predefined types.
-func Test_preprocess_useGeneratedProtosPopulatesTypeInfos(t *testing.T) {
+func Test_prepareTypeInfo_withGeneratedProtosPopulatesTypeInfos(t *testing.T) {
 	gen := newPreserveFieldNumbersGenerator(t, "default")
 
-	require.NoError(t, gen.preprocess(true))
+	require.NoError(t, gen.prepareTypeInfo(true))
 
 	assert.NotNil(t, gen.typeInfos.Get("protoconf.StaleConf"),
 		"type in previously generated proto should be in type infos")
