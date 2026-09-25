@@ -69,11 +69,11 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 func rel(filename string, protoPaths []string) (string, error) {
 	best := ""
 	for _, protoPath := range protoPaths {
-		relPath, err := filepath.Rel(filepath.FromSlash(protoPath), filepath.FromSlash(filename))
+		relPath, err := xfs.Rel(protoPath, filename)
 		if err != nil {
 			continue
 		}
-		clean := xfs.CleanSlashPath(relPath)
+		clean := relPath
 		if !isContainedImportPath(clean) {
 			// filepath.Rel succeeds for sibling directories (e.g. Rel("common",
 			// "generated/foo.proto") == "../generated/foo.proto"). Using that
@@ -156,7 +156,7 @@ func readProtoImports(filename string) ([]string, error) {
 
 func resolveSelectedImportPath(importPath string, protoPaths []string, protoFiles map[string]string) (string, bool) {
 	for _, protoPath := range protoPaths {
-		filename := xfs.CleanSlashPath(filepath.Join(filepath.FromSlash(protoPath), filepath.FromSlash(importPath)))
+		filename := xfs.Join(protoPath, importPath)
 		if _, ok := protoFiles[filename]; ok {
 			return filename, true
 		}
