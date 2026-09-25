@@ -93,19 +93,24 @@ type Desc struct {
 	children []*Desc
 }
 
-// NewDesc builds a *Desc from err. Joins are flattened; shared fields reach
-// every leaf, while ordinary wrapper fields reach only a single leaf.
-// Innermost values win. Returns nil for nil err.
+// NewDesc builds a *Desc from err. Joins are flattened and inherit enclosing
+// fields. Collector snapshots inherit from their own scopes, so later wrappers
+// cannot assign fields to multiple errors in that snapshot. Returns nil for nil err.
 func NewDesc(err error) *Desc {
 	if err == nil {
 		return nil
 	}
-	// Each wrapper states whether its fields describe the whole subtree.
 	var layers []fieldLayer
 	for cur := err; cur != nil; cur = errors.Unwrap(cur) {
+		if _, ok := cur.(*collected); ok {
+			// Wrappers added after Join describe the snapshot, not every
+			// individual error already stored in its collector tree.
+			for i := range layers {
+				layers[i].shared = false
+			}
+		}
 		if fc, ok := cur.(fieldsCarrier); ok {
-			wrapper, ok := cur.(*withMessage)
-			layers = append(layers, fieldLayer{fields: fc.Fields(), shared: ok && wrapper.shared})
+			layers = append(layers, fieldLayer{fields: fc.Fields(), shared: true})
 		}
 		if mu, ok := cur.(multiUnwrapper); ok {
 			return buildFromChildren(cur, mu.Unwrap(), layers)
@@ -115,8 +120,7 @@ func NewDesc(err error) *Desc {
 	return &Desc{err: err, fields: collectFields(err)}
 }
 
-// fieldLayer records whether a wrapper's fields apply to one error or all
-// errors in the wrapped subtree.
+// fieldLayer records whether fields can be inherited by every joined error.
 type fieldLayer struct {
 	fields map[string]any
 	shared bool
@@ -160,7 +164,7 @@ func flattenDescs(d *Desc, dst *[]*Desc) {
 }
 
 // buildFromChildren flattens a join and applies its enclosing field layers.
-// Inner fields win; ordinary wrapper fields never leak to sibling errors.
+// Inner fields win; fields added outside a collector snapshot stay local.
 func buildFromChildren(err error, errs []error, layers []fieldLayer) *Desc {
 	var leaves []*Desc
 	for _, child := range errs {

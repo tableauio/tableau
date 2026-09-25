@@ -1085,19 +1085,20 @@ func TestCollected_ErrorPropagatesOuterFields(t *testing.T) {
 
 // Rendering a wrapped join must not assign one cell to all its errors.
 func TestCollected_ErrorDoesNotBroadcastCellFields(t *testing.T) {
-	child := NewCollector(10)
+	child := NewCollector(10).NewChild(10,
+		KeyModule, ModuleConf,
+		KeyBookName, "Book.xlsx",
+		KeySheetName, "Sheet",
+	)
 	_ = child.Collect(WrapKV(E2002("bad", "ID"),
 		KeyDataCellPos, "B4",
 		KeyDataCell, "bad",
 	))
 	_ = child.Collect(E2014("missing"))
 
-	err := WrapScopeKV(WrapKV(child.Join(),
+	err := WrapKV(child.Join(),
 		KeyDataCellPos, "A4",
 		KeyDataCell, "key",
-	), KeyModule, ModuleConf,
-		KeyBookName, "Book.xlsx",
-		KeySheetName, "Sheet",
 	)
 	got := err.Error()
 	assert.Contains(t, got, "Workbook: Book.xlsx")

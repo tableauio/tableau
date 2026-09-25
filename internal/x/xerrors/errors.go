@@ -95,8 +95,9 @@ func Wrapf(err error, format string, args ...any) error {
 	}
 }
 
-// WrapKV adds fields to an error. If err is a join, these fields reach its
-// leaves only when it contains one error. Returns nil if err is nil.
+// WrapKV adds fields to an error. Fields on a regular join apply to its
+// children; a collector Join result keeps the scope of its collector tree.
+// Returns nil if err is nil.
 func WrapKV(err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
@@ -104,19 +105,6 @@ func WrapKV(err error, keysAndValues ...any) error {
 	return &withMessage{
 		cause:  withStack(1, err),
 		fields: parseKV(keysAndValues...),
-	}
-}
-
-// WrapScopeKV adds fields shared by every error in err, including joined errors.
-// Use it only for context that belongs to the whole error subtree.
-func WrapScopeKV(err error, keysAndValues ...any) error {
-	if err == nil {
-		return nil
-	}
-	return &withMessage{
-		cause:  withStack(1, err),
-		fields: parseKV(keysAndValues...),
-		shared: true,
 	}
 }
 
@@ -155,7 +143,6 @@ type withMessage struct {
 	message       string
 	fields        map[string]any // structured key-value metadata
 	replacesCause bool
-	shared        bool // fields belong to the entire wrapped subtree
 }
 
 // Fields implements fieldsCarrier.

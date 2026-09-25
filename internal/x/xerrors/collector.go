@@ -176,7 +176,7 @@ func (c *Collector) Join() error {
 	}
 	var inner error = &joinError{errs: nonNil, stack: callers(1)}
 	if len(c.scope) > 0 {
-		inner = &withMessage{cause: inner, fields: c.scope, shared: true}
+		inner = &withMessage{cause: inner, fields: c.scope}
 	}
 	return &collected{
 		error:  inner,

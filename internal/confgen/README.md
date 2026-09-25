@@ -92,8 +92,9 @@ are dropped at that level. `Join()` recursively assembles the error tree.
 A child collector can carry fields shared by its subtree. The book collector
 supplies workbook context, and each sheet collector adds its worksheet context.
 `Join()` inherits those fields into each error; fields attached to an individual
-error remain local to it. Outside a collector tree, `WrapScopeKV` explicitly
-shares fields across a joined error, while `WrapKV` describes one error.
+error remain local to it. `WrapKV` adds fields at the node it wraps. A regular join passes them to
+its children. A collector's `Join()` is a snapshot: add shared context to
+the collector node before joining it.
 
 ```mermaid
 flowchart TB
