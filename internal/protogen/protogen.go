@@ -55,8 +55,13 @@ type Generator struct {
 	cacheMu         sync.RWMutex                 // guard fields below
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
 
-	generatedMu         sync.Mutex        // guard fields below
-	generatedProtoFiles map[string]string // generated proto file path -> book name
+	runMu               sync.Mutex // public generation calls run one at a time
+	generatedMu         sync.Mutex // guard the maps below
+	generatedProtoFiles map[string]string
+	stagedProtoFiles    map[string]string
+	protectedProtoFiles map[string]bool
+	stageDir            string
+	preserveStage       bool
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -92,6 +97,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 
 		cachedImporters:     make(map[string]importer.Importer),
 		generatedProtoFiles: make(map[string]string),
+		stagedProtoFiles:    make(map[string]string),
 	}
 	registryFiles, err := gen.parseProtoRegistryFiles(false)
 	if err != nil {
@@ -145,42 +151,50 @@ func (gen *Generator) preprocess(useGeneratedProtos bool) error {
 		// mode, hence still importable.
 		protoRegistryFiles = gen.getProtoRegistryFilesWithGenerated()
 	} else if gen.OutputOpt.PreserveFieldNumbers {
-		// Take the snapshot of the previously generated protos at a
-		// deterministic point, before any of them is truncated by the exporters
-		// below, so as to keep the previous field numbers. The result is
-		// deliberately discarded rather than used as the type infos, otherwise
-		// the types only existing in them would be mistaken for predefined
-		// ones, whose proto file is never regenerated in this run.
-		//
-		// NOTE: this is defense in depth rather than strictly required, as an
-		// exporter happens to query the snapshot, which initializes it lazily,
-		// before truncating its own proto file. It guards against a workbook
-		// whose worksheets are all filtered out, which truncates its proto file
-		// without querying at all, and against reordering in export().
+		// Snapshot previous generated protos before rendering, so exported
+		// fields can retain their numbers. Do not add these types to typeInfos:
+		// a type that is absent from the current inputs must not be treated as
+		// predefined.
 		_ = gen.getProtoRegistryFilesWithGenerated()
 	}
 	gen.typeInfos = xproto.GetAllTypeInfo(protoRegistryFiles, gen.ProtoPackage)
 	return prepareOutdir(outdir)
 }
 
-// registerGeneratedProtoFile registers the proto file generated for the workbook
-// at the given path, and reports an error if it was already generated for
-// another workbook.
-//
-// NOTE: the conflict is detected in memory rather than by testing the existence
-// of the file, so that it works no matter whether the outdir was cleaned up
-// beforehand, and both conflicting workbooks can be named in the error message.
+// registerGeneratedProtoFile reserves a generated path for one workbook.
+// Existing generated files may be replaced; imported and handwritten files may not.
 func (gen *Generator) registerGeneratedProtoFile(path, bookPath string) error {
-	path = xfs.CleanSlashPath(path)
+	key, err := absoluteProtoPath(path)
+	if err != nil {
+		return err
+	}
 	gen.generatedMu.Lock()
 	defer gen.generatedMu.Unlock()
-	if existedBookPath, ok := gen.generatedProtoFiles[path]; ok {
-		return xerrors.E1000(path, existedBookPath, bookPath)
+	if existingBook, ok := gen.generatedProtoFiles[key]; ok {
+		return xerrors.E1000(key, existingBook, bookPath)
+	}
+	if gen.protectedProtoFiles[key] {
+		return xerrors.Newf("proto output conflicts with imported proto file: %s", key)
+	}
+	info, err := os.Lstat(path)
+	if err == nil {
+		if !info.Mode().IsRegular() {
+			return xerrors.Newf("proto output is not a regular file: %s", key)
+		}
+		generated, err := isGeneratedProtoFile(path)
+		if err != nil {
+			return err
+		}
+		if !generated {
+			return xerrors.Newf("refusing to overwrite non-generated proto file: %s", key)
+		}
+	} else if !os.IsNotExist(err) {
+		return xerrors.WrapKV(err)
 	}
 	if gen.generatedProtoFiles == nil {
 		gen.generatedProtoFiles = make(map[string]string)
 	}
-	gen.generatedProtoFiles[path] = bookPath
+	gen.generatedProtoFiles[key] = bookPath
 	return nil
 }
 
@@ -195,7 +209,7 @@ func (gen *Generator) sweepOutdir() error {
 		generatedPaths[path] = true
 	}
 	gen.generatedMu.Unlock()
-	return sweepOutdir(filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir), generatedPaths)
+	return sweepOutdir(filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir), generatedPaths, gen.protectedProtoFiles)
 }
 
 // Generate generates proto files for the specified workbooks. If no workbook paths are provided,
@@ -208,57 +222,64 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 }
 
 func (gen *Generator) GenAll() error {
+	gen.runMu.Lock()
+	defer gen.runMu.Unlock()
+	if err := gen.beginRun(); err != nil {
+		return err
+	}
 	if err := gen.preprocess(false); err != nil {
 		return err
 	}
-	// first pass
+	if err := gen.startStaging(); err != nil {
+		return err
+	}
+	defer gen.discardStaging()
+
 	log.Infof("%15s: parsing all books", "first-pass")
 	if err := gen.processFirstPass(); err != nil {
 		return err
 	}
-	// second pass
 	if err := gen.processSecondPass(); err != nil {
 		return err
 	}
-	// NOTE: sweep only after all proto files are generated successfully, as
-	// GenAll is authoritative over the whole outdir, so that a failed run
-	// leaves the previously generated proto files intact.
-	return gen.sweepOutdir()
+	// Generation errors leave prior outputs untouched. GenAll alone owns the
+	// top-level output directory, so it also removes stale files on commit.
+	return gen.commitOutputs(true)
 }
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
-	// first pass
+	gen.runMu.Lock()
+	defer gen.runMu.Unlock()
+	if err := gen.beginRun(); err != nil {
+		return err
+	}
+	advanced := gen.InputOpt.FirstPassMode == options.FirstPassModeAdvanced
+	if err := gen.preprocess(advanced); err != nil {
+		return err
+	}
+	if err := gen.startStaging(); err != nil {
+		return err
+	}
+	defer gen.discardStaging()
+
 	switch gen.InputOpt.FirstPassMode {
 	case options.FirstPassModeNormal:
-		if err := gen.preprocess(false); err != nil {
-			return err
-		}
 		log.Infof("%15s: parsing all books", "first-pass")
 		if err := gen.processFirstPass(); err != nil {
 			return err
 		}
 	case options.FirstPassModeAdvanced:
-		log.Infof("%15s: parsing previous generated proto files", "first-pass")
-		if err := gen.preprocess(true); err != nil {
-			return err
-		}
 		log.Infof("%15s: parsing only specified books", "first-pass")
 		if err := gen.processWorkbookOnFirstPass(relWorkbookPaths...); err != nil {
 			return err
 		}
 	default:
-		if err := gen.preprocess(false); err != nil {
-			return err
-		}
 		log.Infof("%15s: parsing only specified books", "first-pass")
 		if err := gen.processWorkbookOnFirstPass(relWorkbookPaths...); err != nil {
 			return err
 		}
 	}
-	// second pass
-	//
-	// NOTE: no sweep here, as only the specified books are generated, which
-	// means the other previously generated proto files are not stale.
+
 	g := gen.collector.NewGroup(context.Background())
 	for _, relWorkbookPath := range relWorkbookPaths {
 		absPath := filepath.Join(gen.InputDir, relWorkbookPath)
@@ -266,7 +287,11 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 			return gen.convertWithErrorModule(filepath.Dir(absPath), filepath.Base(absPath), secondPass)
 		})
 	}
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		return err
+	}
+	// Other workbooks' outputs remain valid when generating a selection.
+	return gen.commitOutputs(false)
 }
 
 func (gen *Generator) processWorkbookOnFirstPass(relWorkbookPaths ...string) error {

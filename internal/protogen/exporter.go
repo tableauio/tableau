@@ -112,17 +112,6 @@ func (x *bookExporter) export() error {
 	path := filepath.Join(x.OutputDir, relPath)
 	log.Infof("%15s: %s", "generated proto", relPath)
 
-	// mu := lockedfile.MutexAt(path)
-	// unlock, err := mu.Lock()
-	// if err != nil {
-	// 	return xerrors.Wrapf(err, "failed to lock file: %s", path)
-	// }
-	// defer unlock()
-
-	// NOTE: use file lock to protect .proto file from being written concurrently by multiple goroutines
-	// refer: https://github.com/golang/go/issues/33974
-	// refer: https://go.googlesource.com/proposal/+/master/design/33974-add-public-lockedfile-pkg.md
-
 	// Register every output before writing so conflicts cannot leave partial
 	// output behind.
 	bookPath := x.wb.GetOptions().GetName()
@@ -191,6 +180,9 @@ func (x *bookExporter) writeUnionShardFile(shardFile *unionShardFile) error {
 }
 
 func (x *bookExporter) writeProtoFile(path string, parts ...[]byte) error {
+	if x.gen.stageDir != "" {
+		return x.gen.stageProtoFile(path, parts...)
+	}
 	f, err := lockedfile.Create(path)
 	if err != nil {
 		return xerrors.WrapKV(err)

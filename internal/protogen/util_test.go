@@ -114,7 +114,7 @@ func Test_sweepOutdir(t *testing.T) {
 		generatedPaths := map[string]bool{
 			xfs.CleanSlashPath(filepath.Join(outdir, "item_conf.proto")): true,
 		}
-		require.NoError(t, sweepOutdir(outdir, generatedPaths))
+		require.NoError(t, sweepOutdir(outdir, generatedPaths, nil))
 
 		require.FileExists(t, filepath.Join(outdir, "item_conf.proto"))
 		// the handwritten one has no generated header, so it must be kept even
@@ -125,14 +125,27 @@ func Test_sweepOutdir(t *testing.T) {
 		require.NoFileExists(t, filepath.Join(outdir, "stale_conf.proto"))
 	})
 
-	t.Run("sweep recursively", func(t *testing.T) {
+	t.Run("keep nested generator outputs", func(t *testing.T) {
 		outdir := setupOutdir(t, map[string]string{
-			"sub/stale_conf.proto":  generatedHeader,
-			"sub/handwritten.proto": "syntax = \"proto3\";\n",
+			"custom/item_conf.proto": generatedHeader,
+			"stale_conf.proto":       generatedHeader,
 		})
-		require.NoError(t, sweepOutdir(outdir, nil))
-		require.NoFileExists(t, filepath.Join(outdir, "sub/stale_conf.proto"))
-		require.FileExists(t, filepath.Join(outdir, "sub/handwritten.proto"))
+		require.NoError(t, sweepOutdir(outdir, nil, nil))
+		require.FileExists(t, filepath.Join(outdir, "custom/item_conf.proto"))
+		require.NoFileExists(t, filepath.Join(outdir, "stale_conf.proto"))
+	})
+
+	t.Run("keep configured generated imports", func(t *testing.T) {
+		outdir := setupOutdir(t, map[string]string{
+			"shared.proto": generatedHeader,
+			"stale.proto":  generatedHeader,
+		})
+		shared := filepath.Join(outdir, "shared.proto")
+		key, err := absoluteProtoPath(shared)
+		require.NoError(t, err)
+		require.NoError(t, sweepOutdir(outdir, nil, map[string]bool{key: true}))
+		require.FileExists(t, shared)
+		require.NoFileExists(t, filepath.Join(outdir, "stale.proto"))
 	})
 
 	t.Run("nothing to sweep", func(t *testing.T) {
@@ -140,7 +153,7 @@ func Test_sweepOutdir(t *testing.T) {
 		generatedPaths := map[string]bool{
 			xfs.CleanSlashPath(filepath.Join(outdir, "item_conf.proto")): true,
 		}
-		require.NoError(t, sweepOutdir(outdir, generatedPaths))
+		require.NoError(t, sweepOutdir(outdir, generatedPaths, nil))
 		require.FileExists(t, filepath.Join(outdir, "item_conf.proto"))
 	})
 }
