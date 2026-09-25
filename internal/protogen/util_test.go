@@ -135,7 +135,7 @@ func Test_staleProtoFiles(t *testing.T) {
 			"stale.proto":  generatedHeader,
 		})
 		shared := filepath.Join(outdir, "shared.proto")
-		key, err := absoluteProtoPath(shared)
+		key, err := xfs.Abs(shared)
 		require.NoError(t, err)
 		stale, err := staleProtoFiles(outdir, nil, map[string]bool{key: true})
 		require.NoError(t, err)

@@ -24,6 +24,15 @@ func CleanSlashPath(path string) string {
 	return filepath.ToSlash(filepath.Clean(path))
 }
 
+// Abs returns the absolute path in clean slash form.
+func Abs(path string) (string, error) {
+	absPath, err := abs(path)
+	if err != nil {
+		return "", xerrors.WrapKV(err)
+	}
+	return CleanSlashPath(absPath), nil
+}
+
 // abs is the function used to resolve absolute paths. It is a package-level
 // variable so that tests can replace it with a mock without touching the
 // filesystem.

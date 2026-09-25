@@ -9,6 +9,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/x/xerrors"
+	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 )
 
@@ -41,7 +42,7 @@ func importedProtoPaths(patterns []string) (map[string]bool, error) {
 			return nil, xerrors.WrapKV(err)
 		}
 		for _, match := range matches {
-			path, err := absoluteProtoPath(match)
+			path, err := xfs.Abs(match)
 			if err != nil {
 				return nil, err
 			}
@@ -108,7 +109,7 @@ func existingGeneratedProto(path string) (bool, error) {
 }
 
 func (out *protoOutput) register(path, bookPath string) error {
-	key, err := absoluteProtoPath(path)
+	key, err := xfs.Abs(path)
 	if err != nil {
 		return err
 	}
@@ -128,7 +129,7 @@ func (out *protoOutput) register(path, bookPath string) error {
 }
 
 func (out *protoOutput) stage(path string, parts ...[]byte) error {
-	key, err := absoluteProtoPath(path)
+	key, err := xfs.Abs(path)
 	if err != nil {
 		return err
 	}

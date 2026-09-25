@@ -51,14 +51,6 @@ func isGeneratedProtoFile(path string) (bool, error) {
 	return string(header) == generatedFileHeaderPrefix, nil
 }
 
-func absoluteProtoPath(path string) (string, error) {
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		return "", xerrors.WrapKV(err)
-	}
-	return xfs.CleanSlashPath(abs), nil
-}
-
 // staleProtoFiles only inspects this generator's output directory. Nested
 // directories may belong to a separate generator.
 func staleProtoFiles(outdir string, generatedPaths map[string]string, protectedPaths map[string]bool) ([]string, error) {
@@ -72,7 +64,7 @@ func staleProtoFiles(outdir string, generatedPaths map[string]string, protectedP
 			continue
 		}
 		path := filepath.Join(outdir, entry.Name())
-		key, err := absoluteProtoPath(path)
+		key, err := xfs.Abs(path)
 		if err != nil {
 			return nil, err
 		}
