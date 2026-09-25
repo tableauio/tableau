@@ -40,7 +40,7 @@ func isGeneratedProtoFile(path string) (bool, error) {
 	if err != nil {
 		return false, xerrors.WrapKV(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	header := make([]byte, len(generatedFileHeaderPrefix))
 	if _, err := io.ReadFull(f, header); err != nil {
