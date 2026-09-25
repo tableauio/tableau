@@ -187,7 +187,7 @@ func (gen *Generator) GenAll() error {
 	}
 	// Generation errors leave prior outputs untouched. GenAll alone owns the
 	// top-level output directory, so it also removes stale files on commit.
-	return gen.output.commit(true)
+	return gen.output.publish(true)
 }
 
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
@@ -228,7 +228,7 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		return err
 	}
 	// Other workbooks' outputs remain valid when generating a selection.
-	return gen.output.commit(false)
+	return gen.output.publish(false)
 }
 
 func (gen *Generator) processWorkbookOnFirstPass(relWorkbookPaths ...string) error {

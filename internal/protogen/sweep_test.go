@@ -23,7 +23,7 @@ func newSweepGenerator(t *testing.T, outputDir string) *Generator {
 	})
 }
 
-func TestProtoOutput_commitKeepsHandwrittenProto(t *testing.T) {
+func TestProtoOutput_publishKeepsHandwrittenProto(t *testing.T) {
 	outputDir := t.TempDir()
 	gen := newSweepGenerator(t, outputDir)
 	outdir := filepath.Join(outputDir, "default")
@@ -38,12 +38,12 @@ message HandBase { uint32 id = 1; }
 	// nothing is generated in this run, aka all workbooks were deleted
 	require.NoError(t, gen.output.start())
 	defer gen.output.discard()
-	require.NoError(t, gen.output.commit(true))
+	require.NoError(t, gen.output.publish(true))
 
 	assert.FileExists(t, handwritten, "handwritten proto in outdir must never be swept")
 }
 
-func TestProtoOutput_commitRemovesStaleProto(t *testing.T) {
+func TestProtoOutput_publishRemovesStaleProto(t *testing.T) {
 	outputDir := t.TempDir()
 	gen := newSweepGenerator(t, outputDir)
 	outdir := filepath.Join(outputDir, "default")
@@ -58,7 +58,7 @@ func TestProtoOutput_commitRemovesStaleProto(t *testing.T) {
 	require.NoError(t, gen.output.register(kept, "Item.xlsx"))
 	require.NoError(t, gen.output.start())
 	defer gen.output.discard()
-	require.NoError(t, gen.output.commit(true))
+	require.NoError(t, gen.output.publish(true))
 
 	assert.FileExists(t, kept, "proto generated in this run must be kept")
 	assert.NoFileExists(t, stale, "proto not generated in this run must be swept")

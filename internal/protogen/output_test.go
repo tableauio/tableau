@@ -69,7 +69,7 @@ Bad: .MissingType
 
 }
 
-func TestProtoOutput_commitRollsBackOnCollision(t *testing.T) {
+func TestProtoOutput_publishStopsBeforeStaleCleanup(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
@@ -78,22 +78,23 @@ func TestProtoOutput_commitRollsBackOnCollision(t *testing.T) {
 	require.NoError(t, gen.output.start())
 	defer gen.output.discard()
 
-	old := filepath.Join(outdir, "a.proto")
-	oldContent := []byte(generatedFileHeaderLine() + "old\n")
-	require.NoError(t, os.WriteFile(old, oldContent, 0o644))
-	require.NoError(t, gen.output.register(old, "A.xlsx"))
-	require.NoError(t, gen.output.stage(old, []byte(generatedFileHeaderLine()+"new\n")))
+	first := filepath.Join(outdir, "a.proto")
+	require.NoError(t, os.WriteFile(first, []byte(generatedFileHeaderLine()+"old\\n"), 0o644))
+	require.NoError(t, gen.output.register(first, "A.xlsx"))
+	require.NoError(t, gen.output.stage(first, []byte(generatedFileHeaderLine()+"new\\n")))
 
 	blocked := filepath.Join(outdir, "z.proto")
 	require.NoError(t, gen.output.register(blocked, "Z.xlsx"))
 	require.NoError(t, gen.output.stage(blocked, []byte(generatedFileHeaderLine())))
-	// Another writer claims the target after registration.
 	require.NoError(t, os.Mkdir(blocked, 0o755))
 
-	require.Error(t, gen.output.commit(false))
-	content, err := os.ReadFile(old)
+	stale := filepath.Join(outdir, "stale.proto")
+	require.NoError(t, os.WriteFile(stale, []byte(generatedFileHeaderLine()), 0o644))
+	require.Error(t, gen.output.publish(true))
+	content, err := os.ReadFile(first)
 	require.NoError(t, err)
-	require.Equal(t, oldContent, content)
+	require.Equal(t, generatedFileHeaderLine()+"new\\n", string(content))
+	require.FileExists(t, stale)
 	require.DirExists(t, blocked)
 }
 
@@ -129,13 +130,13 @@ func TestProtoOutput_registerRejectsImported(t *testing.T) {
 	require.ErrorContains(t, err, "imported proto")
 	require.NoError(t, gen.output.start())
 	defer gen.output.discard()
-	require.NoError(t, gen.output.commit(true))
+	require.NoError(t, gen.output.publish(true))
 	got, readErr := os.ReadFile(path)
 	require.NoError(t, readErr)
 	require.Equal(t, content, got)
 }
 
-func TestProtoOutput_commitRestoresPublishedFile(t *testing.T) {
+func TestProtoOutput_publishReplacesExistingFile(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
@@ -144,27 +145,19 @@ func TestProtoOutput_commitRestoresPublishedFile(t *testing.T) {
 	require.NoError(t, gen.output.start())
 	defer gen.output.discard()
 
-	first := filepath.Join(outdir, "a.proto")
-	oldContent := []byte(generatedFileHeaderLine() + "old\n")
-	require.NoError(t, os.WriteFile(first, oldContent, 0o644))
-	require.NoError(t, gen.output.register(first, "A.xlsx"))
-	require.NoError(t, gen.output.stage(first, []byte(generatedFileHeaderLine()+"new\n")))
+	path := filepath.Join(outdir, "item.proto")
+	require.NoError(t, os.WriteFile(path, []byte(generatedFileHeaderLine()+"old\\n"), 0o644))
+	require.NoError(t, gen.output.register(path, "Item.xlsx"))
+	replacement := generatedFileHeaderLine() + "new\\n"
+	require.NoError(t, gen.output.stage(path, []byte(replacement)))
 
-	second := filepath.Join(outdir, "z.proto")
-	require.NoError(t, gen.output.register(second, "Z.xlsx"))
-	require.NoError(t, gen.output.stage(second, []byte(generatedFileHeaderLine())))
-	key, err := absoluteProtoPath(second)
+	require.NoError(t, gen.output.publish(false))
+	content, err := os.ReadFile(path)
 	require.NoError(t, err)
-	require.NoError(t, os.Remove(gen.output.staged[key]))
-
-	require.Error(t, gen.output.commit(false))
-	content, err := os.ReadFile(first)
-	require.NoError(t, err)
-	require.Equal(t, oldContent, content)
-	require.NoFileExists(t, second)
+	require.Equal(t, replacement, string(content))
 }
 
-func TestProtoOutput_commitRejectsLateHandwrittenFile(t *testing.T) {
+func TestProtoOutput_publishRejectsLateHandwrittenFile(t *testing.T) {
 	dir := t.TempDir()
 	gen := newSweepGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
@@ -179,7 +172,7 @@ func TestProtoOutput_commitRejectsLateHandwrittenFile(t *testing.T) {
 	handwritten := []byte("syntax = \"proto3\";\n")
 	require.NoError(t, os.WriteFile(path, handwritten, 0o644))
 
-	require.ErrorContains(t, gen.output.commit(false), "non-generated")
+	require.ErrorContains(t, gen.output.publish(false), "non-generated")
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	require.Equal(t, handwritten, content)
