@@ -28,6 +28,12 @@ func Test_ensureOutputDir(t *testing.T) {
 		// leaves the previously generated proto files intact.
 		require.FileExists(t, existed)
 	})
+
+	t.Run("path below a file", func(t *testing.T) {
+		file := filepath.Join(t.TempDir(), "not-a-directory")
+		require.NoError(t, os.WriteFile(file, nil, xfs.DefaultFilePerm))
+		require.Error(t, ensureOutputDir(filepath.Join(file, "child")))
+	})
 }
 
 // generatedFileHeaderLine returns the same first line as the exporter writes
@@ -284,4 +290,57 @@ func Test_wrapDebugErr(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_validateExistingGeneratedProto(t *testing.T) {
+	dir := t.TempDir()
+
+	t.Run("missing file", func(t *testing.T) {
+		require.NoError(t, validateExistingGeneratedProto(filepath.Join(dir, "missing.proto")))
+	})
+	t.Run("generated file", func(t *testing.T) {
+		path := filepath.Join(dir, "generated.proto")
+		require.NoError(t, os.WriteFile(path, []byte(generatedFileHeaderLine()), xfs.DefaultFilePerm))
+		require.NoError(t, validateExistingGeneratedProto(path))
+	})
+	t.Run("handwritten file", func(t *testing.T) {
+		path := filepath.Join(dir, "handwritten.proto")
+		require.NoError(t, os.WriteFile(path, []byte("syntax = \"proto3\";\n"), xfs.DefaultFilePerm))
+		require.ErrorContains(t, validateExistingGeneratedProto(path), "non-generated")
+	})
+	t.Run("directory", func(t *testing.T) {
+		path := filepath.Join(dir, "directory.proto")
+		require.NoError(t, os.Mkdir(path, xfs.DefaultDirPerm))
+		require.ErrorContains(t, validateExistingGeneratedProto(path), "not a regular file")
+	})
+
+}
+
+func Test_resolveImportedProtoPaths(t *testing.T) {
+	dir := t.TempDir()
+	first := filepath.Join(dir, "first.proto")
+	second := filepath.Join(dir, "second.proto")
+	require.NoError(t, os.WriteFile(first, nil, xfs.DefaultFilePerm))
+	require.NoError(t, os.WriteFile(second, nil, xfs.DefaultFilePerm))
+
+	paths, err := resolveImportedProtoPaths([]string{filepath.Join(dir, "*.proto")})
+	require.NoError(t, err)
+	firstKey, err := xfs.Abs(first)
+	require.NoError(t, err)
+	secondKey, err := xfs.Abs(second)
+	require.NoError(t, err)
+	require.Equal(t, map[string]bool{firstKey: true, secondKey: true}, paths)
+
+	_, err = resolveImportedProtoPaths([]string{"["})
+	require.Error(t, err)
+}
+
+func Test_findStaleProtoFilesRequiresOutputDirectory(t *testing.T) {
+	_, err := findStaleProtoFiles(filepath.Join(t.TempDir(), "missing"), nil, nil)
+	require.Error(t, err)
+}
+
+func Test_isGeneratedProtoFileRequiresReadableFile(t *testing.T) {
+	_, err := isGeneratedProtoFile(filepath.Join(t.TempDir(), "missing.proto"))
+	require.Error(t, err)
 }

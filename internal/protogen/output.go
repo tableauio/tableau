@@ -114,6 +114,9 @@ func (out *protoOutput) stageFile(outputPath string, parts ...[]byte) error {
 	if !reserved {
 		return xerrors.Newf("proto output path was not reserved: %s", outputPath)
 	}
+	if out.stagingDir == "" {
+		return xerrors.Newf("proto output staging directory was not created")
+	}
 	f, err := os.CreateTemp(out.stagingDir, "proto-*.tmp")
 	if err != nil {
 		return xerrors.WrapKV(err)

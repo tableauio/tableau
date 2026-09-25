@@ -268,3 +268,55 @@ func TestProtoOutput_reservePathDistinctPaths(t *testing.T) {
 	require.NoError(t, gen.output.reservePath(filepath.Join(outdir, "item_conf.proto"), "Item.xlsx"))
 	require.NoError(t, gen.output.reservePath(filepath.Join(outdir, "skill_conf.proto"), "Skill.xlsx"))
 }
+
+func TestProtoOutput_stageFileDefersPublication(t *testing.T) {
+	outputDir := t.TempDir()
+	gen := newOutputTestGenerator(t, outputDir)
+	outdir := filepath.Join(outputDir, "default")
+	outputPath := filepath.Join(outdir, "item.proto")
+
+	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
+	require.NoError(t, gen.output.reservePath(outputPath, "Item.xlsx"))
+	require.NoError(t, gen.output.stageFile(outputPath, []byte("first"), []byte(" second")))
+
+	key, err := xfs.Abs(outputPath)
+	require.NoError(t, err)
+	stagedPath := gen.output.stagedFiles[key]
+	require.NotEmpty(t, stagedPath)
+	require.DirExists(t, filepath.Dir(stagedPath))
+	require.NoFileExists(t, outputPath)
+	content, err := os.ReadFile(stagedPath)
+	require.NoError(t, err)
+	require.Equal(t, "first second", string(content))
+
+	require.NoError(t, gen.output.publishSelected())
+	require.FileExists(t, outputPath)
+	require.NoFileExists(t, stagedPath)
+}
+
+func TestProtoOutput_stageFileRequiresStagingDirectory(t *testing.T) {
+	outputDir := t.TempDir()
+	gen := newOutputTestGenerator(t, outputDir)
+	outputPath := filepath.Join(outputDir, "default", "item.proto")
+
+	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.output.reservePath(outputPath, "Item.xlsx"))
+	require.Error(t, gen.output.stageFile(outputPath, []byte(generatedFileHeaderLine())))
+}
+
+func TestProtoOutput_createStagingDirRequiresOutputDirectory(t *testing.T) {
+	outputPath := filepath.Join(t.TempDir(), "not-a-directory")
+	require.NoError(t, os.WriteFile(outputPath, nil, xfs.DefaultFilePerm))
+
+	out := newProtoOutput(outputPath, nil)
+	require.Error(t, out.createStagingDir())
+	require.Empty(t, out.stagingDir)
+}
+
+func TestProtoOutput_removeStagingDirWithoutDirectory(t *testing.T) {
+	out := newProtoOutput(t.TempDir(), nil)
+	out.removeStagingDir()
+	require.Empty(t, out.stagingDir)
+}

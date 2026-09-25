@@ -1,6 +1,7 @@
 package xfs
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -319,4 +320,31 @@ func TestRel(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAbs(t *testing.T) {
+	t.Run("normalizes an absolute path", func(t *testing.T) {
+		got, err := Abs(filepath.Join("foo", "..", "bar", "file.proto"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		want, err := filepath.Abs(filepath.Join("bar", "file.proto"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != CleanSlashPath(want) {
+			t.Errorf("Abs() = %q, want %q", got, CleanSlashPath(want))
+		}
+	})
+
+	t.Run("returns resolution errors", func(t *testing.T) {
+		originalAbs := abs
+		abs = func(string) (string, error) { return "", errors.New("unavailable") }
+		t.Cleanup(func() { abs = originalAbs })
+
+		_, err := Abs("file.proto")
+		if err == nil {
+			t.Fatal("Abs() error = nil, want error")
+		}
+	})
 }
