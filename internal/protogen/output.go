@@ -98,7 +98,11 @@ func (out *protoOutput) reservePath(outputPath, workbookPath string) error {
 	return nil
 }
 
-// stageFile writes a reserved output to the staging directory.
+// stageFile writes a complete reserved output to a uniquely named staging file.
+//
+// Workers may stage files concurrently. A temporary name avoids collisions, and
+// the file is recorded for publication only after it closes successfully. The
+// generated filename is used only when publish replaces its final destination.
 func (out *protoOutput) stageFile(outputPath string, parts ...[]byte) error {
 	key, err := xfs.Abs(outputPath)
 	if err != nil {
