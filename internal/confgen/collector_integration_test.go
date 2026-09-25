@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/options"
 )
 
@@ -47,15 +48,15 @@ func e2012(workbook, worksheet, cellPos, value, fieldType string) string {
 		`Help: fill cell data with valid syntax of numerical type "` + fieldType + `"` + "\n"
 }
 
-// TestCollectorIntegration_MessageLevel tests that field-level errors within
-// a single row (message) are collected by the message-level collector.
+// TestCollectorIntegration_MessageLevel tests that errors in one worksheet
+// message inherit its context and remain separate per cell.
 //
 // CSV data: ItemConf has 1 row with 2 invalid fields in the same row.
 //   - Row 1: Num="xyz" (invalid int32) AND Price="bad_price" (invalid int32) -> 2x E2012 in same row
 //
 // This verifies that multiple column parse errors within the same row are all collected.
 //
-// Collector hierarchy: global -> book -> sheet(ItemConf) -> message(row)
+// Collector hierarchy: global -> book -> worksheet message -> imported sheet
 func TestCollectorIntegration_MessageLevel(t *testing.T) {
 	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/")
 	err := gen.Generate("Collector#ItemConf.csv")
@@ -76,7 +77,7 @@ func TestCollectorIntegration_MessageLevel(t *testing.T) {
 //   - ItemConf row 1: "xyz" (int32) AND "bad_price" (int32) — multiple errors in same row
 //   - ShopConf: "bad_price" (int32), "bad_id" (uint32)
 //
-// Collector hierarchy: global -> book -> sheet(ItemConf) + sheet(ShopConf)
+// Collector hierarchy: global -> book -> one message per worksheet -> imported sheets
 func TestCollectorIntegration_BookLevel(t *testing.T) {
 	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/")
 	err := gen.Generate("Collector#ItemConf.csv")
@@ -96,7 +97,7 @@ func TestCollectorIntegration_BookLevel(t *testing.T) {
 // CSV data: ItemConf has 12 rows with invalid IDs (a1..a12).
 // Only the first 5 errors per sheet should be stored.
 //
-// Collector hierarchy: global(20) -> book(10) -> sheet(5) -> message(3)
+// Collector hierarchy: global(20) -> book(10) -> message(unlimited) -> sheet(5)
 func TestCollectorIntegration_SheetLevelCapped(t *testing.T) {
 	gen := newCollectorTestGenerator("./testdata/collector/csv/overflow/")
 	err := gen.Generate("Collector#ItemConf.csv")
@@ -153,7 +154,7 @@ func TestCollectorIntegration_MultiBook(t *testing.T) {
 //   - Collector/ShopConf: 12 invalid rows (b1..b12)
 //   - Collector2/HeroConf: 12 invalid rows (c1..c12)
 //
-// Limits: global(20) -> book(10) -> sheet(5) -> message(3)
+// Limits: global(20) -> book(10) -> message(unlimited) -> sheet(5)
 // Each sheet caps at 5, each book caps at 10, global caps at 20.
 // Total possible: 3 sheets * 5 = 15 errors (within book limits).
 // NOTE: workbook processing order is non-deterministic (concurrent), so we
@@ -193,12 +194,8 @@ func TestCollectorIntegration_MultiBookCapped(t *testing.T) {
 //   - shard workbook  "MergerShard1#*.csv"   / sheet MergerCollectorItemConf
 //     contains one invalid Num cell ("bad_num") that triggers E2012.
 //
-// The shard is merged via `merger: "MergerShard*.csv#MergerCollectorItemConf"`
-// in merger.proto. parseMessageFromOneImporter fails on the shard, the
-// merger goroutine WrapKV's the error with both the shard names AND the
-// primary names; the fix ensures the shard names survive into the final
-// error description (regression: previously only the primary names were
-// kept and the user could not tell which shard actually broke).
+// The shard's sheet collector supplies the actual source names and inherits
+// the primary names from its ancestors.
 //
 // Note: uses a separate proto package + testdata tree so its workbook
 // options don't perturb the other TestCollectorIntegration_* tests above.
@@ -232,11 +229,20 @@ func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
 		"shard BookName must appear in the rendered error")
 	assert.Contains(t, got, "Worksheet: MergerCollectorItemConf",
 		"shard SheetName must appear in the rendered error")
-	// And the main workbook must be annotated as Primary, proving both
-	// (BookName, PrimaryBookName) survived WrapKV layering.
+	// The main workbook is annotated as Primary alongside the shard name.
 	assert.Contains(t, got, "(Primary: MergerCollector#*.csv)",
 		"primary BookName must be annotated alongside the shard BookName")
 	// The error must NOT point at the main workbook as the offending one.
 	assert.NotContains(t, got, "Workbook: MergerCollector#*.csv",
 		"main workbook must not be reported as the offending file")
+
+	desc := xerrors.NewDesc(err)
+	require.NotNil(t, desc)
+	assert.Equal(t, xerrors.ModuleConf, desc.GetValue(xerrors.KeyModule))
+	assert.Equal(t, "MergerShard1#*.csv", desc.GetValue(xerrors.KeyBookName))
+	assert.Equal(t, "MergerCollectorItemConf", desc.GetValue(xerrors.KeySheetName))
+	assert.Equal(t, "MergerCollector#*.csv", desc.GetValue(xerrors.KeyPrimaryBookName))
+	assert.Equal(t, "MergerCollectorItemConf", desc.GetValue(xerrors.KeyPrimarySheetName))
+	assert.Equal(t, "MergerCollectorItemConf", desc.GetValue(xerrors.KeyPBMessage))
+	assert.Equal(t, "B4", desc.GetValue(xerrors.KeyDataCellPos))
 }

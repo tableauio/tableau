@@ -33,7 +33,7 @@ type sheetExporter struct {
 	OutputDir string
 	OutputOpt *options.ConfOutputOption // output settings.
 	validator protovalidate.Validator   // validator with extension type resolver.
-	collector *xerrors.Collector        // concurrent error collector shared from Generator.
+	collector *xerrors.Collector        // collector for one worksheet message.
 }
 
 // NewSheetExporter creates a new sheet exporter.
@@ -136,14 +136,14 @@ type oneMsg struct {
 }
 
 // ParseMessage parses multiple importer infos into one protomsg.
-func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...importer.ImporterInfo) (proto.Message, error) {
+func ParseMessage(info *SheetInfo, messageCollector *xerrors.Collector, impInfos ...importer.ImporterInfo) (proto.Message, error) {
 	if len(impInfos) == 0 {
 		return nil, xerrors.NewKV("no importer to be parsed",
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 			xerrors.KeySheetName, info.SheetOpts.Name,
 			xerrors.KeyPBMessage, string(info.MD.Name()))
 	} else if len(impInfos) == 1 {
-		protomsg, err := parseMessageFromOneImporter(info, collector, impInfos[0])
+		protomsg, err := parseMessageFromOneImporter(info, messageCollector, impInfos[0])
 		if err != nil {
 			return nil, err
 		}
@@ -154,13 +154,13 @@ func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...imp
 	var mu sync.Mutex // guard msgs
 	var msgs []oneMsg
 
-	g := collector.NewGroup(context.Background())
+	g := messageCollector.NewGroup(context.Background())
 	for _, impInfo := range impInfos {
 		// map-reduce: map jobs for concurrent processing
 		g.Go(func(ctx context.Context) error {
 			bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
 			sheetName := getRealSheetName(info, impInfo)
-			protomsg, err := parseMessageFromOneImporter(info, collector, impInfo)
+			protomsg, err := parseMessageFromOneImporter(info, messageCollector, impInfo)
 			if err != nil {
 				return xerrors.WrapKV(err,
 					xerrors.KeyBookName, bookName,
@@ -212,7 +212,7 @@ func ParseMessage(info *SheetInfo, collector *xerrors.Collector, impInfos ...imp
 	return mainMsg, nil
 }
 
-func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, impInfo importer.ImporterInfo) (proto.Message, error) {
+func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Collector, impInfo importer.ImporterInfo) (proto.Message, error) {
 	sheetName := getRealSheetName(info, impInfo)
 	sheet := impInfo.GetSheet(sheetName)
 	if sheet == nil {
@@ -223,13 +223,15 @@ func parseMessageFromOneImporter(info *SheetInfo, collector *xerrors.Collector, 
 	parser := NewExtendedSheetParser(context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
 	// Overwrite the default single-error collector (set by NewExtendedSheetParser for
 	// fail-fast use) with a child collector scoped to this sheet and capped at
-	// maxErrorsPerSheet, so one sheet cannot exhaust the parent book-level collector.
+	// maxErrorsPerSheet, so one imported sheet cannot exhaust the book collector.
 	maxErrorsPerSheet := options.DefaultMaxErrorsPerSheet
 	if info.ExtInfo.ErrorLimit != nil {
 		maxErrorsPerSheet = info.ExtInfo.ErrorLimit.MaxErrorsPerSheet
 	}
-	parser.sheetCollector = collector.NewChild(maxErrorsPerSheet)
 	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
+	parser.sheetCollector = messageCollector.NewChild(maxErrorsPerSheet,
+		xerrors.KeyBookName, bookName,
+		xerrors.KeySheetName, sheetName)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	if err := parser.Parse(protomsg, sheet); err != nil {
 		return nil, xerrors.WrapKV(err,

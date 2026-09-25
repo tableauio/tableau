@@ -98,37 +98,37 @@ type Desc struct {
 	children []*Desc
 }
 
-// NewDesc builds a *Desc from err. Single-chain wrappers are traversed to find
-// inner multi-errors; all nested joins are fully flattened with outer fields
-// (e.g. Module, BookName) merged in (innermost wins). Returns nil for nil err.
+// NewDesc builds a *Desc from err. Joins are flattened and inherit enclosing
+// fields. Collector snapshots inherit from their own scopes, so later wrappers
+// cannot assign fields to multiple errors in that snapshot. Returns nil for nil err.
 func NewDesc(err error) *Desc {
 	if err == nil {
 		return nil
 	}
-	// Collect outer fields while walking the chain; stop at the first multi-error.
-	outerFields := make(map[string]any)
-	cur := err
-	for cur != nil {
+	var layers []fieldLayer
+	for cur := err; cur != nil; cur = errors.Unwrap(cur) {
+		if _, ok := cur.(*collected); ok {
+			// Wrappers added after Join describe the snapshot, not every
+			// individual error already stored in its collector tree.
+			for i := range layers {
+				layers[i].shared = false
+			}
+		}
 		if fc, ok := cur.(fieldsCarrier); ok {
-			maps.Copy(outerFields, fc.Fields())
+			layers = append(layers, fieldLayer{fields: fc.Fields(), shared: true})
 		}
 		if mu, ok := cur.(multiUnwrapper); ok {
-			return buildFromChildren(cur, mu.Unwrap(), outerFields)
+			return buildFromChildren(cur, mu.Unwrap(), layers)
 		}
-		cur = errors.Unwrap(cur)
 	}
 	// No multi-error found: treat as a single error.
 	return &Desc{err: err, fields: collectFields(err)}
 }
 
-// newDescWithOuter builds a *Desc for a joinError using pre-supplied outerFields,
-// avoiding a re-entrant call to Error().
-func newDescWithOuter(err error, outerFields map[string]any) *Desc {
-	mu, ok := err.(multiUnwrapper)
-	if !ok {
-		return nil
-	}
-	return buildFromChildren(err, mu.Unwrap(), outerFields)
+// fieldLayer records whether fields can be inherited by every joined error.
+type fieldLayer struct {
+	fields map[string]any
+	shared bool
 }
 
 // collectFields walks the error chain and collects fields from every
@@ -157,23 +157,6 @@ func collectFields(err error) map[string]any {
 	return fields
 }
 
-// mergeOuterFields merges outerFields into d and its descendants; inner fields win.
-func mergeOuterFields(d *Desc, outerFields map[string]any) {
-	if len(outerFields) == 0 {
-		return
-	}
-	if len(d.children) > 0 {
-		for _, child := range d.children {
-			mergeOuterFields(child, outerFields)
-		}
-		return
-	}
-	merged := make(map[string]any, len(outerFields)+len(d.fields))
-	maps.Copy(merged, outerFields)
-	maps.Copy(merged, d.fields) // inner fields win
-	d.fields = merged
-}
-
 // flattenDescs appends all leaf *Desc nodes from d into dst.
 func flattenDescs(d *Desc, dst *[]*Desc) {
 	if len(d.children) == 0 {
@@ -185,20 +168,26 @@ func flattenDescs(d *Desc, dst *[]*Desc) {
 	}
 }
 
-// buildFromChildren expands errs into leaf *Desc nodes with outerFields merged in
-// (inner fields win) and returns a *Desc rooted at err.
-func buildFromChildren(err error, errs []error, outerFields map[string]any) *Desc {
+// buildFromChildren flattens a join and applies its enclosing field layers.
+// Inner fields win; fields added outside a collector snapshot stay local.
+func buildFromChildren(err error, errs []error, layers []fieldLayer) *Desc {
 	var leaves []*Desc
-	for _, c := range errs {
-		if c == nil {
+	for _, child := range errs {
+		if inner := NewDesc(child); inner != nil {
+			flattenDescs(inner, &leaves)
+		}
+	}
+	for i := len(layers) - 1; i >= 0; i-- {
+		layer := layers[i]
+		if len(layer.fields) == 0 || (!layer.shared && len(leaves) != 1) {
 			continue
 		}
-		inner := NewDesc(c)
-		if inner == nil {
-			continue
+		for _, leaf := range leaves {
+			merged := make(map[string]any, len(layer.fields)+len(leaf.fields))
+			maps.Copy(merged, layer.fields)
+			maps.Copy(merged, leaf.fields) // inner fields win
+			leaf.fields = merged
 		}
-		mergeOuterFields(inner, outerFields)
-		flattenDescs(inner, &leaves)
 	}
 	switch len(leaves) {
 	case 0:

@@ -95,7 +95,8 @@ func Wrapf(err error, format string, args ...any) error {
 	}
 }
 
-// WrapKV wraps err with structured key-value fields (visible via NewDesc, not in Error()) and a stack trace.
+// WrapKV adds fields to an error. Fields on a regular join apply to its
+// children; a collector Join result keeps the scope of its collector tree.
 // Returns nil if err is nil.
 func WrapKV(err error, keysAndValues ...any) error {
 	if err == nil {
@@ -133,17 +134,6 @@ func (b *base) Format(s fmt.State, verb rune) {
 	format(b, s, verb)
 }
 
-// renderWithFields delegates to the cause, passing outerFields through the stack wrapper.
-func (b *base) renderWithFields(outerFields map[string]any) string {
-	if b.cause != nil {
-		if r, ok := b.cause.(fieldsRenderer); ok {
-			return r.renderWithFields(outerFields)
-		}
-		return b.cause.Error()
-	}
-	return ""
-}
-
 // withMessage wraps a cause with an optional message and structured fields.
 // If replacesCause is true, message fully replaces the cause text in Error();
 // the cause is kept only for errors.Is/As and stack retrieval.
@@ -151,18 +141,13 @@ func (b *base) renderWithFields(outerFields map[string]any) string {
 type withMessage struct {
 	cause         error
 	message       string
-	fields        map[string]any // structured key-value metadata; never encoded into Error()
+	fields        map[string]any // structured key-value metadata
 	replacesCause bool
 }
 
 // Fields implements fieldsCarrier.
 func (w *withMessage) Fields() map[string]any {
 	return w.fields
-}
-
-// fieldsRenderer renders an error string with outer fields merged in (inner fields win).
-type fieldsRenderer interface {
-	renderWithFields(outerFields map[string]any) string
 }
 
 func (w *withMessage) Error() string {
@@ -179,13 +164,11 @@ func (w *withMessage) Error() string {
 		}
 		return w.message
 	}
-	// No message but has fields: propagate to cause.
-	if len(w.fields) > 0 && w.cause != nil {
-		if r, ok := w.cause.(fieldsRenderer); ok {
-			return r.renderWithFields(w.fields)
-		}
+	// Joined errors need the wrapper's sharing rule while they are flattened.
+	if d := NewDesc(w); d != nil && d.err != w {
+		return d.String()
 	}
-	// No message: delegate to cause.
+	// No join: delegate to cause.
 	if w.cause != nil {
 		return w.cause.Error()
 	}
@@ -194,25 +177,6 @@ func (w *withMessage) Error() string {
 
 // Unwrap returns the cause for error chain traversal.
 func (w *withMessage) Unwrap() error { return w.cause }
-
-// renderWithFields merges outerFields with w.fields (inner wins) and propagates down.
-// If w has a message it is not a transparent wrapper, so Error() is returned directly.
-func (w *withMessage) renderWithFields(outerFields map[string]any) string {
-	if w.message != "" {
-		return w.Error()
-	}
-	// Merge outerFields then overlay w.fields (inner wins).
-	merged := make(map[string]any, len(outerFields)+len(w.fields))
-	maps.Copy(merged, outerFields)
-	maps.Copy(merged, w.fields)
-	if w.cause != nil {
-		if r, ok := w.cause.(fieldsRenderer); ok {
-			return r.renderWithFields(merged)
-		}
-		return w.cause.Error()
-	}
-	return ""
-}
 
 func (w *withMessage) Format(s fmt.State, verb rune) {
 	format(w, s, verb)
@@ -282,25 +246,18 @@ type joinError struct {
 
 func (j *joinError) Unwrap() []error { return j.errs }
 
-// Error renders all children via renderWithFields(nil).
+// Error renders the joined errors from their structured descriptions.
 func (j *joinError) Error() string {
-	return j.renderWithFields(nil)
-}
-
-// renderWithFields renders children with outerFields merged in (inner fields win),
-// propagating fields such as Module, BookName, SheetName from an enclosing WrapKV.
-func (j *joinError) renderWithFields(outerFields map[string]any) string {
-	if d := newDescWithOuter(j, outerFields); d != nil {
+	if d := NewDesc(j); d != nil {
 		return d.String()
 	}
-	// Fallback: plain join.
 	var sb strings.Builder
-	for i, e := range j.errs {
+	for i, err := range j.errs {
 		if i > 0 {
 			sb.WriteByte('\n')
 		}
-		if e != nil {
-			sb.WriteString(e.Error())
+		if err != nil {
+			sb.WriteString(err.Error())
 		}
 	}
 	return sb.String()

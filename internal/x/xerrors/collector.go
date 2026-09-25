@@ -12,12 +12,7 @@ import (
 )
 
 // Collector accumulates errors concurrently up to a configurable limit.
-// Collectors form a hierarchy via [Collector.NewChild]; [Collector.Join]
-// recursively merges own errors with children's.
-//
-// When a child's [collected] error is wrapped (e.g. via [WrapKV]), the
-// outer [withMessage] is remembered and re-applied in [Collector.Join],
-// producing: collected → withMessage{fields} → joinError{…}.
+// Children represent narrower scopes; Join includes their errors automatically.
 type Collector struct {
 	mu       sync.Mutex
 	errs     []error
@@ -25,7 +20,7 @@ type Collector struct {
 	counter  atomic.Int32
 	maxErrs  int32
 	parent   *Collector
-	outerWM  *withMessage // outer WrapKV layer, re-applied in Join()
+	scope    map[string]any // context shared by errors in this subtree
 }
 
 // NewCollector creates a root Collector.
@@ -35,11 +30,14 @@ func NewCollector(maxErrs int) *Collector {
 }
 
 // NewChild creates a child collector registered under the receiver.
-// maxErrs semantics are the same as [NewCollector].
-func (c *Collector) NewChild(maxErrs int) *Collector {
+// Scope fields describe every error in the child's subtree; each leaf keeps
+// its own cell and field details. maxErrs follows [NewCollector].
+func (c *Collector) NewChild(maxErrs int, scope ...any) *Collector {
+	fields := parseKV(scope...)
 	child := &Collector{
 		maxErrs: normalizeMax(maxErrs),
 		parent:  c,
+		scope:   fields,
 	}
 	c.mu.Lock()
 	c.children = append(c.children, child)
@@ -49,55 +47,28 @@ func (c *Collector) NewChild(maxErrs int) *Collector {
 
 // normalizeMax converts user-facing maxErrs to internal representation.
 func normalizeMax(maxErrs int) int32 {
-	if maxErrs <= 0 {
-		return math.MaxInt32 // unlimited
+	if maxErrs <= 0 || maxErrs > math.MaxInt32 {
+		return math.MaxInt32 // unlimited or larger than the counter can represent
 	}
 	return int32(maxErrs)
 }
 
 // Collect accumulates err into the collector.
 //
-//   - nil err: no-op unless this collector (or an ancestor) is already full,
-//     in which case the joined error tree is returned immediately.
-//   - already-collected err (*collected): records the outer WrapKV layer for
-//     re-wrapping in Join; does not increment any counter.
-//   - ordinary err: increments every ancestor's counter, stores the error if
-//     it is within every ancestor's budget, and returns the joined error tree
-//     if any ancestor has now reached its limit (nil otherwise).
+// A nil error or a Join result already in this tree adds nothing. Once this
+// collector or an ancestor is full, further calls stop without consuming
+// another level's budget. The call that reaches a limit is still stored and
+// returns the joined errors.
 func (c *Collector) Collect(err error) error {
-	if err == nil {
-		if c.IsFull() {
-			return c.Join()
-		}
+	if c.IsFull() {
+		return c.joinAtOrAbove()
+	}
+	if err == nil || c.isCollectedFromTree(err) {
 		return nil
 	}
 
-	// Already-collected error (from a Join() somewhere): if the collected
-	// error originates from the same collector tree as c (shares the same
-	// root), it is or will be reachable from the root via tree auto-join, so
-	// we must not double-count it here. We only record the outer WrapKV
-	// layer on the originating collector for re-wrapping in its Join().
-	//
-	// Otherwise (foreign collected, e.g. from an unrelated parser-local
-	// fail-fast collector that is not part of c's tree), fall through and
-	// treat it as an ordinary error so it is still stored and counted on
-	// this collector; without this fallback the error would silently vanish.
-	var ce *collected
-	if errors.As(err, &ce) && ce.origin != nil && ce.origin.sameTreeAs(c) {
-		if wm, ok := err.(*withMessage); ok {
-			ce.origin.mu.Lock()
-			ce.origin.outerWM = wm
-			ce.origin.mu.Unlock()
-		}
-		if c.IsFull() {
-			return c.Join()
-		}
-		return nil
-	}
-
-	// Increment all ancestor counters; track whether any hit the limit (anyFull)
-	// and whether this error is within every ancestor's budget (store).
-	// n == maxErrs is the last accepted slot; n > maxErrs means overflow.
+	// n == maxErrs is the last accepted slot. Concurrent calls may still
+	// increment past a limit; those overflow errors are not stored.
 	anyFull, store := false, true
 	for cur := c; cur != nil; cur = cur.parent {
 		n := cur.counter.Add(1)
@@ -116,7 +87,18 @@ func (c *Collector) Collect(err error) error {
 	}
 
 	if anyFull {
-		return c.Join()
+		return c.joinAtOrAbove()
+	}
+	return nil
+}
+
+// joinAtOrAbove returns this subtree's errors, or an ancestor's when the
+// subtree is empty because a sibling filled the shared budget.
+func (c *Collector) joinAtOrAbove() error {
+	for cur := c; cur != nil; cur = cur.parent {
+		if joined := cur.Join(); joined != nil {
+			return joined
+		}
 	}
 	return nil
 }
@@ -149,6 +131,18 @@ func (c *Collector) sameTreeAs(other *Collector) bool {
 	return c.root() == other.root()
 }
 
+// isCollectedFromTree recognizes only a single wrapper chain. A multi-error
+// containing a collected error may also contain new errors and must be stored.
+func (c *Collector) isCollectedFromTree(err error) bool {
+	for err != nil {
+		if joined, ok := err.(*collected); ok {
+			return joined.origin != nil && joined.origin.sameTreeAs(c)
+		}
+		err = errors.Unwrap(err)
+	}
+	return false
+}
+
 // HasErrors reports whether this collector's subtree has any errors.
 // It is a fast, lock-free check suitable for guarding expensive [Collector.Join] calls.
 func (c *Collector) HasErrors() bool {
@@ -162,7 +156,6 @@ func (c *Collector) Join() error {
 	copy(ownErrs, c.errs)
 	kids := make([]*Collector, len(c.children))
 	copy(kids, c.children)
-	outerWM := c.outerWM
 	c.mu.Unlock()
 
 	var nonNil []error
@@ -180,9 +173,8 @@ func (c *Collector) Join() error {
 		return nil
 	}
 	var inner error = &joinError{errs: nonNil, stack: callers(1)}
-	// Re-wrap with outer WrapKV fields if present.
-	if outerWM != nil {
-		inner = &withMessage{cause: inner, fields: outerWM.fields}
+	if len(c.scope) > 0 {
+		inner = &withMessage{cause: inner, fields: c.scope}
 	}
 	return &collected{
 		error:  inner,
@@ -198,6 +190,7 @@ type collected struct {
 
 func (c *collected) Error() string { return c.error.Error() }
 func (c *collected) Unwrap() error { return c.error }
+
 func (c *collected) Format(s fmt.State, verb rune) {
 	if f, ok := c.error.(fmt.Formatter); ok {
 		f.Format(s, verb)
