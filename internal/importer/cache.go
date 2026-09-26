@@ -165,14 +165,14 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 		return nil, err
 	}
 
-	view, decoded, err := c.loadView(ctx, loaded.(cachedSource), key.filename, opts.Sheets)
+	imp, decoded, err := c.loadImporter(ctx, loaded.(cachedSource), key.filename, opts.Sheets)
 	if c.profiling {
 		c.sheets.Add(decoded)
 	}
 	if err != nil {
 		return nil, err
 	}
-	actual, _ := c.entries.LoadOrStore(key, view)
+	actual, _ := c.entries.LoadOrStore(key, imp)
 	return actual.(Importer), nil
 }
 
@@ -191,19 +191,19 @@ func (c *Cache) openSource(ctx context.Context, filename string) (source cachedS
 	return source, decoded, err
 }
 
-func (c *Cache) loadView(ctx context.Context, source cachedSource, filename string, sheetNames []string) (view Importer, decoded int64, err error) {
+func (c *Cache) loadImporter(ctx context.Context, source cachedSource, filename string, sheetNames []string) (imp Importer, decoded int64, err error) {
 	if !c.profiling {
 		return source.load(ctx, sheetNames)
 	}
 	err = profile.Run(ctx, func(ctx context.Context) error {
-		view, decoded, err = source.load(ctx, sheetNames)
+		imp, decoded, err = source.load(ctx, sheetNames)
 		return err
 	},
 		"work", "sheet_decode",
 		"format", string(format.GetFormat(filename)),
 		"source", filename,
 	)
-	return view, decoded, err
+	return imp, decoded, err
 }
 
 func openCachedSource(ctx context.Context, filename string, profiling bool) (cachedSource, int64, error) {
