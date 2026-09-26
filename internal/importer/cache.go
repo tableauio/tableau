@@ -334,7 +334,7 @@ func (c *cachedExcel) sheetNames() []string {
 }
 
 func (c *cachedExcel) readerName() string {
-	if c.useRaw {
+	if c.reader != nil || c.useRaw {
 		return "xlsx"
 	}
 	return "excelize"
