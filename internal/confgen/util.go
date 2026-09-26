@@ -49,14 +49,12 @@ func (f *Field) inheritParentFieldProp(parent *Field) *Field {
 		return f
 	}
 	field := *f
-	opts := *f.opts
-	prop := tableaupb.FieldProp{}
-	if f.opts.Prop != nil {
-		prop = *f.opts.Prop
+	opts := proto.Clone(f.opts).(*tableaupb.FieldOptions)
+	if opts.Prop == nil {
+		opts.Prop = &tableaupb.FieldProp{}
 	}
-	prop.Optional = true
-	opts.Prop = &prop
-	field.opts = &opts
+	opts.Prop.Optional = true
+	field.opts = opts
 	return &field
 }
 
