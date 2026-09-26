@@ -19,22 +19,9 @@ Codex app. A normal browser cannot resolve that module, so it cannot render the
 Use one of these views:
 
 1. Open the Canvas file in Codex for the native interactive view.
-2. Open the self-contained browser export:
-   [`confgen-profile-report.html`](./confgen-profile-report.html).
-
-On Windows, open the browser export from the repository root:
-
-```powershell
-Start-Process .\docs\profile\confgen-profile-report.html
-```
-
-If the browser restricts local `file:` pages, serve the directory:
-
-```powershell
-python -m http.server 8000 --directory .\docs\profile
-```
-
-Then open <http://localhost:8000/confgen-profile-report.html>.
+The editable report is available in Codex Canvas. Its `.canvas.tsx` source
+imports `cursor/canvas`, a virtual component library supplied by the Codex app,
+so a normal browser cannot render it directly.
 
 ## Measurement setup
 
