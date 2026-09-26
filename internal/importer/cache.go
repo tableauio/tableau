@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
+	"github.com/tableauio/tableau/internal/importer/xlsx"
 	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
@@ -59,10 +60,16 @@ type cachedExcel struct {
 	// still load in parallel.
 	mu        sync.Mutex
 	filename  string
-	reader    *xlsxReader
+	reader    workbookReader
 	file      *excelize.File // compatibility fallback, opened lazily
 	sheets    map[string]*book.Sheet
 	profiling bool
+}
+
+type workbookReader interface {
+	SheetNames() []string
+	ReadRows(string) ([][]string, error)
+	Close() error
 }
 
 type cachedCSV struct {
@@ -286,7 +293,7 @@ func (c *cachedExcel) close() error {
 }
 
 func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
-	reader, err := openXLSXReader(filename)
+	reader, err := xlsx.Open(filename)
 	if err == nil {
 		return &cachedExcel{
 			filename:  filename,
