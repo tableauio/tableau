@@ -232,6 +232,39 @@ func TestCheckRefer_loadFailureDedup(t *testing.T) {
 	}
 }
 
+func TestCheckRefer_normalizesCacheKey(t *testing.T) {
+	cache := NewReferredCache()
+	input := &Input{
+		ProtoPackage: "unittest",
+		InputDir:     "../../../testdata",
+		PRFiles:      protoregistry.GlobalFiles,
+		Present:      true,
+	}
+	checks := []struct {
+		refer string
+		value string
+	}{
+		{refer: "ItemConf.ID", value: "1"},
+		{refer: "AnySheet(ItemConf).ID", value: "2"},
+		{refer: "AnotherSheet(ItemConf).Num", value: "100"},
+	}
+	for _, check := range checks {
+		prop := &tableaupb.FieldProp{Refer: check.refer}
+		if err := cache.CheckRefer(context.Background(), prop, check.value, input); err != nil {
+			t.Fatalf("CheckRefer(%q) error = %v", check.refer, err)
+		}
+	}
+
+	for _, key := range []string{"unittest.ItemConf.ID", "unittest.ItemConf.Num"} {
+		if cache.entries[key] == nil {
+			t.Errorf("cache entry %q not found", key)
+		}
+	}
+	if len(cache.entries) != 2 {
+		t.Errorf("cache entries = %d, want 2", len(cache.entries))
+	}
+}
+
 func testHeader() *tableparser.Header {
 	return &tableparser.Header{
 		NameRow: 1,

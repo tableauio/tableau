@@ -34,7 +34,7 @@ type ReferredCache struct {
 	mu sync.RWMutex
 	// Entries are pointers because a loader publishes into the same in-flight
 	// entry that waiters obtained before the load completed.
-	entries map[string]*referCacheEntry // refer expression -> cached or in-flight result
+	entries map[string]*referCacheEntry // <full message name>.<column name> -> cached or in-flight result
 }
 
 // referCacheEntry holds an in-flight or completed reference load. Closing ready
@@ -82,25 +82,24 @@ func NewReferredCache() *ReferredCache {
 
 type loadValueSpaceFunc = func() (*valueSpace, error)
 
-// getEntry loads each reference once. Callers for the same reference wait for
-// its ready channel, while the load runs outside mu so unrelated references can
-// load concurrently.
-func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
+// getEntry loads each normalized message column once. Callers for the same key
+// wait for its ready channel, while unrelated targets load concurrently.
+func (r *ReferredCache) getEntry(key string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
 	r.mu.RLock()
-	entry, ok := r.entries[refer]
+	entry, ok := r.entries[key]
 	r.mu.RUnlock()
 	if ok {
 		return waitForReferEntry(entry), nil
 	}
 
 	r.mu.Lock()
-	entry, ok = r.entries[refer]
+	entry, ok = r.entries[key]
 	if ok {
 		r.mu.Unlock()
 		return waitForReferEntry(entry), nil
 	}
 	entry = &referCacheEntry{ready: make(chan struct{})}
-	r.entries[refer] = entry
+	r.entries[key] = entry
 	r.mu.Unlock()
 
 	space, err := loadFunc()
@@ -165,23 +164,45 @@ type Input struct {
 	Present        bool // field presence
 }
 
-func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpace, error) {
+type referTarget struct {
+	refer    string
+	fullName protoreflect.FullName
+	column   string
+}
+
+func (t *referTarget) key() string {
+	return string(t.fullName) + "." + t.column
+}
+
+func normalizeRefer(refer string, input *Input) (*referTarget, error) {
 	referInfo, err := parseRefer(refer)
 	if err != nil {
 		return nil, err
 	}
-	fullName := protoreflect.FullName(input.ProtoPackage + "." + referInfo.getMessageName())
-	desc, err := input.PRFiles.FindDescriptorByName(fullName)
+	messageName := referInfo.getMessageName()
+	return &referTarget{
+		refer:    refer,
+		fullName: protoreflect.FullName(input.ProtoPackage + "." + messageName),
+		column:   referInfo.Column,
+	}, nil
+}
+
+func loadValueSpaceForTarget(ctx context.Context, target *referTarget, input *Input) (*valueSpace, error) {
+	desc, err := input.PRFiles.FindDescriptorByName(target.fullName)
 	if err != nil {
-		return nil, xerrors.E2001(refer, referInfo.getMessageName())
+		return nil, xerrors.E2001(target.refer, string(target.fullName.Name()))
+	}
+	messageDesc, ok := desc.(protoreflect.MessageDescriptor)
+	if !ok {
+		return nil, xerrors.E2001(target.refer, string(target.fullName.Name()))
 	}
 
 	// get workbook name and worksheet name
-	fileOpts := desc.ParentFile().Options().(*descriptorpb.FileOptions)
+	fileOpts := messageDesc.ParentFile().Options().(*descriptorpb.FileOptions)
 	bookOpts := proto.GetExtension(fileOpts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
 	bookName := bookOpts.Name
 
-	msgOpts := desc.Options().(*descriptorpb.MessageOptions)
+	msgOpts := messageDesc.Options().(*descriptorpb.MessageOptions)
 	sheetOpts := proto.GetExtension(msgOpts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
 	sheetName := sheetOpts.Name
 
@@ -226,9 +247,9 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 		}
 
 		if sheetOpts.Transpose {
-			err = space.addFromTable(header, sheet.Table.Transpose(), referInfo.Column, referredBookName, specifiedSheetName)
+			err = space.addFromTable(header, sheet.Table.Transpose(), target.column, referredBookName, specifiedSheetName)
 		} else {
-			err = space.addFromTable(header, sheet.Table, referInfo.Column, referredBookName, specifiedSheetName)
+			err = space.addFromTable(header, sheet.Table, target.column, referredBookName, specifiedSheetName)
 		}
 		if err != nil {
 			return nil, err
@@ -236,6 +257,14 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	}
 
 	return space, nil
+}
+
+func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpace, error) {
+	target, err := normalizeRefer(refer, input)
+	if err != nil {
+		return nil, err
+	}
+	return loadValueSpaceForTarget(ctx, target, input)
 }
 
 // CheckRefer validates cellData against prop.Refer.
@@ -252,8 +281,12 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 	}
 
 	for _, refer := range strings.Split(prop.Refer, ",") {
-		entry, err := r.getEntry(refer, func() (*valueSpace, error) {
-			return loadValueSpace(ctx, refer, input)
+		target, err := normalizeRefer(refer, input)
+		if err != nil {
+			return err
+		}
+		entry, err := r.getEntry(target.key(), func() (*valueSpace, error) {
+			return loadValueSpaceForTarget(ctx, target, input)
 		})
 		if err != nil {
 			return err
