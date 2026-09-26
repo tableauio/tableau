@@ -34,7 +34,22 @@ type ReferredCache struct {
 	mu sync.RWMutex
 	// Entries are pointers because a loader publishes into the same in-flight
 	// entry that waiters obtained before the load completed.
-	entries map[string]*referCacheEntry // <full message name>.<column name> -> cached or in-flight result
+	entries map[referCacheKey]*referCacheEntry
+
+	targetsMu sync.RWMutex
+	// targets avoids splitting and parsing the same field refer for every cell.
+	targets map[referTargetsKey]referTargets
+}
+
+// referCacheKey identifies one referred column. Its canonical string form is
+// <fully-qualified-message-name>.<column-name>.
+type referCacheKey struct {
+	message protoreflect.FullName
+	column  string
+}
+
+func (k referCacheKey) String() string {
+	return string(k.message) + "." + k.column
 }
 
 // referCacheEntry holds an in-flight or completed reference load. Closing ready
@@ -43,6 +58,16 @@ type referCacheEntry struct {
 	ready       chan struct{}
 	space       *valueSpace
 	unavailable bool // target load failed
+}
+
+type referTargets struct {
+	values []*referTarget
+	err    error
+}
+
+type referTargetsKey struct {
+	protoPackage string
+	refer        string
 }
 
 type valueSpace struct {
@@ -76,7 +101,8 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
-		entries: make(map[string]*referCacheEntry),
+		entries: make(map[referCacheKey]*referCacheEntry),
+		targets: make(map[referTargetsKey]referTargets),
 	}
 }
 
@@ -84,7 +110,7 @@ type loadValueSpaceFunc = func() (*valueSpace, error)
 
 // getEntry loads each normalized message column once. Callers for the same key
 // wait for its ready channel, while unrelated targets load concurrently.
-func (r *ReferredCache) getEntry(key string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
+func (r *ReferredCache) getEntry(key referCacheKey, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
 	r.mu.RLock()
 	entry, ok := r.entries[key]
 	r.mu.RUnlock()
@@ -170,8 +196,8 @@ type referTarget struct {
 	column   string
 }
 
-func (t *referTarget) key() string {
-	return string(t.fullName) + "." + t.column
+func (t *referTarget) key() referCacheKey {
+	return referCacheKey{message: t.fullName, column: t.column}
 }
 
 func normalizeRefer(refer string, input *Input) (*referTarget, error) {
@@ -185,6 +211,33 @@ func normalizeRefer(refer string, input *Input) (*referTarget, error) {
 		fullName: protoreflect.FullName(input.ProtoPackage + "." + messageName),
 		column:   referInfo.Column,
 	}, nil
+}
+
+func (r *ReferredCache) getTargets(refer string, input *Input) ([]*referTarget, error) {
+	key := referTargetsKey{protoPackage: input.ProtoPackage, refer: refer}
+	r.targetsMu.RLock()
+	targets, ok := r.targets[key]
+	r.targetsMu.RUnlock()
+	if ok {
+		return targets.values, targets.err
+	}
+
+	r.targetsMu.Lock()
+	defer r.targetsMu.Unlock()
+	targets, ok = r.targets[key]
+	if ok {
+		return targets.values, targets.err
+	}
+	for _, item := range strings.Split(refer, ",") {
+		target, err := normalizeRefer(item, input)
+		if err != nil {
+			targets.err = err
+			break
+		}
+		targets.values = append(targets.values, target)
+	}
+	r.targets[key] = targets
+	return targets.values, targets.err
 }
 
 func loadValueSpaceForTarget(ctx context.Context, target *referTarget, input *Input) (*valueSpace, error) {
@@ -280,11 +333,11 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 		return xerrors.New("referred cache is nil")
 	}
 
-	for _, refer := range strings.Split(prop.Refer, ",") {
-		target, err := normalizeRefer(refer, input)
-		if err != nil {
-			return err
-		}
+	targets, err := r.getTargets(prop.Refer, input)
+	if err != nil {
+		return err
+	}
+	for _, target := range targets {
 		entry, err := r.getEntry(target.key(), func() (*valueSpace, error) {
 			return loadValueSpaceForTarget(ctx, target, input)
 		})

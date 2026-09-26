@@ -255,13 +255,52 @@ func TestCheckRefer_normalizesCacheKey(t *testing.T) {
 		}
 	}
 
-	for _, key := range []string{"unittest.ItemConf.ID", "unittest.ItemConf.Num"} {
+	keys := []referCacheKey{
+		{message: "unittest.ItemConf", column: "ID"},
+		{message: "unittest.ItemConf", column: "Num"},
+	}
+	for _, key := range keys {
 		if cache.entries[key] == nil {
-			t.Errorf("cache entry %q not found", key)
+			t.Errorf("cache entry %q not found", key.String())
 		}
 	}
 	if len(cache.entries) != 2 {
 		t.Errorf("cache entries = %d, want 2", len(cache.entries))
+	}
+}
+
+func TestReferredCache_getTargetsCachesCanonicalKeys(t *testing.T) {
+	cache := NewReferredCache()
+	input := &Input{ProtoPackage: "unittest"}
+	refer := "ItemConf.ID, AnySheet(ItemConf).Num"
+
+	first, err := cache.getTargets(refer, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := cache.getTargets(refer, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first) != 2 || len(second) != 2 {
+		t.Fatalf("target counts = %d and %d, want 2", len(first), len(second))
+	}
+	for i := range first {
+		if first[i] != second[i] {
+			t.Errorf("target %d was parsed more than once", i)
+		}
+	}
+	want := []referCacheKey{
+		{message: "unittest.ItemConf", column: "ID"},
+		{message: "unittest.ItemConf", column: "Num"},
+	}
+	for i, target := range first {
+		if got := target.key(); got != want[i] {
+			t.Errorf("target %d key = %v, want %v", i, got, want[i])
+		}
+	}
+	if len(cache.targets) != 1 {
+		t.Errorf("parsed refer entries = %d, want 1", len(cache.targets))
 	}
 }
 
@@ -348,14 +387,14 @@ func TestReferredCache_GetEntry_loadFailureDedup(t *testing.T) {
 		atomic.AddInt32(&loads, 1)
 		return nil, errors.New("load failed")
 	}
-	refer := "Broken.ID"
+	key := referCacheKey{message: "test.Broken", column: "ID"}
 
-	_, err := cache.getEntry(refer, loadFunc)
+	_, err := cache.getEntry(key, loadFunc)
 	if err == nil {
 		t.Fatal("first getEntry() error = nil, want error")
 	}
 
-	entry, err := cache.getEntry(refer, loadFunc)
+	entry, err := cache.getEntry(key, loadFunc)
 	if err != nil {
 		t.Fatalf("second getEntry() error = %v, want nil", err)
 	}
@@ -375,7 +414,7 @@ func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 		atomic.AddInt32(&loads, 1)
 		return nil, errors.New("load failed")
 	}
-	refer := "BrokenConcurrent.ID"
+	key := referCacheKey{message: "test.BrokenConcurrent", column: "ID"}
 
 	const n = 32
 	type result struct {
@@ -389,7 +428,7 @@ func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			<-start
-			entry, err := cache.getEntry(refer, loadFunc)
+			entry, err := cache.getEntry(key, loadFunc)
 			results[i] = result{entry, err}
 		}(i)
 	}
@@ -418,7 +457,7 @@ func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 	}
 }
 
-func TestReferredCache_GetEntry_loadsDifferentReferencesConcurrently(t *testing.T) {
+func TestReferredCache_GetEntry_loadsDifferentKeysConcurrently(t *testing.T) {
 	cache := NewReferredCache()
 	started := make(chan string, 2)
 	release := make(chan struct{})
@@ -432,13 +471,17 @@ func TestReferredCache_GetEntry_loadsDifferentReferencesConcurrently(t *testing.
 
 	var group sync.WaitGroup
 	group.Add(2)
-	for _, refer := range []string{"Item.ID", "Skill.ID"} {
-		go func(refer string) {
+	keys := []referCacheKey{
+		{message: "test.Item", column: "ID"},
+		{message: "test.Skill", column: "ID"},
+	}
+	for _, key := range keys {
+		go func(key referCacheKey) {
 			defer group.Done()
-			if _, err := cache.getEntry(refer, load(refer)); err != nil {
-				t.Errorf("getEntry(%q) error = %v", refer, err)
+			if _, err := cache.getEntry(key, load(key.String())); err != nil {
+				t.Errorf("getEntry(%q) error = %v", key.String(), err)
 			}
-		}(refer)
+		}(key)
 	}
 
 	timer := time.NewTimer(time.Second)
