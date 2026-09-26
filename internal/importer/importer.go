@@ -79,7 +79,9 @@ func (c *Cache) LoadMergerImporters(ctx context.Context, inputDir, primaryBookNa
 	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "merge sheet", c.Load)
 }
 
-// getSheetSpecifierImporters parses and returns all related importer infos.
+// loadSheetSpecifierImporters resolves and loads all related importer infos.
+// The load function selects direct loading or a run-scoped cache while keeping
+// scatter and merger path resolution identical.
 //  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 //  2. support filepath.Match pattern for worksheet name, see https://pkg.go.dev/path/filepath#Match
 //  3. exclude primary sheet, and auto filter out duplicate importers

@@ -4,7 +4,14 @@ import (
 	"context"
 	"sync"
 	"testing"
+
+	"github.com/tableauio/tableau/internal/importer/book"
+	"google.golang.org/protobuf/proto"
 )
+
+type cacheTestParser struct{}
+
+func (*cacheTestParser) Parse(proto.Message, *book.Sheet) error { return nil }
 
 func TestCacheLoadSharesImporter(t *testing.T) {
 	cache := NewCache()
@@ -49,6 +56,23 @@ func TestCacheLoadSeparatesSheetSelections(t *testing.T) {
 	}
 	if items == heroes {
 		t.Fatal("Load() shared importers with different sheet selections")
+	}
+}
+
+func TestCacheLoadBypassesCustomParser(t *testing.T) {
+	cache := NewCache()
+	t.Cleanup(func() { _ = cache.Close() })
+	parser := &cacheTestParser{}
+	first, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}), Parser(parser))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}), Parser(parser))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == second {
+		t.Fatal("Load() cached an importer with a custom parser")
 	}
 }
 

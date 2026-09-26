@@ -43,7 +43,9 @@ type Field struct {
 	opts   *tableaupb.FieldOptions
 }
 
-// inheritParentFieldProp returns a field with inherited parent properties.
+// inheritParentFieldProp returns the cached template unchanged unless the
+// parent makes the field optional. In that case it clones the protobuf options
+// before modification, keeping the cached template immutable for later rows.
 func (f *Field) inheritParentFieldProp(parent *Field) *Field {
 	if parent == nil || parent.opts == nil || !parent.opts.Prop.GetOptional() {
 		return f
@@ -82,6 +84,8 @@ func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fie
 		layout = fieldOpts.Layout
 		sep = fieldOpts.Prop.GetSep()
 		subsep = fieldOpts.Prop.GetSubsep()
+		// Clone the descriptor extension once. Descriptor options are shared
+		// globally and must remain immutable during parsing.
 		prop = xproto.Clone(fieldOpts.Prop)
 	} else {
 		// default processing

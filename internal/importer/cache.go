@@ -27,12 +27,17 @@ type cacheKey struct {
 	primaryBookName string
 }
 
-// Cache reuses immutable imported books during one generator run.
+// Cache reuses imported data during one generator run. It owns cached Excel
+// handles until Close and shares decoded sheets between read-only confgen
+// importers. Callers must not mutate sheets returned by a cached importer.
 type Cache struct {
+	// entries caches the importer view for an exact filename and option set.
 	entries sync.Map
-	excels  sync.Map
-	paths   sync.Map
-	loads   singleflight.Group
+	// excels caches one open handle and its decoded sheets per Excel file.
+	excels sync.Map
+	paths  sync.Map
+	// loads coalesces concurrent opens of the same importer or Excel file.
+	loads singleflight.Group
 
 	requests  atomic.Int64
 	imports   atomic.Int64
@@ -41,6 +46,8 @@ type Cache struct {
 }
 
 type cachedExcel struct {
+	// Excelize reads and the sheets map share one lock because an excelize.File
+	// is not read concurrently here. Different workbooks still load in parallel.
 	mu     sync.Mutex
 	file   *excelize.File
 	sheets map[string]*book.Sheet
@@ -57,6 +64,11 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 		return New(ctx, filename, setters...)
 	}
 	opts := parseOptions(setters...)
+	// Protogen may truncate, parse, and purge sheets. A custom parser may also
+	// carry state. Neither is safe to identify or share through this cache.
+	if opts.Mode == Protogen || opts.Parser != nil {
+		return New(ctx, filename, setters...)
+	}
 	c.requests.Add(1)
 	if _, loaded := c.paths.LoadOrStore(filepath.Clean(filename), struct{}{}); !loaded {
 		c.pathCount.Add(1)
@@ -71,7 +83,9 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 	if cached, ok := c.entries.Load(key); ok {
 		return cached.(Importer), nil
 	}
-	if opts.Mode != Protogen && opts.Parser == nil && strings.EqualFold(filepath.Ext(key.filename), ".xlsx") {
+	// Keep the workbook open so later requests can decode only the additional
+	// sheets they need instead of reopening and reparsing the entire XLSX file.
+	if strings.EqualFold(filepath.Ext(key.filename), ".xlsx") {
 		return c.loadExcel(ctx, key, opts)
 	}
 
@@ -112,13 +126,17 @@ func (c *Cache) loadExcel(ctx context.Context, key cacheKey, opts *Options) (Imp
 	}
 
 	cached := loaded.(*cachedExcel)
+	// The lock protects both Excelize access and the check-then-decode sequence,
+	// ensuring that each sheet is decoded at most once per generator run.
 	cached.mu.Lock()
 	defer cached.mu.Unlock()
 	readerOpts, err := parseExcelBookReaderOptions(key.filename, cached.file, opts.Sheets)
 	if err != nil {
 		return nil, err
 	}
-	loadedBook := book.NewBook(ctx, readerOpts.Name, readerOpts.Filename, opts.Parser)
+	// Each option set gets its own Book view containing only the requested
+	// sheets. The underlying immutable Sheet values are shared across views.
+	loadedBook := book.NewBook(ctx, readerOpts.Name, readerOpts.Filename, nil)
 	for _, sheetOpts := range readerOpts.Sheets {
 		sheet := cached.sheets[sheetOpts.Name]
 		if sheet == nil {

@@ -292,7 +292,9 @@ type sheetParser struct {
 	sheetCollector *xerrors.Collector // sheet-level collector
 
 	// cached maps and lists with cardinality
-	cards  map[string]*cardInfo // map/list field card prefix -> cardInfo
+	cards map[string]*cardInfo // map/list field card prefix -> cardInfo
+	// fields holds immutable descriptor-derived templates for this parser. A
+	// sheetParser belongs to one parse call, so the map needs no synchronization.
 	fields map[protoreflect.FieldDescriptor]*Field
 }
 

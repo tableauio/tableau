@@ -83,6 +83,9 @@ func NewReferredCache() *ReferredCache {
 
 type loadValueSpaceFunc = func() (*valueSpace, error)
 
+// getEntry loads each reference once. Callers for the same reference wait for
+// its ready channel, while the load runs outside mu so unrelated references can
+// load concurrently.
 func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
 	r.mu.Lock()
 	load, ok := r.entries[refer]
@@ -98,7 +101,8 @@ func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (ref
 	space, err := loadFunc()
 	entry := referCacheEntry{space: space}
 	if err != nil {
-		// Return the first load error and remember it to suppress repeats.
+		// Only the loader reports the error. Waiters observe unavailable and skip
+		// duplicate errors for the same broken reference.
 		entry = referCacheEntry{unavailable: true}
 	}
 
@@ -175,6 +179,8 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	// rewrite subdir
 	rewrittenWorkbookName := xfs.RewriteSubdir(bookName, input.SubdirRewrites)
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
+	// Confgen passes its run-scoped cache so reference validation can reuse a
+	// workbook already loaded as a primary, merger, or scatter input.
 	load := importer.New
 	if input.ImporterCache != nil {
 		load = input.ImporterCache.Load

@@ -92,6 +92,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 func (gen *Generator) resetRunState() {
 	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
 	gen.referredCache = fieldprop.NewReferredCache()
+	// Imported data is valid only for one run. A fresh cache prevents stale
+	// workbook data when a Generator is reused after its inputs change.
 	gen.importerCache = importer.NewCache()
 	gen.SheetParserStats = sync.Map{}
 }
