@@ -175,13 +175,7 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	// rewrite subdir
 	rewrittenWorkbookName := xfs.RewriteSubdir(bookName, input.SubdirRewrites)
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
-	// Confgen passes its run-scoped cache so reference validation can reuse a
-	// workbook already loaded as a primary, merger, or scatter input.
-	load := importer.New
-	if input.ImporterCache != nil {
-		load = input.ImporterCache.Load
-	}
-	primaryImporter, err := load(ctx, absWbPath, importer.Sheets([]string{sheetName}))
+	primaryImporter, err := input.ImporterCache.Load(ctx, absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
 		return nil, xerrors.WrapKV(err,
 			xerrors.KeyReferBookName, bookName,
