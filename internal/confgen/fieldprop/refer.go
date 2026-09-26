@@ -32,18 +32,15 @@ func init() {
 // ReferredCache caches referred column values for one generation or load.
 type ReferredCache struct {
 	mu      sync.Mutex
-	entries map[string]*referCacheLoad // refer expression -> cached or in-flight result
+	entries map[string]*referCacheEntry // refer expression -> cached or in-flight result
 }
 
-// referCacheEntry holds a value space or a previously reported load failure.
+// referCacheEntry holds an in-flight or completed reference load. Closing ready
+// publishes space or unavailable to every waiter.
 type referCacheEntry struct {
+	ready       chan struct{}
 	space       *valueSpace
 	unavailable bool // target load failed
-}
-
-type referCacheLoad struct {
-	ready chan struct{}
-	entry referCacheEntry
 }
 
 type valueSpace struct {
@@ -77,7 +74,7 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
-		entries: make(map[string]*referCacheLoad),
+		entries: make(map[string]*referCacheEntry),
 	}
 }
 
@@ -88,29 +85,28 @@ type loadValueSpaceFunc = func() (*valueSpace, error)
 // load concurrently.
 func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
 	r.mu.Lock()
-	load, ok := r.entries[refer]
+	entry, ok := r.entries[refer]
 	if ok {
 		r.mu.Unlock()
-		<-load.ready
-		return load.entry, nil
+		<-entry.ready
+		return *entry, nil
 	}
-	load = &referCacheLoad{ready: make(chan struct{})}
-	r.entries[refer] = load
+	entry = &referCacheEntry{ready: make(chan struct{})}
+	r.entries[refer] = entry
 	r.mu.Unlock()
 
 	space, err := loadFunc()
-	entry := referCacheEntry{space: space}
-	if err != nil {
+	r.mu.Lock()
+	if err == nil {
+		entry.space = space
+	} else {
 		// Only the loader reports the error. Waiters observe unavailable and skip
 		// duplicate errors for the same broken reference.
-		entry = referCacheEntry{unavailable: true}
+		entry.unavailable = true
 	}
-
-	r.mu.Lock()
-	load.entry = entry
-	close(load.ready)
+	close(entry.ready)
 	r.mu.Unlock()
-	return entry, err
+	return *entry, err
 }
 
 type referDesc struct {
