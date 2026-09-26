@@ -54,11 +54,13 @@ type Cache struct {
 }
 
 type cachedExcel struct {
-	// Excelize reads and the sheets map share one lock. Different workbooks
+	// Workbook reads and the sheets map share one lock. Different workbooks
 	// still load in parallel.
-	mu     sync.Mutex
-	file   *excelize.File
-	sheets map[string]*book.Sheet
+	mu       sync.Mutex
+	filename string
+	reader   *xlsxReader
+	file     *excelize.File // compatibility fallback, opened lazily
+	sheets   map[string]*book.Sheet
 }
 
 type cachedCSV struct {
@@ -181,11 +183,8 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 func openCachedSource(ctx context.Context, filename string) (cachedSource, int64, error) {
 	switch format.GetFormat(filename) {
 	case format.Excel:
-		file, err := excelize.OpenFile(filename)
-		if err != nil {
-			return nil, 0, xerrors.E3002(err)
-		}
-		return &cachedExcel{file: file, sheets: make(map[string]*book.Sheet)}, 0, nil
+		source, err := openCachedExcel(filename)
+		return source, 0, err
 	case format.CSV:
 		readerOpts, err := parseCSVBookReaderOptions(filename, nil, metasheet.FromContext(ctx).Name)
 		if err != nil {
@@ -211,17 +210,14 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	readerOpts, err := parseExcelBookReaderOptions(c.file.Path, c.file, sheetNames)
-	if err != nil {
-		return nil, 0, err
-	}
+	readerOpts := buildExcelBookReaderOptions(c.filename, c.sheetNames(), sheetNames)
 	loadedBook := book.NewBook(ctx, readerOpts.Name, readerOpts.Filename, nil)
 	var decoded int64
 	for _, sheetOpts := range readerOpts.Sheets {
 		sheet := c.sheets[sheetOpts.Name]
 		if sheet == nil {
-			err := profile.Run(ctx, pprof.Labels("sheet", sheetOpts.Name), func(context.Context) error {
-				rows, err := readExcelSheetRows(c.file, sheetOpts.Name, 0, excelize.Options{RawCellValue: true})
+			err := profile.Run(ctx, pprof.Labels("sheet", sheetOpts.Name, "reader", c.readerName()), func(context.Context) error {
+				rows, err := c.readRows(sheetOpts.Name)
 				if err != nil {
 					return xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetOpts.Name)
 				}
@@ -240,7 +236,77 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 }
 
 func (c *cachedExcel) close() error {
-	return c.file.Close()
+	var errs []error
+	if c.reader != nil {
+		errs = append(errs, c.reader.Close())
+	}
+	if c.file != nil {
+		errs = append(errs, c.file.Close())
+	}
+	return errors.Join(errs...)
+}
+
+func openCachedExcel(filename string) (*cachedExcel, error) {
+	reader, err := openXLSXReader(filename)
+	if err == nil {
+		return &cachedExcel{
+			filename: filename,
+			reader:   reader,
+			sheets:   make(map[string]*book.Sheet),
+		}, nil
+	}
+	file, openErr := excelize.OpenFile(filename)
+	if openErr != nil {
+		return nil, xerrors.E3002(errors.Join(err, openErr))
+	}
+	return &cachedExcel{
+		filename: filename,
+		file:     file,
+		sheets:   make(map[string]*book.Sheet),
+	}, nil
+}
+
+func (c *cachedExcel) sheetNames() []string {
+	if c.reader != nil {
+		return c.reader.SheetNames()
+	}
+	return c.file.GetSheetList()
+}
+
+func (c *cachedExcel) readerName() string {
+	if c.reader != nil {
+		return "xlsx"
+	}
+	return "excelize"
+}
+
+func (c *cachedExcel) readRows(sheetName string) ([][]string, error) {
+	if c.reader != nil {
+		rows, err := c.reader.ReadRows(sheetName)
+		if err == nil {
+			return rows, nil
+		}
+		file, openErr := c.openExcelize()
+		if openErr != nil {
+			return nil, errors.Join(err, openErr)
+		}
+		_ = c.reader.Close()
+		c.reader = nil
+		return readExcelSheetRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
+	}
+	return readExcelSheetRows(c.file, sheetName, 0, excelize.Options{RawCellValue: true})
+}
+
+func (c *cachedExcel) openExcelize() (*excelize.File, error) {
+	if c.file != nil {
+		return c.file, nil
+	}
+	file, err := excelize.OpenFile(c.filename)
+	if err != nil {
+		return nil, xerrors.E3002(err)
+	}
+	c.file = file
+	return file, nil
 }
 
 func (c *cachedCSV) load(ctx context.Context, sheetNames []string) (Importer, int64, error) {
