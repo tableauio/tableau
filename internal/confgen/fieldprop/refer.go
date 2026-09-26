@@ -36,9 +36,9 @@ type ReferredCache struct {
 	// entry that waiters obtained before the load completed.
 	entries map[referCacheKey]*referCacheEntry
 
-	targetsMu sync.RWMutex
-	// targets avoids splitting and parsing the same field refer for every cell.
-	targets map[referTargetsKey]referTargets
+	indexMu sync.RWMutex
+	// index maps each raw refer to its canonical message and column key.
+	index map[rawRefer]referCacheKey
 }
 
 // referCacheKey identifies one referred column. Its canonical string form is
@@ -60,14 +60,11 @@ type referCacheEntry struct {
 	unavailable bool // target load failed
 }
 
-type referTargets struct {
-	values []*referTarget
-	err    error
-}
-
-type referTargetsKey struct {
+// rawRefer includes the protobuf package because the same refer text can name
+// different messages in different packages.
+type rawRefer struct {
 	protoPackage string
-	refer        string
+	value        string
 }
 
 type valueSpace struct {
@@ -102,7 +99,7 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
 		entries: make(map[referCacheKey]*referCacheEntry),
-		targets: make(map[referTargetsKey]referTargets),
+		index:   make(map[rawRefer]referCacheKey),
 	}
 }
 
@@ -190,64 +187,50 @@ type Input struct {
 	Present        bool // field presence
 }
 
-type referTarget struct {
-	refer    string
-	fullName protoreflect.FullName
-	column   string
-}
-
-func (t *referTarget) key() referCacheKey {
-	return referCacheKey{message: t.fullName, column: t.column}
-}
-
-func normalizeRefer(refer string, input *Input) (*referTarget, error) {
+func normalizeRefer(refer string, input *Input) (referCacheKey, error) {
 	referInfo, err := parseRefer(refer)
 	if err != nil {
-		return nil, err
+		return referCacheKey{}, err
 	}
 	messageName := referInfo.getMessageName()
-	return &referTarget{
-		refer:    refer,
-		fullName: protoreflect.FullName(input.ProtoPackage + "." + messageName),
-		column:   referInfo.Column,
+	return referCacheKey{
+		message: protoreflect.FullName(input.ProtoPackage + "." + messageName),
+		column:  referInfo.Column,
 	}, nil
 }
 
-func (r *ReferredCache) getTargets(refer string, input *Input) ([]*referTarget, error) {
-	key := referTargetsKey{protoPackage: input.ProtoPackage, refer: refer}
-	r.targetsMu.RLock()
-	targets, ok := r.targets[key]
-	r.targetsMu.RUnlock()
+// resolveKey parses a raw refer once and reuses its canonical key for all cells.
+func (r *ReferredCache) resolveKey(refer string, input *Input) (referCacheKey, error) {
+	raw := rawRefer{protoPackage: input.ProtoPackage, value: refer}
+	r.indexMu.RLock()
+	key, ok := r.index[raw]
+	r.indexMu.RUnlock()
 	if ok {
-		return targets.values, targets.err
+		return key, nil
 	}
 
-	r.targetsMu.Lock()
-	defer r.targetsMu.Unlock()
-	targets, ok = r.targets[key]
+	r.indexMu.Lock()
+	defer r.indexMu.Unlock()
+	key, ok = r.index[raw]
 	if ok {
-		return targets.values, targets.err
+		return key, nil
 	}
-	for _, item := range strings.Split(refer, ",") {
-		target, err := normalizeRefer(item, input)
-		if err != nil {
-			targets.err = err
-			break
-		}
-		targets.values = append(targets.values, target)
+	key, err := normalizeRefer(refer, input)
+	if err != nil {
+		return referCacheKey{}, err
 	}
-	r.targets[key] = targets
-	return targets.values, targets.err
+	r.index[raw] = key
+	return key, nil
 }
 
-func loadValueSpaceForTarget(ctx context.Context, target *referTarget, input *Input) (*valueSpace, error) {
-	desc, err := input.PRFiles.FindDescriptorByName(target.fullName)
+func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, input *Input) (*valueSpace, error) {
+	desc, err := input.PRFiles.FindDescriptorByName(key.message)
 	if err != nil {
-		return nil, xerrors.E2001(target.refer, string(target.fullName.Name()))
+		return nil, xerrors.E2001(refer, string(key.message.Name()))
 	}
 	messageDesc, ok := desc.(protoreflect.MessageDescriptor)
 	if !ok {
-		return nil, xerrors.E2001(target.refer, string(target.fullName.Name()))
+		return nil, xerrors.E2001(refer, string(key.message.Name()))
 	}
 
 	// get workbook name and worksheet name
@@ -300,9 +283,9 @@ func loadValueSpaceForTarget(ctx context.Context, target *referTarget, input *In
 		}
 
 		if sheetOpts.Transpose {
-			err = space.addFromTable(header, sheet.Table.Transpose(), target.column, referredBookName, specifiedSheetName)
+			err = space.addFromTable(header, sheet.Table.Transpose(), key.column, referredBookName, specifiedSheetName)
 		} else {
-			err = space.addFromTable(header, sheet.Table, target.column, referredBookName, specifiedSheetName)
+			err = space.addFromTable(header, sheet.Table, key.column, referredBookName, specifiedSheetName)
 		}
 		if err != nil {
 			return nil, err
@@ -313,11 +296,11 @@ func loadValueSpaceForTarget(ctx context.Context, target *referTarget, input *In
 }
 
 func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpace, error) {
-	target, err := normalizeRefer(refer, input)
+	key, err := normalizeRefer(refer, input)
 	if err != nil {
 		return nil, err
 	}
-	return loadValueSpaceForTarget(ctx, target, input)
+	return loadValueSpaceForKey(ctx, refer, key, input)
 }
 
 // CheckRefer validates cellData against prop.Refer.
@@ -333,13 +316,13 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 		return xerrors.New("referred cache is nil")
 	}
 
-	targets, err := r.getTargets(prop.Refer, input)
-	if err != nil {
-		return err
-	}
-	for _, target := range targets {
-		entry, err := r.getEntry(target.key(), func() (*valueSpace, error) {
-			return loadValueSpaceForTarget(ctx, target, input)
+	for _, refer := range strings.Split(prop.Refer, ",") {
+		key, err := r.resolveKey(refer, input)
+		if err != nil {
+			return err
+		}
+		entry, err := r.getEntry(key, func() (*valueSpace, error) {
+			return loadValueSpaceForKey(ctx, refer, key, input)
 		})
 		if err != nil {
 			return err

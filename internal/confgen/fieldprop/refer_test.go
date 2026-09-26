@@ -269,38 +269,43 @@ func TestCheckRefer_normalizesCacheKey(t *testing.T) {
 	}
 }
 
-func TestReferredCache_getTargetsCachesCanonicalKeys(t *testing.T) {
+func TestReferredCache_resolveKeyIndexesRawRefers(t *testing.T) {
 	cache := NewReferredCache()
 	input := &Input{ProtoPackage: "unittest"}
-	refer := "ItemConf.ID, AnySheet(ItemConf).Num"
+	tests := []struct {
+		refer string
+		want  referCacheKey
+	}{
+		{refer: "ItemConf.ID", want: referCacheKey{message: "unittest.ItemConf", column: "ID"}},
+		{refer: "AnySheet(ItemConf).Num", want: referCacheKey{message: "unittest.ItemConf", column: "Num"}},
+	}
+	for _, test := range tests {
+		first, err := cache.resolveKey(test.refer, input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := cache.resolveKey(test.refer, input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first != test.want || second != test.want {
+			t.Errorf("resolveKey(%q) = %v and %v, want %v", test.refer, first, second, test.want)
+		}
+	}
+	if len(cache.index) != len(tests) {
+		t.Errorf("refer index entries = %d, want %d", len(cache.index), len(tests))
+	}
 
-	first, err := cache.getTargets(refer, input)
+	otherPackageKey, err := cache.resolveKey("ItemConf.ID", &Input{ProtoPackage: "other"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := cache.getTargets(refer, input)
-	if err != nil {
-		t.Fatal(err)
+	wantOtherPackageKey := referCacheKey{message: "other.ItemConf", column: "ID"}
+	if otherPackageKey != wantOtherPackageKey {
+		t.Errorf("other package key = %v, want %v", otherPackageKey, wantOtherPackageKey)
 	}
-	if len(first) != 2 || len(second) != 2 {
-		t.Fatalf("target counts = %d and %d, want 2", len(first), len(second))
-	}
-	for i := range first {
-		if first[i] != second[i] {
-			t.Errorf("target %d was parsed more than once", i)
-		}
-	}
-	want := []referCacheKey{
-		{message: "unittest.ItemConf", column: "ID"},
-		{message: "unittest.ItemConf", column: "Num"},
-	}
-	for i, target := range first {
-		if got := target.key(); got != want[i] {
-			t.Errorf("target %d key = %v, want %v", i, got, want[i])
-		}
-	}
-	if len(cache.targets) != 1 {
-		t.Errorf("parsed refer entries = %d, want 1", len(cache.targets))
+	if len(cache.index) != len(tests)+1 {
+		t.Errorf("refer index entries = %d, want %d", len(cache.index), len(tests)+1)
 	}
 }
 
