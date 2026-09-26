@@ -127,3 +127,50 @@ flowchart TB
 - **Sheet level**: `sheetCollector.IsFull()` is checked before each row; returns early if full.
 - **Book level**: `convert` checks the error returned by `messageCollector.Collect()`; breaks the sheet loop if an ancestor is full.
 - **Generator level**: `collector.NewGroup` propagates the first fatal error (book-full) to stop the workbook goroutine.
+
+## Sheet Parser Metrics
+
+Use `tableauc --profiling` to collect these metrics and write
+`confgen-cpu.pprof` and `confgen-mem.pprof` under the configured output
+directory. Profiling is disabled by default; disabled runs skip pprof
+collection, shape scans, labels, and metric aggregation.
+
+The CPU profile spans the full generation run and includes all goroutines in
+the process. Parser samples carry `work=sheet_parse` plus `book`, `sheet`,
+`detail`, and canonical `sheet_key` labels. `go tool pprof -tags
+confgen-cpu.pprof` orders label values by sampled processor time; use
+`-tagfocus='sheet_key=<value>'` for one parser operation. Labels follow the
+goroutine across OS-thread scheduling and are inherited by goroutines created
+inside the labeled parser call. Very short parses may receive no sample, so
+compare representative full generation runs rather than treating one sample
+as an exact timer.
+
+The memory file is a heap profile captured after garbage collection at the end
+of the run, so it primarily reports retained allocations. Only one CPU profile
+can run in a process at a time, and each run replaces the previous files.
+
+GenAll and GenWorkbook log one row per imported workbook, sheet, and
+protobuf message, including sheets used by scatter and merger. Repeated parses
+of the same source are aggregated. The metric report sorts by cumulative wall
+time. The labeled CPU profile is the cross-platform source for sampled
+processor-time attribution. This avoids changing scheduler behavior with
+OS-thread pinning and includes labeled child goroutines.
+
+Wall time covers only sheetParser.Parse. It excludes workbook import, sheet
+shape collection, validation, merging, and output. Concurrent wall durations
+can overlap. Failures counts calls whose parser returned an error, so their
+wall timings may represent partial work.
+
+For table sheets, rows is the total number of imported rows across calls,
+including headers; maxCols is the widest row. The cells field is the full
+rectangular grid for each call, summed across calls. Present counts nonempty
+strings. Absent is the sum of empty (stored empty strings) and missing
+(implicit cells beyond a short row). EmptyRows have no nonempty cells, and
+valueBytes sums the UTF-8 byte lengths of nonempty cells. Document sheets
+report node count, scalar node count, maximum depth, and scalar value bytes
+instead of table dimensions.
+
+Further tuning could separate import, validation, merge, encoding, and write
+time; count allocations and allocated bytes per sheet; and count field
+descriptor cache misses and reference lookups. Those metrics would show
+whether a slow sheet is limited by parsing work or by adjacent phases.

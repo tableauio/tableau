@@ -26,7 +26,7 @@ go install github.com/tableauio/tableau/cmd/tableauc@latest
 ### Testing
 ```bash
 # Run all unit tests
-go test -v -timeout 30m -race ./...
+go test -v -timeout 30m ./...
 
 # Run a single test
 go test -v -run TestFunctionName ./path/to/package/
@@ -39,6 +39,8 @@ go test -bench=. ./test/bench/
 go test -run ^Test_genConf$ -cpuprofile=cpu.prof ./test/bench/
 go tool pprof -http :8888 cpu.prof
 ```
+
+On Windows, do not run Go tests with the `-race` flag. Go in this environment is built with CGO disabled, while the race detector requires CGO.
 
 ### Vet & Lint
 ```bash

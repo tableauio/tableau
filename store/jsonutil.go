@@ -47,10 +47,22 @@ func formatTimestamp(ts string, loc *time.Location) string {
 //   - https://protobuf.dev/reference/protobuf/google.protobuf/#timestamp
 //   - RFC 3339: https://tools.ietf.org/html/rfc3339
 func processWhenEmitTimezones(msg proto.Message, jsonStr string, parser jsonparser.Parser, locationName string, useProtoNames bool) (string, error) {
-	loc, err := time.LoadLocation(locationName)
+	loc, err := loadLocation(locationName)
 	if err != nil {
-		return "", xerrors.Wrap(err)
+		return "", err
 	}
+	return rewriteJSONTimestamps(msg, jsonStr, parser, loc, useProtoNames)
+}
+
+func loadLocation(name string) (*time.Location, error) {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		return nil, xerrors.Wrap(err)
+	}
+	return loc, nil
+}
+
+func rewriteJSONTimestamps(msg proto.Message, jsonStr string, parser jsonparser.Parser, loc *time.Location, useProtoNames bool) (string, error) {
 	root, err := parser.Parse(jsonStr)
 	if err != nil {
 		return "", xerrors.Wrap(err)

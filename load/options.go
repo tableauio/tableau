@@ -5,6 +5,7 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
+	"github.com/tableauio/tableau/internal/importer"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -78,6 +79,7 @@ type BaseOptions struct {
 
 	// Shared by all messager options in the same load scope.
 	referredCache *fieldprop.ReferredCache
+	importerCache *importer.Cache
 }
 
 // MessagerOptions is the options struct for a messager.
@@ -106,6 +108,16 @@ func (o *MessagerOptions) getReferredCache() *fieldprop.ReferredCache {
 		return fieldprop.NewReferredCache()
 	}
 	return o.referredCache
+}
+
+// getImporterCache returns the shared cache when the options came from
+// Options.ParseMessagerOptionsByName. Direct MessagerOptions values receive a
+// one-call cache that loadOrigin owns and closes.
+func (o *MessagerOptions) getImporterCache() (cache *importer.Cache, owned bool) {
+	if o == nil || o.importerCache == nil {
+		return importer.NewCache(), true
+	}
+	return o.importerCache, false
 }
 
 // GetLocationName returns the location name.
@@ -190,8 +202,11 @@ func (o *MessagerOptions) GetPatchPaths() []string {
 	return o.PatchPaths
 }
 
-// Options contains global-level and messager-level options. Each instance is
-// scoped to one input directory and one SubdirRewrites configuration.
+// Options contains global-level and messager-level options. MessagerOptions
+// returned by ParseMessagerOptionsByName share its importer and referred-data
+// caches. Keep one Options instance for an input directory and its
+// SubdirRewrites configuration, then call Close after loading every message in
+// that scope.
 type Options struct {
 	BaseOptions
 	// MessagerOptions maps each messager name to a MessageOptions.
@@ -237,7 +252,16 @@ func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
 		mopts.MaxErrorsPerSheet = o.MaxErrorsPerSheet
 	}
 	mopts.referredCache = o.referredCache
+	mopts.importerCache = o.importerCache
 	return &mopts
+}
+
+// Close releases workbook handles held by the shared importer cache.
+func (o *Options) Close() error {
+	if o == nil || o.importerCache == nil {
+		return nil
+	}
+	return o.importerCache.Close()
 }
 
 type LoadMode int
@@ -268,6 +292,7 @@ func ParseOptions(setters ...Option) *Options {
 		setter(opts)
 	}
 	opts.referredCache = fieldprop.NewReferredCache()
+	opts.importerCache = importer.NewCache()
 	return opts
 }
 

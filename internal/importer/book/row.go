@@ -66,6 +66,7 @@ func newCell(col *Column, data string) *Cell {
 }
 
 func freeCell(cell *Cell) {
+	*cell = Cell{}
 	cellPool.Put(cell)
 }
 
@@ -104,16 +105,16 @@ type Row struct {
 	// *MISSING-KEY*		CollectionConf
 	prev        *Row
 	Row         int               // row number
-	cells       map[int]*Cell     // column index (started with 0) -> Cell
+	cells       []*Cell           // column index (started with 0) -> Cell
 	lookupTable ColumnLookupTable // name -> column index
 }
 
 // NewRow creates a new row.
-func NewRow(row int, prev *Row, lookupTable ColumnLookupTable) *Row {
+func NewRow(row int, prev *Row, lookupTable ColumnLookupTable, columnCount int) *Row {
 	return &Row{
 		prev:        prev,
 		Row:         row,
-		cells:       make(map[int]*Cell),
+		cells:       make([]*Cell, columnCount),
 		lookupTable: lookupTable,
 	}
 }
@@ -121,7 +122,9 @@ func NewRow(row int, prev *Row, lookupTable ColumnLookupTable) *Row {
 // Free frees the row.
 func (r *Row) Free() {
 	for _, cell := range r.cells {
-		freeCell(cell)
+		if cell != nil {
+			freeCell(cell)
+		}
 	}
 }
 
@@ -129,7 +132,7 @@ func (r *Row) Free() {
 func (r *Row) Cell(name string, optional bool) (*Cell, error) {
 	var cell *Cell
 	col, ok := r.lookupTable[name]
-	if ok {
+	if ok && col >= 0 && col < len(r.cells) {
 		cell = r.cells[col]
 	} else if optional {
 		// if optional, return an empty cell.
@@ -147,6 +150,9 @@ func (r *Row) Cell(name string, optional bool) (*Cell, error) {
 func (r *Row) findCellRangeWithNamePrefix(prefix string) (left, right *Cell) {
 	minCol, maxCol := -1, -1
 	for _, cell := range r.cells {
+		if cell == nil {
+			continue
+		}
 		if strings.HasPrefix(cell.GetName(), prefix) {
 			if minCol == -1 || minCol > cell.Col {
 				minCol = cell.Col
@@ -198,7 +204,11 @@ const MacroIgnore = "#IGNORE" // bool: whether to ignore row
 // Ignored checkes whether this row is ignored.
 func (r *Row) Ignored() (bool, error) {
 	if ignoreCol, ok := r.lookupTable[MacroIgnore]; ok {
-		value := strings.TrimSpace(r.cells[ignoreCol].Data)
+		cell := r.cells[ignoreCol]
+		if cell == nil {
+			return false, nil
+		}
+		value := strings.TrimSpace(cell.Data)
 		if value == "" {
 			return false, nil
 		}
@@ -214,6 +224,9 @@ func (r *Row) Ignored() (bool, error) {
 // AddCell adds a cell to the row.
 func (r *Row) AddCell(col *Column, data string, needPopulateKey bool) {
 	cell := newCell(col, data)
+	if col.Col >= len(r.cells) {
+		r.cells = append(r.cells, make([]*Cell, col.Col-len(r.cells)+1)...)
+	}
 	// TODO: Parser(first-pass), check if this sheet is nested.
 	if needPopulateKey && cell.Data == "" {
 		if (types.IsMap(cell.GetType()) || types.IsKeyedList(cell.GetType())) && r.prev != nil {
@@ -233,11 +246,14 @@ func (r *Row) AddCell(col *Column, data string, needPopulateKey bool) {
 				for i := cell.Col - 1; i >= 0; i-- {
 					// prevData := r.prev.cells[col].Data
 					backCell := r.cells[i]
+					if backCell == nil {
+						continue
+					}
 					if !strings.HasPrefix(backCell.GetName(), prefix) {
 						break
 					}
 					if types.IsMap(backCell.GetType()) || types.IsKeyedList(backCell.GetType()) {
-						if r.prev.cells[i].Data == r.cells[i].Data {
+						if prevCell := r.prev.cells[i]; prevCell != nil && prevCell.Data == backCell.Data {
 							needPopulate = true
 							break
 						}
@@ -265,6 +281,9 @@ func (r *Row) GetCellCountWithPrefix(prefix string) int {
 	// log.Debug("name prefix: ", prefix)
 	size := 0
 	for _, cell := range r.cells {
+		if cell == nil {
+			continue
+		}
 		name := cell.GetName()
 		if strings.HasPrefix(name, prefix) {
 			num := 0

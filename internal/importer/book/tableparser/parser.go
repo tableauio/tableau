@@ -15,7 +15,7 @@ func RangeDataRows(table book.Tabler, header *Header, fn func(*book.Row) error) 
 	// [datarow, endRow]: data rows
 	dataRow := table.BeginRow() + header.DataRow - 1
 	for row := dataRow; row < table.EndRow(); row++ {
-		curr := book.NewRow(row, prev, lookupTable)
+		curr := book.NewRow(row, prev, lookupTable, table.EndCol())
 		for col := table.BeginCol(); col < table.EndCol(); col++ {
 			data, err := table.Cell(row, col)
 			if err != nil {

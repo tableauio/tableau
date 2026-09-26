@@ -14,6 +14,7 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
@@ -233,8 +234,18 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 		xerrors.KeyBookName, bookName,
 		xerrors.KeySheetName, sheetName)
 	protomsg := dynamicpb.NewMessage(info.MD)
-	if err := parser.Parse(protomsg, sheet); err != nil {
-		return nil, xerrors.WrapKV(err,
+	var parseErr error
+	if info.ExtInfo.SheetParserMetrics == nil {
+		parseErr = parser.Parse(protomsg, sheet)
+	} else {
+		key := profile.SheetMetricKey{Book: bookName, Sheet: sheetName, Detail: string(info.MD.FullName())}
+		parseErr = info.ExtInfo.SheetParserMetrics.Measure(parser.ctx, "confgen", key, sheet, func(ctx context.Context) error {
+			parser.ctx = ctx
+			return parser.Parse(protomsg, sheet)
+		})
+	}
+	if parseErr != nil {
+		return nil, xerrors.WrapKV(parseErr,
 			xerrors.KeyModule, xerrors.ModuleConf,
 			xerrors.KeyBookName, bookName,
 			xerrors.KeySheetName, sheetName,
@@ -281,6 +292,9 @@ type sheetParser struct {
 
 	// cached maps and lists with cardinality
 	cards map[string]*cardInfo // map/list field card prefix -> cardInfo
+	// fields holds immutable descriptor-derived templates for this parser. A
+	// sheetParser belongs to one parse call, so the map needs no synchronization.
+	fields map[protoreflect.FieldDescriptor]*Field
 }
 
 type cardInfo struct {
@@ -313,13 +327,15 @@ type orderField struct {
 
 // SheetParserExtInfo is the extended info for refer check and so on.
 type SheetParserExtInfo struct {
-	InputDir       string
-	SubdirRewrites map[string]string
-	PRFiles        *protoregistry.Files
-	BookFormat     format.Format // workbook format
-	DryRun         options.DryRun
-	ErrorLimit     *options.ErrorLimitOption // error collection limits
-	ReferredCache  *fieldprop.ReferredCache
+	InputDir           string
+	SubdirRewrites     map[string]string
+	PRFiles            *protoregistry.Files
+	BookFormat         format.Format // workbook format
+	DryRun             options.DryRun
+	ErrorLimit         *options.ErrorLimitOption // error collection limits
+	ReferredCache      *fieldprop.ReferredCache
+	ImporterCache      *importer.Cache
+	SheetParserMetrics *profile.SheetParserMetrics
 }
 
 // NewSheetParser creates a new sheet parser.
@@ -342,6 +358,7 @@ func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName stri
 		// Default capacity 1 is sufficient for protogen/load (fail-fast on first error).
 		// confgen overwrites it with a larger capacity for multi-error collection across sheets.
 		sheetCollector: xerrors.NewCollector(1),
+		fields:         map[protoreflect.FieldDescriptor]*Field{},
 	}
 	sp.reset()
 	return sp
@@ -523,7 +540,7 @@ func (p *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, ref
 		}
 		keyData := kv[0]
 
-		newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, keyData)
+		newMapKey, keyPresent, err := p.parseMapKey(field, keyData)
 		if err != nil {
 			return err
 		}
@@ -548,34 +565,34 @@ func (p *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, ref
 	return nil
 }
 
-func (p *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, cellData string) (mapKey protoreflect.MapKey, present bool, err error) {
-	var keyFd protoreflect.FieldDescriptor
-
-	md := reflectMap.NewValue().Message().Descriptor()
-	for i := 0; i < md.Fields().Len(); i++ {
-		fd := md.Fields().Get(i)
-		fdOpts := fd.Options().(*descriptorpb.FieldOptions)
-		if fdOpts != nil {
-			tableauFieldOpts := proto.GetExtension(fdOpts, tableaupb.E_Field).(*tableaupb.FieldOptions)
-			if tableauFieldOpts != nil && tableauFieldOpts.Name == field.opts.Key {
-				keyFd = fd
-				break
+func (p *sheetParser) parseMapKey(field *Field, cellData string) (mapKey protoreflect.MapKey, present bool, err error) {
+	if field.keyFD == nil {
+		md := field.fd.MapValue().Message()
+		for i := 0; i < md.Fields().Len(); i++ {
+			fd := md.Fields().Get(i)
+			fdOpts := fd.Options().(*descriptorpb.FieldOptions)
+			if fdOpts != nil {
+				tableauFieldOpts := proto.GetExtension(fdOpts, tableaupb.E_Field).(*tableaupb.FieldOptions)
+				if tableauFieldOpts != nil && tableauFieldOpts.Name == field.opts.Key {
+					field.keyFD = fd
+					break
+				}
 			}
 		}
 	}
-	if keyFd == nil {
+	if field.keyFD == nil {
 		return mapKey, false, xerrors.Newf("opts.Key %s not found in map value-type definition", field.opts.Key)
 	}
 	var fieldValue protoreflect.Value
-	if keyFd.Kind() == protoreflect.EnumKind {
-		fieldValue, present, err = p.parseFieldValue(keyFd, cellData, field.opts.Prop)
+	if field.keyFD.Kind() == protoreflect.EnumKind {
+		fieldValue, present, err = p.parseFieldValue(field.keyFD, cellData, field.opts.Prop)
 		if err != nil {
 			return mapKey, false, err
 		}
 		v := protoreflect.ValueOfInt32(int32(fieldValue.Enum()))
 		mapKey = v.MapKey()
 	} else {
-		fieldValue, present, err = p.parseFieldValue(keyFd, cellData, field.opts.Prop)
+		fieldValue, present, err = p.parseFieldValue(field.keyFD, cellData, field.opts.Prop)
 		if err != nil {
 			return mapKey, false, xerrors.WrapKV(err)
 		}
@@ -598,7 +615,6 @@ func (p *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *
 		return xerrors.Newf("key field not found in proto definition: %s", fdOpts.Key)
 	}
 	keyField := p.parseFieldDescriptor(fd)
-	defer keyField.release()
 	if fieldprop.RequireUnique(keyField.opts.Prop) ||
 		(!fieldprop.HasUnique(keyField.opts.Prop) && p.deduceKeyUnique(fdOpts.Layout, md)) {
 		return xerrors.E2005(keyData)
@@ -634,7 +650,6 @@ func (p *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protorefl
 		fd := md.Fields().Get(i)
 		if fd.IsMap() || fd.IsList() {
 			childField := p.parseFieldDescriptor(fd)
-			defer childField.release()
 			childLayout := parseTableMapLayout(childField.opts.Layout)
 			if childLayout == layout {
 				// same layout (vertical/horizontal), the key can be duplicate
@@ -660,7 +675,6 @@ func (p *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts
 		return xerrors.Newf("key field not found in proto definition: %s", fdOpts.Key)
 	}
 	keyField := p.parseFieldDescriptor(fd)
-	defer keyField.release()
 	if !fieldprop.RequireSequence(keyField.opts.Prop) {
 		// do not require sequence
 		return nil
@@ -714,9 +728,7 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 		}
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
-			subField := p.parseFieldDescriptor(fd)
-			subField.mergeParentFieldProp(field)
-			defer subField.release()
+			subField := p.parseFieldDescriptor(fd).inheritParentFieldProp(field)
 			name := subField.opts.GetName()
 			if name == field.opts.GetKey() {
 				// key field not checked
@@ -873,9 +885,7 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 			fd := md.Fields().Get(i)
 			rawValue := splits[i]
 			err := func() error {
-				subField := p.parseFieldDescriptor(fd)
-				subField.mergeParentFieldProp(field)
-				defer subField.release()
+				subField := p.parseFieldDescriptor(fd).inheritParentFieldProp(field)
 				// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
 				if fd.IsList() {
 					listValue := structValue.Message().Mutable(fd).List()
@@ -996,6 +1006,7 @@ func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue 
 				InputDir:       p.extInfo.InputDir,
 				SubdirRewrites: p.extInfo.SubdirRewrites,
 				PRFiles:        p.extInfo.PRFiles,
+				ImporterCache:  p.extInfo.ImporterCache,
 				Present:        present,
 			}
 			if err := p.extInfo.ReferredCache.CheckRefer(p.ctx, fprop, rawValue, input); err != nil {
@@ -1011,7 +1022,6 @@ func (p *sheetParser) findFieldByName(md protoreflect.MessageDescriptor, name st
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		field := p.parseFieldDescriptor(fd)
-		defer field.release()
 		if field.opts.Name == name {
 			return fd
 		}

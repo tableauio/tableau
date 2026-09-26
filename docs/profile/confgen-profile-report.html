@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confgen Performance Insight Report</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f1ea; --surface: #fffdf8; --ink: #17201d; --muted: #5f6965;
+      --line: #d9ddd7; --accent: #087f5b; --accent-soft: #dff5eb;
+      --blue: #2f6fed; --blue-soft: #e8efff; --amber: #b86700;
+      --amber-soft: #fff0d4; --shadow: 0 18px 50px rgba(31, 48, 42, 0.09);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 12% 4%, rgba(8, 127, 91, 0.12), transparent 28rem), linear-gradient(180deg, #f8f6f0 0, var(--bg) 34rem);
+      color: var(--ink);
+      font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { width: min(1160px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 80px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 850px; margin-bottom: 14px; font-size: clamp(2.2rem, 5vw, 4.6rem); line-height: 0.98; letter-spacing: -0.055em; }
+    h2 { margin-bottom: 18px; font-size: 1.35rem; letter-spacing: -0.025em; }
+    h3 { margin-bottom: 6px; font-size: 1rem; }
+    a { color: var(--accent); }
+    code { padding: 0.12rem 0.34rem; border-radius: 5px; background: rgba(23, 32, 29, 0.07); font-size: 0.88em; }
+    .eyebrow { margin-bottom: 14px; color: var(--accent); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+    .lead { max-width: 780px; color: var(--muted); font-size: 1.1rem; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 34px; }
+    .pill { padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.64); color: var(--muted); font-size: 0.82rem; }
+    .grid { display: grid; gap: 18px; }
+    .kpis { grid-template-columns: repeat(4, 1fr); margin-bottom: 18px; }
+    .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card { padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255, 253, 248, 0.92); box-shadow: var(--shadow); }
+    .kpi strong { display: block; margin-bottom: 5px; font-size: 2rem; line-height: 1; letter-spacing: -0.05em; }
+    .kpi span { color: var(--muted); font-size: 0.86rem; }
+    .callout { margin: 18px 0; border-left: 5px solid var(--accent); background: var(--accent-soft); }
+    .callout p:last-child, .card p:last-child { margin-bottom: 0; }
+    .section { margin-top: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 0.76rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .bars { display: grid; gap: 14px; }
+    .bar-head { display: flex; justify-content: space-between; gap: 18px; margin-bottom: 6px; font-size: 0.88rem; }
+    .track { height: 11px; overflow: hidden; border-radius: 99px; background: #e6e8e4; }
+    .fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), #43ba8d); }
+    .fill.blue { background: linear-gradient(90deg, var(--blue), #70a1ff); }
+    .checklist, .steps { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+    .checklist li { position: relative; padding-left: 27px; }
+    .checklist li::before { content: "✓"; position: absolute; left: 0; color: var(--accent); font-weight: 900; }
+    .step { display: grid; grid-template-columns: 44px 1fr auto; gap: 15px; align-items: start; padding: 17px 0; border-bottom: 1px solid var(--line); }
+    .step:last-child { border-bottom: 0; }
+    .step-index { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: var(--blue-soft); color: var(--blue); font-weight: 800; }
+    .step p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .priority { padding: 5px 9px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-size: 0.74rem; font-weight: 800; }
+    .priority.done { background: var(--accent-soft); color: var(--accent); }
+    .note { color: var(--muted); font-size: 0.87rem; }
+    footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 26px; padding: 20px 4px; color: var(--muted); font-size: 0.88rem; }
+    @media (max-width: 850px) { .kpis, .two { grid-template-columns: 1fr 1fr; } main { width: min(100% - 24px, 1160px); padding-top: 34px; } }
+    @media (max-width: 580px) { .kpis, .two { grid-template-columns: 1fr; } .step { grid-template-columns: 40px 1fr; } .priority { grid-column: 2; justify-self: start; } footer { display: block; } }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#111715; --surface:#19211e; --ink:#eef5f1; --muted:#a9b6b0; --line:#34413c; --accent-soft:#173d31; --blue-soft:#1a2d54; --amber-soft:#422d0d; --shadow:none; }
+      body { background: radial-gradient(circle at 12% 4%, rgba(34,170,125,.15), transparent 28rem), var(--bg); }
+      .card { background: rgba(25,33,30,.94); } .pill { background: rgba(25,33,30,.72); } .track { background:#303b37; } code { background:rgba(255,255,255,.08); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Tableau · Confgen profile · 26 Sep 2026</div>
+    <h1>Selective XLSX reads cut confgen time by more than half.</h1>
+    <p class="lead">The retained reader opens only the requested OOXML parts and extracts raw cell values without building Excelize's general worksheet model. It keeps a lazy Excelize fallback for unsupported inputs.</p>
+    <div class="meta"><span class="pill">Windows</span><span class="pill">6-pair interleaved A/B</span><span class="pill">481 production outputs</span><span class="pill">46 XLSX fixtures</span></div>
+
+    <section class="grid kpis" aria-label="Key results">
+      <article class="card kpi"><strong>2.41×</strong><span>hardened A/B speedup</span></article>
+      <article class="card kpi"><strong>−58.5%</strong><span>normal wall time</span></article>
+      <article class="card kpi"><strong>−63.8%</strong><span>profiled allocation</span></article>
+      <article class="card kpi"><strong>0</strong><span>output hash differences</span></article>
+    </section>
+
+    <section class="card callout">
+      <h2>What changed</h2>
+      <p>The cached confgen importer reads the workbook relationship map, selected worksheet XML, and shared strings directly from the ZIP archive. It supports sparse and empty rows, rich and inline strings, formulas, entities, namespaces, and Excel character escapes. Inputs with unsupported XML constructs or worksheet entries above 512 MB fall back to Excelize.</p>
+    </section>
+
+    <section class="grid two section">
+      <article class="card">
+        <h2>Normal-mode A/B results</h2>
+        <table>
+          <thead><tr><th>Run</th><th class="num">Existing</th><th class="num">Selective XLSX</th><th class="num">Speedup</th></tr></thead>
+          <tbody><tr><td>First 6 pairs</td><td class="num">4.460 s</td><td class="num">2.052 s</td><td class="num">2.17×</td></tr><tr><td>Hardened 6 pairs</td><td class="num">5.698 s</td><td class="num">2.364 s</td><td class="num">2.41×</td></tr></tbody>
+        </table>
+        <p class="note">Both measurements alternated the two binaries. Absolute time shifted with machine load; the speedup reproduced above 2×.</p>
+      </article>
+      <article class="card">
+        <h2>Correctness gates</h2>
+        <ul class="checklist"><li>All 46 repository XLSX fixtures match Excelize row for row.</li><li>All 481 production outputs have identical SHA-256 hashes.</li><li><code>go test ./...</code> passes.</li><li><code>go vet ./...</code> passes.</li><li>No production workbook used the compatibility fallback.</li></ul>
+      </article>
+    </section>
+
+    <section class="grid two section">
+      <article class="card">
+        <h2>Profile reductions</h2>
+        <div class="bars">
+          <div><div class="bar-head"><span>Source opening CPU</span><strong>−98.2%</strong></div><div class="track"><div class="fill" style="width:98.2%"></div></div></div>
+          <div><div class="bar-head"><span>Sheet decoding CPU</span><strong>−78.0%</strong></div><div class="track"><div class="fill" style="width:78%"></div></div></div>
+          <div><div class="bar-head"><span>Allocation space</span><strong>−63.8%</strong></div><div class="track"><div class="fill blue" style="width:63.8%"></div></div></div>
+          <div><div class="bar-head"><span>CPU samples</span><strong>−48.2%</strong></div><div class="track"><div class="fill blue" style="width:48.2%"></div></div></div>
+          <div><div class="bar-head"><span>Sheet parsing CPU</span><strong>−24.4%</strong></div><div class="track"><div class="fill blue" style="width:24.4%"></div></div></div>
+        </div>
+      </article>
+      <article class="card">
+        <h2>Profile totals</h2>
+        <table>
+          <thead><tr><th>Metric</th><th class="num">Commit 3ba7114</th><th class="num">New reader</th></tr></thead>
+          <tbody><tr><td>Profiled wall</td><td class="num">4.915 s</td><td class="num">2.099 s</td></tr><tr><td>CPU samples</td><td class="num">21.83 CPU-s</td><td class="num">11.30 CPU-s</td></tr><tr><td>Allocation space</td><td class="num">6.57 GB</td><td class="num">2.38 GB</td></tr><tr><td><code>source_open</code></td><td class="num">2.73 CPU-s</td><td class="num">0.05 CPU-s</td></tr><tr><td><code>sheet_decode</code></td><td class="num">9.11 CPU-s</td><td class="num">2.00 CPU-s</td></tr></tbody>
+        </table>
+      </article>
+    </section>
+
+    <section class="card section">
+      <h2>Optimization plan from the new profile</h2>
+      <div class="steps">
+        <article class="step"><span class="step-index">1</span><div><h3>Land and monitor the selective XLSX reader</h3><p>Preserve the lazy compatibility fallback and watch CI plus uncommon workbook formats.</p></div><span class="priority done">P1 · done</span></article>
+        <article class="step"><span class="step-index">2</span><div><h3>Compile parser operations where profiles justify them</h3><p>Precompute immutable field actions and column indexes. Retain the change only with at least 5% end-to-end improvement.</p></div><span class="priority">P1 · optional</span></article>
+        <article class="step"><span class="step-index">3</span><div><h3>Keep reference loading lazy</h3><p>Blanket preloading increased blocked time and delivered only about 0.8%. Revisit only when labels expose a stable critical chain.</p></div><span class="priority done">P1 · resolved</span></article>
+        <article class="step"><span class="step-index">4</span><div><h3>Collapse JSON output passes</h3><p><code>store.MarshalToJSON</code> now accounts for 1.01 GB of inclusive allocation. Remove repeated parse, marshal, compact, and indent passes while preserving bytes.</p></div><span class="priority">P2 · next</span></article>
+      </div>
+    </section>
+
+    <section class="card section">
+      <h2>Why the Canvas source does not open as a webpage</h2>
+      <p>The editable <code>.canvas.tsx</code> file imports <code>cursor/canvas</code>, a virtual runtime supplied by Codex. A normal browser cannot resolve or compile it. This HTML file is the standalone, dependency-free browser export. Open it directly, or serve this directory with <code>python -m http.server 8000 --directory .\docs\profile</code> and visit <a href="http://localhost:8000/confgen-profile-report.html">localhost:8000/confgen-profile-report.html</a>.</p>
+    </section>
+
+    <footer><span>Normal mode determines user-visible performance; profiles explain the result.</span><a href="profiling.md">Read the measurement method and full plan</a></footer>
+  </main>
+</body>
+</html>

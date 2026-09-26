@@ -57,22 +57,16 @@ type ImporterInfo struct {
 	SpecifiedSheetName string // Empty means no sheet specified.
 }
 
-// GetScatterImporters parses and returns all related importer infos for scatter.
-func GetScatterImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
-	return getSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "scatter sheet")
-}
+type loadFunc func(context.Context, string, ...Option) (Importer, error)
 
-// GetMergerImporters parses and returns all related importer infos for merger.
-func GetMergerImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
-	return getSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "merge sheet")
-}
-
-// getSheetSpecifierImporters parses and returns all related importer infos.
+// loadSheetSpecifierImporters resolves and loads all related importer infos.
+// The load function selects direct loading or a run-scoped cache while keeping
+// scatter and merger path resolution identical.
 //  1. support Glob pattern, refer https://pkg.go.dev/path/filepath#Glob
 //  2. support filepath.Match pattern for worksheet name, see https://pkg.go.dev/path/filepath#Match
 //  3. exclude primary sheet, and auto filter out duplicate importers
 //  4. special process for CSV filename pattern: "<BookNamePattern>#<SheetNamePattern>.csv"
-func getSheetSpecifierImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string, kind string) ([]ImporterInfo, error) {
+func loadSheetSpecifierImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string, kind string, load loadFunc) ([]ImporterInfo, error) {
 	var importerInfos []ImporterInfo
 	books := map[string][]string{} // relative book path -> sheet name patterns
 	for _, specifier := range sheetSpecifiers {
@@ -92,7 +86,7 @@ func getSheetSpecifierImporters(ctx context.Context, inputDir, primaryBookName, 
 		path := filepath.Join(inputDir, relBookPath)
 		rewrittenWorkbookName := xfs.RewriteSubdir(primaryBookName, subdirRewrites)
 		primaryBookPath := filepath.Join(inputDir, rewrittenWorkbookName)
-		importer, err := New(ctx, path, Sheets(sheetNamePatterns), Cloned(primaryBookPath))
+		importer, err := load(ctx, path, Sheets(sheetNamePatterns), Cloned(primaryBookPath))
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to create importer: %s", path)
 		}

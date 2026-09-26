@@ -33,10 +33,7 @@ func NewExcelImporter(ctx context.Context, filename string, setters ...Option) (
 		}
 	}()
 
-	brOpts, err := parseExcelBookReaderOptions(filename, file, opts.Sheets)
-	if err != nil {
-		return nil, err
-	}
+	brOpts := buildExcelBookReaderOptions(filename, file.GetSheetList(), opts.Sheets)
 
 	if opts.Mode == Protogen {
 		err := adjustExcelTopN(ctx, file, brOpts, opts.Parser, opts.Cloned)
@@ -178,13 +175,13 @@ func readExcelSheetRows(f *excelize.File, sheetName string, topN uint, opts ...e
 	return rows, nil
 }
 
-func parseExcelBookReaderOptions(filename string, file *excelize.File, sheetNames []string) (*bookReaderOptions, error) {
+func buildExcelBookReaderOptions(filename string, available, selected []string) *bookReaderOptions {
 	brOpts := &bookReaderOptions{
 		Name:     strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename)),
 		Filename: filename,
 	}
-	for _, sheetName := range file.GetSheetList() {
-		if wantSheet(sheetName, sheetNames) {
+	for _, sheetName := range available {
+		if wantSheet(sheetName, selected) {
 			shReaderOpt := &sheetReaderOptions{
 				Filename: filename,
 				Name:     sheetName,
@@ -192,5 +189,5 @@ func parseExcelBookReaderOptions(filename string, file *excelize.File, sheetName
 			brOpts.Sheets = append(brOpts.Sheets, shReaderOpt)
 		}
 	}
-	return brOpts, nil
+	return brOpts
 }

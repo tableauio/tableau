@@ -35,6 +35,7 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (er
 	if err := log.Init(opts.Log); err != nil {
 		return err
 	}
+	defer log.Sync()
 	g := protogen.NewGenerator(protoPackage, indir, outdir, setters...)
 	return g.Generate()
 }
@@ -48,6 +49,7 @@ func GenConf(protoPackage, indir, outdir string, setters ...options.Option) erro
 	if err := log.Init(opts.Log); err != nil {
 		return err
 	}
+	defer log.Sync()
 	g := confgen.NewGenerator(protoPackage, indir, outdir, setters...)
 	return g.Generate()
 }

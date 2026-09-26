@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/protocolbuffers/txtpbfmt/parser"
 	"github.com/tableauio/tableau/store/jsonparser"
@@ -65,6 +66,13 @@ type MarshalOptions struct {
 // MarshalToJSON marshals the given proto.Message in the JSON format.
 // You can depend on the output being stable.
 func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err error) {
+	var location *time.Location
+	if options.EmitTimezones {
+		location, err = loadLocation(options.LocationName)
+		if err != nil {
+			return nil, err
+		}
+	}
 	opts := protojson.MarshalOptions{
 		EmitUnpopulated: options.EmitUnpopulated,
 		UseProtoNames:   options.UseProtoNames,
@@ -74,31 +82,34 @@ func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 	if err != nil {
 		return nil, err
 	}
-	// process when use timezones
-	if options.EmitTimezones {
-		result, err := processWhenEmitTimezones(msg, string(messageJSON), jsonparser.Fastjson, options.LocationName, options.UseProtoNames)
+	// protojson always encodes Timestamp in UTC with a trailing Z. A match may
+	// come from an ordinary string, but that only causes a harmless extra typed
+	// traversal: rewriteJSONTimestamps changes Timestamp fields exclusively.
+	rewriteTimestamps := options.EmitTimezones && bytes.Contains(messageJSON, []byte(`Z"`))
+	if rewriteTimestamps {
+		result, err := rewriteJSONTimestamps(msg, string(messageJSON), jsonparser.Fastjson, location, options.UseProtoNames)
 		if err != nil {
 			return nil, err
 		}
 		messageJSON = []byte(result)
 	}
-	// protojson does not offer a "deterministic" field ordering, but fields
-	// are still ordered consistently by their index. However, protojson can
-	// output inconsistent whitespace for some reason, therefore it is
-	// suggested to use a formatter to ensure consistent formatting.
-	// https://github.com/golang/protobuf/issues/1373
-	stableJSON := new(bytes.Buffer)
-	if err = json.Compact(stableJSON, messageJSON); err != nil {
-		return nil, err
-	}
 	if options.Pretty {
 		prettyJSON := new(bytes.Buffer)
-		if err := json.Indent(prettyJSON, stableJSON.Bytes(), "", "    "); err != nil {
+		prettyJSON.Grow(len(messageJSON) + len(messageJSON)/2)
+		if err := json.Indent(prettyJSON, messageJSON, "", "    "); err != nil {
 			return nil, err
 		}
 		return prettyJSON.Bytes(), nil
 	}
-	return stableJSON.Bytes(), nil
+	if rewriteTimestamps {
+		return messageJSON, nil
+	}
+	compactJSON := new(bytes.Buffer)
+	compactJSON.Grow(len(messageJSON))
+	if err := json.Compact(compactJSON, messageJSON); err != nil {
+		return nil, err
+	}
+	return compactJSON.Bytes(), nil
 }
 
 // MarshalToText marshals the given proto.Message in the text (textproto) format.

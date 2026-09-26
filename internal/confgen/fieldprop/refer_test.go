@@ -9,9 +9,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	_ "github.com/tableauio/tableau/proto/tableaupb/unittestpb"
@@ -231,6 +233,83 @@ func TestCheckRefer_loadFailureDedup(t *testing.T) {
 	}
 }
 
+func TestCheckRefer_normalizesCacheKey(t *testing.T) {
+	cache := NewReferredCache()
+	input := &Input{
+		ProtoPackage: "unittest",
+		InputDir:     "../../../testdata",
+		PRFiles:      protoregistry.GlobalFiles,
+		Present:      true,
+	}
+	checks := []struct {
+		refer string
+		value string
+	}{
+		{refer: "ItemConf.ID", value: "1"},
+		{refer: "AnySheet(ItemConf).ID", value: "2"},
+		{refer: "AnotherSheet(ItemConf).Num", value: "100"},
+	}
+	for _, check := range checks {
+		prop := &tableaupb.FieldProp{Refer: check.refer}
+		if err := cache.CheckRefer(context.Background(), prop, check.value, input); err != nil {
+			t.Fatalf("CheckRefer(%q) error = %v", check.refer, err)
+		}
+	}
+
+	keys := []referCacheKey{
+		{message: "unittest.ItemConf", column: "ID"},
+		{message: "unittest.ItemConf", column: "Num"},
+	}
+	for _, key := range keys {
+		if cache.entries[key] == nil {
+			t.Errorf("cache entry %q not found", key.String())
+		}
+	}
+	if len(cache.entries) != 2 {
+		t.Errorf("cache entries = %d, want 2", len(cache.entries))
+	}
+}
+
+func TestReferredCache_resolveKeyIndexesRawRefers(t *testing.T) {
+	cache := NewReferredCache()
+	input := &Input{ProtoPackage: "unittest"}
+	tests := []struct {
+		refer string
+		want  referCacheKey
+	}{
+		{refer: "ItemConf.ID", want: referCacheKey{message: "unittest.ItemConf", column: "ID"}},
+		{refer: "AnySheet(ItemConf).Num", want: referCacheKey{message: "unittest.ItemConf", column: "Num"}},
+	}
+	for _, test := range tests {
+		first, err := cache.resolveKey(test.refer, input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := cache.resolveKey(test.refer, input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first != test.want || second != test.want {
+			t.Errorf("resolveKey(%q) = %v and %v, want %v", test.refer, first, second, test.want)
+		}
+	}
+	if len(cache.index) != len(tests) {
+		t.Errorf("refer index entries = %d, want %d", len(cache.index), len(tests))
+	}
+
+	otherPackageKey, err := cache.resolveKey("ItemConf.ID", &Input{ProtoPackage: "other"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantOtherPackageKey := referCacheKey{message: "other.ItemConf", column: "ID"}
+	if otherPackageKey != wantOtherPackageKey {
+		t.Errorf("other package key = %v, want %v", otherPackageKey, wantOtherPackageKey)
+	}
+	if len(cache.index) != len(tests)+1 {
+		t.Errorf("refer index entries = %d, want %d", len(cache.index), len(tests)+1)
+	}
+}
+
 func testHeader() *tableparser.Header {
 	return &tableparser.Header{
 		NameRow: 1,
@@ -314,14 +393,14 @@ func TestReferredCache_GetEntry_loadFailureDedup(t *testing.T) {
 		atomic.AddInt32(&loads, 1)
 		return nil, errors.New("load failed")
 	}
-	refer := "Broken.ID"
+	key := referCacheKey{message: "test.Broken", column: "ID"}
 
-	_, err := cache.getEntry(refer, loadFunc)
+	_, err := cache.getEntry(context.Background(), key, loadFunc)
 	if err == nil {
 		t.Fatal("first getEntry() error = nil, want error")
 	}
 
-	entry, err := cache.getEntry(refer, loadFunc)
+	entry, err := cache.getEntry(context.Background(), key, loadFunc)
 	if err != nil {
 		t.Fatalf("second getEntry() error = %v, want nil", err)
 	}
@@ -333,6 +412,35 @@ func TestReferredCache_GetEntry_loadFailureDedup(t *testing.T) {
 	}
 }
 
+func TestReferredCacheProfilingPreservesDedup(t *testing.T) {
+	cache := NewReferredCache()
+	cache.EnableProfiling()
+	ctx := profile.WithGenerator(context.Background(), "confgen")
+	key := referCacheKey{message: "test.Item", column: "ID"}
+	space := newValueSpace()
+	space.Add("1")
+	var loads int32
+	load := func() (*valueSpace, error) {
+		atomic.AddInt32(&loads, 1)
+		return space, nil
+	}
+
+	first, err := cache.getEntry(ctx, key, load)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := cache.getEntry(ctx, key, load)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.space != space || second.space != space {
+		t.Fatal("getEntry() did not return the cached value space")
+	}
+	if got := atomic.LoadInt32(&loads); got != 1 {
+		t.Errorf("load calls = %d, want 1", got)
+	}
+}
+
 func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 	cache := NewReferredCache()
 	var loads int32
@@ -341,7 +449,7 @@ func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 		atomic.AddInt32(&loads, 1)
 		return nil, errors.New("load failed")
 	}
-	refer := "BrokenConcurrent.ID"
+	key := referCacheKey{message: "test.BrokenConcurrent", column: "ID"}
 
 	const n = 32
 	type result struct {
@@ -355,7 +463,7 @@ func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			<-start
-			entry, err := cache.getEntry(refer, loadFunc)
+			entry, err := cache.getEntry(context.Background(), key, loadFunc)
 			results[i] = result{entry, err}
 		}(i)
 	}
@@ -382,6 +490,48 @@ func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 	if nUnavailable != n-1 {
 		t.Errorf("unavailable returns = %d, want %d", nUnavailable, n-1)
 	}
+}
+
+func TestReferredCache_GetEntry_loadsDifferentKeysConcurrently(t *testing.T) {
+	cache := NewReferredCache()
+	started := make(chan string, 2)
+	release := make(chan struct{})
+	load := func(name string) loadValueSpaceFunc {
+		return func() (*valueSpace, error) {
+			started <- name
+			<-release
+			return newValueSpace(), nil
+		}
+	}
+
+	var group sync.WaitGroup
+	group.Add(2)
+	keys := []referCacheKey{
+		{message: "test.Item", column: "ID"},
+		{message: "test.Skill", column: "ID"},
+	}
+	for _, key := range keys {
+		go func(key referCacheKey) {
+			defer group.Done()
+			if _, err := cache.getEntry(context.Background(), key, load(key.String())); err != nil {
+				t.Errorf("getEntry(%q) error = %v", key.String(), err)
+			}
+		}(key)
+	}
+
+	timer := time.NewTimer(time.Second)
+	defer timer.Stop()
+	for range 2 {
+		select {
+		case <-started:
+		case <-timer.C:
+			close(release)
+			group.Wait()
+			t.Fatal("different references did not load concurrently")
+		}
+	}
+	close(release)
+	group.Wait()
 }
 
 func TestCheckRefer_nilReceiver(t *testing.T) {

@@ -61,6 +61,7 @@ func newRootCmd() *cobra.Command {
 	rootCmd.Flags().StringVarP(&indir, "indir", "i", ".", "Input directory, default is current directory.")
 	rootCmd.Flags().StringVarP(&outdir, "outdir", "o", ".", "Output directory, default is current directory.")
 	rootCmd.Flags().BoolVarP(&preserveFieldNumbers, "preserve-field-numbers", "", false, `Preserve protobuf field numbers for backward/forward compatibility (assign new fields the max field number + 1), set it to override proto.output.preserveFieldNumbers.`)
+	rootCmd.Flags().BoolP("profiling", "", false, "Enable generator performance profiling.")
 	rootCmd.Flags().StringVarP(&confOutputSubdir, "conf-output-subdir", "", "", "Conf output sub-directory, set it to override conf.output.subdir.")
 	rootCmd.Flags().StringSliceVarP(&confOutputFormats, "conf-output-formats", "", nil, "Available format: json, binpb, and txtpb, set it to override conf.output.formats.")
 	rootCmd.Flags().BoolVarP(&confInputIgnoreUnknownWorkbook, "conf-input-ignore-unknown-workbook", "", false, `Whether converter will not report an error and abort if a workbook
@@ -101,6 +102,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	if err := log.Init(config.Log); err != nil {
 		return fmt.Errorf("init log failed: %s", err)
 	}
+	defer log.Sync()
 	applyFlags(cmd, config)
 	yamlOut, _ := yaml.Marshal(config)
 	log.Debugf("loaded config:\n%s", string(yamlOut))
@@ -128,14 +130,16 @@ func runE(cmd *cobra.Command, args []string) error {
 // override takes effect only when its flag is explicitly provided on the
 // command line, so config-file values are preserved when a flag is omitted.
 //
-// --preserve-field-numbers is bidirectional: both --preserve-field-numbers
-// and --preserve-field-numbers=false override the config value (the latter
-// disables it even when set to true in the config file). The other flags
-// preserve their pre-existing, one-directional override semantics.
+// --preserve-field-numbers is bidirectional: an explicit false value disables
+// a setting that was enabled in the config file. The other flags use
+// one-directional override semantics.
 //
 // NOTE: --conf-output-subdir is applied later in genConf to gain dynamic
 // output subdir ability, so it is intentionally not handled here.
 func applyFlags(cmd *cobra.Command, config *options.Options) {
+	if enabled, _ := cmd.Flags().GetBool("profiling"); enabled {
+		config.Profiling = true
+	}
 	if cmd.Flags().Changed("preserve-field-numbers") {
 		// override proto.output.preserveFieldNumbers in config file if the
 		// flag is explicitly set (either true or false).
