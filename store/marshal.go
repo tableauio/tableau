@@ -92,6 +92,10 @@ func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 	if err != nil {
 		return nil, err
 	}
+	// protojson does not offer deterministic field ordering, but fields are
+	// still ordered consistently by their index. It can produce inconsistent
+	// whitespace, so normalize the formatting to keep the output stable.
+	// See https://github.com/golang/protobuf/issues/1373.
 	if !options.Pretty {
 		compactJSON := new(bytes.Buffer)
 		compactJSON.Grow(len(messageJSON))
