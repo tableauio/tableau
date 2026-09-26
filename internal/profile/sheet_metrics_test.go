@@ -2,6 +2,7 @@ package profile
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -9,7 +10,27 @@ import (
 	"time"
 
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/log"
+	"github.com/tableauio/tableau/log/core"
 )
+
+type metricLogDriver struct {
+	messages []string
+}
+
+func (*metricLogDriver) Name() string { return "metrics-test" }
+
+func (*metricLogDriver) GetLevel(string) core.Level { return core.DebugLevel }
+
+func (d *metricLogDriver) Print(record *core.Record) {
+	message := *record.Format
+	if message == "" {
+		message = fmt.Sprint(record.Args...)
+	} else if len(record.Args) > 0 {
+		message = fmt.Sprintf(message, record.Args...)
+	}
+	d.messages = append(d.messages, message)
+}
 
 func TestMeasureSheet(t *testing.T) {
 	t.Run("table with empty and missing cells", func(t *testing.T) {
@@ -92,6 +113,36 @@ func TestSheetParserMetricsFallsBackToWallTime(t *testing.T) {
 	got := metrics.collect()
 	if len(got) != 2 || got[0].key != slow || got[1].key != fast {
 		t.Errorf("wall order = %+v, want slow then fast", got)
+	}
+}
+
+func TestSheetParserMetricsPrintAndReset(t *testing.T) {
+	driver := &metricLogDriver{}
+	log.SetDriver(driver)
+	t.Cleanup(func() { log.SetDriver(nil) })
+
+	var metrics SheetParserMetrics
+	metrics.Print()
+	if len(driver.messages) != 0 {
+		t.Fatalf("empty metrics logged %d messages, want 0", len(driver.messages))
+	}
+
+	key := SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"}
+	metrics.record(key, sheetShape{kind: "table", rows: 1, cols: 1}, time.Second, time.Millisecond, true, false)
+	metrics.Print()
+	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "CPU time") || !strings.Contains(driver.messages[1], key.String()) {
+		t.Fatalf("CPU metrics log = %q", driver.messages)
+	}
+
+	metrics.Reset()
+	if got := metrics.collect(); len(got) != 0 {
+		t.Fatalf("metrics after Reset() = %v, want empty", got)
+	}
+	driver.messages = nil
+	metrics.record(key, sheetShape{kind: "table"}, time.Second, 0, false, false)
+	metrics.Print()
+	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "wall time") {
+		t.Fatalf("wall metrics log = %q", driver.messages)
 	}
 }
 

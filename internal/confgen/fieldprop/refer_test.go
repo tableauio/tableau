@@ -13,6 +13,7 @@ import (
 
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	_ "github.com/tableauio/tableau/proto/tableaupb/unittestpb"
@@ -408,6 +409,35 @@ func TestReferredCache_GetEntry_loadFailureDedup(t *testing.T) {
 	}
 	if got := atomic.LoadInt32(&loads); got != 1 {
 		t.Errorf("loadFunc calls = %d, want 1", got)
+	}
+}
+
+func TestReferredCacheProfilingPreservesDedup(t *testing.T) {
+	cache := NewReferredCache()
+	cache.EnableProfiling()
+	ctx := profile.WithGenerator(context.Background(), "confgen")
+	key := referCacheKey{message: "test.Item", column: "ID"}
+	space := newValueSpace()
+	space.Add("1")
+	var loads int32
+	load := func() (*valueSpace, error) {
+		atomic.AddInt32(&loads, 1)
+		return space, nil
+	}
+
+	first, err := cache.getEntry(ctx, key, load)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := cache.getEntry(ctx, key, load)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.space != space || second.space != space {
+		t.Fatal("getEntry() did not return the cached value space")
+	}
+	if got := atomic.LoadInt32(&loads); got != 1 {
+		t.Errorf("load calls = %d, want 1", got)
 	}
 }
 

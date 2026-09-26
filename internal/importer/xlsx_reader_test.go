@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"archive/zip"
 	"io/fs"
 	"path/filepath"
 	"sort"
@@ -65,6 +66,50 @@ func TestParseXLSXRows(t *testing.T) {
 		nil,
 		{"42"},
 	}, rows)
+}
+
+func TestCachedExcelFallsBackToExcelize(t *testing.T) {
+	cached, err := openCachedExcel("testdata/Test.xlsx", true)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, cached.close()) })
+
+	forcedFallback := false
+	for _, sheet := range cached.reader.sheets {
+		if sheet.name == "Item" {
+			// Simulate a worksheet that exceeds the direct reader's limit. The
+			// general Excelize reader remains the compatibility path.
+			sheet.entry.UncompressedSize64 = maxXLSXEntrySize + 1
+			forcedFallback = true
+			break
+		}
+	}
+	require.True(t, forcedFallback)
+	rows, err := cached.readRows("Item")
+	require.NoError(t, err)
+	require.NotEmpty(t, rows)
+	require.Nil(t, cached.reader)
+	require.NotNil(t, cached.file)
+
+	file, err := cached.openExcelize()
+	require.NoError(t, err)
+	require.Same(t, cached.file, file)
+	rows, err = cached.readRows("Item")
+	require.NoError(t, err)
+	require.NotEmpty(t, rows)
+}
+
+func TestXLSXReaderRejectsMissingAndOversizedEntries(t *testing.T) {
+	reader, err := openXLSXReader("testdata/Test.xlsx")
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+
+	_, err = reader.ReadRows("Missing")
+	require.ErrorIs(t, err, ErrSheetNotFound)
+	_, err = readZipEntry(&zip.File{FileHeader: zip.FileHeader{
+		Name:               "large.xml",
+		UncompressedSize64: maxXLSXEntrySize + 1,
+	}})
+	require.ErrorContains(t, err, "exceeds")
 }
 
 func TestDecodeExcelEscapes(t *testing.T) {
