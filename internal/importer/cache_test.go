@@ -89,7 +89,7 @@ func TestCacheLoadSharesOriginFormats(t *testing.T) {
 	for _, tt := range cacheOriginFormats {
 		t.Run(tt.name, func(t *testing.T) {
 			cache := NewCache()
-			cache.EnableMetrics()
+			cache.EnableProfiling()
 			t.Cleanup(func() { _ = cache.Close() })
 
 			first, err := cache.Load(context.Background(), tt.firstFilename, Sheets([]string{tt.firstSheet}))
@@ -153,7 +153,7 @@ func TestNilCacheLoadMergerImporters(t *testing.T) {
 
 func TestCacheLoadSharesClonedBook(t *testing.T) {
 	cache := NewCache()
-	cache.EnableMetrics()
+	cache.EnableProfiling()
 	t.Cleanup(func() { _ = cache.Close() })
 	items, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}), Cloned("testdata/Primary.xlsx"))
 	if err != nil {

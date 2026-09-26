@@ -37,8 +37,7 @@ type cacheKey struct {
 // until Close. Callers must not mutate cached sheets or call Load concurrently
 // with Close.
 type Cache struct {
-	profiling      bool
-	collectMetrics bool
+	profiling bool
 
 	// entries caches the importer view for an exact source and option set.
 	entries sync.Map
@@ -89,16 +88,10 @@ func NewCache() *Cache {
 	return &Cache{}
 }
 
-// EnableMetrics enables cache counters. Call it before the cache is used.
-func (c *Cache) EnableMetrics() {
-	c.collectMetrics = true
-}
-
 // EnableProfiling enables pprof labels and cache metrics. Call it before the
 // cache is used.
 func (c *Cache) EnableProfiling() {
 	c.profiling = true
-	c.collectMetrics = true
 }
 
 // Load returns a cached importer or loads it once for concurrent callers.
@@ -119,7 +112,7 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 	if err != nil {
 		return nil, err
 	}
-	if c.collectMetrics {
+	if c.profiling {
 		c.requests.Add(1)
 		if _, loaded := c.paths.LoadOrStore(cacheFilename, struct{}{}); !loaded {
 			c.pathCount.Add(1)
@@ -161,7 +154,7 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 		if err != nil {
 			return nil, err
 		}
-		if c.collectMetrics {
+		if c.profiling {
 			c.imports.Add(1)
 			c.sheets.Add(decoded)
 		}
@@ -173,7 +166,7 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 	}
 
 	view, decoded, err := c.loadView(ctx, loaded.(cachedSource), key.filename, opts.Sheets)
-	if c.collectMetrics {
+	if c.profiling {
 		c.sheets.Add(decoded)
 	}
 	if err != nil {
@@ -443,7 +436,7 @@ func (c *Cache) Close() error {
 }
 
 // Metrics returns load requests, importer loads, decoded sheets, and paths.
-// Counters remain zero unless metrics or profiling was enabled before loading.
+// Counters remain zero unless profiling was enabled before loading.
 func (c *Cache) Metrics() (requests, imports, sheets, paths int64) {
 	if c == nil {
 		return 0, 0, 0, 0
