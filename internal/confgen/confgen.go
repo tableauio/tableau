@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"runtime/pprof"
 	"slices"
 
 	"buf.build/go/protovalidate"
@@ -55,10 +54,7 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 }
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
-	ctx := context.Background()
-	if opts.Profiling {
-		ctx = pprof.WithLabels(ctx, pprof.Labels("generator", "confgen"))
-	}
+	ctx := profile.WithGenerator(context.Background(), "confgen", opts.Profiling)
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
 	metasheetName := metasheet.DefaultMetasheetName
 	// use the metasheet name from the proto input settings if provided.

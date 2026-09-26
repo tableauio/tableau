@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"runtime/pprof"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -140,15 +139,15 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 		}
 		var source cachedSource
 		var decoded int64
-		err := profile.Run(ctx, pprof.Labels(
-			"work", "source_open",
-			"format", string(format.GetFormat(key.filename)),
-			"source", key.filename,
-		), func(ctx context.Context) error {
+		err := profile.Run(ctx, func(ctx context.Context) error {
 			var err error
 			source, decoded, err = openCachedSource(ctx, key.filename)
 			return err
-		})
+		},
+			"work", "source_open",
+			"format", string(format.GetFormat(key.filename)),
+			"source", key.filename,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -163,15 +162,15 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 
 	var view Importer
 	var decoded int64
-	err = profile.Run(ctx, pprof.Labels(
-		"work", "sheet_decode",
-		"format", string(format.GetFormat(key.filename)),
-		"source", key.filename,
-	), func(ctx context.Context) error {
+	err = profile.Run(ctx, func(ctx context.Context) error {
 		var err error
 		view, decoded, err = loaded.(cachedSource).load(ctx, opts.Sheets)
 		return err
-	})
+	},
+		"work", "sheet_decode",
+		"format", string(format.GetFormat(key.filename)),
+		"source", key.filename,
+	)
 	c.sheets.Add(decoded)
 	if err != nil {
 		return nil, err
@@ -216,14 +215,14 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 	for _, sheetOpts := range readerOpts.Sheets {
 		sheet := c.sheets[sheetOpts.Name]
 		if sheet == nil {
-			err := profile.Run(ctx, pprof.Labels("sheet", sheetOpts.Name, "reader", c.readerName()), func(context.Context) error {
+			err := profile.Run(ctx, func(context.Context) error {
 				rows, err := c.readRows(sheetOpts.Name)
 				if err != nil {
 					return xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetOpts.Name)
 				}
 				sheet = book.NewTableSheet(sheetOpts.Name, rows)
 				return nil
-			})
+			}, "sheet", sheetOpts.Name, "reader", c.readerName())
 			if err != nil {
 				return nil, decoded, err
 			}

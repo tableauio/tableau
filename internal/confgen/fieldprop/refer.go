@@ -4,7 +4,6 @@ import (
 	"context"
 	"path/filepath"
 	"regexp"
-	"runtime/pprof"
 	"strings"
 	"sync"
 
@@ -127,12 +126,16 @@ func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFun
 	r.entries[key] = entry
 	r.mu.Unlock()
 
+	referLabel := ""
+	if profile.Enabled(ctx) {
+		referLabel = key.String()
+	}
 	var space *valueSpace
-	err := profile.Run(ctx, pprof.Labels("work", "refer_load", "refer", key.String()), func(context.Context) error {
+	err := profile.Run(ctx, func(context.Context) error {
 		var err error
 		space, err = loadFunc()
 		return err
-	})
+	}, "work", "refer_load", "refer", referLabel)
 	r.mu.Lock()
 	if err == nil {
 		entry.space = space
@@ -147,10 +150,14 @@ func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFun
 }
 
 func waitForReferEntry(ctx context.Context, key referCacheKey, entry *referCacheEntry) referCacheEntry {
-	_ = profile.Run(ctx, pprof.Labels("work", "refer_wait", "refer", key.String()), func(context.Context) error {
+	referLabel := ""
+	if profile.Enabled(ctx) {
+		referLabel = key.String()
+	}
+	_ = profile.Run(ctx, func(context.Context) error {
 		<-entry.ready
 		return nil
-	})
+	}, "work", "refer_wait", "refer", referLabel)
 	return *entry
 }
 
