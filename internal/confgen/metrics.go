@@ -8,10 +8,6 @@ import (
 )
 
 func (gen *Generator) startProfiling() (func() error, error) {
-	if !gen.profiling {
-		return func() error { return nil }, nil
-	}
-
 	profileDir := gen.OutputDir
 	if gen.OutputOpt != nil {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
@@ -21,9 +17,7 @@ func (gen *Generator) startProfiling() (func() error, error) {
 
 // printMetrics reports importer cache use and sheet parser metrics.
 func (gen *Generator) printMetrics() {
-	if gen.profiling {
-		requests, imports, sheets, paths := gen.importerCache.Metrics()
-		log.Infof("importer cache: requests=%d imports=%d sheets=%d paths=%d", requests, imports, sheets, paths)
-	}
+	requests, imports, sheets, paths := gen.importerCache.Metrics()
+	log.Infof("importer cache: requests=%d imports=%d sheets=%d paths=%d", requests, imports, sheets, paths)
 	gen.SheetParserMetrics.Print()
 }

@@ -70,7 +70,10 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 }
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
-	ctx := profile.WithGenerator(context.Background(), "protogen", opts.Profiling)
+	ctx := context.Background()
+	if opts.Profiling {
+		ctx = profile.WithGenerator(ctx, "protogen")
+	}
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
 
@@ -124,7 +127,9 @@ func (gen *Generator) resetRunState() error {
 	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
 	gen.registryWithGeneratedOnce = sync.Once{}
 	gen.protoRegistryFilesWithGenerated = nil
-	gen.SheetParserMetrics.Reset()
+	if gen.profiling {
+		gen.SheetParserMetrics.Reset()
+	}
 	gen.cacheMu.Lock()
 	gen.cachedImporters = make(map[string]importer.Importer)
 	gen.cacheMu.Unlock()
@@ -194,14 +199,16 @@ func (gen *Generator) GenAll() (err error) {
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	defer gen.SheetParserMetrics.Print()
-	stopProfiling, err := gen.startProfiling()
-	if err != nil {
-		return err
+	if gen.profiling {
+		defer gen.SheetParserMetrics.Print()
+		stopProfiling, startErr := gen.startProfiling()
+		if startErr != nil {
+			return startErr
+		}
+		defer func() {
+			err = errors.Join(err, stopProfiling())
+		}()
 	}
-	defer func() {
-		err = errors.Join(err, stopProfiling())
-	}()
 	if err := gen.output.createStagingDir(); err != nil {
 		return err
 	}
@@ -227,14 +234,16 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) (err error) {
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	defer gen.SheetParserMetrics.Print()
-	stopProfiling, err := gen.startProfiling()
-	if err != nil {
-		return err
+	if gen.profiling {
+		defer gen.SheetParserMetrics.Print()
+		stopProfiling, startErr := gen.startProfiling()
+		if startErr != nil {
+			return startErr
+		}
+		defer func() {
+			err = errors.Join(err, stopProfiling())
+		}()
 	}
-	defer func() {
-		err = errors.Join(err, stopProfiling())
-	}()
 	if err := gen.output.createStagingDir(); err != nil {
 		return err
 	}

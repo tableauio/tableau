@@ -233,12 +233,12 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 	parser.sheetCollector = messageCollector.NewChild(maxErrorsPerSheet,
 		xerrors.KeyBookName, bookName,
 		xerrors.KeySheetName, sheetName)
-	key := profile.SheetMetricKey{Book: bookName, Sheet: sheetName, Detail: string(info.MD.FullName())}
 	protomsg := dynamicpb.NewMessage(info.MD)
 	var parseErr error
 	if info.ExtInfo.SheetParserMetrics == nil {
 		parseErr = parser.Parse(protomsg, sheet)
 	} else {
+		key := profile.SheetMetricKey{Book: bookName, Sheet: sheetName, Detail: string(info.MD.FullName())}
 		parseErr = info.ExtInfo.SheetParserMetrics.Measure(parser.ctx, "confgen", key, sheet, func(ctx context.Context) error {
 			parser.ctx = ctx
 			return parser.Parse(protomsg, sheet)

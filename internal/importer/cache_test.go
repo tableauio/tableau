@@ -63,6 +63,18 @@ func TestCacheLoadSharesImporter(t *testing.T) {
 	}
 }
 
+func TestCacheMetricsDisabledByDefault(t *testing.T) {
+	cache := NewCache()
+	t.Cleanup(func() { _ = cache.Close() })
+	if _, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"})); err != nil {
+		t.Fatal(err)
+	}
+	requests, imports, sheets, paths := cache.Metrics()
+	if requests != 0 || imports != 0 || sheets != 0 || paths != 0 {
+		t.Fatalf("Metrics() = (%d, %d, %d, %d), want all zero", requests, imports, sheets, paths)
+	}
+}
+
 func TestCacheLoadSharesOriginFormats(t *testing.T) {
 	covered := make(map[format.Format]bool, len(cacheOriginFormats))
 	for _, tt := range cacheOriginFormats {
@@ -77,6 +89,7 @@ func TestCacheLoadSharesOriginFormats(t *testing.T) {
 	for _, tt := range cacheOriginFormats {
 		t.Run(tt.name, func(t *testing.T) {
 			cache := NewCache()
+			cache.EnableMetrics()
 			t.Cleanup(func() { _ = cache.Close() })
 
 			first, err := cache.Load(context.Background(), tt.firstFilename, Sheets([]string{tt.firstSheet}))
@@ -140,6 +153,7 @@ func TestNilCacheLoadMergerImporters(t *testing.T) {
 
 func TestCacheLoadSharesClonedBook(t *testing.T) {
 	cache := NewCache()
+	cache.EnableMetrics()
 	t.Cleanup(func() { _ = cache.Close() })
 	items, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}), Cloned("testdata/Primary.xlsx"))
 	if err != nil {

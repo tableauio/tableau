@@ -32,6 +32,8 @@ func init() {
 
 // ReferredCache caches referred column values for one generation or load.
 type ReferredCache struct {
+	profiling bool
+
 	mu sync.RWMutex
 	// Entries are pointers because a loader publishes into the same in-flight
 	// entry that waiters obtained before the load completed.
@@ -104,6 +106,11 @@ func NewReferredCache() *ReferredCache {
 	}
 }
 
+// EnableProfiling enables pprof labels. Call it before the cache is used.
+func (r *ReferredCache) EnableProfiling() {
+	r.profiling = true
+}
+
 type loadValueSpaceFunc = func() (*valueSpace, error)
 
 // getEntry loads each normalized message column once. Callers for the same key
@@ -113,29 +120,29 @@ func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFun
 	entry, ok := r.entries[key]
 	r.mu.RUnlock()
 	if ok {
-		return waitForReferEntry(ctx, key, entry), nil
+		return r.waitForEntry(ctx, key, entry), nil
 	}
 
 	r.mu.Lock()
 	entry, ok = r.entries[key]
 	if ok {
 		r.mu.Unlock()
-		return waitForReferEntry(ctx, key, entry), nil
+		return r.waitForEntry(ctx, key, entry), nil
 	}
 	entry = &referCacheEntry{ready: make(chan struct{})}
 	r.entries[key] = entry
 	r.mu.Unlock()
 
-	referLabel := ""
-	if profile.Enabled(ctx) {
-		referLabel = key.String()
-	}
 	var space *valueSpace
-	err := profile.Run(ctx, func(context.Context) error {
-		var err error
+	var err error
+	if r.profiling {
+		err = profile.Run(ctx, func(context.Context) error {
+			space, err = loadFunc()
+			return err
+		}, "work", "refer_load", "refer", key.String())
+	} else {
 		space, err = loadFunc()
-		return err
-	}, "work", "refer_load", "refer", referLabel)
+	}
 	r.mu.Lock()
 	if err == nil {
 		entry.space = space
@@ -149,15 +156,15 @@ func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFun
 	return *entry, err
 }
 
-func waitForReferEntry(ctx context.Context, key referCacheKey, entry *referCacheEntry) referCacheEntry {
-	referLabel := ""
-	if profile.Enabled(ctx) {
-		referLabel = key.String()
-	}
-	_ = profile.Run(ctx, func(context.Context) error {
+func (r *ReferredCache) waitForEntry(ctx context.Context, key referCacheKey, entry *referCacheEntry) referCacheEntry {
+	if r.profiling {
+		_ = profile.Run(ctx, func(context.Context) error {
+			<-entry.ready
+			return nil
+		}, "work", "refer_wait", "refer", key.String())
+	} else {
 		<-entry.ready
-		return nil
-	}, "work", "refer_wait", "refer", referLabel)
+	}
 	return *entry
 }
 

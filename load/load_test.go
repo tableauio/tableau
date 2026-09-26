@@ -281,6 +281,7 @@ func TestLoad(t *testing.T) {
 
 func TestLoadOriginReusesImporterCache(t *testing.T) {
 	opts := ParseOptions()
+	opts.importerCache.EnableMetrics()
 	t.Cleanup(func() { require.NoError(t, opts.Close()) })
 	mopts := opts.ParseMessagerOptionsByName("ItemConf")
 

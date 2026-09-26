@@ -10,21 +10,9 @@ import (
 )
 
 func TestProfilingDisabled(t *testing.T) {
-	gen := &Generator{OutputDir: t.TempDir()}
-
-	stop, err := gen.startProfiling()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := stop(); err != nil {
-		t.Fatal(err)
-	}
-	entries, err := os.ReadDir(gen.OutputDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(entries) != 0 {
-		t.Errorf("disabled profiling wrote %d files", len(entries))
+	gen := NewGeneratorWithOptions("", "", t.TempDir(), options.NewDefault())
+	if value, ok := pprof.Label(gen.ctx, "generator"); ok {
+		t.Fatalf("generator label = %q, true; want profiling disabled", value)
 	}
 }
 

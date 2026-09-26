@@ -54,7 +54,10 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 }
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
-	ctx := profile.WithGenerator(context.Background(), "confgen", opts.Profiling)
+	ctx := context.Background()
+	if opts.Profiling {
+		ctx = profile.WithGenerator(ctx, "confgen")
+	}
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
 	metasheetName := metasheet.DefaultMetasheetName
 	// use the metasheet name from the proto input settings if provided.
@@ -72,6 +75,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		}
 	}
 
+	referredCache, importerCache := newRunCaches(opts.Profiling)
 	g := &Generator{
 		ProtoPackage:  protoPackage,
 		InputDir:      indir,
@@ -83,19 +87,30 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		profiling:     opts.Profiling,
 		ctx:           ctx,
 		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
-		referredCache: fieldprop.NewReferredCache(),
-		importerCache: importer.NewCache(),
+		referredCache: referredCache,
+		importerCache: importerCache,
 	}
 	return g
 }
 
 func (gen *Generator) resetRunState() {
 	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
-	gen.referredCache = fieldprop.NewReferredCache()
+	gen.referredCache, gen.importerCache = newRunCaches(gen.profiling)
 	// Imported data is valid only for one run. A fresh cache prevents stale
 	// workbook data when a Generator is reused after its inputs change.
-	gen.importerCache = importer.NewCache()
-	gen.SheetParserMetrics.Reset()
+	if gen.profiling {
+		gen.SheetParserMetrics.Reset()
+	}
+}
+
+func newRunCaches(profiling bool) (*fieldprop.ReferredCache, *importer.Cache) {
+	referredCache := fieldprop.NewReferredCache()
+	importerCache := importer.NewCache()
+	if profiling {
+		referredCache.EnableProfiling()
+		importerCache.EnableProfiling()
+	}
+	return referredCache, importerCache
 }
 
 // bookSpecifier can be:
@@ -113,14 +128,16 @@ func (gen *Generator) GenAll() (err error) {
 	defer func() {
 		err = errors.Join(err, gen.importerCache.Close())
 	}()
-	defer gen.printMetrics()
-	stopProfiling, err := gen.startProfiling()
-	if err != nil {
-		return err
+	if gen.profiling {
+		defer gen.printMetrics()
+		stopProfiling, startErr := gen.startProfiling()
+		if startErr != nil {
+			return startErr
+		}
+		defer func() {
+			err = errors.Join(err, stopProfiling())
+		}()
 	}
-	defer func() {
-		err = errors.Join(err, stopProfiling())
-	}()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
@@ -151,14 +168,16 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) (err error) {
 	defer func() {
 		err = errors.Join(err, gen.importerCache.Close())
 	}()
-	defer gen.printMetrics()
-	stopProfiling, err := gen.startProfiling()
-	if err != nil {
-		return err
+	if gen.profiling {
+		defer gen.printMetrics()
+		stopProfiling, startErr := gen.startProfiling()
+		if startErr != nil {
+			return startErr
+		}
+		defer func() {
+			err = errors.Join(err, stopProfiling())
+		}()
 	}
-	defer func() {
-		err = errors.Join(err, stopProfiling())
-	}()
 	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 	if err != nil {
 		return err
@@ -227,6 +246,10 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	var sheets []*SheetInfo
 	fileOpts := fd.Options().(*descriptorpb.FileOptions)
 	bookOpts := proto.GetExtension(fileOpts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
+	var sheetParserMetrics *profile.SheetParserMetrics
+	if gen.profiling {
+		sheetParserMetrics = &gen.SheetParserMetrics
+	}
 	msgs := fd.Messages()
 	for i := 0; i < msgs.Len(); i++ {
 		md := msgs.Get(i)
@@ -243,20 +266,15 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 			BookOpts:        bookOpts,
 			SheetOpts:       sheetOpts,
 			ExtInfo: &SheetParserExtInfo{
-				InputDir:       gen.InputDir,
-				SubdirRewrites: gen.InputOpt.SubdirRewrites,
-				PRFiles:        prFiles,
-				BookFormat:     workbookFormat,
-				DryRun:         gen.OutputOpt.DryRun,
-				ErrorLimit:     gen.ErrorLimitOpt,
-				ReferredCache:  gen.referredCache,
-				ImporterCache:  gen.importerCache,
-				SheetParserMetrics: func() *profile.SheetParserMetrics {
-					if gen.profiling {
-						return &gen.SheetParserMetrics
-					}
-					return nil
-				}(),
+				InputDir:           gen.InputDir,
+				SubdirRewrites:     gen.InputOpt.SubdirRewrites,
+				PRFiles:            prFiles,
+				BookFormat:         workbookFormat,
+				DryRun:             gen.OutputOpt.DryRun,
+				ErrorLimit:         gen.ErrorLimitOpt,
+				ReferredCache:      gen.referredCache,
+				ImporterCache:      gen.importerCache,
+				SheetParserMetrics: sheetParserMetrics,
 			},
 		})
 		// NOTE: one sheet may be generated to multiple messages (e.g.: full version and lite version) in the same workbook.

@@ -9,10 +9,6 @@ import (
 )
 
 func (gen *Generator) startProfiling() (func() error, error) {
-	if !gen.profiling {
-		return func() error { return nil }, nil
-	}
-
 	profileDir := gen.OutputDir
 	if gen.OutputOpt != nil {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)

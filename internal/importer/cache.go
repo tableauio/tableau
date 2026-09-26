@@ -37,6 +37,9 @@ type cacheKey struct {
 // until Close. Callers must not mutate cached sheets or call Load concurrently
 // with Close.
 type Cache struct {
+	profiling      bool
+	collectMetrics bool
+
 	// entries caches the importer view for an exact source and option set.
 	entries sync.Map
 	// sources caches format-specific decoded data by logical source path.
@@ -55,11 +58,12 @@ type Cache struct {
 type cachedExcel struct {
 	// Workbook reads and the sheets map share one lock. Different workbooks
 	// still load in parallel.
-	mu       sync.Mutex
-	filename string
-	reader   *xlsxReader
-	file     *excelize.File // compatibility fallback, opened lazily
-	sheets   map[string]*book.Sheet
+	mu        sync.Mutex
+	filename  string
+	reader    *xlsxReader
+	file      *excelize.File // compatibility fallback, opened lazily
+	sheets    map[string]*book.Sheet
+	profiling bool
 }
 
 type cachedCSV struct {
@@ -85,6 +89,18 @@ func NewCache() *Cache {
 	return &Cache{}
 }
 
+// EnableMetrics enables cache counters. Call it before the cache is used.
+func (c *Cache) EnableMetrics() {
+	c.collectMetrics = true
+}
+
+// EnableProfiling enables pprof labels and cache metrics. Call it before the
+// cache is used.
+func (c *Cache) EnableProfiling() {
+	c.profiling = true
+	c.collectMetrics = true
+}
+
 // Load returns a cached importer or loads it once for concurrent callers.
 func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (Importer, error) {
 	if c == nil {
@@ -103,9 +119,11 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 	if err != nil {
 		return nil, err
 	}
-	c.requests.Add(1)
-	if _, loaded := c.paths.LoadOrStore(cacheFilename, struct{}{}); !loaded {
-		c.pathCount.Add(1)
+	if c.collectMetrics {
+		c.requests.Add(1)
+		if _, loaded := c.paths.LoadOrStore(cacheFilename, struct{}{}); !loaded {
+			c.pathCount.Add(1)
+		}
 	}
 	key := cacheKey{
 		filename:        cacheFilename,
@@ -139,20 +157,14 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 		}
 		var source cachedSource
 		var decoded int64
-		err := profile.Run(ctx, func(ctx context.Context) error {
-			var err error
-			source, decoded, err = openCachedSource(ctx, key.filename)
-			return err
-		},
-			"work", "source_open",
-			"format", string(format.GetFormat(key.filename)),
-			"source", key.filename,
-		)
+		source, decoded, err := c.openSource(ctx, key.filename)
 		if err != nil {
 			return nil, err
 		}
-		c.imports.Add(1)
-		c.sheets.Add(decoded)
+		if c.collectMetrics {
+			c.imports.Add(1)
+			c.sheets.Add(decoded)
+		}
 		c.sources.Store(key.filename, source)
 		return source, nil
 	})
@@ -160,18 +172,10 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 		return nil, err
 	}
 
-	var view Importer
-	var decoded int64
-	err = profile.Run(ctx, func(ctx context.Context) error {
-		var err error
-		view, decoded, err = loaded.(cachedSource).load(ctx, opts.Sheets)
-		return err
-	},
-		"work", "sheet_decode",
-		"format", string(format.GetFormat(key.filename)),
-		"source", key.filename,
-	)
-	c.sheets.Add(decoded)
+	view, decoded, err := c.loadView(ctx, loaded.(cachedSource), key.filename, opts.Sheets)
+	if c.collectMetrics {
+		c.sheets.Add(decoded)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -179,10 +183,40 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 	return actual.(Importer), nil
 }
 
-func openCachedSource(ctx context.Context, filename string) (cachedSource, int64, error) {
+func (c *Cache) openSource(ctx context.Context, filename string) (source cachedSource, decoded int64, err error) {
+	if !c.profiling {
+		return openCachedSource(ctx, filename, false)
+	}
+	err = profile.Run(ctx, func(ctx context.Context) error {
+		source, decoded, err = openCachedSource(ctx, filename, true)
+		return err
+	},
+		"work", "source_open",
+		"format", string(format.GetFormat(filename)),
+		"source", filename,
+	)
+	return source, decoded, err
+}
+
+func (c *Cache) loadView(ctx context.Context, source cachedSource, filename string, sheetNames []string) (view Importer, decoded int64, err error) {
+	if !c.profiling {
+		return source.load(ctx, sheetNames)
+	}
+	err = profile.Run(ctx, func(ctx context.Context) error {
+		view, decoded, err = source.load(ctx, sheetNames)
+		return err
+	},
+		"work", "sheet_decode",
+		"format", string(format.GetFormat(filename)),
+		"source", filename,
+	)
+	return view, decoded, err
+}
+
+func openCachedSource(ctx context.Context, filename string, profiling bool) (cachedSource, int64, error) {
 	switch format.GetFormat(filename) {
 	case format.Excel:
-		source, err := openCachedExcel(filename)
+		source, err := openCachedExcel(filename, profiling)
 		return source, 0, err
 	case format.CSV:
 		readerOpts, err := parseCSVBookReaderOptions(filename, nil, metasheet.FromContext(ctx).Name)
@@ -215,14 +249,8 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 	for _, sheetOpts := range readerOpts.Sheets {
 		sheet := c.sheets[sheetOpts.Name]
 		if sheet == nil {
-			err := profile.Run(ctx, func(context.Context) error {
-				rows, err := c.readRows(sheetOpts.Name)
-				if err != nil {
-					return xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetOpts.Name)
-				}
-				sheet = book.NewTableSheet(sheetOpts.Name, rows)
-				return nil
-			}, "sheet", sheetOpts.Name, "reader", c.readerName())
+			var err error
+			sheet, err = c.loadSheet(ctx, sheetOpts.Name)
 			if err != nil {
 				return nil, decoded, err
 			}
@@ -232,6 +260,25 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 		loadedBook.AddSheet(sheet)
 	}
 	return &ExcelImporter{Book: loadedBook}, decoded, nil
+}
+
+func (c *cachedExcel) loadSheet(ctx context.Context, sheetName string) (sheet *book.Sheet, err error) {
+	if !c.profiling {
+		return c.readSheet(sheetName)
+	}
+	err = profile.Run(ctx, func(context.Context) error {
+		sheet, err = c.readSheet(sheetName)
+		return err
+	}, "sheet", sheetName, "reader", c.readerName())
+	return sheet, err
+}
+
+func (c *cachedExcel) readSheet(sheetName string) (*book.Sheet, error) {
+	rows, err := c.readRows(sheetName)
+	if err != nil {
+		return nil, xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetName)
+	}
+	return book.NewTableSheet(sheetName, rows), nil
 }
 
 func (c *cachedExcel) close() error {
@@ -245,13 +292,14 @@ func (c *cachedExcel) close() error {
 	return errors.Join(errs...)
 }
 
-func openCachedExcel(filename string) (*cachedExcel, error) {
+func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
 	reader, err := openXLSXReader(filename)
 	if err == nil {
 		return &cachedExcel{
-			filename: filename,
-			reader:   reader,
-			sheets:   make(map[string]*book.Sheet),
+			filename:  filename,
+			reader:    reader,
+			sheets:    make(map[string]*book.Sheet),
+			profiling: profiling,
 		}, nil
 	}
 	file, openErr := excelize.OpenFile(filename)
@@ -259,9 +307,10 @@ func openCachedExcel(filename string) (*cachedExcel, error) {
 		return nil, xerrors.E3002(errors.Join(err, openErr))
 	}
 	return &cachedExcel{
-		filename: filename,
-		file:     file,
-		sheets:   make(map[string]*book.Sheet),
+		filename:  filename,
+		file:      file,
+		sheets:    make(map[string]*book.Sheet),
+		profiling: profiling,
 	}, nil
 }
 
@@ -394,6 +443,7 @@ func (c *Cache) Close() error {
 }
 
 // Metrics returns load requests, importer loads, decoded sheets, and paths.
+// Counters remain zero unless metrics or profiling was enabled before loading.
 func (c *Cache) Metrics() (requests, imports, sheets, paths int64) {
 	if c == nil {
 		return 0, 0, 0, 0
