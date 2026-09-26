@@ -43,8 +43,8 @@ type Generator struct {
 	referredCache   *fieldprop.ReferredCache
 	importerCache   *importer.Cache
 
-	// Performance stats
-	SheetParserStats sync.Map
+	// Sheet parser metrics.
+	SheetParserMetrics sync.Map
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -72,19 +72,19 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 
 	g := &Generator{
-		ProtoPackage:     protoPackage,
-		InputDir:         indir,
-		OutputDir:        outdir,
-		LocationName:     opts.LocationName,
-		InputOpt:         opts.Conf.Input,
-		OutputOpt:        opts.Conf.Output,
-		ErrorLimitOpt:    errorLimit,
-		enableProfiling:  opts.Profiling,
-		ctx:              ctx,
-		collector:        xerrors.NewCollector(errorLimit.MaxErrors),
-		referredCache:    fieldprop.NewReferredCache(),
-		importerCache:    importer.NewCache(),
-		SheetParserStats: sync.Map{},
+		ProtoPackage:       protoPackage,
+		InputDir:           indir,
+		OutputDir:          outdir,
+		LocationName:       opts.LocationName,
+		InputOpt:           opts.Conf.Input,
+		OutputOpt:          opts.Conf.Output,
+		ErrorLimitOpt:      errorLimit,
+		enableProfiling:    opts.Profiling,
+		ctx:                ctx,
+		collector:          xerrors.NewCollector(errorLimit.MaxErrors),
+		referredCache:      fieldprop.NewReferredCache(),
+		importerCache:      importer.NewCache(),
+		SheetParserMetrics: sync.Map{},
 	}
 	return g
 }
@@ -95,7 +95,7 @@ func (gen *Generator) resetRunState() {
 	// Imported data is valid only for one run. A fresh cache prevents stale
 	// workbook data when a Generator is reused after its inputs change.
 	gen.importerCache = importer.NewCache()
-	gen.SheetParserStats = sync.Map{}
+	gen.SheetParserMetrics = sync.Map{}
 }
 
 // bookSpecifier can be:
@@ -113,7 +113,7 @@ func (gen *Generator) GenAll() (err error) {
 	defer func() {
 		err = errors.Join(err, gen.importerCache.Close())
 	}()
-	defer PrintPerfStats(gen)
+	defer PrintSheetMetrics(gen)
 	stopProfiling, err := gen.startProfiling()
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) (err error) {
 	defer func() {
 		err = errors.Join(err, gen.importerCache.Close())
 	}()
-	defer PrintPerfStats(gen)
+	defer PrintSheetMetrics(gen)
 	stopProfiling, err := gen.startProfiling()
 	if err != nil {
 		return err
@@ -251,9 +251,9 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				ErrorLimit:     gen.ErrorLimitOpt,
 				ReferredCache:  gen.referredCache,
 				ImporterCache:  gen.importerCache,
-				SheetParserStats: func() *sync.Map {
+				SheetParserMetrics: func() *sync.Map {
 					if gen.enableProfiling {
-						return &gen.SheetParserStats
+						return &gen.SheetParserMetrics
 					}
 					return nil
 				}(),

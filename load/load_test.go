@@ -285,11 +285,11 @@ func TestLoadOriginReusesImporterCache(t *testing.T) {
 	mopts := opts.ParseMessagerOptionsByName("ItemConf")
 
 	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
-	firstRequests, firstImports, _, _ := opts.importerCache.Stats()
+	firstRequests, firstImports, _, _ := opts.importerCache.Metrics()
 	require.Positive(t, firstImports)
 
 	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
-	secondRequests, secondImports, _, _ := opts.importerCache.Stats()
+	secondRequests, secondImports, _, _ := opts.importerCache.Metrics()
 	require.Greater(t, secondRequests, firstRequests)
 	require.Equal(t, firstImports, secondImports)
 }

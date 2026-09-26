@@ -108,9 +108,9 @@ func TestCacheLoadSharesClonedBook(t *testing.T) {
 	if heroes.GetSheet("Hero") == nil || heroes.GetSheet("Item") != nil {
 		t.Fatal("Hero view contains unexpected sheets")
 	}
-	requests, imports, sheets, paths := cache.Stats()
+	requests, imports, sheets, paths := cache.Metrics()
 	if requests != 2 || imports != 1 || sheets != 2 || paths != 1 {
-		t.Fatalf("Stats() = (%d, %d, %d, %d), want (2, 1, 2, 1)", requests, imports, sheets, paths)
+		t.Fatalf("Metrics() = (%d, %d, %d, %d), want (2, 1, 2, 1)", requests, imports, sheets, paths)
 	}
 }
 

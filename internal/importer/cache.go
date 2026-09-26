@@ -192,8 +192,8 @@ func (c *Cache) Close() error {
 	return errors.Join(errs...)
 }
 
-// Stats returns load requests, importer loads, decoded sheets, and paths.
-func (c *Cache) Stats() (requests, imports, sheets, paths int64) {
+// Metrics returns load requests, importer loads, decoded sheets, and paths.
+func (c *Cache) Metrics() (requests, imports, sheets, paths int64) {
 	if c == nil {
 		return 0, 0, 0, 0
 	}

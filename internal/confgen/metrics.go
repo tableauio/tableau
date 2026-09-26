@@ -27,19 +27,19 @@ func (gen *Generator) startProfiling() (func() error, error) {
 	return profile.Start("confgen", profileDir)
 }
 
-type sheetPerfKey struct {
+type sheetMetricKey struct {
 	book    string
 	sheet   string
 	message string
 }
 
-func (k sheetPerfKey) String() string {
+func (k sheetMetricKey) String() string {
 	return k.book + "#" + k.sheet + " (" + k.message + ")"
 }
 
 // measureSheetParse measures elapsed and processor time on the parser's OS thread.
 // A CPU profile also attributes samples to this sheet through confgen_sheet.
-func measureSheetParse(key sheetPerfKey, parse func() error) (wall, cpu time.Duration, cpuMeasured bool, err error) {
+func measureSheetParse(key sheetMetricKey, parse func() error) (wall, cpu time.Duration, cpuMeasured bool, err error) {
 	pprof.Do(context.Background(), pprof.Labels("confgen_sheet", key.String()), func(context.Context) {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
@@ -122,8 +122,8 @@ func measureSheet(sheet *book.Sheet) sheetShape {
 	return shape
 }
 
-type sheetPerfSnapshot struct {
-	key          sheetPerfKey
+type sheetMetricSnapshot struct {
+	key          sheetMetricKey
 	kind         string
 	calls        int64
 	failures     int64
@@ -142,25 +142,25 @@ type sheetPerfSnapshot struct {
 	maxDepth     int64
 }
 
-type sheetPerfStats struct {
+type sheetMetrics struct {
 	mu sync.Mutex
-	sheetPerfSnapshot
+	sheetMetricSnapshot
 }
 
-func (s *sheetPerfStats) snapshot() sheetPerfSnapshot {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.sheetPerfSnapshot
+func (m *sheetMetrics) snapshot() sheetMetricSnapshot {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.sheetMetricSnapshot
 }
 
-func recordSheetPerf(stats *sync.Map, key sheetPerfKey, shape sheetShape, elapsed, cpu time.Duration, cpuMeasured, failed bool) {
-	if stats == nil {
+func recordSheetMetrics(metrics *sync.Map, key sheetMetricKey, shape sheetShape, elapsed, cpu time.Duration, cpuMeasured, failed bool) {
+	if metrics == nil {
 		return
 	}
-	value, _ := stats.LoadOrStore(key, &sheetPerfStats{
-		sheetPerfSnapshot: sheetPerfSnapshot{key: key, kind: shape.kind},
+	value, _ := metrics.LoadOrStore(key, &sheetMetrics{
+		sheetMetricSnapshot: sheetMetricSnapshot{key: key, kind: shape.kind},
 	})
-	entry := value.(*sheetPerfStats)
+	entry := value.(*sheetMetrics)
 	entry.mu.Lock()
 	defer entry.mu.Unlock()
 
@@ -185,10 +185,10 @@ func recordSheetPerf(stats *sync.Map, key sheetPerfKey, shape sheetShape, elapse
 	entry.maxDepth = max(entry.maxDepth, shape.maxDepth)
 }
 
-func collectSheetPerf(gen *Generator) []sheetPerfSnapshot {
-	var results []sheetPerfSnapshot
-	gen.SheetParserStats.Range(func(_, value any) bool {
-		results = append(results, value.(*sheetPerfStats).snapshot())
+func collectSheetMetrics(gen *Generator) []sheetMetricSnapshot {
+	var results []sheetMetricSnapshot
+	gen.SheetParserMetrics.Range(func(_, value any) bool {
+		results = append(results, value.(*sheetMetrics).snapshot())
 		return true
 	})
 	cpuAvailable := false
@@ -215,14 +215,14 @@ func collectSheetPerf(gen *Generator) []sheetPerfSnapshot {
 	return results
 }
 
-// PrintPerfStats reports each sheet's parser CPU and wall time. Results are
+// PrintSheetMetrics reports each sheet's parser CPU and wall time. Results are
 // sorted by CPU time where available, then by wall time.
-func PrintPerfStats(gen *Generator) {
+func PrintSheetMetrics(gen *Generator) {
 	if gen.enableProfiling {
-		requests, imports, sheets, paths := gen.importerCache.Stats()
+		requests, imports, sheets, paths := gen.importerCache.Metrics()
 		log.Infof("importer cache: requests=%d imports=%d sheets=%d paths=%d", requests, imports, sheets, paths)
 	}
-	results := collectSheetPerf(gen)
+	results := collectSheetMetrics(gen)
 	if len(results) == 0 {
 		return
 	}
@@ -232,11 +232,11 @@ func PrintPerfStats(gen *Generator) {
 		log.Infof("sheet parser wall time, slowest first (thread CPU time unavailable):")
 	}
 	for i, result := range results {
-		log.Info(formatSheetPerf(i+1, result))
+		log.Info(formatSheetMetrics(i+1, result))
 	}
 }
 
-func formatSheetPerf(rank int, result sheetPerfSnapshot) string {
+func formatSheetMetrics(rank int, result sheetMetricSnapshot) string {
 	cpuText := "n/a"
 	if result.cpuCalls > 0 {
 		cpuText = result.cpuTime.String()
