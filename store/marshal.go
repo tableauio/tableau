@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/protocolbuffers/txtpbfmt/parser"
-	"github.com/tableauio/tableau/store/jsonparser"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -63,6 +64,12 @@ type MarshalOptions struct {
 	UseEnumNumbers bool
 }
 
+// locationCache avoids loading the same zone data for every output file.
+var locationCache = struct {
+	sync.RWMutex
+	values map[string]*time.Location
+}{values: make(map[string]*time.Location)}
+
 // MarshalToJSON marshals the given proto.Message in the JSON format.
 // You can depend on the output being stable.
 func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err error) {
@@ -73,43 +80,62 @@ func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err 
 			return nil, err
 		}
 	}
-	opts := protojson.MarshalOptions{
-		EmitUnpopulated: options.EmitUnpopulated,
-		UseProtoNames:   options.UseProtoNames,
-		UseEnumNumbers:  options.UseEnumNumbers,
+	opts := protoJSONOptions{
+		MarshalOptions: protojson.MarshalOptions{
+			EmitUnpopulated: options.EmitUnpopulated,
+			UseProtoNames:   options.UseProtoNames,
+			UseEnumNumbers:  options.UseEnumNumbers,
+		},
+		location: location,
 	}
 	messageJSON, err := opts.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
-	// protojson always encodes Timestamp in UTC with a trailing Z. A match may
-	// come from an ordinary string, but that only causes a harmless extra typed
-	// traversal: rewriteJSONTimestamps changes Timestamp fields exclusively.
-	rewriteTimestamps := options.EmitTimezones && bytes.Contains(messageJSON, []byte(`Z"`))
-	if rewriteTimestamps {
-		result, err := rewriteJSONTimestamps(msg, string(messageJSON), jsonparser.Fastjson, location, options.UseProtoNames)
-		if err != nil {
+	if !options.Pretty {
+		compactJSON := new(bytes.Buffer)
+		compactJSON.Grow(len(messageJSON))
+		if err := json.Compact(compactJSON, messageJSON); err != nil {
 			return nil, err
 		}
-		messageJSON = []byte(result)
+		return compactJSON.Bytes(), nil
 	}
-	if options.Pretty {
-		prettyJSON := new(bytes.Buffer)
-		prettyJSON.Grow(len(messageJSON) + len(messageJSON)/2)
-		if err := json.Indent(prettyJSON, messageJSON, "", "    "); err != nil {
-			return nil, err
-		}
-		return prettyJSON.Bytes(), nil
-	}
-	if rewriteTimestamps {
-		return messageJSON, nil
-	}
-	compactJSON := new(bytes.Buffer)
-	compactJSON.Grow(len(messageJSON))
-	if err := json.Compact(compactJSON, messageJSON); err != nil {
+	prettyJSON := new(bytes.Buffer)
+	prettyJSON.Grow(len(messageJSON) + len(messageJSON)/2)
+	if err := json.Indent(prettyJSON, messageJSON, "", "    "); err != nil {
 		return nil, err
 	}
-	return compactJSON.Bytes(), nil
+	return prettyJSON.Bytes(), nil
+}
+
+func loadLocation(name string) (*time.Location, error) {
+	// time.Local is an exported variable and applications may replace it.
+	if name == "Local" {
+		location, err := time.LoadLocation(name)
+		if err != nil {
+			return nil, xerrors.Wrap(err)
+		}
+		return location, nil
+	}
+
+	locationCache.RLock()
+	location := locationCache.values[name]
+	locationCache.RUnlock()
+	if location != nil {
+		return location, nil
+	}
+
+	locationCache.Lock()
+	defer locationCache.Unlock()
+	if location = locationCache.values[name]; location != nil {
+		return location, nil
+	}
+	location, err := time.LoadLocation(name)
+	if err != nil {
+		return nil, xerrors.Wrap(err)
+	}
+	locationCache.values[name] = location
+	return location, nil
 }
 
 // MarshalToText marshals the given proto.Message in the text (textproto) format.

@@ -253,42 +253,67 @@ Do not add global refer preloading. Revisit scheduling only if a future labeled
 profile shows a stable critical dependency chain and an end-to-end benchmark
 confirms a gain.
 
-### 4. Bypass unnecessary JSON passes
+### 4. Marshal JSON and localized timestamps in one traversal
 
 Priority: P2, completed
 
 The production run generates 458 JSON files totaling 50.90 MB, while only 52
-files contain populated protobuf timestamps. Previously, `emitTimezones`
-parsed every JSON document into a fastjson tree, traversed it, marshaled it,
-compacted it, and optionally indented it.
+files contain populated protobuf timestamps. The first output optimization
+kept the standard `protojson` marshal, skipped the fastjson tree for documents
+without timestamps, and removed a redundant compact pass. It reduced the
+normal-mode median from 1.942 to 1.828 seconds, total allocation from 2,433.36
+to 1,765.75 MB, and `MarshalToJSON` allocation from about 1.01 GB to 397.21 MB.
 
-The retained implementation keeps `protojson` as the protobuf compatibility
-boundary and bypasses the fastjson tree unless its serialized output can
-contain a UTC Timestamp. The descriptor-aware rewrite still changes Timestamp
-fields exclusively, so an ordinary string ending in `Z` can only cause an
-extra traversal. Pretty output goes directly to `json.Indent` without the
-redundant preceding compact pass.
+The follow-up implementation removes the remaining JSON tree entirely. It
+presents Timestamp values to the official `protojson` encoder as localized
+strings through a read-only protobuf reflection view. All other protobuf JSON
+rules, including field ordering, maps, enums, presence, well-known types, and
+required-field checks, remain owned by `protojson`. The standard library's
+`json.Compact` and `json.Indent` functions normalize the deliberately unstable
+whitespace. Timestamp conversion therefore happens during the same marshal
+traversal, while stable formatting stays separate and type-agnostic.
 
-An eight-pair warmed normal-mode comparison measured:
+Two ten-pair interleaved comparisons against the first output optimization
+measured the exact retained marshal path:
 
-- Existing median: 1.942 seconds.
-- Optimized median: 1.828 seconds.
-- Median reduction: 5.9%.
+| Comparison | First optimization | One-pass adapter | Reduction |
+| --- | ---: | ---: | ---: |
+| Timestamp adapter | 1.802 s | 1.790 s | 0.7% |
+| Adapter and location cache | 1.891 s | 1.865 s | 1.4% |
 
-The optimized profile reduced total allocation from 2,433.36 MB to 1,765.75
-MB, reduced `MarshalToJSON` inclusive allocation from about 1.01 GB to 397.21
-MB, and reduced fastjson value-cache allocation from about 420 MB to 45.24 MB.
-Profile duration fell from 2.23 seconds to 1.81 seconds. All 458 generated
-JSON files and all 23 binary files remained byte-identical.
+The final candidate was faster in 8 of 10 paired runs. The incremental wall
+gain is modest because the first optimization had already bypassed the JSON
+tree for 406 of 458 files. Caching successful `time.LoadLocation` results avoids
+reloading the same timezone concurrently for every output file.
+
+Matching profiles reduced total allocation from 1,799.07 to 1,739.95 MB, about
+3.3%, and reduced `MarshalToJSON` inclusive allocation from 392.14 to 313.86
+MB, about 20.0%. The output path no longer uses fastjson, and the dedicated
+Timestamp rewrite code is removed. The public `store/jsonparser` compatibility
+package remains available for downstream users. All 458 JSON files and 23
+binary files remained byte-identical.
+
+A second experiment copied the protobuf marshal path into a local encoder. It
+was faster in Timestamp-heavy microbenchmarks, but its production median was
+1.950 seconds in the balanced eight-run comparison, 6.4% slower than the small
+adapter. It also added more than 800 lines that would need review on every
+protobuf upgrade. The local encoder was therefore rejected.
+
+Writing indented JSON directly from `protojson` was also rejected. Its final
+ten-pair median was 1.863 seconds versus 1.850 seconds for the first
+optimization. Keeping `json.Indent` is both faster for this workload and keeps
+the adapter focused on Timestamp values.
 
 Acceptance gates:
 
 - JSON output remains byte-identical, including ordering, enum formatting,
   defaults, and whitespace. Completed.
-- JSON allocation falls by at least 25%. Completed for total allocation and by
-  about 62% for `MarshalToJSON` inclusive allocation.
+- JSON allocation falls by at least 25%. Completed by the first optimization;
+  the one-pass follow-up reduces `MarshalToJSON` by another 20.0%.
 - Binary and text output are unaffected.
-- End-to-end median improves by at least 5%. Completed.
+- End-to-end median improves by at least 5%. Completed by the first output
+  optimization. The follow-up adds another measured 0.7-1.4% while deleting
+  the specialized Timestamp rewrite.
 
 ### 5. Keep generated-file writes unchanged
 
