@@ -6,21 +6,22 @@ Codex Canvas `confgen-profile-analysis.canvas.tsx`; open it in Codex to view it.
 
 ## Run and inspect profiles
 
-The measurements below used Windows, the Tencent configuration, and the
-generated protos from the same input snapshot:
+The measurements below used Windows and a production-sized configuration.
+Run the command from your configuration workspace and substitute its config
+file path:
 
 ```powershell
 tableauc --mode conf `
-  --config D:\Tencent\SVNTest\trunk\BuildDataConfig\ConfBuddyTools\LocalCache\tableau\config.local.yaml `
+  --config <path-to-config.yaml> `
   --profiling `
   --proto-package protoconf `
   --indir . `
   --outdir .
 ```
 
-The command ran from `D:\Tencent\SVNTest\trunk`. Profiles are written under
-the configured output directory as `confgen-cpu.pprof`, `confgen-mem.pprof`,
-and `confgen-block.pprof`. Profiling also reports sheet parser metrics.
+Profiles are written under the configured output directory as
+`confgen-cpu.pprof`, `confgen-mem.pprof`, and `confgen-block.pprof`. Profiling
+also reports sheet parser metrics.
 
 Useful commands from the profile output directory:
 
