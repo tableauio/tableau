@@ -19,6 +19,8 @@ import (
 // contain it. Common separators such as "-" can occur in both and may collide.
 const cacheKeySeparator = "\x00"
 
+var errCacheClosed = errors.New("importer cache is closed")
+
 type cacheKey struct {
 	filename        string
 	sheets          string
@@ -29,7 +31,8 @@ type cacheKey struct {
 
 // Cache reuses imported data during one generator run. It owns cached Excel
 // handles until Close and shares decoded sheets between read-only confgen
-// importers. Callers must not mutate sheets returned by a cached importer.
+// importers. Callers must not mutate sheets returned by a cached importer or
+// call Load concurrently with Close.
 type Cache struct {
 	// entries caches the importer view for an exact filename and option set.
 	entries sync.Map
@@ -43,6 +46,7 @@ type Cache struct {
 	imports   atomic.Int64
 	sheets    atomic.Int64
 	pathCount atomic.Int64
+	closed    atomic.Bool
 }
 
 type cachedExcel struct {
@@ -62,6 +66,9 @@ func NewCache() *Cache {
 func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (Importer, error) {
 	if c == nil {
 		return New(ctx, filename, setters...)
+	}
+	if c.closed.Load() {
+		return nil, errCacheClosed
 	}
 	opts := parseOptions(setters...)
 	// Protogen may truncate, parse, and purge sheets. A custom parser may also
@@ -105,6 +112,18 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 		return nil, err
 	}
 	return loaded.(Importer), nil
+}
+
+// LoadScatterImporters returns related scatter importers through the cache. A
+// nil cache performs direct loads.
+func (c *Cache) LoadScatterImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
+	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "scatter sheet", c.Load)
+}
+
+// LoadMergerImporters returns related merger importers through the cache. A
+// nil cache performs direct loads.
+func (c *Cache) LoadMergerImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
+	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "merge sheet", c.Load)
 }
 
 func (c *Cache) loadExcel(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
@@ -155,9 +174,12 @@ func (c *Cache) loadExcel(ctx context.Context, key cacheKey, opts *Options) (Imp
 	return actual.(Importer), nil
 }
 
-// Close releases cached workbook handles.
+// Close releases cached workbook handles. It is safe to call more than once.
 func (c *Cache) Close() error {
 	if c == nil {
+		return nil
+	}
+	if !c.closed.CompareAndSwap(false, true) {
 		return nil
 	}
 	var errs []error

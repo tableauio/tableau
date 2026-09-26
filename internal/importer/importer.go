@@ -59,18 +59,6 @@ type ImporterInfo struct {
 
 type loadFunc func(context.Context, string, ...Option) (Importer, error)
 
-// LoadScatterImporters returns related scatter importers through the cache. A
-// nil cache performs direct loads.
-func (c *Cache) LoadScatterImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
-	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "scatter sheet", c.Load)
-}
-
-// LoadMergerImporters returns related merger importers through the cache. A
-// nil cache performs direct loads.
-func (c *Cache) LoadMergerImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
-	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "merge sheet", c.Load)
-}
-
 // loadSheetSpecifierImporters resolves and loads all related importer infos.
 // The load function selects direct loading or a run-scoped cache while keeping
 // scatter and merger path resolution identical.

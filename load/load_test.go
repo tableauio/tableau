@@ -279,6 +279,21 @@ func TestLoad(t *testing.T) {
 	}
 }
 
+func TestLoadOriginReusesImporterCache(t *testing.T) {
+	opts := ParseOptions()
+	t.Cleanup(func() { require.NoError(t, opts.Close()) })
+	mopts := opts.ParseMessagerOptionsByName("ItemConf")
+
+	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
+	firstRequests, firstImports, _, _ := opts.importerCache.Stats()
+	require.Positive(t, firstImports)
+
+	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
+	secondRequests, secondImports, _, _ := opts.importerCache.Stats()
+	require.Greater(t, secondRequests, firstRequests)
+	require.Equal(t, firstImports, secondImports)
+}
+
 func TestLoadJSON_E0002(t *testing.T) {
 	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
 		&MessagerOptions{

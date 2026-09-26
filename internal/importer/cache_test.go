@@ -2,6 +2,7 @@ package importer
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 
@@ -110,5 +111,18 @@ func TestCacheLoadSharesClonedBook(t *testing.T) {
 	requests, imports, sheets, paths := cache.Stats()
 	if requests != 2 || imports != 1 || sheets != 2 || paths != 1 {
 		t.Fatalf("Stats() = (%d, %d, %d, %d), want (2, 1, 2, 1)", requests, imports, sheets, paths)
+	}
+}
+
+func TestCacheClose(t *testing.T) {
+	cache := NewCache()
+	if err := cache.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+	if err := cache.Close(); err != nil {
+		t.Fatalf("second Close() error = %v", err)
+	}
+	if _, err := cache.Load(context.Background(), "testdata/Test.xlsx"); !errors.Is(err, errCacheClosed) {
+		t.Fatalf("Load() error = %v, want %v", err, errCacheClosed)
 	}
 }
