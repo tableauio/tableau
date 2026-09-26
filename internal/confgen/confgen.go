@@ -41,6 +41,7 @@ type Generator struct {
 	validator       protovalidate.Validator // validator with extension type resolver for custom predefined rules.
 	collector       *xerrors.Collector
 	referredCache   *fieldprop.ReferredCache
+	importerCache   *importer.Cache
 
 	// Performance stats
 	SheetParserStats sync.Map
@@ -82,6 +83,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		ctx:              ctx,
 		collector:        xerrors.NewCollector(errorLimit.MaxErrors),
 		referredCache:    fieldprop.NewReferredCache(),
+		importerCache:    importer.NewCache(),
 		SheetParserStats: sync.Map{},
 	}
 	return g
@@ -90,6 +92,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 func (gen *Generator) resetRunState() {
 	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
 	gen.referredCache = fieldprop.NewReferredCache()
+	gen.importerCache = importer.NewCache()
 	gen.SheetParserStats = sync.Map{}
 }
 
@@ -105,6 +108,9 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 
 func (gen *Generator) GenAll() (err error) {
 	gen.resetRunState()
+	defer func() {
+		err = errors.Join(err, gen.importerCache.Close())
+	}()
 	defer PrintPerfStats(gen)
 	stopProfiling, err := gen.startProfiling()
 	if err != nil {
@@ -140,6 +146,9 @@ func (gen *Generator) GenAll() (err error) {
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) (err error) {
 	gen.resetRunState()
+	defer func() {
+		err = errors.Join(err, gen.importerCache.Close())
+	}()
 	defer PrintPerfStats(gen)
 	stopProfiling, err := gen.startProfiling()
 	if err != nil {
@@ -239,6 +248,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				DryRun:         gen.OutputOpt.DryRun,
 				ErrorLimit:     gen.ErrorLimitOpt,
 				ReferredCache:  gen.referredCache,
+				ImporterCache:  gen.importerCache,
 				SheetParserStats: func() *sync.Map {
 					if gen.enableProfiling {
 						return &gen.SheetParserStats
@@ -258,7 +268,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		return nil
 	}
 
-	imp, err := importer.New(gen.ctx, absWbPath, importer.Sheets(sheetNames), importer.Mode(importer.Confgen))
+	imp, err := gen.importerCache.Load(gen.ctx, absWbPath, importer.Sheets(sheetNames), importer.Mode(importer.Confgen))
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
@@ -316,7 +326,7 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 }
 
 func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInfo, messageCollector *xerrors.Collector) error {
-	importers, err := importer.GetScatterImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
+	importers, err := gen.importerCache.LoadScatterImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Scatter, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}
@@ -329,7 +339,7 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 }
 
 func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo, messageCollector *xerrors.Collector) error {
-	importers, err := importer.GetMergerImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
+	importers, err := gen.importerCache.LoadMergerImporters(gen.ctx, gen.InputDir, sheetInfo.BookName(), sheetInfo.SheetName(), sheetInfo.SheetOpts.Merger, gen.InputOpt.SubdirRewrites)
 	if err != nil {
 		return err
 	}

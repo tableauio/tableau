@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
@@ -382,6 +383,44 @@ func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 	if nUnavailable != n-1 {
 		t.Errorf("unavailable returns = %d, want %d", nUnavailable, n-1)
 	}
+}
+
+func TestReferredCache_GetEntry_loadsDifferentReferencesConcurrently(t *testing.T) {
+	cache := NewReferredCache()
+	started := make(chan string, 2)
+	release := make(chan struct{})
+	load := func(name string) loadValueSpaceFunc {
+		return func() (*valueSpace, error) {
+			started <- name
+			<-release
+			return newValueSpace(), nil
+		}
+	}
+
+	var group sync.WaitGroup
+	group.Add(2)
+	for _, refer := range []string{"Item.ID", "Skill.ID"} {
+		go func(refer string) {
+			defer group.Done()
+			if _, err := cache.getEntry(refer, load(refer)); err != nil {
+				t.Errorf("getEntry(%q) error = %v", refer, err)
+			}
+		}(refer)
+	}
+
+	timer := time.NewTimer(time.Second)
+	defer timer.Stop()
+	for range 2 {
+		select {
+		case <-started:
+		case <-timer.C:
+			close(release)
+			group.Wait()
+			t.Fatal("different references did not load concurrently")
+		}
+	}
+	close(release)
+	group.Wait()
 }
 
 func TestCheckRefer_nilReceiver(t *testing.T) {

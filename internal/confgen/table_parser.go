@@ -68,10 +68,7 @@ func (p *tableParser) parseMessage(parentField *Field, msg protoreflect.Message,
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		fieldErr := func() error {
-			// TODO(performance): cache the parsed field for reuse, as each table row will be parsed repeatedly.
-			field := p.parseFieldDescriptor(fd)
-			field.mergeParentFieldProp(parentField)
-			defer field.release()
+			field := p.parseFieldDescriptor(fd).inheritParentFieldProp(parentField)
 			newCardPrefix := cardPrefix + "." + string(fd.Name())
 			fieldPresent, err := p.parseField(field, msg, r, prefix, newCardPrefix)
 			if err != nil {
@@ -806,9 +803,7 @@ func (p *tableParser) parseUnionMessage(msg protoreflect.Message, field *Field, 
 			// so that Field1, Field2, Field3... correspond to fields in definition order.
 			valColName := prefix + unionDesc.ValueFieldName() + strconv.Itoa(i+1)
 			err := func() error {
-				subField := p.parseFieldDescriptor(fd)
-				subField.mergeParentFieldProp(field)
-				defer subField.release()
+				subField := p.parseFieldDescriptor(fd).inheritParentFieldProp(field)
 				// incell scalar
 				cell, err := r.Cell(valColName, p.IsFieldOptional(subField))
 				if err != nil {

@@ -292,7 +292,8 @@ type sheetParser struct {
 	sheetCollector *xerrors.Collector // sheet-level collector
 
 	// cached maps and lists with cardinality
-	cards map[string]*cardInfo // map/list field card prefix -> cardInfo
+	cards  map[string]*cardInfo // map/list field card prefix -> cardInfo
+	fields map[protoreflect.FieldDescriptor]*Field
 }
 
 type cardInfo struct {
@@ -332,6 +333,7 @@ type SheetParserExtInfo struct {
 	DryRun           options.DryRun
 	ErrorLimit       *options.ErrorLimitOption // error collection limits
 	ReferredCache    *fieldprop.ReferredCache
+	ImporterCache    *importer.Cache
 	SheetParserStats *sync.Map
 }
 
@@ -355,6 +357,7 @@ func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName stri
 		// Default capacity 1 is sufficient for protogen/load (fail-fast on first error).
 		// confgen overwrites it with a larger capacity for multi-error collection across sheets.
 		sheetCollector: xerrors.NewCollector(1),
+		fields:         map[protoreflect.FieldDescriptor]*Field{},
 	}
 	sp.reset()
 	return sp
@@ -611,7 +614,6 @@ func (p *sheetParser) checkKeyUnique(md protoreflect.MessageDescriptor, fdOpts *
 		return xerrors.Newf("key field not found in proto definition: %s", fdOpts.Key)
 	}
 	keyField := p.parseFieldDescriptor(fd)
-	defer keyField.release()
 	if fieldprop.RequireUnique(keyField.opts.Prop) ||
 		(!fieldprop.HasUnique(keyField.opts.Prop) && p.deduceKeyUnique(fdOpts.Layout, md)) {
 		return xerrors.E2005(keyData)
@@ -647,7 +649,6 @@ func (p *sheetParser) deduceKeyUnique(fieldLayout tableaupb.Layout, md protorefl
 		fd := md.Fields().Get(i)
 		if fd.IsMap() || fd.IsList() {
 			childField := p.parseFieldDescriptor(fd)
-			defer childField.release()
 			childLayout := parseTableMapLayout(childField.opts.Layout)
 			if childLayout == layout {
 				// same layout (vertical/horizontal), the key can be duplicate
@@ -673,7 +674,6 @@ func (p *sheetParser) checkKeySequence(md protoreflect.MessageDescriptor, fdOpts
 		return xerrors.Newf("key field not found in proto definition: %s", fdOpts.Key)
 	}
 	keyField := p.parseFieldDescriptor(fd)
-	defer keyField.release()
 	if !fieldprop.RequireSequence(keyField.opts.Prop) {
 		// do not require sequence
 		return nil
@@ -727,9 +727,7 @@ func (p *sheetParser) checkSubFieldProp(field *Field, cardPrefix string, newValu
 		}
 		for i := 0; i < md.Fields().Len(); i++ {
 			fd := md.Fields().Get(i)
-			subField := p.parseFieldDescriptor(fd)
-			subField.mergeParentFieldProp(field)
-			defer subField.release()
+			subField := p.parseFieldDescriptor(fd).inheritParentFieldProp(field)
 			name := subField.opts.GetName()
 			if name == field.opts.GetKey() {
 				// key field not checked
@@ -886,9 +884,7 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 			fd := md.Fields().Get(i)
 			rawValue := splits[i]
 			err := func() error {
-				subField := p.parseFieldDescriptor(fd)
-				subField.mergeParentFieldProp(field)
-				defer subField.release()
+				subField := p.parseFieldDescriptor(fd).inheritParentFieldProp(field)
 				// log.Debugf("fd.FullName().Name(): ", fd.FullName().Name())
 				if fd.IsList() {
 					listValue := structValue.Message().Mutable(fd).List()
@@ -1009,6 +1005,7 @@ func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue 
 				InputDir:       p.extInfo.InputDir,
 				SubdirRewrites: p.extInfo.SubdirRewrites,
 				PRFiles:        p.extInfo.PRFiles,
+				ImporterCache:  p.extInfo.ImporterCache,
 				Present:        present,
 			}
 			if err := p.extInfo.ReferredCache.CheckRefer(p.ctx, fprop, rawValue, input); err != nil {
@@ -1024,7 +1021,6 @@ func (p *sheetParser) findFieldByName(md protoreflect.MessageDescriptor, name st
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
 		field := p.parseFieldDescriptor(fd)
-		defer field.release()
 		if field.opts.Name == name {
 			return fd
 		}

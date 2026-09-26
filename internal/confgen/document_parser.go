@@ -47,9 +47,7 @@ func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Messa
 		}
 		fd := md.Fields().Get(i)
 		fieldErr := func() error {
-			field := p.parseFieldDescriptor(fd)
-			field.mergeParentFieldProp(parentField)
-			defer field.release()
+			field := p.parseFieldDescriptor(fd).inheritParentFieldProp(parentField)
 			var fieldNode *book.Node
 			if md.FullName() == xproto.MetabookFullName {
 				// NOTE: this is a workaround specially for parsing metabook.
@@ -491,9 +489,7 @@ func (p *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messag
 		valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(i+1)
 		valNode := node.FindChild(valNodeName)
 		err := func() error {
-			subField := p.parseFieldDescriptor(fd)
-			subField.mergeParentFieldProp(field)
-			defer subField.release()
+			subField := p.parseFieldDescriptor(fd).inheritParentFieldProp(field)
 			if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
 				// if this field has a default value, use virtual node
 				valNode = &book.Node{

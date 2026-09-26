@@ -31,14 +31,19 @@ func init() {
 
 // ReferredCache caches referred column values for one generation or load.
 type ReferredCache struct {
-	mu      sync.RWMutex
-	entries map[string]referCacheEntry // refer expression -> cached result
+	mu      sync.Mutex
+	entries map[string]*referCacheLoad // refer expression -> cached or in-flight result
 }
 
 // referCacheEntry holds a value space or a previously reported load failure.
 type referCacheEntry struct {
 	space       *valueSpace
 	unavailable bool // target load failed
+}
+
+type referCacheLoad struct {
+	ready chan struct{}
+	entry referCacheEntry
 }
 
 type valueSpace struct {
@@ -72,36 +77,36 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
-		entries: make(map[string]referCacheEntry),
+		entries: make(map[string]*referCacheLoad),
 	}
 }
 
 type loadValueSpaceFunc = func() (*valueSpace, error)
 
 func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
-	r.mu.RLock()
-	entry, ok := r.entries[refer]
-	r.mu.RUnlock()
-	if ok {
-		return entry, nil
-	}
-
 	r.mu.Lock()
-	defer r.mu.Unlock()
-	entry, ok = r.entries[refer]
+	load, ok := r.entries[refer]
 	if ok {
-		return entry, nil
+		r.mu.Unlock()
+		<-load.ready
+		return load.entry, nil
 	}
+	load = &referCacheLoad{ready: make(chan struct{})}
+	r.entries[refer] = load
+	r.mu.Unlock()
+
 	space, err := loadFunc()
+	entry := referCacheEntry{space: space}
 	if err != nil {
 		// Return the first load error and remember it to suppress repeats.
 		entry = referCacheEntry{unavailable: true}
-		r.entries[refer] = entry
-		return entry, err
 	}
-	entry = referCacheEntry{space: space}
-	r.entries[refer] = entry
-	return entry, nil
+
+	r.mu.Lock()
+	load.entry = entry
+	close(load.ready)
+	r.mu.Unlock()
+	return entry, err
 }
 
 type referDesc struct {
@@ -143,6 +148,7 @@ type Input struct {
 	InputDir       string
 	SubdirRewrites map[string]string
 	PRFiles        *protoregistry.Files
+	ImporterCache  *importer.Cache
 	Present        bool // field presence
 }
 
@@ -169,7 +175,11 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	// rewrite subdir
 	rewrittenWorkbookName := xfs.RewriteSubdir(bookName, input.SubdirRewrites)
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
-	primaryImporter, err := importer.New(ctx, absWbPath, importer.Sheets([]string{sheetName}))
+	load := importer.New
+	if input.ImporterCache != nil {
+		load = input.ImporterCache.Load
+	}
+	primaryImporter, err := load(ctx, absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
 		return nil, xerrors.WrapKV(err,
 			xerrors.KeyReferBookName, bookName,
@@ -178,7 +188,12 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	}
 
 	// get merger importer infos
-	impInfos, err := importer.GetMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
+	var impInfos []importer.ImporterInfo
+	if input.ImporterCache == nil {
+		impInfos, err = importer.GetMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
+	} else {
+		impInfos, err = input.ImporterCache.LoadMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
+	}
 	if err != nil {
 		return nil, xerrors.WrapKV(err,
 			xerrors.KeyReferBookName, bookName,

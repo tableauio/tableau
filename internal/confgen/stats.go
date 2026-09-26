@@ -218,6 +218,10 @@ func collectSheetPerf(gen *Generator) []sheetPerfSnapshot {
 // PrintPerfStats reports each sheet's parser CPU and wall time. Results are
 // sorted by CPU time where available, then by wall time.
 func PrintPerfStats(gen *Generator) {
+	if gen.enableProfiling {
+		requests, imports, sheets, paths := gen.importerCache.Stats()
+		log.Infof("importer cache: requests=%d imports=%d sheets=%d paths=%d", requests, imports, sheets, paths)
+	}
 	results := collectSheetPerf(gen)
 	if len(results) == 0 {
 		return

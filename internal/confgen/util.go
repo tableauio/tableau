@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
@@ -29,16 +28,6 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-var fieldOptionsPool *sync.Pool
-
-func init() {
-	fieldOptionsPool = &sync.Pool{
-		New: func() any {
-			return new(tableaupb.FieldOptions)
-		},
-	}
-}
-
 type Field struct {
 	fd protoreflect.FieldDescriptor
 	// seq's value is dynamically merged at different priority levels:
@@ -54,26 +43,28 @@ type Field struct {
 	opts   *tableaupb.FieldOptions
 }
 
-// mergeParentFieldProp merges parent field's prop.
-func (f *Field) mergeParentFieldProp(parent *Field) {
-	if parent != nil && parent.opts != nil {
-		if parent.opts.Prop.GetOptional() {
-			if f.opts.Prop == nil {
-				f.opts.Prop = &tableaupb.FieldProp{}
-			}
-			f.opts.Prop.Optional = true
-		}
+// inheritParentFieldProp returns a field with inherited parent properties.
+func (f *Field) inheritParentFieldProp(parent *Field) *Field {
+	if parent == nil || parent.opts == nil || !parent.opts.Prop.GetOptional() {
+		return f
 	}
+	field := *f
+	opts := *f.opts
+	prop := tableaupb.FieldProp{}
+	if f.opts.Prop != nil {
+		prop = *f.opts.Prop
+	}
+	prop.Optional = true
+	opts.Prop = &prop
+	field.opts = &opts
+	return &field
 }
 
-// release returns back `opts` field to pool.
-func (f *Field) release() {
-	// return back to pool
-	fieldOptionsPool.Put(f.opts)
-}
-
-// TODO: use sync.Map to cache *Field for reuse, e.g.: treat key as fd.FullName().
 func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
+	if cached := p.fields[fd]; cached != nil {
+		return cached
+	}
+
 	// default value
 	name := strcase.FromContext(p.ctx).ToCamel(string(fd.FullName().Name()))
 	note := ""
@@ -112,21 +103,21 @@ func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fie
 		subsep = p.GetSubsep()
 	}
 
-	// get from pool
-	pooledOpts := fieldOptionsPool.Get().(*tableaupb.FieldOptions)
-	pooledOpts.Name = name
-	pooledOpts.Note = note
-	pooledOpts.Key = key
-	pooledOpts.Layout = layout
-	pooledOpts.Span = span
-	pooledOpts.Prop = prop
-
-	return &Field{
+	field := &Field{
 		fd:     fd,
 		sep:    sep,
 		subsep: subsep,
-		opts:   pooledOpts,
+		opts: &tableaupb.FieldOptions{
+			Name:   name,
+			Note:   note,
+			Key:    key,
+			Layout: layout,
+			Span:   span,
+			Prop:   prop,
+		},
 	}
+	p.fields[fd] = field
+	return field
 }
 
 // parseBookSpecifier parses the book specifier to book name and sheet name.
