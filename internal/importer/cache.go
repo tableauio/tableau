@@ -9,13 +9,16 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/metasheet"
 	"github.com/tableauio/tableau/internal/x/xerrors"
+	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/xuri/excelize/v2"
 	"golang.org/x/sync/singleflight"
 )
 
-// cacheKeySeparator is NUL because valid paths and Excel sheet names cannot
+// cacheKeySeparator is NUL because valid paths and sheet names cannot
 // contain it. Common separators such as "-" can occur in both and may collide.
 const cacheKeySeparator = "\x00"
 
@@ -29,17 +32,19 @@ type cacheKey struct {
 	primaryBookName string
 }
 
-// Cache reuses imported data during one generator run. It owns cached Excel
-// handles until Close and shares decoded sheets between read-only confgen
-// importers. Callers must not mutate sheets returned by a cached importer or
-// call Load concurrently with Close.
+// Cache reuses imported data during one generator run. It shares decoded
+// sheets between read-only confgen importers and owns cached Excel handles
+// until Close. Callers must not mutate cached sheets or call Load concurrently
+// with Close.
 type Cache struct {
-	// entries caches the importer view for an exact filename and option set.
+	// entries caches the importer view for an exact source and option set.
 	entries sync.Map
 	// excels caches one open handle and its decoded sheets per Excel file.
-	excels sync.Map
-	paths  sync.Map
-	// loads coalesces concurrent opens of the same importer or Excel file.
+	excels    sync.Map
+	csvs      sync.Map
+	documents sync.Map
+	paths     sync.Map
+	// loads coalesces concurrent initialization of the same cached source.
 	loads singleflight.Group
 
 	requests  atomic.Int64
@@ -55,6 +60,13 @@ type cachedExcel struct {
 	mu     sync.Mutex
 	file   *excelize.File
 	sheets map[string]*book.Sheet
+}
+
+type cachedCSV struct {
+	mu       sync.Mutex
+	name     string
+	filename string
+	sheets   map[string]*book.Sheet
 }
 
 // NewCache creates an empty importer cache.
@@ -76,12 +88,16 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 	if opts.Mode == Protogen || opts.Parser != nil {
 		return New(ctx, filename, setters...)
 	}
+	cacheFilename, err := normalizeCacheFilename(filename)
+	if err != nil {
+		return nil, err
+	}
 	c.requests.Add(1)
-	if _, loaded := c.paths.LoadOrStore(filepath.Clean(filename), struct{}{}); !loaded {
+	if _, loaded := c.paths.LoadOrStore(cacheFilename, struct{}{}); !loaded {
 		c.pathCount.Add(1)
 	}
 	key := cacheKey{
-		filename:        filepath.Clean(filename),
+		filename:        cacheFilename,
 		sheets:          strings.Join(opts.Sheets, cacheKeySeparator),
 		mode:            opts.Mode,
 		cloned:          opts.Cloned,
@@ -90,12 +106,18 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 	if cached, ok := c.entries.Load(key); ok {
 		return cached.(Importer), nil
 	}
-	// Keep the workbook open so later requests can decode only the additional
-	// sheets they need instead of reopening and reparsing the entire XLSX file.
-	if strings.EqualFold(filepath.Ext(key.filename), ".xlsx") {
+	switch format.GetFormat(key.filename) {
+	case format.Excel:
 		return c.loadExcel(ctx, key, opts)
+	case format.CSV:
+		return c.loadCSV(ctx, key, opts)
+	case format.XML, format.YAML:
+		return c.loadDocument(ctx, key, opts)
 	}
+	return c.loadExact(ctx, key, filename, setters...)
+}
 
+func (c *Cache) loadExact(ctx context.Context, key cacheKey, filename string, setters ...Option) (Importer, error) {
 	loaded, err, _ := c.loads.Do(key.String(), func() (any, error) {
 		if cached, ok := c.entries.Load(key); ok {
 			return cached.(Importer), nil
@@ -172,6 +194,104 @@ func (c *Cache) loadExcel(ctx context.Context, key cacheKey, opts *Options) (Imp
 	view := &ExcelImporter{Book: loadedBook}
 	actual, _ := c.entries.LoadOrStore(key, view)
 	return actual.(Importer), nil
+}
+
+func (c *Cache) loadCSV(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
+	readerOpts, err := parseCSVBookReaderOptions(key.filename, opts.Sheets, metasheet.FromContext(ctx).Name)
+	if err != nil {
+		return nil, err
+	}
+	loaded, err, _ := c.loads.Do("csv"+cacheKeySeparator+key.filename, func() (any, error) {
+		if cached, ok := c.csvs.Load(key.filename); ok {
+			return cached.(*cachedCSV), nil
+		}
+		cached := &cachedCSV{
+			name:     readerOpts.Name,
+			filename: readerOpts.Filename,
+			sheets:   make(map[string]*book.Sheet),
+		}
+		c.imports.Add(1)
+		c.csvs.Store(key.filename, cached)
+		return cached, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	cached := loaded.(*cachedCSV)
+	cached.mu.Lock()
+	defer cached.mu.Unlock()
+	loadedBook := book.NewBook(ctx, cached.name, cached.filename, nil)
+	for _, sheetOpts := range readerOpts.Sheets {
+		sheet := cached.sheets[sheetOpts.Name]
+		if sheet == nil {
+			sheet, err = readCSVSheet(sheetOpts.Filename, sheetOpts.Name, 0)
+			if err != nil {
+				return nil, err
+			}
+			cached.sheets[sheetOpts.Name] = sheet
+			c.sheets.Add(1)
+		}
+		loadedBook.AddSheet(sheet)
+	}
+	view := &CSVImporter{Book: loadedBook}
+	actual, _ := c.entries.LoadOrStore(key, view)
+	return actual.(Importer), nil
+}
+
+func (c *Cache) loadDocument(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
+	loaded, err, _ := c.loads.Do("document"+cacheKeySeparator+key.filename, func() (any, error) {
+		if cached, ok := c.documents.Load(key.filename); ok {
+			return cached.(Importer), nil
+		}
+		imp, err := New(ctx, key.filename)
+		if err != nil {
+			return nil, err
+		}
+		c.imports.Add(1)
+		c.sheets.Add(int64(len(imp.GetSheets())))
+		c.documents.Store(key.filename, imp)
+		return imp, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	view, err := newDocumentImporterView(ctx, loaded.(Importer), opts.Sheets)
+	if err != nil {
+		return nil, err
+	}
+	actual, _ := c.entries.LoadOrStore(key, view)
+	return actual.(Importer), nil
+}
+
+func newDocumentImporterView(ctx context.Context, source Importer, sheetNames []string) (Importer, error) {
+	loadedBook := book.NewBook(ctx, source.BookName(), source.Filename(), nil)
+	for _, sheet := range source.GetSheets() {
+		if wantSheet(sheet.Name, sheetNames) {
+			loadedBook.AddSheet(sheet)
+		}
+	}
+	switch source.Format() {
+	case format.XML:
+		return &XMLImporter{Book: loadedBook}, nil
+	case format.YAML:
+		return &YAMLImporter{Book: loadedBook}, nil
+	default:
+		return nil, xerrors.Newf("unsupported cached document format: %v", source.Format())
+	}
+}
+
+func normalizeCacheFilename(filename string) (string, error) {
+	cleaned := filepath.Clean(filename)
+	if format.GetFormat(cleaned) != format.CSV {
+		return cleaned, nil
+	}
+	pattern, err := xfs.ParseCSVBooknamePatternFrom(cleaned)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(pattern), nil
 }
 
 // Close releases cached workbook handles. It is safe to call more than once.

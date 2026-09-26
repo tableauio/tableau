@@ -53,6 +53,7 @@ func readYAMLBook(ctx context.Context, filename string, sheetNames []string, par
 	if err != nil {
 		return nil, xerrors.E3002(err)
 	}
+	defer func() { _ = file.Close() }()
 	// parse all documents in a file
 	decoder := yaml.NewDecoder(file)
 	for i := 0; ; i++ {
