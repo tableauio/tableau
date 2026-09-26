@@ -93,7 +93,7 @@ func Test_ResolveSheetSpecifier(t *testing.T) {
 	}
 }
 
-func TestGetMergerImporters(t *testing.T) {
+func TestCacheLoadMergerImporters(t *testing.T) {
 	type args struct {
 		primaryBookName string
 		sheetName       string
@@ -129,9 +129,11 @@ func TestGetMergerImporters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMergerImporters(context.Background(), ".", tt.args.primaryBookName, tt.args.sheetName, tt.args.sheetSpecifiers, tt.args.subdirRewrites)
+			cache := NewCache()
+			t.Cleanup(func() { _ = cache.Close() })
+			got, err := cache.LoadMergerImporters(context.Background(), ".", tt.args.primaryBookName, tt.args.sheetName, tt.args.sheetSpecifiers, tt.args.subdirRewrites)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetMergerImporters() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("LoadMergerImporters() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			filenames := []string{}
@@ -143,7 +145,7 @@ func TestGetMergerImporters(t *testing.T) {
 	}
 }
 
-func TestGetScatterImporters(t *testing.T) {
+func TestCacheLoadScatterImporters(t *testing.T) {
 	type args struct {
 		primaryBookName string
 		sheetName       string
@@ -169,9 +171,11 @@ func TestGetScatterImporters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetScatterImporters(context.Background(), ".", tt.args.primaryBookName, tt.args.sheetName, tt.args.sheetSpecifiers, tt.args.subdirRewrites)
+			cache := NewCache()
+			t.Cleanup(func() { _ = cache.Close() })
+			got, err := cache.LoadScatterImporters(context.Background(), ".", tt.args.primaryBookName, tt.args.sheetName, tt.args.sheetSpecifiers, tt.args.subdirRewrites)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetScatterImporters() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("LoadScatterImporters() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			filenames := []string{}

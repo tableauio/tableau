@@ -194,12 +194,7 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	}
 
 	// get merger importer infos
-	var impInfos []importer.ImporterInfo
-	if input.ImporterCache == nil {
-		impInfos, err = importer.GetMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
-	} else {
-		impInfos, err = input.ImporterCache.LoadMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
-	}
+	impInfos, err := input.ImporterCache.LoadMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
 		return nil, xerrors.WrapKV(err,
 			xerrors.KeyReferBookName, bookName,

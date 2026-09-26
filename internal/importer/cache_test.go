@@ -76,6 +76,20 @@ func TestCacheLoadBypassesCustomParser(t *testing.T) {
 	}
 }
 
+func TestNilCacheLoadMergerImporters(t *testing.T) {
+	var cache *Cache
+	got, err := cache.LoadMergerImporters(
+		context.Background(), ".", "testdata/Test.xml", "Item",
+		[]string{"Test_*.xml"}, nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("LoadMergerImporters() returned %d importers, want 1", len(got))
+	}
+}
+
 func TestCacheLoadSharesClonedBook(t *testing.T) {
 	cache := NewCache()
 	t.Cleanup(func() { _ = cache.Close() })

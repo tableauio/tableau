@@ -59,22 +59,14 @@ type ImporterInfo struct {
 
 type loadFunc func(context.Context, string, ...Option) (Importer, error)
 
-// GetScatterImporters parses and returns all related importer infos for scatter.
-func GetScatterImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
-	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "scatter sheet", New)
-}
-
-// LoadScatterImporters returns related scatter importers through the cache.
+// LoadScatterImporters returns related scatter importers through the cache. A
+// nil cache performs direct loads.
 func (c *Cache) LoadScatterImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
 	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "scatter sheet", c.Load)
 }
 
-// GetMergerImporters parses and returns all related importer infos for merger.
-func GetMergerImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
-	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "merge sheet", New)
-}
-
-// LoadMergerImporters returns related merger importers through the cache.
+// LoadMergerImporters returns related merger importers through the cache. A
+// nil cache performs direct loads.
 func (c *Cache) LoadMergerImporters(ctx context.Context, inputDir, primaryBookName, primarySheetName string, sheetSpecifiers []string, subdirRewrites map[string]string) ([]ImporterInfo, error) {
 	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "merge sheet", c.Load)
 }

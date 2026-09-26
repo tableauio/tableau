@@ -6,6 +6,7 @@ package load
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 
 	"buf.build/go/protovalidate"
@@ -166,7 +167,12 @@ func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format
 //
 // Dispatch mirrors confgen.processWorkbook: scatter and merger are mutually
 // exclusive; when neither is declared the main workbook is parsed directly.
-func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
+func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) (err error) {
+	cache := importer.NewCache()
+	defer func() {
+		err = errors.Join(err, cache.Close())
+	}()
+
 	md := msg.ProtoReflect().Descriptor()
 	protofile, bookOpts := confgen.ParseFileOptions(md.ParentFile())
 	if bookOpts == nil {
@@ -182,7 +188,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 	_, sheetOpts := confgen.ParseMessageOptions(md)
 	sheetName := sheetOpts.GetName()
 
-	self, err := importer.New(
+	self, err := cache.Load(
 		context.Background(),
 		wbPath,
 		importer.Sheets([]string{sheetName}),
@@ -204,6 +210,7 @@ func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) error {
 			PRFiles:        protoregistry.GlobalFiles,
 			BookFormat:     self.Format(),
 			ReferredCache:  opts.getReferredCache(),
+			ImporterCache:  cache,
 		},
 	}
 	collector := xerrors.NewCollector(opts.GetMaxErrorsPerSheet())
@@ -244,7 +251,7 @@ func loadOriginScatter(
 
 	// Lazily resolve scatter importers; PATCH_NONE doesn't need them.
 	getScatterImpInfos := func() ([]importer.ImporterInfo, error) {
-		impInfos, err := importer.GetScatterImporters(
+		impInfos, err := sheetInfo.ExtInfo.ImporterCache.LoadScatterImporters(
 			context.Background(), dir, bookName, sheetOpts.GetName(),
 			sheetOpts.GetScatter(), subdirRewrites,
 		)
@@ -313,7 +320,7 @@ func loadOriginMerger(
 ) error {
 	bookName := sheetInfo.PrimaryBookName
 	sheetOpts := sheetInfo.SheetOpts
-	mergerImpInfos, err := importer.GetMergerImporters(
+	mergerImpInfos, err := sheetInfo.ExtInfo.ImporterCache.LoadMergerImporters(
 		context.Background(), dir, bookName, sheetOpts.GetName(),
 		sheetOpts.GetMerger(), subdirRewrites,
 	)
