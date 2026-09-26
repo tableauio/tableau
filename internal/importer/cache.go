@@ -15,6 +15,10 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+// cacheKeySeparator is NUL because valid paths and Excel sheet names cannot
+// contain it. Common separators such as "-" can occur in both and may collide.
+const cacheKeySeparator = "\x00"
+
 type cacheKey struct {
 	filename        string
 	sheets          string
@@ -59,7 +63,7 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 	}
 	key := cacheKey{
 		filename:        filepath.Clean(filename),
-		sheets:          strings.Join(opts.Sheets, "\x00"),
+		sheets:          strings.Join(opts.Sheets, cacheKeySeparator),
 		mode:            opts.Mode,
 		cloned:          opts.Cloned,
 		primaryBookName: filepath.Clean(opts.PrimaryBookName),
@@ -90,7 +94,7 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 }
 
 func (c *Cache) loadExcel(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
-	loaded, err, _ := c.loads.Do("excel\x00"+key.filename, func() (any, error) {
+	loaded, err, _ := c.loads.Do("excel"+cacheKeySeparator+key.filename, func() (any, error) {
 		if cached, ok := c.excels.Load(key.filename); ok {
 			return cached.(*cachedExcel), nil
 		}
@@ -163,5 +167,5 @@ func (k cacheKey) String() string {
 		strconv.Itoa(int(k.mode)),
 		strconv.FormatBool(k.cloned),
 		k.primaryBookName,
-	}, "\x00")
+	}, cacheKeySeparator)
 }
