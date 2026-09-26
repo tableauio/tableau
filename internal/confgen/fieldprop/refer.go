@@ -31,7 +31,9 @@ func init() {
 
 // ReferredCache caches referred column values for one generation or load.
 type ReferredCache struct {
-	mu      sync.Mutex
+	mu sync.RWMutex
+	// Entries are pointers because a loader publishes into the same in-flight
+	// entry that waiters obtained before the load completed.
 	entries map[string]*referCacheEntry // refer expression -> cached or in-flight result
 }
 
@@ -84,12 +86,18 @@ type loadValueSpaceFunc = func() (*valueSpace, error)
 // its ready channel, while the load runs outside mu so unrelated references can
 // load concurrently.
 func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
-	r.mu.Lock()
+	r.mu.RLock()
 	entry, ok := r.entries[refer]
+	r.mu.RUnlock()
+	if ok {
+		return waitForReferEntry(entry), nil
+	}
+
+	r.mu.Lock()
+	entry, ok = r.entries[refer]
 	if ok {
 		r.mu.Unlock()
-		<-entry.ready
-		return *entry, nil
+		return waitForReferEntry(entry), nil
 	}
 	entry = &referCacheEntry{ready: make(chan struct{})}
 	r.entries[refer] = entry
@@ -107,6 +115,11 @@ func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (ref
 	close(entry.ready)
 	r.mu.Unlock()
 	return *entry, err
+}
+
+func waitForReferEntry(entry *referCacheEntry) referCacheEntry {
+	<-entry.ready
+	return *entry
 }
 
 type referDesc struct {
