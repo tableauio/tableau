@@ -2,6 +2,7 @@ package protogen
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
@@ -41,8 +43,11 @@ type Generator struct {
 	OutputOpt     *options.ProtoOutputOption // Output settings.
 	ErrorLimitOpt *options.ErrorLimitOption  // error collection limits.
 
+	profiling bool // whether to enable generator performance profiling.
+
 	ProtoRegistryFiles *protoregistry.Files
 	ProtoRegistryTypes *dynamicpb.Types
+	SheetParserMetrics profile.SheetParserMetrics
 
 	// internal
 	typeInfos *xproto.TypeInfos  // predefined type infos
@@ -86,6 +91,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:      opts.Proto.Input,
 		OutputOpt:     opts.Proto.Output,
 		ErrorLimitOpt: errorLimit,
+		profiling:     opts.Profiling,
 		ctx:           ctx,
 		typeInfos:     xproto.NewTypeInfos(protoPackage),
 		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
@@ -118,6 +124,7 @@ func (gen *Generator) resetRunState() error {
 	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
 	gen.registryWithGeneratedOnce = sync.Once{}
 	gen.protoRegistryFilesWithGenerated = nil
+	gen.SheetParserMetrics.Reset()
 	gen.cacheMu.Lock()
 	gen.cachedImporters = make(map[string]importer.Importer)
 	gen.cacheMu.Unlock()
@@ -181,12 +188,20 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 }
 
 // GenAll generates proto files for every input workbook.
-func (gen *Generator) GenAll() error {
+func (gen *Generator) GenAll() (err error) {
 	gen.runMu.Lock()
 	defer gen.runMu.Unlock()
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
+	defer PrintSheetMetrics(gen)
+	stopProfiling, err := gen.startProfiling()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = errors.Join(err, stopProfiling())
+	}()
 	if err := gen.output.createStagingDir(); err != nil {
 		return err
 	}
@@ -206,12 +221,20 @@ func (gen *Generator) GenAll() error {
 }
 
 // GenWorkbook generates proto files for the specified input workbooks.
-func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
+func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) (err error) {
 	gen.runMu.Lock()
 	defer gen.runMu.Unlock()
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
+	defer PrintSheetMetrics(gen)
+	stopProfiling, err := gen.startProfiling()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = errors.Join(err, stopProfiling())
+	}()
 	if err := gen.output.createStagingDir(); err != nil {
 		return err
 	}
@@ -454,7 +477,9 @@ func (gen *Generator) convertDocument(dir, filename string, pass parsePass) (err
 		xerrors.KeyModule, xerrors.ModuleProto,
 		xerrors.KeyBookName, debugBookName)
 	for _, sheet := range imp.GetSheets() {
-		sheetErr := gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
+		sheetErr := gen.measureSheet(debugBookName, "first-pass", sheet, func() error {
+			return gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
+		})
 		if err := bookCollector.Collect(sheetErr); err != nil {
 			return err
 		}
@@ -521,7 +546,9 @@ func (gen *Generator) convertTable(dir, filename string, pass parsePass) (err er
 		xerrors.KeyModule, xerrors.ModuleProto,
 		xerrors.KeyBookName, debugBookName)
 	for _, sheet := range imp.GetSheets() {
-		sheetErr := gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
+		sheetErr := gen.measureSheet(debugBookName, formatParsePass(pass), sheet, func() error {
+			return gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
+		})
 		if err := bookCollector.Collect(sheetErr); err != nil {
 			return err
 		}

@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
-	"sync"
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
@@ -37,14 +37,15 @@ type Generator struct {
 	OutputOpt     *options.ConfOutputOption // output settings.
 	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
-	enableProfiling bool
-	validator       protovalidate.Validator // validator with extension type resolver for custom predefined rules.
-	collector       *xerrors.Collector
-	referredCache   *fieldprop.ReferredCache
-	importerCache   *importer.Cache
+	profiling bool // whether to enable generator performance profiling.
+
+	validator     protovalidate.Validator // validator with extension type resolver for custom predefined rules.
+	collector     *xerrors.Collector
+	referredCache *fieldprop.ReferredCache
+	importerCache *importer.Cache
 
 	// Sheet parser metrics.
-	SheetParserMetrics sync.Map
+	SheetParserMetrics profile.SheetParserMetrics
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -72,19 +73,18 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	}
 
 	g := &Generator{
-		ProtoPackage:       protoPackage,
-		InputDir:           indir,
-		OutputDir:          outdir,
-		LocationName:       opts.LocationName,
-		InputOpt:           opts.Conf.Input,
-		OutputOpt:          opts.Conf.Output,
-		ErrorLimitOpt:      errorLimit,
-		enableProfiling:    opts.Profiling,
-		ctx:                ctx,
-		collector:          xerrors.NewCollector(errorLimit.MaxErrors),
-		referredCache:      fieldprop.NewReferredCache(),
-		importerCache:      importer.NewCache(),
-		SheetParserMetrics: sync.Map{},
+		ProtoPackage:  protoPackage,
+		InputDir:      indir,
+		OutputDir:     outdir,
+		LocationName:  opts.LocationName,
+		InputOpt:      opts.Conf.Input,
+		OutputOpt:     opts.Conf.Output,
+		ErrorLimitOpt: errorLimit,
+		profiling:     opts.Profiling,
+		ctx:           ctx,
+		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
+		referredCache: fieldprop.NewReferredCache(),
+		importerCache: importer.NewCache(),
 	}
 	return g
 }
@@ -95,7 +95,7 @@ func (gen *Generator) resetRunState() {
 	// Imported data is valid only for one run. A fresh cache prevents stale
 	// workbook data when a Generator is reused after its inputs change.
 	gen.importerCache = importer.NewCache()
-	gen.SheetParserMetrics = sync.Map{}
+	gen.SheetParserMetrics.Reset()
 }
 
 // bookSpecifier can be:
@@ -251,8 +251,8 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 				ErrorLimit:     gen.ErrorLimitOpt,
 				ReferredCache:  gen.referredCache,
 				ImporterCache:  gen.importerCache,
-				SheetParserMetrics: func() *sync.Map {
-					if gen.enableProfiling {
+				SheetParserMetrics: func() *profile.SheetParserMetrics {
+					if gen.profiling {
 						return &gen.SheetParserMetrics
 					}
 					return nil

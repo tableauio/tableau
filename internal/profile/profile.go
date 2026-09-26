@@ -1,4 +1,4 @@
-// Package profile writes CPU and memory profiles for generator runs.
+// Package profile measures generator work and writes CPU and memory profiles.
 package profile
 
 import (

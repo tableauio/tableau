@@ -1,4 +1,4 @@
-package confgen
+package protogen
 
 import (
 	"os"
@@ -27,22 +27,19 @@ func TestProfilingDisabled(t *testing.T) {
 	}
 }
 
-func TestProfilingUsesRuntimeOption(t *testing.T) {
+func TestGenerateWritesProfiles(t *testing.T) {
+	inputDir := t.TempDir()
 	outputDir := t.TempDir()
 	opts := options.NewDefault()
 	opts.Profiling = true
-	opts.Conf.Output.Subdir = "profiles"
-	gen := NewGeneratorWithOptions("", "", outputDir, opts)
+	opts.Proto.Output.Subdir = "profiles"
+	gen := NewGeneratorWithOptions("", inputDir, outputDir, opts)
 
-	stop, err := gen.startProfiling()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := stop(); err != nil {
+	if err := gen.Generate(); err != nil {
 		t.Fatal(err)
 	}
 
-	for _, name := range []string{"confgen-cpu.pprof", "confgen-mem.pprof"} {
+	for _, name := range []string{"protogen-cpu.pprof", "protogen-mem.pprof"} {
 		info, err := os.Stat(filepath.Join(outputDir, "profiles", name))
 		if err != nil {
 			t.Errorf("stat profile %s: %v", name, err)

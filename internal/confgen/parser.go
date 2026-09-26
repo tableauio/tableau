@@ -14,6 +14,7 @@ import (
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
@@ -232,18 +233,15 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 	parser.sheetCollector = messageCollector.NewChild(maxErrorsPerSheet,
 		xerrors.KeyBookName, bookName,
 		xerrors.KeySheetName, sheetName)
-	key := sheetMetricKey{book: bookName, sheet: sheetName, message: string(info.MD.FullName())}
+	key := profile.SheetMetricKey{Book: bookName, Sheet: sheetName, Detail: string(info.MD.FullName())}
 	protomsg := dynamicpb.NewMessage(info.MD)
 	var parseErr error
 	if info.ExtInfo.SheetParserMetrics == nil {
 		parseErr = parser.Parse(protomsg, sheet)
 	} else {
-		shape := measureSheet(sheet)
-		elapsed, cpuTime, cpuMeasured, err := measureSheetParse(key, func() error {
+		parseErr = info.ExtInfo.SheetParserMetrics.Measure("confgen_sheet", key, sheet, func() error {
 			return parser.Parse(protomsg, sheet)
 		})
-		recordSheetMetrics(info.ExtInfo.SheetParserMetrics, key, shape, elapsed, cpuTime, cpuMeasured, err != nil)
-		parseErr = err
 	}
 	if parseErr != nil {
 		return nil, xerrors.WrapKV(parseErr,
@@ -336,7 +334,7 @@ type SheetParserExtInfo struct {
 	ErrorLimit         *options.ErrorLimitOption // error collection limits
 	ReferredCache      *fieldprop.ReferredCache
 	ImporterCache      *importer.Cache
-	SheetParserMetrics *sync.Map
+	SheetParserMetrics *profile.SheetParserMetrics
 }
 
 // NewSheetParser creates a new sheet parser.
