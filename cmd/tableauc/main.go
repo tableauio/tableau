@@ -102,6 +102,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	if err := log.Init(config.Log); err != nil {
 		return fmt.Errorf("init log failed: %s", err)
 	}
+	defer log.Sync()
 	applyFlags(cmd, config)
 	yamlOut, _ := yaml.Marshal(config)
 	log.Debugf("loaded config:\n%s", string(yamlOut))

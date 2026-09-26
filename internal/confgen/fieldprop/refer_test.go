@@ -394,12 +394,12 @@ func TestReferredCache_GetEntry_loadFailureDedup(t *testing.T) {
 	}
 	key := referCacheKey{message: "test.Broken", column: "ID"}
 
-	_, err := cache.getEntry(key, loadFunc)
+	_, err := cache.getEntry(context.Background(), key, loadFunc)
 	if err == nil {
 		t.Fatal("first getEntry() error = nil, want error")
 	}
 
-	entry, err := cache.getEntry(key, loadFunc)
+	entry, err := cache.getEntry(context.Background(), key, loadFunc)
 	if err != nil {
 		t.Fatalf("second getEntry() error = %v, want nil", err)
 	}
@@ -433,7 +433,7 @@ func TestReferredCache_GetEntry_loadFailureDedupConcurrent(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			<-start
-			entry, err := cache.getEntry(key, loadFunc)
+			entry, err := cache.getEntry(context.Background(), key, loadFunc)
 			results[i] = result{entry, err}
 		}(i)
 	}
@@ -483,7 +483,7 @@ func TestReferredCache_GetEntry_loadsDifferentKeysConcurrently(t *testing.T) {
 	for _, key := range keys {
 		go func(key referCacheKey) {
 			defer group.Done()
-			if _, err := cache.getEntry(key, load(key.String())); err != nil {
+			if _, err := cache.getEntry(context.Background(), key, load(key.String())); err != nil {
 				t.Errorf("getEntry(%q) error = %v", key.String(), err)
 			}
 		}(key)

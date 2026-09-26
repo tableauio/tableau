@@ -1,54 +1,58 @@
 # Confgen Profiling and Optimization Plan
 
-This document records the current confgen performance baseline, explains how to
-inspect the report, and defines the order in which to optimize the pipeline.
-Measurements were captured on Windows from the production-sized configuration
-workspace described below.
+This document explains how to view the performance report, records the latest
+measurements, and defines the next optimization work in measurement order.
 
 ## View the report in a browser
 
-The original report is a Codex Canvas:
+The editable report is a Codex Canvas:
 
 ```text
 C:\Users\wenchyzhu\.cursor\projects\d-GitHub-tableauio-tableau\canvases\confgen-profile-analysis.canvas.tsx
 ```
 
-A `.canvas.tsx` file is TypeScript/JSX and imports the virtual `cursor/canvas`
-module supplied by the Codex app. A normal browser does not provide that module,
-so opening the source file directly cannot render the report.
+The file imports `cursor/canvas`, a virtual component library provided by the
+Codex app. A normal browser and ordinary TypeScript tools cannot resolve that
+module, so opening the `.canvas.tsx` file directly displays source code or a
+blank page.
 
-Use the self-contained browser export instead:
+Use one of these two supported views:
+
+1. In Codex, open the Canvas file directly. Codex compiles it and renders the
+   interactive report beside the conversation.
+2. In a normal browser, open the self-contained HTML export:
+   [`confgen-profile-report.html`](./confgen-profile-report.html).
+
+On Windows, open the export from the repository root with:
 
 ```powershell
 Start-Process .\docs\profile\confgen-profile-report.html
 ```
 
-The HTML file has no external runtime or package dependencies. It can also be
-served locally when browser security settings restrict `file:` pages:
+If the browser restricts local `file:` pages, serve the directory over HTTP:
 
 ```powershell
-python -m http.server 8000 --directory docs/profile
+python -m http.server 8000 --directory .\docs\profile
 ```
 
-Then open <http://localhost:8000/confgen-profile-report.html>. Codex can preview
-a local route or file-backed page in its built-in browser as described in the
-[official Browser documentation](https://learn.chatgpt.com/docs/browser?surface=app).
+Then open <http://localhost:8000/confgen-profile-report.html>.
 
-The Canvas remains the editable in-app source. Update the HTML export when its
-measurements or conclusions change.
+The HTML report intentionally has no package, build, or network dependency. It
+is a browser snapshot rather than a compiled form of the Canvas. When profile
+data changes, update both the Canvas data and the HTML export from the same
+measurement set.
 
 ## Measurement setup
 
-- Repository branch: `codex/confgen-sheet-perf`
-- Profile date: 2026-09-25
+- Branch: `codex/confgen-sheet-perf`
 - Platform: Windows
 - Configuration:
   `D:\Tencent\SVNTest\trunk\BuildDataConfig\ConfBuddyTools\LocalCache\tableau\config.local.yaml`
-- Working directory: `D:\Tencent\SVNTest\trunk`
-- CPU profile: `conf\confgen-cpu.pprof`
-- Heap profile: `conf\confgen-mem.pprof`
+- Command working directory: `D:\Tencent\SVNTest\trunk`
+- Profile output directory:
+  `D:\Tencent\SVNTest\trunk\BuildDataConfig\ConfBuddyTools\LocalCache\tableau\conf`
 
-Representative command:
+Representative profiled command:
 
 ```powershell
 tableauc --mode conf `
@@ -59,226 +63,265 @@ tableauc --mode conf `
   --outdir .
 ```
 
-The comparison build removed the `logger.Sync()` call performed after every log
-record. It retained the same inputs and generated outputs. That change was used
-only to isolate the cost of log flushing; the optimization still needs a proper
-implementation with one explicit flush at process shutdown.
+Normal mode is the source of truth for user-visible performance. CPU, heap, and
+block profiles explain the result but add instrumentation overhead.
 
-## Baseline and experiment
+## Current measurements
 
-| Measurement | Current behavior | Without per-record sync | Change |
-| --- | ---: | ---: | ---: |
-| Normal wall time | 14.85 s | 6.13 s | 2.42x faster |
-| Profiled wall time | 32.27 s | 7.37 s | 4.38x faster |
-| CPU samples | 41.17 s | 17.93 s | 56.4% lower |
-| Profile capture duration | 15.99 s | 4.80 s | 70.0% lower |
-| Total allocation | 7.17 GB | 7.05 GB | effectively unchanged |
+The earlier report used a configuration where per-record Zap synchronization
+dominated execution. Removing that synchronization reduced normal wall time
+from 14.85 seconds to 6.13 seconds. The current production configuration uses
+simple INFO logging, so a fresh baseline was captured before evaluating parser
+changes.
 
-The profiled build adds about 20% wall time after removing per-record sync
-(6.13 s to 7.37 s). Profiling therefore remains useful for diagnosis, but normal
-mode is the source of truth for user-visible speed.
+### Fresh baseline
 
-## Findings
+- Normal runs: 8.15, 5.96, 5.81, 5.31, and 5.64 seconds.
+- Five-run median: 5.81 seconds. The first 8.15-second run was cold; the median
+  of the four subsequent runs was 5.73 seconds.
+- Profiled wall time: 5.524 seconds.
+- CPU samples: 21.92 CPU-seconds over a 5.10-second capture.
+- Allocation space: 6.92 GB.
 
-### Logging dominates the current run
-
-`ZapDriver.Print` accounts for 22.94 CPU seconds (58.18% of samples), and
-`logger.Sync` accounts for 19.72 CPU seconds (50.01%). Flushing the logger for
-every record converts buffered logging into repeated filesystem synchronization.
-The A/B result makes this the highest-confidence optimization.
-
-### Remaining CPU after removing per-record sync
+The main baseline CPU paths were:
 
 | Area | CPU | Share |
 | --- | ---: | ---: |
-| Excel `GetRows` | 6.89 s | 38.4% |
-| Merger processing | 5.39 s | 30.1% |
-| Sheet parsing | 3.89 s | 21.7% |
-| Vertical map parsing, inclusive | 3.41 s | 19.0% |
-| Store | 2.43 s | 13.6% |
-| GC marking | 2.30 s | 12.8% |
-| Refer value loading | 1.88 s | 10.5% |
-| JSON marshaling | 1.30 s | 7.3% |
+| Excel row decoding | 7.85 s | 38.84% |
+| Merger processing | 6.56 s | 32.46% |
+| Sheet parsing | 3.84 s | 19.00% |
+| Store output | 3.08 s | 15.24% |
+| Garbage collection | 2.94 s | 14.55% |
+| Refer loading | 1.54 s | 7.62% |
 
-Inclusive values overlap, so their percentages must not be added together.
+Inclusive paths overlap and their percentages must not be added.
 
-### Allocation pressure
+The largest allocation sources were XML tokenization at 1.92 GB, Excel row XML
+handling at 0.78 GB, XML token creation at 0.73 GB, `fastjson` at 0.44 GB,
+`Row.AddCell` at 0.27 GB, `bytes.growSlice` at 0.27 GB, `bytes.Replace` at
+0.26 GB, and dynamic protobuf field assignment at 0.26 GB.
 
-| Area | Allocated | Share |
+### Retained changes
+
+The current candidate contains these measured changes:
+
+- Logger synchronization moved from every log record to the command boundary.
+  On the current simple-console configuration this changed the five-run median
+  from 5.81 to 5.72 seconds. The larger earlier A/B result justifies fixing the
+  logger lifecycle.
+- CPU labels now separate source opening, sheet decoding, sheet parsing, refer
+  loading, and refer waiting. Profiling also writes a block profile.
+- Windows no longer pins each measured sheet goroutine to an OS thread. CPU
+  pprof labels provide useful attribution without changing scheduling.
+- Rows use a bounded dense cell slice instead of a map keyed by column index.
+- Parser fields cache their optional variant and map key descriptor.
+- Scalar parsing avoids constructing unused cardinality prefixes, and top-level
+  column names avoid redundant concatenation.
+
+After the dense row and parser-plan changes, the five-run median was 5.21 seconds
+and allocation space was 6.66 GB. Avoiding scalar prefix allocation reduced the
+five-run median to 4.88 seconds and allocation space to 6.48 GB. This is about 16%
+faster and 6.4% less allocation than the fresh 5.81-second, 6.92-GB baseline.
+
+The final column-name helper showed a win in four of five interleaved A/B pairs,
+with an approximately 0.27-second median paired improvement. Absolute sequential
+runs remained noisy, so this result should be reproduced after the current
+changes are consolidated into one candidate binary.
+
+### Profiling attribution
+
+In the labeled profile, the main work categories were:
+
+| Work label | CPU | Share |
 | --- | ---: | ---: |
-| Excel `GetRows` | 3.55 GB | 50.3% |
-| XML decoder `rawToken` | 1.92 GB | 27.2% |
-| `parseMessage` | 1.87 GB | 26.5% |
-| JSON marshaling | 1.05 GB | 14.9% |
-| `fastjson` | 438 MB | 6.2% |
-| `Row.AddCell` | 328 MB | 4.6% |
+| `sheet_decode` | 9.07 s | 42.82% |
+| `source_open` | 2.86 s | 13.50% |
+| `sheet_parse` | 2.19 s | 10.34% |
 
-Total allocation is 7.05 GB and retained heap is about 544 MB. Allocation
-shares are inclusive and may overlap.
+The XLSX format accounted for 56.2% of sampled CPU. The largest source labels
+were `AiAccountPvpStat` at 3.29 CPU-seconds, `Skill_Monster` at 1.10,
+`AiAccountDisplay` at 1.00, and `Skill_Player` at 0.72.
 
-### Importer reuse is already effective
+The block profile attributed about 40.86 aggregate goroutine-seconds to refer
+waits. This is cumulative blocked time across goroutines, not elapsed runtime.
+It explains why a small sheet can report a large wall duration while consuming
+little CPU.
 
-The run issued 417 importer load requests for 210 unique source paths. The cache
-reused 207 requests and decoded 561 sheets. The next Excel improvement should
-reduce decoding and row materialization within each unique workbook rather than
-add another path-level importer cache.
+## Experiments not retained
 
-### Sheet wall time is not intrinsic parser CPU
+These experiments did not meet the normal-mode performance gate:
 
-The no-sync run reported these largest sheet labels:
+- Concurrent decoding of sheets from the same Excel workbook improved the
+  median by only about 0.8% and increased variance.
+- Asynchronous refer preloading improved the median by only about 0.8% and
+  increased cumulative refer wait time from 40.86 to 51.20 goroutine-seconds.
+- A per-field map caching every prefixed column name regressed the median to
+  about 6.3 seconds because lookup and synchronization costs exceeded saved
+  string allocation.
 
-| Sheet | Wall time |
-| --- | ---: |
-| `DiySkill` | 1.73 s |
-| `AiAccountPvpStat` | 0.62 s |
-| `AiAccountDisplay` | 0.20 s |
-| `Skill_Monster.xlsx#SkillGroupLocal` | 0.18 s |
-| `Skill_Player.xlsx#SkillGroupLocal` | 0.10 s |
-| `MonsterInfo` | 0.09 s |
-
-A sheet label can include work performed while resolving a cold refer-cache
-entry, and a sheet can spend most of its elapsed time waiting for another
-goroutine. For example, `AssistSkill.xlsx` took about 2.25 seconds of wall time
-but contributed almost no sampled CPU; its stack ended in `waitForReferEntry`.
-Rank sheet parser work by CPU samples and separately report refer load and wait
-time. Do not infer parser complexity from wall time alone.
-
-On Windows, the measured thread CPU clock has a 15.625 ms resolution. Most
-individual sheets therefore report zero processor time. Locking a goroutine to
-an OS thread for each profiled sheet also changes scheduling. Pprof labels are a
-better source for sheet-level CPU attribution on Windows.
+The lazy canonical refer cache, serialized per-workbook Excel access, and the
+simple column-name helper remain in place.
 
 ## Optimization plan
 
-### 1. Flush logs once per command
+The original 14.85-second run is now about 3.0 times slower than the current
+4.88-second candidate. Reaching a 4x improvement from that original run requires
+a five-run median at or below 3.71 seconds, about 24% below the current candidate.
+Reaching 2x from the fresh 5.81-second baseline would require 2.91 seconds and
+likely needs a deeper XLSX reader change plus output-path improvements.
+
+### 1. Consolidate and validate the current candidate
 
 Priority: P0
 
-1. Remove `logger.Sync()` from the per-record `ZapDriver.Print` path.
-2. Add an explicit `Sync` operation to the logger driver boundary.
-3. Call it once when the CLI command exits, after generation and before returning
-   the final status.
-4. Keep immediate flushing for fatal or panic paths where the process may exit
-   before normal cleanup.
-5. Treat benign Windows sync errors for console handles consistently with Zap's
-   documented behavior.
+1. Build one candidate containing the logger lifecycle, profiling labels, dense
+   rows, descriptor caches, and prefix changes.
+2. Compare it with the recorded baseline using interleaved runs to reduce drift
+   from filesystem cache, antivirus scanning, and system load.
+3. Compare every generated configuration file byte-for-byte.
+4. Run focused tests and the full Go test suite without `-race` on Windows.
 
 Acceptance gates:
 
-- Generated configuration files are byte-identical.
-- Log records remain complete on successful and failed commands.
-- The median normal-mode wall time reproduces the measured improvement within
-  normal run-to-run variance.
-- Profiling output is still flushed before the process exits.
+- At least five measured warm runs for each binary.
+- The candidate improves median wall time and does not materially regress p95.
+- Generated output is identical.
+- CPU, memory, and block profiles are readable and use the expected labels.
 
-### 2. Separate parser work from dependency waits
-
-Priority: P0
-
-1. Add pprof labels for message, sheet, parse pass, and work phase.
-2. Split refer metrics into `refer_load` and `refer_wait` durations.
-3. Record cache hit, cache miss, and waiter counts for each canonical refer key.
-4. Add a block profile to locate synchronization and dependency stalls.
-5. On Windows, omit per-sheet OS-thread locking and use pprof labels for CPU
-   ranking. Keep wall time, rows, columns, present cells, absent cells, and cache
-   counters as independent metrics.
-
-Acceptance gates:
-
-- A sheet waiting on refer data no longer appears as parser CPU.
-- The report can distinguish one refer loader from its waiters.
-- Profiling mode does not change parser scheduling by pinning sheet goroutines.
-
-### 3. Reduce Excel decoding and row materialization
+### 2. Reduce XLSX source opening and sheet decoding
 
 Priority: P1
 
-1. Build a required-sheet plan before reading each workbook.
-2. Decode only sheets required by normal, merger, scatter, and refer dependencies.
-3. Avoid materializing duplicate row representations between Excel and the
-   importer book model.
-4. Close Excel workbook resources immediately after all required sheets have
-   been decoded.
-5. Measure streaming row iteration against `GetRows` on representative wide and
-   sparse workbooks before selecting it.
+Excel opening and row decoding are the largest remaining measured cost. The
+current Excel library opens the ZIP container and prepares workbook data before
+the importer decodes requested sheets. Optimize this path in measured steps:
+
+1. Record each workbook's ZIP entry sizes, requested sheet count, total sheet
+   count, shared-string size, open time, and decode time.
+2. Build the complete required-sheet set before opening a workbook, including
+   normal, merger, scatter, and refer dependencies.
+3. Decode each required sheet exactly once and release workbook resources after
+   the final required sheet.
+4. Prototype a read-only selective XLSX decoder behind the importer boundary if
+   the library still inflates or parses substantial unrequested data. It must
+   handle shared strings, inline strings, booleans, numbers, cached formula
+   values, empty cells, relationships, and XML namespaces before replacing the
+   current path.
+5. Retain the prototype only if it improves end-to-end wall time on the
+   production workload and passes all XLSX fixtures.
 
 Acceptance gates:
 
-- All supported origin formats retain identical behavior.
-- Excel `GetRows` CPU and allocation bytes fall on the production workload.
-- Importer cache hit rate does not regress.
-- Open workbook handles stay bounded during concurrent generation.
+- `source_open` plus `sheet_decode` CPU falls by at least 25%.
+- Total allocation falls by at least 20% from the fresh baseline.
+- End-to-end warm median improves by at least 15% from the consolidated
+  candidate.
+- Open file handles and temporary files remain bounded.
+- CSV, XML, and YAML behavior is unchanged.
 
-### 4. Compile a reusable sheet parse plan
+### 3. Finish a reusable sheet parse plan
 
 Priority: P1
 
-1. Resolve descriptors, layouts, column indexes, prefixes, optional fields, and
-   canonical refer keys once per sheet schema.
-2. Reuse the plan for each row instead of repeating descriptor and layout work.
-3. Replace the sparse `map[int]*Cell` representation with a dense slice when the
-   sheet column range is known and bounded.
-4. Reuse short-lived parser buffers only when ownership is explicit and a
-   benchmark shows a reduction in allocation.
+The retained caches remove several repeated row-loop operations. Continue only
+where profiles still show repeated reflection or allocation:
+
+1. Compile field actions for each message and layout before parsing data rows.
+2. Store resolved descriptors, column indexes, optional behavior, map keys,
+   layouts, and canonical refer keys in that plan.
+3. Execute the plan per row without descriptor walks or static string building.
+4. Keep pooled ownership explicit. Add pooling only when a benchmark shows a
+   reduction in allocation and every acquisition has one release point.
 
 Acceptance gates:
 
-- `parseMessage` and `Row.AddCell` allocation bytes fall.
-- Sparse, transposed, vertical, incell, merger, and scatter fixtures remain
-  byte-identical.
-- Pool ownership remains local and every acquired pooled object has one clear
-  release point.
+- `sheet_parse` CPU improves by at least 10%.
+- End-to-end warm median improves by at least 5%.
+- Sparse, transposed, vertical, incell, merger, scatter, and patch fixtures
+  produce identical output.
 
-### 5. Schedule and prewarm refer dependencies
+### 4. Shorten refer critical paths without eager global preloading
 
 Priority: P1
 
-1. Extract canonical refer dependencies from the compiled parse plans.
-2. Load independent refer targets concurrently before dependent sheets reach
-   field validation.
-3. Continue deduplicating each canonical `<fully-qualified-message>.<column>`
-   parse through `ReferredCache`.
-4. Detect dependency cycles and preserve the existing error context.
+The blanket asynchronous preloader increased contention, so retain lazy
+single-load behavior. Use the labeled CPU and block profiles to optimize only
+refer keys on the generation critical path:
+
+1. Record load count, cache hit count, waiter count, load duration, and wait
+   duration per canonical `<fully-qualified-message>.<column>` key.
+2. Identify dependency chains that block output progress.
+3. If a stable dependency graph exists, schedule only independent critical
+   refer targets before their consumers with bounded concurrency.
+4. Cache successful values and failures exactly once per generation run.
 
 Acceptance gates:
 
-- Each canonical refer key is parsed at most once per generation run.
-- Wait time falls without increasing unique importer loads.
-- Failure results remain cached and report the same structured error.
+- Unique importer loads do not increase.
+- Aggregate and critical-path refer wait both decrease.
+- Each canonical key is parsed at most once.
+- The end-to-end warm median improves; reduced blocked time alone is
+  insufficient.
 
-### 6. Collapse JSON output passes
+### 5. Collapse JSON output passes
 
 Priority: P2
 
-The current output path performs protobuf JSON encoding, string conversion,
-`fastjson` parsing and marshaling, compaction, and indentation. Replace these
-passes with one semantic transformation followed by one final encoding step.
+The JSON path currently builds protobuf JSON, performs a second parse for
+timezone rewriting, marshals again, compacts, and optionally indents. Replace
+the repeated object and byte transformations with one semantic traversal and
+one final encoding step.
 
 Acceptance gates:
 
-- JSON bytes remain identical for representative outputs, including map order,
-  default values, enum formatting, and whitespace.
-- JSON marshaling and `fastjson` allocation bytes fall.
-- Binary and text output formats remain unaffected.
+- Representative JSON output is byte-identical, including map order, enum
+  formatting, default values, and whitespace.
+- JSON CPU and allocation both fall by at least 25%.
+- Binary and text output paths are unaffected.
+- End-to-end warm median improves by at least 5% on this workload.
 
-## Benchmark protocol
+### 6. Revisit concurrency after reducing per-task memory
 
-Use the same external configuration, input snapshot, generated proto files, and
-machine power state for every comparison.
+Priority: P2
 
-1. Build current and candidate binaries from recorded commits.
+More concurrency did not help while each workbook decode allocates heavily.
+After the XLSX and parser changes, use a bounded global scheduler for source and
+sheet work. Set the bound from measurements rather than CPU count alone because
+decompression, XML parsing, garbage collection, and storage compete for memory
+bandwidth.
+
+Keep a scheduler change only when it improves both median and p95 without
+raising peak memory or open file handles beyond an agreed bound.
+
+## Profiling workflow
+
+Use the same input snapshot, generated proto files, machine power state, and log
+configuration for every comparison.
+
+1. Build baseline and candidate executables from recorded commits.
 2. Run one unmeasured warm-up for each binary.
-3. Run at least five sequential normal-mode measurements and report median and
+3. Run at least five interleaved normal-mode measurements. Report median and
    p95 wall time.
-4. Repeat with `--profiling` and retain CPU, `alloc_space`, `inuse_space`, and
-   block profiles.
-5. Record importer cache requests, unique loads, decoded sheets, and cache hits.
-6. Compare every generated output file byte-for-byte.
-7. Run focused unit and integration tests plus `go test ./...` when practical.
-   Do not use `-race` on this Windows environment because Go was built with CGO
-   disabled.
+4. Run each binary with `--profiling`. Retain CPU, `alloc_space`, `inuse_space`,
+   and block profiles.
+5. Record importer cache requests, unique source opens, decoded sheets, cache
+   hits, and refer load/wait counters.
+6. Compare generated output files byte-for-byte.
+7. Run focused unit and integration tests, followed by `go test ./...` when
+   practical. Do not use `-race` on this Windows environment because Go was
+   built with CGO disabled.
+
+Useful profile commands from the profile output directory include:
+
+```powershell
+go tool pprof -top .\confgen-cpu.pprof
+go tool pprof -tags .\confgen-cpu.pprof
+go tool pprof -top -tagfocus='work=sheet_decode' .\confgen-cpu.pprof
+go tool pprof -top -sample_index=alloc_space .\confgen-mem.pprof
+go tool pprof -top -sample_index=delay .\confgen-block.pprof
+```
 
 Apply one optimization phase at a time. Keep a change only when normal-mode wall
-time improves and correctness gates pass; pprof-only improvements are
-insufficient if the user-visible run does not improve.
+time improves and correctness gates pass. A smaller pprof number by itself is
+not a user-visible performance gain.
 

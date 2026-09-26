@@ -1,6 +1,7 @@
 package protogen
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -28,5 +29,7 @@ func (gen *Generator) measureSheet(bookName string, pass parsePass, sheet *book.
 		Sheet:  sheet.GetDebugName(),
 		Detail: string(pass),
 	}
-	return gen.SheetParserMetrics.Measure("protogen_sheet", key, sheet, parse)
+	return gen.SheetParserMetrics.Measure(gen.ctx, "protogen", key, sheet, func(context.Context) error {
+		return parse()
+	})
 }

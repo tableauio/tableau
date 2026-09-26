@@ -169,7 +169,7 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 				default:
 					return false, xerrors.NewKV("should not reach here", node.DebugKV()...)
 				}
-				newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, keyData)
+				newMapKey, keyPresent, err := p.parseMapKey(field, keyData)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
@@ -304,7 +304,7 @@ func (p *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field, 
 	for _, elemNode := range node.Children {
 		key, value := elemNode.Name, elemNode.Value
 		mapItemData := strings.Join([]string{key, value}, field.subsep)
-		newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, key)
+		newMapKey, keyPresent, err := p.parseMapKey(field, key)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}

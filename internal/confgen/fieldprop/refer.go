@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"regexp"
+	"runtime/pprof"
 	"strings"
 	"sync"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -107,25 +109,30 @@ type loadValueSpaceFunc = func() (*valueSpace, error)
 
 // getEntry loads each normalized message column once. Callers for the same key
 // wait for its ready channel, while unrelated targets load concurrently.
-func (r *ReferredCache) getEntry(key referCacheKey, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
+func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
 	r.mu.RLock()
 	entry, ok := r.entries[key]
 	r.mu.RUnlock()
 	if ok {
-		return waitForReferEntry(entry), nil
+		return waitForReferEntry(ctx, key, entry), nil
 	}
 
 	r.mu.Lock()
 	entry, ok = r.entries[key]
 	if ok {
 		r.mu.Unlock()
-		return waitForReferEntry(entry), nil
+		return waitForReferEntry(ctx, key, entry), nil
 	}
 	entry = &referCacheEntry{ready: make(chan struct{})}
 	r.entries[key] = entry
 	r.mu.Unlock()
 
-	space, err := loadFunc()
+	var space *valueSpace
+	err := profile.Run(ctx, pprof.Labels("work", "refer_load", "refer", key.String()), func(context.Context) error {
+		var err error
+		space, err = loadFunc()
+		return err
+	})
 	r.mu.Lock()
 	if err == nil {
 		entry.space = space
@@ -139,8 +146,11 @@ func (r *ReferredCache) getEntry(key referCacheKey, loadFunc loadValueSpaceFunc)
 	return *entry, err
 }
 
-func waitForReferEntry(entry *referCacheEntry) referCacheEntry {
-	<-entry.ready
+func waitForReferEntry(ctx context.Context, key referCacheKey, entry *referCacheEntry) referCacheEntry {
+	_ = profile.Run(ctx, pprof.Labels("work", "refer_wait", "refer", key.String()), func(context.Context) error {
+		<-entry.ready
+		return nil
+	})
 	return *entry
 }
 
@@ -321,7 +331,7 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 		if err != nil {
 			return err
 		}
-		entry, err := r.getEntry(key, func() (*valueSpace, error) {
+		entry, err := r.getEntry(ctx, key, func() (*valueSpace, error) {
 			return loadValueSpaceForKey(ctx, refer, key, input)
 		})
 		if err != nil {

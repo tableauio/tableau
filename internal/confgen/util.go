@@ -30,6 +30,10 @@ import (
 
 type Field struct {
 	fd protoreflect.FieldDescriptor
+	// optional caches the inherited optional variant used for nested fields.
+	optional *Field
+	// keyFD caches the descriptor selected by opts.Key for map values.
+	keyFD protoreflect.FieldDescriptor
 	// seq's value is dynamically merged at different priority levels:
 	//  1. field-level: FieldProp.seq
 	//  2. sheet-level: WorksheetOptions.seq
@@ -50,14 +54,19 @@ func (f *Field) inheritParentFieldProp(parent *Field) *Field {
 	if parent == nil || parent.opts == nil || !parent.opts.Prop.GetOptional() {
 		return f
 	}
+	if f.optional != nil {
+		return f.optional
+	}
 	field := *f
+	field.optional = nil
 	opts := proto.Clone(f.opts).(*tableaupb.FieldOptions)
 	if opts.Prop == nil {
 		opts.Prop = &tableaupb.FieldProp{}
 	}
 	opts.Prop.Optional = true
 	field.opts = opts
-	return &field
+	f.optional = &field
+	return f.optional
 }
 
 func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {

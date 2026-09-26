@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"context"
 	"runtime"
 	"strings"
 	"sync"
@@ -175,7 +176,7 @@ func TestSheetParserMetricsMeasureCPUTime(t *testing.T) {
 	var metrics SheetParserMetrics
 	sheet := book.NewTableSheet("Items", [][]string{{"ID"}})
 	key := SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"}
-	if err := metrics.Measure("test_sheet", key, sheet, func() error {
+	if err := metrics.Measure(context.Background(), "test", key, sheet, func(context.Context) error {
 		deadline := time.Now().Add(80 * time.Millisecond)
 		for time.Now().Before(deadline) {
 		}
@@ -188,12 +189,32 @@ func TestSheetParserMetricsMeasureCPUTime(t *testing.T) {
 		t.Fatalf("metrics count = %d, want 1", len(got))
 	}
 	if got[0].cpuCalls == 0 {
-		if runtime.GOOS == "windows" || runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+		if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
 			t.Fatal("thread CPU time unavailable on a supported platform")
+		}
+		if runtime.GOOS == "windows" {
+			return
 		}
 		t.Skip("thread CPU time unavailable")
 	}
 	if got[0].wallTime <= 0 || got[0].cpuTime < 0 {
 		t.Errorf("wall=%s, cpu=%s; wall should be positive and CPU nonnegative", got[0].wallTime, got[0].cpuTime)
+	}
+}
+
+func TestSheetParserMetricsMeasurePreservesContext(t *testing.T) {
+	type contextKey struct{}
+	ctx := context.WithValue(context.Background(), contextKey{}, "value")
+	var metrics SheetParserMetrics
+	sheet := book.NewTableSheet("Items", [][]string{{"ID"}})
+	key := SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"}
+
+	if err := metrics.Measure(ctx, "test", key, sheet, func(ctx context.Context) error {
+		if got := ctx.Value(contextKey{}); got != "value" {
+			t.Fatalf("context value = %v, want value", got)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 }

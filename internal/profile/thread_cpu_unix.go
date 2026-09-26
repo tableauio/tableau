@@ -8,6 +8,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const supportsThreadCPUTime = true
+
 // MeasureThreadCPUTime returns user plus system CPU time consumed by the
 // current OS thread.
 func MeasureThreadCPUTime() (time.Duration, bool) {

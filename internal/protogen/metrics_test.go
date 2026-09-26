@@ -3,6 +3,7 @@ package protogen
 import (
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"testing"
 
 	"github.com/tableauio/tableau/options"
@@ -34,12 +35,15 @@ func TestGenerateWritesProfiles(t *testing.T) {
 	opts.Profiling = true
 	opts.Proto.Output.Subdir = "profiles"
 	gen := NewGeneratorWithOptions("", inputDir, outputDir, opts)
+	if value, ok := pprof.Label(gen.ctx, "generator"); !ok || value != "protogen" {
+		t.Fatalf("generator label = %q, %t; want protogen, true", value, ok)
+	}
 
 	if err := gen.Generate(); err != nil {
 		t.Fatal(err)
 	}
 
-	for _, name := range []string{"protogen-cpu.pprof", "protogen-mem.pprof"} {
+	for _, name := range []string{"protogen-cpu.pprof", "protogen-mem.pprof", "protogen-block.pprof"} {
 		info, err := os.Stat(filepath.Join(outputDir, "profiles", name))
 		if err != nil {
 			t.Errorf("stat profile %s: %v", name, err)

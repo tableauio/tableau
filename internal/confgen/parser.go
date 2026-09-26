@@ -239,7 +239,8 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 	if info.ExtInfo.SheetParserMetrics == nil {
 		parseErr = parser.Parse(protomsg, sheet)
 	} else {
-		parseErr = info.ExtInfo.SheetParserMetrics.Measure("confgen_sheet", key, sheet, func() error {
+		parseErr = info.ExtInfo.SheetParserMetrics.Measure(parser.ctx, "confgen", key, sheet, func(ctx context.Context) error {
+			parser.ctx = ctx
 			return parser.Parse(protomsg, sheet)
 		})
 	}
@@ -539,7 +540,7 @@ func (p *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, ref
 		}
 		keyData := kv[0]
 
-		newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, keyData)
+		newMapKey, keyPresent, err := p.parseMapKey(field, keyData)
 		if err != nil {
 			return err
 		}
@@ -564,34 +565,34 @@ func (p *sheetParser) parseIncellMapWithValueAsSimpleKVMessage(field *Field, ref
 	return nil
 }
 
-func (p *sheetParser) parseMapKey(field *Field, reflectMap protoreflect.Map, cellData string) (mapKey protoreflect.MapKey, present bool, err error) {
-	var keyFd protoreflect.FieldDescriptor
-
-	md := reflectMap.NewValue().Message().Descriptor()
-	for i := 0; i < md.Fields().Len(); i++ {
-		fd := md.Fields().Get(i)
-		fdOpts := fd.Options().(*descriptorpb.FieldOptions)
-		if fdOpts != nil {
-			tableauFieldOpts := proto.GetExtension(fdOpts, tableaupb.E_Field).(*tableaupb.FieldOptions)
-			if tableauFieldOpts != nil && tableauFieldOpts.Name == field.opts.Key {
-				keyFd = fd
-				break
+func (p *sheetParser) parseMapKey(field *Field, cellData string) (mapKey protoreflect.MapKey, present bool, err error) {
+	if field.keyFD == nil {
+		md := field.fd.MapValue().Message()
+		for i := 0; i < md.Fields().Len(); i++ {
+			fd := md.Fields().Get(i)
+			fdOpts := fd.Options().(*descriptorpb.FieldOptions)
+			if fdOpts != nil {
+				tableauFieldOpts := proto.GetExtension(fdOpts, tableaupb.E_Field).(*tableaupb.FieldOptions)
+				if tableauFieldOpts != nil && tableauFieldOpts.Name == field.opts.Key {
+					field.keyFD = fd
+					break
+				}
 			}
 		}
 	}
-	if keyFd == nil {
+	if field.keyFD == nil {
 		return mapKey, false, xerrors.Newf("opts.Key %s not found in map value-type definition", field.opts.Key)
 	}
 	var fieldValue protoreflect.Value
-	if keyFd.Kind() == protoreflect.EnumKind {
-		fieldValue, present, err = p.parseFieldValue(keyFd, cellData, field.opts.Prop)
+	if field.keyFD.Kind() == protoreflect.EnumKind {
+		fieldValue, present, err = p.parseFieldValue(field.keyFD, cellData, field.opts.Prop)
 		if err != nil {
 			return mapKey, false, err
 		}
 		v := protoreflect.ValueOfInt32(int32(fieldValue.Enum()))
 		mapKey = v.MapKey()
 	} else {
-		fieldValue, present, err = p.parseFieldValue(keyFd, cellData, field.opts.Prop)
+		fieldValue, present, err = p.parseFieldValue(field.keyFD, cellData, field.opts.Prop)
 		if err != nil {
 			return mapKey, false, xerrors.WrapKV(err)
 		}

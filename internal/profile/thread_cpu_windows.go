@@ -8,6 +8,10 @@ import (
 	"unsafe"
 )
 
+// Windows thread CPU time is too coarse for short sheet parses. Avoid thread
+// pinning and use labeled CPU profiles for per-sheet attribution instead.
+const supportsThreadCPUTime = false
+
 var (
 	kernel32              = syscall.NewLazyDLL("kernel32.dll")
 	getCurrentThread      = kernel32.NewProc("GetCurrentThread")

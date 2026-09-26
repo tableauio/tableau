@@ -25,7 +25,7 @@ func TestStartWritesCPUAndMemoryProfiles(t *testing.T) {
 	}
 	runtime.KeepAlive(data)
 
-	for _, name := range []string{"testgen-cpu.pprof", "testgen-mem.pprof"} {
+	for _, name := range []string{"testgen-cpu.pprof", "testgen-mem.pprof", "testgen-block.pprof"} {
 		info, err := os.Stat(filepath.Join(outputDir, name))
 		if err != nil {
 			t.Errorf("stat profile %s: %v", name, err)

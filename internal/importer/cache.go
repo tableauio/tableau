@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"runtime/pprof"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -11,6 +12,7 @@ import (
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/xuri/excelize/v2"
@@ -52,8 +54,8 @@ type Cache struct {
 }
 
 type cachedExcel struct {
-	// Excelize reads and the sheets map share one lock because an excelize.File
-	// is not read concurrently here. Different workbooks still load in parallel.
+	// Excelize reads and the sheets map share one lock. Different workbooks
+	// still load in parallel.
 	mu     sync.Mutex
 	file   *excelize.File
 	sheets map[string]*book.Sheet
@@ -134,7 +136,17 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 		if cached, ok := c.sources.Load(key.filename); ok {
 			return cached.(cachedSource), nil
 		}
-		source, decoded, err := openCachedSource(ctx, key.filename)
+		var source cachedSource
+		var decoded int64
+		err := profile.Run(ctx, pprof.Labels(
+			"work", "source_open",
+			"format", string(format.GetFormat(key.filename)),
+			"source", key.filename,
+		), func(ctx context.Context) error {
+			var err error
+			source, decoded, err = openCachedSource(ctx, key.filename)
+			return err
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -147,7 +159,17 @@ func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Im
 		return nil, err
 	}
 
-	view, decoded, err := loaded.(cachedSource).load(ctx, opts.Sheets)
+	var view Importer
+	var decoded int64
+	err = profile.Run(ctx, pprof.Labels(
+		"work", "sheet_decode",
+		"format", string(format.GetFormat(key.filename)),
+		"source", key.filename,
+	), func(ctx context.Context) error {
+		var err error
+		view, decoded, err = loaded.(cachedSource).load(ctx, opts.Sheets)
+		return err
+	})
 	c.sheets.Add(decoded)
 	if err != nil {
 		return nil, err
@@ -186,8 +208,6 @@ func openCachedSource(ctx context.Context, filename string) (cachedSource, int64
 }
 
 func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, int64, error) {
-	// The lock protects both Excelize access and the check-then-decode sequence,
-	// ensuring that each sheet is decoded at most once per generator run.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -200,11 +220,17 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 	for _, sheetOpts := range readerOpts.Sheets {
 		sheet := c.sheets[sheetOpts.Name]
 		if sheet == nil {
-			rows, err := readExcelSheetRows(c.file, sheetOpts.Name, 0, excelize.Options{RawCellValue: true})
+			err := profile.Run(ctx, pprof.Labels("sheet", sheetOpts.Name), func(context.Context) error {
+				rows, err := readExcelSheetRows(c.file, sheetOpts.Name, 0, excelize.Options{RawCellValue: true})
+				if err != nil {
+					return xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetOpts.Name)
+				}
+				sheet = book.NewTableSheet(sheetOpts.Name, rows)
+				return nil
+			})
 			if err != nil {
-				return nil, decoded, xerrors.Wrapf(err, "failed to get rows of sheet: %s", sheetOpts.Name)
+				return nil, decoded, err
 			}
-			sheet = book.NewTableSheet(sheetOpts.Name, rows)
 			c.sheets[sheetOpts.Name] = sheet
 			decoded++
 		}

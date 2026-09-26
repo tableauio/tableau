@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"strings"
 	"sync"
 
@@ -71,6 +72,9 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	ctx := context.Background()
+	if opts.Profiling {
+		ctx = pprof.WithLabels(ctx, pprof.Labels("generator", "protogen"))
+	}
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
 

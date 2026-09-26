@@ -135,26 +135,37 @@ func (m *SheetParserMetrics) Reset() {
 	m.entries.Clear()
 }
 
-// Measure runs parse with a pprof label and records its wall time, processor
-// time, result, and input shape. Measuring processor time requires pinning the
-// call to one OS thread and is therefore used only when profiling is enabled.
-func (m *SheetParserMetrics) Measure(label string, key SheetMetricKey, sheet *book.Sheet, parse func() error) (err error) {
+// Measure runs parse with pprof labels and records its wall time, processor
+// time, result, and input shape. Platforms with a precise thread CPU clock pin
+// the parse to its current thread while measuring processor time.
+func (m *SheetParserMetrics) Measure(ctx context.Context, generator string, key SheetMetricKey, sheet *book.Sheet, parse func(context.Context) error) (err error) {
 	shape := measureSheet(sheet)
 	var wall, cpu time.Duration
 	var cpuMeasured bool
-	pprof.Do(context.Background(), pprof.Labels(label, key.String()), func(context.Context) {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		cpuStart, startOK := MeasureThreadCPUTime()
+	labels := pprof.Labels(
+		"generator", generator,
+		"work", "sheet_parse",
+		"book", key.Book,
+		"sheet", key.Sheet,
+		"detail", key.Detail,
+	)
+	pprof.Do(ctx, labels, func(ctx context.Context) {
 		wallStart := time.Now()
-		err = parse()
-		wall = time.Since(wallStart)
-		cpuEnd, endOK := MeasureThreadCPUTime()
-		if startOK && endOK && cpuEnd >= cpuStart {
-			cpu = cpuEnd - cpuStart
-			cpuMeasured = true
+		if supportsThreadCPUTime {
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
+
+			cpuStart, startOK := MeasureThreadCPUTime()
+			err = parse(ctx)
+			cpuEnd, endOK := MeasureThreadCPUTime()
+			if startOK && endOK && cpuEnd >= cpuStart {
+				cpu = cpuEnd - cpuStart
+				cpuMeasured = true
+			}
+		} else {
+			err = parse(ctx)
 		}
+		wall = time.Since(wallStart)
 	})
 	m.record(key, shape, wall, cpu, cpuMeasured, err != nil)
 	return err
