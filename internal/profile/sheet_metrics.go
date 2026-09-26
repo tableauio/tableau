@@ -3,7 +3,6 @@ package profile
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"runtime/pprof"
 	"sort"
 	"sync"
@@ -99,8 +98,6 @@ type sheetMetricSnapshot struct {
 	calls        int64
 	failures     int64
 	wallTime     time.Duration
-	cpuTime      time.Duration
-	cpuCalls     int64
 	rows         int64
 	cols         int64
 	presentCells int64
@@ -135,43 +132,30 @@ func (m *SheetParserMetrics) Reset() {
 	m.entries.Clear()
 }
 
-// Measure runs parse with pprof labels and records its wall time, processor
-// time, result, and input shape. Platforms with a precise thread CPU clock pin
-// the parse to its current thread while measuring processor time.
+// Measure runs parse with pprof labels and records its wall time, result, and
+// input shape. The CPU profile uses sheet_key to attribute processor time
+// without pinning the goroutine to an OS thread.
 func (m *SheetParserMetrics) Measure(ctx context.Context, generator string, key SheetMetricKey, sheet *book.Sheet, parse func(context.Context) error) (err error) {
 	shape := measureSheet(sheet)
-	var wall, cpu time.Duration
-	var cpuMeasured bool
+	var wall time.Duration
 	labels := pprof.Labels(
 		"generator", generator,
 		"work", "sheet_parse",
 		"book", key.Book,
 		"sheet", key.Sheet,
 		"detail", key.Detail,
+		"sheet_key", key.String(),
 	)
 	pprof.Do(ctx, labels, func(ctx context.Context) {
 		wallStart := time.Now()
-		if supportsThreadCPUTime {
-			runtime.LockOSThread()
-			defer runtime.UnlockOSThread()
-
-			cpuStart, startOK := MeasureThreadCPUTime()
-			err = parse(ctx)
-			cpuEnd, endOK := MeasureThreadCPUTime()
-			if startOK && endOK && cpuEnd >= cpuStart {
-				cpu = cpuEnd - cpuStart
-				cpuMeasured = true
-			}
-		} else {
-			err = parse(ctx)
-		}
+		err = parse(ctx)
 		wall = time.Since(wallStart)
 	})
-	m.record(key, shape, wall, cpu, cpuMeasured, err != nil)
+	m.record(key, shape, wall, err != nil)
 	return err
 }
 
-func (m *SheetParserMetrics) record(key SheetMetricKey, shape sheetShape, wall, cpu time.Duration, cpuMeasured, failed bool) {
+func (m *SheetParserMetrics) record(key SheetMetricKey, shape sheetShape, wall time.Duration, failed bool) {
 	value, _ := m.entries.LoadOrStore(key, &sheetMetric{
 		sheetMetricSnapshot: sheetMetricSnapshot{key: key, kind: shape.kind},
 	})
@@ -184,10 +168,6 @@ func (m *SheetParserMetrics) record(key SheetMetricKey, shape sheetShape, wall, 
 		entry.failures++
 	}
 	entry.wallTime += wall
-	if cpuMeasured {
-		entry.cpuTime += cpu
-		entry.cpuCalls++
-	}
 	entry.rows += shape.rows
 	entry.cols = max(entry.cols, shape.cols)
 	entry.presentCells += shape.presentCells
@@ -206,22 +186,7 @@ func (m *SheetParserMetrics) collect() []sheetMetricSnapshot {
 		results = append(results, value.(*sheetMetric).snapshot())
 		return true
 	})
-	cpuAvailable := false
-	for _, result := range results {
-		if result.cpuCalls > 0 {
-			cpuAvailable = true
-			break
-		}
-	}
 	sort.Slice(results, func(i, j int) bool {
-		if cpuAvailable {
-			if (results[i].cpuCalls > 0) != (results[j].cpuCalls > 0) {
-				return results[i].cpuCalls > 0
-			}
-			if results[i].cpuTime != results[j].cpuTime {
-				return results[i].cpuTime > results[j].cpuTime
-			}
-		}
 		if results[i].wallTime != results[j].wallTime {
 			return results[i].wallTime > results[j].wallTime
 		}
@@ -230,37 +195,29 @@ func (m *SheetParserMetrics) collect() []sheetMetricSnapshot {
 	return results
 }
 
-// Print reports each sheet's parser CPU and wall time, sorted by CPU time when
-// available and then by wall time.
+// Print reports each sheet's parser wall time. Processor time is available in
+// the CPU profile through the sheet_key label.
 func (m *SheetParserMetrics) Print() {
 	results := m.collect()
 	if len(results) == 0 {
 		return
 	}
-	if results[0].cpuCalls > 0 {
-		log.Infof("sheet parser CPU time, slowest first (wall time may overlap):")
-	} else {
-		log.Infof("sheet parser wall time, slowest first (thread CPU time unavailable):")
-	}
+	log.Infof("sheet parser wall time, slowest first (CPU profile label: sheet_key):")
 	for i, result := range results {
 		log.Info(formatSheetMetric(i+1, result))
 	}
 }
 
 func formatSheetMetric(rank int, result sheetMetricSnapshot) string {
-	cpuText := "n/a"
-	if result.cpuCalls > 0 {
-		cpuText = result.cpuTime.String()
-	}
 	if result.kind == "table" {
 		absent := result.emptyCells + result.missingCells
 		cells := result.presentCells + absent
-		return fmt.Sprintf("%3d. %s: cpu=%s wall=%s cpuCalls=%d/%d failures=%d rows=%d maxCols=%d cells=%d present=%d absent=%d (empty=%d missing=%d) emptyRows=%d valueBytes=%d",
-			rank, result.key, cpuText, result.wallTime, result.cpuCalls, result.calls, result.failures,
+		return fmt.Sprintf("%3d. %s: wall=%s calls=%d failures=%d rows=%d maxCols=%d cells=%d present=%d absent=%d (empty=%d missing=%d) emptyRows=%d valueBytes=%d",
+			rank, result.key, result.wallTime, result.calls, result.failures,
 			result.rows, result.cols, cells, result.presentCells, absent,
 			result.emptyCells, result.missingCells, result.emptyRows, result.valueBytes)
 	}
-	return fmt.Sprintf("%3d. %s: cpu=%s wall=%s cpuCalls=%d/%d failures=%d nodes=%d scalarNodes=%d maxDepth=%d valueBytes=%d",
-		rank, result.key, cpuText, result.wallTime, result.cpuCalls, result.calls, result.failures,
+	return fmt.Sprintf("%3d. %s: wall=%s calls=%d failures=%d nodes=%d scalarNodes=%d maxDepth=%d valueBytes=%d",
+		rank, result.key, result.wallTime, result.calls, result.failures,
 		result.nodes, result.scalarNodes, result.maxDepth, result.valueBytes)
 }

@@ -128,35 +128,38 @@ flowchart TB
 - **Book level**: `convert` checks the error returned by `messageCollector.Collect()`; breaks the sheet loop if an ancestor is full.
 - **Generator level**: `collector.NewGroup` propagates the first fatal error (book-full) to stop the workbook goroutine.
 
-## Sheet Performance Statistics
+## Sheet Parser Metrics
 
 Use `tableauc --profiling` to collect these metrics and write
 `confgen-cpu.pprof` and `confgen-mem.pprof` under the configured output
 directory. Profiling is disabled by default; disabled runs skip pprof
-collection, shape scans, CPU timing, OS-thread pinning, labels, and stats
-aggregation.
+collection, shape scans, labels, and metric aggregation.
 
 The CPU profile spans the full generation run and includes all goroutines in
-the process. Use its `confgen_sheet` label to isolate parser samples. The
-memory file is a heap profile captured after garbage collection at the end of
-the run, so it primarily reports retained allocations. Only one CPU profile
+the process. Parser samples carry `work=sheet_parse` plus `book`, `sheet`,
+`detail`, and canonical `sheet_key` labels. `go tool pprof -tags
+confgen-cpu.pprof` orders label values by sampled processor time; use
+`-tagfocus='sheet_key=<value>'` for one parser operation. Labels follow the
+goroutine across OS-thread scheduling and are inherited by goroutines created
+inside the labeled parser call. Very short parses may receive no sample, so
+compare representative full generation runs rather than treating one sample
+as an exact timer.
+
+The memory file is a heap profile captured after garbage collection at the end
+of the run, so it primarily reports retained allocations. Only one CPU profile
 can run in a process at a time, and each run replaces the previous files.
 
 GenAll and GenWorkbook log one row per imported workbook, sheet, and
 protobuf message, including sheets used by scatter and merger. Repeated parses
-of the same source are aggregated. The report sorts by cumulative **processor
-time** when thread CPU accounting is available, then by parser wall time.
-Processor time is user plus kernel time spent on the parser's OS thread.
-Windows, Linux, and macOS support this measurement; short parses may round to
-zero at the OS clock resolution. Other platforms show cpu=n/a and sort by wall
-time. The parser runs synchronously on the measured thread. CPU profiles also
-carry a confgen_sheet label for function-level analysis.
+of the same source are aggregated. The metric report sorts by cumulative wall
+time. The labeled CPU profile is the cross-platform source for sampled
+processor-time attribution. This avoids changing scheduler behavior with
+OS-thread pinning and includes labeled child goroutines.
 
 Wall time covers only sheetParser.Parse. It excludes workbook import, sheet
 shape collection, validation, merging, and output. Concurrent wall durations
-can overlap. The cpuCalls field shows how many parse calls returned a CPU
-reading; failures counts calls whose parser returned an error, so their
-timings may represent partial work.
+can overlap. Failures counts calls whose parser returned an error, so their
+wall timings may represent partial work.
 
 For table sheets, rows is the total number of imported rows across calls,
 including headers; maxCols is the widest row. The cells field is the full

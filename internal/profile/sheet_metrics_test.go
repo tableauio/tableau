@@ -2,8 +2,9 @@ package profile
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"runtime"
+	"runtime/pprof"
 	"strings"
 	"sync"
 	"testing"
@@ -81,38 +82,37 @@ func TestMeasureSheet(t *testing.T) {
 	})
 }
 
-func TestSheetParserMetricsSortsByCPU(t *testing.T) {
+func TestSheetParserMetricsSortsByWallTime(t *testing.T) {
 	var metrics SheetParserMetrics
 	shape := sheetShape{kind: "table", rows: 2, cols: 3, presentCells: 3, missingCells: 3}
-	hot := SheetMetricKey{Book: "hot.xlsx", Sheet: "Items", Detail: "test.Items"}
-	slowWall := SheetMetricKey{Book: "slow.xlsx", Sheet: "Items", Detail: "test.Items"}
+	fast := SheetMetricKey{Book: "fast.xlsx", Sheet: "Items", Detail: "test.Items"}
+	slow := SheetMetricKey{Book: "slow.xlsx", Sheet: "Items", Detail: "test.Items"}
 
-	metrics.record(hot, shape, time.Second, 100*time.Millisecond, true, false)
-	metrics.record(slowWall, shape, 3*time.Second, 10*time.Millisecond, true, false)
-	metrics.record(hot, shape, 2*time.Second, 50*time.Millisecond, true, true)
-
-	got := metrics.collect()
-	if len(got) != 2 || got[0].key != hot || got[1].key != slowWall {
-		t.Fatalf("CPU order = %+v, want hot then slowWall", got)
-	}
-	if got[0].calls != 2 || got[0].cpuCalls != 2 || got[0].failures != 1 ||
-		got[0].cpuTime != 150*time.Millisecond || got[0].wallTime != 3*time.Second ||
-		got[0].rows != 4 || got[0].cols != 3 || got[0].presentCells != 6 || got[0].missingCells != 6 {
-		t.Errorf("aggregated metrics = %+v", got[0])
-	}
-}
-
-func TestSheetParserMetricsFallsBackToWallTime(t *testing.T) {
-	var metrics SheetParserMetrics
-	shape := sheetShape{kind: "document", nodes: 1}
-	fast := SheetMetricKey{Book: "fast.yaml", Sheet: "A", Detail: "test.A"}
-	slow := SheetMetricKey{Book: "slow.yaml", Sheet: "B", Detail: "test.B"}
-	metrics.record(fast, shape, time.Second, 0, false, false)
-	metrics.record(slow, shape, 2*time.Second, 0, false, false)
+	metrics.record(fast, shape, time.Second, false)
+	metrics.record(slow, shape, 3*time.Second, false)
+	metrics.record(fast, shape, time.Second, true)
 
 	got := metrics.collect()
 	if len(got) != 2 || got[0].key != slow || got[1].key != fast {
-		t.Errorf("wall order = %+v, want slow then fast", got)
+		t.Fatalf("wall order = %+v, want slow then fast", got)
+	}
+	if got[1].calls != 2 || got[1].failures != 1 || got[1].wallTime != 2*time.Second ||
+		got[1].rows != 4 || got[1].cols != 3 || got[1].presentCells != 6 || got[1].missingCells != 6 {
+		t.Errorf("aggregated metrics = %+v", got[1])
+	}
+}
+
+func TestSheetParserMetricsBreaksWallTimeTiesByKey(t *testing.T) {
+	var metrics SheetParserMetrics
+	shape := sheetShape{kind: "document", nodes: 1}
+	a := SheetMetricKey{Book: "a.yaml", Sheet: "A", Detail: "test.A"}
+	b := SheetMetricKey{Book: "b.yaml", Sheet: "B", Detail: "test.B"}
+	metrics.record(b, shape, time.Second, false)
+	metrics.record(a, shape, time.Second, false)
+
+	got := metrics.collect()
+	if len(got) != 2 || got[0].key != a || got[1].key != b {
+		t.Errorf("key order = %+v, want a then b", got)
 	}
 }
 
@@ -128,10 +128,10 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 	}
 
 	key := SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"}
-	metrics.record(key, sheetShape{kind: "table", rows: 1, cols: 1}, time.Second, time.Millisecond, true, false)
+	metrics.record(key, sheetShape{kind: "table", rows: 1, cols: 1}, time.Second, false)
 	metrics.Print()
-	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "CPU time") || !strings.Contains(driver.messages[1], key.String()) {
-		t.Fatalf("CPU metrics log = %q", driver.messages)
+	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "sheet_key") || !strings.Contains(driver.messages[1], key.String()) {
+		t.Fatalf("metrics log = %q", driver.messages)
 	}
 
 	metrics.Reset()
@@ -139,7 +139,7 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 		t.Fatalf("metrics after Reset() = %v, want empty", got)
 	}
 	driver.messages = nil
-	metrics.record(key, sheetShape{kind: "table"}, time.Second, 0, false, false)
+	metrics.record(key, sheetShape{kind: "table"}, time.Second, false)
 	metrics.Print()
 	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "wall time") {
 		t.Fatalf("wall metrics log = %q", driver.messages)
@@ -147,14 +147,12 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 }
 
 func TestFormatSheetMetric(t *testing.T) {
-	t.Run("table with CPU time", func(t *testing.T) {
+	t.Run("table", func(t *testing.T) {
 		result := sheetMetricSnapshot{
 			key:          SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"},
 			kind:         "table",
 			calls:        1,
 			wallTime:     time.Second,
-			cpuTime:      500 * time.Millisecond,
-			cpuCalls:     1,
 			rows:         2,
 			cols:         3,
 			presentCells: 4,
@@ -165,7 +163,7 @@ func TestFormatSheetMetric(t *testing.T) {
 		}
 		got := formatSheetMetric(1, result)
 		for _, want := range []string{
-			"cpu=500ms wall=1s cpuCalls=1/1 failures=0",
+			"wall=1s calls=1 failures=0",
 			"rows=2 maxCols=3 cells=6 present=4 absent=2 (empty=1 missing=1)",
 			"emptyRows=1 valueBytes=16",
 		} {
@@ -175,7 +173,7 @@ func TestFormatSheetMetric(t *testing.T) {
 		}
 	})
 
-	t.Run("document without CPU time", func(t *testing.T) {
+	t.Run("document", func(t *testing.T) {
 		result := sheetMetricSnapshot{
 			key:         SheetMetricKey{Book: "items.yaml", Sheet: "Items", Detail: "test.Items"},
 			kind:        "document",
@@ -189,7 +187,7 @@ func TestFormatSheetMetric(t *testing.T) {
 		}
 		got := formatSheetMetric(1, result)
 		for _, want := range []string{
-			"cpu=n/a wall=1s cpuCalls=0/1 failures=1",
+			"wall=1s calls=1 failures=1",
 			"nodes=4 scalarNodes=2 maxDepth=3 valueBytes=16",
 		} {
 			if !strings.Contains(got, want) {
@@ -210,26 +208,35 @@ func TestSheetParserMetricsConcurrent(t *testing.T) {
 		group.Add(1)
 		go func() {
 			defer group.Done()
-			metrics.record(key, shape, time.Millisecond, time.Millisecond, true, false)
+			metrics.record(key, shape, time.Millisecond, false)
 		}()
 	}
 	group.Wait()
 
 	got := metrics.collect()
-	if len(got) != 1 || got[0].calls != calls || got[0].cpuCalls != calls ||
-		got[0].wallTime != calls*time.Millisecond || got[0].cpuTime != calls*time.Millisecond ||
+	if len(got) != 1 || got[0].calls != calls || got[0].wallTime != calls*time.Millisecond ||
 		got[0].presentCells != calls {
 		t.Errorf("concurrent metrics = %+v", got)
 	}
 }
 
-func TestSheetParserMetricsMeasureCPUTime(t *testing.T) {
+func TestSheetParserMetricsMeasureLabelsCPUWork(t *testing.T) {
 	var metrics SheetParserMetrics
 	sheet := book.NewTableSheet("Items", [][]string{{"ID"}})
 	key := SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"}
-	if err := metrics.Measure(context.Background(), "test", key, sheet, func(context.Context) error {
-		deadline := time.Now().Add(80 * time.Millisecond)
-		for time.Now().Before(deadline) {
+	if err := metrics.Measure(context.Background(), "test", key, sheet, func(ctx context.Context) error {
+		wantLabels := map[string]string{
+			"generator": "test",
+			"work":      "sheet_parse",
+			"book":      key.Book,
+			"sheet":     key.Sheet,
+			"detail":    key.Detail,
+			"sheet_key": key.String(),
+		}
+		for name, want := range wantLabels {
+			if got, ok := pprof.Label(ctx, name); !ok || got != want {
+				t.Errorf("label %q = %q, %t; want %q, true", name, got, ok, want)
+			}
 		}
 		return nil
 	}); err != nil {
@@ -239,17 +246,22 @@ func TestSheetParserMetricsMeasureCPUTime(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("metrics count = %d, want 1", len(got))
 	}
-	if got[0].cpuCalls == 0 {
-		if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
-			t.Fatal("thread CPU time unavailable on a supported platform")
-		}
-		if runtime.GOOS == "windows" {
-			return
-		}
-		t.Skip("thread CPU time unavailable")
+}
+
+func TestSheetParserMetricsMeasureRecordsFailure(t *testing.T) {
+	var metrics SheetParserMetrics
+	sheet := book.NewTableSheet("Items", [][]string{{"ID"}})
+	key := SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"}
+	wantErr := errors.New("parse failed")
+	err := metrics.Measure(context.Background(), "test", key, sheet, func(context.Context) error {
+		return wantErr
+	})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("Measure() error = %v, want %v", err, wantErr)
 	}
-	if got[0].wallTime <= 0 || got[0].cpuTime < 0 {
-		t.Errorf("wall=%s, cpu=%s; wall should be positive and CPU nonnegative", got[0].wallTime, got[0].cpuTime)
+	got := metrics.collect()
+	if len(got) != 1 || got[0].failures != 1 {
+		t.Fatalf("failed metrics = %+v", got)
 	}
 }
 

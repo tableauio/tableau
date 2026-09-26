@@ -36,23 +36,3 @@ func TestStartWritesCPUAndMemoryProfiles(t *testing.T) {
 		}
 	}
 }
-
-func TestMeasureThreadCPUTime(t *testing.T) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	start, startOK := MeasureThreadCPUTime()
-	deadline := time.Now().Add(50 * time.Millisecond)
-	for time.Now().Before(deadline) {
-	}
-	end, endOK := MeasureThreadCPUTime()
-	if !startOK || !endOK {
-		if runtime.GOOS == "windows" || runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
-			t.Fatalf("thread CPU time unavailable on %s", runtime.GOOS)
-		}
-		t.Skipf("thread CPU time unavailable on %s", runtime.GOOS)
-	}
-	if end < start {
-		t.Fatalf("thread CPU time moved backward: start=%s end=%s", start, end)
-	}
-}

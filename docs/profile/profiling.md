@@ -70,7 +70,7 @@ The consolidated P0 candidate is commit `3ba7114`. It contains:
 - CPU labels for generator, work phase, format, source, reader, book, sheet,
   message, parse pass, and canonical refer key.
 - Separate `refer_load` and `refer_wait` labels plus a block profile.
-- Pprof labels instead of per-sheet OS-thread pinning on Windows.
+- Pprof labels instead of per-sheet OS-thread pinning on every platform.
 - Dense row cell slices, cached optional fields and map key descriptors, and
   reduced scalar prefix allocation.
 
@@ -244,6 +244,7 @@ go tool pprof -top .\confgen-cpu.pprof
 go tool pprof -tags .\confgen-cpu.pprof
 go tool pprof -top -tagfocus='work=sheet_decode' .\confgen-cpu.pprof
 go tool pprof -top -tagfocus='reader=xlsx' .\confgen-cpu.pprof
+go tool pprof -top -tagfocus='sheet_key=<book#sheet (message)>' .\confgen-cpu.pprof
 go tool pprof -top -sample_index=alloc_space .\confgen-mem.pprof
 go tool pprof -top -sample_index=delay .\confgen-block.pprof
 ```
