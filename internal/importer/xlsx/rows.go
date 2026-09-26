@@ -2,12 +2,13 @@ package xlsx
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"html"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf16"
+
+	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
 const (
@@ -34,7 +35,7 @@ func nextTag(data []byte, offset int) (tag, int, bool, error) {
 		if bytes.HasPrefix(data[start:], []byte("<!--")) {
 			end := bytes.Index(data[start+4:], []byte("-->"))
 			if end < 0 {
-				return tag{}, len(data), false, fmt.Errorf("unterminated XML comment at byte %d", start)
+				return tag{}, len(data), false, xerrors.Newf("unterminated XML comment at byte %d", start)
 			}
 			offset = start + 4 + end + 3
 			continue
@@ -42,7 +43,7 @@ func nextTag(data []byte, offset int) (tag, int, bool, error) {
 		if bytes.HasPrefix(data[start:], []byte("<?")) {
 			end := bytes.Index(data[start+2:], []byte("?>"))
 			if end < 0 {
-				return tag{}, len(data), false, fmt.Errorf("unterminated XML processing instruction at byte %d", start)
+				return tag{}, len(data), false, xerrors.Newf("unterminated XML processing instruction at byte %d", start)
 			}
 			offset = start + 2 + end + 2
 			continue
@@ -63,7 +64,7 @@ func nextTag(data []byte, offset int) (tag, int, bool, error) {
 		if nameStart == pos || data[nameStart] == '!' {
 			end := bytes.IndexByte(data[pos:], '>')
 			if end < 0 {
-				return tag{}, len(data), false, fmt.Errorf("unterminated XML declaration at byte %d", start)
+				return tag{}, len(data), false, xerrors.Newf("unterminated XML declaration at byte %d", start)
 			}
 			offset = pos + end + 1
 			continue
@@ -89,7 +90,7 @@ func nextTag(data []byte, offset int) (tag, int, bool, error) {
 			end++
 		}
 		if end >= len(data) {
-			return tag{}, len(data), false, fmt.Errorf("unterminated XML tag at byte %d", start)
+			return tag{}, len(data), false, xerrors.Newf("unterminated XML tag at byte %d", start)
 		}
 		last := end - 1
 		for last >= pos && isXMLSpace(data[last]) {
@@ -139,7 +140,7 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 				current.value = data[captureStart:tag.start]
 				capture = 0
 			case capture == 't' && bytes.Equal(tag.local, []byte("t")):
-				current.inlineText.WriteString(decodeText(data[captureStart:tag.start]))
+				current.inlineText.WriteString(decodeXMLText(data[captureStart:tag.start]))
 				capture = 0
 			}
 			switch {
@@ -165,11 +166,15 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 						current.column = cellColumn + 1
 					}
 					if current.column > len(row) {
-						row = append(row, make([]string, current.column-len(row))...)
+						oldLen := len(row)
+						row = slices.Grow(row, current.column-oldLen)
+						row = row[:current.column]
+						clear(row[oldLen:])
 					}
 					row[current.column-1] = value
 				}
 				cellColumn = current.column
+				phoneticDepth = 0
 				inCell = false
 			case bytes.Equal(tag.local, []byte("row")) && inRow:
 				if len(row) > 0 {
@@ -190,25 +195,26 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 			if value, ok := attribute(tag.attrs, 'r'); ok {
 				parsed, err := parseInt(value)
 				if err != nil || parsed < 1 || parsed > maxRows {
-					return nil, fmt.Errorf("invalid XLSX row number %q", value)
+					return nil, xerrors.Newf("invalid XLSX row number %q", value)
 				}
 				rowNumber = parsed
 			} else if rowNumber > maxRows {
-				return nil, fmt.Errorf("XLSX row number exceeds %d", maxRows)
+				return nil, xerrors.Newf("XLSX row number exceeds %d", maxRows)
 			}
 			row = nil
 			cellColumn = 0
 			inRow = !tag.selfClosing
 		case inRow && bytes.Equal(tag.local, []byte("c")):
 			current = cell{column: cellColumn + 1}
+			phoneticDepth = 0
 			if reference, ok := attribute(tag.attrs, 'r'); ok {
 				column := parseColumn(reference)
 				if column < 1 || column > maxColumns {
-					return nil, fmt.Errorf("invalid XLSX cell reference %q", reference)
+					return nil, xerrors.Newf("invalid XLSX cell reference %q", reference)
 				}
 				current.column = column
 			} else if current.column > maxColumns {
-				return nil, fmt.Errorf("XLSX column number exceeds %d", maxColumns)
+				return nil, xerrors.Newf("XLSX column number exceeds %d", maxColumns)
 			}
 			if kind, ok := attribute(tag.attrs, 't'); ok {
 				switch {
@@ -224,7 +230,7 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 			}
 		case inCell && bytes.Equal(tag.local, []byte("f")):
 			current.formula = true
-		case inCell && bytes.Equal(tag.local, []byte("rPh")):
+		case inCell && bytes.Equal(tag.local, []byte("rPh")) && !tag.selfClosing:
 			phoneticDepth++
 		case inCell && bytes.Equal(tag.local, []byte("v")) && !tag.selfClosing:
 			capture = 'v'
@@ -235,7 +241,7 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 		}
 	}
 	if inRow || inCell || capture != 0 {
-		return nil, errors.New("unterminated worksheet row or cell")
+		return nil, xerrors.New("unterminated worksheet row or cell")
 	}
 	return rows, nil
 }
@@ -333,11 +339,15 @@ func parseInt(value []byte) (int, error) {
 }
 
 func decodeText(value []byte) string {
+	return decodeEscapes(decodeXMLText(value))
+}
+
+func decodeXMLText(value []byte) string {
 	text := string(value)
 	if strings.Contains(text, "&") {
 		text = html.UnescapeString(text)
 	}
-	return decodeEscapes(text)
+	return text
 }
 
 func decodeEscapes(value string) string {

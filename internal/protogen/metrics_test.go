@@ -31,7 +31,7 @@ func TestGenerateWritesProfiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, name := range []string{"protogen-cpu.pprof", "protogen-mem.pprof", "protogen-block.pprof"} {
+	for _, name := range []string{"protogen-cpu.pprof", "protogen-mem.pprof"} {
 		info, err := os.Stat(filepath.Join(outputDir, "profiles", name))
 		if err != nil {
 			t.Errorf("stat profile %s: %v", name, err)

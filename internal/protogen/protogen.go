@@ -2,7 +2,6 @@ package protogen
 
 import (
 	"context"
-	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -57,7 +56,9 @@ type Generator struct {
 	registryWithGeneratedOnce       sync.Once
 	protoRegistryFilesWithGenerated *protoregistry.Files
 
-	cacheMu         sync.RWMutex                 // guard fields below
+	cacheMu sync.RWMutex // guard fields below
+	// Protogen importers remain separate from importer.Cache because both
+	// parsing passes mutate and reuse their sheet state.
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
 
 	runMu  sync.Mutex // public generation calls run one at a time
@@ -193,96 +194,80 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 }
 
 // GenAll generates proto files for every input workbook.
-func (gen *Generator) GenAll() (err error) {
+func (gen *Generator) GenAll() error {
 	gen.runMu.Lock()
 	defer gen.runMu.Unlock()
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	if gen.profiling {
-		defer gen.SheetParserMetrics.Print()
-		stopProfiling, startErr := gen.startProfiling()
-		if startErr != nil {
-			return startErr
+	return gen.runProfiling(func() error {
+		if err := gen.output.createStagingDir(); err != nil {
+			return err
 		}
-		defer func() {
-			err = errors.Join(err, stopProfiling())
-		}()
-	}
-	if err := gen.output.createStagingDir(); err != nil {
-		return err
-	}
-	defer gen.output.removeStagingDir()
-	if err := gen.preprocess(false); err != nil {
-		return err
-	}
-	if err := gen.parseAllInFirstPass(); err != nil {
-		return err
-	}
-	if err := gen.parseAllInSecondPass(); err != nil {
-		return err
-	}
-	// Generation errors leave prior outputs untouched. GenAll alone owns the
-	// top-level output directory, so it also removes stale files on commit.
-	return gen.output.publishAll()
-}
-
-// GenWorkbook generates proto files for the specified input workbooks.
-func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) (err error) {
-	gen.runMu.Lock()
-	defer gen.runMu.Unlock()
-	if err := gen.resetRunState(); err != nil {
-		return err
-	}
-	if gen.profiling {
-		defer gen.SheetParserMetrics.Print()
-		stopProfiling, startErr := gen.startProfiling()
-		if startErr != nil {
-			return startErr
-		}
-		defer func() {
-			err = errors.Join(err, stopProfiling())
-		}()
-	}
-	if err := gen.output.createStagingDir(); err != nil {
-		return err
-	}
-	defer gen.output.removeStagingDir()
-
-	// Preprocess and first-pass parsing establish the declarations needed to
-	// parse the selected workbooks in the second pass.
-	switch gen.InputOpt.FirstPassMode {
-	case options.FirstPassModeNormal:
-		// Parse all input workbooks so declarations come from source files.
+		defer gen.output.removeStagingDir()
 		if err := gen.preprocess(false); err != nil {
 			return err
 		}
 		if err := gen.parseAllInFirstPass(); err != nil {
 			return err
 		}
-	case options.FirstPassModeAdvanced:
-		// Reuse generated declarations for workbooks outside this selection.
-		if err := gen.preprocess(true); err != nil {
+		if err := gen.parseAllInSecondPass(); err != nil {
 			return err
 		}
-		if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
-			return err
-		}
-	default:
-		// Build declarations only from the selected input workbooks.
-		if err := gen.preprocess(false); err != nil {
-			return err
-		}
-		if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
-			return err
-		}
-	}
+		// Generation errors leave prior outputs untouched. GenAll alone owns the
+		// top-level output directory, so it also removes stale files on commit.
+		return gen.output.publishAll()
+	})
+}
 
-	if err := gen.parseWorkbooksInSecondPass(relWorkbookPaths...); err != nil {
+// GenWorkbook generates proto files for the specified input workbooks.
+func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
+	gen.runMu.Lock()
+	defer gen.runMu.Unlock()
+	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	// Other workbooks' outputs remain valid when generating a selection.
-	return gen.output.publishSelected()
+	return gen.runProfiling(func() error {
+		if err := gen.output.createStagingDir(); err != nil {
+			return err
+		}
+		defer gen.output.removeStagingDir()
+
+		// Preprocess and first-pass parsing establish the declarations needed to
+		// parse the selected workbooks in the second pass.
+		switch gen.InputOpt.FirstPassMode {
+		case options.FirstPassModeNormal:
+			// Parse all input workbooks so declarations come from source files.
+			if err := gen.preprocess(false); err != nil {
+				return err
+			}
+			if err := gen.parseAllInFirstPass(); err != nil {
+				return err
+			}
+		case options.FirstPassModeAdvanced:
+			// Reuse generated declarations for workbooks outside this selection.
+			if err := gen.preprocess(true); err != nil {
+				return err
+			}
+			if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
+				return err
+			}
+		default:
+			// Build declarations only from the selected input workbooks.
+			if err := gen.preprocess(false); err != nil {
+				return err
+			}
+			if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
+				return err
+			}
+		}
+
+		if err := gen.parseWorkbooksInSecondPass(relWorkbookPaths...); err != nil {
+			return err
+		}
+		// Other workbooks' outputs remain valid when generating a selection.
+		return gen.output.publishSelected()
+	})
 }
 
 // parseAllInFirstPass discovers the declarations from every configured input workbook.

@@ -15,6 +15,7 @@ import (
 	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
+	"github.com/tableauio/tableau/log"
 	"github.com/xuri/excelize/v2"
 	"golang.org/x/sync/singleflight"
 )
@@ -62,7 +63,9 @@ type cachedExcel struct {
 	filename  string
 	reader    workbookReader
 	file      *excelize.File // compatibility fallback, opened lazily
+	names     []string
 	sheets    map[string]*book.Sheet
+	useRaw    bool
 	profiling bool
 }
 
@@ -282,12 +285,20 @@ func (c *cachedExcel) readSheet(sheetName string) (*book.Sheet, error) {
 }
 
 func (c *cachedExcel) close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.release()
+}
+
+func (c *cachedExcel) release() error {
 	var errs []error
 	if c.reader != nil {
 		errs = append(errs, c.reader.Close())
+		c.reader = nil
 	}
 	if c.file != nil {
 		errs = append(errs, c.file.Close())
+		c.file = nil
 	}
 	return errors.Join(errs...)
 }
@@ -298,10 +309,13 @@ func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
 		return &cachedExcel{
 			filename:  filename,
 			reader:    reader,
+			names:     reader.SheetNames(),
 			sheets:    make(map[string]*book.Sheet),
+			useRaw:    true,
 			profiling: profiling,
 		}, nil
 	}
+	log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", filename, err)
 	file, openErr := excelize.OpenFile(filename)
 	if openErr != nil {
 		return nil, xerrors.E3002(errors.Join(err, openErr))
@@ -309,26 +323,40 @@ func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
 	return &cachedExcel{
 		filename:  filename,
 		file:      file,
+		names:     file.GetSheetList(),
 		sheets:    make(map[string]*book.Sheet),
 		profiling: profiling,
 	}, nil
 }
 
 func (c *cachedExcel) sheetNames() []string {
-	if c.reader != nil {
-		return c.reader.SheetNames()
-	}
-	return c.file.GetSheetList()
+	return c.names
 }
 
 func (c *cachedExcel) readerName() string {
-	if c.reader != nil {
+	if c.useRaw {
 		return "xlsx"
 	}
 	return "excelize"
 }
 
 func (c *cachedExcel) readRows(sheetName string) ([][]string, error) {
+	if c.reader == nil && c.file == nil {
+		if c.useRaw {
+			reader, err := xlsx.Open(c.filename)
+			if err == nil {
+				c.reader = reader
+			} else {
+				log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", c.filename, err)
+				c.useRaw = false
+			}
+		}
+		if c.reader == nil {
+			if _, err := c.openExcelize(); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if c.reader != nil {
 		rows, err := c.reader.ReadRows(sheetName)
 		if err == nil {
@@ -338,8 +366,10 @@ func (c *cachedExcel) readRows(sheetName string) ([][]string, error) {
 		if openErr != nil {
 			return nil, errors.Join(err, openErr)
 		}
+		log.Debugf("raw XLSX reader failed for %s#%s, using excelize: %v", c.filename, sheetName, err)
 		_ = c.reader.Close()
 		c.reader = nil
+		c.useRaw = false
 		return readExcelSheetRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
 	}
 	return readExcelSheetRows(c.file, sheetName, 0, excelize.Options{RawCellValue: true})
@@ -432,6 +462,20 @@ func (c *Cache) Close() error {
 	if !c.closed.CompareAndSwap(false, true) {
 		return nil
 	}
+	return c.releaseSources()
+}
+
+// Release closes cached workbook handles without discarding decoded sheets.
+// The cache remains usable and reopens a workbook only when another sheet is
+// requested. Callers must not call Release concurrently with Load.
+func (c *Cache) Release() error {
+	if c == nil {
+		return nil
+	}
+	return c.releaseSources()
+}
+
+func (c *Cache) releaseSources() error {
 	var errs []error
 	c.sources.Range(func(_, value any) bool {
 		if err := value.(cachedSource).close(); err != nil {

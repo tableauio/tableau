@@ -34,7 +34,7 @@ func TestProfilingUsesRuntimeOption(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, name := range []string{"confgen-cpu.pprof", "confgen-mem.pprof", "confgen-block.pprof"} {
+	for _, name := range []string{"confgen-cpu.pprof", "confgen-mem.pprof"} {
 		info, err := os.Stat(filepath.Join(outputDir, "profiles", name))
 		if err != nil {
 			t.Errorf("stat profile %s: %v", name, err)

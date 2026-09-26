@@ -7,18 +7,52 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"sync"
 
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
 )
 
-const blockProfileRate = 1_000_000 // sample about one blocking event per millisecond of delay
+var processProfileMu sync.Mutex
 
-// Start begins CPU and blocking profiles and returns a function that stops
-// them and writes a post-GC memory profile. Profile files use name as their
-// filename prefix. Only one CPU profile may run in a process at a time.
+// ExecuteWithStart runs work with optional process profiling and reports
+// collected metrics after the profile is stopped. A profiler conflict disables
+// profile files for this run without preventing the work itself.
+func ExecuteWithStart(enabled bool, start func() (func() error, error), report func(), work func() error) (err error) {
+	if !enabled {
+		return work()
+	}
+	if report != nil {
+		defer report()
+	}
+	stop, startErr := start()
+	if startErr != nil {
+		log.Warnf("profiling unavailable: %v", startErr)
+		return work()
+	}
+	defer func() {
+		err = errors.Join(err, stop())
+	}()
+	return work()
+}
+
+// Start begins a CPU profile and returns a function that stops it and writes a
+// post-GC memory profile. Profile files use name as their filename prefix.
+// Only one CPU profile may run in a process at a time.
 func Start(name, outputDir string) (func() error, error) {
+	// CPU profiling is process-global. Let one Tableau session own it while
+	// concurrent or nested generators continue without profile files.
+	if !processProfileMu.TryLock() {
+		return nil, xerrors.New("another Tableau profile is active")
+	}
+	started := false
+	defer func() {
+		if !started {
+			processProfileMu.Unlock()
+		}
+	}()
+
 	if err := os.MkdirAll(outputDir, xfs.DefaultDirPerm); err != nil {
 		return nil, xerrors.Wrapf(err, "create profile directory %s", outputDir)
 	}
@@ -35,36 +69,33 @@ func Start(name, outputDir string) (func() error, error) {
 			xerrors.Wrapf(os.Remove(cpuPath), "remove incomplete CPU profile %s", cpuPath),
 		)
 	}
-	runtime.SetBlockProfileRate(blockProfileRate)
+	started = true
 
+	var once sync.Once
+	var stopErr error
 	return func() error {
-		runtime.SetBlockProfileRate(0)
-		pprof.StopCPUProfile()
-		cpuCloseErr := xerrors.Wrapf(cpuFile.Close(), "close CPU profile %s", cpuPath)
+		once.Do(func() {
+			defer processProfileMu.Unlock()
+			pprof.StopCPUProfile()
+			cpuCloseErr := xerrors.Wrapf(cpuFile.Close(), "close CPU profile %s", cpuPath)
 
-		memPath := filepath.Join(outputDir, name+"-mem.pprof")
-		memFile, err := os.Create(memPath)
-		if err != nil {
-			return errors.Join(cpuCloseErr, xerrors.Wrapf(err, "create memory profile %s", memPath))
-		}
+			memPath := filepath.Join(outputDir, name+"-mem.pprof")
+			memFile, err := os.Create(memPath)
+			if err != nil {
+				stopErr = errors.Join(cpuCloseErr, xerrors.Wrapf(err, "create memory profile %s", memPath))
+				return
+			}
 
-		runtime.GC()
-		writeErr := xerrors.Wrapf(pprof.WriteHeapProfile(memFile), "write memory profile %s", memPath)
-		memCloseErr := xerrors.Wrapf(memFile.Close(), "close memory profile %s", memPath)
+			runtime.GC()
+			writeErr := xerrors.Wrapf(pprof.WriteHeapProfile(memFile), "write memory profile %s", memPath)
+			memCloseErr := xerrors.Wrapf(memFile.Close(), "close memory profile %s", memPath)
 
-		blockPath := filepath.Join(outputDir, name+"-block.pprof")
-		blockFile, err := os.Create(blockPath)
-		if err != nil {
-			return errors.Join(cpuCloseErr, writeErr, memCloseErr, xerrors.Wrapf(err, "create block profile %s", blockPath))
-		}
-		blockWriteErr := xerrors.Wrapf(pprof.Lookup("block").WriteTo(blockFile, 0), "write block profile %s", blockPath)
-		blockCloseErr := xerrors.Wrapf(blockFile.Close(), "close block profile %s", blockPath)
-		profileErr := errors.Join(cpuCloseErr, writeErr, memCloseErr, blockWriteErr, blockCloseErr)
-		if profileErr == nil {
-			log.Infof("wrote CPU profile: %s", cpuPath)
-			log.Infof("wrote memory profile: %s", memPath)
-			log.Infof("wrote block profile: %s", blockPath)
-		}
-		return profileErr
+			stopErr = errors.Join(cpuCloseErr, writeErr, memCloseErr)
+			if stopErr == nil {
+				log.Infof("wrote CPU profile: %s", cpuPath)
+				log.Infof("wrote memory profile: %s", memPath)
+			}
+		})
+		return stopErr
 	}, nil
 }

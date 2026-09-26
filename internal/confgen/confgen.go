@@ -2,7 +2,6 @@ package confgen
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -123,99 +122,87 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 	return gen.GenWorkbook(bookSpecifiers...)
 }
 
-func (gen *Generator) GenAll() (err error) {
+func (gen *Generator) GenAll() error {
 	gen.resetRunState()
 	defer func() {
-		err = errors.Join(err, gen.importerCache.Close())
-	}()
-	if gen.profiling {
-		defer gen.printMetrics()
-		stopProfiling, startErr := gen.startProfiling()
-		if startErr != nil {
-			return startErr
+		if closeErr := gen.importerCache.Close(); closeErr != nil {
+			log.Warnf("failed to close importer cache: %v", closeErr)
 		}
-		defer func() {
-			err = errors.Join(err, stopProfiling())
-		}()
-	}
-	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
-	if err != nil {
-		return err
-	}
-	// Create a validator with extension type resolver for custom predefined rules.
-	gen.validator, err = NewValidator(prFiles)
-	if err != nil {
-		return err
-	}
-	log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-	g := gen.collector.NewGroup(context.Background())
-	prFiles.RangeFilesByPackage(
-		protoreflect.FullName(gen.ProtoPackage),
-		func(fd protoreflect.FileDescriptor) bool {
-			g.Go(func(ctx context.Context) error {
-				return gen.convert(prFiles, fd, "")
+	}()
+	return gen.runProfiling(func() error {
+		prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
+		if err != nil {
+			return err
+		}
+		// Create a validator with extension type resolver for custom predefined rules.
+		gen.validator, err = NewValidator(prFiles)
+		if err != nil {
+			return err
+		}
+		log.Debugf("count of proto files with package name '%s': %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+		g := gen.collector.NewGroup(context.Background())
+		prFiles.RangeFilesByPackage(
+			protoreflect.FullName(gen.ProtoPackage),
+			func(fd protoreflect.FileDescriptor) bool {
+				g.Go(func(ctx context.Context) error {
+					return gen.convert(prFiles, fd, "")
+				})
+				return true
 			})
-			return true
-		})
-	return g.Wait()
+		return g.Wait()
+	})
 }
 
 // bookSpecifier can be:
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
-func (gen *Generator) GenWorkbook(bookSpecifiers ...string) (err error) {
+func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 	gen.resetRunState()
 	defer func() {
-		err = errors.Join(err, gen.importerCache.Close())
+		if closeErr := gen.importerCache.Close(); closeErr != nil {
+			log.Warnf("failed to close importer cache: %v", closeErr)
+		}
 	}()
-	if gen.profiling {
-		defer gen.printMetrics()
-		stopProfiling, startErr := gen.startProfiling()
-		if startErr != nil {
-			return startErr
-		}
-		defer func() {
-			err = errors.Join(err, stopProfiling())
-		}()
-	}
-	prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
-	if err != nil {
-		return err
-	}
-	// Create a validator with extension type resolver for custom predefined rules.
-	gen.validator, err = NewValidator(prFiles)
-	if err != nil {
-		return err
-	}
-	log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
-	bookIndexes, err := buildWorkbookIndex(gen.ProtoPackage, gen.InputDir, gen.InputOpt.Subdirs, gen.InputOpt.SubdirRewrites, prFiles)
-	if err != nil {
-		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
-	}
-	g := gen.collector.NewGroup(context.Background())
-	for _, specifier := range bookSpecifiers {
-		bookName, sheetName, err := parseBookSpecifier(specifier)
+	return gen.runProfiling(func() error {
+		prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 		if err != nil {
-			return xerrors.Wrapf(err, "parse book specifier failed: %s", specifier)
+			return err
 		}
-		relCleanSlashPath := xfs.CleanSlashPath(bookName)
-		log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
-		primaryBookInfo, ok := bookIndexes.get(relCleanSlashPath)
-		if !ok {
-			if gen.InputOpt.IgnoreUnknownWorkbook {
-				log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)
-				continue
+		// Create a validator with extension type resolver for custom predefined rules.
+		gen.validator, err = NewValidator(prFiles)
+		if err != nil {
+			return err
+		}
+		log.Debugf("count of proto files with package name %v is %v", gen.ProtoPackage, prFiles.NumFilesByPackage(protoreflect.FullName(gen.ProtoPackage)))
+		bookIndexes, err := buildWorkbookIndex(gen.ProtoPackage, gen.InputDir, gen.InputOpt.Subdirs, gen.InputOpt.SubdirRewrites, prFiles)
+		if err != nil {
+			return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf)
+		}
+		g := gen.collector.NewGroup(context.Background())
+		for _, specifier := range bookSpecifiers {
+			bookName, sheetName, err := parseBookSpecifier(specifier)
+			if err != nil {
+				return xerrors.Wrapf(err, "parse book specifier failed: %s", specifier)
 			}
-			return xerrors.Newf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
+			relCleanSlashPath := xfs.CleanSlashPath(bookName)
+			log.Debugf("convert relWorkbookPath to relCleanSlashPath: %s -> %s", bookName, relCleanSlashPath)
+			primaryBookInfo, ok := bookIndexes.get(relCleanSlashPath)
+			if !ok {
+				if gen.InputOpt.IgnoreUnknownWorkbook {
+					log.Debugf("primary workbook not found: %s, but IgnoreUnknownWorkbook is true, so just continue...", relCleanSlashPath)
+					continue
+				}
+				return xerrors.Newf("primary workbook not found: %s, protoPaths: %v", relCleanSlashPath, gen.InputOpt.ProtoPaths)
+			}
+			// NOTE: one book may relate to multiple primary books
+			for _, fd := range primaryBookInfo.fds {
+				g.Go(func(ctx context.Context) error {
+					return gen.convert(prFiles, fd, sheetName)
+				})
+			}
 		}
-		// NOTE: one book may relate to multiple primary books
-		for _, fd := range primaryBookInfo.fds {
-			g.Go(func(ctx context.Context) error {
-				return gen.convert(prFiles, fd, sheetName)
-			})
-		}
-	}
-	return g.Wait()
+		return g.Wait()
+	})
 }
 
 // convert a workbook related to parameter fd, and only convert the

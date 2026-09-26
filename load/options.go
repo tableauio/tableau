@@ -205,8 +205,8 @@ func (o *MessagerOptions) GetPatchPaths() []string {
 // Options contains global-level and messager-level options. MessagerOptions
 // returned by ParseMessagerOptionsByName share its importer and referred-data
 // caches. Keep one Options instance for an input directory and its
-// SubdirRewrites configuration, then call Close after loading every message in
-// that scope.
+// SubdirRewrites configuration. Close discards the caches when the scope ends;
+// each load releases its workbook handles before returning.
 type Options struct {
 	BaseOptions
 	// MessagerOptions maps each messager name to a MessageOptions.

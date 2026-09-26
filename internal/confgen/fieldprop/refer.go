@@ -36,12 +36,14 @@ type ReferredCache struct {
 
 	mu sync.RWMutex
 	// Entries are pointers because a loader publishes into the same in-flight
-	// entry that waiters obtained before the load completed.
+	// entry that waiters obtained before the load completed. The retained entry
+	// also suppresses duplicate load errors; singleflight alone would return the
+	// same error to every waiter.
 	entries map[referCacheKey]*referCacheEntry
 
 	indexMu sync.RWMutex
-	// index maps each raw refer to its canonical message and column key.
-	index map[rawRefer]referCacheKey
+	// index maps each raw refer to its canonical key or a failed normalization.
+	index map[rawRefer]referIndexEntry
 }
 
 // referCacheKey identifies one referred column. Its canonical string form is
@@ -68,6 +70,11 @@ type referCacheEntry struct {
 type rawRefer struct {
 	protoPackage string
 	value        string
+}
+
+type referIndexEntry struct {
+	key         referCacheKey
+	unavailable bool
 }
 
 type valueSpace struct {
@@ -102,7 +109,7 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
 		entries: make(map[referCacheKey]*referCacheEntry),
-		index:   make(map[rawRefer]referCacheKey),
+		index:   make(map[rawRefer]referIndexEntry),
 	}
 }
 
@@ -113,18 +120,26 @@ func (r *ReferredCache) EnableProfiling() {
 
 type loadValueSpaceFunc = func() (*valueSpace, error)
 
-// getEntry loads each normalized message column once. Callers for the same key
-// wait for its ready channel, while unrelated targets load concurrently.
-func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
+func (r *ReferredCache) cachedEntry(ctx context.Context, key referCacheKey) (referCacheEntry, bool) {
 	r.mu.RLock()
 	entry, ok := r.entries[key]
 	r.mu.RUnlock()
+	if !ok {
+		return referCacheEntry{}, false
+	}
+	return r.waitForEntry(ctx, key, entry), true
+}
+
+// getEntry loads each normalized message column once. Callers for the same key
+// wait for its ready channel, while unrelated targets load concurrently.
+func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
+	cached, ok := r.cachedEntry(ctx, key)
 	if ok {
-		return r.waitForEntry(ctx, key, entry), nil
+		return cached, nil
 	}
 
 	r.mu.Lock()
-	entry, ok = r.entries[key]
+	entry, ok := r.entries[key]
 	if ok {
 		r.mu.Unlock()
 		return r.waitForEntry(ctx, key, entry), nil
@@ -224,27 +239,34 @@ func normalizeRefer(refer string, input *Input) (referCacheKey, error) {
 }
 
 // resolveKey parses a raw refer once and reuses its canonical key for all cells.
+// A failed normalization is reported once and then treated as unavailable.
 func (r *ReferredCache) resolveKey(refer string, input *Input) (referCacheKey, error) {
+	key, _, err := r.resolveKeyOnce(refer, input)
+	return key, err
+}
+
+func (r *ReferredCache) resolveKeyOnce(refer string, input *Input) (referCacheKey, bool, error) {
 	raw := rawRefer{protoPackage: input.ProtoPackage, value: refer}
 	r.indexMu.RLock()
-	key, ok := r.index[raw]
+	entry, ok := r.index[raw]
 	r.indexMu.RUnlock()
 	if ok {
-		return key, nil
+		return entry.key, entry.unavailable, nil
 	}
 
 	r.indexMu.Lock()
 	defer r.indexMu.Unlock()
-	key, ok = r.index[raw]
+	entry, ok = r.index[raw]
 	if ok {
-		return key, nil
+		return entry.key, entry.unavailable, nil
 	}
 	key, err := normalizeRefer(refer, input)
 	if err != nil {
-		return referCacheKey{}, err
+		r.index[raw] = referIndexEntry{unavailable: true}
+		return referCacheKey{}, false, err
 	}
-	r.index[raw] = key
-	return key, nil
+	r.index[raw] = referIndexEntry{key: key}
+	return key, false, nil
 }
 
 func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, input *Input) (*valueSpace, error) {
@@ -341,13 +363,19 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 	}
 
 	for _, refer := range strings.Split(prop.Refer, ",") {
-		key, err := r.resolveKey(refer, input)
+		key, unavailable, err := r.resolveKeyOnce(refer, input)
 		if err != nil {
 			return err
 		}
-		entry, err := r.getEntry(ctx, key, func() (*valueSpace, error) {
-			return loadValueSpaceForKey(ctx, refer, key, input)
-		})
+		if unavailable {
+			return nil
+		}
+		entry, ok := r.cachedEntry(ctx, key)
+		if !ok {
+			entry, err = r.getEntry(ctx, key, func() (*valueSpace, error) {
+				return loadValueSpaceForKey(ctx, refer, key, input)
+			})
+		}
 		if err != nil {
 			return err
 		}

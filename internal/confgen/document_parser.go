@@ -146,11 +146,13 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 	} else {
 		if valueFd.Kind() == protoreflect.MessageKind {
 			for _, elemNode := range node.Children {
+				parseNode := elemNode
 				var keyData string
 				switch node.Kind {
 				case book.MapNode:
 					keyData = elemNode.Name
-					// auto add virtual key node
+					// Add the virtual key to a shallow view. Cached document nodes are
+					// immutable and may be parsed concurrently by multiple messages.
 					keyNode := &book.Node{
 						Kind:     book.ScalarNode,
 						Name:     field.opts.Key,
@@ -159,7 +161,12 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 						NamePos:  node.NamePos,
 						ValuePos: node.ValuePos,
 					}
-					elemNode.Children = append(elemNode.Children, keyNode)
+					children := make([]*book.Node, len(elemNode.Children), len(elemNode.Children)+1)
+					copy(children, elemNode.Children)
+					children = append(children, keyNode)
+					view := *elemNode
+					view.Children = children
+					parseNode = &view
 				case book.ListNode:
 					keyNode := elemNode.FindChild(field.opts.Key)
 					if keyNode == nil {
@@ -193,11 +200,10 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 					newMapValue = reflectMap.NewValue()
 				}
 				newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
-				valuePresent, err := p.parseMessage(field, newMapValue.Message(), elemNode, newCardPrefix)
+				valuePresent, err := p.parseMessage(field, newMapValue.Message(), parseNode, newCardPrefix)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
-				// TODO: auto remove added virtual key node?
 				if !keyPresent && !valuePresent {
 					// key and value are both not present.
 					continue
@@ -206,7 +212,11 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 					// check map value's sub-field prop
 					dupName, err := p.checkSubFieldProp(field, cardPrefix, newMapValue)
 					if err != nil {
-						return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
+						dupNode := parseNode.FindChild(dupName)
+						if dupNode == nil {
+							dupNode = elemNode
+						}
+						return false, xerrors.WrapKV(err, dupNode.DebugKV()...)
 					}
 				}
 				reflectMap.Set(newMapKey, newMapValue)

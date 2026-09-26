@@ -206,7 +206,7 @@ Go code must follow [Effective Go](https://go.dev/doc/effective_go) for formatti
 - **Functional options**: Use `options.Option` closures for configurable constructors.
 - **Context propagation**: Pass `context.Context` through the call chain; embed custom state via `strcase.NewContext()`, `metasheet.NewContext()`.
 - **Error wrapping**: Always use `xerrors.WrapKV` with structured keys (`KeyModule`, `KeyBookName`, `KeySheetName`, etc.) to preserve diagnostic context.
-- **sync.Pool**: Used for frequently allocated objects (e.g., `tableaupb.FieldOptions` in `fieldOptionsPool`).
+- **Parser metadata**: Cache immutable field descriptors and option templates per parser.
 - **Map-reduce**: Concurrent parsing of multiple importers uses `Collector.NewGroup().Go()` for fan-out, mutex-guarded slice for fan-in.
 - **Interface-based importers**: All input formats implement the `Importer` interface (`Filename()`, `BookName()`, `Format()`, `GetSheets()`, `GetSheet(name)`).
 

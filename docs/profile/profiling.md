@@ -25,12 +25,11 @@ tableauc --mode proto `
 ```
 
 Set `$ConfigFile` to the configuration file for your workspace, and run from
-the corresponding input directory. Profiling writes CPU, memory, and block
-profiles to the configured output directory:
+the corresponding input directory. Profiling writes CPU and memory profiles to
+the configured output directory:
 
 - `<generator>-cpu.pprof`
 - `<generator>-mem.pprof`
-- `<generator>-block.pprof`
 
 The run also reports per-sheet parser metrics. Profiling adds overhead, so use
 normal-mode runs to compare end-to-end performance.
@@ -46,14 +45,12 @@ go tool pprof -tags .\confgen-cpu.pprof
 go tool pprof -top -tagfocus='work=sheet_parse' .\confgen-cpu.pprof
 go tool pprof -top -sample_index=alloc_space .\confgen-mem.pprof
 go tool pprof -top -sample_index=inuse_space .\confgen-mem.pprof
-go tool pprof -top -sample_index=delay .\confgen-block.pprof
 ```
 
 Use CPU profiles to find processor-heavy functions and labels. Allocation
 profiles show where memory was allocated; in-use profiles show retained
-memory. Block profiles help locate goroutines waiting on synchronization.
-Sheet wall time includes both execution and waiting, so use labeled CPU time
-when choosing a CPU optimization target.
+memory. Sheet wall time includes both execution and waiting, so use labeled
+CPU time when choosing a CPU optimization target.
 
 ## Benchmark changes
 

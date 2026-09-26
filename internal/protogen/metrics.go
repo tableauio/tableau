@@ -8,6 +8,10 @@ import (
 	"github.com/tableauio/tableau/internal/profile"
 )
 
+func (gen *Generator) runProfiling(work func() error) error {
+	return profile.ExecuteWithStart(gen.profiling, gen.startProfiling, gen.SheetParserMetrics.Print, work)
+}
+
 func (gen *Generator) startProfiling() (func() error, error) {
 	profileDir := gen.OutputDir
 	if gen.OutputOpt != nil {

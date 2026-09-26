@@ -6,11 +6,12 @@ import (
 	"bytes"
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
 const (
@@ -89,10 +90,10 @@ func Open(filename string) (*Reader, error) {
 	for _, entry := range archive.File {
 		name := normalizePartName(entry.Name)
 		if name == "." || name == ".." || strings.HasPrefix(name, "../") {
-			return nil, errors.Join(fmt.Errorf("invalid XLSX entry path %q", entry.Name), archive.Close())
+			return nil, errors.Join(xerrors.Newf("invalid XLSX entry path %q", entry.Name), archive.Close())
 		}
 		if _, exists := reader.entries[name]; exists {
-			return nil, errors.Join(fmt.Errorf("duplicate XLSX entry %q", entry.Name), archive.Close())
+			return nil, errors.Join(xerrors.Newf("duplicate XLSX entry %q", entry.Name), archive.Close())
 		}
 		reader.entries[name] = entry
 	}
@@ -125,10 +126,10 @@ func (r *Reader) loadParts() error {
 			continue
 		}
 		if rel.ID == "" {
-			return errors.New("workbook relationship has an empty ID")
+			return xerrors.New("workbook relationship has an empty ID")
 		}
 		if _, exists := ids[rel.ID]; exists {
-			return fmt.Errorf("duplicate workbook relationship %q", rel.ID)
+			return xerrors.Newf("duplicate workbook relationship %q", rel.ID)
 		}
 		ids[rel.ID] = struct{}{}
 		target := resolvePartPath(workbookPath, rel.Target)
@@ -137,12 +138,12 @@ func (r *Reader) loadParts() error {
 			targets[rel.ID] = target
 		case hasRelationshipType(rel.Type, "sharedStrings"):
 			if sharedFound {
-				return errors.New("duplicate shared strings relationship")
+				return xerrors.New("duplicate shared strings relationship")
 			}
 			sharedFound = true
 			r.sharedEntry = r.entry(target)
 			if r.sharedEntry == nil {
-				return fmt.Errorf("shared strings relationship %q not found", rel.ID)
+				return xerrors.Newf("shared strings relationship %q not found", rel.ID)
 			}
 		}
 	}
@@ -152,14 +153,14 @@ func (r *Reader) loadParts() error {
 
 	for _, sheet := range book.Sheets {
 		if sheet.Name == "" {
-			return errors.New("worksheet has an empty name")
+			return xerrors.New("worksheet has an empty name")
 		}
 		if _, exists := r.sheets[sheet.Name]; exists {
-			return fmt.Errorf("duplicate worksheet name %q", sheet.Name)
+			return xerrors.Newf("duplicate worksheet name %q", sheet.Name)
 		}
 		entry := r.entry(targets[sheet.RID])
 		if entry == nil {
-			return fmt.Errorf("worksheet %q relationship %q not found", sheet.Name, sheet.RID)
+			return xerrors.Newf("worksheet %q relationship %q not found", sheet.Name, sheet.RID)
 		}
 		r.sheetNames = append(r.sheetNames, sheet.Name)
 		r.sheets[sheet.Name] = entry
@@ -199,14 +200,14 @@ func (r *Reader) readRelationships(name string) (*relationships, error) {
 func (r *Reader) readXML(name string, value any) error {
 	entry := r.entry(name)
 	if entry == nil {
-		return fmt.Errorf("XLSX entry %q not found", name)
+		return xerrors.Newf("XLSX entry %q not found", name)
 	}
 	data, err := readEntry(entry)
 	if err != nil {
 		return err
 	}
 	if err := xml.Unmarshal(data, value); err != nil {
-		return fmt.Errorf("decode XLSX entry %q: %w", name, err)
+		return xerrors.Wrapf(err, "decode XLSX entry %q", name)
 	}
 	return nil
 }
@@ -234,7 +235,7 @@ func (r *Reader) ReadRows(sheetName string) ([][]string, error) {
 		return nil, err
 	}
 	if bytes.Contains(data, []byte("<![CDATA[")) || bytes.Contains(data, []byte("<!DOCTYPE")) {
-		return nil, fmt.Errorf("unsupported XML construct in worksheet %q", sheetName)
+		return nil, xerrors.Newf("unsupported XML construct in worksheet %q", sheetName)
 	}
 	shared, err := r.loadSharedStrings()
 	if err != nil {
@@ -255,7 +256,7 @@ func (r *Reader) loadSharedStrings() ([]string, error) {
 		}
 		var table sharedStringTable
 		if err := xml.Unmarshal(data, &table); err != nil {
-			r.sharedErr = fmt.Errorf("decode XLSX shared strings: %w", err)
+			r.sharedErr = xerrors.Wrapf(err, "decode XLSX shared strings")
 			return
 		}
 		r.shared = make([]string, len(table.Items))
@@ -298,7 +299,7 @@ func resolvePartPath(base, target string) string {
 
 func readEntry(entry *zip.File) ([]byte, error) {
 	if entry.UncompressedSize64 > maxEntrySize {
-		return nil, fmt.Errorf("XLSX entry %q exceeds the %d-byte in-memory limit", entry.Name, maxEntrySize)
+		return nil, xerrors.Newf("XLSX entry %q exceeds the %d-byte in-memory limit", entry.Name, maxEntrySize)
 	}
 	file, err := entry.Open()
 	if err != nil {
@@ -309,7 +310,7 @@ func readEntry(entry *zip.File) ([]byte, error) {
 	if readErr == nil {
 		var extra [1]byte
 		if n, err := file.Read(extra[:]); n != 0 || (err != nil && err != io.EOF) {
-			readErr = fmt.Errorf("XLSX entry %q size differs from its ZIP header", entry.Name)
+			readErr = xerrors.Newf("XLSX entry %q size differs from its ZIP header", entry.Name)
 		}
 	}
 	closeErr := file.Close()

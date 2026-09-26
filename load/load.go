@@ -6,7 +6,6 @@ package load
 
 import (
 	"context"
-	"errors"
 	"path/filepath"
 
 	"buf.build/go/protovalidate"
@@ -169,11 +168,17 @@ func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format
 // exclusive; when neither is declared the main workbook is parsed directly.
 func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) (err error) {
 	cache, owned := opts.getImporterCache()
-	if owned {
-		defer func() {
-			err = errors.Join(err, cache.Close())
-		}()
-	}
+	defer func() {
+		var closeErr error
+		if owned {
+			closeErr = cache.Close()
+		} else {
+			closeErr = cache.Release()
+		}
+		if closeErr != nil {
+			log.Warnf("failed to close importer cache handles: %v", closeErr)
+		}
+	}()
 
 	md := msg.ProtoReflect().Descriptor()
 	protofile, bookOpts := confgen.ParseFileOptions(md.ParentFile())
