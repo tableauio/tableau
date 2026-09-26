@@ -194,7 +194,7 @@ func (gen *Generator) GenAll() (err error) {
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	defer PrintSheetMetrics(gen)
+	defer gen.SheetParserMetrics.Print()
 	stopProfiling, err := gen.startProfiling()
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) (err error) {
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	defer PrintSheetMetrics(gen)
+	defer gen.SheetParserMetrics.Print()
 	stopProfiling, err := gen.startProfiling()
 	if err != nil {
 		return err
@@ -477,7 +477,7 @@ func (gen *Generator) convertDocument(dir, filename string, pass parsePass) (err
 		xerrors.KeyModule, xerrors.ModuleProto,
 		xerrors.KeyBookName, debugBookName)
 	for _, sheet := range imp.GetSheets() {
-		sheetErr := gen.measureSheet(debugBookName, "first-pass", sheet, func() error {
+		sheetErr := gen.measureSheet(debugBookName, firstPass, sheet, func() error {
 			return gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
 		})
 		if err := bookCollector.Collect(sheetErr); err != nil {
@@ -546,7 +546,7 @@ func (gen *Generator) convertTable(dir, filename string, pass parsePass) (err er
 		xerrors.KeyModule, xerrors.ModuleProto,
 		xerrors.KeyBookName, debugBookName)
 	for _, sheet := range imp.GetSheets() {
-		sheetErr := gen.measureSheet(debugBookName, formatParsePass(pass), sheet, func() error {
+		sheetErr := gen.measureSheet(debugBookName, pass, sheet, func() error {
 			return gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
 		})
 		if err := bookCollector.Collect(sheetErr); err != nil {
