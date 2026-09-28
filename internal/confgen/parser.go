@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
@@ -18,6 +20,7 @@ import (
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -68,25 +71,35 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 		return filename
 	}
 	// parse main sheet
+	mainParseBegin := time.Now()
 	mainMsg, err := parseMessageFromOneImporter(info, x.collector, mainImpInfo)
 	if err != nil {
 		return err
 	}
+	var parseNanos atomic.Int64
+	var exportNanos atomic.Int64
+	parseNanos.Add(time.Since(mainParseBegin).Nanoseconds())
 	mainName := getExportedConfName(info, mainImpInfo)
+	mainExportBegin := time.Now()
 	err = storeMessage(mainMsg, mainName, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
 	if err != nil {
 		return err
 	}
+	exportNanos.Add(time.Since(mainExportBegin).Nanoseconds())
 
 	g := x.collector.NewGroup(context.Background())
 	for _, impInfo := range impInfos {
 		// map-reduce: map jobs for concurrent processing
 		g.Go(func(ctx context.Context) error {
+			parseBegin := time.Now()
 			msg, err := parseMessageFromOneImporter(info, x.collector, impInfo)
 			if err != nil {
 				return err
 			}
+			parseNanos.Add(time.Since(parseBegin).Nanoseconds())
 			name := getExportedConfName(info, impInfo)
+			exportBegin := time.Now()
+			defer func() { exportNanos.Add(time.Since(exportBegin).Nanoseconds()) }()
 			if info.SheetOpts.Patch == tableaupb.Patch_PATCH_MERGE {
 				if info.ExtInfo.DryRun == options.DryRunPatch {
 					clonedMainMsg := proto.Clone(mainMsg)
@@ -101,7 +114,15 @@ func (x *sheetExporter) ScatterAndExport(info *SheetInfo,
 			return storeMessage(msg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
 		})
 	}
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		return err
+	}
+	// NOTE: parse/export totals here are SUMS of per-job CPU-style durations
+	// across all scatter shards (not wall-clock). They reflect work volume,
+	// not elapsed time, since shards run concurrently.
+	log.Infof("%15s: %s confgen=%dms export=%dms (scatter, summed across shards)", "perf", info.MD.Name(),
+		parseNanos.Load()/int64(time.Millisecond), exportNanos.Load()/int64(time.Millisecond))
+	return nil
 }
 
 // MergeAndExport parses multiple importer infos and merges them into one
@@ -111,10 +132,12 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 	impInfos ...importer.ImporterInfo) error {
 	// append main
 	allImpInfos := append(impInfos, importer.ImporterInfo{Importer: mainImpInfo})
+	parseBegin := time.Now()
 	protomsg, err := ParseMessage(info, x.collector, allImpInfos...)
 	if err != nil {
 		return err
 	}
+	parseElapsed := time.Since(parseBegin)
 	// exported conf name pattern is : [ParentDir/]<SheetName>
 	getExportedConfName := func(info *SheetInfo, impInfo importer.ImporterInfo) string {
 		// here filename has no ext suffix
@@ -126,7 +149,14 @@ func (x *sheetExporter) MergeAndExport(info *SheetInfo,
 		return filename
 	}
 	name := getExportedConfName(info, mainImpInfo)
-	return storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator)
+	exportBegin := time.Now()
+	if err := storeMessage(protomsg, name, info.LocationName, x.OutputDir, x.OutputOpt, x.validator); err != nil {
+		return err
+	}
+	exportElapsed := time.Since(exportBegin)
+	log.Infof("%15s: %s confgen=%dms export=%dms", "perf", info.MD.Name(),
+		parseElapsed.Milliseconds(), exportElapsed.Milliseconds())
+	return nil
 }
 
 type oneMsg struct {
