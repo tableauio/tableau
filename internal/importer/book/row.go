@@ -201,24 +201,25 @@ type ColumnLookupTable = map[string]int
 // Macro command definitions
 const MacroIgnore = "#IGNORE" // bool: whether to ignore row
 
-// Ignored checkes whether this row is ignored.
+// Ignored reports whether this row is ignored.
 func (r *Row) Ignored() (bool, error) {
-	if ignoreCol, ok := r.lookupTable[MacroIgnore]; ok {
-		cell := r.cells[ignoreCol]
-		if cell == nil {
-			return false, nil
-		}
-		value := strings.TrimSpace(cell.Data)
-		if value == "" {
-			return false, nil
-		}
-		ignored, err := xproto.ParseBool(value)
-		if err != nil {
-			return false, xerrors.WrapKV(xerrors.E2013(value, err), r.CellDebugKV(MacroIgnore)...)
-		}
-		return ignored, nil
+	ignoreCol, ok := r.lookupTable[MacroIgnore]
+	if !ok || ignoreCol < 0 || ignoreCol >= len(r.cells) {
+		return false, nil
 	}
-	return false, nil
+	cell := r.cells[ignoreCol]
+	if cell == nil {
+		return false, nil
+	}
+	value := strings.TrimSpace(cell.Data)
+	if value == "" {
+		return false, nil
+	}
+	ignored, err := xproto.ParseBool(value)
+	if err != nil {
+		return false, xerrors.WrapKV(xerrors.E2013(value, err), r.CellDebugKV(MacroIgnore)...)
+	}
+	return ignored, nil
 }
 
 // AddCell adds a cell to the row.
