@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"runtime/pprof"
 	"sort"
+	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -203,21 +205,63 @@ func (m *SheetParserMetrics) Print() {
 		return
 	}
 	log.Infof("sheet parser wall time, slowest first (CPU profile label: sheet_key):")
-	for i, result := range results {
-		log.Info(formatSheetMetric(i+1, result))
-	}
+	log.Info(formatSheetMetrics(results))
 }
 
-func formatSheetMetric(rank int, result sheetMetricSnapshot) string {
-	if result.kind == "table" {
+func formatSheetMetrics(results []sheetMetricSnapshot) string {
+	var output strings.Builder
+	writeTableSheetMetrics(&output, results)
+	writeDocumentSheetMetrics(&output, results)
+	return strings.TrimRight(output.String(), "\n")
+}
+
+func writeTableSheetMetrics(output *strings.Builder, results []sheetMetricSnapshot) {
+	if !hasSheetKind(results, "table") {
+		return
+	}
+	output.WriteString("table sheets:\n")
+	w := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
+	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tWALL\tCALLS\tFAILURES\tROWS\tMAX COLS\tCELLS\tPRESENT\tABSENT\tEMPTY\tMISSING\tEMPTY ROWS\tVALUE BYTES")
+	for i, result := range results {
+		if result.kind != "table" {
+			continue
+		}
 		absent := result.emptyCells + result.missingCells
 		cells := result.presentCells + absent
-		return fmt.Sprintf("%3d. %s: wall=%s calls=%d failures=%d rows=%d maxCols=%d cells=%d present=%d absent=%d (empty=%d missing=%d) emptyRows=%d valueBytes=%d",
-			rank, result.key, result.wallTime, result.calls, result.failures,
+		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+			i+1, result.key, result.wallTime, result.calls, result.failures,
 			result.rows, result.cols, cells, result.presentCells, absent,
 			result.emptyCells, result.missingCells, result.emptyRows, result.valueBytes)
 	}
-	return fmt.Sprintf("%3d. %s: wall=%s calls=%d failures=%d nodes=%d scalarNodes=%d maxDepth=%d valueBytes=%d",
-		rank, result.key, result.wallTime, result.calls, result.failures,
-		result.nodes, result.scalarNodes, result.maxDepth, result.valueBytes)
+	_ = w.Flush()
+}
+
+func writeDocumentSheetMetrics(output *strings.Builder, results []sheetMetricSnapshot) {
+	if !hasSheetKind(results, "document") {
+		return
+	}
+	if output.Len() > 0 {
+		output.WriteByte('\n')
+	}
+	output.WriteString("document sheets:\n")
+	w := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
+	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tWALL\tCALLS\tFAILURES\tNODES\tSCALAR NODES\tMAX DEPTH\tVALUE BYTES")
+	for i, result := range results {
+		if result.kind != "document" {
+			continue
+		}
+		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n",
+			i+1, result.key, result.wallTime, result.calls, result.failures,
+			result.nodes, result.scalarNodes, result.maxDepth, result.valueBytes)
+	}
+	_ = w.Flush()
+}
+
+func hasSheetKind(results []sheetMetricSnapshot, kind string) bool {
+	for _, result := range results {
+		if result.kind == kind {
+			return true
+		}
+	}
+	return false
 }

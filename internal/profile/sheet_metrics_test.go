@@ -146,7 +146,7 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 	}
 }
 
-func TestFormatSheetMetric(t *testing.T) {
+func TestFormatSheetMetrics(t *testing.T) {
 	t.Run("table", func(t *testing.T) {
 		result := sheetMetricSnapshot{
 			key:          SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"},
@@ -161,14 +161,19 @@ func TestFormatSheetMetric(t *testing.T) {
 			emptyRows:    1,
 			valueBytes:   16,
 		}
-		got := formatSheetMetric(1, result)
+		got := formatSheetMetrics([]sheetMetricSnapshot{result})
 		for _, want := range []string{
-			"wall=1s calls=1 failures=0",
-			"rows=2 maxCols=3 cells=6 present=4 absent=2 (empty=1 missing=1)",
-			"emptyRows=1 valueBytes=16",
+			"RANK",
+			"SHEET",
+			"items.xlsx#Items (test.Items)",
+			"1s",
+			"2",
+			"3",
+			"6",
+			"16",
 		} {
 			if !strings.Contains(got, want) {
-				t.Errorf("formatSheetMetric() = %q, want substring %q", got, want)
+				t.Errorf("formatSheetMetrics() = %q, want substring %q", got, want)
 			}
 		}
 	})
@@ -185,13 +190,19 @@ func TestFormatSheetMetric(t *testing.T) {
 			maxDepth:    3,
 			valueBytes:  16,
 		}
-		got := formatSheetMetric(1, result)
+		got := formatSheetMetrics([]sheetMetricSnapshot{result})
 		for _, want := range []string{
-			"wall=1s calls=1 failures=1",
-			"nodes=4 scalarNodes=2 maxDepth=3 valueBytes=16",
+			"RANK",
+			"SHEET",
+			"items.yaml#Items (test.Items)",
+			"1s",
+			"4",
+			"2",
+			"3",
+			"16",
 		} {
 			if !strings.Contains(got, want) {
-				t.Errorf("formatSheetMetric() = %q, want substring %q", got, want)
+				t.Errorf("formatSheetMetrics() = %q, want substring %q", got, want)
 			}
 		}
 	})
