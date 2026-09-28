@@ -368,6 +368,6 @@ func (gen *Generator) releaseImporterInfos(infos []importer.ImporterInfo) {
 			continue
 		}
 		seen[info.Importer] = struct{}{}
-		_ = gen.importerCache.ReleaseImporter(info.Importer)
+		gen.importerCache.ReleaseImporter(info.Importer)
 	}
 }

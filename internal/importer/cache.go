@@ -35,18 +35,18 @@ type cacheKey struct {
 }
 
 // Cache reuses imported data during one generator run. Sources own decoded
-// sheets and open workbook handles; entries are immutable importer views for a
-// specific option set. Each successful cached Load acquires a lease; callers
-// should release it with ReleaseImporter after the dependent work completes.
+// sheets and open workbook handles; entries are importer views for a specific
+// option set. ReleaseImporter evicts a view after its dependent task finishes,
+// while the source remains cached for the rest of the run.
 // Callers must not mutate cached sheets or call Load concurrently with Release
 // or Close.
 type Cache struct {
 	profiling bool
 
 	// entries maps an exact source and option set to an importer view.
-	entries sync.Map // cacheKey -> *cacheEntry
+	entries sync.Map // cacheKey -> Importer
 	// sources maps a normalized logical path to shared format-specific data.
-	sources sync.Map // normalized path -> *sourceEntry
+	sources sync.Map // normalized path -> cachedSource
 	// sourceLoads ensures concurrent views open each source only once.
 	sourceLoads singleflight.Group
 
@@ -57,17 +57,6 @@ type Cache struct {
 	sheets      atomic.Int64 // decoded sheets
 	pathCount   atomic.Int64 // unique normalized paths
 	closed      atomic.Bool
-}
-
-type cacheEntry struct {
-	importer Importer
-	source   *sourceEntry
-	refs     atomic.Int64
-}
-
-type sourceEntry struct {
-	source cachedSource
-	refs   atomic.Int64
 }
 
 type cachedExcel struct {
@@ -122,8 +111,7 @@ func (c *Cache) EnableProfiling() {
 	c.profiling = true
 }
 
-// Load returns a cached importer or loads it once for concurrent callers. A
-// cached result holds one lease until ReleaseImporter is called.
+// Load returns a cached importer or loads it once for concurrent callers.
 func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (Importer, error) {
 	if c == nil {
 		return New(ctx, filename, setters...)
@@ -155,10 +143,7 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 		primaryBookName: filepath.Clean(opts.PrimaryBookName),
 	}
 	if cached, ok := c.entries.Load(key); ok {
-		entry := cached.(*cacheEntry)
-		entry.refs.Add(1)
-		entry.source.refs.Add(1)
-		return entry.importer, nil
+		return cached.(Importer), nil
 	}
 	return c.loadEntry(ctx, key, opts)
 }
@@ -180,7 +165,7 @@ func (c *Cache) LoadMergerImporters(ctx context.Context, inputDir, primaryBookNa
 func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
 	loaded, err, _ := c.sourceLoads.Do(key.filename, func() (any, error) {
 		if cached, ok := c.sources.Load(key.filename); ok {
-			return cached.(*sourceEntry), nil
+			return cached.(cachedSource), nil
 		}
 		source, decoded, err := c.openSource(ctx, key.filename)
 		if err != nil {
@@ -190,84 +175,37 @@ func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Imp
 			c.imports.Add(1)
 			c.sheets.Add(decoded)
 		}
-		entry := &sourceEntry{source: source}
-		c.sources.Store(key.filename, entry)
-		return entry, nil
+		c.sources.Store(key.filename, source)
+		return source, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	source := loaded.(*sourceEntry)
-	source.refs.Add(1)
-	imp, decoded, err := c.loadImporter(ctx, source.source, key.filename, opts.Sheets)
+	source := loaded.(cachedSource)
+	imp, decoded, err := c.loadImporter(ctx, source, key.filename, opts.Sheets)
 	if c.profiling {
 		c.sheets.Add(decoded)
 	}
 	if err != nil {
-		c.releaseSource(source, key.filename)
 		return nil, err
 	}
-	entry := &cacheEntry{importer: imp, source: source}
-	entry.refs.Store(1)
-	actual, loadedEntry := c.entries.LoadOrStore(key, entry)
-	if loadedEntry {
-		c.releaseSource(source, key.filename)
-		actualEntry := actual.(*cacheEntry)
-		actualEntry.refs.Add(1)
-		return actualEntry.importer, nil
-	}
-	return imp, nil
+	actual, _ := c.entries.LoadOrStore(key, imp)
+	return actual.(Importer), nil
 }
 
-// ReleaseImporter releases one Load lease. Once the last lease for an
-// importer and its source is gone, decoded worksheet forms are compacted.
-func (c *Cache) ReleaseImporter(imp Importer) error {
+// ReleaseImporter evicts the cached view that wraps imp. The shared source and
+// its decoded sheets remain available for later views in the same run.
+func (c *Cache) ReleaseImporter(imp Importer) {
 	if c == nil || imp == nil {
-		return nil
+		return
 	}
-	var target *cacheEntry
-	var targetKey cacheKey
 	c.entries.Range(func(key, value any) bool {
-		entry := value.(*cacheEntry)
-		if entry.importer == imp {
-			target, targetKey = entry, key.(cacheKey)
-			return false
+		if value.(Importer) == imp {
+			c.entries.Delete(key)
 		}
 		return true
 	})
-	if target == nil {
-		return nil
-	}
-	refs := decrement(&target.refs)
-	if refs < 0 {
-		return nil
-	}
-	if refs == 0 {
-		c.entries.Delete(targetKey)
-	}
-	return c.releaseSource(target.source, targetKey.filename)
-}
-
-func (c *Cache) releaseSource(entry *sourceEntry, filename string) error {
-	if decrement(&entry.refs) != 0 {
-		return nil
-	}
-	c.sources.CompareAndDelete(filename, entry)
-	entry.source.compact()
-	return entry.source.release()
-}
-
-func decrement(counter *atomic.Int64) int64 {
-	for {
-		current := counter.Load()
-		if current <= 0 {
-			return -1
-		}
-		if counter.CompareAndSwap(current, current-1) {
-			return current - 1
-		}
-	}
 }
 
 func (c *Cache) openSource(ctx context.Context, filename string) (source cachedSource, decoded int64, err error) {
@@ -588,8 +526,7 @@ func (c *Cache) Release() error {
 func (c *Cache) releaseSources() error {
 	var errs []error
 	c.sources.Range(func(key, value any) bool {
-		entry := value.(*sourceEntry)
-		if err := entry.source.release(); err != nil {
+		if err := value.(cachedSource).release(); err != nil {
 			errs = append(errs, xerrors.Wrapf(err, "release cached source %s", key.(string)))
 		}
 		return true
@@ -599,7 +536,7 @@ func (c *Cache) releaseSources() error {
 
 func (c *Cache) compactSources() {
 	c.sources.Range(func(_, value any) bool {
-		value.(*sourceEntry).source.compact()
+		value.(cachedSource).compact()
 		return true
 	})
 }

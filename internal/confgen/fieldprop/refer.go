@@ -320,7 +320,7 @@ func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, 
 				continue
 			}
 			seen[info.Importer] = struct{}{}
-			_ = input.ImporterCache.ReleaseImporter(info.Importer)
+			input.ImporterCache.ReleaseImporter(info.Importer)
 		}
 	}()
 

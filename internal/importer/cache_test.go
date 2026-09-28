@@ -137,7 +137,7 @@ func TestCacheLoadBypassesCustomParser(t *testing.T) {
 	}
 }
 
-func TestCacheReleaseImporterCompactsAfterLastLease(t *testing.T) {
+func TestCacheReleaseImporterEvictsViewKeepsSource(t *testing.T) {
 	cache := NewCache()
 	cache.EnableProfiling()
 
@@ -152,21 +152,17 @@ func TestCacheReleaseImporterCompactsAfterLastLease(t *testing.T) {
 	if first != second {
 		t.Fatal("same cache key returned different importer views")
 	}
-	if err := cache.ReleaseImporter(first); err != nil {
-		t.Fatal(err)
-	}
+	cache.ReleaseImporter(first)
 	if _, imports, _, _ := cache.Metrics(); imports != 1 {
-		t.Fatalf("source closed before final lease: imports = %d", imports)
+		t.Fatalf("source reopened after view eviction: imports = %d", imports)
 	}
-	if err := cache.ReleaseImporter(second); err != nil {
-		t.Fatal(err)
-	}
+	cache.ReleaseImporter(second)
 
 	if _, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"})); err != nil {
 		t.Fatal(err)
 	}
-	if _, imports, _, _ := cache.Metrics(); imports != 2 {
-		t.Fatalf("Load() did not reopen compacted source: imports = %d", imports)
+	if _, imports, _, _ := cache.Metrics(); imports != 1 {
+		t.Fatalf("Load() reopened the shared source: imports = %d", imports)
 	}
 	_ = cache.Close()
 }
