@@ -33,7 +33,7 @@ func (d *metricLogDriver) Print(record *core.Record) {
 	d.messages = append(d.messages, message)
 }
 
-func TestMeasureSheet(t *testing.T) {
+func TestMeasureSheetInput(t *testing.T) {
 	t.Run("table with empty and missing cells", func(t *testing.T) {
 		sheet := book.NewTableSheet("Items", [][]string{
 			{"ID", "Name", ""},
@@ -41,8 +41,8 @@ func TestMeasureSheet(t *testing.T) {
 			{"2"},
 			{},
 		})
-		got := measureSheet(sheet)
-		want := sheetShape{
+		got := measureSheetInput(sheet)
+		want := sheetInputMetrics{
 			kind:         tableKind,
 			rows:         4,
 			cols:         3,
@@ -53,7 +53,7 @@ func TestMeasureSheet(t *testing.T) {
 			valueBytes:   13,
 		}
 		if got != want {
-			t.Errorf("measureSheet() = %+v, want %+v", got, want)
+			t.Errorf("measureSheetInput() = %+v, want %+v", got, want)
 		}
 	})
 
@@ -68,8 +68,8 @@ func TestMeasureSheet(t *testing.T) {
 				},
 			}},
 		})
-		got := measureSheet(sheet)
-		want := sheetShape{
+		got := measureSheetInput(sheet)
+		want := sheetInputMetrics{
 			kind:        documentKind,
 			nodes:       4,
 			scalarNodes: 2,
@@ -77,38 +77,38 @@ func TestMeasureSheet(t *testing.T) {
 			valueBytes:  5,
 		}
 		if got != want {
-			t.Errorf("measureSheet() = %+v, want %+v", got, want)
+			t.Errorf("measureSheetInput() = %+v, want %+v", got, want)
 		}
 	})
 }
 
 func TestSheetParserMetricsSortsByWallTime(t *testing.T) {
 	var metrics SheetParserMetrics
-	shape := sheetShape{kind: tableKind, rows: 2, cols: 3, presentCells: 3, missingCells: 3}
+	input := sheetInputMetrics{kind: tableKind, rows: 2, cols: 3, presentCells: 3, missingCells: 3}
 	fast := SheetMetricKey{Book: "fast.xlsx", Sheet: "Items", Detail: "test.Items"}
 	slow := SheetMetricKey{Book: "slow.xlsx", Sheet: "Items", Detail: "test.Items"}
 
-	metrics.record(fast, shape, time.Second, false)
-	metrics.record(slow, shape, 3*time.Second, false)
-	metrics.record(fast, shape, time.Second, true)
+	metrics.record(fast, input, time.Second, false)
+	metrics.record(slow, input, 3*time.Second, false)
+	metrics.record(fast, input, time.Second, true)
 
 	got := metrics.collect()
 	if len(got) != 2 || got[0].key != slow || got[1].key != fast {
 		t.Fatalf("wall order = %+v, want slow then fast", got)
 	}
 	if got[1].calls != 2 || got[1].failures != 1 || got[1].wallTime != 2*time.Second ||
-		got[1].rows != 4 || got[1].cols != 3 || got[1].presentCells != 6 || got[1].missingCells != 6 {
+		got[1].input.rows != 4 || got[1].input.cols != 3 || got[1].input.presentCells != 6 || got[1].input.missingCells != 6 {
 		t.Errorf("aggregated metrics = %+v", got[1])
 	}
 }
 
 func TestSheetParserMetricsBreaksWallTimeTiesByKey(t *testing.T) {
 	var metrics SheetParserMetrics
-	shape := sheetShape{kind: documentKind, nodes: 1}
+	input := sheetInputMetrics{kind: documentKind, nodes: 1}
 	a := SheetMetricKey{Book: "a.yaml", Sheet: "A", Detail: "test.A"}
 	b := SheetMetricKey{Book: "b.yaml", Sheet: "B", Detail: "test.B"}
-	metrics.record(b, shape, time.Second, false)
-	metrics.record(a, shape, time.Second, false)
+	metrics.record(b, input, time.Second, false)
+	metrics.record(a, input, time.Second, false)
 
 	got := metrics.collect()
 	if len(got) != 2 || got[0].key != a || got[1].key != b {
@@ -128,7 +128,7 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 	}
 
 	key := SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"}
-	metrics.record(key, sheetShape{kind: tableKind, rows: 1, cols: 1}, time.Second, false)
+	metrics.record(key, sheetInputMetrics{kind: tableKind, rows: 1, cols: 1}, time.Second, false)
 	metrics.Print()
 	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "sheet_key") || !strings.Contains(driver.messages[1], key.String()) {
 		t.Fatalf("metrics log = %q", driver.messages)
@@ -139,7 +139,7 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 		t.Fatalf("metrics after Reset() = %v, want empty", got)
 	}
 	driver.messages = nil
-	metrics.record(key, sheetShape{kind: tableKind}, time.Second, false)
+	metrics.record(key, sheetInputMetrics{kind: tableKind}, time.Second, false)
 	metrics.Print()
 	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "CPU time") {
 		t.Fatalf("CPU metrics log = %q", driver.messages)
@@ -148,12 +148,12 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 
 func TestFormatSheetMetrics(t *testing.T) {
 	t.Run("table", func(t *testing.T) {
-		result := sheetMetricSnapshot{
+		result := sheetMetrics{
 			key:      SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"},
 			calls:    1,
 			cpuTime:  250 * time.Millisecond,
 			wallTime: time.Second,
-			sheetShape: sheetShape{
+			input: sheetInputMetrics{
 				kind:         tableKind,
 				rows:         2,
 				cols:         3,
@@ -164,7 +164,7 @@ func TestFormatSheetMetrics(t *testing.T) {
 				valueBytes:   16,
 			},
 		}
-		got := formatSheetMetrics([]sheetMetricSnapshot{result})
+		got := formatSheetMetrics([]sheetMetrics{result})
 		for _, want := range []string{
 			"RANK",
 			"SHEET",
@@ -183,13 +183,13 @@ func TestFormatSheetMetrics(t *testing.T) {
 	})
 
 	t.Run("document", func(t *testing.T) {
-		result := sheetMetricSnapshot{
+		result := sheetMetrics{
 			key:      SheetMetricKey{Book: "items.yaml", Sheet: "Items", Detail: "test.Items"},
 			calls:    1,
 			failures: 1,
 			cpuTime:  500 * time.Millisecond,
 			wallTime: time.Second,
-			sheetShape: sheetShape{
+			input: sheetInputMetrics{
 				kind:        documentKind,
 				nodes:       4,
 				scalarNodes: 2,
@@ -197,7 +197,7 @@ func TestFormatSheetMetrics(t *testing.T) {
 				valueBytes:  16,
 			},
 		}
-		got := formatSheetMetrics([]sheetMetricSnapshot{result})
+		got := formatSheetMetrics([]sheetMetrics{result})
 		for _, want := range []string{
 			"RANK",
 			"SHEET",
@@ -219,7 +219,7 @@ func TestFormatSheetMetrics(t *testing.T) {
 func TestSheetParserMetricsConcurrent(t *testing.T) {
 	var metrics SheetParserMetrics
 	key := SheetMetricKey{Book: "shared.xlsx", Sheet: "Items", Detail: "test.Items"}
-	shape := sheetShape{kind: tableKind, rows: 1, cols: 1, presentCells: 1}
+	input := sheetInputMetrics{kind: tableKind, rows: 1, cols: 1, presentCells: 1}
 	const calls = 64
 
 	var group sync.WaitGroup
@@ -227,14 +227,14 @@ func TestSheetParserMetricsConcurrent(t *testing.T) {
 		group.Add(1)
 		go func() {
 			defer group.Done()
-			metrics.record(key, shape, time.Millisecond, false)
+			metrics.record(key, input, time.Millisecond, false)
 		}()
 	}
 	group.Wait()
 
 	got := metrics.collect()
 	if len(got) != 1 || got[0].calls != calls || got[0].wallTime != calls*time.Millisecond ||
-		got[0].presentCells != calls {
+		got[0].input.presentCells != calls {
 		t.Errorf("concurrent metrics = %+v", got)
 	}
 }

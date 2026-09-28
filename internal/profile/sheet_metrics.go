@@ -33,7 +33,7 @@ func (k SheetMetricKey) String() string {
 	return name + " (" + k.Detail + ")"
 }
 
-// sheetKind identifies which shape metrics apply to a sheet.
+// sheetKind identifies which input metrics apply to a sheet.
 type sheetKind string
 
 const (
@@ -41,9 +41,9 @@ const (
 	documentKind sheetKind = "document"
 )
 
-// sheetShape describes the source data observed by one parser call. Table and
-// document sheets populate only the fields that apply to their representation.
-type sheetShape struct {
+// sheetInputMetrics describes the source data observed by one parser call.
+// Table and document sheets populate only their applicable fields.
+type sheetInputMetrics struct {
 	kind         sheetKind // kind identifies the table or document representation.
 	rows         int64     // rows counts all table rows, including header rows.
 	cols         int64     // cols is the widest table row.
@@ -57,84 +57,85 @@ type sheetShape struct {
 	maxDepth     int64     // maxDepth is the document depth with the root at depth one.
 }
 
-// measureSheet describes the imported sheet before parsing can add virtual
+// measureSheetInput measures the imported sheet before parsing can add virtual
 // nodes. Missing table cells are the implicit cells after short rows up to the
 // widest row. Empty cells are explicitly stored empty strings.
-func measureSheet(sheet *book.Sheet) sheetShape {
-	var shape sheetShape
+func measureSheetInput(sheet *book.Sheet) sheetInputMetrics {
+	var metrics sheetInputMetrics
 	if sheet.Document != nil {
-		shape.kind = documentKind
+		metrics.kind = documentKind
 		var visit func(*book.Node, int64)
 		visit = func(node *book.Node, depth int64) {
 			if node == nil {
 				return
 			}
-			shape.nodes++
-			shape.maxDepth = max(shape.maxDepth, depth)
+			metrics.nodes++
+			metrics.maxDepth = max(metrics.maxDepth, depth)
 			if node.Kind == book.ScalarNode {
-				shape.scalarNodes++
-				shape.valueBytes += int64(len(node.Value))
+				metrics.scalarNodes++
+				metrics.valueBytes += int64(len(node.Value))
 			}
 			for _, child := range node.Children {
 				visit(child, depth+1)
 			}
 		}
 		visit(sheet.Document, 1)
-		return shape
+		return metrics
 	}
 	if sheet.Table == nil {
-		return shape
+		return metrics
 	}
 
-	shape.kind = tableKind
-	shape.rows = int64(len(sheet.Table.Rows))
+	metrics.kind = tableKind
+	metrics.rows = int64(len(sheet.Table.Rows))
 	for _, row := range sheet.Table.Rows {
-		shape.cols = max(shape.cols, int64(len(row)))
+		metrics.cols = max(metrics.cols, int64(len(row)))
 		rowPresent := false
 		for _, cell := range row {
 			if cell == "" {
-				shape.emptyCells++
+				metrics.emptyCells++
 				continue
 			}
 			rowPresent = true
-			shape.presentCells++
-			shape.valueBytes += int64(len(cell))
+			metrics.presentCells++
+			metrics.valueBytes += int64(len(cell))
 		}
 		if !rowPresent {
-			shape.emptyRows++
+			metrics.emptyRows++
 		}
 	}
-	shape.missingCells = shape.rows*shape.cols - shape.presentCells - shape.emptyCells
-	return shape
+	metrics.missingCells = metrics.rows*metrics.cols - metrics.presentCells - metrics.emptyCells
+	return metrics
 }
 
-// sheetMetricSnapshot stores accumulated measurements for one operation key.
-type sheetMetricSnapshot struct {
+// sheetMetrics stores accumulated measurements for one operation key.
+type sheetMetrics struct {
 	key      SheetMetricKey // key identifies the sheet parser operation.
 	calls    int64          // calls counts parser invocations for the key.
 	failures int64          // failures counts invocations that returned an error.
 	cpuTime  time.Duration  // cpuTime is processor time sampled under the sheet's pprof label.
 	wallTime time.Duration  // wallTime is elapsed parser time accumulated across calls.
-	// sheetShape accumulates counts and bytes across calls. cols and maxDepth
-	// retain the largest observed value.
-	sheetShape
+	// input sums count and byte metrics across calls. cols and maxDepth retain
+	// the largest observed value.
+	input sheetInputMetrics
 }
 
-type sheetMetric struct {
-	mu sync.Mutex // mu protects sheetMetricSnapshot.
-	sheetMetricSnapshot
+// sheetMetricsEntry guards the measurements stored for one operation key.
+type sheetMetricsEntry struct {
+	mu      sync.Mutex // mu protects metrics.
+	metrics sheetMetrics
 }
 
-func (m *sheetMetric) snapshot() sheetMetricSnapshot {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.sheetMetricSnapshot
+func (e *sheetMetricsEntry) snapshot() sheetMetrics {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.metrics
 }
 
-// SheetParserMetrics collects parser time and input shape by sheet. Its zero
+// SheetParserMetrics collects parser time and input metrics by sheet. Its zero
 // value is ready for concurrent use.
 type SheetParserMetrics struct {
-	entries sync.Map
+	entries sync.Map // SheetMetricKey -> *sheetMetricsEntry
 }
 
 // Reset removes metrics collected by the previous generator run.
@@ -143,10 +144,10 @@ func (m *SheetParserMetrics) Reset() {
 }
 
 // Measure runs parse with pprof labels and records its wall time, result, and
-// input shape. The CPU profile uses sheet_key to attribute processor time
+// input metrics. The CPU profile uses sheet_key to attribute processor time
 // without pinning the goroutine to an OS thread.
 func (m *SheetParserMetrics) Measure(ctx context.Context, generator string, key SheetMetricKey, sheet *book.Sheet, parse func(context.Context) error) (err error) {
-	shape := measureSheet(sheet)
+	inputMetrics := measureSheetInput(sheet)
 	var wall time.Duration
 	labels := pprof.Labels(
 		"generator", generator,
@@ -161,42 +162,43 @@ func (m *SheetParserMetrics) Measure(ctx context.Context, generator string, key 
 		err = parse(ctx)
 		wall = time.Since(wallStart)
 	})
-	m.record(key, shape, wall, err != nil)
+	m.record(key, inputMetrics, wall, err != nil)
 	return err
 }
 
-func (m *SheetParserMetrics) record(key SheetMetricKey, shape sheetShape, wall time.Duration, failed bool) {
-	value, _ := m.entries.LoadOrStore(key, &sheetMetric{
-		sheetMetricSnapshot: sheetMetricSnapshot{
-			key:        key,
-			sheetShape: sheetShape{kind: shape.kind},
+func (m *SheetParserMetrics) record(key SheetMetricKey, input sheetInputMetrics, wall time.Duration, failed bool) {
+	value, _ := m.entries.LoadOrStore(key, &sheetMetricsEntry{
+		metrics: sheetMetrics{
+			key:   key,
+			input: sheetInputMetrics{kind: input.kind},
 		},
 	})
-	entry := value.(*sheetMetric)
+	entry := value.(*sheetMetricsEntry)
 	entry.mu.Lock()
 	defer entry.mu.Unlock()
 
-	entry.calls++
+	metrics := &entry.metrics
+	metrics.calls++
 	if failed {
-		entry.failures++
+		metrics.failures++
 	}
-	entry.wallTime += wall
-	entry.rows += shape.rows
-	entry.cols = max(entry.cols, shape.cols)
-	entry.presentCells += shape.presentCells
-	entry.emptyCells += shape.emptyCells
-	entry.missingCells += shape.missingCells
-	entry.emptyRows += shape.emptyRows
-	entry.valueBytes += shape.valueBytes
-	entry.nodes += shape.nodes
-	entry.scalarNodes += shape.scalarNodes
-	entry.maxDepth = max(entry.maxDepth, shape.maxDepth)
+	metrics.wallTime += wall
+	metrics.input.rows += input.rows
+	metrics.input.cols = max(metrics.input.cols, input.cols)
+	metrics.input.presentCells += input.presentCells
+	metrics.input.emptyCells += input.emptyCells
+	metrics.input.missingCells += input.missingCells
+	metrics.input.emptyRows += input.emptyRows
+	metrics.input.valueBytes += input.valueBytes
+	metrics.input.nodes += input.nodes
+	metrics.input.scalarNodes += input.scalarNodes
+	metrics.input.maxDepth = max(metrics.input.maxDepth, input.maxDepth)
 }
 
-func (m *SheetParserMetrics) collect() []sheetMetricSnapshot {
-	var results []sheetMetricSnapshot
+func (m *SheetParserMetrics) collect() []sheetMetrics {
+	var results []sheetMetrics
 	m.entries.Range(func(_, value any) bool {
-		results = append(results, value.(*sheetMetric).snapshot())
+		results = append(results, value.(*sheetMetricsEntry).snapshot())
 		return true
 	})
 	sort.Slice(results, func(i, j int) bool {
@@ -229,38 +231,38 @@ func (m *SheetParserMetrics) LoadCPUProfile(filename string) (err error) {
 	if err != nil {
 		return xerrors.Wrapf(err, "parse CPU profile %s", filename)
 	}
-	cpuIndex := -1
+	cpuSampleIndex := -1
 	for i, sampleType := range parsed.SampleType {
 		if sampleType.Type == "cpu" && sampleType.Unit == "nanoseconds" {
-			cpuIndex = i
+			cpuSampleIndex = i
 			break
 		}
 	}
-	if cpuIndex < 0 {
+	if cpuSampleIndex < 0 {
 		return xerrors.Newf("CPU profile %s has no cpu/nanoseconds samples", filename)
 	}
 
-	cpuBySheet := make(map[string]time.Duration)
+	cpuTimeBySheet := make(map[string]time.Duration)
 	for _, sample := range parsed.Sample {
-		if cpuIndex >= len(sample.Value) {
+		if cpuSampleIndex >= len(sample.Value) {
 			continue
 		}
-		cpuTime := time.Duration(sample.Value[cpuIndex])
+		cpuTime := time.Duration(sample.Value[cpuSampleIndex])
 		for _, key := range sample.Label["sheet_key"] {
-			cpuBySheet[key] += cpuTime
+			cpuTimeBySheet[key] += cpuTime
 		}
 	}
 	m.entries.Range(func(_, value any) bool {
-		entry := value.(*sheetMetric)
+		entry := value.(*sheetMetricsEntry)
 		entry.mu.Lock()
-		entry.cpuTime = cpuBySheet[entry.key.String()]
+		entry.metrics.cpuTime = cpuTimeBySheet[entry.metrics.key.String()]
 		entry.mu.Unlock()
 		return true
 	})
 	return nil
 }
 
-// Print reports each sheet's sampled CPU time, wall time, and input shape.
+// Print reports each sheet's sampled CPU time, wall time, and input metrics.
 func (m *SheetParserMetrics) Print() {
 	results := m.collect()
 	if len(results) == 0 {
@@ -270,14 +272,14 @@ func (m *SheetParserMetrics) Print() {
 	log.Info(formatSheetMetrics(results))
 }
 
-func formatSheetMetrics(results []sheetMetricSnapshot) string {
+func formatSheetMetrics(results []sheetMetrics) string {
 	var output strings.Builder
 	writeTableSheetMetrics(&output, results)
 	writeDocumentSheetMetrics(&output, results)
 	return strings.TrimRight(output.String(), "\n")
 }
 
-func writeTableSheetMetrics(output *strings.Builder, results []sheetMetricSnapshot) {
+func writeTableSheetMetrics(output *strings.Builder, results []sheetMetrics) {
 	if !hasSheetKind(results, tableKind) {
 		return
 	}
@@ -285,20 +287,21 @@ func writeTableSheetMetrics(output *strings.Builder, results []sheetMetricSnapsh
 	w := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tCPU TIME\tWALL TIME\tCALLS\tFAILURES\tROWS\tMAX COLS\tCELLS\tPRESENT\tABSENT\tEMPTY\tMISSING\tEMPTY ROWS\tVALUE BYTES")
 	for i, result := range results {
-		if result.kind != tableKind {
+		input := result.input
+		if input.kind != tableKind {
 			continue
 		}
-		absent := result.emptyCells + result.missingCells
-		cells := result.presentCells + absent
+		absent := input.emptyCells + input.missingCells
+		cells := input.presentCells + absent
 		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
 			i+1, result.key, result.cpuTime, result.wallTime, result.calls, result.failures,
-			result.rows, result.cols, cells, result.presentCells, absent,
-			result.emptyCells, result.missingCells, result.emptyRows, result.valueBytes)
+			input.rows, input.cols, cells, input.presentCells, absent,
+			input.emptyCells, input.missingCells, input.emptyRows, input.valueBytes)
 	}
 	_ = w.Flush()
 }
 
-func writeDocumentSheetMetrics(output *strings.Builder, results []sheetMetricSnapshot) {
+func writeDocumentSheetMetrics(output *strings.Builder, results []sheetMetrics) {
 	if !hasSheetKind(results, documentKind) {
 		return
 	}
@@ -309,19 +312,20 @@ func writeDocumentSheetMetrics(output *strings.Builder, results []sheetMetricSna
 	w := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tCPU TIME\tWALL TIME\tCALLS\tFAILURES\tNODES\tSCALAR NODES\tMAX DEPTH\tVALUE BYTES")
 	for i, result := range results {
-		if result.kind != documentKind {
+		input := result.input
+		if input.kind != documentKind {
 			continue
 		}
 		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n",
 			i+1, result.key, result.cpuTime, result.wallTime, result.calls, result.failures,
-			result.nodes, result.scalarNodes, result.maxDepth, result.valueBytes)
+			input.nodes, input.scalarNodes, input.maxDepth, input.valueBytes)
 	}
 	_ = w.Flush()
 }
 
-func hasSheetKind(results []sheetMetricSnapshot, kind sheetKind) bool {
+func hasSheetKind(results []sheetMetrics, kind sheetKind) bool {
 	for _, result := range results {
-		if result.kind == kind {
+		if result.input.kind == kind {
 			return true
 		}
 	}
