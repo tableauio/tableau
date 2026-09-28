@@ -43,14 +43,15 @@ type ReferredCache struct {
 
 	indexMu sync.RWMutex
 	// index maps each raw refer to its canonical key or a failed normalization.
-	index map[rawRefer]referIndexEntry
+	index map[rawRefer]referCacheKey
 }
 
 // referCacheKey identifies one referred column. Its canonical string form is
 // <fully-qualified-message-name>.<column-name>.
 type referCacheKey struct {
-	message protoreflect.FullName
-	column  string
+	message     protoreflect.FullName
+	column      string
+	unavailable bool
 }
 
 func (k referCacheKey) String() string {
@@ -70,11 +71,6 @@ type referCacheEntry struct {
 type rawRefer struct {
 	protoPackage string
 	value        string
-}
-
-type referIndexEntry struct {
-	key         referCacheKey
-	unavailable bool
 }
 
 type valueSpace struct {
@@ -109,7 +105,7 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
 		entries: make(map[referCacheKey]*referCacheEntry),
-		index:   make(map[rawRefer]referIndexEntry),
+		index:   make(map[rawRefer]referCacheKey),
 	}
 }
 
@@ -241,32 +237,27 @@ func normalizeRefer(refer string, input *Input) (referCacheKey, error) {
 // resolveKey parses a raw refer once and reuses its canonical key for all cells.
 // A failed normalization is reported once and then treated as unavailable.
 func (r *ReferredCache) resolveKey(refer string, input *Input) (referCacheKey, error) {
-	key, _, err := r.resolveKeyOnce(refer, input)
-	return key, err
-}
-
-func (r *ReferredCache) resolveKeyOnce(refer string, input *Input) (referCacheKey, bool, error) {
 	raw := rawRefer{protoPackage: input.ProtoPackage, value: refer}
 	r.indexMu.RLock()
-	entry, ok := r.index[raw]
+	key, ok := r.index[raw]
 	r.indexMu.RUnlock()
 	if ok {
-		return entry.key, entry.unavailable, nil
+		return key, nil
 	}
 
 	r.indexMu.Lock()
 	defer r.indexMu.Unlock()
-	entry, ok = r.index[raw]
+	key, ok = r.index[raw]
 	if ok {
-		return entry.key, entry.unavailable, nil
+		return key, nil
 	}
 	key, err := normalizeRefer(refer, input)
 	if err != nil {
-		r.index[raw] = referIndexEntry{unavailable: true}
-		return referCacheKey{}, false, err
+		r.index[raw] = referCacheKey{unavailable: true}
+		return referCacheKey{}, err
 	}
-	r.index[raw] = referIndexEntry{key: key}
-	return key, false, nil
+	r.index[raw] = key
+	return key, nil
 }
 
 func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, input *Input) (*valueSpace, error) {
@@ -363,11 +354,11 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 	}
 
 	for _, refer := range strings.Split(prop.Refer, ",") {
-		key, unavailable, err := r.resolveKeyOnce(refer, input)
+		key, err := r.resolveKey(refer, input)
 		if err != nil {
 			return err
 		}
-		if unavailable {
+		if key.unavailable {
 			return nil
 		}
 		entry, ok := r.cachedEntry(ctx, key)
