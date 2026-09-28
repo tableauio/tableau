@@ -8,7 +8,7 @@ import (
 	"github.com/tableauio/tableau/internal/profile"
 )
 
-func (gen *Generator) runProfiling(work func() error) error {
+func (gen *Generator) run(work func() error) error {
 	if !gen.profiling {
 		return work()
 	}

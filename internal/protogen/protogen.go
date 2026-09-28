@@ -200,7 +200,7 @@ func (gen *Generator) GenAll() error {
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	return gen.runProfiling(func() error {
+	return gen.run(func() error {
 		if err := gen.output.createStagingDir(); err != nil {
 			return err
 		}
@@ -227,7 +227,7 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	if err := gen.resetRunState(); err != nil {
 		return err
 	}
-	return gen.runProfiling(func() error {
+	return gen.run(func() error {
 		if err := gen.output.createStagingDir(); err != nil {
 			return err
 		}

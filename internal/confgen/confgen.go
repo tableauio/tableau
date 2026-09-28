@@ -129,7 +129,7 @@ func (gen *Generator) GenAll() error {
 			log.Warnf("failed to close importer cache: %v", closeErr)
 		}
 	}()
-	return gen.runProfiling(func() error {
+	return gen.run(func() error {
 		prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 		if err != nil {
 			return err
@@ -163,7 +163,7 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 			log.Warnf("failed to close importer cache: %v", closeErr)
 		}
 	}()
-	return gen.runProfiling(func() error {
+	return gen.run(func() error {
 		prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 		if err != nil {
 			return err

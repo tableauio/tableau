@@ -28,7 +28,7 @@ func TestProfilingUsesRuntimeOption(t *testing.T) {
 		t.Fatalf("generator label = %q, %t; want confgen, true", value, ok)
 	}
 
-	if err := gen.runProfiling(func() error {
+	if err := gen.run(func() error {
 		data := make([]byte, 1<<20)
 		deadline := time.Now().Add(100 * time.Millisecond)
 		for time.Now().Before(deadline) {
