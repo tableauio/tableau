@@ -43,7 +43,7 @@ func TestMeasureSheet(t *testing.T) {
 		})
 		got := measureSheet(sheet)
 		want := sheetShape{
-			kind:         "table",
+			kind:         tableKind,
 			rows:         4,
 			cols:         3,
 			presentCells: 5,
@@ -70,7 +70,7 @@ func TestMeasureSheet(t *testing.T) {
 		})
 		got := measureSheet(sheet)
 		want := sheetShape{
-			kind:        "document",
+			kind:        documentKind,
 			nodes:       4,
 			scalarNodes: 2,
 			maxDepth:    3,
@@ -84,7 +84,7 @@ func TestMeasureSheet(t *testing.T) {
 
 func TestSheetParserMetricsSortsByWallTime(t *testing.T) {
 	var metrics SheetParserMetrics
-	shape := sheetShape{kind: "table", rows: 2, cols: 3, presentCells: 3, missingCells: 3}
+	shape := sheetShape{kind: tableKind, rows: 2, cols: 3, presentCells: 3, missingCells: 3}
 	fast := SheetMetricKey{Book: "fast.xlsx", Sheet: "Items", Detail: "test.Items"}
 	slow := SheetMetricKey{Book: "slow.xlsx", Sheet: "Items", Detail: "test.Items"}
 
@@ -104,7 +104,7 @@ func TestSheetParserMetricsSortsByWallTime(t *testing.T) {
 
 func TestSheetParserMetricsBreaksWallTimeTiesByKey(t *testing.T) {
 	var metrics SheetParserMetrics
-	shape := sheetShape{kind: "document", nodes: 1}
+	shape := sheetShape{kind: documentKind, nodes: 1}
 	a := SheetMetricKey{Book: "a.yaml", Sheet: "A", Detail: "test.A"}
 	b := SheetMetricKey{Book: "b.yaml", Sheet: "B", Detail: "test.B"}
 	metrics.record(b, shape, time.Second, false)
@@ -128,7 +128,7 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 	}
 
 	key := SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"}
-	metrics.record(key, sheetShape{kind: "table", rows: 1, cols: 1}, time.Second, false)
+	metrics.record(key, sheetShape{kind: tableKind, rows: 1, cols: 1}, time.Second, false)
 	metrics.Print()
 	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "sheet_key") || !strings.Contains(driver.messages[1], key.String()) {
 		t.Fatalf("metrics log = %q", driver.messages)
@@ -139,7 +139,7 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 		t.Fatalf("metrics after Reset() = %v, want empty", got)
 	}
 	driver.messages = nil
-	metrics.record(key, sheetShape{kind: "table"}, time.Second, false)
+	metrics.record(key, sheetShape{kind: tableKind}, time.Second, false)
 	metrics.Print()
 	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "CPU time") {
 		t.Fatalf("CPU metrics log = %q", driver.messages)
@@ -149,18 +149,20 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 func TestFormatSheetMetrics(t *testing.T) {
 	t.Run("table", func(t *testing.T) {
 		result := sheetMetricSnapshot{
-			key:          SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"},
-			kind:         "table",
-			calls:        1,
-			cpuTime:      250 * time.Millisecond,
-			wallTime:     time.Second,
-			rows:         2,
-			cols:         3,
-			presentCells: 4,
-			emptyCells:   1,
-			missingCells: 1,
-			emptyRows:    1,
-			valueBytes:   16,
+			key:      SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"},
+			calls:    1,
+			cpuTime:  250 * time.Millisecond,
+			wallTime: time.Second,
+			sheetShape: sheetShape{
+				kind:         tableKind,
+				rows:         2,
+				cols:         3,
+				presentCells: 4,
+				emptyCells:   1,
+				missingCells: 1,
+				emptyRows:    1,
+				valueBytes:   16,
+			},
 		}
 		got := formatSheetMetrics([]sheetMetricSnapshot{result})
 		for _, want := range []string{
@@ -182,16 +184,18 @@ func TestFormatSheetMetrics(t *testing.T) {
 
 	t.Run("document", func(t *testing.T) {
 		result := sheetMetricSnapshot{
-			key:         SheetMetricKey{Book: "items.yaml", Sheet: "Items", Detail: "test.Items"},
-			kind:        "document",
-			calls:       1,
-			failures:    1,
-			cpuTime:     500 * time.Millisecond,
-			wallTime:    time.Second,
-			nodes:       4,
-			scalarNodes: 2,
-			maxDepth:    3,
-			valueBytes:  16,
+			key:      SheetMetricKey{Book: "items.yaml", Sheet: "Items", Detail: "test.Items"},
+			calls:    1,
+			failures: 1,
+			cpuTime:  500 * time.Millisecond,
+			wallTime: time.Second,
+			sheetShape: sheetShape{
+				kind:        documentKind,
+				nodes:       4,
+				scalarNodes: 2,
+				maxDepth:    3,
+				valueBytes:  16,
+			},
 		}
 		got := formatSheetMetrics([]sheetMetricSnapshot{result})
 		for _, want := range []string{
@@ -215,7 +219,7 @@ func TestFormatSheetMetrics(t *testing.T) {
 func TestSheetParserMetricsConcurrent(t *testing.T) {
 	var metrics SheetParserMetrics
 	key := SheetMetricKey{Book: "shared.xlsx", Sheet: "Items", Detail: "test.Items"}
-	shape := sheetShape{kind: "table", rows: 1, cols: 1, presentCells: 1}
+	shape := sheetShape{kind: tableKind, rows: 1, cols: 1, presentCells: 1}
 	const calls = 64
 
 	var group sync.WaitGroup

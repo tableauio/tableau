@@ -20,9 +20,9 @@ import (
 
 // SheetMetricKey identifies one generator operation on an imported sheet.
 type SheetMetricKey struct {
-	Book   string
-	Sheet  string
-	Detail string
+	Book   string // Book is the source workbook name relative to the input directory.
+	Sheet  string // Sheet is the imported worksheet name.
+	Detail string // Detail distinguishes operations such as a message or parsing pass.
 }
 
 func (k SheetMetricKey) String() string {
@@ -33,18 +33,28 @@ func (k SheetMetricKey) String() string {
 	return name + " (" + k.Detail + ")"
 }
 
+// sheetKind identifies which shape metrics apply to a sheet.
+type sheetKind string
+
+const (
+	tableKind    sheetKind = "table"
+	documentKind sheetKind = "document"
+)
+
+// sheetShape describes the source data observed by one parser call. Table and
+// document sheets populate only the fields that apply to their representation.
 type sheetShape struct {
-	kind         string
-	rows         int64
-	cols         int64
-	presentCells int64
-	emptyCells   int64
-	missingCells int64
-	emptyRows    int64
-	valueBytes   int64
-	nodes        int64
-	scalarNodes  int64
-	maxDepth     int64
+	kind         sheetKind // kind identifies the table or document representation.
+	rows         int64     // rows counts all table rows, including header rows.
+	cols         int64     // cols is the widest table row.
+	presentCells int64     // presentCells counts explicitly stored, nonempty table cells.
+	emptyCells   int64     // emptyCells counts explicitly stored empty table cells.
+	missingCells int64     // missingCells counts implicit trailing cells in short table rows.
+	emptyRows    int64     // emptyRows counts table rows with no nonempty cells.
+	valueBytes   int64     // valueBytes totals bytes in table cells or document scalar values.
+	nodes        int64     // nodes counts all document nodes, including the root.
+	scalarNodes  int64     // scalarNodes counts document scalar nodes, including empty values.
+	maxDepth     int64     // maxDepth is the document depth with the root at depth one.
 }
 
 // measureSheet describes the imported sheet before parsing can add virtual
@@ -53,7 +63,7 @@ type sheetShape struct {
 func measureSheet(sheet *book.Sheet) sheetShape {
 	var shape sheetShape
 	if sheet.Document != nil {
-		shape.kind = "document"
+		shape.kind = documentKind
 		var visit func(*book.Node, int64)
 		visit = func(node *book.Node, depth int64) {
 			if node == nil {
@@ -76,7 +86,7 @@ func measureSheet(sheet *book.Sheet) sheetShape {
 		return shape
 	}
 
-	shape.kind = "table"
+	shape.kind = tableKind
 	shape.rows = int64(len(sheet.Table.Rows))
 	for _, row := range sheet.Table.Rows {
 		shape.cols = max(shape.cols, int64(len(row)))
@@ -98,27 +108,20 @@ func measureSheet(sheet *book.Sheet) sheetShape {
 	return shape
 }
 
+// sheetMetricSnapshot stores accumulated measurements for one operation key.
 type sheetMetricSnapshot struct {
-	key          SheetMetricKey
-	kind         string
-	calls        int64
-	failures     int64
-	cpuTime      time.Duration
-	wallTime     time.Duration
-	rows         int64
-	cols         int64
-	presentCells int64
-	emptyCells   int64
-	missingCells int64
-	emptyRows    int64
-	valueBytes   int64
-	nodes        int64
-	scalarNodes  int64
-	maxDepth     int64
+	key      SheetMetricKey // key identifies the sheet parser operation.
+	calls    int64          // calls counts parser invocations for the key.
+	failures int64          // failures counts invocations that returned an error.
+	cpuTime  time.Duration  // cpuTime is processor time sampled under the sheet's pprof label.
+	wallTime time.Duration  // wallTime is elapsed parser time accumulated across calls.
+	// sheetShape accumulates counts and bytes across calls. cols and maxDepth
+	// retain the largest observed value.
+	sheetShape
 }
 
 type sheetMetric struct {
-	mu sync.Mutex
+	mu sync.Mutex // mu protects sheetMetricSnapshot.
 	sheetMetricSnapshot
 }
 
@@ -164,7 +167,10 @@ func (m *SheetParserMetrics) Measure(ctx context.Context, generator string, key 
 
 func (m *SheetParserMetrics) record(key SheetMetricKey, shape sheetShape, wall time.Duration, failed bool) {
 	value, _ := m.entries.LoadOrStore(key, &sheetMetric{
-		sheetMetricSnapshot: sheetMetricSnapshot{key: key, kind: shape.kind},
+		sheetMetricSnapshot: sheetMetricSnapshot{
+			key:        key,
+			sheetShape: sheetShape{kind: shape.kind},
+		},
 	})
 	entry := value.(*sheetMetric)
 	entry.mu.Lock()
@@ -272,14 +278,14 @@ func formatSheetMetrics(results []sheetMetricSnapshot) string {
 }
 
 func writeTableSheetMetrics(output *strings.Builder, results []sheetMetricSnapshot) {
-	if !hasSheetKind(results, "table") {
+	if !hasSheetKind(results, tableKind) {
 		return
 	}
 	output.WriteString("table sheets:\n")
 	w := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tCPU TIME\tWALL TIME\tCALLS\tFAILURES\tROWS\tMAX COLS\tCELLS\tPRESENT\tABSENT\tEMPTY\tMISSING\tEMPTY ROWS\tVALUE BYTES")
 	for i, result := range results {
-		if result.kind != "table" {
+		if result.kind != tableKind {
 			continue
 		}
 		absent := result.emptyCells + result.missingCells
@@ -293,7 +299,7 @@ func writeTableSheetMetrics(output *strings.Builder, results []sheetMetricSnapsh
 }
 
 func writeDocumentSheetMetrics(output *strings.Builder, results []sheetMetricSnapshot) {
-	if !hasSheetKind(results, "document") {
+	if !hasSheetKind(results, documentKind) {
 		return
 	}
 	if output.Len() > 0 {
@@ -303,7 +309,7 @@ func writeDocumentSheetMetrics(output *strings.Builder, results []sheetMetricSna
 	w := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
 	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tCPU TIME\tWALL TIME\tCALLS\tFAILURES\tNODES\tSCALAR NODES\tMAX DEPTH\tVALUE BYTES")
 	for i, result := range results {
-		if result.kind != "document" {
+		if result.kind != documentKind {
 			continue
 		}
 		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n",
@@ -313,7 +319,7 @@ func writeDocumentSheetMetrics(output *strings.Builder, results []sheetMetricSna
 	_ = w.Flush()
 }
 
-func hasSheetKind(results []sheetMetricSnapshot, kind string) bool {
+func hasSheetKind(results []sheetMetricSnapshot, kind sheetKind) bool {
 	for _, result := range results {
 		if result.kind == kind {
 			return true
