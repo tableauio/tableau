@@ -401,15 +401,17 @@ func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message,
 }
 
 func (p *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
-	structValue := msg.NewField(field.fd)
+	var structValue protoreflect.Value
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
+		structValue = msg.NewField(field.fd)
 		present, err = p.parseIncellStruct(field, structValue, node.ScalarValue(), field.sep)
 	} else if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 		structValue, present, err = p.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
 	} else {
 		// cross-cell struct
+		structValue = msg.NewField(field.fd)
 		present, err = p.parseMessage(field, structValue.Message(), node.StructNode(), cardPrefix)
 	}
 	if err != nil {
