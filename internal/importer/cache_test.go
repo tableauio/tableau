@@ -137,6 +137,40 @@ func TestCacheLoadBypassesCustomParser(t *testing.T) {
 	}
 }
 
+func TestCacheReleaseImporterCompactsAfterLastLease(t *testing.T) {
+	cache := NewCache()
+	cache.EnableProfiling()
+
+	first, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first != second {
+		t.Fatal("same cache key returned different importer views")
+	}
+	if err := cache.ReleaseImporter(first); err != nil {
+		t.Fatal(err)
+	}
+	if _, imports, _, _ := cache.Metrics(); imports != 1 {
+		t.Fatalf("source closed before final lease: imports = %d", imports)
+	}
+	if err := cache.ReleaseImporter(second); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"})); err != nil {
+		t.Fatal(err)
+	}
+	if _, imports, _, _ := cache.Metrics(); imports != 2 {
+		t.Fatalf("Load() did not reopen compacted source: imports = %d", imports)
+	}
+	_ = cache.Close()
+}
+
 func TestNilCacheLoadMergerImporters(t *testing.T) {
 	var cache *Cache
 	got, err := cache.LoadMergerImporters(
