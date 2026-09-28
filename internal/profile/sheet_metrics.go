@@ -2,7 +2,9 @@ package profile
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"runtime/pprof"
 	"sort"
 	"strings"
@@ -10,7 +12,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	profiledata "github.com/google/pprof/profile"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/log"
 )
 
@@ -99,6 +103,7 @@ type sheetMetricSnapshot struct {
 	kind         string
 	calls        int64
 	failures     int64
+	cpuTime      time.Duration
 	wallTime     time.Duration
 	rows         int64
 	cols         int64
@@ -189,6 +194,9 @@ func (m *SheetParserMetrics) collect() []sheetMetricSnapshot {
 		return true
 	})
 	sort.Slice(results, func(i, j int) bool {
+		if results[i].cpuTime != results[j].cpuTime {
+			return results[i].cpuTime > results[j].cpuTime
+		}
 		if results[i].wallTime != results[j].wallTime {
 			return results[i].wallTime > results[j].wallTime
 		}
@@ -197,14 +205,62 @@ func (m *SheetParserMetrics) collect() []sheetMetricSnapshot {
 	return results
 }
 
-// Print reports each sheet's parser wall time. Processor time is available in
-// the CPU profile through the sheet_key label.
+// LoadCPUProfile attributes sampled processor time to sheets through the
+// sheet_key pprof label. Short parser calls may have no samples and remain zero.
+func (m *SheetParserMetrics) LoadCPUProfile(filename string) (err error) {
+	if filename == "" {
+		return nil
+	}
+	file, err := os.Open(filename)
+	if err != nil {
+		return xerrors.Wrapf(err, "open CPU profile %s", filename)
+	}
+	defer func() {
+		err = errors.Join(err, xerrors.Wrapf(file.Close(), "close CPU profile %s", filename))
+	}()
+
+	parsed, err := profiledata.Parse(file)
+	if err != nil {
+		return xerrors.Wrapf(err, "parse CPU profile %s", filename)
+	}
+	cpuIndex := -1
+	for i, sampleType := range parsed.SampleType {
+		if sampleType.Type == "cpu" && sampleType.Unit == "nanoseconds" {
+			cpuIndex = i
+			break
+		}
+	}
+	if cpuIndex < 0 {
+		return xerrors.Newf("CPU profile %s has no cpu/nanoseconds samples", filename)
+	}
+
+	cpuBySheet := make(map[string]time.Duration)
+	for _, sample := range parsed.Sample {
+		if cpuIndex >= len(sample.Value) {
+			continue
+		}
+		cpuTime := time.Duration(sample.Value[cpuIndex])
+		for _, key := range sample.Label["sheet_key"] {
+			cpuBySheet[key] += cpuTime
+		}
+	}
+	m.entries.Range(func(_, value any) bool {
+		entry := value.(*sheetMetric)
+		entry.mu.Lock()
+		entry.cpuTime = cpuBySheet[entry.key.String()]
+		entry.mu.Unlock()
+		return true
+	})
+	return nil
+}
+
+// Print reports each sheet's sampled CPU time, wall time, and input shape.
 func (m *SheetParserMetrics) Print() {
 	results := m.collect()
 	if len(results) == 0 {
 		return
 	}
-	log.Infof("sheet parser wall time, slowest first (CPU profile label: sheet_key):")
+	log.Infof("sheet parser metrics, sampled CPU time first (pprof label: sheet_key):")
 	log.Info(formatSheetMetrics(results))
 }
 
@@ -221,15 +277,15 @@ func writeTableSheetMetrics(output *strings.Builder, results []sheetMetricSnapsh
 	}
 	output.WriteString("table sheets:\n")
 	w := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
-	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tWALL\tCALLS\tFAILURES\tROWS\tMAX COLS\tCELLS\tPRESENT\tABSENT\tEMPTY\tMISSING\tEMPTY ROWS\tVALUE BYTES")
+	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tCPU TIME\tWALL TIME\tCALLS\tFAILURES\tROWS\tMAX COLS\tCELLS\tPRESENT\tABSENT\tEMPTY\tMISSING\tEMPTY ROWS\tVALUE BYTES")
 	for i, result := range results {
 		if result.kind != "table" {
 			continue
 		}
 		absent := result.emptyCells + result.missingCells
 		cells := result.presentCells + absent
-		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-			i+1, result.key, result.wallTime, result.calls, result.failures,
+		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+			i+1, result.key, result.cpuTime, result.wallTime, result.calls, result.failures,
 			result.rows, result.cols, cells, result.presentCells, absent,
 			result.emptyCells, result.missingCells, result.emptyRows, result.valueBytes)
 	}
@@ -245,13 +301,13 @@ func writeDocumentSheetMetrics(output *strings.Builder, results []sheetMetricSna
 	}
 	output.WriteString("document sheets:\n")
 	w := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
-	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tWALL\tCALLS\tFAILURES\tNODES\tSCALAR NODES\tMAX DEPTH\tVALUE BYTES")
+	_, _ = fmt.Fprintln(w, "RANK\tSHEET\tCPU TIME\tWALL TIME\tCALLS\tFAILURES\tNODES\tSCALAR NODES\tMAX DEPTH\tVALUE BYTES")
 	for i, result := range results {
 		if result.kind != "document" {
 			continue
 		}
-		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n",
-			i+1, result.key, result.wallTime, result.calls, result.failures,
+		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n",
+			i+1, result.key, result.cpuTime, result.wallTime, result.calls, result.failures,
 			result.nodes, result.scalarNodes, result.maxDepth, result.valueBytes)
 	}
 	_ = w.Flush()

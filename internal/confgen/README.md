@@ -151,10 +151,11 @@ can run in a process at a time, and each run replaces the previous files.
 
 GenAll and GenWorkbook log one row per imported workbook, sheet, and
 protobuf message, including sheets used by scatter and merger. Repeated parses
-of the same source are aggregated. The metric report sorts by cumulative wall
-time. The labeled CPU profile is the cross-platform source for sampled
-processor-time attribution. This avoids changing scheduler behavior with
-OS-thread pinning and includes labeled child goroutines.
+of the same source are aggregated. The report reads sampled processor time from
+the labeled CPU profile and sorts by cumulative CPU time, then wall time. This
+avoids changing scheduler behavior with OS-thread pinning and includes labeled
+child goroutines. Very short parses may show zero CPU time when they receive no
+sample.
 
 Wall time covers only sheetParser.Parse. It excludes workbook import, sheet
 shape collection, validation, merging, and output. Concurrent wall durations

@@ -19,19 +19,27 @@ type session struct {
 	memPath string
 }
 
-// Capture runs work while collecting process CPU and post-GC memory profiles.
-// If another CPU profile is active, Capture logs the conflict and runs work
-// without writing profile files.
-func Capture(name, outputDir string, work func() error) (err error) {
+// Files names the profiles produced by Capture. Empty paths mean profiling
+// could not start and work ran without profile files.
+type Files struct {
+	CPU    string
+	Memory string
+}
+
+// Capture runs work while collecting process CPU and post-GC memory profiles
+// and returns their paths. If another CPU profile is active, Capture logs the
+// conflict and runs work without writing profile files.
+func Capture(name, outputDir string, work func() error) (files Files, err error) {
 	s, startErr := start(name, outputDir)
 	if startErr != nil {
 		log.Warnf("profiling unavailable: %v", startErr)
-		return work()
+		return Files{}, work()
 	}
+	files = Files{CPU: s.cpuPath, Memory: s.memPath}
 	defer func() {
 		err = errors.Join(err, s.stop())
 	}()
-	return work()
+	return files, work()
 }
 
 func start(name, outputDir string) (*session, error) {

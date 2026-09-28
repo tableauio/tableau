@@ -10,7 +10,7 @@ import (
 
 func TestCaptureWritesCPUAndMemoryProfiles(t *testing.T) {
 	outputDir := t.TempDir()
-	if err := Capture("testgen", outputDir, func() error {
+	files, err := Capture("testgen", outputDir, func() error {
 		data := make([]byte, 1<<20)
 		deadline := time.Now().Add(100 * time.Millisecond)
 		for time.Now().Before(deadline) {
@@ -18,7 +18,12 @@ func TestCaptureWritesCPUAndMemoryProfiles(t *testing.T) {
 		}
 		runtime.KeepAlive(data)
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var metrics SheetParserMetrics
+	if err := metrics.LoadCPUProfile(files.CPU); err != nil {
 		t.Fatal(err)
 	}
 

@@ -1,6 +1,7 @@
 package confgen
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -19,7 +20,8 @@ func (gen *Generator) run(work func() error) error {
 	if gen.OutputOpt != nil {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
 	}
-	return profile.Capture("confgen", profileDir, work)
+	files, err := profile.Capture("confgen", profileDir, work)
+	return errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU))
 }
 
 // printMetrics reports importer cache use and sheet parser metrics.

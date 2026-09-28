@@ -31,8 +31,9 @@ the configured output directory:
 - `<generator>-cpu.pprof`
 - `<generator>-mem.pprof`
 
-The run also reports per-sheet parser metrics. Profiling adds overhead, so use
-normal-mode runs to compare end-to-end performance.
+The run also reports sampled CPU time, wall time, and input-shape metrics per
+sheet. Profiling adds overhead, so use normal-mode runs to compare end-to-end
+performance.
 
 ## Inspect profiles
 

@@ -7,6 +7,7 @@ require (
 	buf.build/go/protovalidate v1.2.0
 	github.com/bufbuild/protocompile v0.14.1
 	github.com/emirpasic/gods v1.18.1
+	github.com/google/pprof v0.0.0-20240528025155-186aa0362fba
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240820135758-21b1d9897dc7
 	github.com/rogpeppe/go-internal v1.10.0
 	github.com/spf13/cobra v1.10.2

@@ -141,8 +141,8 @@ func TestSheetParserMetricsPrintAndReset(t *testing.T) {
 	driver.messages = nil
 	metrics.record(key, sheetShape{kind: "table"}, time.Second, false)
 	metrics.Print()
-	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "wall time") {
-		t.Fatalf("wall metrics log = %q", driver.messages)
+	if len(driver.messages) != 2 || !strings.Contains(driver.messages[0], "CPU time") {
+		t.Fatalf("CPU metrics log = %q", driver.messages)
 	}
 }
 
@@ -152,6 +152,7 @@ func TestFormatSheetMetrics(t *testing.T) {
 			key:          SheetMetricKey{Book: "items.xlsx", Sheet: "Items", Detail: "test.Items"},
 			kind:         "table",
 			calls:        1,
+			cpuTime:      250 * time.Millisecond,
 			wallTime:     time.Second,
 			rows:         2,
 			cols:         3,
@@ -166,6 +167,7 @@ func TestFormatSheetMetrics(t *testing.T) {
 			"RANK",
 			"SHEET",
 			"items.xlsx#Items (test.Items)",
+			"250ms",
 			"1s",
 			"2",
 			"3",
@@ -184,6 +186,7 @@ func TestFormatSheetMetrics(t *testing.T) {
 			kind:        "document",
 			calls:       1,
 			failures:    1,
+			cpuTime:     500 * time.Millisecond,
 			wallTime:    time.Second,
 			nodes:       4,
 			scalarNodes: 2,
@@ -195,6 +198,7 @@ func TestFormatSheetMetrics(t *testing.T) {
 			"RANK",
 			"SHEET",
 			"items.yaml#Items (test.Items)",
+			"500ms",
 			"1s",
 			"4",
 			"2",

@@ -2,6 +2,7 @@ package protogen
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 
 	"github.com/tableauio/tableau/internal/importer/book"
@@ -17,7 +18,8 @@ func (gen *Generator) run(work func() error) error {
 	if gen.OutputOpt != nil {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
 	}
-	return profile.Capture("protogen", profileDir, work)
+	files, err := profile.Capture("protogen", profileDir, work)
+	return errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU))
 }
 
 func (gen *Generator) measureSheet(bookName string, pass parsePass, sheet *book.Sheet, parse func() error) error {
