@@ -285,6 +285,8 @@ func TestLoadOriginReusesImporterCache(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, opts.Close()) })
 	mopts := opts.ParseMessagerOptionsByName("ItemConf")
 
+	// Shared messager options are loaded sequentially because each load releases
+	// all workbook handles held by the shared cache before returning.
 	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
 	firstRequests, firstImports, _, _ := opts.importerCache.Metrics()
 	require.Positive(t, firstImports)

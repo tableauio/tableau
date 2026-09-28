@@ -270,6 +270,28 @@ func TestCheckRefer_normalizesCacheKey(t *testing.T) {
 	}
 }
 
+func TestCheckReferTrimsSegments(t *testing.T) {
+	cache := NewReferredCache()
+	input := &Input{
+		ProtoPackage: "unittest",
+		InputDir:     "../../../testdata",
+		PRFiles:      protoregistry.GlobalFiles,
+		Present:      true,
+	}
+
+	if err := cache.CheckRefer(context.Background(), &tableaupb.FieldProp{
+		Refer: "ItemConf.Num, ItemConf.ID,",
+	}, "1", input); err != nil {
+		t.Fatalf("CheckRefer() error = %v", err)
+	}
+	if _, ok := cache.refers[rawRefer{protoPackage: "unittest", value: "ItemConf.ID"}]; !ok {
+		t.Fatal("trimmed refer was not cached")
+	}
+	if _, ok := cache.refers[rawRefer{protoPackage: "unittest", value: " ItemConf.ID"}]; ok {
+		t.Fatal("refer cache retained leading whitespace")
+	}
+}
+
 func TestReferredCache_resolveKeyCachesRawRefers(t *testing.T) {
 	cache := NewReferredCache()
 	input := &Input{ProtoPackage: "unittest"}

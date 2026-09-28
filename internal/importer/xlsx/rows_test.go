@@ -26,7 +26,7 @@ func TestParseRows(t *testing.T) {
 
 func TestParseRowsHandlesSparseAndRichCells(t *testing.T) {
 	data := []byte(`<x:worksheet><x:sheetData>
-<x:row r='1'><x:c r='$A$1' t='inlineStr'><x:is><x:r><x:t>Hi</x:t></x:r><x:rPh><x:t>ignored</x:t></x:rPh><x:r><x:t>!</x:t></x:r></x:is></x:c><x:c r='C1'/><x:c r='D1' t='s'><x:v>9</x:v></x:c></x:row>
+<x:row r='1'><x:c r='$A$1' t='inlineStr'><x:is><x:r><x:t>Hi</x:t></x:r><x:rPh><x:t>ignored</x:t></x:rPh><x:r><x:t>!</x:t></x:r></x:is></x:c><x:c r='C1'/><x:c r='D1'><x:v>9</x:v></x:c></x:row>
 <x:row r='2'/><x:row r='3'><x:c><x:v>7</x:v></x:c></x:row>
 </x:sheetData></x:worksheet>`)
 
@@ -37,6 +37,13 @@ func TestParseRowsHandlesSparseAndRichCells(t *testing.T) {
 		nil,
 		{"7"},
 	}, rows)
+}
+
+func TestParseRowsRejectsInvalidSharedStringIndex(t *testing.T) {
+	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>9</v></c></row></sheetData></worksheet>`)
+
+	_, err := parseRows(data, []string{"shared"})
+	require.ErrorContains(t, err, "shared string index 9 out of range")
 }
 
 func TestParseRowsRejectsMalformedXML(t *testing.T) {

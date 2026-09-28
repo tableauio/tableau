@@ -124,11 +124,7 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 
 func (gen *Generator) GenAll() error {
 	gen.resetRunState()
-	defer func() {
-		if closeErr := gen.importerCache.Close(); closeErr != nil {
-			log.Warnf("failed to close importer cache: %v", closeErr)
-		}
-	}()
+	defer gen.closeRunCaches()
 	return gen.run(func() error {
 		prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 		if err != nil {
@@ -158,11 +154,7 @@ func (gen *Generator) GenAll() error {
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 	gen.resetRunState()
-	defer func() {
-		if closeErr := gen.importerCache.Close(); closeErr != nil {
-			log.Warnf("failed to close importer cache: %v", closeErr)
-		}
-	}()
+	defer gen.closeRunCaches()
 	return gen.run(func() error {
 		prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 		if err != nil {
@@ -203,6 +195,21 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		return g.Wait()
 	})
+}
+
+// closeRunCaches closes the current run's importer cache and drops both run
+// caches so decoded sheets and referred values can be collected before the
+// next generator run.
+func (gen *Generator) closeRunCaches() {
+	importerCache := gen.importerCache
+	gen.importerCache = nil
+	gen.referredCache = nil
+	if importerCache == nil {
+		return
+	}
+	if err := importerCache.Close(); err != nil {
+		log.Warnf("failed to close importer cache: %v", err)
+	}
 }
 
 // convert a workbook related to parameter fd, and only convert the

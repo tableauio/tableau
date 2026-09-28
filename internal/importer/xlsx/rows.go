@@ -151,11 +151,13 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 				switch current.kind {
 				case 's':
 					index, err := parseInt(bytes.TrimSpace(current.value))
-					if err == nil && index >= 0 && index < len(sharedStrings) {
-						value = sharedStrings[index]
-					} else {
-						value = decodeText(current.value)
+					if err != nil {
+						return nil, xerrors.Wrapf(err, "invalid shared string index %q", current.value)
 					}
+					if index < 0 || index >= len(sharedStrings) {
+						return nil, xerrors.Newf("shared string index %d out of range", index)
+					}
+					value = sharedStrings[index]
 				case 'i':
 					value = decodeEscapes(current.inlineText.String())
 				default:

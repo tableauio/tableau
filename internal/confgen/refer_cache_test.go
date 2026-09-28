@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
+	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -48,6 +49,23 @@ func TestGeneratorResetRunStateRetriesFailedRefer(t *testing.T) {
 	}
 	if gen.collector.HasErrors() {
 		t.Fatal("resetRunState() retained errors from the previous run")
+	}
+}
+
+func TestGeneratorCloseRunCaches(t *testing.T) {
+	importerCache := importer.NewCache()
+	gen := &Generator{
+		importerCache: importerCache,
+		referredCache: fieldprop.NewReferredCache(),
+	}
+
+	gen.closeRunCaches()
+
+	if gen.importerCache != nil || gen.referredCache != nil {
+		t.Fatal("closeRunCaches() retained run caches")
+	}
+	if _, err := importerCache.Load(context.Background(), "testdata/Test.xlsx"); err == nil {
+		t.Fatal("closed importer cache accepted a load")
 	}
 }
 

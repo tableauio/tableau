@@ -112,7 +112,9 @@ func (o *MessagerOptions) getReferredCache() *fieldprop.ReferredCache {
 
 // getImporterCache returns the shared cache when the options came from
 // Options.ParseMessagerOptionsByName. Direct MessagerOptions values receive a
-// one-call cache that loadOrigin owns and closes.
+// one-call cache that loadOrigin owns and closes. Shared options must be loaded
+// sequentially because loadOrigin releases all shared workbook handles before
+// returning.
 func (o *MessagerOptions) getImporterCache() (cache *importer.Cache, owned bool) {
 	if o == nil || o.importerCache == nil {
 		return importer.NewCache(), true
@@ -206,7 +208,9 @@ func (o *MessagerOptions) GetPatchPaths() []string {
 // returned by ParseMessagerOptionsByName share its importer and referred-data
 // caches. Keep one Options instance for an input directory and its
 // SubdirRewrites configuration. Close discards the caches when the scope ends;
-// each load releases its workbook handles before returning.
+// each load releases its workbook handles before returning. Do not load
+// messagers concurrently when they share one Options value; synchronize those
+// calls or use separate Options values.
 type Options struct {
 	BaseOptions
 	// MessagerOptions maps each messager name to a MessageOptions.

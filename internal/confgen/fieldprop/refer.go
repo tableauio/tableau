@@ -368,6 +368,10 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 	}
 
 	for _, refer := range strings.Split(prop.Refer, ",") {
+		refer = strings.TrimSpace(refer)
+		if refer == "" {
+			continue
+		}
 		key, err := r.resolveKey(refer, input)
 		if err != nil {
 			return err
