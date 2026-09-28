@@ -8,22 +8,19 @@ import (
 	"time"
 )
 
-func TestStartWritesCPUAndMemoryProfiles(t *testing.T) {
+func TestCaptureWritesCPUAndMemoryProfiles(t *testing.T) {
 	outputDir := t.TempDir()
-	stop, err := Start("testgen", outputDir)
-	if err != nil {
+	if err := Capture("testgen", outputDir, func() error {
+		data := make([]byte, 1<<20)
+		deadline := time.Now().Add(100 * time.Millisecond)
+		for time.Now().Before(deadline) {
+			data[0]++
+		}
+		runtime.KeepAlive(data)
+		return nil
+	}); err != nil {
 		t.Fatal(err)
 	}
-
-	data := make([]byte, 1<<20)
-	deadline := time.Now().Add(100 * time.Millisecond)
-	for time.Now().Before(deadline) {
-		data[0]++
-	}
-	if err := stop(); err != nil {
-		t.Fatal(err)
-	}
-	runtime.KeepAlive(data)
 
 	for _, name := range []string{"testgen-cpu.pprof", "testgen-mem.pprof"} {
 		info, err := os.Stat(filepath.Join(outputDir, name))

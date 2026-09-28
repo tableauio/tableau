@@ -9,15 +9,15 @@ import (
 )
 
 func (gen *Generator) runProfiling(work func() error) error {
-	return profile.ExecuteWithStart(gen.profiling, gen.startProfiling, gen.SheetParserMetrics.Print, work)
-}
-
-func (gen *Generator) startProfiling() (func() error, error) {
+	if !gen.profiling {
+		return work()
+	}
+	defer gen.SheetParserMetrics.Print()
 	profileDir := gen.OutputDir
 	if gen.OutputOpt != nil {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
 	}
-	return profile.Start("protogen", profileDir)
+	return profile.Capture("protogen", profileDir, work)
 }
 
 func (gen *Generator) measureSheet(bookName string, pass parsePass, sheet *book.Sheet, parse func() error) error {

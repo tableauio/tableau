@@ -8,15 +8,15 @@ import (
 )
 
 func (gen *Generator) runProfiling(work func() error) error {
-	return profile.ExecuteWithStart(gen.profiling, gen.startProfiling, gen.printMetrics, work)
-}
-
-func (gen *Generator) startProfiling() (func() error, error) {
+	if !gen.profiling {
+		return work()
+	}
+	defer gen.printMetrics()
 	profileDir := gen.OutputDir
 	if gen.OutputOpt != nil {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
 	}
-	return profile.Start("confgen", profileDir)
+	return profile.Capture("confgen", profileDir, work)
 }
 
 // printMetrics reports importer cache use and sheet parser metrics.

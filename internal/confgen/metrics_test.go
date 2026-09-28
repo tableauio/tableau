@@ -3,8 +3,10 @@ package confgen
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/pprof"
 	"testing"
+	"time"
 
 	"github.com/tableauio/tableau/options"
 )
@@ -26,11 +28,15 @@ func TestProfilingUsesRuntimeOption(t *testing.T) {
 		t.Fatalf("generator label = %q, %t; want confgen, true", value, ok)
 	}
 
-	stop, err := gen.startProfiling()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := stop(); err != nil {
+	if err := gen.runProfiling(func() error {
+		data := make([]byte, 1<<20)
+		deadline := time.Now().Add(100 * time.Millisecond)
+		for time.Now().Before(deadline) {
+			data[0]++
+		}
+		runtime.KeepAlive(data)
+		return nil
+	}); err != nil {
 		t.Fatal(err)
 	}
 
