@@ -28,44 +28,47 @@ var errCacheClosed = errors.New("importer cache is closed")
 
 type cacheKey struct {
 	filename        string
-	sheets          string
+	sheets          string // ordered, NUL-separated sheet selection
 	mode            ImporterMode
 	cloned          bool
 	primaryBookName string
 }
 
-// Cache reuses imported data during one generator run. It shares decoded
-// sheets between read-only confgen importers and owns cached Excel handles
-// until Close. Callers must not mutate cached sheets or call Load concurrently
-// with Close.
+// Cache reuses imported data during one generator run. Sources own decoded
+// sheets and open workbook handles; entries are immutable importer views for a
+// specific option set. Callers must not mutate cached sheets or call Load
+// concurrently with Release or Close.
 type Cache struct {
 	profiling bool
 
-	// entries caches the importer view for an exact source and option set.
+	// entries maps an exact source and option set to an importer view.
 	entries sync.Map
-	// sources caches format-specific decoded data by logical source path.
+	// sources maps a normalized logical path to shared format-specific data.
 	sources sync.Map
-	paths   sync.Map
-	// loads coalesces concurrent initialization of the same cached source.
-	loads singleflight.Group
+	// sourceLoads ensures concurrent views open each source only once.
+	sourceLoads singleflight.Group
 
-	requests  atomic.Int64
-	imports   atomic.Int64
-	sheets    atomic.Int64
-	pathCount atomic.Int64
-	closed    atomic.Bool
+	// metricPaths deduplicates pathCount and is unused when profiling is off.
+	metricPaths sync.Map
+	requests    atomic.Int64 // Load calls
+	imports     atomic.Int64 // opened sources
+	sheets      atomic.Int64 // decoded sheets
+	pathCount   atomic.Int64 // unique normalized paths
+	closed      atomic.Bool
 }
 
 type cachedExcel struct {
-	// Workbook reads and the sheets map share one lock. Different workbooks
-	// still load in parallel.
-	mu        sync.Mutex
-	filename  string
-	reader    workbookReader
-	file      *excelize.File // compatibility fallback, opened lazily
-	names     []string
-	sheets    map[string]*book.Sheet
-	useRaw    bool
+	// Reader state and decodedSheets share one lock. Separate cachedExcel
+	// instances still decode concurrently.
+	mu            sync.Mutex
+	filename      string
+	rawReader     workbookReader
+	excelizeFile  *excelize.File // compatibility fallback, opened lazily
+	sheetNames    []string
+	decodedSheets map[string]*book.Sheet
+	// preferRaw reopens the raw reader after Release. A raw read failure clears
+	// it so later sheets use excelize directly.
+	preferRaw bool
 	profiling bool
 }
 
@@ -76,21 +79,22 @@ type workbookReader interface {
 }
 
 type cachedCSV struct {
-	mu       sync.Mutex
-	name     string
-	filename string
-	sheets   map[string]*book.Sheet
+	mu            sync.Mutex
+	bookName      string
+	filename      string
+	decodedSheets map[string]*book.Sheet
 }
 
 type cachedDocument struct {
 	importer Importer
 }
 
-// cachedSource represents one normalized origin. Implementations retain the
-// decoded data that can be shared safely and create filtered importer views.
+// cachedSource owns the reusable data for one normalized origin. load creates
+// a filtered importer view over that data. release closes transient handles;
+// a later load may reopen them while retaining decoded sheets.
 type cachedSource interface {
 	load(context.Context, []string) (Importer, int64, error)
-	close() error
+	release() error
 }
 
 // NewCache creates an empty importer cache.
@@ -124,7 +128,7 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 	}
 	if c.profiling {
 		c.requests.Add(1)
-		if _, loaded := c.paths.LoadOrStore(cacheFilename, struct{}{}); !loaded {
+		if _, loaded := c.metricPaths.LoadOrStore(cacheFilename, struct{}{}); !loaded {
 			c.pathCount.Add(1)
 		}
 	}
@@ -138,7 +142,7 @@ func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (I
 	if cached, ok := c.entries.Load(key); ok {
 		return cached.(Importer), nil
 	}
-	return c.loadSource(ctx, key, opts)
+	return c.loadEntry(ctx, key, opts)
 }
 
 // LoadScatterImporters returns related scatter importers through the cache. A
@@ -153,13 +157,13 @@ func (c *Cache) LoadMergerImporters(ctx context.Context, inputDir, primaryBookNa
 	return loadSheetSpecifierImporters(ctx, inputDir, primaryBookName, primarySheetName, sheetSpecifiers, subdirRewrites, "merge sheet", c.Load)
 }
 
-func (c *Cache) loadSource(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
-	loaded, err, _ := c.loads.Do(key.filename, func() (any, error) {
+// loadEntry opens the shared source if needed, then publishes one importer view
+// for the requested option set.
+func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
+	loaded, err, _ := c.sourceLoads.Do(key.filename, func() (any, error) {
 		if cached, ok := c.sources.Load(key.filename); ok {
 			return cached.(cachedSource), nil
 		}
-		var source cachedSource
-		var decoded int64
 		source, decoded, err := c.openSource(ctx, key.filename)
 		if err != nil {
 			return nil, err
@@ -217,7 +221,8 @@ func (c *Cache) loadImporter(ctx context.Context, source cachedSource, filename 
 }
 
 func openCachedSource(ctx context.Context, filename string, profiling bool) (cachedSource, int64, error) {
-	switch format.GetFormat(filename) {
+	inputFormat := format.GetFormat(filename)
+	switch inputFormat {
 	case format.Excel:
 		source, err := openCachedExcel(filename, profiling)
 		return source, 0, err
@@ -227,9 +232,9 @@ func openCachedSource(ctx context.Context, filename string, profiling bool) (cac
 			return nil, 0, err
 		}
 		return &cachedCSV{
-			name:     readerOpts.Name,
-			filename: readerOpts.Filename,
-			sheets:   make(map[string]*book.Sheet),
+			bookName:      readerOpts.Name,
+			filename:      readerOpts.Filename,
+			decodedSheets: make(map[string]*book.Sheet),
 		}, 0, nil
 	case format.XML, format.YAML:
 		imp, err := New(ctx, filename)
@@ -238,7 +243,7 @@ func openCachedSource(ctx context.Context, filename string, profiling bool) (cac
 		}
 		return &cachedDocument{importer: imp}, int64(len(imp.GetSheets())), nil
 	default:
-		return nil, 0, xerrors.Newf("unsupported cached source format: %v", format.GetFormat(filename))
+		return nil, 0, xerrors.Newf("unsupported cached source format: %v", inputFormat)
 	}
 }
 
@@ -246,18 +251,18 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	readerOpts := buildExcelBookReaderOptions(c.filename, c.sheetNames(), sheetNames)
+	readerOpts := buildExcelBookReaderOptions(c.filename, c.sheetNames, sheetNames)
 	loadedBook := book.NewBook(ctx, readerOpts.Name, readerOpts.Filename, nil)
 	var decoded int64
 	for _, sheetOpts := range readerOpts.Sheets {
-		sheet := c.sheets[sheetOpts.Name]
+		sheet := c.decodedSheets[sheetOpts.Name]
 		if sheet == nil {
 			var err error
 			sheet, err = c.loadSheet(ctx, sheetOpts.Name)
 			if err != nil {
 				return nil, decoded, err
 			}
-			c.sheets[sheetOpts.Name] = sheet
+			c.decodedSheets[sheetOpts.Name] = sheet
 			decoded++
 		}
 		loadedBook.AddSheet(sheet)
@@ -284,21 +289,17 @@ func (c *cachedExcel) readSheet(sheetName string) (*book.Sheet, error) {
 	return book.NewTableSheet(sheetName, rows), nil
 }
 
-func (c *cachedExcel) close() error {
+func (c *cachedExcel) release() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.release()
-}
-
-func (c *cachedExcel) release() error {
 	var errs []error
-	if c.reader != nil {
-		errs = append(errs, c.reader.Close())
-		c.reader = nil
+	if c.rawReader != nil {
+		errs = append(errs, c.rawReader.Close())
+		c.rawReader = nil
 	}
-	if c.file != nil {
-		errs = append(errs, c.file.Close())
-		c.file = nil
+	if c.excelizeFile != nil {
+		errs = append(errs, c.excelizeFile.Close())
+		c.excelizeFile = nil
 	}
 	return errors.Join(errs...)
 }
@@ -307,12 +308,12 @@ func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
 	reader, err := xlsx.Open(filename)
 	if err == nil {
 		return &cachedExcel{
-			filename:  filename,
-			reader:    reader,
-			names:     reader.SheetNames(),
-			sheets:    make(map[string]*book.Sheet),
-			useRaw:    true,
-			profiling: profiling,
+			filename:      filename,
+			rawReader:     reader,
+			sheetNames:    reader.SheetNames(),
+			decodedSheets: make(map[string]*book.Sheet),
+			preferRaw:     true,
+			profiling:     profiling,
 		}, nil
 	}
 	log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", filename, err)
@@ -321,69 +322,77 @@ func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
 		return nil, xerrors.E3002(errors.Join(err, openErr))
 	}
 	return &cachedExcel{
-		filename:  filename,
-		file:      file,
-		names:     file.GetSheetList(),
-		sheets:    make(map[string]*book.Sheet),
-		profiling: profiling,
+		filename:      filename,
+		excelizeFile:  file,
+		sheetNames:    file.GetSheetList(),
+		decodedSheets: make(map[string]*book.Sheet),
+		profiling:     profiling,
 	}, nil
 }
 
-func (c *cachedExcel) sheetNames() []string {
-	return c.names
-}
-
 func (c *cachedExcel) readerName() string {
-	if c.reader != nil || c.useRaw {
+	if c.rawReader != nil || c.preferRaw {
 		return "xlsx"
 	}
 	return "excelize"
 }
 
 func (c *cachedExcel) readRows(sheetName string) ([][]string, error) {
-	if c.reader == nil && c.file == nil {
-		if c.useRaw {
-			reader, err := xlsx.Open(c.filename)
-			if err == nil {
-				c.reader = reader
-			} else {
-				log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", c.filename, err)
-				c.useRaw = false
-			}
-		}
-		if c.reader == nil {
-			if _, err := c.openExcelize(); err != nil {
-				return nil, err
-			}
-		}
+	if err := c.ensureReader(); err != nil {
+		return nil, err
 	}
-	if c.reader != nil {
-		rows, err := c.reader.ReadRows(sheetName)
+	if c.rawReader == nil {
+		return readExcelSheetRows(c.excelizeFile, sheetName, 0, excelize.Options{RawCellValue: true})
+	}
+	rows, err := c.rawReader.ReadRows(sheetName)
+	if err == nil {
+		return rows, nil
+	}
+	return c.fallbackToExcelize(sheetName, err)
+}
+
+// ensureReader reopens the selected workbook backend after Release.
+func (c *cachedExcel) ensureReader() error {
+	if c.rawReader != nil || c.excelizeFile != nil {
+		return nil
+	}
+	if c.preferRaw {
+		reader, err := xlsx.Open(c.filename)
 		if err == nil {
-			return rows, nil
+			c.rawReader = reader
+			return nil
 		}
-		file, openErr := c.openExcelize()
-		if openErr != nil {
-			return nil, errors.Join(err, openErr)
-		}
-		log.Debugf("raw XLSX reader failed for %s#%s, using excelize: %v", c.filename, sheetName, err)
-		_ = c.reader.Close()
-		c.reader = nil
-		c.useRaw = false
-		return readExcelSheetRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
+		log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", c.filename, err)
+		c.preferRaw = false
 	}
-	return readExcelSheetRows(c.file, sheetName, 0, excelize.Options{RawCellValue: true})
+	_, err := c.openExcelize()
+	return err
+}
+
+// fallbackToExcelize permanently switches this source after a sheet cannot be
+// decoded by the raw reader. If excelize cannot open the workbook, the raw
+// reader remains available so the combined error retains both failures.
+func (c *cachedExcel) fallbackToExcelize(sheetName string, readErr error) ([][]string, error) {
+	file, err := c.openExcelize()
+	if err != nil {
+		return nil, errors.Join(readErr, err)
+	}
+	log.Debugf("raw XLSX reader failed for %s#%s, using excelize: %v", c.filename, sheetName, readErr)
+	_ = c.rawReader.Close()
+	c.rawReader = nil
+	c.preferRaw = false
+	return readExcelSheetRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
 }
 
 func (c *cachedExcel) openExcelize() (*excelize.File, error) {
-	if c.file != nil {
-		return c.file, nil
+	if c.excelizeFile != nil {
+		return c.excelizeFile, nil
 	}
 	file, err := excelize.OpenFile(c.filename)
 	if err != nil {
 		return nil, xerrors.E3002(err)
 	}
-	c.file = file
+	c.excelizeFile = file
 	return file, nil
 }
 
@@ -395,16 +404,16 @@ func (c *cachedCSV) load(ctx context.Context, sheetNames []string) (Importer, in
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	loadedBook := book.NewBook(ctx, c.name, c.filename, nil)
+	loadedBook := book.NewBook(ctx, c.bookName, c.filename, nil)
 	var decoded int64
 	for _, sheetOpts := range readerOpts.Sheets {
-		sheet := c.sheets[sheetOpts.Name]
+		sheet := c.decodedSheets[sheetOpts.Name]
 		if sheet == nil {
 			sheet, err = readCSVSheet(sheetOpts.Filename, sheetOpts.Name, 0)
 			if err != nil {
 				return nil, decoded, err
 			}
-			c.sheets[sheetOpts.Name] = sheet
+			c.decodedSheets[sheetOpts.Name] = sheet
 			decoded++
 		}
 		loadedBook.AddSheet(sheet)
@@ -412,7 +421,7 @@ func (c *cachedCSV) load(ctx context.Context, sheetNames []string) (Importer, in
 	return &CSVImporter{Book: loadedBook}, decoded, nil
 }
 
-func (*cachedCSV) close() error {
+func (*cachedCSV) release() error {
 	return nil
 }
 
@@ -421,7 +430,7 @@ func (c *cachedDocument) load(ctx context.Context, sheetNames []string) (Importe
 	return view, 0, err
 }
 
-func (*cachedDocument) close() error {
+func (*cachedDocument) release() error {
 	return nil
 }
 
@@ -454,7 +463,8 @@ func normalizeCacheFilename(filename string) (string, error) {
 	return filepath.Clean(pattern), nil
 }
 
-// Close releases cached workbook handles. It is safe to call more than once.
+// Close releases cached workbook handles and rejects future loads. It is safe
+// to call more than once, but must not run concurrently with Load or Release.
 func (c *Cache) Close() error {
 	if c == nil {
 		return nil
@@ -477,9 +487,9 @@ func (c *Cache) Release() error {
 
 func (c *Cache) releaseSources() error {
 	var errs []error
-	c.sources.Range(func(_, value any) bool {
-		if err := value.(cachedSource).close(); err != nil {
-			errs = append(errs, err)
+	c.sources.Range(func(key, value any) bool {
+		if err := value.(cachedSource).release(); err != nil {
+			errs = append(errs, xerrors.Wrapf(err, "release cached source %s", key.(string)))
 		}
 		return true
 	})
