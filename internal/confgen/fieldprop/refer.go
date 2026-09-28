@@ -30,40 +30,46 @@ func init() {
 	referRegexp = regexp.MustCompile(`(?P<Sheet>.+?)` + `(\((?P<Alias>\w+)\))?` + `\.` + `(?P<Column>\w+)`)
 }
 
-// ReferredCache caches referred column values for one generation or load.
+// ReferredCache caches references in two stages for one generation or load:
+// refers normalizes source expressions, and entries loads each canonical target.
+// Separate locks keep the frequent lookups in these stages independent.
 type ReferredCache struct {
 	profiling bool
 
-	mu sync.RWMutex
-	// Entries are pointers because a loader publishes into the same in-flight
-	// entry that waiters obtained before the load completed. The retained entry
-	// also suppresses duplicate load errors; singleflight alone would return the
-	// same error to every waiter.
+	entriesMu sync.RWMutex
+	// entries maps each canonical target to its loaded values or an in-flight
+	// load. Entries are pointers so the loader can publish its result to waiters.
+	// Retaining failed loads also prevents every referring cell from reporting
+	// the same source error.
 	entries map[referCacheKey]*referCacheEntry
 
-	indexMu sync.RWMutex
-	// index maps each raw refer to its canonical key or a failed normalization.
-	index map[rawRefer]referCacheKey
+	refersMu sync.RWMutex
+	// refers caches normalization by source spelling. Different spellings can
+	// resolve to the same canonical target in entries.
+	refers map[rawRefer]referCacheKey
 }
 
-// referCacheKey identifies one referred column. Its canonical string form is
-// <fully-qualified-message-name>.<column-name>.
+// referCacheKey identifies one referred column by
+// <fully-qualified-message-name>.<column-name>. An unavailable key is stored
+// only in refers as a sentinel for a raw refer that failed normalization; it
+// must never be used as an entries key.
 type referCacheKey struct {
 	message     protoreflect.FullName
 	column      string
-	unavailable bool
+	unavailable bool // the first normalization attempt failed and reported its error
 }
 
 func (k referCacheKey) String() string {
 	return string(k.message) + "." + k.column
 }
 
-// referCacheEntry holds an in-flight or completed reference load. Closing ready
-// publishes space or unavailable to every waiter.
+// referCacheEntry holds an in-flight or completed canonical target load.
 type referCacheEntry struct {
-	ready       chan struct{}
-	space       *valueSpace
-	unavailable bool // target load failed
+	ready chan struct{} // closed after space or unavailable is published
+	space *valueSpace   // values collected from the target's primary and merged sheets
+	// unavailable means the target load failed. The loader returned the error;
+	// waiters and later callers skip it to avoid duplicate errors per cell.
+	unavailable bool
 }
 
 // rawRefer includes the protobuf package because the same refer text can name
@@ -105,7 +111,7 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
 		entries: make(map[referCacheKey]*referCacheEntry),
-		index:   make(map[rawRefer]referCacheKey),
+		refers:  make(map[rawRefer]referCacheKey),
 	}
 }
 
@@ -116,10 +122,12 @@ func (r *ReferredCache) EnableProfiling() {
 
 type loadValueSpaceFunc = func() (*valueSpace, error)
 
+// cachedEntry returns a completed entry snapshot. It waits when another caller
+// is still loading the target.
 func (r *ReferredCache) cachedEntry(ctx context.Context, key referCacheKey) (referCacheEntry, bool) {
-	r.mu.RLock()
+	r.entriesMu.RLock()
 	entry, ok := r.entries[key]
-	r.mu.RUnlock()
+	r.entriesMu.RUnlock()
 	if !ok {
 		return referCacheEntry{}, false
 	}
@@ -134,15 +142,17 @@ func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFun
 		return cached, nil
 	}
 
-	r.mu.Lock()
+	r.entriesMu.Lock()
 	entry, ok := r.entries[key]
 	if ok {
-		r.mu.Unlock()
+		r.entriesMu.Unlock()
 		return r.waitForEntry(ctx, key, entry), nil
 	}
+	// Publish the placeholder before loading so concurrent callers wait on this
+	// entry instead of loading the same target again.
 	entry = &referCacheEntry{ready: make(chan struct{})}
 	r.entries[key] = entry
-	r.mu.Unlock()
+	r.entriesMu.Unlock()
 
 	var space *valueSpace
 	var err error
@@ -154,7 +164,7 @@ func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFun
 	} else {
 		space, err = loadFunc()
 	}
-	r.mu.Lock()
+	r.entriesMu.Lock()
 	if err == nil {
 		entry.space = space
 	} else {
@@ -162,8 +172,9 @@ func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFun
 		// duplicate errors for the same broken reference.
 		entry.unavailable = true
 	}
+	// Closing ready publishes the selected outcome to every waiter.
 	close(entry.ready)
-	r.mu.Unlock()
+	r.entriesMu.Unlock()
 	return *entry, err
 }
 
@@ -234,29 +245,32 @@ func normalizeRefer(refer string, input *Input) (referCacheKey, error) {
 	}, nil
 }
 
-// resolveKey parses a raw refer once and reuses its canonical key for all cells.
-// A failed normalization is reported once and then treated as unavailable.
+// resolveKey normalizes each raw refer once. The first failed normalization is
+// returned as an error; later calls receive an unavailable sentinel so repeated
+// cells do not report the same malformed refer.
 func (r *ReferredCache) resolveKey(refer string, input *Input) (referCacheKey, error) {
 	raw := rawRefer{protoPackage: input.ProtoPackage, value: refer}
-	r.indexMu.RLock()
-	key, ok := r.index[raw]
-	r.indexMu.RUnlock()
+	r.refersMu.RLock()
+	key, ok := r.refers[raw]
+	r.refersMu.RUnlock()
 	if ok {
 		return key, nil
 	}
 
-	r.indexMu.Lock()
-	defer r.indexMu.Unlock()
-	key, ok = r.index[raw]
+	r.refersMu.Lock()
+	defer r.refersMu.Unlock()
+	// Another goroutine may have normalized this refer while the write lock was
+	// pending.
+	key, ok = r.refers[raw]
 	if ok {
 		return key, nil
 	}
 	key, err := normalizeRefer(refer, input)
 	if err != nil {
-		r.index[raw] = referCacheKey{unavailable: true}
+		r.refers[raw] = referCacheKey{unavailable: true}
 		return referCacheKey{}, err
 	}
-	r.index[raw] = key
+	r.refers[raw] = key
 	return key, nil
 }
 
@@ -359,6 +373,7 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 			return err
 		}
 		if key.unavailable {
+			// The first lookup already returned the normalization error.
 			return nil
 		}
 		entry, ok := r.cachedEntry(ctx, key)

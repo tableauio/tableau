@@ -270,7 +270,7 @@ func TestCheckRefer_normalizesCacheKey(t *testing.T) {
 	}
 }
 
-func TestReferredCache_resolveKeyIndexesRawRefers(t *testing.T) {
+func TestReferredCache_resolveKeyCachesRawRefers(t *testing.T) {
 	cache := NewReferredCache()
 	input := &Input{ProtoPackage: "unittest"}
 	tests := []struct {
@@ -293,8 +293,8 @@ func TestReferredCache_resolveKeyIndexesRawRefers(t *testing.T) {
 			t.Errorf("resolveKey(%q) = %v and %v, want %v", test.refer, first, second, test.want)
 		}
 	}
-	if len(cache.index) != len(tests) {
-		t.Errorf("refer index entries = %d, want %d", len(cache.index), len(tests))
+	if len(cache.refers) != len(tests) {
+		t.Errorf("cached refers = %d, want %d", len(cache.refers), len(tests))
 	}
 
 	otherPackageKey, err := cache.resolveKey("ItemConf.ID", &Input{ProtoPackage: "other"})
@@ -305,8 +305,8 @@ func TestReferredCache_resolveKeyIndexesRawRefers(t *testing.T) {
 	if otherPackageKey != wantOtherPackageKey {
 		t.Errorf("other package key = %v, want %v", otherPackageKey, wantOtherPackageKey)
 	}
-	if len(cache.index) != len(tests)+1 {
-		t.Errorf("refer index entries = %d, want %d", len(cache.index), len(tests)+1)
+	if len(cache.refers) != len(tests)+1 {
+		t.Errorf("cached refers = %d, want %d", len(cache.refers), len(tests)+1)
 	}
 }
 
