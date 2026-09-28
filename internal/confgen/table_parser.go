@@ -534,7 +534,6 @@ func (p *tableParser) parseHorizontalListField(field *Field, msg protoreflect.Me
 			// TODO: support horizontal KeyedList
 		} else {
 			// scalar list
-			elemValue = list.NewElement()
 			if cell, err = r.Cell(elemPrefix, p.IsFieldOptional(field)); err != nil {
 				return false, err
 			}
