@@ -36,8 +36,10 @@ type cacheKey struct {
 
 // Cache reuses imported data during one generator run. Sources own decoded
 // sheets and open workbook handles; entries are immutable importer views for a
-// specific option set. Callers must not mutate cached sheets or call Load
-// concurrently with Release or Close.
+// specific option set. Each successful cached Load acquires a lease; callers
+// should release it with ReleaseImporter after the dependent work completes.
+// Callers must not mutate cached sheets or call Load concurrently with Release
+// or Close.
 type Cache struct {
 	profiling bool
 
@@ -120,7 +122,8 @@ func (c *Cache) EnableProfiling() {
 	c.profiling = true
 }
 
-// Load returns a cached importer or loads it once for concurrent callers.
+// Load returns a cached importer or loads it once for concurrent callers. A
+// cached result holds one lease until ReleaseImporter is called.
 func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (Importer, error) {
 	if c == nil {
 		return New(ctx, filename, setters...)
