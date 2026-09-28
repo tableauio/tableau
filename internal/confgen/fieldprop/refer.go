@@ -303,7 +303,6 @@ func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, 
 			xerrors.KeyReferSheetName, sheetName,
 		)
 	}
-	defer input.ImporterCache.ReleaseImporter(primaryImporter)
 
 	// get merger importer infos
 	impInfos, err := input.ImporterCache.LoadMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
@@ -313,16 +312,6 @@ func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, 
 			xerrors.KeyReferSheetName, sheetName,
 		)
 	}
-	defer func() {
-		seen := make(map[importer.Importer]struct{}, len(impInfos))
-		for _, info := range impInfos {
-			if _, ok := seen[info.Importer]; ok {
-				continue
-			}
-			seen[info.Importer] = struct{}{}
-			input.ImporterCache.ReleaseImporter(info.Importer)
-		}
-	}()
 
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})

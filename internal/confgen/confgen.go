@@ -279,7 +279,6 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyModule, xerrors.ModuleConf, xerrors.KeyBookName, workbook.Name)
 	}
-	defer gen.importerCache.ReleaseImporter(imp)
 	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook,
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, workbook.Name,
@@ -338,7 +337,6 @@ func (gen *Generator) processScatter(self importer.Importer, sheetInfo *SheetInf
 	if err != nil {
 		return err
 	}
-	defer gen.releaseImporterInfos(importers)
 	mainImporter := importer.ImporterInfo{Importer: self}
 	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, messageCollector)
 	if err := exporter.ScatterAndExport(sheetInfo, mainImporter, importers...); err != nil {
@@ -352,22 +350,10 @@ func (gen *Generator) processMerger(self importer.Importer, sheetInfo *SheetInfo
 	if err != nil {
 		return err
 	}
-	defer gen.releaseImporterInfos(importers)
 	mainImporter := importer.ImporterInfo{Importer: self}
 	exporter := NewSheetExporter(gen.OutputDir, gen.OutputOpt, gen.validator, messageCollector)
 	if err := exporter.MergeAndExport(sheetInfo, mainImporter, importers...); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (gen *Generator) releaseImporterInfos(infos []importer.ImporterInfo) {
-	seen := make(map[importer.Importer]struct{}, len(infos))
-	for _, info := range infos {
-		if _, ok := seen[info.Importer]; ok {
-			continue
-		}
-		seen[info.Importer] = struct{}{}
-		gen.importerCache.ReleaseImporter(info.Importer)
-	}
 }

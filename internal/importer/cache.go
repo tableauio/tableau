@@ -35,18 +35,16 @@ type cacheKey struct {
 }
 
 // Cache reuses imported data during one generator run. Sources own decoded
-// sheets and open workbook handles; entries are importer views for a specific
-// option set. ReleaseImporter evicts a view after its dependent task finishes,
-// while the source remains cached for the rest of the run.
-// Callers must not mutate cached sheets or call Load concurrently with Release
-// or Close.
+// sheets and open workbook handles; entries are immutable importer views for a
+// specific option set. Callers must not mutate cached sheets or call Load
+// concurrently with Release or Close.
 type Cache struct {
 	profiling bool
 
 	// entries maps an exact source and option set to an importer view.
-	entries sync.Map // cacheKey -> Importer
+	entries sync.Map
 	// sources maps a normalized logical path to shared format-specific data.
-	sources sync.Map // normalized path -> cachedSource
+	sources sync.Map
 	// sourceLoads ensures concurrent views open each source only once.
 	sourceLoads singleflight.Group
 
@@ -97,7 +95,6 @@ type cachedDocument struct {
 type cachedSource interface {
 	load(context.Context, []string) (Importer, int64, error)
 	release() error
-	compact()
 }
 
 // NewCache creates an empty importer cache.
@@ -182,8 +179,7 @@ func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Imp
 		return nil, err
 	}
 
-	source := loaded.(cachedSource)
-	imp, decoded, err := c.loadImporter(ctx, source, key.filename, opts.Sheets)
+	imp, decoded, err := c.loadImporter(ctx, loaded.(cachedSource), key.filename, opts.Sheets)
 	if c.profiling {
 		c.sheets.Add(decoded)
 	}
@@ -192,20 +188,6 @@ func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Imp
 	}
 	actual, _ := c.entries.LoadOrStore(key, imp)
 	return actual.(Importer), nil
-}
-
-// ReleaseImporter evicts the cached view that wraps imp. The shared source and
-// its decoded sheets remain available for later views in the same run.
-func (c *Cache) ReleaseImporter(imp Importer) {
-	if c == nil || imp == nil {
-		return
-	}
-	c.entries.Range(func(key, value any) bool {
-		if value.(Importer) == imp {
-			c.entries.Delete(key)
-		}
-		return true
-	})
 }
 
 func (c *Cache) openSource(ctx context.Context, filename string) (source cachedSource, decoded int64, err error) {
@@ -320,12 +302,6 @@ func (c *cachedExcel) release() error {
 		c.excelizeFile = nil
 	}
 	return errors.Join(errs...)
-}
-
-func (c *cachedExcel) compact() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.decodedSheets = make(map[string]*book.Sheet)
 }
 
 func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
@@ -445,30 +421,17 @@ func (c *cachedCSV) load(ctx context.Context, sheetNames []string) (Importer, in
 	return &CSVImporter{Book: loadedBook}, decoded, nil
 }
 
-func (c *cachedCSV) release() error {
+func (*cachedCSV) release() error {
 	return nil
 }
 
-func (c *cachedCSV) compact() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.decodedSheets = make(map[string]*book.Sheet)
-}
-
 func (c *cachedDocument) load(ctx context.Context, sheetNames []string) (Importer, int64, error) {
-	if c.importer == nil {
-		return nil, 0, errCacheClosed
-	}
 	view, err := newDocumentImporterView(ctx, c.importer, sheetNames)
 	return view, 0, err
 }
 
-func (c *cachedDocument) release() error {
+func (*cachedDocument) release() error {
 	return nil
-}
-
-func (c *cachedDocument) compact() {
-	c.importer = nil
 }
 
 func newDocumentImporterView(ctx context.Context, source Importer, sheetNames []string) (Importer, error) {
@@ -509,7 +472,6 @@ func (c *Cache) Close() error {
 	if !c.closed.CompareAndSwap(false, true) {
 		return nil
 	}
-	c.compactSources()
 	return c.releaseSources()
 }
 
@@ -532,13 +494,6 @@ func (c *Cache) releaseSources() error {
 		return true
 	})
 	return errors.Join(errs...)
-}
-
-func (c *Cache) compactSources() {
-	c.sources.Range(func(_, value any) bool {
-		value.(cachedSource).compact()
-		return true
-	})
 }
 
 // Metrics returns load requests, importer loads, decoded sheets, and paths.

@@ -137,36 +137,6 @@ func TestCacheLoadBypassesCustomParser(t *testing.T) {
 	}
 }
 
-func TestCacheReleaseImporterEvictsViewKeepsSource(t *testing.T) {
-	cache := NewCache()
-	cache.EnableProfiling()
-
-	first, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	second, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if first != second {
-		t.Fatal("same cache key returned different importer views")
-	}
-	cache.ReleaseImporter(first)
-	if _, imports, _, _ := cache.Metrics(); imports != 1 {
-		t.Fatalf("source reopened after view eviction: imports = %d", imports)
-	}
-	cache.ReleaseImporter(second)
-
-	if _, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"})); err != nil {
-		t.Fatal(err)
-	}
-	if _, imports, _, _ := cache.Metrics(); imports != 1 {
-		t.Fatalf("Load() reopened the shared source: imports = %d", imports)
-	}
-	_ = cache.Close()
-}
-
 func TestNilCacheLoadMergerImporters(t *testing.T) {
 	var cache *Cache
 	got, err := cache.LoadMergerImporters(
