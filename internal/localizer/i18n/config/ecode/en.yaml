@@ -227,7 +227,7 @@ E2030:
     - ReferSheetName: string
 E2031:
   desc: incell struct has too many fields
-  text: 'incell struct "{{.TypeName}}" expects at most {{.Expected}} fields, got {{.Actual}} parts in {{ quote .CellData }} (sep: {{ quote .Sep }})'
+  text: 'incell struct {{ quote .TypeName }} expects at most {{.Expected}} fields, got {{.Actual}} parts in {{ quote .CellData }} (sep: {{ quote .Sep }})'
   help: ensure cell value has at most (field_count - 1) separators matching the struct definition
   fields:
     - TypeName: string
