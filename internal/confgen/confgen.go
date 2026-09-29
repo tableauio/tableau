@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
+	"sync"
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
@@ -38,7 +39,9 @@ type Generator struct {
 	OutputOpt     *options.ConfOutputOption // output settings.
 	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
-	profiling bool // whether to enable generator performance profiling.
+	profiling  bool // whether to enable generator performance profiling.
+	runMu      sync.Mutex
+	runStarted bool
 
 	validator     protovalidate.Validator // validator with extension type resolver for custom predefined rules.
 	collector     *xerrors.Collector
@@ -183,21 +186,6 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 		}
 		return g.Wait()
 	})
-}
-
-// closeRunCaches releases the run-owned importer cache. A Generator is
-// single-use, so dropping the caches also prevents accidental reuse of stale
-// workbook data.
-func (gen *Generator) closeRunCaches() {
-	importerCache := gen.importerCache
-	gen.importerCache = nil
-	gen.referredCache = nil
-	if importerCache == nil {
-		return
-	}
-	if err := importerCache.Close(); err != nil {
-		log.Warnf("failed to close importer cache: %v", err)
-	}
 }
 
 // convert a workbook related to parameter fd, and only convert the

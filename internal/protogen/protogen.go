@@ -31,6 +31,8 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
+// Generator converts workbook data for one generation run. Create a new
+// Generator when another run is needed.
 type Generator struct {
 	ctx          context.Context
 	ProtoPackage string // protobuf package name.
@@ -61,8 +63,9 @@ type Generator struct {
 	// parsing passes mutate and reuse their sheet state.
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
 
-	runMu  sync.Mutex // public generation calls run one at a time
-	output *protoOutput
+	runMu      sync.Mutex
+	runStarted bool
+	output     *protoOutput
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -114,8 +117,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return gen
 }
 
-// resetRunState clears state from the previous generation run and prepares its output.
-func (gen *Generator) resetRunState() error {
+// prepareRun prepares the output for this generator's single run.
+func (gen *Generator) prepareRun() error {
 	outputDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	if err := ensureOutputDir(outputDir); err != nil {
 		return err
@@ -125,15 +128,6 @@ func (gen *Generator) resetRunState() error {
 		return err
 	}
 	gen.output = newProtoOutput(outputDir, protectedPaths)
-	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
-	gen.registryWithGeneratedOnce = sync.Once{}
-	gen.protoRegistryFilesWithGenerated = nil
-	if gen.profiling {
-		gen.SheetParserMetrics.Reset()
-	}
-	gen.cacheMu.Lock()
-	gen.cachedImporters = make(map[string]importer.Importer)
-	gen.cacheMu.Unlock()
 	return nil
 }
 
@@ -195,11 +189,6 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 
 // GenAll generates proto files for every input workbook.
 func (gen *Generator) GenAll() error {
-	gen.runMu.Lock()
-	defer gen.runMu.Unlock()
-	if err := gen.resetRunState(); err != nil {
-		return err
-	}
 	return gen.run(func() error {
 		if err := gen.output.createStagingDir(); err != nil {
 			return err
@@ -222,11 +211,6 @@ func (gen *Generator) GenAll() error {
 
 // GenWorkbook generates proto files for the specified input workbooks.
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
-	gen.runMu.Lock()
-	defer gen.runMu.Unlock()
-	if err := gen.resetRunState(); err != nil {
-		return err
-	}
 	return gen.run(func() error {
 		if err := gen.output.createStagingDir(); err != nil {
 			return err
