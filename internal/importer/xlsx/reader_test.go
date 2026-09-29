@@ -156,19 +156,19 @@ func TestReadRowsNValidatesCompleteEntry(t *testing.T) {
 	}}
 	reader := terminalErrorReader{Reader: bytes.NewReader(data), err: zip.ErrChecksum}
 
-	_, err := readRowsPrefix(reader, entry, "Items", nil, 1)
+	_, err := readWorksheetPrefix(reader, entry, "Items", nil, 1)
 	require.ErrorIs(t, err, zip.ErrChecksum)
 }
 
 func TestWorksheetRejectsUnsupportedXMLMarkup(t *testing.T) {
-	require.False(t, hasUnsupportedWorksheetXML([]byte(`<?xml version="1.0"?><worksheet/>`)))
+	require.False(t, hasUnsupportedXML([]byte(`<?xml version="1.0"?><worksheet/>`)))
 	for _, markup := range []string{
 		`<worksheet><!-- comment --></worksheet>`,
 		`<worksheet><?custom value?></worksheet>`,
 		`<worksheet><![CDATA[value]]></worksheet>`,
 		`<!DOCTYPE worksheet><worksheet/>`,
 	} {
-		require.True(t, hasUnsupportedWorksheetXML([]byte(markup)), markup)
+		require.True(t, hasUnsupportedXML([]byte(markup)), markup)
 	}
 }
 

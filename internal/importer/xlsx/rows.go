@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode/utf16"
 
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
@@ -15,100 +14,7 @@ const (
 	maxColumns = 16_384
 )
 
-type tag struct {
-	local       []byte
-	attrs       []byte
-	start       int
-	end         int
-	closing     bool
-	selfClosing bool
-}
-
-func nextTag(data []byte, offset int) (tag, int, bool, error) {
-	for offset < len(data) {
-		relative := bytes.IndexByte(data[offset:], '<')
-		if relative < 0 {
-			return tag{}, len(data), false, nil
-		}
-		start := offset + relative
-		if bytes.HasPrefix(data[start:], []byte("<!--")) {
-			end := bytes.Index(data[start+4:], []byte("-->"))
-			if end < 0 {
-				return tag{}, len(data), false, xerrors.Newf("unterminated XML comment at byte %d", start)
-			}
-			offset = start + 4 + end + 3
-			continue
-		}
-		if bytes.HasPrefix(data[start:], []byte("<?")) {
-			end := bytes.Index(data[start+2:], []byte("?>"))
-			if end < 0 {
-				return tag{}, len(data), false, xerrors.Newf("unterminated XML processing instruction at byte %d", start)
-			}
-			offset = start + 2 + end + 2
-			continue
-		}
-		pos := start + 1
-		closing := false
-		if pos < len(data) && data[pos] == '/' {
-			closing = true
-			pos++
-		}
-		for pos < len(data) && isXMLSpace(data[pos]) {
-			pos++
-		}
-		nameStart := pos
-		for pos < len(data) && !isXMLSpace(data[pos]) && data[pos] != '/' && data[pos] != '>' {
-			pos++
-		}
-		if nameStart == pos || data[nameStart] == '!' {
-			end := bytes.IndexByte(data[pos:], '>')
-			if end < 0 {
-				return tag{}, len(data), false, xerrors.Newf("unterminated XML declaration at byte %d", start)
-			}
-			offset = pos + end + 1
-			continue
-		}
-		name := data[nameStart:pos]
-		local := name
-		if colon := bytes.LastIndexByte(name, ':'); colon >= 0 {
-			local = name[colon+1:]
-		}
-		quote := byte(0)
-		end := pos
-		for end < len(data) {
-			char := data[end]
-			if quote != 0 {
-				if char == quote {
-					quote = 0
-				}
-			} else if char == '\'' || char == '"' {
-				quote = char
-			} else if char == '>' {
-				break
-			}
-			end++
-		}
-		if end >= len(data) {
-			return tag{}, len(data), false, xerrors.Newf("unterminated XML tag at byte %d", start)
-		}
-		last := end - 1
-		for last >= pos && isXMLSpace(data[last]) {
-			last--
-		}
-		selfClosing := last >= pos && data[last] == '/'
-		return tag{
-			local:       local,
-			attrs:       data[pos:end],
-			start:       start,
-			end:         end,
-			closing:     closing,
-			selfClosing: selfClosing,
-		}, end + 1, true, nil
-	}
-	return tag{}, len(data), false, nil
-}
-
-type cell struct {
+type worksheetCell struct {
 	kind       byte
 	column     int
 	value      []byte
@@ -120,44 +26,44 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 	return parseRowsN(data, sharedStrings, 0)
 }
 
-// parseRowsN parses the first topN logical worksheet rows. A zero limit keeps
-// the GetRows-compatible behavior of omitting trailing empty rows. A positive
-// limit mirrors the Excelize row iterator, including empty rows before the last
-// worksheet row.
-func parseRowsN(data []byte, sharedStrings []string, topN uint) ([][]string, error) {
+// parseRowsN parses the first rowLimit logical worksheet rows. A zero limit
+// keeps the GetRows-compatible behavior of omitting trailing empty rows. A
+// positive limit mirrors the Excelize row iterator, including empty rows before
+// the last worksheet row.
+func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string, error) {
 	var rows [][]string
-	if topN == 0 {
+	if rowLimit == 0 {
 		rows = make([][]string, 0)
 	}
 	var row []string
-	var current cell
-	var offset, rowNumber, lastRow, cellColumn, captureStart, phoneticDepth int
+	var current worksheetCell
+	var offset, rowNumber, lastPopulatedRow, cellColumn, captureStart, phoneticDepth int
 	var inRow, inCell bool
 	var capture byte
-	rowLimit := 0
-	if topN > 0 {
-		rowLimit = maxRows
-		if topN < maxRows {
-			rowLimit = int(topN)
+	maxReturnedRows := 0
+	if rowLimit > 0 {
+		maxReturnedRows = maxRows
+		if rowLimit < uint(maxRows) {
+			maxReturnedRows = int(rowLimit)
 		}
 	}
 
 	for {
-		tag, next, ok, err := nextTag(data, offset)
+		element, nextOffset, ok, err := nextXMLTag(data, offset)
 		if err != nil {
 			return nil, err
 		}
 		if !ok {
 			break
 		}
-		offset = next
-		if tag.closing {
+		offset = nextOffset
+		if element.closing {
 			switch {
-			case capture == 'v' && bytes.Equal(tag.local, []byte("v")):
-				current.value = data[captureStart:tag.start]
+			case capture == 'v' && bytes.Equal(element.local, []byte("v")):
+				current.value = data[captureStart:element.start]
 				capture = 0
-			case capture == 't' && bytes.Equal(tag.local, []byte("t")):
-				text, err := decodeXMLText(data[captureStart:tag.start])
+			case capture == 't' && bytes.Equal(element.local, []byte("t")):
+				text, err := decodeXMLText(data[captureStart:element.start])
 				if err != nil {
 					return nil, err
 				}
@@ -165,9 +71,9 @@ func parseRowsN(data []byte, sharedStrings []string, topN uint) ([][]string, err
 				capture = 0
 			}
 			switch {
-			case bytes.Equal(tag.local, []byte("rPh")) && phoneticDepth > 0:
+			case bytes.Equal(element.local, []byte("rPh")) && phoneticDepth > 0:
 				phoneticDepth--
-			case bytes.Equal(tag.local, []byte("c")) && inCell:
+			case bytes.Equal(element.local, []byte("c")) && inCell:
 				var value string
 				switch current.kind {
 				case 's':
@@ -192,33 +98,33 @@ func parseRowsN(data []byte, sharedStrings []string, topN uint) ([][]string, err
 						current.column = cellColumn + 1
 					}
 					if current.column > len(row) {
-						oldLen := len(row)
-						row = slices.Grow(row, current.column-oldLen)
+						oldLength := len(row)
+						row = slices.Grow(row, current.column-oldLength)
 						row = row[:current.column]
-						clear(row[oldLen:])
+						clear(row[oldLength:])
 					}
 					row[current.column-1] = value
 				}
 				cellColumn = current.column
 				phoneticDepth = 0
 				inCell = false
-			case bytes.Equal(tag.local, []byte("row")) && inRow:
-				if rowLimit > 0 {
-					for len(rows) < rowNumber-1 && len(rows) < rowLimit {
+			case bytes.Equal(element.local, []byte("row")) && inRow:
+				if maxReturnedRows > 0 {
+					for len(rows) < rowNumber-1 && len(rows) < maxReturnedRows {
 						rows = append(rows, nil)
 					}
-					if rowNumber <= rowLimit {
+					if rowNumber <= maxReturnedRows {
 						rows = append(rows, row)
 					}
-					if len(rows) >= rowLimit {
-						return rows[:rowLimit], nil
+					if len(rows) >= maxReturnedRows {
+						return rows[:maxReturnedRows], nil
 					}
 				} else if len(row) > 0 {
-					if emptyRows := rowNumber - lastRow - 1; emptyRows > 0 {
+					if emptyRows := rowNumber - lastPopulatedRow - 1; emptyRows > 0 {
 						rows = append(rows, make([][]string, emptyRows)...)
 					}
 					rows = append(rows, row)
-					lastRow = rowNumber
+					lastPopulatedRow = rowNumber
 				}
 				inRow = false
 			}
@@ -226,9 +132,9 @@ func parseRowsN(data []byte, sharedStrings []string, topN uint) ([][]string, err
 		}
 
 		switch {
-		case bytes.Equal(tag.local, []byte("row")):
+		case bytes.Equal(element.local, []byte("row")):
 			rowNumber++
-			value, ok, err := plainAttribute(tag.attrs, 'r')
+			value, ok, err := plainXMLAttribute(element.attributes, 'r')
 			if err != nil {
 				return nil, err
 			}
@@ -241,28 +147,28 @@ func parseRowsN(data []byte, sharedStrings []string, topN uint) ([][]string, err
 			} else if rowNumber > maxRows {
 				return nil, xerrors.Newf("XLSX row number exceeds %d", maxRows)
 			}
-			if rowLimit > 0 && rowNumber > rowLimit {
-				for len(rows) < rowLimit {
+			if maxReturnedRows > 0 && rowNumber > maxReturnedRows {
+				for len(rows) < maxReturnedRows {
 					rows = append(rows, nil)
 				}
 				return rows, nil
 			}
 			row = nil
 			cellColumn = 0
-			inRow = !tag.selfClosing
-			if tag.selfClosing && rowLimit > 0 {
-				for len(rows) < rowNumber-1 && len(rows) < rowLimit {
+			inRow = !element.selfClosing
+			if element.selfClosing && maxReturnedRows > 0 {
+				for len(rows) < rowNumber-1 && len(rows) < maxReturnedRows {
 					rows = append(rows, nil)
 				}
 				rows = append(rows, nil)
-				if len(rows) >= rowLimit {
-					return rows[:rowLimit], nil
+				if len(rows) >= maxReturnedRows {
+					return rows[:maxReturnedRows], nil
 				}
 			}
-		case inRow && bytes.Equal(tag.local, []byte("c")):
-			current = cell{column: cellColumn + 1}
+		case inRow && bytes.Equal(element.local, []byte("c")):
+			current = worksheetCell{column: cellColumn + 1}
 			phoneticDepth = 0
-			reference, ok, err := plainAttribute(tag.attrs, 'r')
+			reference, ok, err := plainXMLAttribute(element.attributes, 'r')
 			if err != nil {
 				return nil, err
 			}
@@ -275,7 +181,7 @@ func parseRowsN(data []byte, sharedStrings []string, topN uint) ([][]string, err
 			} else if current.column > maxColumns {
 				return nil, xerrors.Newf("XLSX column number exceeds %d", maxColumns)
 			}
-			kind, ok, err := plainAttribute(tag.attrs, 't')
+			kind, ok, err := plainXMLAttribute(element.attributes, 't')
 			if err != nil {
 				return nil, err
 			}
@@ -287,87 +193,27 @@ func parseRowsN(data []byte, sharedStrings []string, topN uint) ([][]string, err
 					current.kind = 'i'
 				}
 			}
-			inCell = !tag.selfClosing
-			if tag.selfClosing {
+			inCell = !element.selfClosing
+			if element.selfClosing {
 				cellColumn = current.column
 			}
-		case inCell && bytes.Equal(tag.local, []byte("f")):
+		case inCell && bytes.Equal(element.local, []byte("f")):
 			current.formula = true
-		case inCell && bytes.Equal(tag.local, []byte("rPh")) && !tag.selfClosing:
+		case inCell && bytes.Equal(element.local, []byte("rPh")) && !element.selfClosing:
 			phoneticDepth++
-		case inCell && bytes.Equal(tag.local, []byte("v")) && !tag.selfClosing:
+		case inCell && bytes.Equal(element.local, []byte("v")) && !element.selfClosing:
 			capture = 'v'
-			captureStart = tag.end + 1
-		case inCell && current.kind == 'i' && phoneticDepth == 0 && bytes.Equal(tag.local, []byte("t")) && !tag.selfClosing:
+			captureStart = element.end + 1
+		case inCell && current.kind == 'i' && phoneticDepth == 0 &&
+			bytes.Equal(element.local, []byte("t")) && !element.selfClosing:
 			capture = 't'
-			captureStart = tag.end + 1
+			captureStart = element.end + 1
 		}
 	}
 	if inRow || inCell || capture != 0 {
 		return nil, xerrors.New("unterminated worksheet row or cell")
 	}
 	return rows, nil
-}
-
-func attribute(attrs []byte, name byte) ([]byte, bool) {
-	for offset := 0; offset < len(attrs); {
-		for offset < len(attrs) && (isXMLSpace(attrs[offset]) || attrs[offset] == '/') {
-			offset++
-		}
-		start := offset
-		for offset < len(attrs) && !isXMLSpace(attrs[offset]) && attrs[offset] != '=' && attrs[offset] != '/' {
-			offset++
-		}
-		if start == offset {
-			break
-		}
-		key := attrs[start:offset]
-		if colon := bytes.LastIndexByte(key, ':'); colon >= 0 {
-			if bytes.Equal(key[:colon], []byte("xmlns")) {
-				key = nil
-			} else {
-				key = key[colon+1:]
-			}
-		}
-		for offset < len(attrs) && isXMLSpace(attrs[offset]) {
-			offset++
-		}
-		if offset >= len(attrs) || attrs[offset] != '=' {
-			continue
-		}
-		offset++
-		for offset < len(attrs) && isXMLSpace(attrs[offset]) {
-			offset++
-		}
-		if offset >= len(attrs) || (attrs[offset] != '\'' && attrs[offset] != '"') {
-			continue
-		}
-		quote := attrs[offset]
-		offset++
-		valueStart := offset
-		for offset < len(attrs) && attrs[offset] != quote {
-			offset++
-		}
-		value := attrs[valueStart:offset]
-		if offset < len(attrs) {
-			offset++
-		}
-		if len(key) == 1 && key[0] == name {
-			return value, true
-		}
-	}
-	return nil, false
-}
-
-// plainAttribute rejects character references in worksheet coordinates and
-// cell types. Falling back to the compatibility reader is safer than silently
-// interpreting the undecoded bytes with different semantics.
-func plainAttribute(attrs []byte, name byte) ([]byte, bool, error) {
-	value, ok := attribute(attrs, name)
-	if ok && bytes.IndexByte(value, '&') >= 0 {
-		return nil, false, xerrors.Newf("unsupported XML character reference in worksheet attribute %q", name)
-	}
-	return value, ok, nil
 }
 
 func parseColumn(reference []byte) int {
@@ -418,51 +264,4 @@ func decodeText(value []byte) (string, error) {
 		return "", err
 	}
 	return decodeEscapes(text), nil
-}
-
-func decodeEscapes(value string) string {
-	if !strings.Contains(value, "_x") {
-		return value
-	}
-	var decoded strings.Builder
-	cursor := 0
-	for cursor < len(value) {
-		relative := strings.Index(value[cursor:], "_x")
-		if relative < 0 {
-			break
-		}
-		start := cursor + relative
-		code, end, ok := parseEscape(value, start)
-		if ok {
-			decoded.WriteString(value[cursor:start])
-			decodedRune := rune(code)
-			if code >= 0xD800 && code <= 0xDBFF {
-				if low, lowEnd, ok := parseEscape(value, end); ok && low >= 0xDC00 && low <= 0xDFFF {
-					decodedRune = utf16.DecodeRune(decodedRune, rune(low))
-					end = lowEnd
-				}
-			}
-			decoded.WriteRune(decodedRune)
-			cursor = end
-			continue
-		}
-		decoded.WriteString(value[cursor : start+2])
-		cursor = start + 2
-	}
-	decoded.WriteString(value[cursor:])
-	return decoded.String()
-}
-
-func parseEscape(value string, start int) (uint16, int, bool) {
-	const escapeLength = len("_x0000_")
-	end := start + escapeLength
-	if start < 0 || end > len(value) || !strings.HasPrefix(value[start:], "_x") || value[end-1] != '_' {
-		return 0, start, false
-	}
-	code, err := strconv.ParseUint(value[start+2:end-1], 16, 16)
-	return uint16(code), end, err == nil
-}
-
-func isXMLSpace(char byte) bool {
-	return char == ' ' || char == '\t' || char == '\r' || char == '\n'
 }

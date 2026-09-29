@@ -116,12 +116,12 @@ func TestParseRowsRejectsInvalidCoordinates(t *testing.T) {
 	}
 }
 
-func TestAttribute(t *testing.T) {
+func TestXMLAttribute(t *testing.T) {
 	attrs := []byte(` xmlns:r="urn:test" r:id='rId1' t = "inlineStr" broken value=noquote`)
-	value, ok := attribute(attrs, 't')
+	value, ok := xmlAttribute(attrs, 't')
 	require.True(t, ok)
 	require.Equal(t, "inlineStr", string(value))
-	value, ok = attribute(attrs, 'r')
+	value, ok = xmlAttribute(attrs, 'r')
 	require.False(t, ok)
 	require.Nil(t, value)
 }
