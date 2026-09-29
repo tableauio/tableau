@@ -143,6 +143,10 @@ E2030:
   desc: referred sheet not found
   text: 在工作簿 "{{.ReferBookName}}" 中未找到引用的工作表 "{{.ReferSheetName}}"
   help: 修改字段属性 "refer", 或新增引用的工作表 "{{.ReferSheetName}}"
+E2031:
+  desc: incell struct has too many fields
+  text: 'incell struct {{ quote .TypeName }} 期望最多 {{.Expected}} 个字段, 但 {{ quote .CellData }} 中有 {{.Actual}} 段 (分隔符: {{ quote .Sep }})'
+  help: 确保单元格值中的分隔符数量不超过 (字段数 - 1)
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

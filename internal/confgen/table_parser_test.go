@@ -1245,6 +1245,33 @@ func TestTableParser_parseFieldPresentMap(t *testing.T) {
 			wantErr: true,
 			err:     xerrors.ErrE2011,
 		},
+		{
+			name:   "incell struct with too many parts",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "1,10,20", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2031,
+		},
+		{
+			name:   "incell struct with fewer parts still ok",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "1", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1257,6 +1284,26 @@ func TestTableParser_parseFieldPresentMap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTableParser_parseIncellStructTooManyPartsReportsSep(t *testing.T) {
+	parser := newTableParserForTest()
+	sheet := book.NewTableSheet(
+		"FieldPresentMap",
+		[][]string{
+			{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+			{"1", "sword", "2", "1,10,20", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+		})
+	err := parser.Parse(&unittestpb.FieldPresentMap{}, sheet)
+	require.ErrorIs(t, err, xerrors.ErrE2031)
+
+	desc := xerrors.NewDesc(err)
+	require.Equal(t, ",", desc.GetValue("Sep"))
+	require.Equal(t, "unittest.FieldPresentMap.Player.Info", desc.GetValue("TypeName"))
+	rendered := desc.String()
+	require.Contains(t, rendered, "error[E2031]:")
+	require.Contains(t, rendered, `sep: ","`)
+	require.Contains(t, rendered, `incell struct "unittest.FieldPresentMap.Player.Info"`)
 }
 
 func TestTableParser_parseVerticalAggregationConsistency(t *testing.T) {

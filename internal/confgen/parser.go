@@ -882,6 +882,10 @@ func (p *sheetParser) parseIncellStruct(field *Field, structValue protoreflect.V
 	default:
 		splits := strings.Split(cellData, sep)
 		md := structValue.Message().Descriptor()
+		expected := md.Fields().Len()
+		if actual := len(splits); actual > expected {
+			return false, xerrors.E2031(string(md.FullName()), cellData, expected, actual, sep)
+		}
 		for i := 0; i < md.Fields().Len() && i < len(splits); i++ {
 			fd := md.Fields().Get(i)
 			rawValue := splits[i]

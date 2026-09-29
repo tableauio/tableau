@@ -37,6 +37,7 @@ var ErrE2027 = newEcode("E2027", `protovalidate violation`)
 var ErrE2028 = newEcode("E2028", `duplicate elements in incell keyed-list`)
 var ErrE2029 = newEcode("E2029", `no cell with digit suffix for horizontal list/map field`)
 var ErrE2030 = newEcode("E2030", `referred sheet not found`)
+var ErrE2031 = newEcode("E2031", `incell struct has too many fields`)
 var ErrE3000 = newEcode("E3000", `no workbook file found about sheet specifier`)
 var ErrE3001 = newEcode("E3001", `no worksheet found in workbook`)
 var ErrE3002 = newEcode("E3002", `failed to open file`)
@@ -351,6 +352,17 @@ func E2030(referBookName string, referSheetName string) error {
 	return renderEcode(ErrE2030, map[string]any{
 		"ReferBookName":  referBookName,
 		"ReferSheetName": referSheetName,
+	})
+}
+
+// E2031: incell struct has too many fields
+func E2031(typeName string, cellData string, expected int, actual int, sep string) error {
+	return renderEcode(ErrE2031, map[string]any{
+		"TypeName": typeName,
+		"CellData": cellData,
+		"Expected": expected,
+		"Actual":   actual,
+		"Sep":      sep,
 	})
 }
 
