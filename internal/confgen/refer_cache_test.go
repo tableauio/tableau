@@ -2,70 +2,22 @@ package confgen
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"github.com/tableauio/tableau/internal/confgen/fieldprop"
-	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	_ "github.com/tableauio/tableau/proto/tableaupb/unittestpb"
-	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-func TestGeneratorResetRunStateRetriesFailedRefer(t *testing.T) {
-	gen := &Generator{
-		ErrorLimitOpt: &options.ErrorLimitOption{MaxErrors: 10},
-		collector:     xerrors.NewCollector(10),
-		referredCache: fieldprop.NewReferredCache(),
+func TestGeneratorIsSingleUse(t *testing.T) {
+	gen := NewGeneratorWithOptions("", "", t.TempDir(), options.NewDefault())
+	if err := gen.run(func() error { return nil }); err != nil {
+		t.Fatalf("first run error = %v", err)
 	}
-	prop := &tableaupb.FieldProp{Refer: "DoesNotExistConf.ID"}
-	input := &fieldprop.Input{
-		ProtoPackage: "unittest",
-		InputDir:     "../../testdata",
-		PRFiles:      protoregistry.GlobalFiles,
-		Present:      true,
-	}
-
-	previous := gen.referredCache
-	if err := previous.CheckRefer(context.Background(), prop, "1", input); err == nil {
-		t.Fatal("first CheckRefer() error = nil, want load error")
-	}
-	previousCollector := gen.collector
-	if err := gen.collector.Collect(errors.New("first run failed")); err != nil {
-		t.Fatalf("collector reached its limit unexpectedly: %v", err)
-	}
-
-	gen.resetRunState()
-	if gen.referredCache == previous {
-		t.Fatal("resetRunState() reused the previous referred cache")
-	}
-	if err := gen.referredCache.CheckRefer(context.Background(), prop, "1", input); err == nil {
-		t.Fatal("CheckRefer() after reset error = nil, want load to be retried")
-	}
-	if gen.collector == previousCollector {
-		t.Fatal("resetRunState() reused the previous error collector")
-	}
-	if gen.collector.HasErrors() {
-		t.Fatal("resetRunState() retained errors from the previous run")
-	}
-}
-
-func TestGeneratorCloseRunCaches(t *testing.T) {
-	importerCache := importer.NewCache()
-	gen := &Generator{
-		importerCache: importerCache,
-		referredCache: fieldprop.NewReferredCache(),
-	}
-
-	gen.closeRunCaches()
-
-	if gen.importerCache != nil || gen.referredCache != nil {
-		t.Fatal("closeRunCaches() retained run caches")
-	}
-	if _, err := importerCache.Load(context.Background(), "testdata/Test.xlsx"); err == nil {
-		t.Fatal("closed importer cache accepted a load")
+	if err := gen.run(func() error {
+		t.Fatal("second run callback was called")
+		return nil
+	}); err == nil {
+		t.Fatal("second run error = nil, want single-use error")
 	}
 }
 

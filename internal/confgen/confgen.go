@@ -25,6 +25,8 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
+// Generator converts workbook data for one generation run. Create a new
+// Generator when another run is needed.
 type Generator struct {
 	ctx          context.Context
 	ProtoPackage string // protobuf package name.
@@ -92,16 +94,6 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return g
 }
 
-func (gen *Generator) resetRunState() {
-	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
-	gen.referredCache, gen.importerCache = newRunCaches(gen.profiling)
-	// Imported data is valid only for one run. A fresh cache prevents stale
-	// workbook data when a Generator is reused after its inputs change.
-	if gen.profiling {
-		gen.SheetParserMetrics.Reset()
-	}
-}
-
 func newRunCaches(profiling bool) (*fieldprop.ReferredCache, *importer.Cache) {
 	referredCache := fieldprop.NewReferredCache()
 	importerCache := importer.NewCache()
@@ -123,8 +115,6 @@ func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
 }
 
 func (gen *Generator) GenAll() error {
-	gen.resetRunState()
-	defer gen.closeRunCaches()
 	return gen.run(func() error {
 		prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 		if err != nil {
@@ -153,8 +143,6 @@ func (gen *Generator) GenAll() error {
 //   - only workbook: excel/Item.xlsx
 //   - with worksheet: excel/Item.xlsx#Item (To be implemented)
 func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
-	gen.resetRunState()
-	defer gen.closeRunCaches()
 	return gen.run(func() error {
 		prFiles, err := loadProtoRegistryFiles(gen.ProtoPackage, gen.InputOpt.ProtoPaths, gen.InputOpt.ProtoFiles, gen.InputOpt.ExcludedProtoFiles...)
 		if err != nil {
@@ -197,9 +185,9 @@ func (gen *Generator) GenWorkbook(bookSpecifiers ...string) error {
 	})
 }
 
-// closeRunCaches closes the current run's importer cache and drops both run
-// caches so decoded sheets and referred values can be collected before the
-// next generator run.
+// closeRunCaches releases the run-owned importer cache. A Generator is
+// single-use, so dropping the caches also prevents accidental reuse of stale
+// workbook data.
 func (gen *Generator) closeRunCaches() {
 	importerCache := gen.importerCache
 	gen.importerCache = nil

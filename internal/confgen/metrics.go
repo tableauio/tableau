@@ -12,6 +12,10 @@ import (
 )
 
 func (gen *Generator) run(work func() error) error {
+	if gen.importerCache == nil {
+		return errors.New("confgen generator already used; create a new generator for another run")
+	}
+	defer gen.closeRunCaches()
 	if !gen.profiling {
 		return work()
 	}
