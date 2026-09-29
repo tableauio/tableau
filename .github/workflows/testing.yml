@@ -35,7 +35,7 @@ jobs:
         run: go vet ./...
 
       - name: Unittest
-        run: go test -v -timeout 30m -race ./... -coverprofile=coverage.txt
+        run: go test -v -timeout 30m -race ./... -coverprofile=coverage-unit.txt
           -covermode=atomic
 
       - name: Functest
@@ -50,3 +50,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: tableauio/tableau
+          # Explicit paths: coverage.txt is gitignored and auto-search can miss
+          # unit coverage, leaving only functest (which never hits error paths).
+          files: coverage-unit.txt,test/functest/coverage-functest.txt
+          disable_search: true
