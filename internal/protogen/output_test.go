@@ -24,7 +24,7 @@ func newOutputTestGenerator(t *testing.T, outputDir string) *Generator {
 	})
 }
 
-func TestGenerator_singleUseAndFailedRunPreservesOutputs(t *testing.T) {
+func TestGenerator_failedRunPreservesOutputs(t *testing.T) {
 	inputDir := t.TempDir()
 	outputDir := t.TempDir()
 	workbook := filepath.Join(inputDir, "Items.yaml")
@@ -45,10 +45,6 @@ Name: string
 	generated := filepath.Join(outputDir, "items.proto")
 	before, err := os.ReadFile(generated)
 	require.NoError(t, err)
-
-	// A generator owns one run. A new generator is required for another run.
-	err = gen.Generate()
-	require.ErrorContains(t, err, "generator already used")
 
 	stale := filepath.Join(outputDir, "old.proto")
 	require.NoError(t, os.WriteFile(stale, []byte(generatedFileHeaderLine()), 0o644))

@@ -63,9 +63,7 @@ type Generator struct {
 	// parsing passes mutate and reuse their sheet state.
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
 
-	runMu      sync.Mutex
-	runStarted bool
-	output     *protoOutput
+	output *protoOutput
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {

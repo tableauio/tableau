@@ -12,13 +12,6 @@ import (
 )
 
 func (gen *Generator) run(work func() error) error {
-	gen.runMu.Lock()
-	if gen.runStarted {
-		gen.runMu.Unlock()
-		return errors.New("confgen generator already used; create a new generator for another run")
-	}
-	gen.runStarted = true
-	gen.runMu.Unlock()
 	if !gen.profiling {
 		return work()
 	}

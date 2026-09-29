@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
-	"sync"
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
@@ -39,9 +38,7 @@ type Generator struct {
 	OutputOpt     *options.ConfOutputOption // output settings.
 	ErrorLimitOpt *options.ErrorLimitOption // error collection limits.
 
-	profiling  bool // whether to enable generator performance profiling.
-	runMu      sync.Mutex
-	runStarted bool
+	profiling bool // whether to enable generator performance profiling.
 
 	validator     protovalidate.Validator // validator with extension type resolver for custom predefined rules.
 	collector     *xerrors.Collector
