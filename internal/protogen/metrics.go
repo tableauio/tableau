@@ -9,19 +9,19 @@ import (
 	"github.com/tableauio/tableau/internal/profile"
 )
 
-func (gen *Generator) run(work func() error) error {
-	run := func(ctx context.Context) error {
-		if err := gen.measureWork("prepare_run", func(context.Context) error {
+func (gen *Generator) run(generate func() error) error {
+	execute := func(ctx context.Context) error {
+		if err := gen.measureOperation("prepare_run", func(context.Context) error {
 			return gen.prepareRun()
 		}); err != nil {
 			return err
 		}
-		return gen.measureWork("generation", func(context.Context) error {
-			return work()
+		return gen.measureOperation("generation", func(context.Context) error {
+			return generate()
 		})
 	}
 	if !gen.profiling {
-		return run(gen.ctx)
+		return execute(gen.ctx)
 	}
 	defer gen.BookMetrics.Print()
 	defer gen.SheetParserMetrics.Print()
@@ -30,20 +30,20 @@ func (gen *Generator) run(work func() error) error {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
 	}
 	files, err := profile.Capture("protogen", profileDir, func() error {
-		return run(gen.ctx)
+		return execute(gen.ctx)
 	})
 	return errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU))
 }
 
-func (gen *Generator) measureWork(work string, run func(context.Context) error) error {
-	return gen.measureWorkWithLabels(work, run)
+func (gen *Generator) measureOperation(name string, operation func(context.Context) error) error {
+	return gen.measureOperationWithLabels(name, operation)
 }
 
-func (gen *Generator) measureWorkWithLabels(work string, run func(context.Context) error, labels ...string) error {
+func (gen *Generator) measureOperationWithLabels(name string, operation func(context.Context) error, labels ...string) error {
 	if !gen.profiling {
-		return run(gen.ctx)
+		return operation(gen.ctx)
 	}
-	return gen.BookMetrics.Measure(gen.ctx, "protogen", work, run, labels...)
+	return gen.BookMetrics.Measure(gen.ctx, "protogen", name, operation, labels...)
 }
 
 func (gen *Generator) measureSheet(bookName string, pass parsePass, sheet *book.Sheet, parse func() error) error {

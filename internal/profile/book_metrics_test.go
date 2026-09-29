@@ -13,7 +13,7 @@ func TestBookMetricsMeasure(t *testing.T) {
 	err := metrics.Measure(context.Background(), "protogen", "import_xlsx", func(ctx context.Context) error {
 		for key, want := range map[string]string{
 			"generator": "protogen",
-			"work":      "import_xlsx",
+			"name":      "import_xlsx",
 			"book":      "Item.xlsx",
 		} {
 			if got, ok := pprof.Label(ctx, key); !ok || got != want {
@@ -26,15 +26,15 @@ func TestBookMetricsMeasure(t *testing.T) {
 		t.Fatalf("Measure() error = %v, want %v", err, wantErr)
 	}
 
-	results := metrics.collect()
-	if len(results) != 1 {
-		t.Fatalf("metric count = %d, want 1", len(results))
+	snapshot := metrics.snapshot()
+	if len(snapshot) != 1 {
+		t.Fatalf("metric count = %d, want 1", len(snapshot))
 	}
-	got := results[0]
-	if got.work != "import_xlsx" || got.calls != 1 || got.failures != 1 {
+	got := snapshot[0]
+	if got.name != "import_xlsx" || got.calls != 1 || got.failures != 1 {
 		t.Fatalf("metric = %+v", got)
 	}
-	if got.wallTime < 0 || got.maxTime < 0 || got.maxTime > got.wallTime {
+	if got.totalWallTime < 0 || got.maxWallTime < 0 || got.maxWallTime > got.totalWallTime {
 		t.Fatalf("metric timing = %+v", got)
 	}
 }
