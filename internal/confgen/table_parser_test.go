@@ -1245,6 +1245,33 @@ func TestTableParser_parseFieldPresentMap(t *testing.T) {
 			wantErr: true,
 			err:     xerrors.ErrE2011,
 		},
+		{
+			name:   "incell struct with too many parts",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "1,10,20", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: true,
+			err:     xerrors.ErrE2031,
+		},
+		{
+			name:   "incell struct with fewer parts still ok",
+			parser: newTableParserForTest(),
+			args: args{
+				sheet: book.NewTableSheet(
+					"FieldPresentMap",
+					[][]string{
+						{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+						{"1", "sword", "2", "1", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+					}),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
