@@ -34,10 +34,9 @@ type cacheKey struct {
 	primaryBookName string
 }
 
-// Cache reuses imported data during one generator run. Sources own decoded
-// sheets and open workbook handles; entries are immutable importer views for a
-// specific option set. Callers must not mutate cached sheets or call Load
-// concurrently with Release or Close.
+// Cache reuses imported data during one load scope. Sources own decoded sheets
+// and open workbook handles; entries are immutable importer views for a
+// specific option set. Load and Release are safe to call concurrently.
 type Cache struct {
 	profiling bool
 
@@ -45,6 +44,11 @@ type Cache struct {
 	entries sync.Map
 	// sources maps a normalized logical path to shared format-specific data.
 	sources sync.Map
+	// sourcesMu keeps source publication and release from racing. Individual
+	// sources still serialize their own reader and decoded-sheet state.
+	sourcesMu sync.RWMutex
+	// releaseMu serializes release passes from concurrent messager loads.
+	releaseMu sync.Mutex
 	// sourceLoads ensures concurrent views open each source only once.
 	sourceLoads singleflight.Group
 
@@ -161,7 +165,10 @@ func (c *Cache) LoadMergerImporters(ctx context.Context, inputDir, primaryBookNa
 // for the requested option set.
 func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
 	loaded, err, _ := c.sourceLoads.Do(key.filename, func() (any, error) {
-		if cached, ok := c.sources.Load(key.filename); ok {
+		c.sourcesMu.RLock()
+		cached, ok := c.sources.Load(key.filename)
+		c.sourcesMu.RUnlock()
+		if ok {
 			return cached.(cachedSource), nil
 		}
 		source, decoded, err := c.openSource(ctx, key.filename)
@@ -172,7 +179,12 @@ func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Imp
 			c.imports.Add(1)
 			c.sheets.Add(decoded)
 		}
-		c.sources.Store(key.filename, source)
+		c.sourcesMu.Lock()
+		actual, loaded := c.sources.LoadOrStore(key.filename, source)
+		c.sourcesMu.Unlock()
+		if loaded {
+			return actual.(cachedSource), nil
+		}
 		return source, nil
 	})
 	if err != nil {
@@ -486,6 +498,11 @@ func (c *Cache) Release() error {
 }
 
 func (c *Cache) releaseSources() error {
+	c.releaseMu.Lock()
+	defer c.releaseMu.Unlock()
+	c.sourcesMu.RLock()
+	defer c.sourcesMu.RUnlock()
+
 	var errs []error
 	c.sources.Range(func(key, value any) bool {
 		if err := value.(cachedSource).release(); err != nil {

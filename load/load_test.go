@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -285,8 +286,6 @@ func TestLoadOriginReusesImporterCache(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, opts.Close()) })
 	mopts := opts.ParseMessagerOptionsByName("ItemConf")
 
-	// Shared messager options are loaded sequentially because each load releases
-	// all workbook handles held by the shared cache before returning.
 	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
 	firstRequests, firstImports, _, _ := opts.importerCache.Metrics()
 	require.Positive(t, firstImports)
@@ -295,6 +294,30 @@ func TestLoadOriginReusesImporterCache(t *testing.T) {
 	secondRequests, secondImports, _, _ := opts.importerCache.Metrics()
 	require.Greater(t, secondRequests, firstRequests)
 	require.Equal(t, firstImports, secondImports)
+}
+
+func TestLoadOriginSupportsConcurrentSharedOptions(t *testing.T) {
+	opts := ParseOptions()
+	t.Cleanup(func() { require.NoError(t, opts.Close()) })
+
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var group sync.WaitGroup
+	for range 2 {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			<-start
+			mopts := opts.ParseMessagerOptionsByName("ItemConf")
+			results <- LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts)
+		}()
+	}
+	close(start)
+	group.Wait()
+	close(results)
+	for err := range results {
+		require.NoError(t, err)
+	}
 }
 
 func TestLoadJSON_E0002(t *testing.T) {
