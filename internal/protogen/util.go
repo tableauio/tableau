@@ -52,26 +52,48 @@ func isGeneratedProtoFile(path string) (bool, error) {
 	return string(header) == generatedFileHeaderPrefix, nil
 }
 
-// validateExistingGeneratedProto permits a missing path or an existing generated file.
-func validateExistingGeneratedProto(path string) error {
+// openExistingGeneratedProto opens an existing generated proto for reading.
+// A missing file is reported as a nil file. Any other existing path must be a
+// regular file owned by tableau.
+func openExistingGeneratedProto(path string) (*os.File, error) {
 	info, err := os.Lstat(path)
 	if os.IsNotExist(err) {
-		return nil
+		return nil, nil
 	}
 	if err != nil {
-		return xerrors.WrapKV(err)
+		return nil, xerrors.WrapKV(err)
 	}
 	if !info.Mode().IsRegular() {
-		return xerrors.Newf("proto output is not a regular file: %s", path)
+		return nil, xerrors.Newf("proto output is not a regular file: %s", path)
 	}
-	generated, err := isGeneratedProtoFile(path)
+
+	f, err := os.Open(path)
 	if err != nil {
-		return err
+		return nil, xerrors.WrapKV(err)
 	}
-	if !generated {
-		return xerrors.Newf("refusing to overwrite non-generated proto file: %s", path)
+	header := make([]byte, len(generatedFileHeaderPrefix))
+	if _, err := io.ReadFull(f, header); err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		_ = f.Close()
+		return nil, xerrors.WrapKV(err)
 	}
-	return nil
+	if string(header) != generatedFileHeaderPrefix {
+		_ = f.Close()
+		return nil, xerrors.Newf("refusing to overwrite non-generated proto file: %s", path)
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		_ = f.Close()
+		return nil, xerrors.WrapKV(err)
+	}
+	return f, nil
+}
+
+// validateExistingGeneratedProto permits a missing path or an existing generated file.
+func validateExistingGeneratedProto(path string) error {
+	f, err := openExistingGeneratedProto(path)
+	if f != nil {
+		_ = f.Close()
+	}
+	return err
 }
 
 // resolveImportedProtoPaths expands configured imports into protected output paths.

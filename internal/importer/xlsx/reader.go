@@ -19,7 +19,8 @@ const (
 	sharedStringsPath   = "xl/sharedStrings.xml"
 	// Larger parts use the caller's compatibility reader instead of allocating
 	// an unbounded in-memory buffer.
-	maxEntrySize = 512 << 20
+	maxEntrySize               = 512 << 20
+	initialWorksheetPrefixSize = 64 << 10
 )
 
 // ErrSheetNotFound reports that a workbook has no sheet with the requested name.
@@ -57,23 +58,6 @@ type relationship struct {
 	Target     string `xml:"Target,attr"`
 	Type       string `xml:"Type,attr"`
 	TargetMode string `xml:"TargetMode,attr"`
-}
-
-type sharedStringTable struct {
-	Items []stringItem `xml:"si"`
-}
-
-type stringItem struct {
-	Text *textValue `xml:"t"`
-	Runs []textRun  `xml:"r"`
-}
-
-type textRun struct {
-	Text *textValue `xml:"t"`
-}
-
-type textValue struct {
-	Value string `xml:",chardata"`
 }
 
 // Open opens an XLSX archive and indexes its worksheets.
@@ -226,22 +210,35 @@ func (r *Reader) SheetNames() []string {
 
 // ReadRows reads all populated rows from the named worksheet.
 func (r *Reader) ReadRows(sheetName string) ([][]string, error) {
+	return r.ReadRowsN(sheetName, 0)
+}
+
+// ReadRowsN reads at most topN rows from the named worksheet. A topN of zero
+// reads all populated rows.
+func (r *Reader) ReadRowsN(sheetName string, topN uint) ([][]string, error) {
 	entry := r.sheets[sheetName]
 	if entry == nil {
 		return nil, ErrSheetNotFound
+	}
+	if topN > 0 {
+		shared, err := r.loadSharedStrings()
+		if err != nil {
+			return nil, err
+		}
+		return readEntryRowsN(entry, sheetName, shared, topN)
 	}
 	data, err := readEntry(entry)
 	if err != nil {
 		return nil, err
 	}
-	if bytes.Contains(data, []byte("<![CDATA[")) || bytes.Contains(data, []byte("<!DOCTYPE")) {
+	if hasUnsupportedWorksheetXML(data) {
 		return nil, xerrors.Newf("unsupported XML construct in worksheet %q", sheetName)
 	}
 	shared, err := r.loadSharedStrings()
 	if err != nil {
 		return nil, err
 	}
-	return parseRows(data, shared)
+	return parseRowsN(data, shared, topN)
 }
 
 func (r *Reader) loadSharedStrings() ([]string, error) {
@@ -254,24 +251,12 @@ func (r *Reader) loadSharedStrings() ([]string, error) {
 			r.sharedErr = err
 			return
 		}
-		var table sharedStringTable
-		if err := xml.Unmarshal(data, &table); err != nil {
+		shared, err := parseSharedStrings(data)
+		if err != nil {
 			r.sharedErr = xerrors.Wrapf(err, "decode XLSX shared strings")
 			return
 		}
-		r.shared = make([]string, len(table.Items))
-		for i, item := range table.Items {
-			var text strings.Builder
-			if item.Text != nil {
-				text.WriteString(item.Text.Value)
-			}
-			for _, run := range item.Runs {
-				if run.Text != nil {
-					text.WriteString(run.Text.Value)
-				}
-			}
-			r.shared[i] = decodeEscapes(text.String())
-		}
+		r.shared = shared
 	})
 	return r.shared, r.sharedErr
 }
@@ -315,4 +300,77 @@ func readEntry(entry *zip.File) ([]byte, error) {
 	}
 	closeErr := file.Close()
 	return data, errors.Join(readErr, closeErr)
+}
+
+// readEntryRowsN inflates a geometrically growing worksheet prefix until the
+// requested logical rows are complete. Small and full-sheet reads still use
+// readEntry, while large data sheets avoid allocating and inflating their tail.
+func readEntryRowsN(entry *zip.File, sheetName string, shared []string, topN uint) ([][]string, error) {
+	if entry.UncompressedSize64 > maxEntrySize {
+		return nil, xerrors.Newf("XLSX entry %q exceeds the %d-byte in-memory limit", entry.Name, maxEntrySize)
+	}
+	file, err := entry.Open()
+	if err != nil {
+		return nil, err
+	}
+	rows, readErr := readRowsPrefix(file, entry, sheetName, shared, topN)
+	return rows, errors.Join(readErr, file.Close())
+}
+
+func readRowsPrefix(file io.Reader, entry *zip.File, sheetName string, shared []string, topN uint) ([][]string, error) {
+	size := int(entry.UncompressedSize64)
+	prefixSize := min(size, initialWorksheetPrefixSize)
+	data := make([]byte, prefixSize)
+	if _, err := io.ReadFull(file, data); err != nil {
+		return nil, err
+	}
+
+	for {
+		rows, parseErr := parseRowsN(data, shared, topN)
+		if len(data) == size {
+			var extra [1]byte
+			n, err := file.Read(extra[:])
+			if err != nil && err != io.EOF {
+				return nil, err
+			}
+			if n != 0 || err == nil {
+				return nil, xerrors.Newf("XLSX entry %q size differs from its ZIP header", entry.Name)
+			}
+			if hasUnsupportedWorksheetXML(data) {
+				return nil, xerrors.Newf("unsupported XML construct in worksheet %q", sheetName)
+			}
+			return rows, parseErr
+		}
+
+		if parseErr == nil && uint(len(rows)) >= topN {
+			if hasUnsupportedWorksheetXML(data) {
+				return nil, xerrors.Newf("unsupported XML construct in worksheet %q", sheetName)
+			}
+			return rows, nil
+		}
+
+		nextSize := min(size, max(initialWorksheetPrefixSize, len(data)*2))
+		next := make([]byte, nextSize)
+		copy(next, data)
+		if _, err := io.ReadFull(file, next[len(data):]); err != nil {
+			return nil, err
+		}
+		data = next
+	}
+}
+
+func hasUnsupportedWorksheetXML(data []byte) bool {
+	if bytes.Contains(data, []byte("<![CDATA[")) ||
+		bytes.Contains(data, []byte("<!DOCTYPE")) ||
+		bytes.Contains(data, []byte("<!--")) {
+		return true
+	}
+	trimmed := bytes.TrimSpace(data)
+	trimmed = bytes.TrimPrefix(trimmed, []byte{0xEF, 0xBB, 0xBF})
+	if bytes.HasPrefix(trimmed, []byte("<?xml")) {
+		if end := bytes.Index(trimmed, []byte("?>")); end >= 0 {
+			trimmed = trimmed[end+2:]
+		}
+	}
+	return bytes.Contains(trimmed, []byte("<?"))
 }

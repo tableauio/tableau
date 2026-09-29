@@ -49,6 +49,7 @@ type Generator struct {
 	ProtoRegistryFiles *protoregistry.Files
 	ProtoRegistryTypes *dynamicpb.Types
 	SheetParserMetrics profile.SheetParserMetrics
+	WorkMetrics        profile.WorkMetrics
 
 	// internal
 	typeInfos *xproto.TypeInfos  // predefined type infos
@@ -104,7 +105,12 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		cachedImporters: make(map[string]importer.Importer),
 		output:          newProtoOutput(filepath.Join(outdir, opts.Proto.Output.Subdir), nil),
 	}
-	registryFiles, err := gen.parseProtoRegistryFiles(false)
+	var registryFiles *protoregistry.Files
+	err := gen.measureWork("proto_registry_initial", func(context.Context) error {
+		var err error
+		registryFiles, err = gen.parseProtoRegistryFiles(false)
+		return err
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -137,11 +143,13 @@ func (gen *Generator) getProtoRegistryFilesIncludingGenerated() *protoregistry.F
 		return gen.protoRegistryFilesWithGenerated
 	}
 	gen.registryWithGeneratedOnce.Do(func() {
-		files, err := gen.parseProtoRegistryFiles(true)
-		if err != nil {
+		if err := gen.measureWork("proto_registry_generated", func(context.Context) error {
+			files, err := gen.parseProtoRegistryFiles(true)
+			gen.protoRegistryFilesWithGenerated = files
+			return err
+		}); err != nil {
 			panic(err)
 		}
-		gen.protoRegistryFilesWithGenerated = files
 	})
 	return gen.protoRegistryFilesWithGenerated
 }
@@ -203,7 +211,9 @@ func (gen *Generator) GenAll() error {
 		}
 		// Generation errors leave prior outputs untouched. GenAll alone owns the
 		// top-level output directory, so it also removes stale files on commit.
-		return gen.output.publishAll()
+		return gen.measureWork("output_publish", func(context.Context) error {
+			return gen.output.publishAll()
+		})
 	})
 }
 
@@ -248,7 +258,9 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 			return err
 		}
 		// Other workbooks' outputs remain valid when generating a selection.
-		return gen.output.publishSelected()
+		return gen.measureWork("output_publish", func(context.Context) error {
+			return gen.output.publishSelected()
+		})
 	})
 }
 
@@ -419,8 +431,14 @@ func (gen *Generator) convertDocument(dir, filename string, pass parsePass) (err
 		return nil
 	}
 	absPath := filepath.Join(dir, filename)
+	inputFormat := format.GetFormat(filename)
 	parser := confgen.NewSheetParser(gen.ctx, xproto.InternalProtoPackage, gen.LocationName, book.MetasheetOptions(gen.ctx))
-	imp, err := importer.New(gen.ctx, absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
+	var imp importer.Importer
+	err = gen.measureWorkWithLabels("import_"+string(inputFormat), func(ctx context.Context) error {
+		var loadErr error
+		imp, loadErr = importer.New(ctx, absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
+		return loadErr
+	}, "book", absPath)
 	if err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
 	}
@@ -473,7 +491,9 @@ func (gen *Generator) convertDocument(dir, filename string, pass parsePass) (err
 		bp.wb,
 		bp.gen,
 	)
-	if err := be.export(); err != nil {
+	if err := gen.measureWorkWithLabels("book_export", func(context.Context) error {
+		return be.export()
+	}, "book", debugBookName); err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)
 	}
 	return nil
@@ -481,10 +501,15 @@ func (gen *Generator) convertDocument(dir, filename string, pass parsePass) (err
 
 func (gen *Generator) convertTable(dir, filename string, pass parsePass) (err error) {
 	absPath := filepath.Join(dir, filename)
+	inputFormat := format.GetFormat(filename)
 	imp := gen.getImporter(absPath)
 	if imp == nil {
 		parser := confgen.NewSheetParser(gen.ctx, xproto.InternalProtoPackage, gen.LocationName, book.MetasheetOptions(gen.ctx))
-		imp, err = importer.New(gen.ctx, absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
+		err = gen.measureWorkWithLabels("import_"+string(inputFormat), func(ctx context.Context) error {
+			var loadErr error
+			imp, loadErr = importer.New(ctx, absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
+			return loadErr
+		}, "book", absPath)
 		if err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyBookName, absPath)
 		}
@@ -544,7 +569,9 @@ func (gen *Generator) convertTable(dir, filename string, pass parsePass) (err er
 			bp.wb,
 			bp.gen,
 		)
-		if err := be.export(); err != nil {
+		if err := gen.measureWorkWithLabels("book_export", func(context.Context) error {
+			return be.export()
+		}, "book", debugBookName); err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)
 		}
 	}

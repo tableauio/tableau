@@ -2,6 +2,9 @@ package xlsx
 
 import (
 	"archive/zip"
+	"bytes"
+	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -15,7 +18,11 @@ import (
 
 func TestReaderMatchesExcelize(t *testing.T) {
 	var filenames []string
-	for _, root := range []string{filepath.Join("..", "testdata"), filepath.Join("..", "..", "..", "test")} {
+	roots := []string{filepath.Join("..", "testdata"), filepath.Join("..", "..", "..", "test")}
+	if root := os.Getenv("TABLEAU_XLSX_TEST_ROOT"); root != "" {
+		roots = append(roots, root)
+	}
+	for _, root := range roots {
 		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -48,9 +55,35 @@ func TestReaderMatchesExcelize(t *testing.T) {
 				got, err := reader.ReadRows(sheetName)
 				require.NoError(t, err, "read XLSX sheet %q", sheetName)
 				require.Equal(t, want, got, "sheet %q", sheetName)
+
+				for _, topN := range []uint{1, 3, 10} {
+					want, err := readExcelizeRowsN(file, sheetName, topN)
+					require.NoError(t, err, "read first %d Excelize rows from sheet %q", topN, sheetName)
+					got, err := reader.ReadRowsN(sheetName, topN)
+					require.NoError(t, err, "read first %d XLSX rows from sheet %q", topN, sheetName)
+					require.Equal(t, want, got, "first %d rows of sheet %q", topN, sheetName)
+				}
 			}
 		})
 	}
+}
+
+func readExcelizeRowsN(file *excelize.File, sheetName string, topN uint) (rows [][]string, err error) {
+	iterator, err := file.Rows(sheetName)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err = errors.Join(err, iterator.Close())
+	}()
+	for iterator.Next() && uint(len(rows)) < topN {
+		row, err := iterator.Columns(excelize.Options{RawCellValue: true})
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	return rows, nil
 }
 
 func TestReaderUsesPackageRelationships(t *testing.T) {
@@ -78,6 +111,65 @@ func TestReaderUsesPackageRelationships(t *testing.T) {
 	require.Equal(t, [][]string{{"AB", "Hello world"}}, rows)
 	_, err = reader.ReadRows("Missing")
 	require.ErrorIs(t, err, ErrSheetNotFound)
+}
+
+func TestReadRowsNStopsInflatingAfterRequestedRows(t *testing.T) {
+	worksheet := `<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c></row>` +
+		strings.Repeat(" ", initialWorksheetPrefixSize*2) +
+		`<row r="2"><c r="A2" t="s"><v>999</v></c></row></sheetData></worksheet>`
+	parts := defaultParts(
+		`<workbook xmlns:r="urn:relationships"><sheets><sheet name="Items" r:id="sheet"/></sheets></workbook>`,
+		`<Relationships><Relationship Id="sheet" Type="worksheet" Target="worksheets/items.xml"/><Relationship Id="strings" Type="sharedStrings" Target="sharedStrings.xml"/></Relationships>`,
+		worksheet,
+	)
+	parts["xl/sharedStrings.xml"] = `<sst><si><t>first</t></si></sst>`
+	reader, err := Open(writeArchive(t, parts))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+
+	rows, err := reader.ReadRowsN("Items", 1)
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"first"}}, rows)
+
+	_, err = reader.ReadRows("Items")
+	require.ErrorContains(t, err, "shared string index 999 out of range")
+}
+
+type terminalErrorReader struct {
+	io.Reader
+	err error
+}
+
+func (r terminalErrorReader) Read(buffer []byte) (int, error) {
+	n, err := r.Reader.Read(buffer)
+	if err == io.EOF {
+		return n, r.err
+	}
+	return n, err
+}
+
+func TestReadRowsNValidatesCompleteEntry(t *testing.T) {
+	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData></worksheet>`)
+	entry := &zip.File{FileHeader: zip.FileHeader{
+		Name:               "worksheet.xml",
+		UncompressedSize64: uint64(len(data)),
+	}}
+	reader := terminalErrorReader{Reader: bytes.NewReader(data), err: zip.ErrChecksum}
+
+	_, err := readRowsPrefix(reader, entry, "Items", nil, 1)
+	require.ErrorIs(t, err, zip.ErrChecksum)
+}
+
+func TestWorksheetRejectsUnsupportedXMLMarkup(t *testing.T) {
+	require.False(t, hasUnsupportedWorksheetXML([]byte(`<?xml version="1.0"?><worksheet/>`)))
+	for _, markup := range []string{
+		`<worksheet><!-- comment --></worksheet>`,
+		`<worksheet><?custom value?></worksheet>`,
+		`<worksheet><![CDATA[value]]></worksheet>`,
+		`<!DOCTYPE worksheet><worksheet/>`,
+	} {
+		require.True(t, hasUnsupportedWorksheetXML([]byte(markup)), markup)
+	}
 }
 
 func TestOpenRejectsInvalidWorkbooks(t *testing.T) {

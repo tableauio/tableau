@@ -2,7 +2,6 @@ package xlsx
 
 import (
 	"bytes"
-	"html"
 	"slices"
 	"strconv"
 	"strings"
@@ -118,12 +117,30 @@ type cell struct {
 }
 
 func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
-	rows := make([][]string, 0)
+	return parseRowsN(data, sharedStrings, 0)
+}
+
+// parseRowsN parses the first topN logical worksheet rows. A zero limit keeps
+// the GetRows-compatible behavior of omitting trailing empty rows. A positive
+// limit mirrors the Excelize row iterator, including empty rows before the last
+// worksheet row.
+func parseRowsN(data []byte, sharedStrings []string, topN uint) ([][]string, error) {
+	var rows [][]string
+	if topN == 0 {
+		rows = make([][]string, 0)
+	}
 	var row []string
 	var current cell
 	var offset, rowNumber, lastRow, cellColumn, captureStart, phoneticDepth int
 	var inRow, inCell bool
 	var capture byte
+	rowLimit := 0
+	if topN > 0 {
+		rowLimit = maxRows
+		if topN < maxRows {
+			rowLimit = int(topN)
+		}
+	}
 
 	for {
 		tag, next, ok, err := nextTag(data, offset)
@@ -140,7 +157,11 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 				current.value = data[captureStart:tag.start]
 				capture = 0
 			case capture == 't' && bytes.Equal(tag.local, []byte("t")):
-				current.inlineText.WriteString(decodeXMLText(data[captureStart:tag.start]))
+				text, err := decodeXMLText(data[captureStart:tag.start])
+				if err != nil {
+					return nil, err
+				}
+				current.inlineText.WriteString(text)
 				capture = 0
 			}
 			switch {
@@ -161,7 +182,10 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 				case 'i':
 					value = decodeEscapes(current.inlineText.String())
 				default:
-					value = decodeText(current.value)
+					value, err = decodeText(current.value)
+					if err != nil {
+						return nil, err
+					}
 				}
 				if value != "" || current.formula {
 					if current.column <= 0 {
@@ -179,7 +203,17 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 				phoneticDepth = 0
 				inCell = false
 			case bytes.Equal(tag.local, []byte("row")) && inRow:
-				if len(row) > 0 {
+				if rowLimit > 0 {
+					for len(rows) < rowNumber-1 && len(rows) < rowLimit {
+						rows = append(rows, nil)
+					}
+					if rowNumber <= rowLimit {
+						rows = append(rows, row)
+					}
+					if len(rows) >= rowLimit {
+						return rows[:rowLimit], nil
+					}
+				} else if len(row) > 0 {
 					if emptyRows := rowNumber - lastRow - 1; emptyRows > 0 {
 						rows = append(rows, make([][]string, emptyRows)...)
 					}
@@ -194,7 +228,11 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 		switch {
 		case bytes.Equal(tag.local, []byte("row")):
 			rowNumber++
-			if value, ok := attribute(tag.attrs, 'r'); ok {
+			value, ok, err := plainAttribute(tag.attrs, 'r')
+			if err != nil {
+				return nil, err
+			}
+			if ok {
 				parsed, err := parseInt(value)
 				if err != nil || parsed < 1 || parsed > maxRows {
 					return nil, xerrors.Newf("invalid XLSX row number %q", value)
@@ -203,13 +241,32 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 			} else if rowNumber > maxRows {
 				return nil, xerrors.Newf("XLSX row number exceeds %d", maxRows)
 			}
+			if rowLimit > 0 && rowNumber > rowLimit {
+				for len(rows) < rowLimit {
+					rows = append(rows, nil)
+				}
+				return rows, nil
+			}
 			row = nil
 			cellColumn = 0
 			inRow = !tag.selfClosing
+			if tag.selfClosing && rowLimit > 0 {
+				for len(rows) < rowNumber-1 && len(rows) < rowLimit {
+					rows = append(rows, nil)
+				}
+				rows = append(rows, nil)
+				if len(rows) >= rowLimit {
+					return rows[:rowLimit], nil
+				}
+			}
 		case inRow && bytes.Equal(tag.local, []byte("c")):
 			current = cell{column: cellColumn + 1}
 			phoneticDepth = 0
-			if reference, ok := attribute(tag.attrs, 'r'); ok {
+			reference, ok, err := plainAttribute(tag.attrs, 'r')
+			if err != nil {
+				return nil, err
+			}
+			if ok {
 				column := parseColumn(reference)
 				if column < 1 || column > maxColumns {
 					return nil, xerrors.Newf("invalid XLSX cell reference %q", reference)
@@ -218,7 +275,11 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 			} else if current.column > maxColumns {
 				return nil, xerrors.Newf("XLSX column number exceeds %d", maxColumns)
 			}
-			if kind, ok := attribute(tag.attrs, 't'); ok {
+			kind, ok, err := plainAttribute(tag.attrs, 't')
+			if err != nil {
+				return nil, err
+			}
+			if ok {
 				switch {
 				case bytes.Equal(kind, []byte("s")):
 					current.kind = 's'
@@ -298,6 +359,17 @@ func attribute(attrs []byte, name byte) ([]byte, bool) {
 	return nil, false
 }
 
+// plainAttribute rejects character references in worksheet coordinates and
+// cell types. Falling back to the compatibility reader is safer than silently
+// interpreting the undecoded bytes with different semantics.
+func plainAttribute(attrs []byte, name byte) ([]byte, bool, error) {
+	value, ok := attribute(attrs, name)
+	if ok && bytes.IndexByte(value, '&') >= 0 {
+		return nil, false, xerrors.Newf("unsupported XML character reference in worksheet attribute %q", name)
+	}
+	return value, ok, nil
+}
+
 func parseColumn(reference []byte) int {
 	column := 0
 	maxInt := int(^uint(0) >> 1)
@@ -340,16 +412,12 @@ func parseInt(value []byte) (int, error) {
 	return parsed, nil
 }
 
-func decodeText(value []byte) string {
-	return decodeEscapes(decodeXMLText(value))
-}
-
-func decodeXMLText(value []byte) string {
-	text := string(value)
-	if strings.Contains(text, "&") {
-		text = html.UnescapeString(text)
+func decodeText(value []byte) (string, error) {
+	text, err := decodeXMLText(value)
+	if err != nil {
+		return "", err
 	}
-	return text
+	return decodeEscapes(text), nil
 }
 
 func decodeEscapes(value string) string {

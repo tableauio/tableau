@@ -24,6 +24,40 @@ func TestParseRows(t *testing.T) {
 	}, rows)
 }
 
+func TestParseRowsNStopsAtLimit(t *testing.T) {
+	data := []byte(`<worksheet><sheetData>
+<row r="1"><c r="A1" t="s"><v>0</v></c></row>
+<row r="20"><c r="A20" t="s"><v>999</v></c></row>
+</sheetData></worksheet>`)
+
+	rows, err := parseRowsN(data, []string{"first"}, 3)
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"first"}, nil, nil}, rows)
+
+	_, err = parseRows(data, []string{"first"})
+	require.ErrorContains(t, err, "shared string index 999 out of range")
+}
+
+func TestDecodeXMLTextNormalizesPhysicalNewlines(t *testing.T) {
+	text, err := decodeXMLText([]byte("one\r\ntwo\rthree&#13;four"))
+	require.NoError(t, err)
+	require.Equal(t, "one\ntwo\nthree\rfour", text)
+}
+
+func TestParseRowsUsesXMLCharacterReferences(t *testing.T) {
+	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>&#128;&#xD;</t></is></c></row></sheetData></worksheet>`)
+	rows, err := parseRows(data, nil)
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"\u0080\r"}}, rows)
+}
+
+func TestParseRowsRejectsCharacterReferenceInRelevantAttribute(t *testing.T) {
+	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1" t="&#x73;"><v>0</v></c></row></sheetData></worksheet>`)
+
+	_, err := parseRows(data, []string{"shared"})
+	require.ErrorContains(t, err, "worksheet attribute")
+}
+
 func TestParseRowsHandlesSparseAndRichCells(t *testing.T) {
 	data := []byte(`<x:worksheet><x:sheetData>
 <x:row r='1'><x:c r='$A$1' t='inlineStr'><x:is><x:r><x:t>Hi</x:t></x:r><x:rPh><x:t>ignored</x:t></x:rPh><x:r><x:t>!</x:t></x:r></x:is></x:c><x:c r='C1'/><x:c r='D1'><x:v>9</x:v></x:c></x:row>

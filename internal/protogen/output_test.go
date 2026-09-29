@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -168,11 +169,158 @@ func TestProtoOutput_publishReplacesExistingFile(t *testing.T) {
 	require.NoError(t, gen.output.reservePath(path, "Item.xlsx"))
 	replacement := generatedFileHeaderLine() + "new\\n"
 	require.NoError(t, gen.output.stageFile(path, []byte(replacement)))
+	key, err := xfs.Abs(path)
+	require.NoError(t, err)
+	stagedPath := gen.output.stagedFiles[key]
+	require.NotEmpty(t, stagedPath)
+	require.FileExists(t, stagedPath)
 
 	require.NoError(t, gen.output.publishSelected())
 	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	require.Equal(t, replacement, string(content))
+	require.NoFileExists(t, stagedPath)
+}
+
+func TestProtoOutput_stageFileSkipsUnchangedFile(t *testing.T) {
+	dir := t.TempDir()
+	gen := newOutputTestGenerator(t, dir)
+	outdir := filepath.Join(dir, "default")
+	require.NoError(t, os.MkdirAll(outdir, 0o755))
+	require.NoError(t, gen.prepareRun())
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
+
+	path := filepath.Join(outdir, "item.proto")
+	first := []byte(generatedFileHeaderLine())
+	second := []byte("message Item {}\n")
+	want := append(append([]byte(nil), first...), second...)
+	require.NoError(t, os.WriteFile(path, want, 0o644))
+	oldTime := time.Unix(1_600_000_000, 0)
+	require.NoError(t, os.Chtimes(path, oldTime, oldTime))
+	require.NoError(t, gen.output.reservePath(path, "Item.xlsx"))
+
+	require.NoError(t, gen.output.stageFile(path, first, second))
+	key, err := xfs.Abs(path)
+	require.NoError(t, err)
+	require.NotContains(t, gen.output.stagedFiles, key)
+	entries, err := os.ReadDir(gen.output.stagingDir)
+	require.NoError(t, err)
+	require.Empty(t, entries)
+
+	require.NoError(t, gen.output.publishSelected())
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	require.Equal(t, oldTime, info.ModTime())
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+	require.Equal(t, want, content)
+}
+
+func TestProtoOutput_publishRevalidatesUnchangedFile(t *testing.T) {
+	tests := []struct {
+		name        string
+		replacement []byte
+		remove      bool
+		wantError   string
+	}{
+		{
+			name:      "deleted",
+			remove:    true,
+			wantError: "changed before publication",
+		},
+		{
+			name:        "handwritten replacement",
+			replacement: []byte("syntax = \"proto3\";\n"),
+			wantError:   "non-generated",
+		},
+		{
+			name:        "different generated replacement",
+			replacement: []byte(generatedFileHeaderLine() + "message ExternalChange {}\n"),
+			wantError:   "changed before publication",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			gen := newOutputTestGenerator(t, dir)
+			outdir := filepath.Join(dir, "default")
+			require.NoError(t, os.MkdirAll(outdir, 0o755))
+			require.NoError(t, gen.prepareRun())
+			require.NoError(t, gen.output.createStagingDir())
+			defer gen.output.removeStagingDir()
+
+			path := filepath.Join(outdir, "item.proto")
+			content := []byte(generatedFileHeaderLine() + "message Item {}\n")
+			require.NoError(t, os.WriteFile(path, content, 0o644))
+			require.NoError(t, gen.output.reservePath(path, "Item.xlsx"))
+			require.NoError(t, gen.output.stageFile(path, content))
+
+			if tt.remove {
+				require.NoError(t, os.Remove(path))
+			} else {
+				require.NoError(t, os.WriteFile(path, tt.replacement, 0o644))
+			}
+			require.ErrorContains(t, gen.output.publishSelected(), tt.wantError)
+			if tt.remove {
+				require.NoFileExists(t, path)
+			} else {
+				got, err := os.ReadFile(path)
+				require.NoError(t, err)
+				require.Equal(t, tt.replacement, got)
+			}
+		})
+	}
+}
+
+func TestProtoOutput_stageFileRejectsLateHandwrittenFile(t *testing.T) {
+	dir := t.TempDir()
+	gen := newOutputTestGenerator(t, dir)
+	outdir := filepath.Join(dir, "default")
+	require.NoError(t, os.MkdirAll(outdir, 0o755))
+	require.NoError(t, gen.prepareRun())
+	require.NoError(t, gen.output.createStagingDir())
+	defer gen.output.removeStagingDir()
+
+	path := filepath.Join(outdir, "item.proto")
+	require.NoError(t, gen.output.reservePath(path, "Item.xlsx"))
+	handwritten := []byte("syntax = \"proto3\";\n")
+	require.NoError(t, os.WriteFile(path, handwritten, 0o644))
+
+	err := gen.output.stageFile(path, []byte(generatedFileHeaderLine()))
+	require.ErrorContains(t, err, "non-generated")
+	entries, readErr := os.ReadDir(gen.output.stagingDir)
+	require.NoError(t, readErr)
+	require.Empty(t, entries)
+	content, readErr := os.ReadFile(path)
+	require.NoError(t, readErr)
+	require.Equal(t, handwritten, content)
+}
+
+func TestProtoOutput_removeStagingDirCleansFailedPublish(t *testing.T) {
+	dir := t.TempDir()
+	gen := newOutputTestGenerator(t, dir)
+	outdir := filepath.Join(dir, "default")
+	require.NoError(t, os.MkdirAll(outdir, 0o755))
+	require.NoError(t, gen.prepareRun())
+	require.NoError(t, gen.output.createStagingDir())
+
+	path := filepath.Join(outdir, "item.proto")
+	require.NoError(t, gen.output.reservePath(path, "Item.xlsx"))
+	require.NoError(t, gen.output.stageFile(path, []byte(generatedFileHeaderLine())))
+	key, err := xfs.Abs(path)
+	require.NoError(t, err)
+	stagedPath := gen.output.stagedFiles[key]
+	stagingDir := gen.output.stagingDir
+	require.FileExists(t, stagedPath)
+	require.NoError(t, os.Mkdir(path, 0o755))
+
+	require.Error(t, gen.output.publishSelected())
+	require.FileExists(t, stagedPath)
+	gen.output.removeStagingDir()
+	require.NoFileExists(t, stagedPath)
+	require.NoDirExists(t, stagingDir)
+	require.DirExists(t, path)
 }
 
 func TestProtoOutput_publishRejectsLateHandwrittenFile(t *testing.T) {

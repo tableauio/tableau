@@ -102,7 +102,6 @@ func parseProtos(protoPaths []string, protoFilesMap map[string]string) (*protore
 				},
 			},
 		},
-		MaxParallelism: 1,
 	}
 	results, err := compiler.Compile(context.Background(), protoFiles...)
 	if err != nil {

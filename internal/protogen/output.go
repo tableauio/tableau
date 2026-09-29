@@ -1,6 +1,9 @@
 package protogen
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"io"
 	"maps"
 	"os"
 	"slices"
@@ -39,7 +42,13 @@ type protoOutput struct {
 	mu             sync.Mutex
 	reservations   map[string]string // output path -> workbook path
 	stagedFiles    map[string]string // output path -> temporary file
-	protectedPaths map[string]bool   // configured ProtoFiles
+	unchangedFiles map[string]protoFileIdentity
+	protectedPaths map[string]bool // configured ProtoFiles
+}
+
+type protoFileIdentity struct {
+	size   int64
+	digest [sha256.Size]byte
 }
 
 // newProtoOutput creates the per-run coordinator for generated proto files.
@@ -48,6 +57,7 @@ func newProtoOutput(outputDir string, protectedPaths map[string]bool) *protoOutp
 		outputDir:      outputDir,
 		reservations:   make(map[string]string),
 		stagedFiles:    make(map[string]string),
+		unchangedFiles: make(map[string]protoFileIdentity),
 		protectedPaths: protectedPaths,
 	}
 }
@@ -117,6 +127,16 @@ func (out *protoOutput) stageFile(outputPath string, parts ...[]byte) error {
 	if out.stagingDir == "" {
 		return xerrors.Newf("proto output staging directory was not created")
 	}
+	unchanged, err := existingGeneratedProtoMatches(outputPath, parts...)
+	if err != nil {
+		return err
+	}
+	if unchanged {
+		out.mu.Lock()
+		out.unchangedFiles[key] = renderedProtoIdentity(parts)
+		out.mu.Unlock()
+		return nil
+	}
 	f, err := os.CreateTemp(out.stagingDir, "proto-*.tmp")
 	if err != nil {
 		return xerrors.WrapKV(err)
@@ -138,6 +158,78 @@ func (out *protoOutput) stageFile(outputPath string, parts ...[]byte) error {
 	return nil
 }
 
+// existingGeneratedProtoMatches reports whether path is an existing generated
+// proto whose contents equal parts. It compares incrementally to avoid joining
+// the rendered parts or reading the whole file into another large allocation.
+func existingGeneratedProtoMatches(path string, parts ...[]byte) (bool, error) {
+	f, err := openExistingGeneratedProto(path)
+	if err != nil || f == nil {
+		return false, err
+	}
+	defer func() { _ = f.Close() }()
+
+	info, err := f.Stat()
+	if err != nil {
+		return false, xerrors.WrapKV(err)
+	}
+	var size int64
+	for _, part := range parts {
+		size += int64(len(part))
+	}
+	if info.Size() != size {
+		return false, nil
+	}
+
+	buf := make([]byte, 32*1024)
+	for _, part := range parts {
+		for len(part) > 0 {
+			n := min(len(part), len(buf))
+			if _, err := io.ReadFull(f, buf[:n]); err != nil {
+				return false, xerrors.WrapKV(err)
+			}
+			if !bytes.Equal(buf[:n], part[:n]) {
+				return false, nil
+			}
+			part = part[n:]
+		}
+	}
+	return true, nil
+}
+
+func renderedProtoIdentity(parts [][]byte) protoFileIdentity {
+	hasher := sha256.New()
+	var identity protoFileIdentity
+	for _, part := range parts {
+		identity.size += int64(len(part))
+		_, _ = hasher.Write(part)
+	}
+	copy(identity.digest[:], hasher.Sum(nil))
+	return identity
+}
+
+func existingGeneratedProtoHasIdentity(path string, want protoFileIdentity) (bool, error) {
+	f, err := openExistingGeneratedProto(path)
+	if err != nil || f == nil {
+		return false, err
+	}
+	defer func() { _ = f.Close() }()
+
+	info, err := f.Stat()
+	if err != nil {
+		return false, xerrors.WrapKV(err)
+	}
+	if info.Size() != want.size {
+		return false, nil
+	}
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, f); err != nil {
+		return false, xerrors.WrapKV(err)
+	}
+	var got [sha256.Size]byte
+	copy(got[:], hasher.Sum(nil))
+	return got == want.digest, nil
+}
+
 // publishAll replaces generated files and then removes stale generated files.
 func (out *protoOutput) publishAll() error {
 	stalePaths, err := findStaleProtoFiles(out.outputDir, out.reservations, out.protectedPaths)
@@ -154,6 +246,17 @@ func (out *protoOutput) publishSelected() error {
 
 // publish replaces staged files, then removes the supplied stale files.
 func (out *protoOutput) publish(stalePaths []string) error {
+	unchangedPaths := slices.Sorted(maps.Keys(out.unchangedFiles))
+	for _, path := range unchangedPaths {
+		unchanged, err := existingGeneratedProtoHasIdentity(path, out.unchangedFiles[path])
+		if err != nil {
+			return err
+		}
+		if !unchanged {
+			return xerrors.Newf("proto output changed before publication: %s", path)
+		}
+	}
+
 	paths := slices.Sorted(maps.Keys(out.stagedFiles))
 	for _, path := range paths {
 		if err := validateExistingGeneratedProto(path); err != nil {
