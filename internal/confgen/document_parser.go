@@ -47,9 +47,7 @@ func (p *documentParser) parseMessage(parentField *Field, msg protoreflect.Messa
 		}
 		fd := md.Fields().Get(i)
 		fieldErr := func() error {
-			field := p.parseFieldDescriptor(fd)
-			field.mergeParentFieldProp(parentField)
-			defer field.release()
+			field := p.parseFieldDescriptor(fd).inheritParentFieldProp(parentField)
 			var fieldNode *book.Node
 			if md.FullName() == xproto.MetabookFullName {
 				// NOTE: this is a workaround specially for parsing metabook.
@@ -148,11 +146,13 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 	} else {
 		if valueFd.Kind() == protoreflect.MessageKind {
 			for _, elemNode := range node.Children {
+				parseNode := elemNode
 				var keyData string
 				switch node.Kind {
 				case book.MapNode:
 					keyData = elemNode.Name
-					// auto add virtual key node
+					// Add the virtual key to a shallow view. Cached document nodes are
+					// immutable and may be parsed concurrently by multiple messages.
 					keyNode := &book.Node{
 						Kind:     book.ScalarNode,
 						Name:     field.opts.Key,
@@ -161,7 +161,12 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 						NamePos:  node.NamePos,
 						ValuePos: node.ValuePos,
 					}
-					elemNode.Children = append(elemNode.Children, keyNode)
+					children := make([]*book.Node, len(elemNode.Children), len(elemNode.Children)+1)
+					copy(children, elemNode.Children)
+					children = append(children, keyNode)
+					view := *elemNode
+					view.Children = children
+					parseNode = &view
 				case book.ListNode:
 					keyNode := elemNode.FindChild(field.opts.Key)
 					if keyNode == nil {
@@ -171,7 +176,7 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 				default:
 					return false, xerrors.NewKV("should not reach here", node.DebugKV()...)
 				}
-				newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, keyData)
+				newMapKey, keyPresent, err := p.parseMapKey(field, keyData)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
@@ -195,11 +200,10 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 					newMapValue = reflectMap.NewValue()
 				}
 				newCardPrefix := cardPrefix + "." + escapeMapKey(newMapKey.Value())
-				valuePresent, err := p.parseMessage(field, newMapValue.Message(), elemNode, newCardPrefix)
+				valuePresent, err := p.parseMessage(field, newMapValue.Message(), parseNode, newCardPrefix)
 				if err != nil {
 					return false, xerrors.WrapKV(err, elemNode.DebugKV()...)
 				}
-				// TODO: auto remove added virtual key node?
 				if !keyPresent && !valuePresent {
 					// key and value are both not present.
 					continue
@@ -208,7 +212,11 @@ func (p *documentParser) parseMapField(field *Field, msg protoreflect.Message, n
 					// check map value's sub-field prop
 					dupName, err := p.checkSubFieldProp(field, cardPrefix, newMapValue)
 					if err != nil {
-						return false, xerrors.WrapKV(err, elemNode.FindChild(dupName).DebugKV()...)
+						dupNode := parseNode.FindChild(dupName)
+						if dupNode == nil {
+							dupNode = elemNode
+						}
+						return false, xerrors.WrapKV(err, dupNode.DebugKV()...)
 					}
 				}
 				reflectMap.Set(newMapKey, newMapValue)
@@ -306,7 +314,7 @@ func (p *documentParser) parseScalarMapWithValueAsSimpleKVMessage(field *Field, 
 	for _, elemNode := range node.Children {
 		key, value := elemNode.Name, elemNode.Value
 		mapItemData := strings.Join([]string{key, value}, field.subsep)
-		newMapKey, keyPresent, err := p.parseMapKey(field, reflectMap, key)
+		newMapKey, keyPresent, err := p.parseMapKey(field, key)
 		if err != nil {
 			return xerrors.WrapKV(err, elemNode.DebugNameKV()...)
 		}
@@ -393,15 +401,17 @@ func (p *documentParser) parseUnionField(field *Field, msg protoreflect.Message,
 }
 
 func (p *documentParser) parseStructField(field *Field, msg protoreflect.Message, node *book.Node, cardPrefix string) (present bool, err error) {
-	structValue := msg.NewField(field.fd)
+	var structValue protoreflect.Value
 
 	if field.opts.Span == tableaupb.Span_SPAN_INNER_CELL {
 		// incell struct
+		structValue = msg.NewField(field.fd)
 		present, err = p.parseIncellStruct(field, structValue, node.ScalarValue(), field.sep)
 	} else if types.IsWellKnownMessage(field.fd.Message().FullName()) {
 		structValue, present, err = p.parseFieldValue(field.fd, node.ScalarValue(), field.opts.Prop)
 	} else {
 		// cross-cell struct
+		structValue = msg.NewField(field.fd)
 		present, err = p.parseMessage(field, structValue.Message(), node.StructNode(), cardPrefix)
 	}
 	if err != nil {
@@ -491,9 +501,7 @@ func (p *documentParser) parseUnionMessage(field *Field, msg protoreflect.Messag
 		valNodeName := unionDesc.ValueFieldName() + strconv.Itoa(i+1)
 		valNode := node.FindChild(valNodeName)
 		err := func() error {
-			subField := p.parseFieldDescriptor(fd)
-			subField.mergeParentFieldProp(field)
-			defer subField.release()
+			subField := p.parseFieldDescriptor(fd).inheritParentFieldProp(field)
 			if valNode == nil && xproto.GetFieldDefaultValue(fd) != "" {
 				// if this field has a default value, use virtual node
 				valNode = &book.Node{

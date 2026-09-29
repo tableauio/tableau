@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"buf.build/go/protovalidate"
 	"github.com/tableauio/tableau/format"
@@ -29,18 +28,12 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-var fieldOptionsPool *sync.Pool
-
-func init() {
-	fieldOptionsPool = &sync.Pool{
-		New: func() any {
-			return new(tableaupb.FieldOptions)
-		},
-	}
-}
-
 type Field struct {
 	fd protoreflect.FieldDescriptor
+	// optional caches the inherited optional variant used for nested fields.
+	optional *Field
+	// keyFD caches the descriptor selected by opts.Key for map values.
+	keyFD protoreflect.FieldDescriptor
 	// seq's value is dynamically merged at different priority levels:
 	//  1. field-level: FieldProp.seq
 	//  2. sheet-level: WorksheetOptions.seq
@@ -54,26 +47,33 @@ type Field struct {
 	opts   *tableaupb.FieldOptions
 }
 
-// mergeParentFieldProp merges parent field's prop.
-func (f *Field) mergeParentFieldProp(parent *Field) {
-	if parent != nil && parent.opts != nil {
-		if parent.opts.Prop.GetOptional() {
-			if f.opts.Prop == nil {
-				f.opts.Prop = &tableaupb.FieldProp{}
-			}
-			f.opts.Prop.Optional = true
-		}
+// inheritParentFieldProp returns the cached template unchanged unless the
+// parent makes the field optional. In that case it clones the protobuf options
+// before modification, keeping the cached template immutable for later rows.
+func (f *Field) inheritParentFieldProp(parent *Field) *Field {
+	if parent == nil || parent.opts == nil || !parent.opts.Prop.GetOptional() {
+		return f
 	}
+	if f.optional != nil {
+		return f.optional
+	}
+	field := *f
+	field.optional = nil
+	opts := proto.Clone(f.opts).(*tableaupb.FieldOptions)
+	if opts.Prop == nil {
+		opts.Prop = &tableaupb.FieldProp{}
+	}
+	opts.Prop.Optional = true
+	field.opts = opts
+	f.optional = &field
+	return f.optional
 }
 
-// release returns back `opts` field to pool.
-func (f *Field) release() {
-	// return back to pool
-	fieldOptionsPool.Put(f.opts)
-}
-
-// TODO: use sync.Map to cache *Field for reuse, e.g.: treat key as fd.FullName().
 func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Field {
+	if cached := p.fields[fd]; cached != nil {
+		return cached
+	}
+
 	// default value
 	name := strcase.FromContext(p.ctx).ToCamel(string(fd.FullName().Name()))
 	note := ""
@@ -93,6 +93,8 @@ func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fie
 		layout = fieldOpts.Layout
 		sep = fieldOpts.Prop.GetSep()
 		subsep = fieldOpts.Prop.GetSubsep()
+		// Clone the descriptor extension once. Descriptor options are shared
+		// globally and must remain immutable during parsing.
 		prop = xproto.Clone(fieldOpts.Prop)
 	} else {
 		// default processing
@@ -112,21 +114,21 @@ func (p *sheetParser) parseFieldDescriptor(fd protoreflect.FieldDescriptor) *Fie
 		subsep = p.GetSubsep()
 	}
 
-	// get from pool
-	pooledOpts := fieldOptionsPool.Get().(*tableaupb.FieldOptions)
-	pooledOpts.Name = name
-	pooledOpts.Note = note
-	pooledOpts.Key = key
-	pooledOpts.Layout = layout
-	pooledOpts.Span = span
-	pooledOpts.Prop = prop
-
-	return &Field{
+	field := &Field{
 		fd:     fd,
 		sep:    sep,
 		subsep: subsep,
-		opts:   pooledOpts,
+		opts: &tableaupb.FieldOptions{
+			Name:   name,
+			Note:   note,
+			Key:    key,
+			Layout: layout,
+			Span:   span,
+			Prop:   prop,
+		},
 	}
+	p.fields[fd] = field
+	return field
 }
 
 // parseBookSpecifier parses the book specifier to book name and sheet name.

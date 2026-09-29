@@ -124,6 +124,7 @@ func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 			got := opts.ParseMessagerOptionsByName(tt.args.name)
 			want := *tt.want
 			want.referredCache = opts.referredCache
+			want.importerCache = opts.importerCache
 			if !reflect.DeepEqual(got, &want) {
 				t.Errorf("Options.ParseMessagerOptionsByName() = %v, want %v", got, tt.want)
 			}
@@ -131,21 +132,23 @@ func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 	}
 }
 
-func TestOptions_ReferredCacheScope(t *testing.T) {
+func TestOptions_CacheScope(t *testing.T) {
 	opts := ParseOptions()
-	if opts.referredCache == nil {
-		t.Fatal("ParseOptions() referredCache = nil")
+	if opts.referredCache == nil || opts.importerCache == nil {
+		t.Fatal("ParseOptions() did not initialize its caches")
 	}
 
 	itemOpts := opts.ParseMessagerOptionsByName("ItemConf")
 	mallOpts := opts.ParseMessagerOptionsByName("MallConf")
-	if itemOpts.referredCache != opts.referredCache || mallOpts.referredCache != opts.referredCache {
+	if itemOpts.referredCache != opts.referredCache || mallOpts.referredCache != opts.referredCache ||
+		itemOpts.importerCache != opts.importerCache || mallOpts.importerCache != opts.importerCache {
 		t.Fatal("messager options do not share their parent Options cache")
 	}
 
-	otherOpts := ParseOptions().ParseMessagerOptionsByName("ItemConf")
-	if itemOpts.referredCache == otherOpts.referredCache {
-		t.Fatal("separate Options instances share a referred cache")
+	other := ParseOptions()
+	otherOpts := other.ParseMessagerOptionsByName("ItemConf")
+	if itemOpts.referredCache == otherOpts.referredCache || itemOpts.importerCache == otherOpts.importerCache {
+		t.Fatal("separate Options instances share a cache")
 	}
 }
 

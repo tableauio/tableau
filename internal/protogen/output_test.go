@@ -24,7 +24,7 @@ func newOutputTestGenerator(t *testing.T, outputDir string) *Generator {
 	})
 }
 
-func TestGenerator_reuseAndFailedRunPreservesOutputs(t *testing.T) {
+func TestGenerator_failedRunPreservesOutputs(t *testing.T) {
 	inputDir := t.TempDir()
 	outputDir := t.TempDir()
 	workbook := filepath.Join(inputDir, "Items.yaml")
@@ -46,12 +46,6 @@ Name: string
 	before, err := os.ReadFile(generated)
 	require.NoError(t, err)
 
-	// Run state must be reset when the same Generator is used again.
-	require.NoError(t, gen.Generate())
-	again, err := os.ReadFile(generated)
-	require.NoError(t, err)
-	require.Equal(t, before, again)
-
 	stale := filepath.Join(outputDir, "old.proto")
 	require.NoError(t, os.WriteFile(stale, []byte(generatedFileHeaderLine()), 0o644))
 	updated := []byte(`"@sheet": "@TABLEAU"
@@ -68,14 +62,24 @@ Level: int32
 "@sheet": "@BrokenConf"
 Bad: .MissingType
 `), 0o644))
-	require.Error(t, gen.Generate())
+	failedGen := NewGenerator("testconf", inputDir, outputDir,
+		options.Proto(&options.ProtoOption{
+			Input:  &options.ProtoInputOption{Formats: []format.Format{format.YAML}},
+			Output: &options.ProtoOutputOption{},
+		}))
+	require.Error(t, failedGen.Generate())
 	after, err := os.ReadFile(generated)
 	require.NoError(t, err)
 	require.Equal(t, before, after)
 	require.FileExists(t, stale)
 
 	require.NoError(t, os.Remove(broken))
-	require.NoError(t, gen.Generate())
+	finalGen := NewGenerator("testconf", inputDir, outputDir,
+		options.Proto(&options.ProtoOption{
+			Input:  &options.ProtoInputOption{Formats: []format.Format{format.YAML}},
+			Output: &options.ProtoOutputOption{},
+		}))
+	require.NoError(t, finalGen.Generate())
 	require.NoFileExists(t, stale)
 	committed, err := os.ReadFile(generated)
 	require.NoError(t, err)
@@ -88,7 +92,7 @@ func TestProtoOutput_publishStopsBeforeStaleCleanup(t *testing.T) {
 	gen := newOutputTestGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
-	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.prepareRun())
 	require.NoError(t, gen.output.createStagingDir())
 	defer gen.output.removeStagingDir()
 
@@ -121,7 +125,7 @@ func TestProtoOutput_reservePathRejectsNonGenerated(t *testing.T) {
 	handwritten := []byte("syntax = \"proto3\";\n")
 	require.NoError(t, os.WriteFile(path, handwritten, 0o644))
 
-	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.prepareRun())
 	err := gen.output.reservePath(path, "Item.xlsx")
 	require.ErrorContains(t, err, "non-generated")
 	content, readErr := os.ReadFile(path)
@@ -139,7 +143,7 @@ func TestProtoOutput_reservePathRejectsImported(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, content, 0o644))
 	gen.InputOpt.ProtoFiles = []string{path}
 
-	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.prepareRun())
 	err := gen.output.reservePath(path, "Shared.xlsx")
 	require.ErrorContains(t, err, "imported proto")
 	require.NoError(t, gen.output.createStagingDir())
@@ -155,7 +159,7 @@ func TestProtoOutput_publishReplacesExistingFile(t *testing.T) {
 	gen := newOutputTestGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
-	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.prepareRun())
 	require.NoError(t, gen.output.createStagingDir())
 	defer gen.output.removeStagingDir()
 
@@ -176,7 +180,7 @@ func TestProtoOutput_publishRejectsLateHandwrittenFile(t *testing.T) {
 	gen := newOutputTestGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
-	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.prepareRun())
 	require.NoError(t, gen.output.createStagingDir())
 	defer gen.output.removeStagingDir()
 
@@ -197,7 +201,7 @@ func TestProtoOutput_stageFileRequiresReservation(t *testing.T) {
 	gen := newOutputTestGenerator(t, dir)
 	outdir := filepath.Join(dir, "default")
 	require.NoError(t, os.MkdirAll(outdir, 0o755))
-	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.prepareRun())
 	require.NoError(t, gen.output.createStagingDir())
 	defer gen.output.removeStagingDir()
 
@@ -275,7 +279,7 @@ func TestProtoOutput_stageFileDefersPublication(t *testing.T) {
 	outdir := filepath.Join(outputDir, "default")
 	outputPath := filepath.Join(outdir, "item.proto")
 
-	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.prepareRun())
 	require.NoError(t, gen.output.createStagingDir())
 	defer gen.output.removeStagingDir()
 	require.NoError(t, gen.output.reservePath(outputPath, "Item.xlsx"))
@@ -301,7 +305,7 @@ func TestProtoOutput_stageFileRequiresStagingDirectory(t *testing.T) {
 	gen := newOutputTestGenerator(t, outputDir)
 	outputPath := filepath.Join(outputDir, "default", "item.proto")
 
-	require.NoError(t, gen.resetRunState())
+	require.NoError(t, gen.prepareRun())
 	require.NoError(t, gen.output.reservePath(outputPath, "Item.xlsx"))
 	require.Error(t, gen.output.stageFile(outputPath, []byte(generatedFileHeaderLine())))
 }

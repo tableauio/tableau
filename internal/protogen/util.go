@@ -10,11 +10,11 @@ import (
 	"github.com/tableauio/tableau/internal/x/xfs"
 )
 
-type parsePass int
+type parsePass string
 
 const (
-	firstPass  parsePass = iota // discover types declared by special table sheets
-	secondPass                  // parse workbook schemas and generate proto files
+	firstPass  parsePass = "first-pass"  // discover types declared by special table sheets
+	secondPass parsePass = "second-pass" // parse workbook schemas and generate proto files
 )
 
 // generatedFileHeaderPrefix is the prefix of the first line of each proto file

@@ -14,6 +14,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
 	"github.com/tableauio/tableau/internal/importer/metasheet"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/strcase"
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
@@ -30,6 +31,8 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
+// Generator converts workbook data for one generation run. Create a new
+// Generator when another run is needed.
 type Generator struct {
 	ctx          context.Context
 	ProtoPackage string // protobuf package name.
@@ -41,8 +44,11 @@ type Generator struct {
 	OutputOpt     *options.ProtoOutputOption // Output settings.
 	ErrorLimitOpt *options.ErrorLimitOption  // error collection limits.
 
+	profiling bool // whether to enable generator performance profiling.
+
 	ProtoRegistryFiles *protoregistry.Files
 	ProtoRegistryTypes *dynamicpb.Types
+	SheetParserMetrics profile.SheetParserMetrics
 
 	// internal
 	typeInfos *xproto.TypeInfos  // predefined type infos
@@ -52,10 +58,11 @@ type Generator struct {
 	registryWithGeneratedOnce       sync.Once
 	protoRegistryFilesWithGenerated *protoregistry.Files
 
-	cacheMu         sync.RWMutex                 // guard fields below
+	cacheMu sync.RWMutex // guard fields below
+	// Protogen importers remain separate from importer.Cache because both
+	// parsing passes mutate and reuse their sheet state.
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
 
-	runMu  sync.Mutex // public generation calls run one at a time
 	output *protoOutput
 }
 
@@ -66,6 +73,9 @@ func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option)
 
 func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.Options) *Generator {
 	ctx := context.Background()
+	if opts.Profiling {
+		ctx = profile.WithGenerator(ctx, "protogen")
+	}
 	ctx = strcase.NewContext(ctx, strcase.New(opts.Acronyms))
 	ctx = metasheet.NewContext(ctx, &metasheet.Metasheet{Name: opts.Proto.Input.MetasheetName})
 
@@ -86,6 +96,7 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 		InputOpt:      opts.Proto.Input,
 		OutputOpt:     opts.Proto.Output,
 		ErrorLimitOpt: errorLimit,
+		profiling:     opts.Profiling,
 		ctx:           ctx,
 		typeInfos:     xproto.NewTypeInfos(protoPackage),
 		collector:     xerrors.NewCollector(errorLimit.MaxErrors),
@@ -104,8 +115,8 @@ func NewGeneratorWithOptions(protoPackage, indir, outdir string, opts *options.O
 	return gen
 }
 
-// resetRunState clears state from the previous generation run and prepares its output.
-func (gen *Generator) resetRunState() error {
+// prepareRun prepares the output for this generator's single run.
+func (gen *Generator) prepareRun() error {
 	outputDir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 	if err := ensureOutputDir(outputDir); err != nil {
 		return err
@@ -115,12 +126,6 @@ func (gen *Generator) resetRunState() error {
 		return err
 	}
 	gen.output = newProtoOutput(outputDir, protectedPaths)
-	gen.collector = xerrors.NewCollector(gen.ErrorLimitOpt.MaxErrors)
-	gen.registryWithGeneratedOnce = sync.Once{}
-	gen.protoRegistryFilesWithGenerated = nil
-	gen.cacheMu.Lock()
-	gen.cachedImporters = make(map[string]importer.Importer)
-	gen.cacheMu.Unlock()
 	return nil
 }
 
@@ -182,75 +187,69 @@ func (gen *Generator) Generate(relWorkbookPaths ...string) error {
 
 // GenAll generates proto files for every input workbook.
 func (gen *Generator) GenAll() error {
-	gen.runMu.Lock()
-	defer gen.runMu.Unlock()
-	if err := gen.resetRunState(); err != nil {
-		return err
-	}
-	if err := gen.output.createStagingDir(); err != nil {
-		return err
-	}
-	defer gen.output.removeStagingDir()
-	if err := gen.preprocess(false); err != nil {
-		return err
-	}
-	if err := gen.parseAllInFirstPass(); err != nil {
-		return err
-	}
-	if err := gen.parseAllInSecondPass(); err != nil {
-		return err
-	}
-	// Generation errors leave prior outputs untouched. GenAll alone owns the
-	// top-level output directory, so it also removes stale files on commit.
-	return gen.output.publishAll()
-}
-
-// GenWorkbook generates proto files for the specified input workbooks.
-func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
-	gen.runMu.Lock()
-	defer gen.runMu.Unlock()
-	if err := gen.resetRunState(); err != nil {
-		return err
-	}
-	if err := gen.output.createStagingDir(); err != nil {
-		return err
-	}
-	defer gen.output.removeStagingDir()
-
-	// Preprocess and first-pass parsing establish the declarations needed to
-	// parse the selected workbooks in the second pass.
-	switch gen.InputOpt.FirstPassMode {
-	case options.FirstPassModeNormal:
-		// Parse all input workbooks so declarations come from source files.
+	return gen.run(func() error {
+		if err := gen.output.createStagingDir(); err != nil {
+			return err
+		}
+		defer gen.output.removeStagingDir()
 		if err := gen.preprocess(false); err != nil {
 			return err
 		}
 		if err := gen.parseAllInFirstPass(); err != nil {
 			return err
 		}
-	case options.FirstPassModeAdvanced:
-		// Reuse generated declarations for workbooks outside this selection.
-		if err := gen.preprocess(true); err != nil {
+		if err := gen.parseAllInSecondPass(); err != nil {
 			return err
 		}
-		if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
-			return err
-		}
-	default:
-		// Build declarations only from the selected input workbooks.
-		if err := gen.preprocess(false); err != nil {
-			return err
-		}
-		if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
-			return err
-		}
-	}
+		// Generation errors leave prior outputs untouched. GenAll alone owns the
+		// top-level output directory, so it also removes stale files on commit.
+		return gen.output.publishAll()
+	})
+}
 
-	if err := gen.parseWorkbooksInSecondPass(relWorkbookPaths...); err != nil {
-		return err
-	}
-	// Other workbooks' outputs remain valid when generating a selection.
-	return gen.output.publishSelected()
+// GenWorkbook generates proto files for the specified input workbooks.
+func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
+	return gen.run(func() error {
+		if err := gen.output.createStagingDir(); err != nil {
+			return err
+		}
+		defer gen.output.removeStagingDir()
+
+		// Preprocess and first-pass parsing establish the declarations needed to
+		// parse the selected workbooks in the second pass.
+		switch gen.InputOpt.FirstPassMode {
+		case options.FirstPassModeNormal:
+			// Parse all input workbooks so declarations come from source files.
+			if err := gen.preprocess(false); err != nil {
+				return err
+			}
+			if err := gen.parseAllInFirstPass(); err != nil {
+				return err
+			}
+		case options.FirstPassModeAdvanced:
+			// Reuse generated declarations for workbooks outside this selection.
+			if err := gen.preprocess(true); err != nil {
+				return err
+			}
+			if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
+				return err
+			}
+		default:
+			// Build declarations only from the selected input workbooks.
+			if err := gen.preprocess(false); err != nil {
+				return err
+			}
+			if err := gen.parseWorkbooksInFirstPass(relWorkbookPaths...); err != nil {
+				return err
+			}
+		}
+
+		if err := gen.parseWorkbooksInSecondPass(relWorkbookPaths...); err != nil {
+			return err
+		}
+		// Other workbooks' outputs remain valid when generating a selection.
+		return gen.output.publishSelected()
+	})
 }
 
 // parseAllInFirstPass discovers the declarations from every configured input workbook.
@@ -454,7 +453,9 @@ func (gen *Generator) convertDocument(dir, filename string, pass parsePass) (err
 		xerrors.KeyModule, xerrors.ModuleProto,
 		xerrors.KeyBookName, debugBookName)
 	for _, sheet := range imp.GetSheets() {
-		sheetErr := gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
+		sheetErr := gen.measureSheet(debugBookName, firstPass, sheet, func() error {
+			return gen.convertDocumentSheet(bp, bookCollector, sheet, debugBookName)
+		})
 		if err := bookCollector.Collect(sheetErr); err != nil {
 			return err
 		}
@@ -521,7 +522,9 @@ func (gen *Generator) convertTable(dir, filename string, pass parsePass) (err er
 		xerrors.KeyModule, xerrors.ModuleProto,
 		xerrors.KeyBookName, debugBookName)
 	for _, sheet := range imp.GetSheets() {
-		sheetErr := gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
+		sheetErr := gen.measureSheet(debugBookName, pass, sheet, func() error {
+			return gen.convertTableSheet(bp, bookCollector, sheet, bookOpts, debugBookName, pass)
+		})
 		if err := bookCollector.Collect(sheetErr); err != nil {
 			return err
 		}

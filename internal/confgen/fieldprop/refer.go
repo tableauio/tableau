@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
+	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -29,16 +30,53 @@ func init() {
 	referRegexp = regexp.MustCompile(`(?P<Sheet>.+?)` + `(\((?P<Alias>\w+)\))?` + `\.` + `(?P<Column>\w+)`)
 }
 
-// ReferredCache caches referred column values for one generation or load.
+// ReferredCache caches references in two stages for one generation or load:
+// refers normalizes source expressions, and entries loads each canonical target.
+// Separate locks keep the frequent lookups in these stages independent.
 type ReferredCache struct {
-	mu      sync.RWMutex
-	entries map[string]referCacheEntry // refer expression -> cached result
+	profiling bool
+
+	entriesMu sync.RWMutex
+	// entries maps each canonical target to its loaded values or an in-flight
+	// load. Entries are pointers so the loader can publish its result to waiters.
+	// Retaining failed loads also prevents every referring cell from reporting
+	// the same source error.
+	entries map[referCacheKey]*referCacheEntry
+
+	refersMu sync.RWMutex
+	// refers caches normalization by source spelling. Different spellings can
+	// resolve to the same canonical target in entries.
+	refers map[rawRefer]referCacheKey
 }
 
-// referCacheEntry holds a value space or a previously reported load failure.
+// referCacheKey identifies one referred column by
+// <fully-qualified-message-name>.<column-name>. An unavailable key is stored
+// only in refers as a sentinel for a raw refer that failed normalization; it
+// must never be used as an entries key.
+type referCacheKey struct {
+	message     protoreflect.FullName
+	column      string
+	unavailable bool // the first normalization attempt failed and reported its error
+}
+
+func (k referCacheKey) String() string {
+	return string(k.message) + "." + k.column
+}
+
+// referCacheEntry holds an in-flight or completed canonical target load.
 type referCacheEntry struct {
-	space       *valueSpace
-	unavailable bool // target load failed
+	ready chan struct{} // closed after space or unavailable is published
+	space *valueSpace   // values collected from the target's primary and merged sheets
+	// unavailable means the target load failed. The loader returned the error;
+	// waiters and later callers skip it to avoid duplicate errors per cell.
+	unavailable bool
+}
+
+// rawRefer includes the protobuf package because the same refer text can name
+// different messages in different packages.
+type rawRefer struct {
+	protoPackage string
+	value        string
 }
 
 type valueSpace struct {
@@ -72,36 +110,84 @@ func (v *valueSpace) addFromTable(header *tableparser.Header, table book.Tabler,
 
 func NewReferredCache() *ReferredCache {
 	return &ReferredCache{
-		entries: make(map[string]referCacheEntry),
+		entries: make(map[referCacheKey]*referCacheEntry),
+		refers:  make(map[rawRefer]referCacheKey),
 	}
+}
+
+// EnableProfiling enables pprof labels. Call it before the cache is used.
+func (r *ReferredCache) EnableProfiling() {
+	r.profiling = true
 }
 
 type loadValueSpaceFunc = func() (*valueSpace, error)
 
-func (r *ReferredCache) getEntry(refer string, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
-	r.mu.RLock()
-	entry, ok := r.entries[refer]
-	r.mu.RUnlock()
+// cachedEntry returns a completed entry snapshot. It waits when another caller
+// is still loading the target.
+func (r *ReferredCache) cachedEntry(ctx context.Context, key referCacheKey) (referCacheEntry, bool) {
+	r.entriesMu.RLock()
+	entry, ok := r.entries[key]
+	r.entriesMu.RUnlock()
+	if !ok {
+		return referCacheEntry{}, false
+	}
+	return r.waitForEntry(ctx, key, entry), true
+}
+
+// getEntry loads each normalized message column once. Callers for the same key
+// wait for its ready channel, while unrelated targets load concurrently.
+func (r *ReferredCache) getEntry(ctx context.Context, key referCacheKey, loadFunc loadValueSpaceFunc) (referCacheEntry, error) {
+	cached, ok := r.cachedEntry(ctx, key)
 	if ok {
-		return entry, nil
+		return cached, nil
 	}
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	entry, ok = r.entries[refer]
+	r.entriesMu.Lock()
+	entry, ok := r.entries[key]
 	if ok {
-		return entry, nil
+		r.entriesMu.Unlock()
+		return r.waitForEntry(ctx, key, entry), nil
 	}
-	space, err := loadFunc()
-	if err != nil {
-		// Return the first load error and remember it to suppress repeats.
-		entry = referCacheEntry{unavailable: true}
-		r.entries[refer] = entry
-		return entry, err
+	// Publish the placeholder before loading so concurrent callers wait on this
+	// entry instead of loading the same target again.
+	entry = &referCacheEntry{ready: make(chan struct{})}
+	r.entries[key] = entry
+	r.entriesMu.Unlock()
+
+	var space *valueSpace
+	var err error
+	if r.profiling {
+		err = profile.Run(ctx, func(context.Context) error {
+			space, err = loadFunc()
+			return err
+		}, "work", "refer_load", "refer", key.String())
+	} else {
+		space, err = loadFunc()
 	}
-	entry = referCacheEntry{space: space}
-	r.entries[refer] = entry
-	return entry, nil
+	r.entriesMu.Lock()
+	if err == nil {
+		entry.space = space
+	} else {
+		// Only the loader reports the error. Waiters observe unavailable and skip
+		// duplicate errors for the same broken reference.
+		entry.unavailable = true
+	}
+	// Closing ready publishes the selected outcome to every waiter.
+	close(entry.ready)
+	r.entriesMu.Unlock()
+	return *entry, err
+}
+
+func (r *ReferredCache) waitForEntry(ctx context.Context, key referCacheKey, entry *referCacheEntry) referCacheEntry {
+	if r.profiling {
+		_ = profile.Run(ctx, func(context.Context) error {
+			<-entry.ready
+			return nil
+		}, "work", "refer_wait", "refer", key.String())
+	} else {
+		<-entry.ready
+	}
+	return *entry
 }
 
 type referDesc struct {
@@ -143,33 +229,74 @@ type Input struct {
 	InputDir       string
 	SubdirRewrites map[string]string
 	PRFiles        *protoregistry.Files
+	ImporterCache  *importer.Cache
 	Present        bool // field presence
 }
 
-func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpace, error) {
+func normalizeRefer(refer string, input *Input) (referCacheKey, error) {
 	referInfo, err := parseRefer(refer)
 	if err != nil {
-		return nil, err
+		return referCacheKey{}, err
 	}
-	fullName := protoreflect.FullName(input.ProtoPackage + "." + referInfo.getMessageName())
-	desc, err := input.PRFiles.FindDescriptorByName(fullName)
+	messageName := referInfo.getMessageName()
+	return referCacheKey{
+		message: protoreflect.FullName(input.ProtoPackage + "." + messageName),
+		column:  referInfo.Column,
+	}, nil
+}
+
+// resolveKey normalizes each raw refer once. The first failed normalization is
+// returned as an error; later calls receive an unavailable sentinel so repeated
+// cells do not report the same malformed refer.
+func (r *ReferredCache) resolveKey(refer string, input *Input) (referCacheKey, error) {
+	raw := rawRefer{protoPackage: input.ProtoPackage, value: refer}
+	r.refersMu.RLock()
+	key, ok := r.refers[raw]
+	r.refersMu.RUnlock()
+	if ok {
+		return key, nil
+	}
+
+	r.refersMu.Lock()
+	defer r.refersMu.Unlock()
+	// Another goroutine may have normalized this refer while the write lock was
+	// pending.
+	key, ok = r.refers[raw]
+	if ok {
+		return key, nil
+	}
+	key, err := normalizeRefer(refer, input)
 	if err != nil {
-		return nil, xerrors.E2001(refer, referInfo.getMessageName())
+		r.refers[raw] = referCacheKey{unavailable: true}
+		return referCacheKey{}, err
+	}
+	r.refers[raw] = key
+	return key, nil
+}
+
+func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, input *Input) (*valueSpace, error) {
+	desc, err := input.PRFiles.FindDescriptorByName(key.message)
+	if err != nil {
+		return nil, xerrors.E2001(refer, string(key.message.Name()))
+	}
+	messageDesc, ok := desc.(protoreflect.MessageDescriptor)
+	if !ok {
+		return nil, xerrors.E2001(refer, string(key.message.Name()))
 	}
 
 	// get workbook name and worksheet name
-	fileOpts := desc.ParentFile().Options().(*descriptorpb.FileOptions)
+	fileOpts := messageDesc.ParentFile().Options().(*descriptorpb.FileOptions)
 	bookOpts := proto.GetExtension(fileOpts, tableaupb.E_Workbook).(*tableaupb.WorkbookOptions)
 	bookName := bookOpts.Name
 
-	msgOpts := desc.Options().(*descriptorpb.MessageOptions)
+	msgOpts := messageDesc.Options().(*descriptorpb.MessageOptions)
 	sheetOpts := proto.GetExtension(msgOpts, tableaupb.E_Worksheet).(*tableaupb.WorksheetOptions)
 	sheetName := sheetOpts.Name
 
 	// rewrite subdir
 	rewrittenWorkbookName := xfs.RewriteSubdir(bookName, input.SubdirRewrites)
 	absWbPath := filepath.Join(input.InputDir, rewrittenWorkbookName)
-	primaryImporter, err := importer.New(ctx, absWbPath, importer.Sheets([]string{sheetName}))
+	primaryImporter, err := input.ImporterCache.Load(ctx, absWbPath, importer.Sheets([]string{sheetName}))
 	if err != nil {
 		return nil, xerrors.WrapKV(err,
 			xerrors.KeyReferBookName, bookName,
@@ -178,7 +305,7 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	}
 
 	// get merger importer infos
-	impInfos, err := importer.GetMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
+	impInfos, err := input.ImporterCache.LoadMergerImporters(ctx, input.InputDir, rewrittenWorkbookName, sheetName, sheetOpts.Merger, input.SubdirRewrites)
 	if err != nil {
 		return nil, xerrors.WrapKV(err,
 			xerrors.KeyReferBookName, bookName,
@@ -207,9 +334,9 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 		}
 
 		if sheetOpts.Transpose {
-			err = space.addFromTable(header, sheet.Table.Transpose(), referInfo.Column, referredBookName, specifiedSheetName)
+			err = space.addFromTable(header, sheet.Table.Transpose(), key.column, referredBookName, specifiedSheetName)
 		} else {
-			err = space.addFromTable(header, sheet.Table, referInfo.Column, referredBookName, specifiedSheetName)
+			err = space.addFromTable(header, sheet.Table, key.column, referredBookName, specifiedSheetName)
 		}
 		if err != nil {
 			return nil, err
@@ -217,6 +344,14 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 	}
 
 	return space, nil
+}
+
+func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpace, error) {
+	key, err := normalizeRefer(refer, input)
+	if err != nil {
+		return nil, err
+	}
+	return loadValueSpaceForKey(ctx, refer, key, input)
 }
 
 // CheckRefer validates cellData against prop.Refer.
@@ -233,9 +368,24 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 	}
 
 	for _, refer := range strings.Split(prop.Refer, ",") {
-		entry, err := r.getEntry(refer, func() (*valueSpace, error) {
-			return loadValueSpace(ctx, refer, input)
-		})
+		refer = strings.TrimSpace(refer)
+		if refer == "" {
+			continue
+		}
+		key, err := r.resolveKey(refer, input)
+		if err != nil {
+			return err
+		}
+		if key.unavailable {
+			// The first lookup already returned the normalization error.
+			return nil
+		}
+		entry, ok := r.cachedEntry(ctx, key)
+		if !ok {
+			entry, err = r.getEntry(ctx, key, func() (*valueSpace, error) {
+				return loadValueSpaceForKey(ctx, refer, key, input)
+			})
+		}
 		if err != nil {
 			return err
 		}

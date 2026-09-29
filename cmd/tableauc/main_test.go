@@ -55,6 +55,28 @@ func TestApplyFlags_PreserveFieldNumbers(t *testing.T) {
 	}
 }
 
+func TestApplyFlags_Profiling(t *testing.T) {
+	cases := []struct {
+		name string
+		seed bool
+		args []string
+		want bool
+	}{
+		{"flag omitted: default false preserved", false, nil, false},
+		{"flag omitted: config true preserved", true, nil, true},
+		{"bare flag enables from false", false, []string{"--profiling"}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := newCmd(t, tc.args...)
+			config := options.NewDefault()
+			config.Profiling = tc.seed
+			applyFlags(cmd, config)
+			assert.Equal(t, tc.want, config.Profiling)
+		})
+	}
+}
+
 // TestApplyFlags_ConfOutputFormats verifies the consolidation of the
 // --conf-output-formats override into applyFlags did not change behavior:
 // the flag overrides only when a non-empty list is provided.

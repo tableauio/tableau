@@ -105,11 +105,6 @@ func (d *ZapDriver) Print(r *core.Record) {
 		logger = d.logger.With(fields...)
 	}
 
-	defer func() {
-		// For console: sync /dev/stderr: invalid argument
-		// TODO: fix it
-		_ = logger.Sync()
-	}()
 	switch r.Level {
 	case core.DebugLevel:
 		if r.Format == nil {
@@ -148,6 +143,11 @@ func (d *ZapDriver) Print(r *core.Record) {
 			logger.Sugar().Fatalf(*r.Format, r.Args...)
 		}
 	}
+}
+
+// Sync flushes buffered log entries.
+func (d *ZapDriver) Sync() error {
+	return d.logger.Sync()
 }
 
 func (d *ZapDriver) GetLevel(logger string) core.Level {

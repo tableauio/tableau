@@ -57,6 +57,13 @@ func SetDriver(driver driver.Driver) {
 	defaultLogger.driver = driver
 }
 
+// Sync flushes the active driver when it supports buffered output.
+func Sync() {
+	if syncer, ok := defaultLogger.driver.(interface{ Sync() error }); ok {
+		_ = syncer.Sync()
+	}
+}
+
 // Debug uses fmt.Sprint to construct and log a message.
 func Debug(args ...any) {
 	defaultLogger.Debug(args...)

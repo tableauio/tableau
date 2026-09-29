@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/protocolbuffers/txtpbfmt/parser"
-	"github.com/tableauio/tableau/store/jsonparser"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -62,43 +64,82 @@ type MarshalOptions struct {
 	UseEnumNumbers bool
 }
 
+// locationCache avoids loading the same zone data for every output file.
+var locationCache = struct {
+	sync.RWMutex
+	values map[string]*time.Location
+}{values: make(map[string]*time.Location)}
+
 // MarshalToJSON marshals the given proto.Message in the JSON format.
 // You can depend on the output being stable.
 func MarshalToJSON(msg proto.Message, options *MarshalOptions) (out []byte, err error) {
-	opts := protojson.MarshalOptions{
-		EmitUnpopulated: options.EmitUnpopulated,
-		UseProtoNames:   options.UseProtoNames,
-		UseEnumNumbers:  options.UseEnumNumbers,
+	var location *time.Location
+	if options.EmitTimezones {
+		location, err = loadLocation(options.LocationName)
+		if err != nil {
+			return nil, err
+		}
+	}
+	opts := protoJSONOptions{
+		MarshalOptions: protojson.MarshalOptions{
+			EmitUnpopulated: options.EmitUnpopulated,
+			UseProtoNames:   options.UseProtoNames,
+			UseEnumNumbers:  options.UseEnumNumbers,
+		},
+		location: location,
 	}
 	messageJSON, err := opts.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
-	// process when use timezones
-	if options.EmitTimezones {
-		result, err := processWhenEmitTimezones(msg, string(messageJSON), jsonparser.Fastjson, options.LocationName, options.UseProtoNames)
-		if err != nil {
+	// protojson does not offer deterministic field ordering, but fields are
+	// still ordered consistently by their index. It can produce inconsistent
+	// whitespace, so normalize the formatting to keep the output stable.
+	// See https://github.com/golang/protobuf/issues/1373.
+	if !options.Pretty {
+		compactJSON := new(bytes.Buffer)
+		compactJSON.Grow(len(messageJSON))
+		if err := json.Compact(compactJSON, messageJSON); err != nil {
 			return nil, err
 		}
-		messageJSON = []byte(result)
+		return compactJSON.Bytes(), nil
 	}
-	// protojson does not offer a "deterministic" field ordering, but fields
-	// are still ordered consistently by their index. However, protojson can
-	// output inconsistent whitespace for some reason, therefore it is
-	// suggested to use a formatter to ensure consistent formatting.
-	// https://github.com/golang/protobuf/issues/1373
-	stableJSON := new(bytes.Buffer)
-	if err = json.Compact(stableJSON, messageJSON); err != nil {
+	prettyJSON := new(bytes.Buffer)
+	prettyJSON.Grow(len(messageJSON) + len(messageJSON)/2)
+	if err := json.Indent(prettyJSON, messageJSON, "", "    "); err != nil {
 		return nil, err
 	}
-	if options.Pretty {
-		prettyJSON := new(bytes.Buffer)
-		if err := json.Indent(prettyJSON, stableJSON.Bytes(), "", "    "); err != nil {
-			return nil, err
+	return prettyJSON.Bytes(), nil
+}
+
+func loadLocation(name string) (*time.Location, error) {
+	// time.Local is an exported variable and applications may replace it.
+	if name == "Local" {
+		location, err := time.LoadLocation(name)
+		if err != nil {
+			return nil, xerrors.Wrap(err)
 		}
-		return prettyJSON.Bytes(), nil
+		return location, nil
 	}
-	return stableJSON.Bytes(), nil
+
+	locationCache.RLock()
+	location := locationCache.values[name]
+	locationCache.RUnlock()
+	if location != nil {
+		return location, nil
+	}
+
+	locationCache.Lock()
+	defer locationCache.Unlock()
+	if location = locationCache.values[name]; location != nil {
+		return location, nil
+	}
+	location, err := time.LoadLocation(name)
+	if err != nil {
+		return nil, xerrors.Wrap(err)
+	}
+	locationCache.values[name] = location
+	return location, nil
 }
 
 // MarshalToText marshals the given proto.Message in the text (textproto) format.

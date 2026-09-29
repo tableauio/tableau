@@ -5,6 +5,7 @@ import (
 
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
+	"github.com/tableauio/tableau/internal/importer"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -78,6 +79,7 @@ type BaseOptions struct {
 
 	// Shared by all messager options in the same load scope.
 	referredCache *fieldprop.ReferredCache
+	importerCache *importer.Cache
 }
 
 // MessagerOptions is the options struct for a messager.
@@ -106,6 +108,15 @@ func (o *MessagerOptions) getReferredCache() *fieldprop.ReferredCache {
 		return fieldprop.NewReferredCache()
 	}
 	return o.referredCache
+}
+
+// getImporterCache returns the cache shared by parsed options. A direct
+// MessagerOptions value gets its own cache for the call.
+func (o *MessagerOptions) getImporterCache() *importer.Cache {
+	if o == nil || o.importerCache == nil {
+		return importer.NewCache()
+	}
+	return o.importerCache
 }
 
 // GetLocationName returns the location name.
@@ -190,8 +201,9 @@ func (o *MessagerOptions) GetPatchPaths() []string {
 	return o.PatchPaths
 }
 
-// Options contains global-level and messager-level options. Each instance is
-// scoped to one input directory and one SubdirRewrites configuration.
+// Options contains global-level and messager-level options. MessagerOptions
+// returned by ParseMessagerOptionsByName share importer and referred-data
+// caches while the Options value remains in use.
 type Options struct {
 	BaseOptions
 	// MessagerOptions maps each messager name to a MessageOptions.
@@ -237,6 +249,7 @@ func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
 		mopts.MaxErrorsPerSheet = o.MaxErrorsPerSheet
 	}
 	mopts.referredCache = o.referredCache
+	mopts.importerCache = o.importerCache
 	return &mopts
 }
 
@@ -268,6 +281,7 @@ func ParseOptions(setters ...Option) *Options {
 		setter(opts)
 	}
 	opts.referredCache = fieldprop.NewReferredCache()
+	opts.importerCache = importer.NewCache()
 	return opts
 }
 

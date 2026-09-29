@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -276,6 +277,44 @@ func TestLoad(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestLoadOriginReusesImporterCache(t *testing.T) {
+	opts := ParseOptions()
+	opts.importerCache.EnableProfiling()
+	mopts := opts.ParseMessagerOptionsByName("ItemConf")
+
+	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
+	firstRequests, firstImports, _, _ := opts.importerCache.Metrics()
+	require.Positive(t, firstImports)
+
+	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
+	secondRequests, secondImports, _, _ := opts.importerCache.Metrics()
+	require.Greater(t, secondRequests, firstRequests)
+	require.Equal(t, firstImports, secondImports)
+}
+
+func TestLoadOriginSupportsConcurrentSharedOptions(t *testing.T) {
+	opts := ParseOptions()
+
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var group sync.WaitGroup
+	for range 2 {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			<-start
+			mopts := opts.ParseMessagerOptionsByName("ItemConf")
+			results <- LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts)
+		}()
+	}
+	close(start)
+	group.Wait()
+	close(results)
+	for err := range results {
+		require.NoError(t, err)
 	}
 }
 
@@ -601,8 +640,8 @@ func TestLoadOriginScatter(t *testing.T) {
 		got := &unittestpb.ScatterReplaceConf{}
 		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
 		// NOTE: only one scatter shard is provided here on purpose. The
-		// order of importers returned by importer.GetScatterImporters
-		// is map-iteration based and not stable, so multi-shard
+		// order of resolved scatter importers is map-iteration based and
+		// not stable, so multi-shard
 		// "last-wins" assertions would be flaky.
 		want := &unittestpb.ScatterReplaceConf{
 			ZoneMap: map[uint32]*unittestpb.ScatterReplaceConf_Zone{
@@ -656,8 +695,8 @@ func TestLoadOriginMerger(t *testing.T) {
 		got := &unittestpb.MergerMultiConf{}
 		require.NoError(t, LoadMessagerInDir(got, "../testdata/", format.CSV, &MessagerOptions{}))
 		// NOTE: shard contents are disjoint on purpose. The order in
-		// which importer.GetMergerImporters returns books is map-iter
-		// based and not stable, so any "later overrides earlier"
+		// which merger books are resolved is map-iteration based and not
+		// stable, so any "later overrides earlier"
 		// assertion would be flaky.
 		want := &unittestpb.MergerMultiConf{
 			ZoneMap: map[uint32]*unittestpb.MergerMultiConf_Zone{
