@@ -356,8 +356,9 @@ func E2030(referBookName string, referSheetName string) error {
 }
 
 // E2031: incell struct has too many fields
-func E2031(cellData string, expected int, actual int, sep string) error {
+func E2031(typeName string, cellData string, expected int, actual int, sep string) error {
 	return renderEcode(ErrE2031, map[string]any{
+		"TypeName": typeName,
 		"CellData": cellData,
 		"Expected": expected,
 		"Actual":   actual,

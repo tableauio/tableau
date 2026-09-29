@@ -1299,9 +1299,11 @@ func TestTableParser_parseIncellStructTooManyPartsReportsSep(t *testing.T) {
 
 	desc := xerrors.NewDesc(err)
 	require.Equal(t, ",", desc.GetValue("Sep"))
+	require.Equal(t, "unittest.FieldPresentMap.Player.Info", desc.GetValue("TypeName"))
 	rendered := desc.String()
 	require.Contains(t, rendered, "error[E2031]:")
 	require.Contains(t, rendered, `sep: ","`)
+	require.Contains(t, rendered, `incell struct "unittest.FieldPresentMap.Player.Info"`)
 }
 
 func TestTableParser_parseVerticalAggregationConsistency(t *testing.T) {
