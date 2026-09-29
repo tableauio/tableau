@@ -16,6 +16,7 @@ func TestNewExtendedSheetParserInitializesReferredCache(t *testing.T) {
 		&tableaupb.WorkbookOptions{},
 		&tableaupb.WorksheetOptions{},
 		extInfo,
+		SourceLocation{},
 	)
 	if extInfo.ReferredCache == nil {
 		t.Fatal("NewExtendedSheetParser() left ReferredCache nil")
@@ -29,6 +30,7 @@ func TestNewExtendedSheetParserInitializesReferredCache(t *testing.T) {
 		&tableaupb.WorkbookOptions{},
 		&tableaupb.WorksheetOptions{},
 		extInfo,
+		SourceLocation{},
 	)
 	if extInfo.ReferredCache != cache {
 		t.Fatal("NewExtendedSheetParser() replaced an existing ReferredCache")

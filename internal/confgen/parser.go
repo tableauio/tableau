@@ -221,7 +221,10 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 		err := xerrors.E0001(sheetName, bookName)
 		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
 	}
-	parser := NewExtendedSheetParser(context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo)
+	parser := NewExtendedSheetParser(
+		context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo,
+		SourceLocation{BookName: getRelBookName(info.ExtInfo.InputDir, impInfo.Filename()), SheetName: sheetName},
+	)
 	// Overwrite the default single-error collector (set by NewExtendedSheetParser for
 	// fail-fast use) with a child collector scoped to this sheet and capped at
 	// maxErrorsPerSheet, so one imported sheet cannot exhaust the book collector.
@@ -284,6 +287,7 @@ func (si *SheetInfo) SheetName() string {
 type sheetParser struct {
 	ProtoPackage   string
 	LocationName   string
+	source         SourceLocation
 	ctx            context.Context
 	bookOpts       *tableaupb.WorkbookOptions
 	sheetOpts      *tableaupb.WorksheetOptions
@@ -326,7 +330,13 @@ type orderField struct {
 	currValue protoreflect.Value
 }
 
-// SheetParserExtInfo is the extended info for refer check and so on.
+// SourceLocation identifies the workbook and worksheet parsed by a sheet parser.
+type SourceLocation struct {
+	BookName  string
+	SheetName string
+}
+
+// SheetParserExtInfo holds dependencies shared by extended sheet parsers.
 type SheetParserExtInfo struct {
 	InputDir           string
 	SubdirRewrites     map[string]string
@@ -341,17 +351,24 @@ type SheetParserExtInfo struct {
 
 // NewSheetParser creates a new sheet parser.
 func NewSheetParser(ctx context.Context, protoPackage, locationName string, opts *tableaupb.WorksheetOptions) *sheetParser {
-	return NewExtendedSheetParser(ctx, protoPackage, locationName, &tableaupb.WorkbookOptions{}, opts, nil)
+	return NewExtendedSheetParser(ctx, protoPackage, locationName, &tableaupb.WorkbookOptions{}, opts, nil, SourceLocation{})
 }
 
 // NewExtendedSheetParser creates a new sheet parser with extended info.
-func NewExtendedSheetParser(ctx context.Context, protoPackage, locationName string, bookOpts *tableaupb.WorkbookOptions, sheetOpts *tableaupb.WorksheetOptions, extInfo *SheetParserExtInfo) *sheetParser {
+func NewExtendedSheetParser(
+	ctx context.Context, protoPackage, locationName string,
+	bookOpts *tableaupb.WorkbookOptions,
+	sheetOpts *tableaupb.WorksheetOptions,
+	extInfo *SheetParserExtInfo,
+	source SourceLocation,
+) *sheetParser {
 	if extInfo != nil && extInfo.ReferredCache == nil {
 		extInfo.ReferredCache = fieldprop.NewReferredCache()
 	}
 	sp := &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
+		source:       source,
 		ctx:          ctx,
 		bookOpts:     bookOpts,
 		sheetOpts:    sheetOpts,
@@ -1003,12 +1020,14 @@ func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue 
 		// NOTE: if use NewSheetParser, sp.extInfo is nil, which means SheetParserExtInfo is not provided.
 		if fprop.Refer != "" && p.extInfo != nil {
 			input := &fieldprop.Input{
-				ProtoPackage:   p.ProtoPackage,
-				InputDir:       p.extInfo.InputDir,
-				SubdirRewrites: p.extInfo.SubdirRewrites,
-				PRFiles:        p.extInfo.PRFiles,
-				ImporterCache:  p.extInfo.ImporterCache,
-				Present:        present,
+				ProtoPackage:    p.ProtoPackage,
+				InputDir:        p.extInfo.InputDir,
+				SourceBookName:  p.source.BookName,
+				SourceSheetName: p.source.SheetName,
+				SubdirRewrites:  p.extInfo.SubdirRewrites,
+				PRFiles:         p.extInfo.PRFiles,
+				ImporterCache:   p.extInfo.ImporterCache,
+				Present:         present,
 			}
 			if err := p.extInfo.ReferredCache.CheckRefer(p.ctx, fprop, rawValue, input); err != nil {
 				return v, present, err

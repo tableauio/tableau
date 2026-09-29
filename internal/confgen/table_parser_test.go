@@ -23,7 +23,7 @@ func newTableParserForTest() *sheetParser {
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},
 			BookFormat:     format.CSV,
-		})
+		}, SourceLocation{})
 }
 
 func TestTableParser_parseTableMetasheet(t *testing.T) {
@@ -553,7 +553,7 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 		&SheetParserExtInfo{
 			SubdirRewrites: map[string]string{},
 			BookFormat:     format.YAML,
-		})
+		}, SourceLocation{})
 
 	parserWithSheetAndBookSep := NewExtendedSheetParser(context.Background(), "protoconf", "Asia/Shanghai",
 		&tableaupb.WorkbookOptions{
@@ -569,7 +569,7 @@ func TestTableParser_parseWithSheetAndBookSep(t *testing.T) {
 		&SheetParserExtInfo{
 			SubdirRewrites: map[string]string{},
 			BookFormat:     format.YAML,
-		})
+		}, SourceLocation{})
 
 	type args struct {
 		sheet *book.Sheet

@@ -233,6 +233,41 @@ func TestCheckRefer_loadFailureDedup(t *testing.T) {
 	}
 }
 
+func TestCheckRefer_includesSourceLocation(t *testing.T) {
+	input := &Input{
+		ProtoPackage:    "unittest",
+		InputDir:        t.TempDir(),
+		SourceBookName:  "Source#*.csv",
+		SourceSheetName: "SourceConf",
+		PRFiles:         protoregistry.GlobalFiles,
+		Present:         true,
+	}
+	err := NewReferredCache().CheckRefer(context.Background(),
+		&tableaupb.FieldProp{Refer: "MissingConf.ID"}, "1", input)
+	if err == nil {
+		t.Fatal("CheckRefer() error = nil, want load error")
+	}
+	d := xerrors.NewDesc(err)
+	if got := d.GetValue(xerrors.KeyBookName); got != input.SourceBookName {
+		t.Errorf("BookName = %v, want %s", got, input.SourceBookName)
+	}
+	if got := d.GetValue(xerrors.KeySheetName); got != input.SourceSheetName {
+		t.Errorf("SheetName = %v, want %s", got, input.SourceSheetName)
+	}
+
+	_, err = loadValueSpace(context.Background(), "MissingConf.ID", input)
+	if err == nil {
+		t.Fatal("loadValueSpace() error = nil, want load error")
+	}
+	d = xerrors.NewDesc(err)
+	if got := d.GetValue(xerrors.KeyBookName); got != input.SourceBookName {
+		t.Errorf("loadValueSpace BookName = %v, want %s", got, input.SourceBookName)
+	}
+	if got := d.GetValue(xerrors.KeySheetName); got != input.SourceSheetName {
+		t.Errorf("loadValueSpace SheetName = %v, want %s", got, input.SourceSheetName)
+	}
+}
+
 func TestCheckRefer_normalizesCacheKey(t *testing.T) {
 	cache := NewReferredCache()
 	input := &Input{

@@ -225,12 +225,15 @@ func parseRefer(text string) (*referDesc, error) {
 
 // Input is the workbook lookup context for CheckRefer.
 type Input struct {
-	ProtoPackage   string
-	InputDir       string
-	SubdirRewrites map[string]string
-	PRFiles        *protoregistry.Files
-	ImporterCache  *importer.Cache
-	Present        bool // field presence
+	ProtoPackage string
+	InputDir     string
+	// SourceBookName and SourceSheetName identify the referring cell.
+	SourceBookName  string
+	SourceSheetName string
+	SubdirRewrites  map[string]string
+	PRFiles         *protoregistry.Files
+	ImporterCache   *importer.Cache
+	Present         bool // field presence
 }
 
 func normalizeRefer(refer string, input *Input) (referCacheKey, error) {
@@ -346,7 +349,18 @@ func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, 
 	return space, nil
 }
 
-func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpace, error) {
+func wrapSourceLocation(err error, input *Input) error {
+	if err == nil || input == nil || (input.SourceBookName == "" && input.SourceSheetName == "") {
+		return err
+	}
+	return xerrors.WrapKV(err,
+		xerrors.KeyBookName, input.SourceBookName,
+		xerrors.KeySheetName, input.SourceSheetName,
+	)
+}
+
+func loadValueSpace(ctx context.Context, refer string, input *Input) (space *valueSpace, err error) {
+	defer func() { err = wrapSourceLocation(err, input) }()
 	key, err := normalizeRefer(refer, input)
 	if err != nil {
 		return nil, err
@@ -355,7 +369,8 @@ func loadValueSpace(ctx context.Context, refer string, input *Input) (*valueSpac
 }
 
 // CheckRefer validates cellData against prop.Refer.
-func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldProp, cellData string, input *Input) error {
+func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldProp, cellData string, input *Input) (err error) {
+	defer func() { err = wrapSourceLocation(err, input) }()
 	if prop == nil || strings.TrimSpace(prop.Refer) == "" {
 		return nil
 	}
