@@ -24,7 +24,7 @@ func newDocParserForTest() *sheetParser {
 			InputDir:       "",
 			SubdirRewrites: map[string]string{},
 			BookFormat:     format.YAML,
-		})
+		}, SourceLocation{})
 }
 
 func TestTableParser_parseDocumentMetasheet(t *testing.T) {
