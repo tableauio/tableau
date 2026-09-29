@@ -283,7 +283,6 @@ func TestLoad(t *testing.T) {
 func TestLoadOriginReusesImporterCache(t *testing.T) {
 	opts := ParseOptions()
 	opts.importerCache.EnableProfiling()
-	t.Cleanup(func() { require.NoError(t, opts.Close()) })
 	mopts := opts.ParseMessagerOptionsByName("ItemConf")
 
 	require.NoError(t, LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.CSV, mopts))
@@ -298,7 +297,6 @@ func TestLoadOriginReusesImporterCache(t *testing.T) {
 
 func TestLoadOriginSupportsConcurrentSharedOptions(t *testing.T) {
 	opts := ParseOptions()
-	t.Cleanup(func() { require.NoError(t, opts.Close()) })
 
 	start := make(chan struct{})
 	results := make(chan error, 2)

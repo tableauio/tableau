@@ -2,6 +2,7 @@ package importer
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -25,11 +26,19 @@ func (r *failingWorkbookReader) Close() error {
 func TestCachedExcelFallsBackToExcelize(t *testing.T) {
 	directErr := errors.New("direct reader rejected worksheet")
 	direct := &failingWorkbookReader{err: directErr}
+	content, err := os.ReadFile("testdata/Test.xlsx")
+	require.NoError(t, err)
+	filename := filepath.Join(t.TempDir(), "Test.xlsx")
+	require.NoError(t, os.WriteFile(filename, content, 0o600))
 	cached := &cachedExcel{
-		filename:  "testdata/Test.xlsx",
+		filename:  filename,
 		rawReader: direct,
 	}
-	t.Cleanup(func() { require.NoError(t, cached.release()) })
+	t.Cleanup(func() {
+		if cached.excelizeFile != nil {
+			_ = cached.excelizeFile.Close()
+		}
+	})
 
 	require.Equal(t, "xlsx", cached.readerName())
 	rows, err := cached.readRows("Item")
@@ -55,11 +64,9 @@ func TestCachedExcelReportsFallbackFailure(t *testing.T) {
 		filename:  filepath.Join(t.TempDir(), "missing.xlsx"),
 		rawReader: direct,
 	}
-	t.Cleanup(func() { require.NoError(t, cached.release()) })
 
 	_, err := cached.readRows("Item")
 	require.ErrorIs(t, err, directErr)
 	require.Error(t, err)
-	require.False(t, direct.closed)
 	require.Same(t, direct, cached.rawReader)
 }

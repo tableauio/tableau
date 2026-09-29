@@ -110,15 +110,13 @@ func (o *MessagerOptions) getReferredCache() *fieldprop.ReferredCache {
 	return o.referredCache
 }
 
-// getImporterCache returns the shared cache when the options came from
-// Options.ParseMessagerOptionsByName. Direct MessagerOptions values receive a
-// one-call cache that loadOrigin owns and closes. The importer cache
-// synchronizes concurrent loads and handle releases for shared options.
-func (o *MessagerOptions) getImporterCache() (cache *importer.Cache, owned bool) {
+// getImporterCache returns the cache shared by parsed options. A direct
+// MessagerOptions value gets its own cache for the call.
+func (o *MessagerOptions) getImporterCache() *importer.Cache {
 	if o == nil || o.importerCache == nil {
-		return importer.NewCache(), true
+		return importer.NewCache()
 	}
-	return o.importerCache, false
+	return o.importerCache
 }
 
 // GetLocationName returns the location name.
@@ -204,10 +202,8 @@ func (o *MessagerOptions) GetPatchPaths() []string {
 }
 
 // Options contains global-level and messager-level options. MessagerOptions
-// returned by ParseMessagerOptionsByName share its importer and referred-data
-// caches. Keep one Options instance for an input directory and its
-// SubdirRewrites configuration; the shared cache supports concurrent loads.
-// Close releases workbook handles when the load scope ends.
+// returned by ParseMessagerOptionsByName share importer and referred-data
+// caches while the Options value remains in use.
 type Options struct {
 	BaseOptions
 	// MessagerOptions maps each messager name to a MessageOptions.
@@ -255,14 +251,6 @@ func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
 	mopts.referredCache = o.referredCache
 	mopts.importerCache = o.importerCache
 	return &mopts
-}
-
-// Close releases workbook handles held by the shared importer cache.
-func (o *Options) Close() error {
-	if o == nil || o.importerCache == nil {
-		return nil
-	}
-	return o.importerCache.Close()
 }
 
 type LoadMode int

@@ -2,7 +2,6 @@ package importer
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"testing"
 
@@ -33,7 +32,6 @@ func TestCacheLoadSharesImporter(t *testing.T) {
 	for _, tt := range cacheOriginFormats {
 		t.Run(tt.name, func(t *testing.T) {
 			cache := NewCache()
-			t.Cleanup(func() { _ = cache.Close() })
 			const callers = 16
 			results := make([]Importer, callers)
 			start := make(chan struct{})
@@ -65,7 +63,6 @@ func TestCacheLoadSharesImporter(t *testing.T) {
 
 func TestCacheMetricsDisabledByDefault(t *testing.T) {
 	cache := NewCache()
-	t.Cleanup(func() { _ = cache.Close() })
 	if _, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"})); err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +87,6 @@ func TestCacheLoadSharesOriginFormats(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cache := NewCache()
 			cache.EnableProfiling()
-			t.Cleanup(func() { _ = cache.Close() })
 
 			first, err := cache.Load(context.Background(), tt.firstFilename, Sheets([]string{tt.firstSheet}))
 			if err != nil {
@@ -122,7 +118,6 @@ func TestCacheLoadSharesOriginFormats(t *testing.T) {
 
 func TestCacheLoadBypassesCustomParser(t *testing.T) {
 	cache := NewCache()
-	t.Cleanup(func() { _ = cache.Close() })
 	parser := &cacheTestParser{}
 	first, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}), Parser(parser))
 	if err != nil {
@@ -154,7 +149,6 @@ func TestNilCacheLoadMergerImporters(t *testing.T) {
 func TestCacheLoadSharesClonedBook(t *testing.T) {
 	cache := NewCache()
 	cache.EnableProfiling()
-	t.Cleanup(func() { _ = cache.Close() })
 	items, err := cache.Load(context.Background(), "testdata/Test.xlsx", Sheets([]string{"Item"}), Cloned("testdata/Primary.xlsx"))
 	if err != nil {
 		t.Fatal(err)
@@ -172,18 +166,5 @@ func TestCacheLoadSharesClonedBook(t *testing.T) {
 	requests, imports, sheets, paths := cache.Metrics()
 	if requests != 2 || imports != 1 || sheets != 2 || paths != 1 {
 		t.Fatalf("Metrics() = (%d, %d, %d, %d), want (2, 1, 2, 1)", requests, imports, sheets, paths)
-	}
-}
-
-func TestCacheClose(t *testing.T) {
-	cache := NewCache()
-	if err := cache.Close(); err != nil {
-		t.Fatalf("Close() error = %v", err)
-	}
-	if err := cache.Close(); err != nil {
-		t.Fatalf("second Close() error = %v", err)
-	}
-	if _, err := cache.Load(context.Background(), "testdata/Test.xlsx"); !errors.Is(err, errCacheClosed) {
-		t.Fatalf("Load() error = %v, want %v", err, errCacheClosed)
 	}
 }

@@ -2,6 +2,8 @@ package importer
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -12,7 +14,15 @@ import (
 )
 
 func TestCSVImporter_ExportExcel(t *testing.T) {
-	importer, _ := NewCSVImporter(context.Background(), "testdata/Test#Test.csv")
+	content, err := os.ReadFile("testdata/Test#Item.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	filename := filepath.Join(t.TempDir(), "Test#Test.csv")
+	if err := os.WriteFile(filename, content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	importer, _ := NewCSVImporter(context.Background(), filename)
 	tests := []struct {
 		name    string
 		x       *CSVImporter

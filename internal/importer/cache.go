@@ -24,8 +24,6 @@ import (
 // contain it. Common separators such as "-" can occur in both and may collide.
 const cacheKeySeparator = "\x00"
 
-var errCacheClosed = errors.New("importer cache is closed")
-
 type cacheKey struct {
 	filename        string
 	sheets          string // ordered, NUL-separated sheet selection
@@ -34,9 +32,9 @@ type cacheKey struct {
 	primaryBookName string
 }
 
-// Cache reuses imported data during one load scope. Sources own decoded sheets
-// and open workbook handles; entries are immutable importer views for a
-// specific option set. Load and Release are safe to call concurrently.
+// Cache reuses imported data while it remains reachable. Sources own decoded
+// sheets and workbook handles; entries are immutable importer views for one
+// option set. Load may be called concurrently. The cache has no shutdown step.
 type Cache struct {
 	profiling bool
 
@@ -44,11 +42,6 @@ type Cache struct {
 	entries sync.Map
 	// sources maps a normalized logical path to shared format-specific data.
 	sources sync.Map
-	// sourcesMu keeps source publication and release from racing. Individual
-	// sources still serialize their own reader and decoded-sheet state.
-	sourcesMu sync.RWMutex
-	// releaseMu serializes release passes from concurrent messager loads.
-	releaseMu sync.Mutex
 	// sourceLoads ensures concurrent views open each source only once.
 	sourceLoads singleflight.Group
 
@@ -58,7 +51,6 @@ type Cache struct {
 	imports     atomic.Int64 // opened sources
 	sheets      atomic.Int64 // decoded sheets
 	pathCount   atomic.Int64 // unique normalized paths
-	closed      atomic.Bool
 }
 
 type cachedExcel struct {
@@ -70,8 +62,8 @@ type cachedExcel struct {
 	excelizeFile  *excelize.File // compatibility fallback, opened lazily
 	sheetNames    []string
 	decodedSheets map[string]*book.Sheet
-	// preferRaw reopens the raw reader after Release. A raw read failure clears
-	// it so later sheets use excelize directly.
+	// preferRaw keeps raw XLSX reads enabled until a read failure switches this
+	// source to the Excelize fallback.
 	preferRaw bool
 	profiling bool
 }
@@ -93,12 +85,10 @@ type cachedDocument struct {
 	importer Importer
 }
 
-// cachedSource owns the reusable data for one normalized origin. load creates
-// a filtered importer view over that data. release closes transient handles;
-// a later load may reopen them while retaining decoded sheets.
+// cachedSource owns reusable data for one normalized origin. load creates a
+// filtered importer view over that data.
 type cachedSource interface {
 	load(context.Context, []string) (Importer, int64, error)
-	release() error
 }
 
 // NewCache creates an empty importer cache.
@@ -116,9 +106,6 @@ func (c *Cache) EnableProfiling() {
 func (c *Cache) Load(ctx context.Context, filename string, setters ...Option) (Importer, error) {
 	if c == nil {
 		return New(ctx, filename, setters...)
-	}
-	if c.closed.Load() {
-		return nil, errCacheClosed
 	}
 	opts := parseOptions(setters...)
 	// Protogen may truncate, parse, and purge sheets. A custom parser may also
@@ -165,9 +152,7 @@ func (c *Cache) LoadMergerImporters(ctx context.Context, inputDir, primaryBookNa
 // for the requested option set.
 func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Importer, error) {
 	loaded, err, _ := c.sourceLoads.Do(key.filename, func() (any, error) {
-		c.sourcesMu.RLock()
 		cached, ok := c.sources.Load(key.filename)
-		c.sourcesMu.RUnlock()
 		if ok {
 			return cached.(cachedSource), nil
 		}
@@ -179,9 +164,7 @@ func (c *Cache) loadEntry(ctx context.Context, key cacheKey, opts *Options) (Imp
 			c.imports.Add(1)
 			c.sheets.Add(decoded)
 		}
-		c.sourcesMu.Lock()
 		actual, loaded := c.sources.LoadOrStore(key.filename, source)
-		c.sourcesMu.Unlock()
 		if loaded {
 			return actual.(cachedSource), nil
 		}
@@ -301,21 +284,6 @@ func (c *cachedExcel) readSheet(sheetName string) (*book.Sheet, error) {
 	return book.NewTableSheet(sheetName, rows), nil
 }
 
-func (c *cachedExcel) release() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	var errs []error
-	if c.rawReader != nil {
-		errs = append(errs, c.rawReader.Close())
-		c.rawReader = nil
-	}
-	if c.excelizeFile != nil {
-		errs = append(errs, c.excelizeFile.Close())
-		c.excelizeFile = nil
-	}
-	return errors.Join(errs...)
-}
-
 func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
 	reader, err := xlsx.Open(filename)
 	if err == nil {
@@ -433,17 +401,9 @@ func (c *cachedCSV) load(ctx context.Context, sheetNames []string) (Importer, in
 	return &CSVImporter{Book: loadedBook}, decoded, nil
 }
 
-func (*cachedCSV) release() error {
-	return nil
-}
-
 func (c *cachedDocument) load(ctx context.Context, sheetNames []string) (Importer, int64, error) {
 	view, err := newDocumentImporterView(ctx, c.importer, sheetNames)
 	return view, 0, err
-}
-
-func (*cachedDocument) release() error {
-	return nil
 }
 
 func newDocumentImporterView(ctx context.Context, source Importer, sheetNames []string) (Importer, error) {
@@ -473,44 +433,6 @@ func normalizeCacheFilename(filename string) (string, error) {
 		return "", err
 	}
 	return filepath.Clean(pattern), nil
-}
-
-// Close releases cached workbook handles and rejects future loads. It is safe
-// to call more than once, but must not run concurrently with Load or Release.
-func (c *Cache) Close() error {
-	if c == nil {
-		return nil
-	}
-	if !c.closed.CompareAndSwap(false, true) {
-		return nil
-	}
-	return c.releaseSources()
-}
-
-// Release closes cached workbook handles without discarding decoded sheets.
-// The cache remains usable and reopens a workbook only when another sheet is
-// requested. Callers must not call Release concurrently with Load.
-func (c *Cache) Release() error {
-	if c == nil {
-		return nil
-	}
-	return c.releaseSources()
-}
-
-func (c *Cache) releaseSources() error {
-	c.releaseMu.Lock()
-	defer c.releaseMu.Unlock()
-	c.sourcesMu.RLock()
-	defer c.sourcesMu.RUnlock()
-
-	var errs []error
-	c.sources.Range(func(key, value any) bool {
-		if err := value.(cachedSource).release(); err != nil {
-			errs = append(errs, xerrors.Wrapf(err, "release cached source %s", key.(string)))
-		}
-		return true
-	})
-	return errors.Join(errs...)
 }
 
 // Metrics returns load requests, importer loads, decoded sheets, and paths.

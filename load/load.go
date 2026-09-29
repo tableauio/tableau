@@ -167,18 +167,7 @@ func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format
 // Dispatch mirrors confgen.processWorkbook: scatter and merger are mutually
 // exclusive; when neither is declared the main workbook is parsed directly.
 func loadOrigin(msg proto.Message, dir string, opts *MessagerOptions) (err error) {
-	cache, owned := opts.getImporterCache()
-	defer func() {
-		var closeErr error
-		if owned {
-			closeErr = cache.Close()
-		} else {
-			closeErr = cache.Release()
-		}
-		if closeErr != nil {
-			log.Warnf("failed to close importer cache handles: %v", closeErr)
-		}
-	}()
+	cache := opts.getImporterCache()
 
 	md := msg.ProtoReflect().Descriptor()
 	protofile, bookOpts := confgen.ParseFileOptions(md.ParentFile())

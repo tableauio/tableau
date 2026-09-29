@@ -121,7 +121,6 @@ func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := ParseOptions(tt.args.o...)
-			t.Cleanup(func() { _ = opts.Close() })
 			got := opts.ParseMessagerOptionsByName(tt.args.name)
 			want := *tt.want
 			want.referredCache = opts.referredCache
@@ -135,7 +134,6 @@ func TestOptions_ParseMessagerOptionsByName(t *testing.T) {
 
 func TestOptions_CacheScope(t *testing.T) {
 	opts := ParseOptions()
-	t.Cleanup(func() { _ = opts.Close() })
 	if opts.referredCache == nil || opts.importerCache == nil {
 		t.Fatal("ParseOptions() did not initialize its caches")
 	}
@@ -148,7 +146,6 @@ func TestOptions_CacheScope(t *testing.T) {
 	}
 
 	other := ParseOptions()
-	t.Cleanup(func() { _ = other.Close() })
 	otherOpts := other.ParseMessagerOptionsByName("ItemConf")
 	if itemOpts.referredCache == otherOpts.referredCache || itemOpts.importerCache == otherOpts.importerCache {
 		t.Fatal("separate Options instances share a cache")
@@ -169,7 +166,6 @@ func TestMaxErrorsPerSheetOption(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := ParseOptions(MaxErrorsPerSheet(tt.n))
-			t.Cleanup(func() { _ = opts.Close() })
 			if opts.MaxErrorsPerSheet != tt.want {
 				t.Errorf("MaxErrorsPerSheet(%d) => opts.MaxErrorsPerSheet = %d, want %d", tt.n, opts.MaxErrorsPerSheet, tt.want)
 			}
