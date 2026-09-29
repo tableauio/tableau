@@ -23,7 +23,7 @@ func (gen *Generator) run(work func() error) error {
 	if !gen.profiling {
 		return run(gen.ctx)
 	}
-	defer gen.WorkMetrics.Print()
+	defer gen.BookMetrics.Print()
 	defer gen.SheetParserMetrics.Print()
 	profileDir := gen.OutputDir
 	if gen.OutputOpt != nil {
@@ -43,7 +43,7 @@ func (gen *Generator) measureWorkWithLabels(work string, run func(context.Contex
 	if !gen.profiling {
 		return run(gen.ctx)
 	}
-	return gen.WorkMetrics.Measure(gen.ctx, "protogen", work, run, labels...)
+	return gen.BookMetrics.Measure(gen.ctx, "protogen", work, run, labels...)
 }
 
 func (gen *Generator) measureSheet(bookName string, pass parsePass, sheet *book.Sheet, parse func() error) error {

@@ -49,7 +49,7 @@ type Generator struct {
 	ProtoRegistryFiles *protoregistry.Files
 	ProtoRegistryTypes *dynamicpb.Types
 	SheetParserMetrics profile.SheetParserMetrics
-	WorkMetrics        profile.WorkMetrics
+	BookMetrics        profile.BookMetrics
 
 	// internal
 	typeInfos *xproto.TypeInfos  // predefined type infos

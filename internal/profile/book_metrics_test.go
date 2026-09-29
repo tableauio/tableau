@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-func TestWorkMetricsMeasure(t *testing.T) {
-	var metrics WorkMetrics
+func TestBookMetricsMeasure(t *testing.T) {
+	var metrics BookMetrics
 	wantErr := errors.New("failed")
 	err := metrics.Measure(context.Background(), "protogen", "import_xlsx", func(ctx context.Context) error {
 		for key, want := range map[string]string{

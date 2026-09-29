@@ -12,7 +12,7 @@ import (
 	"github.com/tableauio/tableau/log"
 )
 
-type workMetrics struct {
+type bookMetrics struct {
 	work     string
 	calls    int64
 	failures int64
@@ -20,19 +20,19 @@ type workMetrics struct {
 	maxTime  time.Duration
 }
 
-type workMetricsEntry struct {
+type bookMetricsEntry struct {
 	mu      sync.Mutex
-	metrics workMetrics
+	metrics bookMetrics
 }
 
-// WorkMetrics collects cumulative and maximum wall time for named generator
+// BookMetrics collects cumulative and maximum wall time for named generator
 // operations. Its zero value is ready for concurrent use.
-type WorkMetrics struct {
-	entries sync.Map // work name -> *workMetricsEntry
+type BookMetrics struct {
+	entries sync.Map // work name -> *bookMetricsEntry
 }
 
 // Measure runs work with pprof labels and records its elapsed time and result.
-func (m *WorkMetrics) Measure(ctx context.Context, generator, work string, run func(context.Context) error, labels ...string) (err error) {
+func (m *BookMetrics) Measure(ctx context.Context, generator, work string, run func(context.Context) error, labels ...string) (err error) {
 	start := time.Now()
 	profileLabels := []string{"generator", generator, "work", work}
 	profileLabels = append(profileLabels, labels...)
@@ -41,11 +41,11 @@ func (m *WorkMetrics) Measure(ctx context.Context, generator, work string, run f
 	return err
 }
 
-func (m *WorkMetrics) record(work string, wallTime time.Duration, failed bool) {
-	value, _ := m.entries.LoadOrStore(work, &workMetricsEntry{
-		metrics: workMetrics{work: work},
+func (m *BookMetrics) record(work string, wallTime time.Duration, failed bool) {
+	value, _ := m.entries.LoadOrStore(work, &bookMetricsEntry{
+		metrics: bookMetrics{work: work},
 	})
-	entry := value.(*workMetricsEntry)
+	entry := value.(*bookMetricsEntry)
 	entry.mu.Lock()
 	defer entry.mu.Unlock()
 	entry.metrics.calls++
@@ -56,10 +56,10 @@ func (m *WorkMetrics) record(work string, wallTime time.Duration, failed bool) {
 	entry.metrics.maxTime = max(entry.metrics.maxTime, wallTime)
 }
 
-func (m *WorkMetrics) collect() []workMetrics {
-	var results []workMetrics
+func (m *BookMetrics) collect() []bookMetrics {
+	var results []bookMetrics
 	m.entries.Range(func(_, value any) bool {
-		entry := value.(*workMetricsEntry)
+		entry := value.(*bookMetricsEntry)
 		entry.mu.Lock()
 		results = append(results, entry.metrics)
 		entry.mu.Unlock()
@@ -74,9 +74,9 @@ func (m *WorkMetrics) collect() []workMetrics {
 	return results
 }
 
-// Print reports named generator work ordered by cumulative wall time. Times
+// Print reports named book-pipeline work ordered by cumulative wall time. Times
 // from concurrent calls overlap and therefore do not sum to generator time.
-func (m *WorkMetrics) Print() {
+func (m *BookMetrics) Print() {
 	results := m.collect()
 	if len(results) == 0 {
 		return
@@ -89,6 +89,6 @@ func (m *WorkMetrics) Print() {
 			i+1, result.work, result.wallTime, result.maxTime, result.calls, result.failures)
 	}
 	_ = w.Flush()
-	log.Infof("generator work metrics, cumulative wall time first (concurrent calls overlap):")
+	log.Infof("generator book metrics, cumulative wall time first (concurrent calls overlap):")
 	log.Info(strings.TrimRight(output.String(), "\n"))
 }
