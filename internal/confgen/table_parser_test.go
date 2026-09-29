@@ -1286,6 +1286,24 @@ func TestTableParser_parseFieldPresentMap(t *testing.T) {
 	}
 }
 
+func TestTableParser_parseIncellStructTooManyPartsReportsSep(t *testing.T) {
+	parser := newTableParserForTest()
+	sheet := book.NewTableSheet(
+		"FieldPresentMap",
+		[][]string{
+			{"ID", "WeaponName", "WeaponRarity", "Info", "Hero", "Attr", "Target"},
+			{"1", "sword", "2", "1,10,20", "1,2,3", "hp:10,atk:20,def:30", "type:TYPE_PVP pvp:{type:1 damage:2}"},
+		})
+	err := parser.Parse(&unittestpb.FieldPresentMap{}, sheet)
+	require.ErrorIs(t, err, xerrors.ErrE2031)
+
+	desc := xerrors.NewDesc(err)
+	require.Equal(t, ",", desc.GetValue("Sep"))
+	rendered := desc.String()
+	require.Contains(t, rendered, "error[E2031]:")
+	require.Contains(t, rendered, `sep: ","`)
+}
+
 func TestTableParser_parseVerticalAggregationConsistency(t *testing.T) {
 	type args struct {
 		sheet *book.Sheet

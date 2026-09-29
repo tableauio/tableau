@@ -227,12 +227,13 @@ E2030:
     - ReferSheetName: string
 E2031:
   desc: incell struct has too many fields
-  text: 'incell struct expects at most {{.Expected}} fields, got {{.Actual}} parts in {{ quote .CellData }}'
+  text: 'incell struct expects at most {{.Expected}} fields, got {{.Actual}} parts in {{ quote .CellData }} (sep: {{ quote .Sep }})'
   help: ensure cell value has at most (field_count - 1) separators matching the struct definition
   fields:
     - CellData: string
     - Expected: int
     - Actual: int
+    - Sep: string
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier
