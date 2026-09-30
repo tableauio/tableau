@@ -322,7 +322,7 @@ func (c *cachedExcel) readRows(sheetName string) ([][]string, error) {
 		return nil, err
 	}
 	if c.rawReader == nil {
-		return readExcelSheetRows(c.excelizeFile, sheetName, 0, excelize.Options{RawCellValue: true})
+		return readExcelizeRows(c.excelizeFile, sheetName, 0, excelize.Options{RawCellValue: true})
 	}
 	rows, err := c.rawReader.ReadRows(sheetName)
 	if err == nil {
@@ -361,7 +361,7 @@ func (c *cachedExcel) fallbackToExcelize(sheetName string, readErr error) ([][]s
 	_ = c.rawReader.Close()
 	c.rawReader = nil
 	c.preferRaw = false
-	return readExcelSheetRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
+	return readExcelizeRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
 }
 
 func (c *cachedExcel) openExcelize() (*excelize.File, error) {
