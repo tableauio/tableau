@@ -2,6 +2,7 @@ package xlsx
 
 import (
 	"bytes"
+	"html"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -10,19 +11,8 @@ import (
 )
 
 func hasUnsupportedXML(data []byte) bool {
-	if bytes.Contains(data, []byte("<![CDATA[")) ||
-		bytes.Contains(data, []byte("<!DOCTYPE")) ||
-		bytes.Contains(data, []byte("<!--")) {
-		return true
-	}
-	trimmed := bytes.TrimSpace(data)
-	trimmed = bytes.TrimPrefix(trimmed, []byte{0xEF, 0xBB, 0xBF})
-	if bytes.HasPrefix(trimmed, []byte("<?xml")) {
-		if end := bytes.Index(trimmed, []byte("?>")); end >= 0 {
-			trimmed = trimmed[end+2:]
-		}
-	}
-	return bytes.Contains(trimmed, []byte("<?"))
+	return bytes.Contains(data, []byte("<![CDATA[")) ||
+		bytes.Contains(data, []byte("<!DOCTYPE"))
 }
 
 func decodeXMLText(value []byte) (string, error) {
@@ -35,6 +25,9 @@ func decodeXMLText(value []byte) (string, error) {
 			return "", xerrors.Newf("invalid XML character %U", char)
 		}
 		remaining = remaining[size:]
+	}
+	if !bytes.ContainsAny(value, "\r&<") {
+		return string(value), nil
 	}
 
 	var decoded strings.Builder
@@ -57,12 +50,32 @@ func decodeXMLText(value []byte) (string, error) {
 				return "", xerrors.New("unterminated entity in XML text")
 			}
 			end += offset + 1
-			char, err := decodeXMLEntity(value[offset+1 : end])
+			text, err := decodeXMLEntity(value[offset+1 : end])
 			if err != nil {
 				return "", err
 			}
-			decoded.WriteRune(char)
+			decoded.WriteString(text)
 			offset = end + 1
+			segmentStart = offset
+		case '<':
+			decoded.Write(value[segmentStart:offset])
+			var end int
+			switch {
+			case bytes.HasPrefix(value[offset:], []byte("<!--")):
+				end = bytes.Index(value[offset+4:], []byte("-->"))
+				if end >= 0 {
+					end += offset + 7
+				}
+			case bytes.HasPrefix(value[offset:], []byte("<?")):
+				end = bytes.Index(value[offset+2:], []byte("?>"))
+				if end >= 0 {
+					end += offset + 4
+				}
+			}
+			if end <= offset {
+				return "", xerrors.New("unexpected XML markup in text")
+			}
+			offset = end
 			segmentStart = offset
 		default:
 			offset++
@@ -75,21 +88,26 @@ func decodeXMLText(value []byte) (string, error) {
 	return decoded.String(), nil
 }
 
-func decodeXMLEntity(entity []byte) (rune, error) {
+func decodeXMLEntity(entity []byte) (string, error) {
 	switch {
 	case bytes.Equal(entity, []byte("amp")):
-		return '&', nil
+		return "&", nil
 	case bytes.Equal(entity, []byte("lt")):
-		return '<', nil
+		return "<", nil
 	case bytes.Equal(entity, []byte("gt")):
-		return '>', nil
+		return ">", nil
 	case bytes.Equal(entity, []byte("apos")):
-		return '\'', nil
+		return "'", nil
 	case bytes.Equal(entity, []byte("quot")):
-		return '"', nil
+		return `"`, nil
 	}
-	if len(entity) < 2 || entity[0] != '#' {
-		return 0, xerrors.Newf("invalid XML entity &%s;", entity)
+	if len(entity) == 0 || entity[0] != '#' {
+		named := "&" + string(entity) + ";"
+		decoded := html.UnescapeString(named)
+		if decoded == named {
+			return "", xerrors.Newf("invalid XML entity &%s;", entity)
+		}
+		return decoded, nil
 	}
 
 	base := 10
@@ -100,9 +118,9 @@ func decodeXMLEntity(entity []byte) (rune, error) {
 	}
 	value, err := strconv.ParseUint(string(number), base, 32)
 	if err != nil || !validXMLRune(rune(value)) {
-		return 0, xerrors.Newf("invalid XML character reference &%s;", entity)
+		return "", xerrors.Newf("invalid XML character reference &%s;", entity)
 	}
-	return rune(value), nil
+	return string(rune(value)), nil
 }
 
 func validXMLRune(value rune) bool {

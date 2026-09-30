@@ -33,9 +33,9 @@ func TestParseSharedStringsRejectsUnsafeInput(t *testing.T) {
 		{name: "unterminated", xml: `<sst><si>`},
 		{name: "mismatched", xml: `<sst><si></sst>`},
 		{name: "multiple roots", xml: `<sst/><sst/>`},
-		{name: "mixed direct and rich text", xml: `<sst><si><t>A</t><r><t>B</t></r></si></sst>`},
-		{name: "multiple direct text", xml: `<sst><si><t>A</t><t>B</t></si></sst>`},
-		{name: "unknown entity", xml: `<sst><si><t>&nbsp;</t></si></sst>`},
+		{name: "nested item", xml: `<sst><a:si><b:si></b:si></a:si></sst>`},
+		{name: "mismatched prefixes", xml: `<sst><a:si><b:r></a:r></a:si></sst>`},
+		{name: "unknown entity", xml: `<sst><si><t>&xyzzytableau;</t></si></sst>`},
 		{name: "invalid character reference", xml: `<sst><si><t>&#0;</t></si></sst>`},
 		{name: "raw NUL", xml: "<sst><si><t>\x00</t></si></sst>"},
 		{name: "raw control", xml: "<sst><si><t>\x01</t></si></sst>"},
@@ -43,8 +43,6 @@ func TestParseSharedStringsRejectsUnsafeInput(t *testing.T) {
 		{name: "invalid code point FFFF", xml: "<sst><si><t>\uFFFF</t></si></sst>"},
 		{name: "forbidden text terminator", xml: `<sst><si><t>a]]>b</t></si></sst>`},
 		{name: "CDATA", xml: `<sst><si><t><![CDATA[A]]></t></si></sst>`},
-		{name: "comment", xml: `<sst><!-- comment --></sst>`},
-		{name: "processing instruction", xml: `<sst><?custom value?></sst>`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -52,6 +50,12 @@ func TestParseSharedStringsRejectsUnsafeInput(t *testing.T) {
 			require.Error(t, err)
 		})
 	}
+}
+
+func TestParseSharedStringsAcceptsCommonXMLContent(t *testing.T) {
+	shared, err := parseSharedStrings([]byte(`<sst><!-- note --><?hint value?><si><t>A<!-- comment --></t><r><t>B</t></r></si><si><t>&nbsp;</t></si></sst>`))
+	require.NoError(t, err)
+	require.Equal(t, []string{"AB", "\u00a0"}, shared)
 }
 
 func TestParseSharedStringsAcceptsEmptyRoot(t *testing.T) {

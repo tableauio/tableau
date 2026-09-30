@@ -2,11 +2,14 @@ package xlsx
 
 import (
 	"bytes"
-
-	"github.com/tableauio/tableau/internal/x/xerrors"
+	"errors"
+	"fmt"
 )
 
+var errIncompleteXML = errors.New("incomplete XML")
+
 type xmlTag struct {
+	name        []byte
 	local       []byte
 	attributes  []byte
 	start       int
@@ -25,7 +28,7 @@ func nextXMLTag(data []byte, offset int) (xmlTag, int, bool, error) {
 		if bytes.HasPrefix(data[start:], []byte("<!--")) {
 			end := bytes.Index(data[start+4:], []byte("-->"))
 			if end < 0 {
-				return xmlTag{}, len(data), false, xerrors.Newf("unterminated XML comment at byte %d", start)
+				return xmlTag{}, len(data), false, fmt.Errorf("%w: comment at byte %d", errIncompleteXML, start)
 			}
 			offset = start + 4 + end + 3
 			continue
@@ -33,7 +36,7 @@ func nextXMLTag(data []byte, offset int) (xmlTag, int, bool, error) {
 		if bytes.HasPrefix(data[start:], []byte("<?")) {
 			end := bytes.Index(data[start+2:], []byte("?>"))
 			if end < 0 {
-				return xmlTag{}, len(data), false, xerrors.Newf("unterminated XML processing instruction at byte %d", start)
+				return xmlTag{}, len(data), false, fmt.Errorf("%w: processing instruction at byte %d", errIncompleteXML, start)
 			}
 			offset = start + 2 + end + 2
 			continue
@@ -54,7 +57,7 @@ func nextXMLTag(data []byte, offset int) (xmlTag, int, bool, error) {
 		if nameStart == position || data[nameStart] == '!' {
 			end := bytes.IndexByte(data[position:], '>')
 			if end < 0 {
-				return xmlTag{}, len(data), false, xerrors.Newf("unterminated XML declaration at byte %d", start)
+				return xmlTag{}, len(data), false, fmt.Errorf("%w: declaration at byte %d", errIncompleteXML, start)
 			}
 			offset = position + end + 1
 			continue
@@ -80,13 +83,14 @@ func nextXMLTag(data []byte, offset int) (xmlTag, int, bool, error) {
 			end++
 		}
 		if end >= len(data) {
-			return xmlTag{}, len(data), false, xerrors.Newf("unterminated XML tag at byte %d", start)
+			return xmlTag{}, len(data), false, fmt.Errorf("%w: tag at byte %d", errIncompleteXML, start)
 		}
 		last := end - 1
 		for last >= position && isXMLSpace(data[last]) {
 			last--
 		}
 		return xmlTag{
+			name:        name,
 			local:       localName,
 			attributes:  data[position:end],
 			start:       start,
@@ -154,7 +158,7 @@ func xmlAttribute(attributes []byte, name byte) ([]byte, bool) {
 func plainXMLAttribute(attributes []byte, name byte) ([]byte, bool, error) {
 	value, ok := xmlAttribute(attributes, name)
 	if ok && bytes.IndexByte(value, '&') >= 0 {
-		return nil, false, xerrors.Newf("unsupported XML character reference in worksheet attribute %q", name)
+		return nil, false, fmt.Errorf("%w: XML character reference in worksheet attribute %q", ErrUnsupported, name)
 	}
 	return value, ok, nil
 }

@@ -113,7 +113,7 @@ func TestReaderUsesPackageRelationships(t *testing.T) {
 	require.ErrorIs(t, err, ErrSheetNotFound)
 }
 
-func TestReadRowsNStopsInflatingAfterRequestedRows(t *testing.T) {
+func TestReadRowsNSkipsUnrequestedCells(t *testing.T) {
 	worksheet := `<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c></row>` +
 		strings.Repeat(" ", initialWorksheetPrefixSize*2) +
 		`<row r="2"><c r="A2" t="s"><v>999</v></c></row></sheetData></worksheet>`
@@ -135,6 +135,83 @@ func TestReadRowsNStopsInflatingAfterRequestedRows(t *testing.T) {
 	require.ErrorContains(t, err, "shared string index 999 out of range")
 }
 
+func TestReaderMatchesExcelizeUnusualCells(t *testing.T) {
+	tests := []struct {
+		name  string
+		sheet string
+	}{
+		{
+			name:  "duplicate cells",
+			sheet: `<worksheet><sheetData><row r="1"><c r="A1"><v>first</v></c><c r="A1"><v>second</v></c><c r="C1"><v>third</v></c></row></sheetData></worksheet>`,
+		},
+		{
+			name:  "duplicate rows",
+			sheet: `<worksheet><sheetData><row r="1"><c r="A1"><v>first</v></c></row><row r="1"><c r="B1"><v>second</v></c></row></sheetData></worksheet>`,
+		},
+		{
+			name:  "string cell escape",
+			sheet: `<worksheet><sheetData><row r="1"><c r="A1" t="str"><v>a_x000B_b</v></c></row></sheetData></worksheet>`,
+		},
+		{
+			name:  "comment and processing instruction",
+			sheet: `<?xml version="1.0"?><worksheet><sheetData><!-- note --><row r="1"><c r="A1" t="inlineStr"><is><t>a<!-- note --><?hint value?>b</t></is></c></row></sheetData></worksheet>`,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			filename := writeExcelizeWorksheet(t, test.sheet)
+			reader, err := Open(filename)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, reader.Close()) })
+			file, err := excelize.OpenFile(filename)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, file.Close()) })
+			want, wantErr := file.GetRows("Sheet1", excelize.Options{RawCellValue: true})
+			got, gotErr := reader.ReadRows("Sheet1")
+			require.NoError(t, wantErr)
+			require.NoError(t, gotErr)
+			require.Equal(t, want, got)
+			wantPrefix, prefixErr := readExcelizeRowsN(file, "Sheet1", 1)
+			gotPrefix, gotPrefixErr := reader.ReadRowsN("Sheet1", 1)
+			require.NoError(t, prefixErr)
+			require.NoError(t, gotPrefixErr)
+			require.Equal(t, wantPrefix, gotPrefix)
+		})
+	}
+}
+
+func writeExcelizeWorksheet(t *testing.T, worksheet string) string {
+	t.Helper()
+	source := filepath.Join(t.TempDir(), "source.xlsx")
+	file := excelize.NewFile()
+	require.NoError(t, file.SaveAs(source))
+	require.NoError(t, file.Close())
+	archive, err := zip.OpenReader(source)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, archive.Close()) }()
+
+	target := filepath.Join(t.TempDir(), "probe.xlsx")
+	output, err := os.Create(target)
+	require.NoError(t, err)
+	writer := zip.NewWriter(output)
+	for _, entry := range archive.File {
+		item, err := writer.CreateHeader(&entry.FileHeader)
+		require.NoError(t, err)
+		if entry.Name == "xl/worksheets/sheet1.xml" {
+			_, err = io.WriteString(item, worksheet)
+		} else {
+			input, openErr := entry.Open()
+			require.NoError(t, openErr)
+			_, err = io.Copy(item, input)
+			require.NoError(t, input.Close())
+		}
+		require.NoError(t, err)
+	}
+	require.NoError(t, writer.Close())
+	require.NoError(t, output.Close())
+	return target
+}
+
 type terminalErrorReader struct {
 	io.Reader
 	err error
@@ -145,6 +222,17 @@ func (r terminalErrorReader) Read(buffer []byte) (int, error) {
 	if err == io.EOF {
 		return n, r.err
 	}
+	return n, err
+}
+
+type countingReader struct {
+	io.Reader
+	bytesRead int
+}
+
+func (r *countingReader) Read(buffer []byte) (int, error) {
+	n, err := r.Reader.Read(buffer)
+	r.bytesRead += n
 	return n, err
 }
 
@@ -160,11 +248,50 @@ func TestReadRowsNValidatesCompleteEntry(t *testing.T) {
 	require.ErrorIs(t, err, zip.ErrChecksum)
 }
 
+func TestReadRowsNValidatesTail(t *testing.T) {
+	prefix := `<worksheet><sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData>`
+	data := []byte(prefix + strings.Repeat(" ", initialWorksheetPrefixSize) + `</worksheet>`)
+	entry := &zip.File{FileHeader: zip.FileHeader{
+		Name:               "worksheet.xml",
+		UncompressedSize64: uint64(len(data)),
+	}}
+	_, err := readWorksheetPrefix(terminalErrorReader{Reader: bytes.NewReader(data), err: zip.ErrChecksum}, entry, "Items", nil, 1)
+	require.ErrorIs(t, err, zip.ErrChecksum)
+
+	cdata := []byte(prefix + strings.Repeat(" ", initialWorksheetPrefixSize) + `<![CDATA[ignored]]></worksheet>`)
+	entry.UncompressedSize64 = uint64(len(cdata))
+	_, err = readWorksheetPrefix(bytes.NewReader(cdata), entry, "Items", nil, 1)
+	require.ErrorIs(t, err, ErrUnsupported)
+
+	split := []byte(prefix + strings.Repeat(" ", initialWorksheetPrefixSize-len(prefix)-5) + `<![CD` + `ATA[ignored]]></worksheet>`)
+	entry.UncompressedSize64 = uint64(len(split))
+	_, err = readWorksheetPrefix(bytes.NewReader(split), entry, "Items", nil, 1)
+	require.ErrorIs(t, err, ErrUnsupported)
+}
+
+func TestReadRowsNStopsOnFatalPrefixError(t *testing.T) {
+	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>999</v></c></row></sheetData>` +
+		strings.Repeat(" ", initialWorksheetPrefixSize) + `</worksheet>`)
+	entry := &zip.File{FileHeader: zip.FileHeader{
+		Name:               "worksheet.xml",
+		UncompressedSize64: uint64(len(data)),
+	}}
+	source := &countingReader{Reader: bytes.NewReader(data)}
+	_, err := readWorksheetPrefix(source, entry, "Items", []string{"first"}, 1)
+	require.ErrorContains(t, err, "shared string index 999 out of range")
+	require.Equal(t, initialWorksheetPrefixSize, source.bytesRead)
+}
+
 func TestWorksheetRejectsUnsupportedXMLMarkup(t *testing.T) {
-	require.False(t, hasUnsupportedXML([]byte(`<?xml version="1.0"?><worksheet/>`)))
 	for _, markup := range []string{
+		`<?xml version="1.0"?><worksheet/>`,
+		"\xEF\xBB\xBF  <?xml version=\"1.0\"?><worksheet/>",
 		`<worksheet><!-- comment --></worksheet>`,
 		`<worksheet><?custom value?></worksheet>`,
+	} {
+		require.False(t, hasUnsupportedXML([]byte(markup)), markup)
+	}
+	for _, markup := range []string{
 		`<worksheet><![CDATA[value]]></worksheet>`,
 		`<!DOCTYPE worksheet><worksheet/>`,
 	} {
@@ -261,7 +388,7 @@ func TestReadRowsRejectsUnsupportedXML(t *testing.T) {
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, reader.Close()) })
 			_, err = reader.ReadRows("Items")
-			require.ErrorContains(t, err, "unsupported XML construct")
+			require.ErrorIs(t, err, ErrUnsupported)
 		})
 	}
 }

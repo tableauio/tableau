@@ -2,6 +2,7 @@ package xlsx
 
 import (
 	"bytes"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -37,8 +38,9 @@ func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string,
 	}
 	var row []string
 	var current worksheetCell
-	var offset, rowNumber, lastPopulatedRow, cellColumn, captureStart, phoneticDepth int
+	var offset, rowNumber, cellColumn, captureStart, phoneticDepth int
 	var inRow, inCell bool
+	var sheetDataClosed bool
 	var capture byte
 	maxReturnedRows := 0
 	if rowLimit > 0 {
@@ -87,6 +89,11 @@ func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string,
 					value = sharedStrings[index]
 				case 'i':
 					value = decodeEscapes(current.inlineText.String())
+				case 'r':
+					value, err = decodeXMLText(current.value)
+					if err != nil {
+						return nil, err
+					}
 				default:
 					value, err = decodeText(current.value)
 					if err != nil {
@@ -97,41 +104,43 @@ func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string,
 					if current.column <= 0 {
 						current.column = cellColumn + 1
 					}
-					if current.column > len(row) {
+					if current.column > len(row)+1 {
 						oldLength := len(row)
 						row = slices.Grow(row, current.column-oldLength)
-						row = row[:current.column]
+						row = row[:current.column-1]
 						clear(row[oldLength:])
 					}
-					row[current.column-1] = value
+					row = append(row, value)
 				}
 				cellColumn = current.column
 				phoneticDepth = 0
 				inCell = false
 			case bytes.Equal(element.local, []byte("row")) && inRow:
 				if maxReturnedRows > 0 {
-					for len(rows) < rowNumber-1 && len(rows) < maxReturnedRows {
+					for len(rows) < rowNumber && len(rows) < maxReturnedRows {
 						rows = append(rows, nil)
 					}
 					if rowNumber <= maxReturnedRows {
-						rows = append(rows, row)
-					}
-					if len(rows) >= maxReturnedRows {
-						return rows[:maxReturnedRows], nil
+						rows[rowNumber-1] = row
 					}
 				} else if len(row) > 0 {
-					if emptyRows := rowNumber - lastPopulatedRow - 1; emptyRows > 0 {
-						rows = append(rows, make([][]string, emptyRows)...)
+					for len(rows) < rowNumber {
+						rows = append(rows, nil)
 					}
-					rows = append(rows, row)
-					lastPopulatedRow = rowNumber
+					rows[rowNumber-1] = row
 				}
 				inRow = false
+			case bytes.Equal(element.local, []byte("sheetData")) ||
+				bytes.Equal(element.local, []byte("worksheet")):
+				sheetDataClosed = true
 			}
 			continue
 		}
 
 		switch {
+		case element.selfClosing && (bytes.Equal(element.local, []byte("sheetData")) ||
+			bytes.Equal(element.local, []byte("worksheet"))):
+			sheetDataClosed = true
 		case bytes.Equal(element.local, []byte("row")):
 			rowNumber++
 			value, ok, err := plainXMLAttribute(element.attributes, 'r')
@@ -154,15 +163,14 @@ func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string,
 				return rows, nil
 			}
 			row = nil
+			if rowNumber <= len(rows) {
+				row = rows[rowNumber-1]
+			}
 			cellColumn = 0
 			inRow = !element.selfClosing
 			if element.selfClosing && maxReturnedRows > 0 {
-				for len(rows) < rowNumber-1 && len(rows) < maxReturnedRows {
+				for len(rows) < rowNumber && len(rows) < maxReturnedRows {
 					rows = append(rows, nil)
-				}
-				rows = append(rows, nil)
-				if len(rows) >= maxReturnedRows {
-					return rows[:maxReturnedRows], nil
 				}
 			}
 		case inRow && bytes.Equal(element.local, []byte("c")):
@@ -191,6 +199,8 @@ func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string,
 					current.kind = 's'
 				case bytes.Equal(kind, []byte("inlineStr")):
 					current.kind = 'i'
+				case bytes.Equal(kind, []byte("str")):
+					current.kind = 'r'
 				}
 			}
 			inCell = !element.selfClosing
@@ -211,7 +221,10 @@ func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string,
 		}
 	}
 	if inRow || inCell || capture != 0 {
-		return nil, xerrors.New("unterminated worksheet row or cell")
+		return nil, fmt.Errorf("%w: worksheet row or cell", errIncompleteXML)
+	}
+	if rowLimit > 0 && !sheetDataClosed {
+		return nil, errIncompleteXML
 	}
 	return rows, nil
 }

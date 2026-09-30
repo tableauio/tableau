@@ -10,12 +10,12 @@ import (
 )
 
 func (gen *Generator) run(generate func() error) error {
+	if err := gen.measureOperation("prepare_run", func(context.Context) error {
+		return gen.prepareRun()
+	}); err != nil {
+		return err
+	}
 	execute := func(ctx context.Context) error {
-		if err := gen.measureOperation("prepare_run", func(context.Context) error {
-			return gen.prepareRun()
-		}); err != nil {
-			return err
-		}
 		return gen.measureOperation("generation", func(context.Context) error {
 			return generate()
 		})
@@ -32,7 +32,7 @@ func (gen *Generator) run(generate func() error) error {
 	files, err := profile.Capture("protogen", profileDir, func() error {
 		return execute(gen.ctx)
 	})
-	return errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU))
+	return errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU), gen.BookMetrics.LoadCPUProfile(files.CPU))
 }
 
 func (gen *Generator) measureOperation(name string, operation func(context.Context) error) error {

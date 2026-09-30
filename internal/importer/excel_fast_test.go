@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
+	"github.com/tableauio/tableau/internal/importer/xlsx"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/protobuf/proto"
@@ -39,6 +40,8 @@ func (r *recordingExcelReader) ReadRows(sheetName string, topN uint) ([][]string
 	}
 	return rows, nil
 }
+
+func (r *recordingExcelReader) Close() error { return nil }
 
 type fixedExcelMetasheetParser struct {
 	meta *internalpb.Metabook
@@ -73,7 +76,6 @@ func TestReadExcelImporterUsesMetasheetReadPlan(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []excelRead{
 		{sheetName: "@TABLEAU"},
-		{sheetName: "@TABLEAU"},
 		{sheetName: "Keep", topN: defaultTopN},
 		{sheetName: "Transpose"},
 	}, reader.reads)
@@ -105,6 +107,24 @@ func TestNewExcelImporterFallsBackForUnsupportedRawWorksheet(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestNewExcelImporterPreservesNamedEntity(t *testing.T) {
+	filename := writeXLSXWithWorksheet(t, `<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>&nbsp;</t></is></c></row></sheetData></worksheet>`)
+	reader, err := xlsx.Open(filename)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+	rows, err := reader.ReadRows("Sheet1")
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"\u00a0"}}, rows)
+	_, err = NewExcelImporter(context.Background(), filename, Mode(Protogen))
+	require.NoError(t, err)
+}
+
+func TestProtogenDoesNotRetryInvalidEntity(t *testing.T) {
+	filename := writeXLSXWithWorksheet(t, `<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>&xyzzytableau;</t></is></c></row></sheetData></worksheet>`)
+	_, err := NewExcelImporter(context.Background(), filename, Mode(Protogen))
+	require.ErrorContains(t, err, "invalid XML entity")
+}
+
 func numberedRows(count int) [][]string {
 	rows := make([][]string, count)
 	for i := range rows {
@@ -122,6 +142,27 @@ func sheetNames(sheets []*book.Sheet) []string {
 }
 
 func copyXLSXWithCDATA(t *testing.T, source, target string) {
+	rewriteXLSXWorksheet(t, source, target, func(data []byte) []byte {
+		updated := bytes.Replace(data, []byte("<sheetData>"), []byte("<![CDATA[ignored]]><sheetData>"), 1)
+		require.NotEqual(t, data, updated)
+		return updated
+	})
+}
+
+func writeXLSXWithWorksheet(t *testing.T, worksheet string) string {
+	t.Helper()
+	source := filepath.Join(t.TempDir(), "source.xlsx")
+	file := excelize.NewFile()
+	require.NoError(t, file.SaveAs(source))
+	require.NoError(t, file.Close())
+	target := filepath.Join(t.TempDir(), "worksheet.xlsx")
+	rewriteXLSXWorksheet(t, source, target, func([]byte) []byte {
+		return []byte(worksheet)
+	})
+	return target
+}
+
+func rewriteXLSXWorksheet(t *testing.T, source, target string, rewrite func([]byte) []byte) {
 	t.Helper()
 	input, err := zip.OpenReader(source)
 	require.NoError(t, err)
@@ -139,9 +180,7 @@ func copyXLSXWithCDATA(t *testing.T, source, target string) {
 		require.NoError(t, reader.Close())
 
 		if entry.Name == "xl/worksheets/sheet1.xml" {
-			updated := bytes.Replace(data, []byte("<sheetData>"), []byte("<![CDATA[ignored]]><sheetData>"), 1)
-			require.NotEqual(t, data, updated)
-			data = updated
+			data = rewrite(data)
 			foundWorksheet = true
 		}
 		writer, err := archive.CreateHeader(&entry.FileHeader)

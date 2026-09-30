@@ -15,6 +15,7 @@ import (
 type excelRowReader interface {
 	SheetNames() []string
 	ReadRows(sheetName string, limit uint) ([][]string, error)
+	Close() error
 }
 
 type xlsxRowReader struct {
@@ -33,6 +34,10 @@ func (r xlsxRowReader) ReadRows(sheetName string, limit uint) ([][]string, error
 	return rows, err
 }
 
+func (r xlsxRowReader) Close() error {
+	return r.reader.Close()
+}
+
 type excelizeRowReader struct {
 	file *excelize.File
 }
@@ -45,6 +50,10 @@ func (r excelizeRowReader) ReadRows(sheetName string, limit uint) ([][]string, e
 	return readExcelizeRows(r.file, sheetName, limit, excelize.Options{RawCellValue: true})
 }
 
+func (r excelizeRowReader) Close() error {
+	return r.file.Close()
+}
+
 // importExcel uses the focused XLSX reader for protogen and retries the whole
 // import with Excelize when that reader cannot handle the workbook. Retrying
 // the whole import preserves one consistent backend for every sheet.
@@ -54,7 +63,15 @@ func importExcel(ctx context.Context, filename string, opts *Options) (*ExcelImp
 		if err == nil {
 			return importer, nil
 		}
+		if !errors.Is(err, xlsx.ErrUnsupported) {
+			return nil, err
+		}
 		log.Debugf("raw XLSX reader unavailable for protogen %s, using excelize: %v", filename, err)
+		compat, compatErr := importWithExcelize(ctx, filename, opts)
+		if compatErr != nil {
+			return nil, errors.Join(err, compatErr)
+		}
+		return compat, nil
 	}
 	return importWithExcelize(ctx, filename, opts)
 }
@@ -64,8 +81,9 @@ func importWithXLSX(ctx context.Context, filename string, opts *Options) (*Excel
 	if err != nil {
 		return nil, err
 	}
-	defer closeExcelReader(reader)
-	return readExcelImporter(ctx, filename, opts, xlsxRowReader{reader: reader}, true)
+	backend := xlsxRowReader{reader: reader}
+	defer closeExcelReader(backend)
+	return readExcelImporter(ctx, filename, opts, backend, true)
 }
 
 func importWithExcelize(ctx context.Context, filename string, opts *Options) (*ExcelImporter, error) {
@@ -73,15 +91,12 @@ func importWithExcelize(ctx context.Context, filename string, opts *Options) (*E
 	if err != nil {
 		return nil, xerrors.E3002(err)
 	}
-	defer closeExcelReader(file)
-	return readExcelImporter(ctx, filename, opts, excelizeRowReader{file: file}, false)
+	backend := excelizeRowReader{file: file}
+	defer closeExcelReader(backend)
+	return readExcelImporter(ctx, filename, opts, backend, false)
 }
 
-type excelReaderCloser interface {
-	Close() error
-}
-
-func closeExcelReader(reader excelReaderCloser) {
+func closeExcelReader(reader excelRowReader) {
 	if err := reader.Close(); err != nil {
 		log.Error(err)
 	}

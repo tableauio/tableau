@@ -3,6 +3,7 @@ package xlsx
 import (
 	"archive/zip"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/tableauio/tableau/internal/x/xerrors"
@@ -31,7 +32,7 @@ func readEntry(entry *zip.File) ([]byte, error) {
 
 func validatedEntrySize(entry *zip.File) (int, error) {
 	if entry.UncompressedSize64 > maxEntrySize {
-		return 0, xerrors.Newf("XLSX entry %q exceeds the %d-byte in-memory limit", entry.Name, maxEntrySize)
+		return 0, fmt.Errorf("%w: XLSX entry %q exceeds the %d-byte in-memory limit", ErrUnsupported, entry.Name, maxEntrySize)
 	}
 	return int(entry.UncompressedSize64), nil
 }

@@ -27,14 +27,16 @@ func NewExcelImporter(ctx context.Context, filename string, setters ...Option) (
 func readExcelImporter(ctx context.Context, filename string, opts *Options, reader excelRowReader, filterByMetasheet bool) (*ExcelImporter, error) {
 	brOpts := buildExcelBookReaderOptions(filename, reader.SheetNames(), opts.Sheets)
 
+	var metaSheet *book.Sheet
 	if opts.Mode == Protogen {
-		err := adjustExcelReadOptions(ctx, reader, brOpts, opts.Parser, opts.Cloned, filterByMetasheet)
+		var err error
+		metaSheet, err = adjustExcelReadOptions(ctx, reader, brOpts, opts.Parser, opts.Cloned, filterByMetasheet)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 		}
 	}
 
-	loadedBook, err := readExcelBook(ctx, reader, brOpts, opts.Parser)
+	loadedBook, err := readExcelBook(ctx, reader, brOpts, opts.Parser, metaSheet)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to read book: %s", filename)
 	}
@@ -50,7 +52,7 @@ func readExcelImporter(ctx context.Context, filename string, opts *Options, read
 	}, nil
 }
 
-func adjustExcelReadOptions(ctx context.Context, reader excelRowReader, brOpts *bookReaderOptions, parser book.SheetParser, cloned, filterByMetasheet bool) error {
+func adjustExcelReadOptions(ctx context.Context, reader excelRowReader, brOpts *bookReaderOptions, parser book.SheetParser, cloned, filterByMetasheet bool) (*book.Sheet, error) {
 	if parser != nil && !cloned {
 		// Parse the metasheet before data sheets so ordinary schemas need only
 		// their header rows. Transposed and special-mode sheets still need all
@@ -63,13 +65,19 @@ func adjustExcelReadOptions(ctx context.Context, reader excelRowReader, brOpts *
 				for _, srOpts := range brOpts.Sheets {
 					srOpts.TopN = defaultTopN
 				}
-				return nil
+				return nil, nil
 			}
-			return err
+			return nil, err
 		}
-		meta, err := ms.ParseMetasheet(parser)
+		// The parser may mutate its input. Keep the rows reused by readExcelBook
+		// independent of this planning pass.
+		parseRows := make([][]string, len(ms.Table.Rows))
+		for i, row := range ms.Table.Rows {
+			parseRows[i] = append([]string(nil), row...)
+		}
+		meta, err := book.NewTableSheet(ms.Name, parseRows).ParseMetasheet(parser)
 		if err != nil {
-			return xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheetName)
+			return nil, xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheetName)
 		}
 
 		if filterByMetasheet && len(meta.MetasheetMap) > 0 {
@@ -87,8 +95,9 @@ func adjustExcelReadOptions(ctx context.Context, reader excelRowReader, brOpts *
 				srOpts.TopN = defaultTopN
 			}
 		}
+		return ms, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func filterExcelSheets(sheets []*sheetReaderOptions, meta map[string]*internalpb.Metasheet, metasheetName string) []*sheetReaderOptions {
@@ -102,9 +111,9 @@ func filterExcelSheets(sheets []*sheetReaderOptions, meta map[string]*internalpb
 	return selected
 }
 
-func readExcelBook(ctx context.Context, reader excelRowReader, brOpts *bookReaderOptions, parser book.SheetParser) (*book.Book, error) {
+func readExcelBook(ctx context.Context, reader excelRowReader, brOpts *bookReaderOptions, parser book.SheetParser, metaSheet *book.Sheet) (*book.Book, error) {
 	newBook := book.NewBook(ctx, brOpts.Name, brOpts.Filename, parser)
-	sheets, err := readExcelSheets(reader, brOpts.Filename, brOpts.Sheets)
+	sheets, err := readExcelSheets(reader, brOpts.Filename, brOpts.Sheets, metaSheet)
 	if err != nil {
 		return nil, xerrors.Wrapf(err, "failed to read excel: %s", brOpts.Filename)
 	}
@@ -123,9 +132,13 @@ func readExcelMetasheet(reader excelRowReader, sheetName string) (*book.Sheet, e
 	return book.NewTableSheet(sheetName, rows), nil
 }
 
-func readExcelSheets(reader excelRowReader, filename string, srOpts []*sheetReaderOptions) ([]*book.Sheet, error) {
+func readExcelSheets(reader excelRowReader, filename string, srOpts []*sheetReaderOptions, metaSheet *book.Sheet) ([]*book.Sheet, error) {
 	var sheets []*book.Sheet
 	for _, sheetReader := range srOpts {
+		if metaSheet != nil && sheetReader.Name == metaSheet.Name {
+			sheets = append(sheets, metaSheet)
+			continue
+		}
 		rows, err := reader.ReadRows(sheetReader.Name, sheetReader.TopN)
 		if err != nil {
 			if errors.Is(err, ErrSheetNotFound) {

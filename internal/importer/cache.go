@@ -58,7 +58,7 @@ type cachedExcel struct {
 	// instances still decode concurrently.
 	mu            sync.Mutex
 	filename      string
-	rawReader     workbookReader
+	rawReader     excelRowReader
 	excelizeFile  *excelize.File // compatibility fallback, opened lazily
 	sheetNames    []string
 	decodedSheets map[string]*book.Sheet
@@ -66,12 +66,6 @@ type cachedExcel struct {
 	// source to the Excelize fallback.
 	preferRaw bool
 	profiling bool
-}
-
-type workbookReader interface {
-	SheetNames() []string
-	ReadRows(string) ([][]string, error)
-	Close() error
 }
 
 type cachedCSV struct {
@@ -289,12 +283,15 @@ func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
 	if err == nil {
 		return &cachedExcel{
 			filename:      filename,
-			rawReader:     reader,
+			rawReader:     xlsxRowReader{reader: reader},
 			sheetNames:    reader.SheetNames(),
 			decodedSheets: make(map[string]*book.Sheet),
 			preferRaw:     true,
 			profiling:     profiling,
 		}, nil
+	}
+	if !errors.Is(err, xlsx.ErrUnsupported) {
+		return nil, err
 	}
 	log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", filename, err)
 	file, openErr := excelize.OpenFile(filename)
@@ -324,9 +321,12 @@ func (c *cachedExcel) readRows(sheetName string) ([][]string, error) {
 	if c.rawReader == nil {
 		return readExcelizeRows(c.excelizeFile, sheetName, 0, excelize.Options{RawCellValue: true})
 	}
-	rows, err := c.rawReader.ReadRows(sheetName)
+	rows, err := c.rawReader.ReadRows(sheetName, 0)
 	if err == nil {
 		return rows, nil
+	}
+	if !errors.Is(err, xlsx.ErrUnsupported) {
+		return nil, err
 	}
 	return c.fallbackToExcelize(sheetName, err)
 }
@@ -339,8 +339,11 @@ func (c *cachedExcel) ensureReader() error {
 	if c.preferRaw {
 		reader, err := xlsx.Open(c.filename)
 		if err == nil {
-			c.rawReader = reader
+			c.rawReader = xlsxRowReader{reader: reader}
 			return nil
+		}
+		if !errors.Is(err, xlsx.ErrUnsupported) {
+			return err
 		}
 		log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", c.filename, err)
 		c.preferRaw = false
@@ -361,7 +364,11 @@ func (c *cachedExcel) fallbackToExcelize(sheetName string, readErr error) ([][]s
 	_ = c.rawReader.Close()
 	c.rawReader = nil
 	c.preferRaw = false
-	return readExcelizeRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
+	rows, err := readExcelizeRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
+	if err != nil {
+		return nil, errors.Join(readErr, err)
+	}
+	return rows, nil
 }
 
 func (c *cachedExcel) openExcelize() (*excelize.File, error) {

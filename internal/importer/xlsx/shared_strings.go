@@ -2,17 +2,18 @@ package xlsx
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
 // parseSharedStrings decodes the small OOXML subset used by sharedStrings.xml
-// without building an XML object tree. Unsupported constructs return an error
-// so callers can retry the workbook with the compatibility reader.
+// without building an XML object tree. Unsupported constructs are marked so
+// callers can retry with the compatibility reader; malformed data is reported.
 func parseSharedStrings(data []byte) ([]string, error) {
 	if hasUnsupportedXML(data) {
-		return nil, xerrors.New("unsupported XML construct in shared strings")
+		return nil, fmt.Errorf("%w: XML construct in shared strings", ErrUnsupported)
 	}
 
 	var (
@@ -24,15 +25,12 @@ func parseSharedStrings(data []byte) ([]string, error) {
 
 		inItem     bool
 		itemDepth  int
-		directSeen bool
-		hasRuns    bool
 		directText string
 		itemText   strings.Builder
 
-		inRun       bool
-		runDepth    int
-		runTextSeen bool
-		runText     strings.Builder
+		inRun    bool
+		runDepth int
+		runText  strings.Builder
 
 		inText       bool
 		captureStart int
@@ -49,8 +47,8 @@ func parseSharedStrings(data []byte) ([]string, error) {
 		offset = nextOffset
 
 		if element.closing {
-			if len(elementStack) == 0 || !bytes.Equal(elementStack[len(elementStack)-1], element.local) {
-				return nil, xerrors.Newf("mismatched shared strings closing tag %q", element.local)
+			if len(elementStack) == 0 || !bytes.Equal(elementStack[len(elementStack)-1], element.name) {
+				return nil, xerrors.Newf("mismatched shared strings closing tag %q", element.name)
 			}
 			depth := len(elementStack)
 			if depth == 1 {
@@ -63,6 +61,7 @@ func parseSharedStrings(data []byte) ([]string, error) {
 					return nil, err
 				}
 				if inRun {
+					runText.Reset()
 					runText.WriteString(text)
 				} else {
 					directText = text
@@ -73,20 +72,11 @@ func parseSharedStrings(data []byte) ([]string, error) {
 				runText.Reset()
 				inRun = false
 				runDepth = 0
-				runTextSeen = false
 			case inItem && depth == itemDepth && bytes.Equal(element.local, []byte("si")):
-				if directSeen && hasRuns {
-					return nil, xerrors.New("shared string mixes direct text and rich-text runs")
-				}
-				value := itemText.String()
-				if directSeen {
-					value = directText
-				}
+				value := directText + itemText.String()
 				sharedStrings = append(sharedStrings, decodeEscapes(value))
 				itemText.Reset()
 				directText = ""
-				directSeen = false
-				hasRuns = false
 				inItem = false
 				itemDepth = 0
 			}
@@ -107,6 +97,8 @@ func parseSharedStrings(data []byte) ([]string, error) {
 			rootClosed = element.selfClosing
 		}
 		switch {
+		case inItem && bytes.Equal(element.local, []byte("si")):
+			return nil, xerrors.New("nested shared string item")
 		case !inItem && parentDepth == 1 && bytes.Equal(element.local, []byte("si")):
 			if element.selfClosing {
 				sharedStrings = append(sharedStrings, "")
@@ -114,31 +106,15 @@ func parseSharedStrings(data []byte) ([]string, error) {
 			}
 			inItem = true
 			itemDepth = parentDepth + 1
-			directSeen = false
-			hasRuns = false
 			directText = ""
 		case inItem && parentDepth == itemDepth && bytes.Equal(element.local, []byte("r")):
 			if element.selfClosing {
-				hasRuns = true
 				continue
 			}
 			inRun = true
 			runDepth = parentDepth + 1
-			runTextSeen = false
-			hasRuns = true
 		case inItem && bytes.Equal(element.local, []byte("t")) &&
 			(parentDepth == itemDepth || (inRun && parentDepth == runDepth)):
-			if inRun {
-				if runTextSeen {
-					return nil, xerrors.New("rich-text run has multiple text elements")
-				}
-				runTextSeen = true
-			} else {
-				if directSeen {
-					return nil, xerrors.New("shared string has multiple direct text elements")
-				}
-				directSeen = true
-			}
 			if !element.selfClosing {
 				inText = true
 				captureStart = element.end + 1
@@ -146,7 +122,7 @@ func parseSharedStrings(data []byte) ([]string, error) {
 		}
 
 		if !element.selfClosing {
-			elementStack = append(elementStack, element.local)
+			elementStack = append(elementStack, element.name)
 		}
 	}
 

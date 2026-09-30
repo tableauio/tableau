@@ -6,6 +6,7 @@ import (
 	"runtime/pprof"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/options"
 )
 
@@ -14,6 +15,19 @@ func TestProfilingDisabled(t *testing.T) {
 	if value, ok := pprof.Label(gen.ctx, "generator"); ok {
 		t.Fatalf("generator label = %q, true; want profiling disabled", value)
 	}
+}
+
+func TestPrepareRunFailureDoesNotWriteProfiles(t *testing.T) {
+	blocked := filepath.Join(t.TempDir(), "not-a-directory")
+	require.NoError(t, os.WriteFile(blocked, []byte("occupied"), 0o600))
+	opts := options.NewDefault()
+	opts.Profiling = true
+	opts.Proto.Output.Subdir = "profiles"
+	gen := NewGeneratorWithOptions("", t.TempDir(), blocked, opts)
+	require.Error(t, gen.Generate())
+	require.NoDirExists(t, filepath.Join(blocked, "profiles"))
+	require.NoFileExists(t, filepath.Join(blocked, "profiles", "protogen-cpu.pprof"))
+	require.NoFileExists(t, filepath.Join(blocked, "profiles", "protogen-mem.pprof"))
 }
 
 func TestGenerateWritesProfiles(t *testing.T) {

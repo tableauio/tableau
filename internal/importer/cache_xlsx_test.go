@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/tableauio/tableau/internal/importer/xlsx"
 )
 
 type failingWorkbookReader struct {
@@ -16,7 +17,7 @@ type failingWorkbookReader struct {
 
 func (*failingWorkbookReader) SheetNames() []string { return []string{"Item"} }
 
-func (r *failingWorkbookReader) ReadRows(string) ([][]string, error) { return nil, r.err }
+func (r *failingWorkbookReader) ReadRows(string, uint) ([][]string, error) { return nil, r.err }
 
 func (r *failingWorkbookReader) Close() error {
 	r.closed = true
@@ -24,7 +25,7 @@ func (r *failingWorkbookReader) Close() error {
 }
 
 func TestCachedExcelFallsBackToExcelize(t *testing.T) {
-	directErr := errors.New("direct reader rejected worksheet")
+	directErr := errors.Join(xlsx.ErrUnsupported, errors.New("direct reader rejected worksheet"))
 	direct := &failingWorkbookReader{err: directErr}
 	content, err := os.ReadFile("testdata/Test.xlsx")
 	require.NoError(t, err)
@@ -58,7 +59,7 @@ func TestCachedExcelFallsBackToExcelize(t *testing.T) {
 }
 
 func TestCachedExcelReportsFallbackFailure(t *testing.T) {
-	directErr := errors.New("direct reader failed")
+	directErr := errors.Join(xlsx.ErrUnsupported, errors.New("direct reader failed"))
 	direct := &failingWorkbookReader{err: directErr}
 	cached := &cachedExcel{
 		filename:  filepath.Join(t.TempDir(), "missing.xlsx"),
@@ -69,4 +70,17 @@ func TestCachedExcelReportsFallbackFailure(t *testing.T) {
 	require.ErrorIs(t, err, directErr)
 	require.Error(t, err)
 	require.Same(t, direct, cached.rawReader)
+}
+
+func TestCachedExcelDoesNotRetryDataErrors(t *testing.T) {
+	directErr := errors.New("invalid shared string index")
+	direct := &failingWorkbookReader{err: directErr}
+	cached := &cachedExcel{
+		filename:  filepath.Join(t.TempDir(), "missing.xlsx"),
+		rawReader: direct,
+	}
+	_, err := cached.readRows("Item")
+	require.ErrorIs(t, err, directErr)
+	require.False(t, direct.closed)
+	require.Nil(t, cached.excelizeFile)
 }

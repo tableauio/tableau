@@ -3,8 +3,13 @@ package profile
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"runtime/pprof"
 	"testing"
+	"time"
+
+	profiledata "github.com/google/pprof/profile"
 )
 
 func TestBookMetricsMeasure(t *testing.T) {
@@ -36,5 +41,38 @@ func TestBookMetricsMeasure(t *testing.T) {
 	}
 	if got.totalWallTime < 0 || got.maxWallTime < 0 || got.maxWallTime > got.totalWallTime {
 		t.Fatalf("metric timing = %+v", got)
+	}
+}
+
+func TestBookMetricsCPUAndReset(t *testing.T) {
+	var metrics BookMetrics
+	metrics.record("import_xlsx", time.Second, false)
+	filename := filepath.Join(t.TempDir(), "cpu.pprof")
+	file, err := os.Create(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cpu := &profiledata.Profile{
+		SampleType: []*profiledata.ValueType{{Type: "cpu", Unit: "nanoseconds"}},
+		Sample: []*profiledata.Sample{{
+			Value: []int64{250_000_000},
+			Label: map[string][]string{"name": {"import_xlsx"}},
+		}},
+	}
+	if err := cpu.Write(file); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := metrics.LoadCPUProfile(filename); err != nil {
+		t.Fatal(err)
+	}
+	if got := metrics.snapshot()[0].cpuTime; got != 250*time.Millisecond {
+		t.Fatalf("CPU time = %s, want 250ms", got)
+	}
+	metrics.Reset()
+	if got := metrics.snapshot(); len(got) != 0 {
+		t.Fatalf("metrics after Reset() = %+v", got)
 	}
 }
