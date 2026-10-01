@@ -1,10 +1,16 @@
 package xlsx
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func parseSharedStrings(data []byte) ([]string, error) {
+	return readSharedStrings(bytes.NewReader(data))
+}
 
 func TestParseSharedStrings(t *testing.T) {
 	data := []byte(`<?xml version="1.0" encoding="UTF-8"?>
@@ -42,7 +48,6 @@ func TestParseSharedStringsRejectsUnsafeInput(t *testing.T) {
 		{name: "invalid code point FFFE", xml: "<sst><si><t>\uFFFE</t></si></sst>"},
 		{name: "invalid code point FFFF", xml: "<sst><si><t>\uFFFF</t></si></sst>"},
 		{name: "forbidden text terminator", xml: `<sst><si><t>a]]>b</t></si></sst>`},
-		{name: "CDATA", xml: `<sst><si><t><![CDATA[A]]></t></si></sst>`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -53,9 +58,9 @@ func TestParseSharedStringsRejectsUnsafeInput(t *testing.T) {
 }
 
 func TestParseSharedStringsAcceptsCommonXMLContent(t *testing.T) {
-	shared, err := parseSharedStrings([]byte(`<sst><!-- note --><?hint value?><si><t>A<!-- comment --></t><r><t>B</t></r></si><si><t>&nbsp;</t></si></sst>`))
+	shared, err := parseSharedStrings([]byte(`<sst><!-- note --><?hint value?><si><t>A<!-- comment --></t><r><t>B</t></r></si><si><t>&nbsp;</t></si><si><t><![CDATA[A<&B]]></t></si></sst>`))
 	require.NoError(t, err)
-	require.Equal(t, []string{"AB", "\u00a0"}, shared)
+	require.Equal(t, []string{"AB", "\u00a0", "A<&B"}, shared)
 }
 
 func TestParseSharedStringsAcceptsEmptyRoot(t *testing.T) {
@@ -65,7 +70,10 @@ func TestParseSharedStringsAcceptsEmptyRoot(t *testing.T) {
 }
 
 func TestDecodeXMLTextUsesXMLCharacterReferences(t *testing.T) {
-	text, err := decodeXMLText([]byte("&lt;&amp;&gt;&apos;&quot;&#128;&#xD;"))
+	decoder := newXMLDecoder(strings.NewReader("<t>&lt;&amp;&gt;&apos;&quot;&#128;&#xD;</t>"))
+	_, err := nextXMLToken(decoder)
+	require.NoError(t, err)
+	text, err := readXMLText(decoder)
 	require.NoError(t, err)
 	require.Equal(t, "<&>'\"\u0080\r", text)
 }

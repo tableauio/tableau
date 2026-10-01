@@ -22,6 +22,14 @@ type xlsxRowReader struct {
 	reader *xlsx.Reader
 }
 
+func openXLSXRowReader(filename string) (excelRowReader, error) {
+	reader, err := xlsx.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	return xlsxRowReader{reader: reader}, nil
+}
+
 func (r xlsxRowReader) SheetNames() []string {
 	return r.reader.SheetNames()
 }
@@ -40,6 +48,14 @@ func (r xlsxRowReader) Close() error {
 
 type excelizeRowReader struct {
 	file *excelize.File
+}
+
+func openExcelizeRowReader(filename string) (excelRowReader, error) {
+	file, err := excelize.OpenFile(filename)
+	if err != nil {
+		return nil, xerrors.E3002(err)
+	}
+	return excelizeRowReader{file: file}, nil
 }
 
 func (r excelizeRowReader) SheetNames() []string {
@@ -77,23 +93,21 @@ func importExcel(ctx context.Context, filename string, opts *Options) (*ExcelImp
 }
 
 func importWithXLSX(ctx context.Context, filename string, opts *Options) (*ExcelImporter, error) {
-	reader, err := xlsx.Open(filename)
+	reader, err := openXLSXRowReader(filename)
 	if err != nil {
 		return nil, err
 	}
-	backend := xlsxRowReader{reader: reader}
-	defer closeExcelReader(backend)
-	return readExcelImporter(ctx, filename, opts, backend, true)
+	defer closeExcelReader(reader)
+	return readExcelImporter(ctx, filename, opts, reader, true)
 }
 
 func importWithExcelize(ctx context.Context, filename string, opts *Options) (*ExcelImporter, error) {
-	file, err := excelize.OpenFile(filename)
+	reader, err := openExcelizeRowReader(filename)
 	if err != nil {
-		return nil, xerrors.E3002(err)
+		return nil, err
 	}
-	backend := excelizeRowReader{file: file}
-	defer closeExcelReader(backend)
-	return readExcelImporter(ctx, filename, opts, backend, false)
+	defer closeExcelReader(reader)
+	return readExcelImporter(ctx, filename, opts, reader, false)
 }
 
 func closeExcelReader(reader excelRowReader) {

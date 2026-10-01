@@ -115,7 +115,7 @@ func TestReaderUsesPackageRelationships(t *testing.T) {
 
 func TestReadRowsNSkipsUnrequestedCells(t *testing.T) {
 	worksheet := `<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c></row>` +
-		strings.Repeat(" ", initialWorksheetPrefixSize*2) +
+		strings.Repeat(" ", (64<<10)*2) +
 		`<row r="2"><c r="A2" t="s"><v>999</v></c></row></sheetData></worksheet>`
 	parts := defaultParts(
 		`<workbook xmlns:r="urn:relationships"><sheets><sheet name="Items" r:id="sheet"/></sheets></workbook>`,
@@ -140,6 +140,18 @@ func TestReaderMatchesExcelizeUnusualCells(t *testing.T) {
 		name  string
 		sheet string
 	}{
+		{
+			name:  "empty shared string cell",
+			sheet: `<worksheet><sheetData><row r="1"><c r="A1" t="s"/><c r="B1"><v>value</v></c></row></sheetData></worksheet>`,
+		},
+		{
+			name:  "CDATA text",
+			sheet: `<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t><![CDATA[A<&B]]></t></is></c></row></sheetData></worksheet>`,
+		},
+		{
+			name:  "markup inside a comment",
+			sheet: `<worksheet><!-- <![CDATA[ <!DOCTYPE ignored --> <sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData></worksheet>`,
+		},
 		{
 			name:  "duplicate cells",
 			sheet: `<worksheet><sheetData><row r="1"><c r="A1"><v>first</v></c><c r="A1"><v>second</v></c><c r="C1"><v>third</v></c></row></sheetData></worksheet>`,
@@ -238,65 +250,34 @@ func (r *countingReader) Read(buffer []byte) (int, error) {
 
 func TestReadRowsNValidatesCompleteEntry(t *testing.T) {
 	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData></worksheet>`)
-	entry := &zip.File{FileHeader: zip.FileHeader{
-		Name:               "worksheet.xml",
-		UncompressedSize64: uint64(len(data)),
-	}}
 	reader := terminalErrorReader{Reader: bytes.NewReader(data), err: zip.ErrChecksum}
 
-	_, err := readWorksheetPrefix(reader, entry, "Items", nil, 1)
+	_, err := readWorksheetStream(reader, nil, 1)
 	require.ErrorIs(t, err, zip.ErrChecksum)
 }
 
 func TestReadRowsNValidatesTail(t *testing.T) {
 	prefix := `<worksheet><sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData>`
-	data := []byte(prefix + strings.Repeat(" ", initialWorksheetPrefixSize) + `</worksheet>`)
-	entry := &zip.File{FileHeader: zip.FileHeader{
-		Name:               "worksheet.xml",
-		UncompressedSize64: uint64(len(data)),
-	}}
-	_, err := readWorksheetPrefix(terminalErrorReader{Reader: bytes.NewReader(data), err: zip.ErrChecksum}, entry, "Items", nil, 1)
+	data := []byte(prefix + strings.Repeat(" ", (64<<10)) + `</worksheet>`)
+	_, err := readWorksheetStream(terminalErrorReader{Reader: bytes.NewReader(data), err: zip.ErrChecksum}, nil, 1)
 	require.ErrorIs(t, err, zip.ErrChecksum)
 
-	cdata := []byte(prefix + strings.Repeat(" ", initialWorksheetPrefixSize) + `<![CDATA[ignored]]></worksheet>`)
-	entry.UncompressedSize64 = uint64(len(cdata))
-	_, err = readWorksheetPrefix(bytes.NewReader(cdata), entry, "Items", nil, 1)
-	require.ErrorIs(t, err, ErrUnsupported)
+	cdata := []byte(prefix + strings.Repeat(" ", (64<<10)) + `<![CDATA[ignored]]></worksheet>`)
+	_, err = readWorksheetStream(bytes.NewReader(cdata), nil, 1)
+	require.NoError(t, err)
 
-	split := []byte(prefix + strings.Repeat(" ", initialWorksheetPrefixSize-len(prefix)-5) + `<![CD` + `ATA[ignored]]></worksheet>`)
-	entry.UncompressedSize64 = uint64(len(split))
-	_, err = readWorksheetPrefix(bytes.NewReader(split), entry, "Items", nil, 1)
-	require.ErrorIs(t, err, ErrUnsupported)
+	split := []byte(prefix + strings.Repeat(" ", (64<<10)-len(prefix)-5) + `<![CD` + `ATA[ignored]]></worksheet>`)
+	_, err = readWorksheetStream(bytes.NewReader(split), nil, 1)
+	require.NoError(t, err)
 }
 
-func TestReadRowsNStopsOnFatalPrefixError(t *testing.T) {
+func TestReadRowsNStopsOnFatalRowError(t *testing.T) {
 	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>999</v></c></row></sheetData>` +
-		strings.Repeat(" ", initialWorksheetPrefixSize) + `</worksheet>`)
-	entry := &zip.File{FileHeader: zip.FileHeader{
-		Name:               "worksheet.xml",
-		UncompressedSize64: uint64(len(data)),
-	}}
+		strings.Repeat(" ", (64<<10)) + `</worksheet>`)
 	source := &countingReader{Reader: bytes.NewReader(data)}
-	_, err := readWorksheetPrefix(source, entry, "Items", []string{"first"}, 1)
+	_, err := readWorksheetStream(source, []string{"first"}, 1)
 	require.ErrorContains(t, err, "shared string index 999 out of range")
-	require.Equal(t, initialWorksheetPrefixSize, source.bytesRead)
-}
-
-func TestWorksheetRejectsUnsupportedXMLMarkup(t *testing.T) {
-	for _, markup := range []string{
-		`<?xml version="1.0"?><worksheet/>`,
-		"\xEF\xBB\xBF  <?xml version=\"1.0\"?><worksheet/>",
-		`<worksheet><!-- comment --></worksheet>`,
-		`<worksheet><?custom value?></worksheet>`,
-	} {
-		require.False(t, hasUnsupportedXML([]byte(markup)), markup)
-	}
-	for _, markup := range []string{
-		`<worksheet><![CDATA[value]]></worksheet>`,
-		`<!DOCTYPE worksheet><worksheet/>`,
-	} {
-		require.True(t, hasUnsupportedXML([]byte(markup)), markup)
-	}
+	require.Less(t, source.bytesRead, len(data))
 }
 
 func TestOpenRejectsInvalidWorkbooks(t *testing.T) {
@@ -375,7 +356,6 @@ func TestReadRowsRejectsUnsupportedXML(t *testing.T) {
 		name string
 		xml  string
 	}{
-		{name: "CDATA", xml: `<worksheet><sheetData><row><c><v><![CDATA[value]]></v></c></row></sheetData></worksheet>`},
 		{name: "DOCTYPE", xml: `<!DOCTYPE worksheet><worksheet/>`},
 	}
 	for _, test := range tests {

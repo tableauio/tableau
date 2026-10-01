@@ -9,8 +9,8 @@ import (
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
-// Larger parts use the caller's compatibility reader instead of allocating an
-// unbounded in-memory buffer.
+// Larger parts use the caller's compatibility reader to bound the input size
+// handled by this reader.
 const maxEntrySize = 512 << 20
 
 func readEntry(entry *zip.File) ([]byte, error) {
@@ -32,7 +32,7 @@ func readEntry(entry *zip.File) ([]byte, error) {
 
 func validatedEntrySize(entry *zip.File) (int, error) {
 	if entry.UncompressedSize64 > maxEntrySize {
-		return 0, fmt.Errorf("%w: XLSX entry %q exceeds the %d-byte in-memory limit", ErrUnsupported, entry.Name, maxEntrySize)
+		return 0, fmt.Errorf("%w: XLSX entry %q exceeds the %d-byte size limit", ErrUnsupported, entry.Name, maxEntrySize)
 	}
 	return int(entry.UncompressedSize64), nil
 }

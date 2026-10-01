@@ -32,13 +32,12 @@ func TestCachedExcelFallsBackToExcelize(t *testing.T) {
 	filename := filepath.Join(t.TempDir(), "Test.xlsx")
 	require.NoError(t, os.WriteFile(filename, content, 0o600))
 	cached := &cachedExcel{
-		filename:  filename,
-		rawReader: direct,
+		filename: filename,
+		reader:   direct,
+		useXLSX:  true,
 	}
 	t.Cleanup(func() {
-		if cached.excelizeFile != nil {
-			_ = cached.excelizeFile.Close()
-		}
+		_ = cached.reader.Close()
 	})
 
 	require.Equal(t, "xlsx", cached.readerName())
@@ -46,41 +45,42 @@ func TestCachedExcelFallsBackToExcelize(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, rows)
 	require.True(t, direct.closed)
-	require.Nil(t, cached.rawReader)
-	require.NotNil(t, cached.excelizeFile)
+	require.NotEqual(t, direct, cached.reader)
 	require.Equal(t, "excelize", cached.readerName())
 
-	file, err := cached.openExcelize()
-	require.NoError(t, err)
-	require.Same(t, cached.excelizeFile, file)
+	fallback := cached.reader
 	rows, err = cached.readRows("Item")
 	require.NoError(t, err)
 	require.NotEmpty(t, rows)
+	require.Equal(t, fallback, cached.reader)
 }
 
 func TestCachedExcelReportsFallbackFailure(t *testing.T) {
 	directErr := errors.Join(xlsx.ErrUnsupported, errors.New("direct reader failed"))
 	direct := &failingWorkbookReader{err: directErr}
 	cached := &cachedExcel{
-		filename:  filepath.Join(t.TempDir(), "missing.xlsx"),
-		rawReader: direct,
+		filename: filepath.Join(t.TempDir(), "missing.xlsx"),
+		reader:   direct,
+		useXLSX:  true,
 	}
 
 	_, err := cached.readRows("Item")
 	require.ErrorIs(t, err, directErr)
 	require.Error(t, err)
-	require.Same(t, direct, cached.rawReader)
+	require.Same(t, direct, cached.reader)
+	require.False(t, direct.closed)
 }
 
 func TestCachedExcelDoesNotRetryDataErrors(t *testing.T) {
 	directErr := errors.New("invalid shared string index")
 	direct := &failingWorkbookReader{err: directErr}
 	cached := &cachedExcel{
-		filename:  filepath.Join(t.TempDir(), "missing.xlsx"),
-		rawReader: direct,
+		filename: filepath.Join(t.TempDir(), "missing.xlsx"),
+		reader:   direct,
+		useXLSX:  true,
 	}
 	_, err := cached.readRows("Item")
 	require.ErrorIs(t, err, directErr)
 	require.False(t, direct.closed)
-	require.Nil(t, cached.excelizeFile)
+	require.Same(t, direct, cached.reader)
 }

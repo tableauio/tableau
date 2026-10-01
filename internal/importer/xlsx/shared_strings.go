@@ -1,133 +1,93 @@
 package xlsx
 
 import (
-	"bytes"
-	"fmt"
+	"encoding/xml"
+	"io"
 	"strings"
 
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
-// parseSharedStrings decodes the small OOXML subset used by sharedStrings.xml
-// without building an XML object tree. Unsupported constructs are marked so
-// callers can retry with the compatibility reader; malformed data is reported.
-func parseSharedStrings(data []byte) ([]string, error) {
-	if hasUnsupportedXML(data) {
-		return nil, fmt.Errorf("%w: XML construct in shared strings", ErrUnsupported)
-	}
-
-	var (
-		sharedStrings []string
-		elementStack  [][]byte
-		offset        int
-		rootSeen      bool
-		rootClosed    bool
-
-		inItem     bool
-		itemDepth  int
-		directText string
-		itemText   strings.Builder
-
-		inRun    bool
-		runDepth int
-		runText  strings.Builder
-
-		inText       bool
-		captureStart int
-	)
-
+func readSharedStrings(source io.Reader) ([]string, error) {
+	decoder := newXMLDecoder(source)
+	var values []string
+	var depth int
+	var rootSeen bool
 	for {
-		element, nextOffset, ok, err := nextXMLTag(data, offset)
+		token, err := nextXMLToken(decoder)
+		if err == io.EOF {
+			if !rootSeen {
+				return nil, xerrors.New("empty shared strings XML")
+			}
+			return values, nil
+		}
 		if err != nil {
 			return nil, err
 		}
-		if !ok {
-			break
-		}
-		offset = nextOffset
-
-		if element.closing {
-			if len(elementStack) == 0 || !bytes.Equal(elementStack[len(elementStack)-1], element.name) {
-				return nil, xerrors.Newf("mismatched shared strings closing tag %q", element.name)
+		switch token := token.(type) {
+		case xml.StartElement:
+			if depth == 0 {
+				if rootSeen {
+					return nil, xerrors.New("multiple shared strings root elements")
+				}
+				rootSeen = true
 			}
-			depth := len(elementStack)
-			if depth == 1 {
-				rootClosed = true
-			}
-			switch {
-			case inText && bytes.Equal(element.local, []byte("t")):
-				text, err := decodeXMLText(data[captureStart:element.start])
+			if depth == 1 && token.Name.Local == "si" {
+				value, err := readSharedString(decoder)
 				if err != nil {
 					return nil, err
 				}
-				if inRun {
-					runText.Reset()
-					runText.WriteString(text)
-				} else {
-					directText = text
+				values = append(values, decodeEscapes(value))
+			} else {
+				depth++
+			}
+		case xml.EndElement:
+			depth--
+		}
+	}
+}
+
+// readSharedString reads one OOXML string item. Direct text precedes rich-text
+// runs; phonetic annotations do not contribute to the displayed value.
+func readSharedString(decoder *xml.Decoder) (string, error) {
+	var direct, runText string
+	var runs strings.Builder
+	depth, runDepth := 1, 0
+	for {
+		token, err := nextXMLToken(decoder)
+		if err != nil {
+			return "", err
+		}
+		switch token := token.(type) {
+		case xml.StartElement:
+			switch {
+			case token.Name.Local == "si":
+				return "", xerrors.New("nested shared string item")
+			case token.Name.Local == "r" && depth == 1:
+				runDepth = depth + 1
+				runText = ""
+			case token.Name.Local == "t" && (depth == 1 || depth == runDepth):
+				text, err := readXMLText(decoder)
+				if err != nil {
+					return "", err
 				}
-				inText = false
-			case inRun && depth == runDepth && bytes.Equal(element.local, []byte("r")):
-				itemText.WriteString(runText.String())
-				runText.Reset()
-				inRun = false
+				if runDepth > 0 {
+					runText = text
+				} else {
+					direct = text
+				}
+				continue
+			}
+			depth++
+		case xml.EndElement:
+			if depth == runDepth {
+				runs.WriteString(runText)
 				runDepth = 0
-			case inItem && depth == itemDepth && bytes.Equal(element.local, []byte("si")):
-				value := directText + itemText.String()
-				sharedStrings = append(sharedStrings, decodeEscapes(value))
-				itemText.Reset()
-				directText = ""
-				inItem = false
-				itemDepth = 0
 			}
-			elementStack = elementStack[:len(elementStack)-1]
-			continue
-		}
-
-		if inText {
-			return nil, xerrors.New("nested XML element in shared string text")
-		}
-
-		parentDepth := len(elementStack)
-		if parentDepth == 0 {
-			if rootSeen {
-				return nil, xerrors.New("multiple shared strings root elements")
+			depth--
+			if depth == 0 {
+				return direct + runs.String(), nil
 			}
-			rootSeen = true
-			rootClosed = element.selfClosing
-		}
-		switch {
-		case inItem && bytes.Equal(element.local, []byte("si")):
-			return nil, xerrors.New("nested shared string item")
-		case !inItem && parentDepth == 1 && bytes.Equal(element.local, []byte("si")):
-			if element.selfClosing {
-				sharedStrings = append(sharedStrings, "")
-				continue
-			}
-			inItem = true
-			itemDepth = parentDepth + 1
-			directText = ""
-		case inItem && parentDepth == itemDepth && bytes.Equal(element.local, []byte("r")):
-			if element.selfClosing {
-				continue
-			}
-			inRun = true
-			runDepth = parentDepth + 1
-		case inItem && bytes.Equal(element.local, []byte("t")) &&
-			(parentDepth == itemDepth || (inRun && parentDepth == runDepth)):
-			if !element.selfClosing {
-				inText = true
-				captureStart = element.end + 1
-			}
-		}
-
-		if !element.selfClosing {
-			elementStack = append(elementStack, element.name)
 		}
 	}
-
-	if !rootSeen || !rootClosed || len(elementStack) != 0 || inItem || inRun || inText {
-		return nil, xerrors.New("unterminated shared strings XML")
-	}
-	return sharedStrings, nil
 }

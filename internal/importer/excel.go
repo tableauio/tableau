@@ -69,13 +69,7 @@ func adjustExcelReadOptions(ctx context.Context, reader excelRowReader, brOpts *
 			}
 			return nil, err
 		}
-		// The parser may mutate its input. Keep the rows reused by readExcelBook
-		// independent of this planning pass.
-		parseRows := make([][]string, len(ms.Table.Rows))
-		for i, row := range ms.Table.Rows {
-			parseRows[i] = append([]string(nil), row...)
-		}
-		meta, err := book.NewTableSheet(ms.Name, parseRows).ParseMetasheet(parser)
+		meta, err := ms.ParseMetasheet(parser)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "failed to parse metasheet: %s", metasheetName)
 		}

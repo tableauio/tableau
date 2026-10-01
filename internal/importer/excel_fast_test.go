@@ -84,7 +84,7 @@ func TestReadExcelImporterUsesMetasheetReadPlan(t *testing.T) {
 	require.Equal(t, 12, imp.GetSheet("Transpose").Table.RowSize())
 }
 
-func TestNewExcelImporterFallsBackForUnsupportedRawWorksheet(t *testing.T) {
+func TestNewExcelImporterReadsCDATA(t *testing.T) {
 	source := filepath.Join(t.TempDir(), "source.xlsx")
 	file := excelize.NewFile()
 	require.NoError(t, file.SetCellValue("Sheet1", "A1", "value"))
@@ -94,14 +94,31 @@ func TestNewExcelImporterFallsBackForUnsupportedRawWorksheet(t *testing.T) {
 	filename := filepath.Join(t.TempDir(), "fallback.xlsx")
 	copyXLSXWithCDATA(t, source, filename)
 
-	// The fixture remains valid for Excelize, while the focused raw reader
-	// deliberately rejects CDATA and therefore exercises whole-import fallback.
+	reader, err := xlsx.Open(filename)
+	require.NoError(t, err)
+	rows, err := reader.ReadRows("Sheet1")
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"value"}}, rows)
+	require.NoError(t, reader.Close())
+
 	compat, err := excelize.OpenFile(filename)
 	require.NoError(t, err)
-	rows, err := compat.GetRows("Sheet1", excelize.Options{RawCellValue: true})
+	rows, err = compat.GetRows("Sheet1", excelize.Options{RawCellValue: true})
 	require.NoError(t, err)
 	require.Equal(t, [][]string{{"value"}}, rows)
 	require.NoError(t, compat.Close())
+
+	_, err = NewExcelImporter(context.Background(), filename, Mode(Protogen))
+	require.NoError(t, err)
+}
+
+func TestNewExcelImporterFallsBackForDocumentType(t *testing.T) {
+	filename := writeXLSXWithWorksheet(t, `<!DOCTYPE worksheet><worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>value</t></is></c></row></sheetData></worksheet>`)
+	reader, err := xlsx.Open(filename)
+	require.NoError(t, err)
+	_, err = reader.ReadRows("Sheet1")
+	require.ErrorIs(t, err, xlsx.ErrUnsupported)
+	require.NoError(t, reader.Close())
 
 	_, err = NewExcelImporter(context.Background(), filename, Mode(Protogen))
 	require.NoError(t, err)
@@ -122,7 +139,7 @@ func TestNewExcelImporterPreservesNamedEntity(t *testing.T) {
 func TestProtogenDoesNotRetryInvalidEntity(t *testing.T) {
 	filename := writeXLSXWithWorksheet(t, `<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>&xyzzytableau;</t></is></c></row></sheetData></worksheet>`)
 	_, err := NewExcelImporter(context.Background(), filename, Mode(Protogen))
-	require.ErrorContains(t, err, "invalid XML entity")
+	require.ErrorContains(t, err, "invalid character entity")
 }
 
 func numberedRows(count int) [][]string {

@@ -1,12 +1,22 @@
 package xlsx
 
 import (
+	"bytes"
+	"encoding/xml"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
+	return parseRowsN(data, sharedStrings, 0)
+}
+
+func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string, error) {
+	return parseWorksheet(bytes.NewReader(data), sharedStrings, rowLimit)
+}
 
 func TestParseRows(t *testing.T) {
 	data := []byte(`<worksheet><sheetData>
@@ -39,7 +49,10 @@ func TestParseRowsNStopsAtLimit(t *testing.T) {
 }
 
 func TestDecodeXMLTextNormalizesPhysicalNewlines(t *testing.T) {
-	text, err := decodeXMLText([]byte("one\r\ntwo\rthree&#13;four"))
+	decoder := newXMLDecoder(strings.NewReader("<t>one\r\ntwo\rthree&#13;four</t>"))
+	_, err := nextXMLToken(decoder)
+	require.NoError(t, err)
+	text, err := readXMLText(decoder)
 	require.NoError(t, err)
 	require.Equal(t, "one\ntwo\nthree\rfour", text)
 }
@@ -51,11 +64,12 @@ func TestParseRowsUsesXMLCharacterReferences(t *testing.T) {
 	require.Equal(t, [][]string{{"\u0080\r"}}, rows)
 }
 
-func TestParseRowsRejectsCharacterReferenceInRelevantAttribute(t *testing.T) {
+func TestParseRowsDecodesCharacterReferenceInAttribute(t *testing.T) {
 	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1" t="&#x73;"><v>0</v></c></row></sheetData></worksheet>`)
 
-	_, err := parseRows(data, []string{"shared"})
-	require.ErrorContains(t, err, "worksheet attribute")
+	rows, err := parseRows(data, []string{"shared"})
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"shared"}}, rows)
 }
 
 func TestParseRowsHandlesSparseAndRichCells(t *testing.T) {
@@ -117,13 +131,15 @@ func TestParseRowsRejectsInvalidCoordinates(t *testing.T) {
 }
 
 func TestXMLAttribute(t *testing.T) {
-	attrs := []byte(` xmlns:r="urn:test" r:id='rId1' t = "inlineStr" broken value=noquote`)
-	value, ok := xmlAttribute(attrs, 't')
+	decoder := newXMLDecoder(strings.NewReader(`<c xmlns:r="urn:test" r:id='rId1' t = "inlineStr"/>`))
+	token, err := nextXMLToken(decoder)
+	require.NoError(t, err)
+	value, ok := xmlAttribute(token.(xml.StartElement), "t")
 	require.True(t, ok)
 	require.Equal(t, "inlineStr", string(value))
-	value, ok = xmlAttribute(attrs, 'r')
+	value, ok = xmlAttribute(token.(xml.StartElement), "r")
 	require.False(t, ok)
-	require.Nil(t, value)
+	require.Empty(t, value)
 }
 
 func TestParseColumn(t *testing.T) {

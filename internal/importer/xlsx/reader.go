@@ -73,26 +73,11 @@ func (r *Reader) ReadRowsN(sheetName string, rowLimit uint) ([][]string, error) 
 	if entry == nil {
 		return nil, ErrSheetNotFound
 	}
-	if rowLimit > 0 {
-		sharedStrings, err := r.loadSharedStrings()
-		if err != nil {
-			return nil, err
-		}
-		return readWorksheetRowsN(entry, sheetName, sharedStrings, rowLimit)
-	}
-
-	data, err := readEntry(entry)
-	if err != nil {
-		return nil, err
-	}
-	if err := validateWorksheetXML(data, sheetName); err != nil {
-		return nil, err
-	}
 	sharedStrings, err := r.loadSharedStrings()
 	if err != nil {
 		return nil, err
 	}
-	return parseRows(data, sharedStrings)
+	return readWorksheetRows(entry, sheetName, sharedStrings, rowLimit)
 }
 
 func (r *Reader) loadSharedStrings() ([]string, error) {
@@ -100,12 +85,17 @@ func (r *Reader) loadSharedStrings() ([]string, error) {
 		if r.sharedEntry == nil {
 			return
 		}
-		data, err := readEntry(r.sharedEntry)
+		if _, err := validatedEntrySize(r.sharedEntry); err != nil {
+			r.sharedErr = err
+			return
+		}
+		source, err := r.sharedEntry.Open()
 		if err != nil {
 			r.sharedErr = err
 			return
 		}
-		sharedStrings, err := parseSharedStrings(data)
+		sharedStrings, readErr := readSharedStrings(source)
+		err = errors.Join(readErr, source.Close())
 		if err != nil {
 			r.sharedErr = xerrors.Wrapf(err, "decode XLSX shared strings")
 			return
