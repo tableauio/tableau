@@ -9,16 +9,14 @@ import (
 	"github.com/tableauio/tableau/internal/profile"
 )
 
-func (gen *Generator) run(generate func() error) error {
-	if err := gen.measureOperation("prepare_run", func(context.Context) error {
+func (gen *Generator) run(generate func(context.Context) error) error {
+	if err := gen.measureOperation(gen.ctx, "prepare_run", func(context.Context) error {
 		return gen.prepareRun()
 	}); err != nil {
 		return err
 	}
 	execute := func(ctx context.Context) error {
-		return gen.measureOperation("generation", func(context.Context) error {
-			return generate()
-		})
+		return gen.measureOperation(ctx, "generation", generate)
 	}
 	if !gen.profiling {
 		return execute(gen.ctx)
@@ -35,18 +33,18 @@ func (gen *Generator) run(generate func() error) error {
 	return errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU), gen.BookMetrics.LoadCPUProfile(files.CPU))
 }
 
-func (gen *Generator) measureOperation(name string, operation func(context.Context) error) error {
-	return gen.measureOperationWithLabels(name, operation)
+func (gen *Generator) measureOperation(ctx context.Context, name string, operation func(context.Context) error) error {
+	return gen.measureOperationWithLabels(ctx, name, operation)
 }
 
-func (gen *Generator) measureOperationWithLabels(name string, operation func(context.Context) error, labels ...string) error {
+func (gen *Generator) measureOperationWithLabels(ctx context.Context, name string, operation func(context.Context) error, labels ...string) error {
 	if !gen.profiling {
-		return operation(gen.ctx)
+		return operation(ctx)
 	}
-	return gen.BookMetrics.Measure(gen.ctx, "protogen", name, operation, labels...)
+	return gen.BookMetrics.Measure(ctx, "protogen", name, operation, labels...)
 }
 
-func (gen *Generator) measureSheet(bookName string, pass parsePass, sheet *book.Sheet, parse func() error) error {
+func (gen *Generator) measureSheet(ctx context.Context, bookName string, pass parsePass, sheet *book.Sheet, parse func() error) error {
 	if !gen.profiling {
 		return parse()
 	}
@@ -55,7 +53,7 @@ func (gen *Generator) measureSheet(bookName string, pass parsePass, sheet *book.
 		Sheet:  sheet.GetDebugName(),
 		Detail: string(pass),
 	}
-	return gen.SheetParserMetrics.Measure(gen.ctx, "protogen", key, sheet, func(context.Context) error {
+	return gen.SheetParserMetrics.Measure(ctx, "protogen", key, sheet, func(context.Context) error {
 		return parse()
 	})
 }

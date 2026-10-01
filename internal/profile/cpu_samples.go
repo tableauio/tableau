@@ -10,6 +10,10 @@ import (
 )
 
 func cpuTimeByLabel(filename, label string) (samples map[string]time.Duration, err error) {
+	return cpuTimeByLabels(filename, func(key string) bool { return key == label })
+}
+
+func cpuTimeByLabels(filename string, matches func(string) bool) (samples map[string]time.Duration, err error) {
 	if filename == "" {
 		return nil, nil
 	}
@@ -39,8 +43,12 @@ func cpuTimeByLabel(filename, label string) (samples map[string]time.Duration, e
 		if cpuSampleIndex >= len(sample.Value) {
 			continue
 		}
-		for _, key := range sample.Label[label] {
-			samples[key] += time.Duration(sample.Value[cpuSampleIndex])
+		for label, values := range sample.Label {
+			if matches(label) {
+				for _, key := range values {
+					samples[key] += time.Duration(sample.Value[cpuSampleIndex])
+				}
+			}
 		}
 	}
 	return samples, nil

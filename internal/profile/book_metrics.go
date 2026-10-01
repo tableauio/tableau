@@ -20,11 +20,13 @@ type bookMetric struct {
 	maxWallTime   time.Duration
 }
 
-// BookMetrics collects cumulative and maximum wall time for named generator
-// operations. Its zero value is ready for concurrent use.
+// BookMetrics collects wall time and inclusive sampled CPU time for named
+// generator operations. Its zero value is ready for concurrent use.
 type BookMetrics struct {
 	store metricStore[string, bookMetric]
 }
+
+const operationLabelPrefix = "operation."
 
 // Reset removes metrics from a previous run.
 func (m *BookMetrics) Reset() {
@@ -34,7 +36,9 @@ func (m *BookMetrics) Reset() {
 // Measure runs an operation with pprof labels and records its elapsed time and result.
 func (m *BookMetrics) Measure(ctx context.Context, generator, name string, operation func(context.Context) error, labels ...string) (err error) {
 	start := time.Now()
-	profileLabels := []string{"generator", generator, "name", name}
+	// A distinct label per operation preserves ancestors when a child replaces
+	// the leaf "name" label. CPU totals therefore include nested operations.
+	profileLabels := []string{"generator", generator, "name", name, operationLabelPrefix + name, name}
 	profileLabels = append(profileLabels, labels...)
 	err = Run(ctx, operation, profileLabels...)
 	m.record(name, time.Since(start), err != nil)
@@ -63,12 +67,15 @@ func (m *BookMetrics) snapshot() []bookMetric {
 	return metrics
 }
 
-// LoadCPUProfile attributes sampled CPU time to operation names.
+// LoadCPUProfile attributes sampled CPU time to every active operation,
+// including its nested operations.
 func (m *BookMetrics) LoadCPUProfile(filename string) error {
 	if filename == "" {
 		return nil
 	}
-	samples, err := cpuTimeByLabel(filename, "name")
+	samples, err := cpuTimeByLabels(filename, func(label string) bool {
+		return strings.HasPrefix(label, operationLabelPrefix)
+	})
 	if err != nil {
 		return err
 	}
@@ -79,7 +86,7 @@ func (m *BookMetrics) LoadCPUProfile(filename string) error {
 }
 
 // Print reports named book-pipeline operations ordered by cumulative wall time.
-// Times from concurrent calls overlap and therefore do not sum to generator time.
+// Concurrent wall times and nested CPU times overlap, so they cannot be summed.
 func (m *BookMetrics) Print() {
 	metrics := m.snapshot()
 	if len(metrics) == 0 {
@@ -93,6 +100,6 @@ func (m *BookMetrics) Print() {
 			i+1, metric.name, metric.cpuTime, metric.totalWallTime, metric.maxWallTime, metric.calls, metric.failures)
 	}
 	_ = w.Flush()
-	log.Infof("generator book metrics, cumulative wall time first (concurrent calls overlap):")
+	log.Infof("generator book metrics, cumulative wall time first (CPU includes nested operations; concurrent wall times overlap):")
 	log.Info(strings.TrimRight(output.String(), "\n"))
 }

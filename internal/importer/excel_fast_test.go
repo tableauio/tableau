@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/xlsx"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/protobuf/proto"
@@ -82,6 +83,68 @@ func TestReadExcelImporterUsesMetasheetReadPlan(t *testing.T) {
 	require.Equal(t, []string{"Keep", "Transpose"}, sheetNames(imp.GetSheets()))
 	require.Equal(t, int(defaultTopN), imp.GetSheet("Keep").Table.RowSize())
 	require.Equal(t, 12, imp.GetSheet("Transpose").Table.RowSize())
+}
+
+func TestExcelOpenFailuresKeepErrorCode(t *testing.T) {
+	ctx := context.Background()
+	for _, kind := range []string{"missing", "not ZIP", "truncated ZIP"} {
+		t.Run(kind, func(t *testing.T) {
+			filename := filepath.Join(t.TempDir(), "invalid.xlsx")
+			switch kind {
+			case "not ZIP":
+				require.NoError(t, os.WriteFile(filename, []byte("invalid workbook"), 0o600))
+			case "truncated ZIP":
+				require.NoError(t, os.WriteFile(filename, []byte("PK\x03\x04"), 0o600))
+			}
+			for _, mode := range []ImporterMode{UnknownMode, Protogen} {
+				_, err := NewExcelImporter(ctx, filename, Mode(mode))
+				require.ErrorIs(t, err, xerrors.ErrE3002)
+			}
+			_, err := NewCache().Load(ctx, filename, Mode(Confgen))
+			require.ErrorIs(t, err, xerrors.ErrE3002)
+		})
+	}
+}
+
+func TestExcelImportsWorkbookWithChartSheet(t *testing.T) {
+	filename := filepath.Join(t.TempDir(), "chart.xlsx")
+	file := excelize.NewFile()
+	require.NoError(t, file.SetCellValue("Sheet1", "A1", "Name"))
+	require.NoError(t, file.SetCellValue("Sheet1", "B1", "Value"))
+	require.NoError(t, file.SetCellValue("Sheet1", "A2", "item"))
+	require.NoError(t, file.SetCellValue("Sheet1", "B2", 1))
+	_, err := file.NewSheet("@TABLEAU")
+	require.NoError(t, err)
+	require.NoError(t, file.SetCellValue("@TABLEAU", "A1", "Sheet"))
+	require.NoError(t, file.AddChartSheet("Chart", &excelize.Chart{
+		Type: excelize.Col,
+		Series: []excelize.ChartSeries{{
+			Name: "Sheet1!$B$1", Categories: "Sheet1!$A$2", Values: "Sheet1!$B$2",
+		}},
+	}))
+	require.NoError(t, file.SaveAs(filename))
+	require.NoError(t, file.Close())
+
+	_, err = xlsx.Open(filename)
+	require.ErrorIs(t, err, xlsx.ErrUnsupported)
+	want := [][]string{{"Name", "Value"}, {"item", "1"}}
+	imp, err := NewExcelImporter(context.Background(), filename,
+		Mode(Protogen), Sheets([]string{"@TABLEAU", "Sheet1"}))
+	require.NoError(t, err)
+	require.Equal(t, want, imp.GetSheet("Sheet1").Table.Rows)
+
+	cached, err := openCachedExcel(filename, false)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, cached.reader.Close()) })
+	require.Equal(t, "excelize", cached.readerName())
+	view, _, err := cached.load(context.Background(), []string{"Sheet1"})
+	require.NoError(t, err)
+	require.Equal(t, want, view.GetSheet("Sheet1").Table.Rows)
+
+	view, err = NewCache().Load(context.Background(), filename,
+		Mode(Confgen), Sheets([]string{"Sheet1"}))
+	require.NoError(t, err)
+	require.Equal(t, want, view.GetSheet("Sheet1").Table.Rows)
 }
 
 func TestNewExcelImporterReadsCDATA(t *testing.T) {

@@ -3,6 +3,7 @@ package xlsx
 import (
 	"archive/zip"
 	"encoding/xml"
+	"fmt"
 	"path"
 	"strings"
 
@@ -47,7 +48,7 @@ func (r *Reader) loadParts() error {
 		return err
 	}
 	worksheetTargets := make(map[string]string, len(relationships.Items))
-	relationshipIDs := make(map[string]struct{}, len(relationships.Items))
+	relationshipTypes := make(map[string]string, len(relationships.Items))
 	sharedStringsFound := false
 	for _, relationship := range relationships.Items {
 		if strings.EqualFold(relationship.TargetMode, "External") {
@@ -56,10 +57,10 @@ func (r *Reader) loadParts() error {
 		if relationship.ID == "" {
 			return xerrors.New("workbook relationship has an empty ID")
 		}
-		if _, exists := relationshipIDs[relationship.ID]; exists {
+		if _, exists := relationshipTypes[relationship.ID]; exists {
 			return xerrors.Newf("duplicate workbook relationship %q", relationship.ID)
 		}
-		relationshipIDs[relationship.ID] = struct{}{}
+		relationshipTypes[relationship.ID] = relationship.Type
 		target := resolvePartPath(workbookPath, relationship.Target)
 		switch {
 		case hasRelationshipType(relationship.Type, "worksheet"):
@@ -85,6 +86,9 @@ func (r *Reader) loadParts() error {
 		}
 		if _, exists := r.sheets[sheet.Name]; exists {
 			return xerrors.Newf("duplicate worksheet name %q", sheet.Name)
+		}
+		if kind, exists := relationshipTypes[sheet.RID]; exists && !hasRelationshipType(kind, "worksheet") {
+			return fmt.Errorf("%w: sheet %q has relationship type %q", ErrUnsupported, sheet.Name, kind)
 		}
 		entry := r.entry(worksheetTargets[sheet.RID])
 		if entry == nil {

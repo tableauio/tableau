@@ -25,6 +25,9 @@ type xlsxRowReader struct {
 func openXLSXRowReader(filename string) (excelRowReader, error) {
 	reader, err := xlsx.Open(filename)
 	if err != nil {
+		if !errors.Is(err, xlsx.ErrUnsupported) {
+			return nil, xerrors.E3002(err)
+		}
 		return nil, err
 	}
 	return xlsxRowReader{reader: reader}, nil

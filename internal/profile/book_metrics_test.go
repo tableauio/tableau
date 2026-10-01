@@ -17,9 +17,10 @@ func TestBookMetricsMeasure(t *testing.T) {
 	wantErr := errors.New("failed")
 	err := metrics.Measure(context.Background(), "protogen", "import_xlsx", func(ctx context.Context) error {
 		for key, want := range map[string]string{
-			"generator": "protogen",
-			"name":      "import_xlsx",
-			"book":      "Item.xlsx",
+			"generator":             "protogen",
+			"name":                  "import_xlsx",
+			"book":                  "Item.xlsx",
+			"operation.import_xlsx": "import_xlsx",
 		} {
 			if got, ok := pprof.Label(ctx, key); !ok || got != want {
 				t.Errorf("label %s = %q, %t; want %q, true", key, got, ok, want)
@@ -47,6 +48,7 @@ func TestBookMetricsMeasure(t *testing.T) {
 func TestBookMetricsCPUAndReset(t *testing.T) {
 	var metrics BookMetrics
 	metrics.record("import_xlsx", time.Second, false)
+	metrics.record("generation", time.Second, false)
 	filename := filepath.Join(t.TempDir(), "cpu.pprof")
 	file, err := os.Create(filename)
 	if err != nil {
@@ -56,7 +58,11 @@ func TestBookMetricsCPUAndReset(t *testing.T) {
 		SampleType: []*profiledata.ValueType{{Type: "cpu", Unit: "nanoseconds"}},
 		Sample: []*profiledata.Sample{{
 			Value: []int64{250_000_000},
-			Label: map[string][]string{"name": {"import_xlsx"}},
+			Label: map[string][]string{
+				"name":                  {"import_xlsx"},
+				"operation.import_xlsx": {"import_xlsx"},
+				"operation.generation":  {"generation"},
+			},
 		}},
 	}
 	if err := cpu.Write(file); err != nil {
@@ -68,8 +74,10 @@ func TestBookMetricsCPUAndReset(t *testing.T) {
 	if err := metrics.LoadCPUProfile(filename); err != nil {
 		t.Fatal(err)
 	}
-	if got := metrics.snapshot()[0].cpuTime; got != 250*time.Millisecond {
-		t.Fatalf("CPU time = %s, want 250ms", got)
+	for _, metric := range metrics.snapshot() {
+		if metric.cpuTime != 250*time.Millisecond {
+			t.Fatalf("%s CPU time = %s, want 250ms", metric.name, metric.cpuTime)
+		}
 	}
 	metrics.Reset()
 	if got := metrics.snapshot(); len(got) != 0 {

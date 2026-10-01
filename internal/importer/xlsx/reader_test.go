@@ -280,6 +280,21 @@ func TestReadRowsNStopsOnFatalRowError(t *testing.T) {
 	require.Less(t, source.bytesRead, len(data))
 }
 
+func TestOpenReportsUnsupportedSheetTypes(t *testing.T) {
+	for _, kind := range []string{"chartsheet", "dialogsheet", "macrosheet", "intlMacrosheet", "styles"} {
+		t.Run(kind, func(t *testing.T) {
+			parts := defaultParts(
+				`<workbook xmlns:r="urn:relationships"><sheets><sheet name="Special" r:id="special"/></sheets></workbook>`,
+				`<Relationships><Relationship Id="special" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/`+kind+`" Target="special.xml"/></Relationships>`,
+				`<worksheet/>`,
+			)
+			_, err := Open(writeArchive(t, parts))
+			require.ErrorIs(t, err, ErrUnsupported)
+			require.ErrorContains(t, err, "Special")
+		})
+	}
+}
+
 func TestOpenRejectsInvalidWorkbooks(t *testing.T) {
 	validWorkbook := `<workbook xmlns:r="urn:relationships"><sheets><sheet name="Items" r:id="sheet"/></sheets></workbook>`
 	validRels := `<Relationships><Relationship Id="sheet" Type="worksheet" Target="worksheets/items.xml"/></Relationships>`
@@ -295,7 +310,6 @@ func TestOpenRejectsInvalidWorkbooks(t *testing.T) {
 		{name: "malformed root relationships", parts: map[string]string{"_rels/.rels": `<Relationships`}, wantErr: "decode XLSX entry"},
 		{name: "missing workbook relationships", parts: map[string]string{"xl/workbook.xml": validWorkbook}, wantErr: `XLSX entry "xl/_rels/workbook.xml.rels" not found`},
 		{name: "missing worksheet", parts: map[string]string{"xl/workbook.xml": validWorkbook, "xl/_rels/workbook.xml.rels": validRels}, wantErr: `relationship "sheet" not found`},
-		{name: "wrong relationship type", parts: defaultParts(validWorkbook, `<Relationships><Relationship Id="sheet" Type="styles" Target="worksheets/items.xml"/></Relationships>`, `<worksheet/>`), wantErr: `relationship "sheet" not found`},
 		{name: "duplicate relationship", parts: defaultParts(validWorkbook, `<Relationships><Relationship Id="sheet" Type="worksheet" Target="worksheets/items.xml"/><Relationship Id="sheet" Type="styles" Target="styles.xml"/></Relationships>`, `<worksheet/>`), wantErr: "duplicate workbook relationship"},
 		{name: "empty relationship ID", parts: defaultParts(validWorkbook, `<Relationships><Relationship Id="" Type="worksheet" Target="worksheets/items.xml"/></Relationships>`, `<worksheet/>`), wantErr: "empty ID"},
 		{name: "missing shared strings", parts: defaultParts(validWorkbook, `<Relationships><Relationship Id="sheet" Type="worksheet" Target="worksheets/items.xml"/><Relationship Id="strings" Type="sharedStrings" Target="missing.xml"/></Relationships>`, `<worksheet/>`), wantErr: "shared strings relationship"},
