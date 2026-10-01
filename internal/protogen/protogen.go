@@ -433,7 +433,7 @@ func (gen *Generator) convertDocument(ctx context.Context, dir, filename string,
 	absPath := filepath.Join(dir, filename)
 	inputFormat := format.GetFormat(filename)
 	var imp importer.Importer
-	err = gen.measureOperationWithLabels(ctx, "import_"+string(inputFormat), func(ctx context.Context) error {
+	err = gen.measureOperation(ctx, "import_"+string(inputFormat), func(ctx context.Context) error {
 		parser := confgen.NewSheetParser(ctx, xproto.InternalProtoPackage, gen.LocationName, book.MetasheetOptions(ctx))
 		var loadErr error
 		imp, loadErr = importer.New(ctx, absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
@@ -491,7 +491,7 @@ func (gen *Generator) convertDocument(ctx context.Context, dir, filename string,
 		bp.wb,
 		bp.gen,
 	)
-	if err := gen.measureOperationWithLabels(ctx, "book_export", func(ctx context.Context) error {
+	if err := gen.measureOperation(ctx, "book_export", func(ctx context.Context) error {
 		return be.export(ctx)
 	}, "book", debugBookName); err != nil {
 		return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)
@@ -504,7 +504,7 @@ func (gen *Generator) convertTable(ctx context.Context, dir, filename string, pa
 	inputFormat := format.GetFormat(filename)
 	imp := gen.getImporter(absPath)
 	if imp == nil {
-		err = gen.measureOperationWithLabels(ctx, "import_"+string(inputFormat), func(ctx context.Context) error {
+		err = gen.measureOperation(ctx, "import_"+string(inputFormat), func(ctx context.Context) error {
 			parser := confgen.NewSheetParser(ctx, xproto.InternalProtoPackage, gen.LocationName, book.MetasheetOptions(ctx))
 			var loadErr error
 			imp, loadErr = importer.New(ctx, absPath, importer.Parser(parser), importer.Mode(importer.Protogen))
@@ -569,7 +569,7 @@ func (gen *Generator) convertTable(ctx context.Context, dir, filename string, pa
 			bp.wb,
 			bp.gen,
 		)
-		if err := gen.measureOperationWithLabels(ctx, "book_export", func(ctx context.Context) error {
+		if err := gen.measureOperation(ctx, "book_export", func(ctx context.Context) error {
 			return be.export(ctx)
 		}, "book", debugBookName); err != nil {
 			return xerrors.WrapKV(err, xerrors.KeyBookName, debugBookName)

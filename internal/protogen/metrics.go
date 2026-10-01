@@ -3,7 +3,6 @@ package protogen
 import (
 	"context"
 	"errors"
-	"path/filepath"
 
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/profile"
@@ -15,29 +14,29 @@ func (gen *Generator) run(generate func(context.Context) error) error {
 	}); err != nil {
 		return err
 	}
-	execute := func(ctx context.Context) error {
-		return gen.measureOperation(ctx, "generation", generate)
-	}
 	if !gen.profiling {
-		return execute(gen.ctx)
+		return generate(gen.ctx)
 	}
-	defer gen.BookMetrics.Print()
-	defer gen.SheetParserMetrics.Print()
-	profileDir := gen.OutputDir
-	if gen.OutputOpt != nil {
-		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
-	}
-	files, err := profile.Capture("protogen", profileDir, func() error {
-		return execute(gen.ctx)
+	return gen.runProfiled(generate)
+}
+
+func (gen *Generator) runProfiled(generate func(context.Context) error) error {
+	defer gen.printMetrics()
+
+	files, runErr := profile.Capture("protogen", gen.output.outputDir, func() error {
+		return gen.measureOperation(gen.ctx, "generation", generate)
 	})
-	return errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU), gen.BookMetrics.LoadCPUProfile(files.CPU))
+	sheetErr := gen.SheetParserMetrics.LoadCPUProfile(files.CPU)
+	bookErr := gen.BookMetrics.LoadCPUProfile(files.CPU)
+	return errors.Join(runErr, sheetErr, bookErr)
 }
 
-func (gen *Generator) measureOperation(ctx context.Context, name string, operation func(context.Context) error) error {
-	return gen.measureOperationWithLabels(ctx, name, operation)
+func (gen *Generator) printMetrics() {
+	gen.SheetParserMetrics.Print()
+	gen.BookMetrics.Print()
 }
 
-func (gen *Generator) measureOperationWithLabels(ctx context.Context, name string, operation func(context.Context) error, labels ...string) error {
+func (gen *Generator) measureOperation(ctx context.Context, name string, operation func(context.Context) error, labels ...string) error {
 	if !gen.profiling {
 		return operation(ctx)
 	}
