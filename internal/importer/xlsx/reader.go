@@ -3,24 +3,14 @@ package xlsx
 
 import (
 	"archive/zip"
-	"bytes"
-	"encoding/xml"
 	"errors"
-	"io"
-	"path"
 	"strings"
 	"sync"
 
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
-const (
-	defaultWorkbookPath = "xl/workbook.xml"
-	sharedStringsPath   = "xl/sharedStrings.xml"
-	// Larger parts use the caller's compatibility reader instead of allocating
-	// an unbounded in-memory buffer.
-	maxEntrySize = 512 << 20
-)
+const sharedStringsPath = "xl/sharedStrings.xml"
 
 // ErrSheetNotFound reports that a workbook has no sheet with the requested name.
 var ErrSheetNotFound = errors.New("sheet not found")
@@ -37,43 +27,9 @@ type Reader struct {
 	sharedOnce  sync.Once
 	shared      []string
 	sharedErr   error
-}
-
-type workbook struct {
-	Sheets []workbookSheet `xml:"sheets>sheet"`
-}
-
-type workbookSheet struct {
-	Name string `xml:"name,attr"`
-	RID  string `xml:"id,attr"`
-}
-
-type relationships struct {
-	Items []relationship `xml:"Relationship"`
-}
-
-type relationship struct {
-	ID         string `xml:"Id,attr"`
-	Target     string `xml:"Target,attr"`
-	Type       string `xml:"Type,attr"`
-	TargetMode string `xml:"TargetMode,attr"`
-}
-
-type sharedStringTable struct {
-	Items []stringItem `xml:"si"`
-}
-
-type stringItem struct {
-	Text *textValue `xml:"t"`
-	Runs []textRun  `xml:"r"`
-}
-
-type textRun struct {
-	Text *textValue `xml:"t"`
-}
-
-type textValue struct {
-	Value string `xml:",chardata"`
+	indexOnce   sync.Once
+	sharedIndex *sharedStringIndex
+	indexErr    error
 }
 
 // Open opens an XLSX archive and indexes its worksheets.
@@ -103,122 +59,6 @@ func Open(filename string) (*Reader, error) {
 	return reader, nil
 }
 
-func (r *Reader) loadParts() error {
-	workbookPath, err := r.findWorkbookPath()
-	if err != nil {
-		return err
-	}
-	var book workbook
-	if err := r.readXML(workbookPath, &book); err != nil {
-		return err
-	}
-
-	relsPath := path.Join(path.Dir(workbookPath), "_rels", path.Base(workbookPath)+".rels")
-	rels, err := r.readRelationships(relsPath)
-	if err != nil {
-		return err
-	}
-	targets := make(map[string]string, len(rels.Items))
-	ids := make(map[string]struct{}, len(rels.Items))
-	sharedFound := false
-	for _, rel := range rels.Items {
-		if strings.EqualFold(rel.TargetMode, "External") {
-			continue
-		}
-		if rel.ID == "" {
-			return xerrors.New("workbook relationship has an empty ID")
-		}
-		if _, exists := ids[rel.ID]; exists {
-			return xerrors.Newf("duplicate workbook relationship %q", rel.ID)
-		}
-		ids[rel.ID] = struct{}{}
-		target := resolvePartPath(workbookPath, rel.Target)
-		switch {
-		case hasRelationshipType(rel.Type, "worksheet"):
-			targets[rel.ID] = target
-		case hasRelationshipType(rel.Type, "sharedStrings"):
-			if sharedFound {
-				return xerrors.New("duplicate shared strings relationship")
-			}
-			sharedFound = true
-			r.sharedEntry = r.entry(target)
-			if r.sharedEntry == nil {
-				return xerrors.Newf("shared strings relationship %q not found", rel.ID)
-			}
-		}
-	}
-	if !sharedFound {
-		r.sharedEntry = r.entry(sharedStringsPath)
-	}
-
-	for _, sheet := range book.Sheets {
-		if sheet.Name == "" {
-			return xerrors.New("worksheet has an empty name")
-		}
-		if _, exists := r.sheets[sheet.Name]; exists {
-			return xerrors.Newf("duplicate worksheet name %q", sheet.Name)
-		}
-		entry := r.entry(targets[sheet.RID])
-		if entry == nil {
-			return xerrors.Newf("worksheet %q relationship %q not found", sheet.Name, sheet.RID)
-		}
-		r.sheetNames = append(r.sheetNames, sheet.Name)
-		r.sheets[sheet.Name] = entry
-	}
-	return nil
-}
-
-func (r *Reader) findWorkbookPath() (string, error) {
-	const rootRelsPath = "_rels/.rels"
-	if r.entry(rootRelsPath) == nil {
-		return defaultWorkbookPath, nil
-	}
-	rels, err := r.readRelationships(rootRelsPath)
-	if err != nil {
-		return "", err
-	}
-	for _, rel := range rels.Items {
-		if !strings.EqualFold(rel.TargetMode, "External") && hasRelationshipType(rel.Type, "officeDocument") {
-			return resolvePartPath("", rel.Target), nil
-		}
-	}
-	return defaultWorkbookPath, nil
-}
-
-func hasRelationshipType(value, name string) bool {
-	return value == name || strings.HasSuffix(value, "/"+name)
-}
-
-func (r *Reader) readRelationships(name string) (*relationships, error) {
-	var rels relationships
-	if err := r.readXML(name, &rels); err != nil {
-		return nil, err
-	}
-	return &rels, nil
-}
-
-func (r *Reader) readXML(name string, value any) error {
-	entry := r.entry(name)
-	if entry == nil {
-		return xerrors.Newf("XLSX entry %q not found", name)
-	}
-	data, err := readEntry(entry)
-	if err != nil {
-		return err
-	}
-	if err := xml.Unmarshal(data, value); err != nil {
-		return xerrors.Wrapf(err, "decode XLSX entry %q", name)
-	}
-	return nil
-}
-
-func (r *Reader) entry(name string) *zip.File {
-	if name == "" {
-		return nil
-	}
-	return r.entries[normalizePartName(name)]
-}
-
 // SheetNames returns worksheet names in workbook order.
 func (r *Reader) SheetNames() []string {
 	return append([]string(nil), r.sheetNames...)
@@ -230,18 +70,49 @@ func (r *Reader) ReadRows(sheetName string) ([][]string, error) {
 	if entry == nil {
 		return nil, ErrSheetNotFound
 	}
-	data, err := readEntry(entry)
-	if err != nil {
-		return nil, err
-	}
-	if bytes.Contains(data, []byte("<![CDATA[")) || bytes.Contains(data, []byte("<!DOCTYPE")) {
-		return nil, xerrors.Newf("unsupported XML construct in worksheet %q", sheetName)
-	}
 	shared, err := r.loadSharedStrings()
 	if err != nil {
 		return nil, err
 	}
-	return parseRows(data, shared)
+	return readWorksheetRows(entry, sheetName, shared, 0)
+}
+
+// ReadRowsN reads at most rowLimit rows from the named worksheet. A zero limit
+// reads all populated rows. Shared-string values are decoded on demand; ReadRows
+// retains complete-table loading for full configuration imports.
+func (r *Reader) ReadRowsN(sheetName string, rowLimit uint) ([][]string, error) {
+	entry := r.sheets[sheetName]
+	if entry == nil {
+		return nil, ErrSheetNotFound
+	}
+	rows := newWorksheetRows(nil, rowLimit)
+	rows.sharedValue = r.sharedStringValue
+	return readWorksheetWithRows(entry, sheetName, rows)
+}
+
+func (r *Reader) sharedStringValue(index int) (string, error) {
+	shared, err := r.loadSharedStringIndex()
+	if err != nil {
+		return "", err
+	}
+	return shared.value(index)
+}
+
+func (r *Reader) loadSharedStringIndex() (*sharedStringIndex, error) {
+	r.indexOnce.Do(func() {
+		r.sharedIndex = &sharedStringIndex{}
+		if r.sharedEntry == nil {
+			return
+		}
+		data, err := readEntry(r.sharedEntry)
+		if err == nil {
+			r.sharedIndex, err = newSharedStringIndex(data)
+		}
+		if err != nil {
+			r.indexErr = xerrors.Wrapf(err, "decode XLSX shared strings")
+		}
+	})
+	return r.sharedIndex, r.indexErr
 }
 
 func (r *Reader) loadSharedStrings() ([]string, error) {
@@ -249,29 +120,22 @@ func (r *Reader) loadSharedStrings() ([]string, error) {
 		if r.sharedEntry == nil {
 			return
 		}
-		data, err := readEntry(r.sharedEntry)
+		if _, err := validatedEntrySize(r.sharedEntry); err != nil {
+			r.sharedErr = err
+			return
+		}
+		source, err := r.sharedEntry.Open()
 		if err != nil {
 			r.sharedErr = err
 			return
 		}
-		var table sharedStringTable
-		if err := xml.Unmarshal(data, &table); err != nil {
+		sharedStrings, readErr := readSharedStrings(source)
+		err = errors.Join(readErr, source.Close())
+		if err != nil {
 			r.sharedErr = xerrors.Wrapf(err, "decode XLSX shared strings")
 			return
 		}
-		r.shared = make([]string, len(table.Items))
-		for i, item := range table.Items {
-			var text strings.Builder
-			if item.Text != nil {
-				text.WriteString(item.Text.Value)
-			}
-			for _, run := range item.Runs {
-				if run.Text != nil {
-					text.WriteString(run.Text.Value)
-				}
-			}
-			r.shared[i] = decodeEscapes(text.String())
-		}
+		r.shared = sharedStrings
 	})
 	return r.shared, r.sharedErr
 }
@@ -282,37 +146,4 @@ func (r *Reader) Close() error {
 		return nil
 	}
 	return r.archive.Close()
-}
-
-func normalizePartName(name string) string {
-	name = strings.ReplaceAll(name, "\\", "/")
-	return strings.ToLower(strings.TrimPrefix(path.Clean(name), "/"))
-}
-
-func resolvePartPath(base, target string) string {
-	target = strings.ReplaceAll(target, "\\", "/")
-	if strings.HasPrefix(target, "/") {
-		return strings.TrimPrefix(path.Clean(target), "/")
-	}
-	return path.Clean(path.Join(path.Dir(base), target))
-}
-
-func readEntry(entry *zip.File) ([]byte, error) {
-	if entry.UncompressedSize64 > maxEntrySize {
-		return nil, xerrors.Newf("XLSX entry %q exceeds the %d-byte in-memory limit", entry.Name, maxEntrySize)
-	}
-	file, err := entry.Open()
-	if err != nil {
-		return nil, err
-	}
-	data := make([]byte, int(entry.UncompressedSize64))
-	_, readErr := io.ReadFull(file, data)
-	if readErr == nil {
-		var extra [1]byte
-		if n, err := file.Read(extra[:]); n != 0 || (err != nil && err != io.EOF) {
-			readErr = xerrors.Newf("XLSX entry %q size differs from its ZIP header", entry.Name)
-		}
-	}
-	closeErr := file.Close()
-	return data, errors.Join(readErr, closeErr)
 }

@@ -1,6 +1,7 @@
 package protogen
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -31,6 +32,7 @@ type bookExporter struct {
 	wb               *internalpb.Workbook
 
 	gen *Generator
+	ctx context.Context
 
 	messagerPatternRegexp *regexp.Regexp
 
@@ -62,7 +64,8 @@ func (x *bookExporter) GetProtoFilePath() string {
 	return genProtoFilePath(x.wb.GetName(), x.FilenameSuffix)
 }
 
-func (x *bookExporter) export() error {
+func (x *bookExporter) export(ctx context.Context) error {
+	x.ctx = ctx
 	// keep the elements ordered by import path
 	set := treeset.NewWithStringComparator()
 	set.Add(tableauProtoPath) // default must be imported path
@@ -486,7 +489,7 @@ func (x *sheetExporter) findMDFromGeneratedProtos(name string) protoreflect.Mess
 		return nil
 	}
 	fullName := protoreflect.FullName(x.be.ProtoPackage).Append(protoreflect.Name(name))
-	descriptor, err := x.be.gen.getProtoRegistryFilesIncludingGenerated().FindDescriptorByName(fullName)
+	descriptor, err := x.be.gen.getProtoRegistryFilesIncludingGenerated(x.be.ctx).FindDescriptorByName(fullName)
 	if err != nil {
 		return nil
 	}

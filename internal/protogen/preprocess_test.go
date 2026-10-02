@@ -64,7 +64,7 @@ func Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
 	gen := newPreserveFieldNumbersGenerator(t, "default")
 	outdir := filepath.Join(gen.OutputDir, gen.OutputOpt.Subdir)
 
-	require.NoError(t, gen.preprocess(false))
+	require.NoError(t, gen.preprocess(gen.ctx, false))
 
 	// The message only exists in the previously generated proto, so it must not
 	// be treated as a predefined type.
@@ -78,7 +78,7 @@ func Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
 	// Meanwhile the registry including generated protos should be snapshotted,
 	// so that preserveFieldNumbers keeps the previous field numbers even if the
 	// proto files are truncated later.
-	files := gen.getProtoRegistryFilesIncludingGenerated()
+	files := gen.getProtoRegistryFilesIncludingGenerated(gen.ctx)
 	_, err := files.FindDescriptorByName("protoconf.StaleConf")
 	assert.NoError(t, err, "registry with generated protos should be snapshotted during type preparation")
 }
@@ -89,7 +89,7 @@ func Test_preprocess_preserveFieldNumbersNotPollutingTypeInfos(t *testing.T) {
 func Test_preprocess_withGeneratedProtosPopulatesTypeInfos(t *testing.T) {
 	gen := newPreserveFieldNumbersGenerator(t, "default")
 
-	require.NoError(t, gen.preprocess(true))
+	require.NoError(t, gen.preprocess(gen.ctx, true))
 
 	assert.NotNil(t, gen.typeInfos.Get("protoconf.StaleConf"),
 		"type in previously generated proto should be in type infos")

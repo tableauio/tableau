@@ -2,19 +2,14 @@ package profile
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 	"runtime/pprof"
 	"sort"
 	"strings"
-	"sync"
 	"text/tabwriter"
 	"time"
 
-	profiledata "github.com/google/pprof/profile"
 	"github.com/tableauio/tableau/internal/importer/book"
-	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/log"
 )
 
@@ -120,27 +115,15 @@ type sheetMetrics struct {
 	input sheetInputMetrics
 }
 
-// sheetMetricsEntry guards the measurements stored for one operation key.
-type sheetMetricsEntry struct {
-	mu      sync.Mutex // mu protects metrics.
-	metrics sheetMetrics
-}
-
-func (e *sheetMetricsEntry) snapshot() sheetMetrics {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.metrics
-}
-
 // SheetParserMetrics collects parser time and input metrics by sheet. Its zero
 // value is ready for concurrent use.
 type SheetParserMetrics struct {
-	entries sync.Map // SheetMetricKey -> *sheetMetricsEntry
+	store metricStore[SheetMetricKey, sheetMetrics]
 }
 
 // Reset removes metrics collected by the previous generator run.
 func (m *SheetParserMetrics) Reset() {
-	m.entries.Clear()
+	m.store.clear()
 }
 
 // Measure runs parse with pprof labels and records its wall time, result, and
@@ -167,40 +150,30 @@ func (m *SheetParserMetrics) Measure(ctx context.Context, generator string, key 
 }
 
 func (m *SheetParserMetrics) record(key SheetMetricKey, input sheetInputMetrics, wall time.Duration, failed bool) {
-	value, _ := m.entries.LoadOrStore(key, &sheetMetricsEntry{
-		metrics: sheetMetrics{
-			key:   key,
-			input: sheetInputMetrics{kind: input.kind},
-		},
+	m.store.update(key, sheetMetrics{
+		key:   key,
+		input: sheetInputMetrics{kind: input.kind},
+	}, func(metrics *sheetMetrics) {
+		metrics.calls++
+		if failed {
+			metrics.failures++
+		}
+		metrics.wallTime += wall
+		metrics.input.rows += input.rows
+		metrics.input.cols = max(metrics.input.cols, input.cols)
+		metrics.input.presentCells += input.presentCells
+		metrics.input.emptyCells += input.emptyCells
+		metrics.input.missingCells += input.missingCells
+		metrics.input.emptyRows += input.emptyRows
+		metrics.input.valueBytes += input.valueBytes
+		metrics.input.nodes += input.nodes
+		metrics.input.scalarNodes += input.scalarNodes
+		metrics.input.maxDepth = max(metrics.input.maxDepth, input.maxDepth)
 	})
-	entry := value.(*sheetMetricsEntry)
-	entry.mu.Lock()
-	defer entry.mu.Unlock()
-
-	metrics := &entry.metrics
-	metrics.calls++
-	if failed {
-		metrics.failures++
-	}
-	metrics.wallTime += wall
-	metrics.input.rows += input.rows
-	metrics.input.cols = max(metrics.input.cols, input.cols)
-	metrics.input.presentCells += input.presentCells
-	metrics.input.emptyCells += input.emptyCells
-	metrics.input.missingCells += input.missingCells
-	metrics.input.emptyRows += input.emptyRows
-	metrics.input.valueBytes += input.valueBytes
-	metrics.input.nodes += input.nodes
-	metrics.input.scalarNodes += input.scalarNodes
-	metrics.input.maxDepth = max(metrics.input.maxDepth, input.maxDepth)
 }
 
 func (m *SheetParserMetrics) collect() []sheetMetrics {
-	var results []sheetMetrics
-	m.entries.Range(func(_, value any) bool {
-		results = append(results, value.(*sheetMetricsEntry).snapshot())
-		return true
-	})
+	results := m.store.snapshot()
 	sort.Slice(results, func(i, j int) bool {
 		if results[i].cpuTime != results[j].cpuTime {
 			return results[i].cpuTime > results[j].cpuTime
@@ -219,45 +192,12 @@ func (m *SheetParserMetrics) LoadCPUProfile(filename string) (err error) {
 	if filename == "" {
 		return nil
 	}
-	file, err := os.Open(filename)
+	samples, err := cpuTimeByLabel(filename, "sheet_key")
 	if err != nil {
-		return xerrors.Wrapf(err, "open CPU profile %s", filename)
+		return err
 	}
-	defer func() {
-		err = errors.Join(err, xerrors.Wrapf(file.Close(), "close CPU profile %s", filename))
-	}()
-
-	parsed, err := profiledata.Parse(file)
-	if err != nil {
-		return xerrors.Wrapf(err, "parse CPU profile %s", filename)
-	}
-	cpuSampleIndex := -1
-	for i, sampleType := range parsed.SampleType {
-		if sampleType.Type == "cpu" && sampleType.Unit == "nanoseconds" {
-			cpuSampleIndex = i
-			break
-		}
-	}
-	if cpuSampleIndex < 0 {
-		return xerrors.Newf("CPU profile %s has no cpu/nanoseconds samples", filename)
-	}
-
-	cpuTimeBySheet := make(map[string]time.Duration)
-	for _, sample := range parsed.Sample {
-		if cpuSampleIndex >= len(sample.Value) {
-			continue
-		}
-		cpuTime := time.Duration(sample.Value[cpuSampleIndex])
-		for _, key := range sample.Label["sheet_key"] {
-			cpuTimeBySheet[key] += cpuTime
-		}
-	}
-	m.entries.Range(func(_, value any) bool {
-		entry := value.(*sheetMetricsEntry)
-		entry.mu.Lock()
-		entry.metrics.cpuTime = cpuTimeBySheet[entry.metrics.key.String()]
-		entry.mu.Unlock()
-		return true
+	m.store.each(func(metric *sheetMetrics) {
+		metric.cpuTime = samples[metric.key.String()]
 	})
 	return nil
 }

@@ -1,12 +1,25 @@
 package xlsx
 
 import (
+	"bytes"
+	"encoding/xml"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
+	return parseRowsN(data, sharedStrings, 0)
+}
+
+func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string, error) {
+	if rowLimit == 0 {
+		return parseFullWorksheet(data, sharedStrings)
+	}
+	return parseWorksheet(bytes.NewReader(data), sharedStrings, rowLimit)
+}
 
 func TestParseRows(t *testing.T) {
 	data := []byte(`<worksheet><sheetData>
@@ -22,6 +35,44 @@ func TestParseRows(t *testing.T) {
 		nil,
 		{"42"},
 	}, rows)
+}
+
+func TestParseRowsNStopsAtLimit(t *testing.T) {
+	data := []byte(`<worksheet><sheetData>
+<row r="1"><c r="A1" t="s"><v>0</v></c></row>
+<row r="20"><c r="A20" t="s"><v>999</v></c></row>
+</sheetData></worksheet>`)
+
+	rows, err := parseRowsN(data, []string{"first"}, 3)
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"first"}, nil, nil}, rows)
+
+	_, err = parseRows(data, []string{"first"})
+	require.ErrorContains(t, err, "shared string index 999 out of range")
+}
+
+func TestDecodeXMLTextNormalizesPhysicalNewlines(t *testing.T) {
+	decoder := newXMLDecoder(strings.NewReader("<t>one\r\ntwo\rthree&#13;four</t>"))
+	_, err := nextXMLToken(decoder)
+	require.NoError(t, err)
+	text, err := readXMLText(decoder)
+	require.NoError(t, err)
+	require.Equal(t, "one\ntwo\nthree\rfour", text)
+}
+
+func TestParseRowsUsesXMLCharacterReferences(t *testing.T) {
+	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>&#128;&#xD;</t></is></c></row></sheetData></worksheet>`)
+	rows, err := parseRows(data, nil)
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"\u0080\r"}}, rows)
+}
+
+func TestParseRowsDecodesCharacterReferenceInAttribute(t *testing.T) {
+	data := []byte(`<worksheet><sheetData><row r="1"><c r="A1" t="&#x73;"><v>0</v></c></row></sheetData></worksheet>`)
+
+	rows, err := parseRows(data, []string{"shared"})
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"shared"}}, rows)
 }
 
 func TestParseRowsHandlesSparseAndRichCells(t *testing.T) {
@@ -82,14 +133,16 @@ func TestParseRowsRejectsInvalidCoordinates(t *testing.T) {
 	}
 }
 
-func TestAttribute(t *testing.T) {
-	attrs := []byte(` xmlns:r="urn:test" r:id='rId1' t = "inlineStr" broken value=noquote`)
-	value, ok := attribute(attrs, 't')
+func TestXMLAttribute(t *testing.T) {
+	decoder := newXMLDecoder(strings.NewReader(`<c xmlns:r="urn:test" r:id='rId1' t = "inlineStr"/>`))
+	token, err := nextXMLToken(decoder)
+	require.NoError(t, err)
+	value, ok := xmlAttribute(token.(xml.StartElement), "t")
 	require.True(t, ok)
 	require.Equal(t, "inlineStr", string(value))
-	value, ok = attribute(attrs, 'r')
+	value, ok = xmlAttribute(token.(xml.StartElement), "r")
 	require.False(t, ok)
-	require.Nil(t, value)
+	require.Empty(t, value)
 }
 
 func TestParseColumn(t *testing.T) {
