@@ -3,7 +3,6 @@ package xlsx
 import (
 	"archive/zip"
 	"bytes"
-	"context"
 	"encoding/csv"
 	"errors"
 	"io"
@@ -11,11 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -79,16 +78,21 @@ func exportParityFixtures(t *testing.T) []string {
 	require.NoError(t, err)
 	require.NotEmpty(t, sources)
 	dir := t.TempDir()
-	books := make(map[string]*book.Book)
+	books := make(map[string]*excelize.File)
 	var filenames []string
 	for _, source := range sources {
 		name, sheet, _ := strings.Cut(strings.TrimSuffix(filepath.Base(source), ".csv"), "#")
 		workbook := books[name]
 		if workbook == nil {
 			filename := filepath.Join(dir, name+".xlsx")
-			workbook = book.NewBook(context.Background(), name, filename, nil)
+			workbook = excelize.NewFile()
+			t.Cleanup(func() { require.NoError(t, workbook.Close()) })
+			require.NoError(t, workbook.SetSheetName("Sheet1", sheet))
 			books[name] = workbook
 			filenames = append(filenames, filename)
+		} else {
+			_, err := workbook.NewSheet(sheet)
+			require.NoError(t, err)
 		}
 		data, err := os.ReadFile(source)
 		require.NoError(t, err)
@@ -96,10 +100,12 @@ func exportParityFixtures(t *testing.T) []string {
 		reader.FieldsPerRecord = -1
 		rows, err := reader.ReadAll()
 		require.NoError(t, err)
-		workbook.AddSheet(book.NewTableSheet(sheet, rows))
+		for row, cells := range rows {
+			require.NoError(t, workbook.SetSheetRow(sheet, "A"+strconv.Itoa(row+1), &cells))
+		}
 	}
-	for _, workbook := range books {
-		require.NoError(t, workbook.ExportExcel())
+	for name, workbook := range books {
+		require.NoError(t, workbook.SaveAs(filepath.Join(dir, name+".xlsx")))
 	}
 	return filenames
 }
