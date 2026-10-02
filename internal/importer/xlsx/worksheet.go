@@ -8,9 +8,20 @@ import (
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
-// readWorksheetRows parses rows directly from the ZIP stream. After a bounded
-// read, draining the entry verifies its checksum without parsing unused cells.
+// readWorksheetRows buffers complete sheets for allocation-light decoding and
+// streams bounded reads. Both paths verify the ZIP entry's checksum.
 func readWorksheetRows(entry *zip.File, sheetName string, sharedStrings []string, rowLimit uint) ([][]string, error) {
+	if rowLimit == 0 {
+		data, err := readEntry(entry)
+		if err != nil {
+			return nil, err
+		}
+		rows, err := parseFullWorksheet(data, sharedStrings)
+		if err != nil {
+			return nil, xerrors.Wrapf(err, "decode XLSX worksheet %q", sheetName)
+		}
+		return rows, nil
+	}
 	if _, err := validatedEntrySize(entry); err != nil {
 		return nil, err
 	}

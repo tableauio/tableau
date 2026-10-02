@@ -15,6 +15,9 @@ func parseRows(data []byte, sharedStrings []string) ([][]string, error) {
 }
 
 func parseRowsN(data []byte, sharedStrings []string, rowLimit uint) ([][]string, error) {
+	if rowLimit == 0 {
+		return parseFullWorksheet(data, sharedStrings)
+	}
 	return parseWorksheet(bytes.NewReader(data), sharedStrings, rowLimit)
 }
 

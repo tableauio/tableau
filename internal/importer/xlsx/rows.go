@@ -23,27 +23,112 @@ type worksheetCell struct {
 	inlineText strings.Builder
 }
 
-// parseWorksheet collects only requested rows from XML events. Repeated row
+// worksheetRows owns row placement for both worksheet decoders. Repeated row
 // numbers and cell coordinates follow Excelize's raw-row placement.
+type worksheetRows struct {
+	rows          [][]string
+	row           []string
+	cell          worksheetCell
+	shared        []string
+	rowNumber     int
+	cellColumn    int
+	rowLimit      int
+	inRow         bool
+	inCell        bool
+	phoneticDepth int
+}
+
+func newWorksheetRows(shared []string, rowLimit uint) *worksheetRows {
+	p := &worksheetRows{
+		shared:   shared,
+		rowLimit: int(min(rowLimit, uint(maxRows))),
+	}
+	if rowLimit == 0 {
+		p.rows = make([][]string, 0)
+	}
+	return p
+}
+
+// startRow reports whether a bounded read has reached an unrequested row.
+func (p *worksheetRows) startRow(reference string, present bool) (bool, error) {
+	p.rowNumber++
+	if present {
+		number, err := parseInt([]byte(reference))
+		if err != nil || number < 1 || number > maxRows {
+			return false, xerrors.Newf("invalid XLSX row number %q", reference)
+		}
+		p.rowNumber = number
+	} else if p.rowNumber > maxRows {
+		return false, xerrors.Newf("XLSX row number exceeds %d", maxRows)
+	}
+	if p.rowLimit > 0 && p.rowNumber > p.rowLimit {
+		for len(p.rows) < p.rowLimit {
+			p.rows = append(p.rows, nil)
+		}
+		return true, nil
+	}
+	p.row = nil
+	if p.rowNumber <= len(p.rows) {
+		p.row = p.rows[p.rowNumber-1]
+	}
+	p.cellColumn = 0
+	p.inRow = true
+	return false, nil
+}
+
+func (p *worksheetRows) startCell(reference, kind string, present bool) error {
+	p.cell = worksheetCell{column: p.cellColumn + 1, kind: kind}
+	p.phoneticDepth = 0
+	if present {
+		p.cell.column = parseColumn([]byte(reference))
+		if p.cell.column < 1 || p.cell.column > maxColumns {
+			return xerrors.Newf("invalid XLSX cell reference %q", reference)
+		}
+	} else if p.cell.column > maxColumns {
+		return xerrors.Newf("XLSX column number exceeds %d", maxColumns)
+	}
+	p.inCell = true
+	return nil
+}
+
+func (p *worksheetRows) endCell() error {
+	value, err := p.cell.text(p.shared)
+	if err != nil {
+		return err
+	}
+	if value != "" || p.cell.formula {
+		if p.cell.column > len(p.row)+1 {
+			oldLength := len(p.row)
+			p.row = slices.Grow(p.row, p.cell.column-oldLength)
+			p.row = p.row[:p.cell.column-1]
+			clear(p.row[oldLength:])
+		}
+		p.row = append(p.row, value)
+	}
+	p.cellColumn = p.cell.column
+	p.inCell = false
+	return nil
+}
+
+func (p *worksheetRows) endRow() {
+	if p.rowLimit > 0 || len(p.row) > 0 {
+		for len(p.rows) < p.rowNumber {
+			p.rows = append(p.rows, nil)
+		}
+		p.rows[p.rowNumber-1] = p.row
+	}
+	p.inRow = false
+}
+
+// parseWorksheet collects requested rows using the strict XML decoder. It is
+// also the compatibility path for XML outside the full-sheet fast path.
 func parseWorksheet(source io.Reader, sharedStrings []string, rowLimit uint) ([][]string, error) {
 	decoder := newXMLDecoder(source)
-	var rows [][]string
-	if rowLimit == 0 {
-		rows = make([][]string, 0)
-	}
-	var row []string
-	var cell worksheetCell
-	var rowNumber, cellColumn, phoneticDepth int
-	var inRow, inCell bool
-	maxReturnedRows := 0
-	if rowLimit > 0 {
-		maxReturnedRows = int(min(rowLimit, uint(maxRows)))
-	}
-
+	p := newWorksheetRows(sharedStrings, rowLimit)
 	for {
 		token, err := nextXMLToken(decoder)
 		if err == io.EOF {
-			return rows, nil
+			return p.rows, nil
 		}
 		if err != nil {
 			return nil, err
@@ -52,104 +137,63 @@ func parseWorksheet(source io.Reader, sharedStrings []string, rowLimit uint) ([]
 		case xml.StartElement:
 			switch token.Name.Local {
 			case "row":
-				rowNumber++
-				if value, ok := xmlAttribute(token, "r"); ok {
-					parsed, err := parseInt([]byte(value))
-					if err != nil || parsed < 1 || parsed > maxRows {
-						return nil, xerrors.Newf("invalid XLSX row number %q", value)
-					}
-					rowNumber = parsed
-				} else if rowNumber > maxRows {
-					return nil, xerrors.Newf("XLSX row number exceeds %d", maxRows)
+				reference, present := xmlAttribute(token, "r")
+				stop, err := p.startRow(reference, present)
+				if err != nil {
+					return nil, err
 				}
-				if maxReturnedRows > 0 && rowNumber > maxReturnedRows {
-					for len(rows) < maxReturnedRows {
-						rows = append(rows, nil)
-					}
-					return rows, nil
+				if stop {
+					return p.rows, nil
 				}
-				row = nil
-				if rowNumber <= len(rows) {
-					row = rows[rowNumber-1]
-				}
-				cellColumn = 0
-				inRow = true
 			case "c":
-				if !inRow {
-					continue
-				}
-				cell = worksheetCell{column: cellColumn + 1}
-				phoneticDepth = 0
-				if reference, ok := xmlAttribute(token, "r"); ok {
-					cell.column = parseColumn([]byte(reference))
-					if cell.column < 1 || cell.column > maxColumns {
-						return nil, xerrors.Newf("invalid XLSX cell reference %q", reference)
+				if p.inRow {
+					reference, present := xmlAttribute(token, "r")
+					kind, _ := xmlAttribute(token, "t")
+					if err := p.startCell(reference, kind, present); err != nil {
+						return nil, err
 					}
-				} else if cell.column > maxColumns {
-					return nil, xerrors.Newf("XLSX column number exceeds %d", maxColumns)
 				}
-				cell.kind, _ = xmlAttribute(token, "t")
-				inCell = true
 			case "f":
-				if inCell {
-					cell.formula = true
+				if p.inCell {
+					p.cell.formula = true
 				}
 			case "rPh":
-				if inCell {
-					phoneticDepth++
+				if p.inCell {
+					p.phoneticDepth++
 				}
 			case "v":
-				if inCell {
-					cell.value, err = readXMLText(decoder)
+				if p.inCell {
+					p.cell.value, err = readXMLText(decoder)
 					if err != nil {
 						return nil, err
 					}
 				}
 			case "t":
-				if inCell && cell.kind == "inlineStr" && phoneticDepth == 0 {
+				if p.inCell && p.cell.kind == "inlineStr" && p.phoneticDepth == 0 {
 					text, err := readXMLText(decoder)
 					if err != nil {
 						return nil, err
 					}
-					cell.inlineText.WriteString(text)
+					p.cell.inlineText.WriteString(text)
 				}
 			}
 		case xml.EndElement:
 			switch token.Name.Local {
 			case "rPh":
-				if phoneticDepth > 0 {
-					phoneticDepth--
+				if p.phoneticDepth > 0 {
+					p.phoneticDepth--
 				}
 			case "c":
-				if !inCell {
-					continue
-				}
-				value, err := cell.text(sharedStrings)
-				if err != nil {
-					return nil, err
-				}
-				if value != "" || cell.formula {
-					if cell.column > len(row)+1 {
-						oldLength := len(row)
-						row = slices.Grow(row, cell.column-oldLength)
-						row = row[:cell.column-1]
-						clear(row[oldLength:])
+				if p.inCell {
+					if err := p.endCell(); err != nil {
+						return nil, err
 					}
-					row = append(row, value)
 				}
-				cellColumn = cell.column
-				inCell = false
 			case "row":
-				if maxReturnedRows > 0 || len(row) > 0 {
-					for len(rows) < rowNumber {
-						rows = append(rows, nil)
-					}
-					rows[rowNumber-1] = row
-				}
-				inRow = false
+				p.endRow()
 			case "sheetData", "worksheet":
 				if rowLimit > 0 {
-					return rows, nil
+					return p.rows, nil
 				}
 			}
 		}

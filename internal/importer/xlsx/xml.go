@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // newXMLDecoder uses strict XML parsing with common named HTML entities,
@@ -28,7 +29,7 @@ func nextXMLToken(decoder *xml.Decoder) (xml.Token, error) {
 // readXMLText consumes one text element, preserving whitespace and joining
 // character data across CDATA, comments, and processing instructions.
 func readXMLText(decoder *xml.Decoder) (string, error) {
-	var text []byte
+	var text strings.Builder
 	for {
 		token, err := nextXMLToken(decoder)
 		if err != nil {
@@ -36,9 +37,9 @@ func readXMLText(decoder *xml.Decoder) (string, error) {
 		}
 		switch token := token.(type) {
 		case xml.CharData:
-			text = append(text, token...)
+			text.Write(token)
 		case xml.EndElement:
-			return string(text), nil
+			return text.String(), nil
 		case xml.StartElement:
 			return "", fmt.Errorf("nested XML element in text: %s", token.Name.Local)
 		}
