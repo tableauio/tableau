@@ -3,14 +3,13 @@ package xlsx
 import (
 	"archive/zip"
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
-// Larger parts use the caller's compatibility reader to bound the input size
-// handled by this reader.
+// Reject larger parts rather than forwarding an unbounded allocation to the
+// compatibility reader.
 const maxEntrySize = 512 << 20
 
 func readEntry(entry *zip.File) ([]byte, error) {
@@ -32,7 +31,7 @@ func readEntry(entry *zip.File) ([]byte, error) {
 
 func validatedEntrySize(entry *zip.File) (int, error) {
 	if entry.UncompressedSize64 > maxEntrySize {
-		return 0, fmt.Errorf("%w: XLSX entry %q exceeds the %d-byte size limit", ErrUnsupported, entry.Name, maxEntrySize)
+		return 0, xerrors.Newf("XLSX entry %q exceeds the %d-byte size limit", entry.Name, maxEntrySize)
 	}
 	return int(entry.UncompressedSize64), nil
 }

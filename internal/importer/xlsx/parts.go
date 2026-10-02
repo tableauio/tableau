@@ -2,7 +2,7 @@ package xlsx
 
 import (
 	"archive/zip"
-	"encoding/xml"
+	"bytes"
 	"fmt"
 	"path"
 	"strings"
@@ -139,7 +139,7 @@ func (r *Reader) readXML(name string, value any) error {
 	if err != nil {
 		return err
 	}
-	if err := xml.Unmarshal(data, value); err != nil {
+	if err := newXMLDecoder(bytes.NewReader(data)).Decode(value); err != nil {
 		return xerrors.Wrapf(err, "decode XLSX entry %q", name)
 	}
 	return nil

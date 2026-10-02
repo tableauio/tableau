@@ -16,6 +16,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/xuri/excelize/v2"
+	"golang.org/x/text/encoding/unicode"
+	"golang.org/x/text/transform"
 )
 
 func TestReaderMatchesExcelize(t *testing.T) {
@@ -462,6 +464,29 @@ func TestReadRowsRejectsMalformedSharedStrings(t *testing.T) {
 	require.EqualError(t, secondErr, err.Error())
 }
 
+func TestReaderReadsUTF16Parts(t *testing.T) {
+	for _, part := range []string{"xl/workbook.xml", "xl/_rels/workbook.xml.rels", "xl/sharedStrings.xml"} {
+		t.Run(part, func(t *testing.T) {
+			parts := defaultParts(
+				`<workbook xmlns:r="urn:relationships"><sheets><sheet name="Items" r:id="sheet"/></sheets></workbook>`,
+				`<Relationships><Relationship Id="sheet" Type="worksheet" Target="worksheets/items.xml"/><Relationship Id="strings" Type="sharedStrings" Target="sharedStrings.xml"/></Relationships>`,
+				`<worksheet><sheetData><row><c t="s"><v>0</v></c></row></sheetData></worksheet>`,
+			)
+			parts["xl/sharedStrings.xml"] = `<sst><si><t>中文 café</t></si></sst>`
+			encoded, _, err := transform.Bytes(unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewEncoder(),
+				[]byte(`<?xml version="1.0" encoding="UTF-16"?>`+parts[part]))
+			require.NoError(t, err)
+			parts[part] = string(encoded)
+			reader, err := Open(writeArchive(t, parts))
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, reader.Close()) })
+			rows, err := reader.ReadRows("Items")
+			require.NoError(t, err)
+			require.Equal(t, [][]string{{"中文 café"}}, rows)
+		})
+	}
+}
+
 func TestPartPaths(t *testing.T) {
 	require.Equal(t, "xl/workbook.xml", normalizePartName(`/XL\WORKBOOK.XML`))
 	require.Equal(t, "custom/sheets/items.xml", resolvePartPath("custom/book.xml", `sheets\items.xml`))
@@ -474,6 +499,7 @@ func TestReadEntryRejectsOversizedPart(t *testing.T) {
 		UncompressedSize64: maxEntrySize + 1,
 	}})
 	require.ErrorContains(t, err, "exceeds")
+	require.NotErrorIs(t, err, ErrUnsupported)
 }
 
 func TestNilReaderClose(t *testing.T) {

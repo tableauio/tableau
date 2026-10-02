@@ -144,6 +144,12 @@ second general XML implementation. Strict decoding supports common named HTML
 entities through `xml.HTMLEntity`, including `&nbsp;`. DOCTYPE declarations are
 classified as unsupported rather than introducing custom DTD processing.
 
+UTF-16 parts are detected from their BOM or initial XML declaration bytes and
+transcoded before strict XML decoding. Little-endian and big-endian forms are
+supported, with or without a BOM. This applies to worksheets, shared strings,
+and workbook metadata. Other declared charsets signal `ErrUnsupported` for
+Excelize fallback; malformed UTF-8 remains a data error.
+
 ### Shared row semantics
 
 Both decoders use `worksheetRows` for sparse-row padding, cell placement,
@@ -288,12 +294,14 @@ There are two distinct fallback levels:
    read or an Excelize workbook model.
 2. **Workbook backend fallback:** focused reader to Excelize, only when
    `errors.Is(err, xlsx.ErrUnsupported)` is true. Examples include unsupported
-   sheet relationship types, encountered DOCTYPE declarations, and entries
-   exceeding the focused reader's 512 MiB uncompressed per-entry limit.
+   sheet relationship types, encountered DOCTYPE declarations, and declared
+   charsets that the focused reader does not handle.
 
 Protogen retries the entire import with Excelize to keep one consistent backend
 for that import. A cached confgen source switches its reader permanently after
-an unsupported sheet; previously decoded sheets remain cached. Backend switches
+an unsupported sheet, discards its previously decoded sheets, and rebuilds the
+current import view using Excelize. Already published views remain immutable
+snapshots; subsequent decoding uses the replacement reader. Backend switches
 are debug-logged. If compatibility loading also fails, joined errors preserve
 both causes.
 
@@ -303,8 +311,9 @@ the importer-level E3002 contract; missing requested sheets are mapped through
 the common importer error contract. Retrying every error would double work for
 deterministically invalid data and could hide the original diagnosis.
 
-The size limit bounds each part handled by the focused reader, not total cache
-memory or the compatibility backend's resource use. Full-sheet buffers and
+The 512 MiB uncompressed per-entry limit is a hard error, so oversized parts
+cannot bypass it by triggering backend fallback. It does not bound total cache
+memory. Full-sheet buffers and
 decoded strings still require memory proportional to selected worksheet data.
 
 ## Profiling and verification workflow

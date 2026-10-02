@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"github.com/xuri/excelize/v2"
+	"golang.org/x/text/encoding/unicode"
+	"golang.org/x/text/transform"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -187,6 +190,59 @@ func TestNewExcelImporterFallsBackForDocumentType(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestExcelImportsUTF16Worksheet(t *testing.T) {
+	for _, order := range []unicode.Endianness{unicode.LittleEndian, unicode.BigEndian} {
+		for _, bom := range []unicode.BOMPolicy{unicode.UseBOM, unicode.IgnoreBOM} {
+			t.Run(fmt.Sprintf("order=%v/bom=%v", order, bom), func(t *testing.T) {
+				worksheet := `<?xml version="1.0" encoding="UTF-16"?><worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>中文 café</t></is></c></row></sheetData></worksheet>`
+				encoded, _, err := transform.Bytes(unicode.UTF16(order, bom).NewEncoder(), []byte(worksheet))
+				require.NoError(t, err)
+				filename := writeXLSXWithWorksheet(t, string(encoded))
+				reader, err := xlsx.Open(filename)
+				require.NoError(t, err)
+				want := [][]string{{"中文 café"}}
+				for _, limit := range []uint{0, 1} {
+					rows, err := reader.ReadRowsN("Sheet1", limit)
+					require.NoError(t, err)
+					require.Equal(t, want, rows)
+				}
+				require.NoError(t, reader.Close())
+				imp, err := NewExcelImporter(context.Background(), filename, Mode(Protogen))
+				require.NoError(t, err)
+				require.Equal(t, want, imp.GetSheet("Sheet1").Table.Rows)
+				cached, err := openCachedExcel(filename, false)
+				require.NoError(t, err)
+				t.Cleanup(func() { require.NoError(t, cached.reader.Close()) })
+				view, _, err := cached.load(context.Background(), []string{"Sheet1"})
+				require.NoError(t, err)
+				require.Equal(t, want, view.GetSheet("Sheet1").Table.Rows)
+			})
+		}
+	}
+}
+
+func TestExcelImportsFallbackForLegacyCharset(t *testing.T) {
+	filename := writeXLSXWithWorksheet(t, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><worksheet><sheetData><row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>caf\xe9</t></is></c></row></sheetData></worksheet>")
+	reader, err := xlsx.Open(filename)
+	require.NoError(t, err)
+	for _, limit := range []uint{0, 1} {
+		_, err := reader.ReadRowsN("Sheet1", limit)
+		require.ErrorIs(t, err, xlsx.ErrUnsupported)
+	}
+	require.NoError(t, reader.Close())
+	want := [][]string{{"café"}}
+	imp, err := NewExcelImporter(context.Background(), filename, Mode(Protogen))
+	require.NoError(t, err)
+	require.Equal(t, want, imp.GetSheet("Sheet1").Table.Rows)
+	cached, err := openCachedExcel(filename, false)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, cached.reader.Close()) })
+	view, _, err := cached.load(context.Background(), []string{"Sheet1"})
+	require.NoError(t, err)
+	require.Equal(t, want, view.GetSheet("Sheet1").Table.Rows)
+	require.Equal(t, "excelize", cached.readerName())
+}
+
 func TestNewExcelImporterPreservesNamedEntity(t *testing.T) {
 	filename := writeXLSXWithWorksheet(t, `<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>&nbsp;</t></is></c></row></sheetData></worksheet>`)
 	reader, err := xlsx.Open(filename)
@@ -233,6 +289,9 @@ func writeXLSXWithWorksheet(t *testing.T, worksheet string) string {
 	t.Helper()
 	source := filepath.Join(t.TempDir(), "source.xlsx")
 	file := excelize.NewFile()
+	_, err := file.NewSheet("@TABLEAU")
+	require.NoError(t, err)
+	require.NoError(t, file.SetCellValue("@TABLEAU", "A1", "Sheet"))
 	require.NoError(t, file.SaveAs(source))
 	require.NoError(t, file.Close())
 	target := filepath.Join(t.TempDir(), "worksheet.xlsx")

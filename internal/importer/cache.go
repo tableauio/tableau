@@ -236,6 +236,18 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	useXLSX := c.useXLSX
+	imp, decoded, err := c.loadSheets(ctx, sheetNames)
+	if err != nil || !useXLSX || c.useXLSX {
+		return imp, decoded, err
+	}
+	// Fallback discarded the raw-reader cache. Rebuild this view as well so
+	// sheets added before the switch also come from the compatibility reader.
+	imp, retried, err := c.loadSheets(ctx, sheetNames)
+	return imp, decoded + retried, err
+}
+
+func (c *cachedExcel) loadSheets(ctx context.Context, sheetNames []string) (Importer, int64, error) {
 	readerOpts := buildExcelBookReaderOptions(c.filename, c.sheetNames, sheetNames)
 	loadedBook := book.NewBook(ctx, readerOpts.Name, readerOpts.Filename, nil)
 	var decoded int64
@@ -317,8 +329,9 @@ func (c *cachedExcel) readRows(sheetName string) ([][]string, error) {
 }
 
 // fallbackToExcelize permanently switches this source after a sheet cannot be
-// decoded by the raw reader. If excelize cannot open the workbook, the raw
-// reader remains available so the combined error retains both failures.
+// decoded by the raw reader and discards its decoded sheets. Already published
+// views remain immutable; load rebuilds the current view after a switch. If
+// excelize cannot open the workbook, the raw reader remains available.
 func (c *cachedExcel) fallbackToExcelize(sheetName string, readErr error) ([][]string, error) {
 	reader, err := openExcelizeRowReader(c.filename)
 	if err != nil {
@@ -328,6 +341,7 @@ func (c *cachedExcel) fallbackToExcelize(sheetName string, readErr error) ([][]s
 	closeExcelReader(c.reader)
 	c.reader = reader
 	c.useXLSX = false
+	clear(c.decodedSheets)
 	rows, err := c.reader.ReadRows(sheetName, 0)
 	if err != nil {
 		return nil, errors.Join(readErr, err)

@@ -25,6 +25,8 @@ func parseFullWorksheet(data []byte, shared []string) ([][]string, error) {
 
 func parsePlainWorksheet(data []byte, shared []string) ([][]string, error) {
 	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
+	// This decoder only handles full reads. With rowLimit == 0, startRow
+	// cannot request an early stop; bounded reads use parseWorksheet instead.
 	p := newWorksheetRows(shared, 0)
 	var stack [][]byte
 	for offset := 0; offset < len(data); {
