@@ -287,7 +287,7 @@ func (c *cachedExcel) readSheet(sheetName string) (*book.Sheet, error) {
 }
 
 func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
-	reader, err := openXLSXRowReader(filename)
+	reader, err := openXLSXRowReader(filename, false)
 	useXLSX := err == nil
 	if err != nil {
 		if !errors.Is(err, xlsx.ErrUnsupported) {

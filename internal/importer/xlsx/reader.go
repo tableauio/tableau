@@ -27,6 +27,9 @@ type Reader struct {
 	sharedOnce  sync.Once
 	shared      []string
 	sharedErr   error
+	indexOnce   sync.Once
+	sharedIndex *sharedStringIndex
+	indexErr    error
 }
 
 // Open opens an XLSX archive and indexes its worksheets.
@@ -63,21 +66,53 @@ func (r *Reader) SheetNames() []string {
 
 // ReadRows reads all populated rows from the named worksheet.
 func (r *Reader) ReadRows(sheetName string) ([][]string, error) {
-	return r.ReadRowsN(sheetName, 0)
+	entry := r.sheets[sheetName]
+	if entry == nil {
+		return nil, ErrSheetNotFound
+	}
+	shared, err := r.loadSharedStrings()
+	if err != nil {
+		return nil, err
+	}
+	return readWorksheetRows(entry, sheetName, shared, 0)
 }
 
 // ReadRowsN reads at most rowLimit rows from the named worksheet. A zero limit
-// reads all populated rows.
+// reads all populated rows. Shared-string values are decoded on demand; ReadRows
+// retains complete-table loading for full configuration imports.
 func (r *Reader) ReadRowsN(sheetName string, rowLimit uint) ([][]string, error) {
 	entry := r.sheets[sheetName]
 	if entry == nil {
 		return nil, ErrSheetNotFound
 	}
-	sharedStrings, err := r.loadSharedStrings()
+	rows := newWorksheetRows(nil, rowLimit)
+	rows.sharedValue = r.sharedStringValue
+	return readWorksheetWithRows(entry, sheetName, rows)
+}
+
+func (r *Reader) sharedStringValue(index int) (string, error) {
+	shared, err := r.loadSharedStringIndex()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return readWorksheetRows(entry, sheetName, sharedStrings, rowLimit)
+	return shared.value(index)
+}
+
+func (r *Reader) loadSharedStringIndex() (*sharedStringIndex, error) {
+	r.indexOnce.Do(func() {
+		r.sharedIndex = &sharedStringIndex{}
+		if r.sharedEntry == nil {
+			return
+		}
+		data, err := readEntry(r.sharedEntry)
+		if err == nil {
+			r.sharedIndex, err = newSharedStringIndex(data)
+		}
+		if err != nil {
+			r.indexErr = xerrors.Wrapf(err, "decode XLSX shared strings")
+		}
+	})
+	return r.sharedIndex, r.indexErr
 }
 
 func (r *Reader) loadSharedStrings() ([]string, error) {

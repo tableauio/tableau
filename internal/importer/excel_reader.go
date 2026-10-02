@@ -19,10 +19,11 @@ type excelRowReader interface {
 }
 
 type xlsxRowReader struct {
-	reader *xlsx.Reader
+	reader                 *xlsx.Reader
+	selectiveSharedStrings bool
 }
 
-func openXLSXRowReader(filename string) (excelRowReader, error) {
+func openXLSXRowReader(filename string, selectiveSharedStrings bool) (excelRowReader, error) {
 	reader, err := xlsx.Open(filename)
 	if err != nil {
 		if !errors.Is(err, xlsx.ErrUnsupported) {
@@ -30,7 +31,7 @@ func openXLSXRowReader(filename string) (excelRowReader, error) {
 		}
 		return nil, err
 	}
-	return xlsxRowReader{reader: reader}, nil
+	return xlsxRowReader{reader: reader, selectiveSharedStrings: selectiveSharedStrings}, nil
 }
 
 func (r xlsxRowReader) SheetNames() []string {
@@ -38,7 +39,13 @@ func (r xlsxRowReader) SheetNames() []string {
 }
 
 func (r xlsxRowReader) ReadRows(sheetName string, limit uint) ([][]string, error) {
-	rows, err := r.reader.ReadRowsN(sheetName, limit)
+	var rows [][]string
+	var err error
+	if limit == 0 && !r.selectiveSharedStrings {
+		rows, err = r.reader.ReadRows(sheetName)
+	} else {
+		rows, err = r.reader.ReadRowsN(sheetName, limit)
+	}
 	if errors.Is(err, xlsx.ErrSheetNotFound) {
 		return nil, ErrSheetNotFound
 	}
@@ -96,7 +103,7 @@ func importExcel(ctx context.Context, filename string, opts *Options) (*ExcelImp
 }
 
 func importWithXLSX(ctx context.Context, filename string, opts *Options) (*ExcelImporter, error) {
-	reader, err := openXLSXRowReader(filename)
+	reader, err := openXLSXRowReader(filename, true)
 	if err != nil {
 		return nil, err
 	}

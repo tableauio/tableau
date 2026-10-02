@@ -11,12 +11,16 @@ import (
 // readWorksheetRows buffers complete sheets for allocation-light decoding and
 // streams bounded reads. Both paths verify the ZIP entry's checksum.
 func readWorksheetRows(entry *zip.File, sheetName string, sharedStrings []string, rowLimit uint) ([][]string, error) {
-	if rowLimit == 0 {
+	return readWorksheetWithRows(entry, sheetName, newWorksheetRows(sharedStrings, rowLimit))
+}
+
+func readWorksheetWithRows(entry *zip.File, sheetName string, p *worksheetRows) ([][]string, error) {
+	if p.rowLimit == 0 {
 		data, err := readEntry(entry)
 		if err != nil {
 			return nil, err
 		}
-		rows, err := parseFullWorksheet(data, sharedStrings)
+		rows, err := parseFullWorksheetWithRows(data, p)
 		if err != nil {
 			return nil, xerrors.Wrapf(err, "decode XLSX worksheet %q", sheetName)
 		}
@@ -29,7 +33,7 @@ func readWorksheetRows(entry *zip.File, sheetName string, sharedStrings []string
 	if err != nil {
 		return nil, err
 	}
-	rows, readErr := readWorksheetStream(source, sharedStrings, rowLimit)
+	rows, readErr := readWorksheetStreamWithRows(source, p)
 	if readErr != nil {
 		readErr = xerrors.Wrapf(readErr, "decode XLSX worksheet %q", sheetName)
 	}
@@ -37,7 +41,11 @@ func readWorksheetRows(entry *zip.File, sheetName string, sharedStrings []string
 }
 
 func readWorksheetStream(source io.Reader, sharedStrings []string, rowLimit uint) ([][]string, error) {
-	rows, err := parseWorksheet(source, sharedStrings, rowLimit)
+	return readWorksheetStreamWithRows(source, newWorksheetRows(sharedStrings, rowLimit))
+}
+
+func readWorksheetStreamWithRows(source io.Reader, p *worksheetRows) ([][]string, error) {
+	rows, err := parseWorksheetWithRows(source, p)
 	if err != nil {
 		return nil, err
 	}

@@ -30,6 +30,7 @@ type worksheetRows struct {
 	row           []string
 	cell          worksheetCell
 	shared        []string
+	sharedValue   func(int) (string, error)
 	rowNumber     int
 	cellColumn    int
 	rowLimit      int
@@ -92,7 +93,17 @@ func (p *worksheetRows) startCell(reference, kind string, present bool) error {
 }
 
 func (p *worksheetRows) endCell() error {
-	value, err := p.cell.text(p.shared)
+	var value string
+	var err error
+	if p.sharedValue != nil && p.cell.kind == "s" && p.cell.value != "" {
+		var index int
+		index, err = p.cell.sharedIndex()
+		if err == nil {
+			value, err = p.sharedValue(index)
+		}
+	} else {
+		value, err = p.cell.text(p.shared)
+	}
 	if err != nil {
 		return err
 	}
@@ -123,8 +134,12 @@ func (p *worksheetRows) endRow() {
 // parseWorksheet collects requested rows using the strict XML decoder. It is
 // also the compatibility path for XML outside the full-sheet fast path.
 func parseWorksheet(source io.Reader, sharedStrings []string, rowLimit uint) ([][]string, error) {
-	decoder := newXMLDecoder(source)
 	p := newWorksheetRows(sharedStrings, rowLimit)
+	return parseWorksheetWithRows(source, p)
+}
+
+func parseWorksheetWithRows(source io.Reader, p *worksheetRows) ([][]string, error) {
+	decoder := newXMLDecoder(source)
 	for {
 		token, err := nextXMLToken(decoder)
 		if err == io.EOF {
@@ -192,7 +207,7 @@ func parseWorksheet(source io.Reader, sharedStrings []string, rowLimit uint) ([]
 			case "row":
 				p.endRow()
 			case "sheetData", "worksheet":
-				if rowLimit > 0 {
+				if p.rowLimit > 0 {
 					return p.rows, nil
 				}
 			}
@@ -206,9 +221,9 @@ func (cell *worksheetCell) text(sharedStrings []string) (string, error) {
 		if cell.value == "" {
 			return "", nil
 		}
-		index, err := parseInt([]byte(strings.TrimSpace(cell.value)))
+		index, err := cell.sharedIndex()
 		if err != nil {
-			return "", xerrors.Wrapf(err, "invalid shared string index %q", cell.value)
+			return "", err
 		}
 		if index < 0 || index >= len(sharedStrings) {
 			return "", xerrors.Newf("shared string index %d out of range", index)
@@ -221,6 +236,14 @@ func (cell *worksheetCell) text(sharedStrings []string) (string, error) {
 	default:
 		return decodeEscapes(cell.value), nil
 	}
+}
+
+func (cell *worksheetCell) sharedIndex() (int, error) {
+	index, err := parseInt([]byte(strings.TrimSpace(cell.value)))
+	if err != nil {
+		return 0, xerrors.Wrapf(err, "invalid shared string index %q", cell.value)
+	}
+	return index, nil
 }
 
 func parseColumn(reference []byte) int {

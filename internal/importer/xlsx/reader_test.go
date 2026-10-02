@@ -483,8 +483,69 @@ func TestReaderReadsUTF16Parts(t *testing.T) {
 			rows, err := reader.ReadRows("Items")
 			require.NoError(t, err)
 			require.Equal(t, [][]string{{"中文 café"}}, rows)
+			for _, limit := range []uint{0, 1} {
+				selected, err := reader.ReadRowsN("Items", limit)
+				require.NoError(t, err)
+				require.Equal(t, rows, selected)
+			}
 		})
 	}
+}
+
+func TestReadRowsNReusesSelectedSharedStrings(t *testing.T) {
+	parts := defaultParts(
+		`<workbook xmlns:r="urn:relationships"><sheets><sheet name="Items" r:id="sheet"/></sheets></workbook>`,
+		`<Relationships><Relationship Id="sheet" Type="worksheet" Target="worksheets/items.xml"/><Relationship Id="strings" Type="sharedStrings" Target="sharedStrings.xml"/></Relationships>`,
+		`<worksheet><sheetData><row r="1"><c t="s"><v>0</v></c><c t="s"><v>2</v></c></row><row r="2"><c t="s"><v>1</v></c></row></sheetData></worksheet>`,
+	)
+	parts["xl/sharedStrings.xml"] = `<sst><si><t>first</t></si><si><t>second</t></si><si/></sst>`
+	reader, err := Open(writeArchive(t, parts))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+	rows, err := reader.ReadRowsN("Items", 1)
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"first"}}, rows)
+	require.Len(t, reader.sharedIndex.values, 2)
+	previous := reader.sharedIndex
+	rows, err = reader.ReadRowsN("Items", 0)
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"first"}, {"second"}}, rows)
+	require.Same(t, previous, reader.sharedIndex)
+	require.Len(t, reader.sharedIndex.values, 3)
+	full, err := reader.ReadRows("Items")
+	require.NoError(t, err)
+	require.Equal(t, full, rows)
+}
+
+func TestReadRowsNVerifiesSharedStringsChecksum(t *testing.T) {
+	parts := defaultParts(
+		`<workbook xmlns:r="urn:relationships"><sheets><sheet name="Items" r:id="sheet"/></sheets></workbook>`,
+		`<Relationships><Relationship Id="sheet" Type="worksheet" Target="worksheets/items.xml"/><Relationship Id="strings" Type="sharedStrings" Target="sharedStrings.xml"/></Relationships>`,
+		`<worksheet><sheetData><row r="1"><c t="s"><v>0</v></c></row></sheetData></worksheet>`,
+	)
+	parts["xl/sharedStrings.xml"] = `<sst><si><t>header</t></si><si><t>unused tail</t></si></sst>`
+	reader, err := Open(writeArchive(t, parts))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+	reader.sharedEntry.CRC32 ^= 1
+	_, err = reader.ReadRowsN("Items", 1)
+	require.ErrorIs(t, err, zip.ErrChecksum)
+}
+
+func TestReadRowsNSkipsUnreferencedSharedStrings(t *testing.T) {
+	parts := defaultParts(
+		`<workbook xmlns:r="urn:relationships"><sheets><sheet name="Items" r:id="sheet"/></sheets></workbook>`,
+		`<Relationships><Relationship Id="sheet" Type="worksheet" Target="worksheets/items.xml"/><Relationship Id="strings" Type="sharedStrings" Target="sharedStrings.xml"/></Relationships>`,
+		`<worksheet><sheetData><row><c t="inlineStr"><is><t>inline</t></is></c></row></sheetData></worksheet>`,
+	)
+	parts["xl/sharedStrings.xml"] = `<sst><si><t>unused</t></si></sst>`
+	reader, err := Open(writeArchive(t, parts))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+	rows, err := reader.ReadRowsN("Items", 1)
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"inline"}}, rows)
+	require.Nil(t, reader.sharedIndex)
 }
 
 func TestPartPaths(t *testing.T) {

@@ -46,7 +46,7 @@ Backend details stay below this interface:
 - [cache.go](../internal/importer/cache.go) owns reusable sources and decoded
   sheets. It stores an interface, not a second exposed `*excelize.File` handle.
 - [xlsx/reader.go](../internal/importer/xlsx/reader.go) owns the ZIP archive,
-  part index, sheet index, and lazily decoded shared strings.
+  part index, sheet index, and shared-string loading state.
 - [xlsx/parts.go](../internal/importer/xlsx/parts.go) resolves workbook and
   worksheet relationships. [archive.go](../internal/importer/xlsx/archive.go)
   handles entry size checks, reads, and ZIP integrity checks.
@@ -59,6 +59,10 @@ Backend details stay below this interface:
   [xml.go](../internal/importer/xlsx/xml.go), and
   [escapes.go](../internal/importer/xlsx/escapes.go) isolate shared-string,
   XML-text, and OOXML escape handling.
+- [xml_fast.go](../internal/importer/xlsx/xml_fast.go) contains the common
+  tag/text scanner used by worksheet decoding and shared-string indexing.
+- [shared_string_index.go](../internal/importer/xlsx/shared_string_index.go)
+  indexes ordinary shared-string XML and caches only requested decoded values.
 
 Direct non-protogen Excel imports retain the Excelize path. Protogen and the
 cached confgen Excel path try the focused reader first.
@@ -82,11 +86,37 @@ The reader returns raw strings. It does not apply Excel display formatting,
 evaluate formulas, execute macros, or edit workbooks. Formula cells use stored
 cached values; a formula with an empty value still affects row placement.
 
-Shared strings are loaded on the first worksheet read and decoded once per
-reader using `sync.Once`. The entire shared-string table is currently read,
-even for a short header request and even when the requested sheet uses only
-inline strings. This remains a potential cost, not an implemented selective
-shared-string optimization.
+Shared-string loading depends on the read workflow. Full confgen reads retain
+the complete-table decoder, loaded once per reader. Protogen uses selective
+shared strings for both header reads and the complete metasheet: the first
+shared-string cell initializes a validated index, and only referenced values
+are decoded and cached. Inline-only reads do not load the string table.
+
+### Selective shared-string workflow
+
+1. On the first `t="s"` cell, read the shared-string ZIP entry completely,
+   enforcing its size limit and verifying its checksum.
+2. Scan ordinary XML to validate tags, text, and structure and record each
+   `<si>` item's byte span. The index covers the complete entry, including
+   unused items; it does not trust the declared unique-count attribute.
+3. Resolve a cell's integer index to its span and decode that item using the
+   existing rich-text decoder and OOXML escape conversion. Cache empty strings
+   as well as nonempty ones. Repeated indexes and subsequent sheets reuse values.
+4. If the table contains XML outside the index scanner's supported syntax,
+   replay its already-read bytes through the strict complete-table decoder.
+   UTF-16, namespace-prefixed tags, CDATA, and comments remain compatible through
+   this path. Malformed XML and invalid references remain errors.
+
+Ordinary rich-text runs and phonetic annotations can be indexed without decoding
+unrequested values. The shared row builder resolves values before placing cells,
+so empty shared strings still produce the same sparse-row layout as full reads.
+
+Selective loading reduces XML token allocations and decoded-string construction;
+it still decompresses and validates the complete table once and retains its
+XML buffer and span index. It is not selective ZIP decompression. The index and
+its decoded-value cache are protected for concurrent reads. `ReadRowsN`, including
+its zero-limit form, uses this path; `ReadRows` preserves full-table loading for
+the confgen adapter.
 
 ## Two worksheet read paths
 
@@ -176,6 +206,8 @@ not requests to try another backend.
    planning path uses the default header limit.
 5. Reuse the already-read metasheet when assembling the book; do not read it
    again or defensively duplicate all its rows. Metasheet parsing is read-only.
+   Its full worksheet read still selects shared strings on demand rather than
+   forcing the entire table to be decoded before ordinary sheet headers.
 6. Parse metadata, purge unneeded sheets, and generate protos as usual.
 
 The speedup comes primarily from avoiding XML parsing and row construction for
@@ -420,6 +452,30 @@ configuration unchanged. Therefore these numbers compare against the explicitly
 pinned #456 baseline, not an unspecified moving master. The #456 and #461 output
 counts also differ; they are not interchangeable datasets for timing claims.
 
+### Selective shared-string follow-up
+
+A 50,000-item ordinary string-table benchmark requesting ten widely spaced
+indexes measured three runs per path on the same Windows/amd64 machine:
+
+- Complete decoding: median 37.2 ms, approximately 25.7 MB allocated, and
+  approximately 600,000 allocations; all 50,000 strings were decoded.
+- Selective indexing and lookup: median 6.0 ms, approximately 4.4 MB allocated,
+  and 219 allocations; ten strings were decoded.
+
+These are isolated parser measurements with the input XML already in memory,
+not complete generation timings or peak-memory measurements. The complete
+confgen table decoder remains in use. Differential fuzzing passed 243,037
+executions, and complete/bounded rows matched Excelize across all 457 production
+workbooks. Tests cover cache reuse, empty values, rich text, escapes, malformed
+unused items, and shared-string ZIP checksums.
+
+The previously measured full production dataset could no longer complete with
+the unchanged baseline during this follow-up: protogen reported an undefined
+`.StarAIBanPick`, and confgen reported missing `MonsterPack` columns. Those failed
+runs are excluded from speedup claims. Subsequent generation comparisons use
+isolated output directories; baseline and candidate outputs are compared using
+the same current inputs and settings.
+
 ## Maintenance rules and remaining limits
 
 - Keep backend-specific APIs in adapters and raw worksheet decoding in `xlsx`.
@@ -435,9 +491,9 @@ counts also differ; they are not interchangeable datasets for timing claims.
 - Test sparse/duplicate rows and cells, Unicode, rich text, escapes, entities,
   namespaces, CDATA, formulas, missing parts, unsupported relationships, size
   limits, and corrupt ZIP tails. Include end-to-end output comparisons.
-- Measure shared-string loading and buffered full-sheet memory before proposing
-  further work. Selective shared strings, streaming all-row consumption, and
-  deterministic cache shutdown are not implemented by this design.
+- Measure shared-string indexing, lookup, and retained buffers separately before
+  extending the index scanner. Complex-table selective decoding, streaming
+  all-row consumption, and deterministic cache shutdown remain possible work.
 
 Relevant tests live in [xlsx](../internal/importer/xlsx),
 [cache_xlsx_test.go](../internal/importer/cache_xlsx_test.go), and
