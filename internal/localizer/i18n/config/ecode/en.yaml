@@ -228,7 +228,7 @@ E2030:
 E2031:
   desc: incell struct has too many fields
   text: 'incell struct {{ quote .TypeName }} expects at most {{.Expected}} fields, got {{.Actual}} parts in {{ quote .CellData }} (sep: {{ quote .Sep }})'
-  help: ensure cell value has at most (field_count - 1) separators matching the struct definition
+  help: 'remove extra {{ quote .Sep }} separators so the cell contains at most {{.Expected}} field values'
   fields:
     - TypeName: string
     - CellData: string
