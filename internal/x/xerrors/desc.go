@@ -1,9 +1,11 @@
 package xerrors
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"strings"
 )
 
@@ -275,4 +277,32 @@ func (d *Desc) stackString() string {
 // GetValue returns the field value for key, or nil if absent.
 func (d *Desc) GetValue(key string) any {
 	return d.fields[key]
+}
+
+// Fields returns a copy of the structured fields for this error. Aggregate
+// descriptions carry their fields on individual Children instead.
+func (d *Desc) Fields() map[string]any {
+	return maps.Clone(d.fields)
+}
+
+// Children returns a copy of the flattened child description list. A single
+// error has no children; each child retains its own source context.
+func (d *Desc) Children() []*Desc {
+	return slices.Clone(d.children)
+}
+
+// MarshalJSON exposes structured fields and children without leaking the
+// underlying error or stack trace.
+func (d *Desc) MarshalJSON() ([]byte, error) {
+	var message string
+	if len(d.children) == 0 && d.fields[KeyReason] == nil && d.err != nil {
+		// Plain errors have no structured reason. Keep their text available
+		// in mixed joins, where each child needs its own explanation.
+		message = d.err.Error()
+	}
+	return json.Marshal(struct {
+		Fields   map[string]any `json:"fields,omitempty"`
+		Children []*Desc        `json:"children,omitempty"`
+		Message  string         `json:"message,omitempty"`
+	}{Fields: d.fields, Children: d.children, Message: message})
 }

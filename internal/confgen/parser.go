@@ -234,8 +234,12 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 	}
 	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
 	parser.sheetCollector = messageCollector.NewChild(maxErrorsPerSheet,
+		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, bookName,
-		xerrors.KeySheetName, sheetName)
+		xerrors.KeySheetName, sheetName,
+		xerrors.KeyPrimaryBookName, info.PrimaryBookName,
+		xerrors.KeyPrimarySheetName, info.SheetOpts.Name,
+		xerrors.KeyPBMessage, string(info.MD.Name()))
 	protomsg := dynamicpb.NewMessage(info.MD)
 	var parseErr error
 	if info.ExtInfo.SheetParserMetrics == nil {
