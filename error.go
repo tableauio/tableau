@@ -23,7 +23,3 @@ type CellLocation = xerrors.CellLocation
 // FieldLocation identifies the protobuf message and field associated with a
 // failure. Options contains the textual Tableau field options, when available.
 type FieldLocation = xerrors.FieldLocation
-
-// WrapError exposes structured Tableau failures as *Error. It preserves
-// ordinary Go errors and original causes for errors.Is and errors.As.
-func WrapError(err error) error { return xerrors.WrapError(err) }

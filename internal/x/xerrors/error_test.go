@@ -2,6 +2,7 @@ package xerrors
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -1092,4 +1093,158 @@ func TestNewErrorReferBookAndSheet(t *testing.T) {
 	assert.Contains(t, got, "ReferWorkbook: AssistSkill.xlsx")
 	assert.Contains(t, got, "ReferWorksheet: AssistSkill")
 	assert.Contains(t, got, "DataCellPos: C4")
+}
+
+func TestWrapError(t *testing.T) {
+	assert.Nil(t, WrapError(nil))
+	plain := fmt.Errorf("load config: %w", errors.New("unavailable"))
+	assert.Same(t, plain, WrapError(plain))
+
+	cause := E2031("protoconf.FightTypeFilter", ";ranked;casual", 2, 3, ";")
+	err := WrapKV(cause,
+		KeyModule, ModuleConf,
+		KeyBookName, "server/BattlePass.xlsx",
+		KeyPrimaryBookName, "server/Task.xlsx",
+		KeySheetName, "TaskConfig",
+		KeyDataCellPos, "L6",
+		KeyDataCell, ";ranked;casual",
+		KeyPBMessage, "TaskConfig",
+		KeyPBFieldName, "fight_type_filter")
+	wrapped := WrapError(fmt.Errorf("load failed: %w", err))
+	var structured *Error
+	require.ErrorAs(t, wrapped, &structured)
+	require.ErrorIs(t, wrapped, ErrE2031)
+	assert.Same(t, structured, WrapError(structured))
+	assert.Equal(t, NewError(err).Error(), structured.Error())
+	assert.NotContains(t, structured.Error(), "--- debugging ---")
+	assert.Contains(t, fmt.Sprintf("%+v", structured), "--- debugging ---")
+	require.Len(t, structured.Details, 1)
+	detail := structured.Details[0]
+	assert.Equal(t, "E2031", detail.Code)
+	assert.Contains(t, detail.Message, "protoconf.FightTypeFilter")
+	require.NotNil(t, detail.Source)
+	assert.Equal(t, "server/BattlePass.xlsx", detail.Source.Workbook)
+	assert.Equal(t, "server/Task.xlsx", detail.Source.PrimaryWorkbook)
+	assert.Equal(t, "TaskConfig", detail.Source.Worksheet)
+	assert.Equal(t, &CellLocation{Position: "L6", Data: ";ranked;casual"}, detail.Source.Cell)
+	assert.Equal(t, "TaskConfig", detail.Field.Message)
+	assert.Equal(t, "fight_type_filter", detail.Field.Name)
+
+	b, marshalErr := json.Marshal(structured)
+	require.NoError(t, marshalErr)
+	var decoded Error
+	require.NoError(t, json.Unmarshal(b, &decoded))
+	roundtrip, marshalErr := json.Marshal(&decoded)
+	require.NoError(t, marshalErr)
+	assert.JSONEq(t, string(b), string(roundtrip))
+	assert.Equal(t, structured.Error(), decoded.Error())
+	assert.NotContains(t, string(b), "stack")
+	assert.NotContains(t, string(b), `"fields"`)
+	assert.NotContains(t, string(b), `"children"`)
+}
+
+func TestErrorDetailsFromCollector(t *testing.T) {
+	root := NewCollector(10)
+	for _, book := range []string{"Shard1.xlsx", "Shard2.xlsx"} {
+		sheet := root.NewChild(0,
+			KeyModule, ModuleConf,
+			KeyBookName, book,
+			KeySheetName, "Tasks",
+			KeyPrimaryBookName, "Main.xlsx")
+		_ = sheet.Collect(WrapKV(E2005(book), KeyDataCellPos, "A4"))
+	}
+	plain := errors.New("connection closed")
+	wrapped := WrapError(errors.Join(fmt.Errorf("load: %w", root.Join()), plain))
+	var structured *Error
+	require.ErrorAs(t, wrapped, &structured)
+	require.Len(t, structured.Details, 3)
+	for i, detail := range structured.Details[:2] {
+		assert.Equal(t, "E2005", detail.Code)
+		assert.Equal(t, fmt.Sprintf("Shard%d.xlsx", i+1), detail.Source.Workbook)
+		assert.Equal(t, "Main.xlsx", detail.Source.PrimaryWorkbook)
+		assert.Equal(t, "A4", detail.Source.Cell.Position)
+	}
+	assert.Equal(t, "connection closed", structured.Details[2].Message)
+	assert.Nil(t, structured.Details[2].Source)
+	require.ErrorIs(t, wrapped, plain)
+	b, err := json.Marshal(structured)
+	require.NoError(t, err)
+	var decoded Error
+	require.NoError(t, json.Unmarshal(b, &decoded))
+	roundtrip, marshalErr := json.Marshal(&decoded)
+	require.NoError(t, marshalErr)
+	assert.JSONEq(t, string(b), string(roundtrip))
+	assert.Equal(t, structured.Error(), decoded.Error())
+}
+
+func TestErrorDetailsNormalization(t *testing.T) {
+	err := NewKV("invalid header",
+		KeyModule, ModuleProto,
+		KeyBookName, "Items.xlsx",
+		KeyNameCellPos, "A1",
+		KeyNameCell, " ID ",
+		KeyTrimmedNameCell, "ID",
+		KeyTypeCellPos, "A2",
+		KeyTypeCell, "invalid-type",
+		KeyNoteCellPos, "A3",
+		KeyNoteCell, "identifier")
+	var structured *Error
+	require.ErrorAs(t, WrapError(err), &structured)
+	require.Len(t, structured.Details, 1)
+	detail := structured.Details[0]
+	assert.Equal(t, "E0004", detail.Code)
+	assert.Equal(t, &CellLocation{Position: "A1", Data: " ID ", TrimmedData: "ID"}, detail.Source.NameCell)
+	assert.Equal(t, "A2", detail.Source.TypeCell.Position)
+	assert.Equal(t, "identifier", detail.Source.NoteCell.Data)
+	before, err := json.Marshal(structured)
+	require.NoError(t, err)
+	for range 3 {
+		_ = structured.Error()
+	}
+	after, err := json.Marshal(structured)
+	require.NoError(t, err)
+	assert.Equal(t, string(before), string(after), "rendering must not change the serialized data")
+}
+
+// A consumer editing typed details must see the same values in text and JSON;
+// there must be no stale descriptor or cached summary behind the public error.
+func TestErrorDetailsDriveRendering(t *testing.T) {
+	cause := WrapKV(E2005("duplicate"),
+		KeyModule, ModuleConf,
+		KeyBookName, "Old.xlsx", KeyDataCellPos, "A4")
+	var e *Error
+	require.ErrorAs(t, WrapError(cause), &e)
+	e.Details[0].Source.Workbook = "New.xlsx"
+	e.Details[0].Source.Cell.Position = "B6"
+	e.Details[0].Message = "updated reason"
+	assert.Contains(t, e.Error(), "Workbook: New.xlsx")
+	assert.Contains(t, e.Error(), "DataCellPos: B6")
+	assert.Contains(t, e.Error(), "Reason: updated reason")
+	assert.NotContains(t, e.Error(), "Old.xlsx")
+	assert.Equal(t, e.Details[0].String(), e.Error())
+
+	// Joining an existing typed error must use those same edited details and
+	// retain its original cause through standard Go error traversal.
+	joined := WrapError(errors.Join(fmt.Errorf("load: %w", e), errors.New("offline")))
+	var aggregate *Error
+	require.ErrorAs(t, joined, &aggregate)
+	require.Len(t, aggregate.Details, 2)
+	assert.Contains(t, aggregate.Error(), "Workbook: New.xlsx")
+	require.ErrorIs(t, joined, ErrE2005)
+	encoded, err := json.Marshal(aggregate)
+	require.NoError(t, err)
+	var decoded Error
+	require.NoError(t, json.Unmarshal(encoded, &decoded))
+	assert.Equal(t, aggregate.Error(), decoded.Error())
+}
+
+func TestErrorPlainAndEmptyDetails(t *testing.T) {
+	plain := Wrapf(New("inner"), "outer")
+	assert.Equal(t, "outer: inner", WrapError(plain).Error())
+	scoped := WrapKV(errors.New("offline"), KeyModule, ModuleConf, KeyBookName, "Main.xlsx")
+	assert.Equal(t, "offline", WrapError(scoped).Error())
+	for _, e := range []*Error{nil, {}, {Details: []*ErrorDetail{nil}}, {Details: []*ErrorDetail{{}}}} {
+		assert.Empty(t, e.Error())
+		assert.NotPanics(t, func() { _ = WrapError(fmt.Errorf("wrapped: %w", e)) })
+	}
 }
