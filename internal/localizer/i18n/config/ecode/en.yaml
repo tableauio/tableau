@@ -226,7 +226,7 @@ E2030:
     - ReferBookName: string
     - ReferSheetName: string
 E2031:
-  desc: incell struct has too many fields
+  desc: incell struct field count exceeds limit
   text: 'incell struct {{ quote .TypeName }} expects at most {{.Expected}} fields, got {{.Actual}} parts in {{ quote .CellData }} (sep: {{ quote .Sep }})'
   help: 'remove extra {{ quote .Sep }} separators so the cell contains at most {{.Expected}} field values'
   fields:
