@@ -240,7 +240,7 @@ func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
 	assert.NotContains(t, got, "Workbook: MergerCollector#*.csv",
 		"main workbook must not be reported as the offending file")
 
-	structuredErr := xerrors.NewError(err)
+	structuredErr := xerrors.Inspect(err)
 	require.NotNil(t, structuredErr)
 	assert.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
 	assert.Equal(t, "MergerShard1#*.csv", xerrors.Fields(structuredErr)[xerrors.KeyBookName])

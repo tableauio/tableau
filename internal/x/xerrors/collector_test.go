@@ -685,7 +685,7 @@ func TestCollector_Rendering_ThreeLevel(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewError(joined).stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] field_a: type mismatch
 [2] field_b: null value
 [3] row3: missing key`
@@ -707,7 +707,7 @@ func TestCollector_Rendering_NewKV(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewError(joined).stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `error[E0004]: unknown error
 Workbook: Items.xlsx
 Worksheet: ItemConf
@@ -744,7 +744,7 @@ func TestCollector_Rendering_WrapKV(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewError(joined).stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] error[E0004]: unknown error
 Workbook: Hero.csv
 Worksheet: HeroConf
@@ -782,7 +782,7 @@ func TestCollector_Rendering_WrapKV_Ecode(t *testing.T) {
 
 		joined := global.Join()
 		require.Error(t, joined)
-		got := NewError(joined).stringify(false)
+		got := Inspect(joined).stringify(false)
 		want := `error[E2005]: map key not unique
 Workbook: Items.xlsx
 Worksheet: ItemConf
@@ -811,7 +811,7 @@ Help: fix duplicate keys and ensure map key is unique
 
 		joined := global.Join()
 		require.Error(t, joined)
-		got := NewError(joined).stringify(false)
+		got := Inspect(joined).stringify(false)
 		want := `error[E0003]: duplicate column name
 Workbook: Hero.csv
 Worksheet: HeroConf
@@ -849,7 +849,7 @@ func TestCollector_Rendering_MixedErrors(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewError(joined).stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] error[E0004]: unknown error
 Workbook: Items.xlsx
 Worksheet: ItemConf
@@ -887,7 +887,7 @@ func TestCollector_Rendering_MidLevelFull(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewError(joined).stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] sheet1: err1
 [2] sheet1: err2
 [3] sheet2: err1`
@@ -905,7 +905,7 @@ func TestCollector_Rendering_NumberedList(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewError(joined).stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] error alpha
 [2] error beta
 [3] error gamma`
@@ -993,7 +993,7 @@ func TestCollected_CollectSameTreeKeepsChildScope(t *testing.T) {
 
 	_ = root.Collect(WrapKV(child.Join(), KeyBookName, "unrelated.xlsx"))
 
-	got := NewError(root.Join())
+	got := Inspect(root.Join())
 	require.NotNil(t, got)
 	assert.Equal(t, "test.xlsx", detailFields(got)[KeyBookName])
 }
@@ -1006,7 +1006,7 @@ func TestCollected_ChildScopeInheritsArbitraryFields(t *testing.T) {
 	_ = book.Collect(New("book error"))
 	_ = sheet.Collect(New("sheet error"))
 
-	structuredErr := NewError(root.Join())
+	structuredErr := Inspect(root.Join())
 	require.Len(t, structuredErr.Details, 2)
 	assert.Equal(t, "book", detailFields(structuredErr.Details[0])["source"])
 	assert.Equal(t, "sheet", detailFields(structuredErr.Details[1])["source"])
@@ -1159,7 +1159,7 @@ func TestCollected_CellFieldsStayOnTheirError(t *testing.T) {
 	assert.Contains(t, book.Join().Error(), "DataCellPos: A4")
 
 	_ = sheet.Collect(E2014("missing"))
-	structuredErr := NewError(book.Join())
+	structuredErr := Inspect(book.Join())
 	require.Len(t, structuredErr.Details, 2)
 	assert.Equal(t, "A4", detailFields(structuredErr.Details[0])[KeyDataCellPos])
 	assert.Nil(t, detailFields(structuredErr.Details[1])[KeyDataCellPos])
@@ -1200,7 +1200,7 @@ func TestCollected_SiblingScopesRemainIndependent(t *testing.T) {
 	_ = second.Collect(New("second"))
 	_ = root.Collect(Wrap(root.Join()))
 
-	structuredErr := NewError(root.Join())
+	structuredErr := Inspect(root.Join())
 	require.Len(t, structuredErr.Details, 2)
 	assert.Equal(t, "First.xlsx", detailFields(structuredErr.Details[0])[KeyBookName])
 	assert.Equal(t, "Second.xlsx", detailFields(structuredErr.Details[1])[KeyBookName])
@@ -1302,7 +1302,7 @@ func TestCollected_FourLevelScopes(t *testing.T) {
 	assert.EqualValues(t, 4, root.counter.Load())
 	assert.EqualValues(t, 3, message.counter.Load())
 
-	structuredErr := NewError(root.Join())
+	structuredErr := Inspect(root.Join())
 	require.NotNil(t, structuredErr)
 	require.Len(t, structuredErr.Details, 4)
 	byReason := make(map[string]*ErrorDetail, 4)
@@ -1396,7 +1396,7 @@ func TestTree_FourLevelLimitsAcrossSiblings(t *testing.T) {
 	require.Error(t, main.Collect(New("main overflow")))
 	assert.EqualValues(t, 4, book.counter.Load())
 	assert.EqualValues(t, 4, root.counter.Load())
-	structuredErr := NewError(root.Join())
+	structuredErr := Inspect(root.Join())
 	require.Len(t, structuredErr.Details, 4)
 	assert.Equal(t, "main 1", detailFields(structuredErr.Details[0])[KeyReason])
 	assert.Equal(t, "shard 1", detailFields(structuredErr.Details[1])[KeyReason])
@@ -1428,7 +1428,7 @@ func TestGroup_ConcurrentImporterScopes(t *testing.T) {
 	require.Error(t, joined)
 	assert.EqualValues(t, importers, root.counter.Load())
 	assert.EqualValues(t, importers, message.counter.Load())
-	structuredErr := NewError(joined)
+	structuredErr := Inspect(joined)
 	require.Len(t, structuredErr.Details, importers)
 	byReason := make(map[string]*ErrorDetail, importers)
 	for _, detail := range structuredErr.Details {
@@ -1459,14 +1459,14 @@ func TestCollected_JoinSnapshotAcrossHierarchy(t *testing.T) {
 	second := message.NewChild(0, KeyBookName, "Second.xlsx")
 	require.NoError(t, second.Collect(New("second")))
 
-	earlier := NewError(snapshot)
+	earlier := Inspect(snapshot)
 	require.NotNil(t, earlier)
 	require.Len(t, earlier.Details, 1)
 	assert.Equal(t, "first", detailFields(earlier)[KeyReason])
 	assert.Equal(t, "First.xlsx", detailFields(earlier)[KeyBookName])
 	assert.Equal(t, "ItemConf", detailFields(earlier)[KeySheetName])
 
-	latest := NewError(root.Join())
+	latest := Inspect(root.Join())
 	require.Len(t, latest.Details, 2)
 	assert.Equal(t, "First.xlsx", detailFields(latest.Details[0])[KeyBookName])
 	assert.Equal(t, "Second.xlsx", detailFields(latest.Details[1])[KeyBookName])

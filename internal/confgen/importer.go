@@ -14,5 +14,5 @@ import (
 func NewImporter(ctx context.Context, workbookPath string) (importer.Importer, error) {
 	parser := NewSheetParser(ctx, xproto.InternalProtoPackage, "", book.MetasheetOptions(ctx))
 	imp, err := importer.New(ctx, workbookPath, importer.Parser(parser))
-	return imp, xerrors.WrapError(err)
+	return imp, xerrors.Normalize(err)
 }

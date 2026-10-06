@@ -59,7 +59,7 @@ func TestTableParser_parseTableMetasheet(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				// t.Logf("err: %v", xerrors.NewError(err))
+				// t.Logf("err: %v", xerrors.Inspect(err))
 				require.Equal(t, xerrors.ModuleConf, xerrors.Fields(err)[xerrors.KeyModule])
 				require.ErrorIs(t, err, tt.err)
 			}
@@ -477,7 +477,7 @@ func TestTableParser_parseHorizontalMapWithNoDigitSuffix(t *testing.T) {
 	// Error code: E2029 (no cell with digit suffix for horizontal map field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
-	structuredErr := xerrors.NewError(err)
+	structuredErr := xerrors.Inspect(err)
 	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
 	// Semantic details from the ecode.
 	require.Equal(t, "Item", xerrors.Fields(structuredErr)["FieldName"])
@@ -523,7 +523,7 @@ func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
 	// Error code: E2029 (no cell with digit suffix for horizontal list field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
-	structuredErr := xerrors.NewError(err)
+	structuredErr := xerrors.Inspect(err)
 	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
 	// Semantic details from the ecode.
 	require.Equal(t, "Item", xerrors.Fields(structuredErr)["FieldName"])
@@ -1297,7 +1297,7 @@ func TestTableParser_parseIncellStructTooManyPartsReportsSep(t *testing.T) {
 	err := parser.Parse(&unittestpb.FieldPresentMap{}, sheet)
 	require.ErrorIs(t, err, xerrors.ErrE2031)
 
-	structuredErr := xerrors.NewError(err)
+	structuredErr := xerrors.Inspect(err)
 	require.Equal(t, ",", xerrors.Fields(structuredErr)["Sep"])
 	require.Equal(t, "unittest.FieldPresentMap.Player.Info", xerrors.Fields(structuredErr)["TypeName"])
 	rendered := structuredErr.Error()

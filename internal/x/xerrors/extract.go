@@ -6,7 +6,7 @@ import (
 )
 
 // errorEntry is a temporary construction record. Once scope inheritance is
-// resolved, NewError converts it to the canonical typed ErrorDetail.
+// resolved, Inspect converts it to the canonical typed ErrorDetail.
 type errorEntry struct {
 	cause  error
 	fields map[string]any

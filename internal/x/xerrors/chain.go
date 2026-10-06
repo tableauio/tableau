@@ -1,4 +1,4 @@
-// Error handling model:
+// Error chain model:
 //  1. cause (nil = no cause) is wrapped by base, which holds the caller stack.
 //  2. each error chain has exactly one caller stack.
 //  3. withMessage carries a message and can be nested arbitrarily.
@@ -74,7 +74,8 @@ func NewKV(msg string, keysAndValues ...any) error {
 	}
 }
 
-// Wrap annotates err with a stack trace. Returns nil if err is nil.
+// Wrap adds caller context to the cause chain by attaching a stack trace.
+// Returns nil if err is nil.
 func Wrap(err error) error {
 	if err == nil {
 		return nil
@@ -84,7 +85,8 @@ func Wrap(err error) error {
 	}
 }
 
-// Wrapf annotates err with a formatted message and a stack trace. Returns nil if err is nil.
+// Wrapf adds a formatted message and stack trace to the cause chain.
+// Returns nil if err is nil.
 func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
@@ -167,7 +169,7 @@ func (w *withMessage) Error() string {
 	// Joined errors need the wrapper's sharing rule while they are flattened.
 	entries := extractEntries(w)
 	if len(entries) > 1 || (len(entries) == 1 && entries[0].cause != w) {
-		return newError(w, entries).Error()
+		return buildError(w, entries).Error()
 	}
 
 	// No join: delegate to cause.
@@ -189,7 +191,7 @@ func format(self error, s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') {
 			// %+v includes the shared summary, structured fields, and stack.
-			if structuredErr := NewError(self); structuredErr != nil {
+			if structuredErr := Inspect(self); structuredErr != nil {
 				_, _ = io.WriteString(s, structuredErr.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, self.Error())
@@ -240,7 +242,7 @@ func parseKV(keysAndValues ...any) map[string]any {
 	return m
 }
 
-// joinError is a multi-error that renders children via NewError and supports %+v.
+// joinError is a multi-error that renders children via Inspect and supports %+v.
 type joinError struct {
 	errs  []error
 	stack *stack
@@ -250,7 +252,7 @@ func (j *joinError) Unwrap() []error { return j.errs }
 
 // Error renders the joined errors from their structured details.
 func (j *joinError) Error() string {
-	if structuredErr := NewError(j); structuredErr != nil {
+	if structuredErr := Inspect(j); structuredErr != nil {
 		return structuredErr.Error()
 	}
 	var sb strings.Builder
@@ -270,7 +272,7 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') {
 			// %+v includes the shared summary, structured fields, and stack.
-			if structuredErr := NewError(j); structuredErr != nil {
+			if structuredErr := Inspect(j); structuredErr != nil {
 				_, _ = io.WriteString(s, structuredErr.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, j.Error())

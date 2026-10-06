@@ -247,7 +247,7 @@ func TestCheckRefer_includesSourceLocation(t *testing.T) {
 	if err == nil {
 		t.Fatal("CheckRefer() error = nil, want load error")
 	}
-	structuredErr := xerrors.NewError(err)
+	structuredErr := xerrors.Inspect(err)
 	if got := xerrors.Fields(structuredErr)[xerrors.KeyBookName]; got != input.SourceBookName {
 		t.Errorf("BookName = %v, want %s", got, input.SourceBookName)
 	}
@@ -259,7 +259,7 @@ func TestCheckRefer_includesSourceLocation(t *testing.T) {
 	if err == nil {
 		t.Fatal("loadValueSpace() error = nil, want load error")
 	}
-	structuredErr = xerrors.NewError(err)
+	structuredErr = xerrors.Inspect(err)
 	if got := xerrors.Fields(structuredErr)[xerrors.KeyBookName]; got != input.SourceBookName {
 		t.Errorf("loadValueSpace BookName = %v, want %s", got, input.SourceBookName)
 	}
@@ -407,7 +407,7 @@ func TestValueSpace_AddFromTable(t *testing.T) {
 		if err == nil {
 			t.Fatal("AddFromTable() error = nil, want error")
 		}
-		structuredErr := xerrors.NewError(err)
+		structuredErr := xerrors.Inspect(err)
 		if got := xerrors.Fields(structuredErr)[xerrors.KeyReferBookName]; got != "AssistSkill.xlsx" {
 			t.Errorf("ReferBookName = %v, want AssistSkill.xlsx", got)
 		}
@@ -433,7 +433,7 @@ func TestValueSpace_AddFromTable(t *testing.T) {
 		if err == nil {
 			t.Fatal("AddFromTable() error = nil, want error")
 		}
-		structuredErr := xerrors.NewError(err)
+		structuredErr := xerrors.Inspect(err)
 		if got := xerrors.Fields(structuredErr)[xerrors.KeyReferBookName]; got != "AssistSkill.xlsx" {
 			t.Errorf("ReferBookName = %v, want AssistSkill.xlsx", got)
 		}
@@ -647,7 +647,7 @@ func TestLoadValueSpace_mergerErrorLocation(t *testing.T) {
 	if err == nil {
 		t.Fatal("loadValueSpace() error = nil, want missing-column error")
 	}
-	structuredErr := xerrors.NewError(err)
+	structuredErr := xerrors.Inspect(err)
 	if got := xerrors.Fields(structuredErr)[xerrors.KeyReferBookName]; got != "UnittestMerger1#*.csv" {
 		t.Errorf("ReferBookName = %v, want UnittestMerger1#*.csv", got)
 	}
@@ -661,7 +661,7 @@ func TestLoadValueSpace_mergerErrorLocation(t *testing.T) {
 		t.Errorf("SheetName = %v, want nil", got)
 	}
 
-	structuredErr = xerrors.NewError(xerrors.WrapKV(err,
+	structuredErr = xerrors.Inspect(xerrors.WrapKV(err,
 		xerrors.KeyBookName, "Source#*.csv",
 		xerrors.KeySheetName, "SourceConf",
 	))
@@ -738,7 +738,7 @@ func assertReferLocation(t *testing.T, err error, wantBook, wantSheet string) {
 	if err == nil {
 		t.Fatal("loadValueSpace() error = nil")
 	}
-	structuredErr := xerrors.NewError(err)
+	structuredErr := xerrors.Inspect(err)
 	if got := xerrors.Fields(structuredErr)[xerrors.KeyReferBookName]; got != wantBook {
 		t.Errorf("ReferBookName = %v, want %s", got, wantBook)
 	}

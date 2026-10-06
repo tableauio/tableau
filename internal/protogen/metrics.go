@@ -14,12 +14,12 @@ func (gen *Generator) run(generate func(context.Context) error) error {
 	if err := gen.measureOperation(gen.ctx, "prepare_run", func(context.Context) error {
 		return gen.prepareRun()
 	}); err != nil {
-		return xerrors.WrapError(err)
+		return xerrors.Normalize(err)
 	}
 	if !gen.profiling {
-		return xerrors.WrapError(generate(gen.ctx))
+		return xerrors.Normalize(generate(gen.ctx))
 	}
-	return xerrors.WrapError(gen.runProfiled(generate))
+	return xerrors.Normalize(gen.runProfiled(generate))
 }
 
 func (gen *Generator) runProfiled(generate func(context.Context) error) error {

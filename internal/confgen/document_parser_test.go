@@ -84,7 +84,7 @@ func TestTableParser_parseDocumentMetasheet(t *testing.T) {
 			msg := &internalpb.Metabook{}
 			err = tt.parser.Parse(msg, sheet)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("sheetParser.Parse() error = %s, wantErr %v", xerrors.NewError(err), tt.wantErr)
+				t.Errorf("sheetParser.Parse() error = %s, wantErr %v", xerrors.Inspect(err), tt.wantErr)
 			}
 			fmt.Println("sheet:", sheet)
 			fmt.Println("metabook:", msg)

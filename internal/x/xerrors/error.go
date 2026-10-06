@@ -68,8 +68,11 @@ type FieldLocation struct {
 	Column  string `json:"column,omitempty"`
 }
 
-// WrapError exposes structured failures while leaving ordinary Go errors intact.
-func WrapError(err error) error {
+// Normalize converts completed operation failures to the structured *Error
+// returned to callers. It resolves joins and scoped metadata, preserving the
+// original cause chain. Nil, ordinary Go errors, and existing *Error values are
+// returned unchanged. Use Wrap, Wrapf, or WrapKV to add context before this step.
+func Normalize(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -84,28 +87,30 @@ func WrapError(err error) error {
 	if !structured {
 		return err
 	}
-	return newError(err, entries)
+	return buildError(err, entries)
 }
 
-// NewError extracts flat details from an error tree. Unlike WrapError it also
-// describes ordinary errors, for internal rendering and metadata inspection.
-func NewError(err error) *Error {
+// Inspect returns a typed view of any error tree for rendering or inspection.
+// Ordinary errors have one detail containing their message; nil returns nil.
+// The original error chain and metadata remain unchanged. An existing *Error
+// is returned directly. Use Normalize when returning an operation's failure.
+func Inspect(err error) *Error {
 	if err == nil {
 		return nil
 	}
 	if e, ok := err.(*Error); ok {
 		return e
 	}
-	return newError(err, extractEntries(err))
+	return buildError(err, extractEntries(err))
 }
 
-func newError(cause error, entries []errorEntry) *Error {
+func buildError(cause error, entries []errorEntry) *Error {
 	if len(entries) == 0 {
 		return nil
 	}
 	e := &Error{cause: cause, Details: make([]*ErrorDetail, 0, len(entries))}
 	for _, entry := range entries {
-		e.Details = append(e.Details, errorDetail(entry.cause, entry.fields))
+		e.Details = append(e.Details, buildDetail(entry.cause, entry.fields))
 	}
 	return e
 }
@@ -251,7 +256,7 @@ func (d *ErrorDetail) fields() map[string]any {
 // Fields returns the first failure's metadata for internal parameter handling.
 // Public consumers use Error.Details and their typed source/field locations.
 func Fields(err error) map[string]any {
-	e := NewError(err)
+	e := Inspect(err)
 	if e == nil || len(e.Details) == 0 {
 		return nil
 	}
@@ -285,7 +290,7 @@ func fieldsString(fields map[string]any) string {
 // detailKeys are the metadata represented by the typed public model.
 var detailKeys = append(append([]string(nil), keys...), KeyNoteCellPos, KeyNoteCell)
 
-func errorDetail(cause error, fields map[string]any) *ErrorDetail {
+func buildDetail(cause error, fields map[string]any) *ErrorDetail {
 	normalizeFields(fields)
 	detail := &ErrorDetail{
 		cause:       cause,

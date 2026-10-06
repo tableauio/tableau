@@ -15,7 +15,7 @@ import (
 // run completes generation and profiling before returning structured errors.
 func (gen *Generator) run(work func() error) error {
 	if !gen.profiling {
-		return xerrors.WrapError(work())
+		return xerrors.Normalize(work())
 	}
 	defer gen.printMetrics()
 	profileDir := gen.OutputDir
@@ -23,7 +23,7 @@ func (gen *Generator) run(work func() error) error {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
 	}
 	files, err := profile.Capture("confgen", profileDir, work)
-	return xerrors.WrapError(errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU)))
+	return xerrors.Normalize(errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU)))
 }
 
 // printMetrics reports importer cache use and sheet parser metrics.

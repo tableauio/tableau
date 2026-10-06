@@ -16,15 +16,15 @@ func assertError(t *testing.T, err error, errstr string) {
 	require.EqualValues(t, errstr, err.Error())
 	require.EqualValues(t, errstr, fmt.Sprintf("%s", err))
 	require.EqualValues(t, fmt.Sprintf("%q", errstr), fmt.Sprintf("%q", err))
-	// %+v should start with NewError(err).Error(), followed by the stack trace.
+	// %+v should start with Inspect(err).Error(), followed by the stack trace.
 	plusV := fmt.Sprintf("%+v", err)
-	structuredErr := NewError(err)
+	structuredErr := Inspect(err)
 	var summary string
 	if structuredErr != nil {
 		summary = structuredErr.Error()
 	}
 	require.True(t, strings.HasPrefix(plusV, summary),
-		"%+v should start with NewError(err).Error():\ngot:  %q\nwant prefix: %q", plusV, summary)
+		"%+v should start with Inspect(err).Error():\ngot:  %q\nwant prefix: %q", plusV, summary)
 }
 
 func TestErrorf(t *testing.T) {
@@ -163,7 +163,7 @@ func TestWrapKV(t *testing.T) {
 
 func TestEcode(t *testing.T) {
 	assertEcode := func(err error, ecode string, description, text, help string) {
-		structuredErr := NewError(err)
+		structuredErr := Inspect(err)
 		t.Log(err)
 		t.Logf("%+v", err)
 		t.Log(structuredErr.Error())
