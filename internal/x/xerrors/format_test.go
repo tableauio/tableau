@@ -243,7 +243,7 @@ func TestFormatWrapKV(t *testing.T) {
 				"github\\.com/tableauio/tableau/internal/x/xerrors\\.TestFormatWrapKV\n",
 			},
 		},
-		// %+v with ecode error: renders full structured desc (ErrCode + Reason + Help),
+		// %+v with ecode error: renders structured error (ErrCode + Reason + Help),
 		// which is different from Error() that only returns the reason text.
 		{
 			E2003("1", 3),
