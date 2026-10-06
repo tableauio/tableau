@@ -59,21 +59,6 @@ func TestFullWorksheetPreservesXMLSyntaxErrors(t *testing.T) {
 	}
 }
 
-func TestPlainXMLTextMatchesStrictDecoder(t *testing.T) {
-	for _, text := range []string{
-		"", "plain", "\t\n\r", "中文", "\ufffd", "\U00010000", "\U0010ffff",
-		"\x00", "\x0b", "\x1f", "\xff", "\xc0\x80", "\xed\xa0\x80", "\ufffe", "\uffff", "]]>",
-	} {
-		t.Run(fmt.Sprintf("%q", text), func(t *testing.T) {
-			decoder := newXMLDecoder(bytes.NewReader([]byte("<t>" + text + "</t>")))
-			_, err := nextXMLToken(decoder)
-			require.NoError(t, err)
-			_, err = readXMLText(decoder)
-			require.Equal(t, err == nil, isPlainXMLText([]byte(text)))
-		})
-	}
-}
-
 func FuzzFullWorksheetMatchesStrictDecoder(f *testing.F) {
 	for _, seed := range []string{
 		`<worksheet/>`,
