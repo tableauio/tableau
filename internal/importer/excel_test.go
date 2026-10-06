@@ -70,7 +70,7 @@ func TestNewExcelImporter(t *testing.T) {
 	}
 }
 
-func Test_readExcelSheetRows(t *testing.T) {
+func TestReadExcelizeRows(t *testing.T) {
 	sheetName := "Sheet1"
 	f, err := excel.Open("testdata/RawCellValue.xlsx", sheetName)
 	if err != nil {
@@ -192,9 +192,9 @@ func Test_readExcelSheetRows(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRows, err := readExcelSheetRows(tt.args.f, tt.args.sheetName, tt.args.topN, tt.args.opts...)
+			gotRows, err := readExcelizeRows(tt.args.f, tt.args.sheetName, tt.args.topN, tt.args.opts...)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("readExcelSheetRows() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("readExcelizeRows() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			assert.Equal(t, tt.wantRows, gotRows)

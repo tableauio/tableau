@@ -462,7 +462,7 @@ func Test_bookExporter_export(t *testing.T) {
 			require.NoError(t, gen.output.createStagingDir())
 			defer gen.output.removeStagingDir()
 			be := newBookExporter("protoconf", tt.edition, tt.protoFileOptions, tmpDir, "", wb, gen)
-			require.NoError(t, be.export())
+			require.NoError(t, be.export(gen.ctx))
 			require.NoError(t, gen.output.publishSelected())
 
 			// read the generated file and verify
@@ -529,7 +529,7 @@ func Test_bookExporter_export_shardFileConflict(t *testing.T) {
 	assert.NoError(t, gen.output.reservePath(shardPath, "other.xlsx"))
 
 	be := newBookExporter("protoconf", "", nil, tmpDir, "", wb, gen)
-	err := be.export()
+	err := be.export(gen.ctx)
 	if !assert.Error(t, err) {
 		return
 	}

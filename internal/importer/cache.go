@@ -16,7 +16,6 @@ import (
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/log"
-	"github.com/xuri/excelize/v2"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -58,20 +57,11 @@ type cachedExcel struct {
 	// instances still decode concurrently.
 	mu            sync.Mutex
 	filename      string
-	rawReader     workbookReader
-	excelizeFile  *excelize.File // compatibility fallback, opened lazily
+	reader        excelRowReader
 	sheetNames    []string
 	decodedSheets map[string]*book.Sheet
-	// preferRaw keeps raw XLSX reads enabled until a read failure switches this
-	// source to the Excelize fallback.
-	preferRaw bool
-	profiling bool
-}
-
-type workbookReader interface {
-	SheetNames() []string
-	ReadRows(string) ([][]string, error)
-	Close() error
+	useXLSX       bool
+	profiling     bool
 }
 
 type cachedCSV struct {
@@ -246,6 +236,18 @@ func (c *cachedExcel) load(ctx context.Context, sheetNames []string) (Importer, 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	useXLSX := c.useXLSX
+	imp, decoded, err := c.loadSheets(ctx, sheetNames)
+	if err != nil || !useXLSX || c.useXLSX {
+		return imp, decoded, err
+	}
+	// Fallback discarded the raw-reader cache. Rebuild this view as well so
+	// sheets added before the switch also come from the compatibility reader.
+	imp, retried, err := c.loadSheets(ctx, sheetNames)
+	return imp, decoded + retried, err
+}
+
+func (c *cachedExcel) loadSheets(ctx context.Context, sheetNames []string) (Importer, int64, error) {
 	readerOpts := buildExcelBookReaderOptions(c.filename, c.sheetNames, sheetNames)
 	loadedBook := book.NewBook(ctx, readerOpts.Name, readerOpts.Filename, nil)
 	var decoded int64
@@ -285,95 +287,66 @@ func (c *cachedExcel) readSheet(sheetName string) (*book.Sheet, error) {
 }
 
 func openCachedExcel(filename string, profiling bool) (*cachedExcel, error) {
-	reader, err := xlsx.Open(filename)
-	if err == nil {
-		return &cachedExcel{
-			filename:      filename,
-			rawReader:     reader,
-			sheetNames:    reader.SheetNames(),
-			decodedSheets: make(map[string]*book.Sheet),
-			preferRaw:     true,
-			profiling:     profiling,
-		}, nil
-	}
-	log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", filename, err)
-	file, openErr := excelize.OpenFile(filename)
-	if openErr != nil {
-		return nil, xerrors.E3002(errors.Join(err, openErr))
+	reader, err := openXLSXRowReader(filename, false)
+	useXLSX := err == nil
+	if err != nil {
+		if !errors.Is(err, xlsx.ErrUnsupported) {
+			return nil, err
+		}
+		log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", filename, err)
+		var openErr error
+		reader, openErr = openExcelizeRowReader(filename)
+		if openErr != nil {
+			return nil, errors.Join(err, openErr)
+		}
 	}
 	return &cachedExcel{
 		filename:      filename,
-		excelizeFile:  file,
-		sheetNames:    file.GetSheetList(),
+		reader:        reader,
+		sheetNames:    reader.SheetNames(),
 		decodedSheets: make(map[string]*book.Sheet),
+		useXLSX:       useXLSX,
 		profiling:     profiling,
 	}, nil
 }
 
 func (c *cachedExcel) readerName() string {
-	if c.rawReader != nil || c.preferRaw {
+	if c.useXLSX {
 		return "xlsx"
 	}
 	return "excelize"
 }
 
 func (c *cachedExcel) readRows(sheetName string) ([][]string, error) {
-	if err := c.ensureReader(); err != nil {
+	rows, err := c.reader.ReadRows(sheetName, 0)
+	if err == nil || !c.useXLSX {
+		return rows, err
+	}
+	if !errors.Is(err, xlsx.ErrUnsupported) {
 		return nil, err
-	}
-	if c.rawReader == nil {
-		return readExcelSheetRows(c.excelizeFile, sheetName, 0, excelize.Options{RawCellValue: true})
-	}
-	rows, err := c.rawReader.ReadRows(sheetName)
-	if err == nil {
-		return rows, nil
 	}
 	return c.fallbackToExcelize(sheetName, err)
 }
 
-// ensureReader reopens the selected workbook backend after Release.
-func (c *cachedExcel) ensureReader() error {
-	if c.rawReader != nil || c.excelizeFile != nil {
-		return nil
-	}
-	if c.preferRaw {
-		reader, err := xlsx.Open(c.filename)
-		if err == nil {
-			c.rawReader = reader
-			return nil
-		}
-		log.Debugf("raw XLSX reader unavailable for %s, using excelize: %v", c.filename, err)
-		c.preferRaw = false
-	}
-	_, err := c.openExcelize()
-	return err
-}
-
 // fallbackToExcelize permanently switches this source after a sheet cannot be
-// decoded by the raw reader. If excelize cannot open the workbook, the raw
-// reader remains available so the combined error retains both failures.
+// decoded by the raw reader and discards its decoded sheets. Already published
+// views remain immutable; load rebuilds the current view after a switch. If
+// excelize cannot open the workbook, the raw reader remains available.
 func (c *cachedExcel) fallbackToExcelize(sheetName string, readErr error) ([][]string, error) {
-	file, err := c.openExcelize()
+	reader, err := openExcelizeRowReader(c.filename)
 	if err != nil {
 		return nil, errors.Join(readErr, err)
 	}
 	log.Debugf("raw XLSX reader failed for %s#%s, using excelize: %v", c.filename, sheetName, readErr)
-	_ = c.rawReader.Close()
-	c.rawReader = nil
-	c.preferRaw = false
-	return readExcelSheetRows(file, sheetName, 0, excelize.Options{RawCellValue: true})
-}
-
-func (c *cachedExcel) openExcelize() (*excelize.File, error) {
-	if c.excelizeFile != nil {
-		return c.excelizeFile, nil
-	}
-	file, err := excelize.OpenFile(c.filename)
+	closeExcelReader(c.reader)
+	c.reader = reader
+	c.useXLSX = false
+	clear(c.decodedSheets)
+	rows, err := c.reader.ReadRows(sheetName, 0)
 	if err != nil {
-		return nil, xerrors.E3002(err)
+		return nil, errors.Join(readErr, err)
 	}
-	c.excelizeFile = file
-	return file, nil
+	return rows, nil
 }
 
 func (c *cachedCSV) load(ctx context.Context, sheetNames []string) (Importer, int64, error) {
