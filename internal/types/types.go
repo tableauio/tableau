@@ -14,6 +14,7 @@ import (
 // refer: https://github.com/google/re2/wiki/Syntax
 const nameCharSet = `0-9A-Za-z_`
 const typeCharSet = `0-9A-Za-z _,\.<>`
+
 // structTypeCharSet allows `[]` so that incell struct fields can declare
 // repeated element types, e.g. `{[]int32 ID, string Name}Property`.
 const structTypeCharSet = typeCharSet + `\[\]`
@@ -112,8 +113,8 @@ type MapDescriptor struct {
 	// KeyProp is the first (and default) prop group, applied to the map
 	// key. For non-scalar-value maps it also carries the map-level prop.
 	KeyProp PropDescriptor
-	// ValueProp is the second prop group, dedicated for incell scalar
-	// map's value. Only set when the type text has "|{...}|{...}" form.
+	// ValueProp is the second prop group for an incell scalar map value.
+	// Set for `|{K}|{V}`, `|{}|{V}`, or the `||{V}` shorthand.
 	ValueProp PropDescriptor
 }
 

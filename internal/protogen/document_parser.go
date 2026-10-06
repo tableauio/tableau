@@ -156,18 +156,15 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 			ValueType:     parsedValueName,
 			ValueFullType: parsedValueFullName,
 		}
-		var vprop *tableaupb.FieldProp
-		if incellScalarMap {
-			vprop, err = desc.ValueProp.FieldProp()
-			if err != nil {
-				return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.ValueProp.Text)
-			}
+		vprop, err := desc.ValueProp.FieldProp()
+		if err != nil {
+			return errWithNodeKV(err, typeNode, xerrors.KeyPBFieldOpts, desc.ValueProp.Text)
 		}
 		field.Options = &tableaupb.FieldOptions{
 			Name:   node.Name,
 			Layout: layout,
 			Prop:   ExtractMapFieldProp(prop, layout),
-			Vprop:  vprop,
+			Vprop:  ExtractScalarFieldProp(vprop),
 		}
 
 		// special process for key as enum type: create a new simple KV message as map value type.

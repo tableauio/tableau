@@ -189,9 +189,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 		}
 	}
 
-	incellScalarMap := layout == tableaupb.Layout_LAYOUT_INCELL &&
-		(mapValueKind == types.ScalarKind || mapValueKind == types.EnumKind)
-	if err := checkVpropAllowed(desc, incellScalarMap); err != nil {
+	if err := checkVpropAllowed(desc, layout == tableaupb.Layout_LAYOUT_INCELL); err != nil {
 		return cursor, err
 	}
 
@@ -368,7 +366,6 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 				xerrors.KeyPBFieldOpts, desc.KeyProp.Text,
 				xerrors.KeyTrimmedNameCell, trimmedNameCell)
 		}
-		// Second prop group is dedicated for incell scalar map's value.
 		vprop, err := desc.ValueProp.FieldProp()
 		if err != nil {
 			return cursor, xerrors.WrapKV(err,
@@ -380,7 +377,7 @@ func (p *tableParser) parseMapField(field *internalpb.Field, header *tableHeader
 			Name:   trimmedNameCell,
 			Layout: layout,
 			Prop:   prop, // for incell scalar map, need whole prop
-			Vprop:  vprop,
+			Vprop:  ExtractScalarFieldProp(vprop),
 		}
 
 		// special process for key as enum type: create a new simple KV message as map value type.
