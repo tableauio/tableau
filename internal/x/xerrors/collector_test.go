@@ -670,10 +670,10 @@ func TestGroup_ContextCancelled(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Structured error rendering via Stringify (Collector hierarchy)
+// Structured error rendering via Error (Collector hierarchy)
 // ---------------------------------------------------------------------------
 
-func TestCollector_Stringify_ThreeLevel(t *testing.T) {
+func TestCollector_Rendering_ThreeLevel(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(3)
@@ -692,7 +692,7 @@ func TestCollector_Stringify_ThreeLevel(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_NewKV(t *testing.T) {
+func TestCollector_Rendering_NewKV(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
@@ -718,7 +718,7 @@ Reason: invalid integer value
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_WrapKV(t *testing.T) {
+func TestCollector_Rendering_WrapKV(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
@@ -766,7 +766,7 @@ Reason: field2 error
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_WrapKV_Ecode(t *testing.T) {
+func TestCollector_Rendering_WrapKV_Ecode(t *testing.T) {
 	t.Run("modulconf", func(t *testing.T) {
 		global := NewCollector(10)
 		book := global.NewChild(5)
@@ -826,7 +826,7 @@ Help: rename column name and keep sure it is unique in name row
 	})
 }
 
-func TestCollector_Stringify_MixedErrors(t *testing.T) {
+func TestCollector_Rendering_MixedErrors(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
@@ -869,7 +869,7 @@ Help: check field value and make sure it in representable range
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_MidLevelFull(t *testing.T) {
+func TestCollector_Rendering_MidLevelFull(t *testing.T) {
 	global := NewCollector(100)
 	book := global.NewChild(3)
 
@@ -894,7 +894,7 @@ func TestCollector_Stringify_MidLevelFull(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_NumberedList(t *testing.T) {
+func TestCollector_Rendering_NumberedList(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(10)
 	sheet := book.NewChild(10)
@@ -1006,10 +1006,10 @@ func TestCollected_ChildScopeInheritsArbitraryFields(t *testing.T) {
 	_ = book.Collect(New("book error"))
 	_ = sheet.Collect(New("sheet error"))
 
-	desc := NewError(root.Join())
-	require.Len(t, desc.Details, 2)
-	assert.Equal(t, "book", detailFields(desc.Details[0])["source"])
-	assert.Equal(t, "sheet", detailFields(desc.Details[1])["source"])
+	structuredErr := NewError(root.Join())
+	require.Len(t, structuredErr.Details, 2)
+	assert.Equal(t, "book", detailFields(structuredErr.Details[0])["source"])
+	assert.Equal(t, "sheet", detailFields(structuredErr.Details[1])["source"])
 }
 
 // A multi-error containing a Join result may also contain a new error.
@@ -1159,10 +1159,10 @@ func TestCollected_CellFieldsStayOnTheirError(t *testing.T) {
 	assert.Contains(t, book.Join().Error(), "DataCellPos: A4")
 
 	_ = sheet.Collect(E2014("missing"))
-	desc := NewError(book.Join())
-	require.Len(t, desc.Details, 2)
-	assert.Equal(t, "A4", detailFields(desc.Details[0])[KeyDataCellPos])
-	assert.Nil(t, detailFields(desc.Details[1])[KeyDataCellPos])
+	structuredErr := NewError(book.Join())
+	require.Len(t, structuredErr.Details, 2)
+	assert.Equal(t, "A4", detailFields(structuredErr.Details[0])[KeyDataCellPos])
+	assert.Nil(t, detailFields(structuredErr.Details[1])[KeyDataCellPos])
 }
 
 // Per-cell fields on a joined snapshot must not reach unrelated errors.
@@ -1200,10 +1200,10 @@ func TestCollected_SiblingScopesRemainIndependent(t *testing.T) {
 	_ = second.Collect(New("second"))
 	_ = root.Collect(Wrap(root.Join()))
 
-	desc := NewError(root.Join())
-	require.Len(t, desc.Details, 2)
-	assert.Equal(t, "First.xlsx", detailFields(desc.Details[0])[KeyBookName])
-	assert.Equal(t, "Second.xlsx", detailFields(desc.Details[1])[KeyBookName])
+	structuredErr := NewError(root.Join())
+	require.Len(t, structuredErr.Details, 2)
+	assert.Equal(t, "First.xlsx", detailFields(structuredErr.Details[0])[KeyBookName])
+	assert.Equal(t, "Second.xlsx", detailFields(structuredErr.Details[1])[KeyBookName])
 }
 
 // collected marker is transparent: errors.Is works through it.
@@ -1302,54 +1302,54 @@ func TestCollected_FourLevelScopes(t *testing.T) {
 	assert.EqualValues(t, 4, root.counter.Load())
 	assert.EqualValues(t, 3, message.counter.Load())
 
-	desc := NewError(root.Join())
-	require.NotNil(t, desc)
-	require.Len(t, desc.Details, 4)
+	structuredErr := NewError(root.Join())
+	require.NotNil(t, structuredErr)
+	require.Len(t, structuredErr.Details, 4)
 	byReason := make(map[string]*ErrorDetail, 4)
-	for _, leaf := range desc.Details {
-		reason, ok := detailFields(leaf)[KeyReason].(string)
+	for _, detail := range structuredErr.Details {
+		reason, ok := detailFields(detail)[KeyReason].(string)
 		require.True(t, ok)
-		byReason[reason] = leaf
+		byReason[reason] = detail
 	}
 	require.Len(t, byReason, 4)
 
-	bookError := byReason["book error"]
-	require.NotNil(t, bookError)
-	assert.Equal(t, ModuleConf, detailFields(bookError)[KeyModule])
-	assert.Equal(t, "Main.xlsx", detailFields(bookError)[KeyBookName])
-	assert.Equal(t, "Main.xlsx", detailFields(bookError)[KeyPrimaryBookName])
-	assert.Equal(t, "book", detailFields(bookError)["trace"])
-	assert.Nil(t, detailFields(bookError)[KeySheetName])
-	assert.Nil(t, detailFields(bookError)[KeyPBMessage])
+	bookDetail := byReason["book error"]
+	require.NotNil(t, bookDetail)
+	assert.Equal(t, ModuleConf, detailFields(bookDetail)[KeyModule])
+	assert.Equal(t, "Main.xlsx", detailFields(bookDetail)[KeyBookName])
+	assert.Equal(t, "Main.xlsx", detailFields(bookDetail)[KeyPrimaryBookName])
+	assert.Equal(t, "book", detailFields(bookDetail)["trace"])
+	assert.Nil(t, detailFields(bookDetail)[KeySheetName])
+	assert.Nil(t, detailFields(bookDetail)[KeyPBMessage])
 
-	messageError := byReason["message error"]
-	require.NotNil(t, messageError)
-	assert.Equal(t, "Main.xlsx", detailFields(messageError)[KeyBookName])
-	assert.Equal(t, "ItemConf", detailFields(messageError)[KeySheetName])
-	assert.Equal(t, "ItemConf", detailFields(messageError)[KeyPrimarySheetName])
-	assert.Equal(t, "ItemConf", detailFields(messageError)[KeyPBMessage])
-	assert.Equal(t, "message", detailFields(messageError)["trace"])
-	assert.Nil(t, detailFields(messageError)[KeyDataCellPos])
+	messageDetail := byReason["message error"]
+	require.NotNil(t, messageDetail)
+	assert.Equal(t, "Main.xlsx", detailFields(messageDetail)[KeyBookName])
+	assert.Equal(t, "ItemConf", detailFields(messageDetail)[KeySheetName])
+	assert.Equal(t, "ItemConf", detailFields(messageDetail)[KeyPrimarySheetName])
+	assert.Equal(t, "ItemConf", detailFields(messageDetail)[KeyPBMessage])
+	assert.Equal(t, "message", detailFields(messageDetail)["trace"])
+	assert.Nil(t, detailFields(messageDetail)[KeyDataCellPos])
 
-	mainError := byReason["main cell"]
-	require.NotNil(t, mainError)
-	assert.Equal(t, "Main.xlsx", detailFields(mainError)[KeyBookName])
-	assert.Equal(t, "ItemConf", detailFields(mainError)[KeySheetName])
-	assert.Equal(t, "Main.xlsx", detailFields(mainError)[KeyPrimaryBookName])
-	assert.Equal(t, "ItemConf", detailFields(mainError)[KeyPrimarySheetName])
-	assert.Equal(t, "ItemConf", detailFields(mainError)[KeyPBMessage])
-	assert.Equal(t, "message", detailFields(mainError)["trace"])
-	assert.Equal(t, "A4", detailFields(mainError)[KeyDataCellPos])
+	mainDetail := byReason["main cell"]
+	require.NotNil(t, mainDetail)
+	assert.Equal(t, "Main.xlsx", detailFields(mainDetail)[KeyBookName])
+	assert.Equal(t, "ItemConf", detailFields(mainDetail)[KeySheetName])
+	assert.Equal(t, "Main.xlsx", detailFields(mainDetail)[KeyPrimaryBookName])
+	assert.Equal(t, "ItemConf", detailFields(mainDetail)[KeyPrimarySheetName])
+	assert.Equal(t, "ItemConf", detailFields(mainDetail)[KeyPBMessage])
+	assert.Equal(t, "message", detailFields(mainDetail)["trace"])
+	assert.Equal(t, "A4", detailFields(mainDetail)[KeyDataCellPos])
 
-	shardError := byReason["shard cell"]
-	require.NotNil(t, shardError)
-	assert.Equal(t, "Shard.xlsx", detailFields(shardError)[KeyBookName])
-	assert.Equal(t, "ShardItem", detailFields(shardError)[KeySheetName])
-	assert.Equal(t, "Main.xlsx", detailFields(shardError)[KeyPrimaryBookName])
-	assert.Equal(t, "ItemConf", detailFields(shardError)[KeyPrimarySheetName])
-	assert.Equal(t, "ItemConf", detailFields(shardError)[KeyPBMessage])
-	assert.Equal(t, "shard", detailFields(shardError)["trace"])
-	assert.Equal(t, "B5", detailFields(shardError)[KeyDataCellPos])
+	shardDetail := byReason["shard cell"]
+	require.NotNil(t, shardDetail)
+	assert.Equal(t, "Shard.xlsx", detailFields(shardDetail)[KeyBookName])
+	assert.Equal(t, "ShardItem", detailFields(shardDetail)[KeySheetName])
+	assert.Equal(t, "Main.xlsx", detailFields(shardDetail)[KeyPrimaryBookName])
+	assert.Equal(t, "ItemConf", detailFields(shardDetail)[KeyPrimarySheetName])
+	assert.Equal(t, "ItemConf", detailFields(shardDetail)[KeyPBMessage])
+	assert.Equal(t, "shard", detailFields(shardDetail)["trace"])
+	assert.Equal(t, "B5", detailFields(shardDetail)[KeyDataCellPos])
 }
 
 // When one branch fills an ancestor, a previously untouched sibling gets
@@ -1396,12 +1396,12 @@ func TestTree_FourLevelLimitsAcrossSiblings(t *testing.T) {
 	require.Error(t, main.Collect(New("main overflow")))
 	assert.EqualValues(t, 4, book.counter.Load())
 	assert.EqualValues(t, 4, root.counter.Load())
-	desc := NewError(root.Join())
-	require.Len(t, desc.Details, 4)
-	assert.Equal(t, "main 1", detailFields(desc.Details[0])[KeyReason])
-	assert.Equal(t, "shard 1", detailFields(desc.Details[1])[KeyReason])
-	assert.Equal(t, "shard 2", detailFields(desc.Details[2])[KeyReason])
-	assert.Equal(t, "shard 3", detailFields(desc.Details[3])[KeyReason])
+	structuredErr := NewError(root.Join())
+	require.Len(t, structuredErr.Details, 4)
+	assert.Equal(t, "main 1", detailFields(structuredErr.Details[0])[KeyReason])
+	assert.Equal(t, "shard 1", detailFields(structuredErr.Details[1])[KeyReason])
+	assert.Equal(t, "shard 2", detailFields(structuredErr.Details[2])[KeyReason])
+	assert.Equal(t, "shard 3", detailFields(structuredErr.Details[3])[KeyReason])
 }
 
 // Each concurrent importer owns its scope, while Group.Go receives its Join
@@ -1428,21 +1428,21 @@ func TestGroup_ConcurrentImporterScopes(t *testing.T) {
 	require.Error(t, joined)
 	assert.EqualValues(t, importers, root.counter.Load())
 	assert.EqualValues(t, importers, message.counter.Load())
-	desc := NewError(joined)
-	require.Len(t, desc.Details, importers)
+	structuredErr := NewError(joined)
+	require.Len(t, structuredErr.Details, importers)
 	byReason := make(map[string]*ErrorDetail, importers)
-	for _, leaf := range desc.Details {
-		reason, ok := detailFields(leaf)[KeyReason].(string)
+	for _, detail := range structuredErr.Details {
+		reason, ok := detailFields(detail)[KeyReason].(string)
 		require.True(t, ok)
-		byReason[reason] = leaf
+		byReason[reason] = detail
 	}
 	require.Len(t, byReason, importers)
 	for i := range importers {
-		leaf := byReason[fmt.Sprintf("error %d", i)]
-		require.NotNil(t, leaf)
-		assert.Equal(t, fmt.Sprintf("Shard%d.xlsx", i), detailFields(leaf)[KeyBookName])
-		assert.Equal(t, fmt.Sprintf("Item%d", i), detailFields(leaf)[KeySheetName])
-		assert.Equal(t, "ItemConf", detailFields(leaf)[KeyPBMessage])
+		detail := byReason[fmt.Sprintf("error %d", i)]
+		require.NotNil(t, detail)
+		assert.Equal(t, fmt.Sprintf("Shard%d.xlsx", i), detailFields(detail)[KeyBookName])
+		assert.Equal(t, fmt.Sprintf("Item%d", i), detailFields(detail)[KeySheetName])
+		assert.Equal(t, "ItemConf", detailFields(detail)[KeyPBMessage])
 	}
 }
 

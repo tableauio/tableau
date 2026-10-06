@@ -6,18 +6,20 @@ import (
 
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/profile"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
+// run completes generation and profiling before returning structured errors.
 func (gen *Generator) run(generate func(context.Context) error) error {
 	if err := gen.measureOperation(gen.ctx, "prepare_run", func(context.Context) error {
 		return gen.prepareRun()
 	}); err != nil {
-		return err
+		return xerrors.WrapError(err)
 	}
 	if !gen.profiling {
-		return generate(gen.ctx)
+		return xerrors.WrapError(generate(gen.ctx))
 	}
-	return gen.runProfiled(generate)
+	return xerrors.WrapError(gen.runProfiled(generate))
 }
 
 func (gen *Generator) runProfiled(generate func(context.Context) error) error {

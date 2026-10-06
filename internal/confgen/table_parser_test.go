@@ -477,18 +477,18 @@ func TestTableParser_parseHorizontalMapWithNoDigitSuffix(t *testing.T) {
 	// Error code: E2029 (no cell with digit suffix for horizontal map field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
-	desc := xerrors.NewError(err)
-	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(desc)[xerrors.KeyModule])
+	structuredErr := xerrors.NewError(err)
+	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
 	// Semantic details from the ecode.
-	require.Equal(t, "Item", xerrors.Fields(desc)["FieldName"])
-	require.Equal(t, "map", xerrors.Fields(desc)["FieldType"])
+	require.Equal(t, "Item", xerrors.Fields(structuredErr)["FieldName"])
+	require.Equal(t, "map", xerrors.Fields(structuredErr)["FieldType"])
 	// Excel position details: the matched prefix range and data row.
-	require.Equal(t, "Item", xerrors.Fields(desc)[xerrors.KeyColumnName])
-	require.Equal(t, "[B...C]2", xerrors.Fields(desc)[xerrors.KeyDataCellPos])
-	require.Equal(t, "[100...200]", xerrors.Fields(desc)[xerrors.KeyDataCell])
+	require.Equal(t, "Item", xerrors.Fields(structuredErr)[xerrors.KeyColumnName])
+	require.Equal(t, "[B...C]2", xerrors.Fields(structuredErr)[xerrors.KeyDataCellPos])
+	require.Equal(t, "[100...200]", xerrors.Fields(structuredErr)[xerrors.KeyDataCell])
 
 	// Rendered summary carries the code, position, and reason.
-	rendered := desc.Error()
+	rendered := structuredErr.Error()
 	require.Contains(t, rendered, "error[E2029]:")
 	require.Contains(t, rendered, "DataCellPos: [B...C]2")
 	require.Contains(t, rendered, `horizontal map field "Item" has no cell with a digit suffix`)
@@ -523,18 +523,18 @@ func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
 	// Error code: E2029 (no cell with digit suffix for horizontal list field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
-	desc := xerrors.NewError(err)
-	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(desc)[xerrors.KeyModule])
+	structuredErr := xerrors.NewError(err)
+	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
 	// Semantic details from the ecode.
-	require.Equal(t, "Item", xerrors.Fields(desc)["FieldName"])
-	require.Equal(t, "list", xerrors.Fields(desc)["FieldType"])
+	require.Equal(t, "Item", xerrors.Fields(structuredErr)["FieldName"])
+	require.Equal(t, "list", xerrors.Fields(structuredErr)["FieldType"])
 	// Excel position details: the matched prefix range and data row.
-	require.Equal(t, "Item", xerrors.Fields(desc)[xerrors.KeyColumnName])
-	require.Equal(t, "[B...C]2", xerrors.Fields(desc)[xerrors.KeyDataCellPos])
-	require.Equal(t, "[100...200]", xerrors.Fields(desc)[xerrors.KeyDataCell])
+	require.Equal(t, "Item", xerrors.Fields(structuredErr)[xerrors.KeyColumnName])
+	require.Equal(t, "[B...C]2", xerrors.Fields(structuredErr)[xerrors.KeyDataCellPos])
+	require.Equal(t, "[100...200]", xerrors.Fields(structuredErr)[xerrors.KeyDataCell])
 
 	// Rendered summary carries the code, position, and reason.
-	rendered := desc.Error()
+	rendered := structuredErr.Error()
 	require.Contains(t, rendered, "error[E2029]:")
 	require.Contains(t, rendered, "DataCellPos: [B...C]2")
 	require.Contains(t, rendered, `horizontal list field "Item" has no cell with a digit suffix`)
@@ -1297,10 +1297,10 @@ func TestTableParser_parseIncellStructTooManyPartsReportsSep(t *testing.T) {
 	err := parser.Parse(&unittestpb.FieldPresentMap{}, sheet)
 	require.ErrorIs(t, err, xerrors.ErrE2031)
 
-	desc := xerrors.NewError(err)
-	require.Equal(t, ",", xerrors.Fields(desc)["Sep"])
-	require.Equal(t, "unittest.FieldPresentMap.Player.Info", xerrors.Fields(desc)["TypeName"])
-	rendered := desc.Error()
+	structuredErr := xerrors.NewError(err)
+	require.Equal(t, ",", xerrors.Fields(structuredErr)["Sep"])
+	require.Equal(t, "unittest.FieldPresentMap.Player.Info", xerrors.Fields(structuredErr)["TypeName"])
+	rendered := structuredErr.Error()
 	require.Contains(t, rendered, "error[E2031]:")
 	require.Contains(t, rendered, `sep: ","`)
 	require.Contains(t, rendered, `incell struct "unittest.FieldPresentMap.Player.Info"`)

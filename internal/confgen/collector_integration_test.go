@@ -61,6 +61,10 @@ func TestCollectorIntegration_MessageLevel(t *testing.T) {
 	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/")
 	err := gen.Generate("Collector#ItemConf.csv")
 	require.Error(t, err)
+	var structuredErr *xerrors.Error
+	require.ErrorAs(t, err, &structuredErr)
+	require.Len(t, structuredErr.Details, 4)
+	assert.Equal(t, "E2012", structuredErr.Details[0].Code)
 
 	got := err.Error()
 	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "B4", "xyz", "int32") +
@@ -236,13 +240,13 @@ func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
 	assert.NotContains(t, got, "Workbook: MergerCollector#*.csv",
 		"main workbook must not be reported as the offending file")
 
-	desc := xerrors.NewError(err)
-	require.NotNil(t, desc)
-	assert.Equal(t, xerrors.ModuleConf, xerrors.Fields(desc)[xerrors.KeyModule])
-	assert.Equal(t, "MergerShard1#*.csv", xerrors.Fields(desc)[xerrors.KeyBookName])
-	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(desc)[xerrors.KeySheetName])
-	assert.Equal(t, "MergerCollector#*.csv", xerrors.Fields(desc)[xerrors.KeyPrimaryBookName])
-	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(desc)[xerrors.KeyPrimarySheetName])
-	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(desc)[xerrors.KeyPBMessage])
-	assert.Equal(t, "B4", xerrors.Fields(desc)[xerrors.KeyDataCellPos])
+	structuredErr := xerrors.NewError(err)
+	require.NotNil(t, structuredErr)
+	assert.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
+	assert.Equal(t, "MergerShard1#*.csv", xerrors.Fields(structuredErr)[xerrors.KeyBookName])
+	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(structuredErr)[xerrors.KeySheetName])
+	assert.Equal(t, "MergerCollector#*.csv", xerrors.Fields(structuredErr)[xerrors.KeyPrimaryBookName])
+	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(structuredErr)[xerrors.KeyPrimarySheetName])
+	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(structuredErr)[xerrors.KeyPBMessage])
+	assert.Equal(t, "B4", xerrors.Fields(structuredErr)[xerrors.KeyDataCellPos])
 }

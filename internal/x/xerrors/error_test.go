@@ -64,9 +64,9 @@ func TestNewError(t *testing.T) {
 
 func TestNewErrorPlainError(t *testing.T) {
 	err := fmt.Errorf("plain error")
-	desc := NewError(err)
-	require.NotNil(t, desc)
-	assert.Equal(t, "plain error", desc.stringify(false))
+	structuredErr := NewError(err)
+	require.NotNil(t, structuredErr)
+	assert.Equal(t, "plain error", structuredErr.stringify(false))
 }
 
 func TestNewErrorNil(t *testing.T) {
@@ -102,9 +102,9 @@ func TestWrapKVInnermostWins(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := NewError(tt.err)
-			require.NotNil(t, d)
-			assert.Equal(t, tt.wantModule, detailFields(d)[KeyModule])
+			structuredErr := NewError(tt.err)
+			require.NotNil(t, structuredErr)
+			assert.Equal(t, tt.wantModule, detailFields(structuredErr)[KeyModule])
 		})
 	}
 }
@@ -118,16 +118,16 @@ func TestNewErrorAllNilJoin(t *testing.T) {
 func TestNewErrorSingleChildJoin(t *testing.T) {
 	e := E2003("1", 3)
 	joined := errors.Join(nil, e)
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	wantNoDebug := `error[E2003]: illegal sequence number
 Reason: value "1" does not meet sequence requirement: "sequence:3"
 Help: prop "sequence:3" requires value starts from "3" and increases monotonically
 `
-	assert.Equal(t, wantNoDebug, d.stringify(false))
+	assert.Equal(t, wantNoDebug, structuredErr.stringify(false))
 
-	debugGot := d.stringify(true)
+	debugGot := structuredErr.stringify(true)
 	assert.True(t, strings.HasPrefix(debugGot, wantNoDebug), "debug output should start with the non-debug summary")
 	assert.Contains(t, debugGot, "\n--- debugging ---\n", "debug output should contain debugging header")
 	assert.Regexp(t, regexp.MustCompile(`xerrors\.TestNewErrorSingleChildJoin`), debugGot, "debug output should contain stack trace")
@@ -139,12 +139,12 @@ func TestNewErrorMultipleChildren(t *testing.T) {
 	e2 := E2027("id: must be positive", "0")
 	joined := errors.Join(e1, e2)
 
-	md := NewError(joined)
-	require.NotNil(t, md)
-	require.Len(t, md.Details, 2)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
+	require.Len(t, structuredErr.Details, 2)
 
-	for i, d := range md.Details {
-		assert.Equal(t, "E2027", d.fields()[KeyErrCode], "children[%d].fields()[KeyErrCode]", i)
+	for i, detail := range structuredErr.Details {
+		assert.Equal(t, "E2027", detail.Code, "details[%d].Code", i)
 	}
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
@@ -155,7 +155,7 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: "0" violates rule: id: must be positive
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, wantNoDebug, md.stringify(false))
+	assert.Equal(t, wantNoDebug, structuredErr.stringify(false))
 }
 
 // TestNewErrorMixedErrors verifies one structured error + one plain error in a join.
@@ -164,23 +164,23 @@ func TestNewErrorMixedErrors(t *testing.T) {
 	e2 := fmt.Errorf("plain error")
 	joined := errors.Join(e1, e2)
 
-	md := NewError(joined)
-	require.NotNil(t, md)
-	require.Len(t, md.Details, 2)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
+	require.Len(t, structuredErr.Details, 2)
 
-	assert.Equal(t, "E2027", md.Details[0].fields()[KeyErrCode])
-	assert.Nil(t, md.Details[1].fields()[KeyErrCode])
-	assert.Equal(t, "plain error", md.Details[1].String())
+	assert.Equal(t, "E2027", structuredErr.Details[0].Code)
+	assert.Empty(t, structuredErr.Details[1].Code)
+	assert.Equal(t, "plain error", structuredErr.Details[1].String())
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
 Reason: "toolong" violates rule: name: value length must be at most 10 characters
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] plain error`
-	assert.Equal(t, wantNoDebug, md.stringify(false))
+	assert.Equal(t, wantNoDebug, structuredErr.stringify(false))
 }
 
-// TestNewErrorWrapKVOverJoin verifies shared fields merge into every child Error,
+// TestNewErrorWrapKVOverJoin verifies shared fields merge into every ErrorDetail,
 // while each child's own fields (Reason) still win.
 //
 //	WrapKV(errors.Join(e1, e2), Module, BookName, SheetName)
@@ -197,8 +197,8 @@ func TestNewErrorWrapKVOverJoin(t *testing.T) {
 		KeySheetName, "ValidateFieldLevel",
 	)
 
-	md := NewError(wrapped)
-	require.NotNil(t, md)
+	structuredErr := NewError(wrapped)
+	require.NotNil(t, structuredErr)
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
 Workbook: Validate#*.csv
@@ -216,7 +216,7 @@ DataCell: <no value>
 Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, wantNoDebug, md.stringify(false))
+	assert.Equal(t, wantNoDebug, structuredErr.stringify(false))
 }
 
 // TestNewErrorWrapKVOverJoinSingleChild verifies WrapKV wrapping errors.Join
@@ -230,8 +230,8 @@ func TestNewErrorWrapKVOverJoinSingleChild(t *testing.T) {
 		KeySheetName, "ValidateFieldLevel",
 	)
 
-	d := NewError(wrapped)
-	require.NotNil(t, d)
+	structuredErr := NewError(wrapped)
+	require.NotNil(t, structuredErr)
 
 	wantNoDebug := `error[E2027]: protovalidate violation
 Workbook: Validate#*.csv
@@ -241,7 +241,7 @@ DataCell: <no value>
 Reason: "800" violates rule: score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, wantNoDebug, d.stringify(false))
+	assert.Equal(t, wantNoDebug, structuredErr.stringify(false))
 }
 
 // TestNewErrorOuterFieldDoesNotOverrideInner verifies inner WrapKV value wins
@@ -251,8 +251,8 @@ func TestNewErrorOuterFieldDoesNotOverrideInner(t *testing.T) {
 	joined := errors.Join(inner)
 	wrapped := WrapKV(joined, KeyModule, ModuleProto)
 
-	d := NewError(wrapped)
-	require.NotNil(t, d)
+	structuredErr := NewError(wrapped)
+	require.NotNil(t, structuredErr)
 
 	want := `error[E0004]: unknown error
 Workbook: <no value>
@@ -261,7 +261,7 @@ DataCellPos: <no value>
 DataCell: <no value>
 Reason: inner error
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewErrorTwoLayerJoinMultiOuter verifies flattening when outer join has
@@ -294,8 +294,8 @@ func TestNewErrorTwoLayerJoinMultiOuter(t *testing.T) {
 	)
 	outerJoin := &joinError{errs: []error{wrapped1, wrapped2}}
 
-	md := NewError(outerJoin)
-	require.NotNil(t, md)
+	structuredErr := NewError(outerJoin)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Workbook: Validate#*.csv
@@ -329,7 +329,7 @@ DataCell: <no value>
 Reason: "-1" violates rule: item_map[4].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, md.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewErrorThreeLayerJoin verifies arbitrary-depth flattening with layered scopes:
@@ -359,8 +359,8 @@ func TestNewErrorThreeLayerJoin(t *testing.T) {
 		KeyBookName, "Validate#*.csv",
 	)
 
-	md := NewError(top)
-	require.NotNil(t, md)
+	structuredErr := NewError(top)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Workbook: Validate#*.csv
@@ -394,16 +394,16 @@ DataCell: <no value>
 Reason: "-1" violates rule: item_map[4].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, md.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 	assert.Equal(t, want, top.Error())
 	assert.Equal(t, want, fmt.Sprintf("%s", top))
 	assert.Equal(t, want, fmt.Sprintf("%v", top))
 
-	// Verify debug output: each child should have its own stack trace.
-	debugGot := md.stringify(true)
+	// Verify debug output: each detail should have its own stack trace.
+	debugGot := structuredErr.stringify(true)
 	t.Log(debugGot)
 	for i := 1; i <= 4; i++ {
-		assert.Contains(t, debugGot, fmt.Sprintf("[%d] error[E2027]", i), "child %d should have error header", i)
+		assert.Contains(t, debugGot, fmt.Sprintf("[%d] error[E2027]", i), "detail %d should have error header", i)
 	}
 	assert.Equal(t, 4, strings.Count(debugGot, "\n--- debugging ---\n"), "debug output should contain exactly 4 debugging headers")
 	assert.Equal(t, 4, strings.Count(debugGot, "xerrors.TestNewErrorThreeLayerJoin"), "debug output should contain exactly 4 stack traces")
@@ -430,8 +430,8 @@ func TestNewErrorTwoLayerJoin(t *testing.T) {
 	)
 	outerJoin := &joinError{errs: []error{wrapped}}
 
-	md := NewError(outerJoin)
-	require.NotNil(t, md)
+	structuredErr := NewError(outerJoin)
+	require.NotNil(t, structuredErr)
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
 Workbook: Validate#*.csv
@@ -449,7 +449,7 @@ DataCell: <no value>
 Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, wantNoDebug, md.stringify(false))
+	assert.Equal(t, wantNoDebug, structuredErr.stringify(false))
 }
 
 // TestNewError_CollectedMarkerTransparent verifies that the collected wrapper
@@ -465,8 +465,8 @@ func TestNewError_CollectedMarkerTransparent(t *testing.T) {
 	var ce *collected
 	require.True(t, errors.As(joined, &ce), "Join() must return collected-wrapped error")
 
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Reason: "0" violates rule: score: value must be > 0
@@ -476,7 +476,7 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: "abcdefghijk" violates rule: name: too long
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_CollectedSingleError verifies single error in collector → single Error (no numbered list).
@@ -485,14 +485,14 @@ func TestNewError_CollectedSingleError(t *testing.T) {
 	_ = c.Collect(E2027("score: value must be > 0", "0"))
 
 	joined := c.Join()
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	want := `error[E2027]: protovalidate violation
 Reason: "0" violates rule: score: value must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_TwoLevelCollectorTree verifies 2-level collector flattening:
@@ -511,8 +511,8 @@ func TestNewError_TwoLevelCollectorTree(t *testing.T) {
 	joined := root.Join()
 	require.NotNil(t, joined)
 
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Reason: "0" violates rule: score: must be > 0
@@ -522,7 +522,7 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: map key "duplicate_key" already exists
 Help: fix duplicate keys and ensure map key is unique
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_TwoLevelWithWrapKV verifies WrapKV on individual errors before Collect:
@@ -547,8 +547,8 @@ func TestNewError_TwoLevelWithWrapKV(t *testing.T) {
 	))
 
 	joined := root.Join()
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Workbook: Items#*.csv
@@ -566,7 +566,7 @@ DataCell: <no value>
 Reason: "abcdefghijklmnop" violates rule: item.name: too long
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_TwoLevelCollectorScope verifies that a child's scope reaches
@@ -581,8 +581,8 @@ func TestNewError_TwoLevelCollectorScope(t *testing.T) {
 	_ = child.Collect(E2027("item.score: must be > 0 and <= 100", "800"))
 	_ = child.Collect(E2027("item.name: too long", "abcdefghijklmnop"))
 
-	d := NewError(root.Join())
-	require.NotNil(t, d)
+	structuredErr := NewError(root.Join())
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Workbook: Items#*.csv
@@ -600,7 +600,7 @@ DataCell: <no value>
 Reason: "abcdefghijklmnop" violates rule: item.name: too long
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_ThreeLevelCollectorTree verifies 3-level collector flattening:
@@ -629,8 +629,8 @@ func TestNewError_ThreeLevelCollectorTree(t *testing.T) {
 	joined := root.Join()
 	require.NotNil(t, joined)
 
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Reason: "0" violates rule: score: must be > 0
@@ -648,7 +648,7 @@ Help: fix duplicate keys and ensure map key is unique
 Reason: value "5" does not meet sequence requirement: "sequence:1"
 Help: prop "sequence:1" requires value starts from "1" and increases monotonically
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_ThreeLevelWithWrapKV verifies 3-level collector with WrapKV on
@@ -677,8 +677,8 @@ func TestNewError_ThreeLevelWithWrapKV(t *testing.T) {
 		KeyModule, ModuleConf, KeyBookName, "Items#*.csv", KeySheetName, "Sheet2"))
 
 	joined := root.Join()
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Workbook: Items#*.csv
@@ -704,7 +704,7 @@ DataCell: <no value>
 Reason: map key "dup_key" already exists
 Help: fix duplicate keys and ensure map key is unique
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_ThreeLevelCollectorScopes verifies that book and sheet fields
@@ -719,8 +719,8 @@ func TestNewError_ThreeLevelCollectorScopes(t *testing.T) {
 	_ = sheet1.Collect(E2027("name: too long", "abcdefghijk"))
 	_ = sheet2.Collect(E2005("dup_key"))
 
-	d := NewError(root.Join())
-	require.NotNil(t, d)
+	structuredErr := NewError(root.Join())
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Workbook: Items#*.csv
@@ -746,7 +746,7 @@ DataCell: <no value>
 Reason: map key "dup_key" already exists
 Help: fix duplicate keys and ensure map key is unique
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_MixedErrorTypesInCollectorTree verifies structured ecodes + plain errors
@@ -760,8 +760,8 @@ func TestNewError_MixedErrorTypesInCollectorTree(t *testing.T) {
 	_ = child.Collect(E2005("dup_key"))
 
 	joined := root.Join()
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Reason: "0" violates rule: score: must be > 0
@@ -772,7 +772,7 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: map key "dup_key" already exists
 Help: fix duplicate keys and ensure map key is unique
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_MultipleWorkbookSiblings verifies multiple workbooks processed
@@ -798,8 +798,8 @@ func TestNewError_MultipleWorkbookSiblings(t *testing.T) {
 		KeyModule, ModuleConf, KeyBookName, "Quests.xlsx", KeySheetName, "QuestConf"))
 
 	joined := root.Join()
-	d := NewError(joined)
-	require.NotNil(t, d)
+	structuredErr := NewError(joined)
+	require.NotNil(t, structuredErr)
 
 	want := `[1] error[E2027]: protovalidate violation
 Workbook: Items.xlsx
@@ -825,7 +825,7 @@ DataCell: <no value>
 Reason: value "5" does not meet sequence requirement: "sequence:1"
 Help: prop "sequence:1" requires value starts from "1" and increases monotonically
 `
-	assert.Equal(t, want, d.stringify(false))
+	assert.Equal(t, want, structuredErr.stringify(false))
 }
 
 // TestNewError_SingleErrorInDeepTree verifies that a single error in a 3-level
@@ -844,14 +844,14 @@ func TestNewError_SingleErrorInDeepTree(t *testing.T) {
 
 		_ = grandchild.Collect(E2027("score: must be > 0", "0"))
 
-		d := NewError(root.Join())
-		require.NotNil(t, d)
+		structuredErr := NewError(root.Join())
+		require.NotNil(t, structuredErr)
 
 		want := `error[E2027]: protovalidate violation
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.stringify(false))
+		assert.Equal(t, want, structuredErr.stringify(false))
 	})
 
 	t.Run("WrapKV_before_Collect", func(t *testing.T) {
@@ -865,8 +865,8 @@ Help: fix the field value to satisfy the protovalidate rule
 			KeySheetName, "Sheet1",
 		))
 
-		d := NewError(root.Join())
-		require.NotNil(t, d)
+		structuredErr := NewError(root.Join())
+		require.NotNil(t, structuredErr)
 
 		want := `error[E2027]: protovalidate violation
 Workbook: Items.xlsx
@@ -876,7 +876,7 @@ DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.stringify(false))
+		assert.Equal(t, want, structuredErr.stringify(false))
 	})
 
 	t.Run("WrapKV_on_Join", func(t *testing.T) {
@@ -892,8 +892,8 @@ Help: fix the field value to satisfy the protovalidate rule
 			KeySheetName, "Sheet1",
 		)
 
-		d := NewError(wrapped)
-		require.NotNil(t, d)
+		structuredErr := NewError(wrapped)
+		require.NotNil(t, structuredErr)
 
 		want := `error[E2027]: protovalidate violation
 Workbook: Items.xlsx
@@ -903,7 +903,7 @@ DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.stringify(false))
+		assert.Equal(t, want, structuredErr.stringify(false))
 	})
 }
 
@@ -920,8 +920,8 @@ func TestNewError_InnerFieldWins(t *testing.T) {
 			KeySheetName, "InnerSheet",
 		))
 
-		d := NewError(root.Join())
-		require.NotNil(t, d)
+		structuredErr := NewError(root.Join())
+		require.NotNil(t, structuredErr)
 
 		want := `error[E2027]: protovalidate violation
 Workbook: Test.xlsx
@@ -931,7 +931,7 @@ DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.stringify(false))
+		assert.Equal(t, want, structuredErr.stringify(false))
 	})
 
 	t.Run("WrapKV_on_Join", func(t *testing.T) {
@@ -945,8 +945,8 @@ Help: fix the field value to satisfy the protovalidate rule
 			KeySheetName, "OuterSheet",
 		)
 
-		d := NewError(outer)
-		require.NotNil(t, d)
+		structuredErr := NewError(outer)
+		require.NotNil(t, structuredErr)
 
 		want := `error[E2027]: protovalidate violation
 Workbook: Test.xlsx
@@ -956,7 +956,7 @@ DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.stringify(false))
+		assert.Equal(t, want, structuredErr.stringify(false))
 	})
 }
 
@@ -999,9 +999,9 @@ Help: rename column name and keep sure it is unique in name row
 			KeyTypeCell, "int32",
 		))
 
-		d := NewError(root.Join())
-		require.NotNil(t, d)
-		assert.Equal(t, want, d.stringify(false))
+		structuredErr := NewError(root.Join())
+		require.NotNil(t, structuredErr)
+		assert.Equal(t, want, structuredErr.stringify(false))
 	})
 
 	t.Run("WrapKV_on_Join", func(t *testing.T) {
@@ -1018,9 +1018,9 @@ Help: rename column name and keep sure it is unique in name row
 			KeyTypeCell, "int32",
 		)
 
-		d := NewError(wrapped)
-		require.NotNil(t, d)
-		assert.Equal(t, want, d.stringify(false))
+		structuredErr := NewError(wrapped)
+		require.NotNil(t, structuredErr)
+		assert.Equal(t, want, structuredErr.stringify(false))
 	})
 }
 
@@ -1054,10 +1054,10 @@ func TestNewError_GroupEndToEnd(t *testing.T) {
 	waitErr := g.Wait()
 	require.Error(t, waitErr)
 
-	assertGroupOutput := func(t *testing.T, d *Error) {
+	assertGroupOutput := func(t *testing.T, structuredErr *Error) {
 		t.Helper()
-		require.NotNil(t, d)
-		rendered := d.stringify(false)
+		require.NotNil(t, structuredErr)
+		rendered := structuredErr.stringify(false)
 		assert.Contains(t, rendered, "[1]")
 		assert.Contains(t, rendered, "[2]")
 		assert.Contains(t, rendered, `"800" violates rule: item.score: must be > 0 and <= 100`)
@@ -1085,9 +1085,9 @@ func TestNewErrorReferBookAndSheet(t *testing.T) {
 		KeyDataCellPos, "C4",
 		KeyDataCell, "not-a-bool",
 	)
-	d := NewError(err)
-	require.NotNil(t, d)
-	got := d.stringify(false)
+	structuredErr := NewError(err)
+	require.NotNil(t, structuredErr)
+	got := structuredErr.stringify(false)
 	assert.Contains(t, got, "Workbook: Affix.xlsx")
 	assert.Contains(t, got, "Worksheet: AffixConf")
 	assert.Contains(t, got, "ReferWorkbook: AssistSkill.xlsx")
@@ -1207,7 +1207,7 @@ func TestErrorDetailsNormalization(t *testing.T) {
 }
 
 // A consumer editing typed details must see the same values in text and JSON;
-// there must be no stale descriptor or cached summary behind the public error.
+// there must be no stale source metadata or cached summary behind the public error.
 func TestErrorDetailsDriveRendering(t *testing.T) {
 	cause := WrapKV(E2005("duplicate"),
 		KeyModule, ModuleConf,

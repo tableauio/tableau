@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/options"
 )
 
@@ -53,6 +54,10 @@ func TestCollectorIntegration_SingleSheet(t *testing.T) {
 	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/", format.CSV)
 	err := gen.Generate("Collector2#HeroConf.csv")
 	require.Error(t, err)
+	var structuredErr *xerrors.Error
+	require.ErrorAs(t, err, &structuredErr)
+	require.Len(t, structuredErr.Details, 1)
+	assert.Equal(t, "E0003", structuredErr.Details[0].Code)
 
 	got := err.Error()
 	// Single error: no numbered prefix.

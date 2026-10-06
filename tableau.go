@@ -5,20 +5,16 @@ import (
 
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/x/xerrors"
-	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
 
 // Generate converts Excel/CSV/XML/YAML files to protoconf files and
 // different configuration files: JSON, Text, and Bin.
-func Generate(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
-	defer func() { err = xerrors.WrapError(err) }()
-
+func Generate(protoPackage, indir, outdir string, setters ...options.Option) error {
 	if err := GenProto(protoPackage, indir, outdir, setters...); err != nil {
 		return xerrors.Wrapf(err, "failed to generate proto files")
 	}
@@ -29,9 +25,7 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) (er
 }
 
 // GenProto converts Excel/CSV/XML/YAML files to protoconf files.
-func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
-	defer func() { err = xerrors.WrapError(err) }()
-
+func GenProto(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {
 		return err
@@ -45,9 +39,7 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (er
 }
 
 // GenConf converts Excel/CSV/XML/YAML files to different configuration files: JSON, Text, and Bin.
-func GenConf(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
-	defer func() { err = xerrors.WrapError(err) }()
-
+func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {
 		return err
@@ -87,10 +79,6 @@ func SetLang(lang string) error {
 }
 
 // NewImporter creates a new importer of the specified workbook.
-func NewImporter(workbookPath string) (imp importer.Importer, err error) {
-	defer func() { err = xerrors.WrapError(err) }()
-
-	ctx := context.Background()
-	parser := confgen.NewSheetParser(ctx, xproto.InternalProtoPackage, "", book.MetasheetOptions(ctx))
-	return importer.New(ctx, workbookPath, importer.Parser(parser))
+func NewImporter(workbookPath string) (importer.Importer, error) {
+	return confgen.NewImporter(context.Background(), workbookPath)
 }

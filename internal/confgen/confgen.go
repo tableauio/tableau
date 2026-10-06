@@ -107,7 +107,7 @@ func newRunCaches(profiling bool) (*fieldprop.ReferredCache, *importer.Cache) {
 // bookSpecifier can be:
 //   - only workbook: excel/Item.xlsx
 //   - specific worksheet: excel/Item.xlsx#Item (To be implemented)
-func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
+func (gen *Generator) Generate(bookSpecifiers ...string) error {
 	if len(bookSpecifiers) == 0 {
 		return gen.GenAll()
 	}

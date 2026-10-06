@@ -189,8 +189,8 @@ func format(self error, s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') {
 			// %+v includes the shared summary, structured fields, and stack.
-			if d := NewError(self); d != nil {
-				_, _ = io.WriteString(s, d.stringify(true))
+			if structuredErr := NewError(self); structuredErr != nil {
+				_, _ = io.WriteString(s, structuredErr.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, self.Error())
 				var berr *base
@@ -248,10 +248,10 @@ type joinError struct {
 
 func (j *joinError) Unwrap() []error { return j.errs }
 
-// Error renders the joined errors from their structured descriptions.
+// Error renders the joined errors from their structured details.
 func (j *joinError) Error() string {
-	if d := NewError(j); d != nil {
-		return d.Error()
+	if structuredErr := NewError(j); structuredErr != nil {
+		return structuredErr.Error()
 	}
 	var sb strings.Builder
 	for i, err := range j.errs {
@@ -270,8 +270,8 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') {
 			// %+v includes the shared summary, structured fields, and stack.
-			if d := NewError(j); d != nil {
-				_, _ = io.WriteString(s, d.stringify(true))
+			if structuredErr := NewError(j); structuredErr != nil {
+				_, _ = io.WriteString(s, structuredErr.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, j.Error())
 			}
@@ -286,14 +286,14 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 }
 
 type ecode struct {
-	code string
-	desc string
+	code        string
+	description string
 }
 
-func newEcode(code, desc string) *ecode {
+func newEcode(code, description string) *ecode {
 	return &ecode{
-		code: code,
-		desc: desc,
+		code:        code,
+		description: description,
 	}
 }
 
@@ -301,7 +301,7 @@ func (e *ecode) Error() string {
 	if e == nil || e.code == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s: %s", e.code, e.desc)
+	return fmt.Sprintf("%s: %s", e.code, e.description)
 }
 
 func (e *ecode) Is(target error) bool {
@@ -314,7 +314,7 @@ func renderSummary(module string, kv map[string]any) string {
 }
 
 // defaultErrCode is assigned to structured errors that carry no explicit
-// ecode, so every rendered error has a consistent "error[...]: desc" header
+// ecode, so every rendered error has a consistent "error[...]: description" header
 // (matching ecoded errors like E2005). E0004 is "unknown error".
 const defaultErrCode = "E0004"
 
@@ -327,11 +327,11 @@ func ensureEcode(fields map[string]any) {
 		return
 	}
 	fields[KeyErrCode] = defaultErrCode
-	desc := "unknown error"
+	description := "unknown error"
 	if detail := localizer.Default.RenderEcode(defaultErrCode, nil); detail != nil && detail.Desc != "" {
-		desc = detail.Desc
+		description = detail.Desc
 	}
-	fields[KeyErrDesc] = desc
+	fields[KeyErrDesc] = description
 }
 
 func renderEcode(ec *ecode, kv map[string]any) error {
