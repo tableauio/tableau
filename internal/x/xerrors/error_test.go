@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDesc(t *testing.T) {
+func TestNewError(t *testing.T) {
 	type args struct {
 		err error
 	}
@@ -51,7 +51,7 @@ func TestNewDesc(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewDesc(tt.args.err)
+			got := NewError(tt.args.err)
 			if tt.wantNil {
 				assert.Nil(t, got)
 			} else {
@@ -61,15 +61,15 @@ func TestNewDesc(t *testing.T) {
 	}
 }
 
-func TestNewDescPlainError(t *testing.T) {
+func TestNewErrorPlainError(t *testing.T) {
 	err := fmt.Errorf("plain error")
-	desc := NewDesc(err)
+	desc := NewError(err)
 	require.NotNil(t, desc)
-	assert.Equal(t, "plain error", desc.Stringify(false))
+	assert.Equal(t, "plain error", desc.stringify(false))
 }
 
-func TestNewDescNil(t *testing.T) {
-	assert.Nil(t, NewDesc(nil))
+func TestNewErrorNil(t *testing.T) {
+	assert.Nil(t, NewError(nil))
 }
 
 // TestWrapKVInnermostWins verifies innermost (earliest) WrapKV value wins on key conflicts.
@@ -101,49 +101,49 @@ func TestWrapKVInnermostWins(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := NewDesc(tt.err)
+			d := NewError(tt.err)
 			require.NotNil(t, d)
-			assert.Equal(t, tt.wantModule, d.GetValue(KeyModule))
+			assert.Equal(t, tt.wantModule, detailFields(d)[KeyModule])
 		})
 	}
 }
 
-func TestNewDescAllNilJoin(t *testing.T) {
+func TestNewErrorAllNilJoin(t *testing.T) {
 	joined := errors.Join(nil, nil)
-	assert.Nil(t, NewDesc(joined))
+	assert.Nil(t, NewError(joined))
 }
 
-// TestNewDescSingleChildJoin verifies errors.Join with one non-nil child → single Desc.
-func TestNewDescSingleChildJoin(t *testing.T) {
+// TestNewErrorSingleChildJoin verifies errors.Join with one non-nil child → single Error.
+func TestNewErrorSingleChildJoin(t *testing.T) {
 	e := E2003("1", 3)
 	joined := errors.Join(nil, e)
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	wantNoDebug := `error[E2003]: illegal sequence number
 Reason: value "1" does not meet sequence requirement: "sequence:3"
 Help: prop "sequence:3" requires value starts from "3" and increases monotonically
 `
-	assert.Equal(t, wantNoDebug, d.Stringify(false))
+	assert.Equal(t, wantNoDebug, d.stringify(false))
 
-	debugGot := d.Stringify(true)
+	debugGot := d.stringify(true)
 	assert.True(t, strings.HasPrefix(debugGot, wantNoDebug), "debug output should start with the non-debug summary")
 	assert.Contains(t, debugGot, "\n--- debugging ---\n", "debug output should contain debugging header")
-	assert.Regexp(t, regexp.MustCompile(`xerrors\.TestNewDescSingleChildJoin`), debugGot, "debug output should contain stack trace")
+	assert.Regexp(t, regexp.MustCompile(`xerrors\.TestNewErrorSingleChildJoin`), debugGot, "debug output should contain stack trace")
 }
 
-// TestNewDescMultipleChildren verifies errors.Join with multiple children → numbered list.
-func TestNewDescMultipleChildren(t *testing.T) {
+// TestNewErrorMultipleChildren verifies errors.Join with multiple children → numbered list.
+func TestNewErrorMultipleChildren(t *testing.T) {
 	e1 := E2027("name: value length must be at most 10 characters", "toolong")
 	e2 := E2027("id: must be positive", "0")
 	joined := errors.Join(e1, e2)
 
-	md := NewDesc(joined)
+	md := NewError(joined)
 	require.NotNil(t, md)
-	require.Len(t, md.children, 2)
+	require.Len(t, md.Details, 2)
 
-	for i, d := range md.children {
-		assert.Equal(t, "E2027", d.fields[KeyErrCode], "children[%d].fields[KeyErrCode]", i)
+	for i, d := range md.Details {
+		assert.Equal(t, "E2027", d.fields()[KeyErrCode], "children[%d].fields()[KeyErrCode]", i)
 	}
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
@@ -154,39 +154,39 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: "0" violates rule: id: must be positive
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, wantNoDebug, md.Stringify(false))
+	assert.Equal(t, wantNoDebug, md.stringify(false))
 }
 
-// TestNewDescMixedErrors verifies one structured error + one plain error in a join.
-func TestNewDescMixedErrors(t *testing.T) {
+// TestNewErrorMixedErrors verifies one structured error + one plain error in a join.
+func TestNewErrorMixedErrors(t *testing.T) {
 	e1 := E2027("name: value length must be at most 10 characters", "toolong")
 	e2 := fmt.Errorf("plain error")
 	joined := errors.Join(e1, e2)
 
-	md := NewDesc(joined)
+	md := NewError(joined)
 	require.NotNil(t, md)
-	require.Len(t, md.children, 2)
+	require.Len(t, md.Details, 2)
 
-	assert.Equal(t, "E2027", md.children[0].fields[KeyErrCode])
-	assert.Nil(t, md.children[1].fields[KeyErrCode])
-	assert.Equal(t, "plain error", md.children[1].Stringify(false))
+	assert.Equal(t, "E2027", md.Details[0].fields()[KeyErrCode])
+	assert.Nil(t, md.Details[1].fields()[KeyErrCode])
+	assert.Equal(t, "plain error", md.Details[1].String())
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
 Reason: "toolong" violates rule: name: value length must be at most 10 characters
 Help: fix the field value to satisfy the protovalidate rule
 
 [2] plain error`
-	assert.Equal(t, wantNoDebug, md.Stringify(false))
+	assert.Equal(t, wantNoDebug, md.stringify(false))
 }
 
-// TestNewDescWrapKVOverJoin verifies shared fields merge into every child Desc,
+// TestNewErrorWrapKVOverJoin verifies shared fields merge into every child Error,
 // while each child's own fields (Reason) still win.
 //
 //	WrapKV(errors.Join(e1, e2), Module, BookName, SheetName)
 //	  └── joinError
 //	        ├── e1 (E2027)
 //	        └── e2 (E2027)
-func TestNewDescWrapKVOverJoin(t *testing.T) {
+func TestNewErrorWrapKVOverJoin(t *testing.T) {
 	e1 := E2027("item_map[1].score: value must be > 0 and <= 100", "800")
 	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
 	joined := errors.Join(e1, e2)
@@ -196,7 +196,7 @@ func TestNewDescWrapKVOverJoin(t *testing.T) {
 		KeySheetName, "ValidateFieldLevel",
 	)
 
-	md := NewDesc(wrapped)
+	md := NewError(wrapped)
 	require.NotNil(t, md)
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
@@ -215,12 +215,12 @@ DataCell: <no value>
 Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, wantNoDebug, md.Stringify(false))
+	assert.Equal(t, wantNoDebug, md.stringify(false))
 }
 
-// TestNewDescWrapKVOverJoinSingleChild verifies WrapKV wrapping errors.Join
-// with exactly one non-nil child → single Desc (not numbered list).
-func TestNewDescWrapKVOverJoinSingleChild(t *testing.T) {
+// TestNewErrorWrapKVOverJoinSingleChild verifies WrapKV wrapping errors.Join
+// with exactly one non-nil child → single Error (not numbered list).
+func TestNewErrorWrapKVOverJoinSingleChild(t *testing.T) {
 	e1 := E2027("score: value must be > 0 and <= 100", "800")
 	joined := errors.Join(e1)
 	wrapped := WrapKV(joined,
@@ -229,7 +229,7 @@ func TestNewDescWrapKVOverJoinSingleChild(t *testing.T) {
 		KeySheetName, "ValidateFieldLevel",
 	)
 
-	d := NewDesc(wrapped)
+	d := NewError(wrapped)
 	require.NotNil(t, d)
 
 	wantNoDebug := `error[E2027]: protovalidate violation
@@ -240,17 +240,17 @@ DataCell: <no value>
 Reason: "800" violates rule: score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, wantNoDebug, d.Stringify(false))
+	assert.Equal(t, wantNoDebug, d.stringify(false))
 }
 
-// TestNewDescOuterFieldDoesNotOverrideInner verifies inner WrapKV value wins
+// TestNewErrorOuterFieldDoesNotOverrideInner verifies inner WrapKV value wins
 // over outer WrapKV on key conflicts.
-func TestNewDescOuterFieldDoesNotOverrideInner(t *testing.T) {
+func TestNewErrorOuterFieldDoesNotOverrideInner(t *testing.T) {
 	inner := WrapKV(Newf("inner error"), KeyModule, ModuleConf)
 	joined := errors.Join(inner)
 	wrapped := WrapKV(joined, KeyModule, ModuleProto)
 
-	d := NewDesc(wrapped)
+	d := NewError(wrapped)
 	require.NotNil(t, d)
 
 	want := `error[E0004]: unknown error
@@ -260,10 +260,10 @@ DataCellPos: <no value>
 DataCell: <no value>
 Reason: inner error
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDescTwoLayerJoinMultiOuter verifies flattening when outer join has
+// TestNewErrorTwoLayerJoinMultiOuter verifies flattening when outer join has
 // multiple children, each wrapping an inner join:
 //
 //	outerJoinError
@@ -273,7 +273,7 @@ Reason: inner error
 //	        └── innerJoin2: {e3, e4}
 //
 // All 4 leaf errors must appear as a flat numbered list.
-func TestNewDescTwoLayerJoinMultiOuter(t *testing.T) {
+func TestNewErrorTwoLayerJoinMultiOuter(t *testing.T) {
 	e1 := E2027("item_map[1].score: value must be > 0 and <= 100", "800")
 	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
 	e3 := E2027("item_map[3].score: value must be > 0 and <= 100", "0")
@@ -293,7 +293,7 @@ func TestNewDescTwoLayerJoinMultiOuter(t *testing.T) {
 	)
 	outerJoin := &joinError{errs: []error{wrapped1, wrapped2}}
 
-	md := NewDesc(outerJoin)
+	md := NewError(outerJoin)
 	require.NotNil(t, md)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -328,10 +328,10 @@ DataCell: <no value>
 Reason: "-1" violates rule: item_map[4].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, md.Stringify(false))
+	assert.Equal(t, want, md.stringify(false))
 }
 
-// TestNewDescThreeLayerJoin verifies arbitrary-depth flattening with layered scopes:
+// TestNewErrorThreeLayerJoin verifies arbitrary-depth flattening with layered scopes:
 //
 //	WrapKV(outerJoin, Module, BookName)
 //	  └── outerJoinError
@@ -341,7 +341,7 @@ Help: fix the field value to satisfy the protovalidate rule
 //	              └── innerJoin2: {e3, e4}
 //
 // All 4 leaf errors carry BookName + SheetName.
-func TestNewDescThreeLayerJoin(t *testing.T) {
+func TestNewErrorThreeLayerJoin(t *testing.T) {
 	e1 := E2027("item_map[1].score: value must be > 0 and <= 100", "800")
 	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
 	e3 := E2027("item_map[3].score: value must be > 0 and <= 100", "0")
@@ -358,7 +358,7 @@ func TestNewDescThreeLayerJoin(t *testing.T) {
 		KeyBookName, "Validate#*.csv",
 	)
 
-	md := NewDesc(top)
+	md := NewError(top)
 	require.NotNil(t, md)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -393,22 +393,22 @@ DataCell: <no value>
 Reason: "-1" violates rule: item_map[4].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, md.Stringify(false))
+	assert.Equal(t, want, md.stringify(false))
 	assert.Equal(t, want, top.Error())
 	assert.Equal(t, want, fmt.Sprintf("%s", top))
 	assert.Equal(t, want, fmt.Sprintf("%v", top))
 
 	// Verify debug output: each child should have its own stack trace.
-	debugGot := md.Stringify(true)
+	debugGot := md.stringify(true)
 	t.Log(debugGot)
 	for i := 1; i <= 4; i++ {
 		assert.Contains(t, debugGot, fmt.Sprintf("[%d] error[E2027]", i), "child %d should have error header", i)
 	}
 	assert.Equal(t, 4, strings.Count(debugGot, "\n--- debugging ---\n"), "debug output should contain exactly 4 debugging headers")
-	assert.Equal(t, 4, strings.Count(debugGot, "xerrors.TestNewDescThreeLayerJoin"), "debug output should contain exactly 4 stack traces")
+	assert.Equal(t, 4, strings.Count(debugGot, "xerrors.TestNewErrorThreeLayerJoin"), "debug output should contain exactly 4 stack traces")
 }
 
-// TestNewDescTwoLayerJoin verifies a regular join containing a wrapped inner join:
+// TestNewErrorTwoLayerJoin verifies a regular join containing a wrapped inner join:
 //
 //	outerJoinError                              ← Generator collector.Join()
 //	  └── WrapKV(innerJoinError, Module, Book, Sheet)
@@ -417,7 +417,7 @@ Help: fix the field value to satisfy the protovalidate rule
 //	              └── e2 (E2027)
 //
 // Both leaf errors appear with the outer WrapKV fields.
-func TestNewDescTwoLayerJoin(t *testing.T) {
+func TestNewErrorTwoLayerJoin(t *testing.T) {
 	e1 := E2027("item_map[1].score: value must be > 0 and <= 100", "800")
 	e2 := E2027("item_map[2].score: value must be > 0 and <= 100", "950")
 
@@ -429,7 +429,7 @@ func TestNewDescTwoLayerJoin(t *testing.T) {
 	)
 	outerJoin := &joinError{errs: []error{wrapped}}
 
-	md := NewDesc(outerJoin)
+	md := NewError(outerJoin)
 	require.NotNil(t, md)
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
@@ -448,12 +448,12 @@ DataCell: <no value>
 Reason: "950" violates rule: item_map[2].score: value must be > 0 and <= 100
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, wantNoDebug, md.Stringify(false))
+	assert.Equal(t, wantNoDebug, md.stringify(false))
 }
 
-// TestNewDesc_CollectedMarkerTransparent verifies that the collected wrapper
-// from Collector.Join() is transparent to NewDesc.
-func TestNewDesc_CollectedMarkerTransparent(t *testing.T) {
+// TestNewError_CollectedMarkerTransparent verifies that the collected wrapper
+// from Collector.Join() is transparent to NewError.
+func TestNewError_CollectedMarkerTransparent(t *testing.T) {
 	c := NewCollector(10)
 	_ = c.Collect(E2027("score: value must be > 0", "0"))
 	_ = c.Collect(E2027("name: too long", "abcdefghijk"))
@@ -464,7 +464,7 @@ func TestNewDesc_CollectedMarkerTransparent(t *testing.T) {
 	var ce *collected
 	require.True(t, errors.As(joined, &ce), "Join() must return collected-wrapped error")
 
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -475,32 +475,32 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: "abcdefghijk" violates rule: name: too long
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_CollectedSingleError verifies single error in collector → single Desc (no numbered list).
-func TestNewDesc_CollectedSingleError(t *testing.T) {
+// TestNewError_CollectedSingleError verifies single error in collector → single Error (no numbered list).
+func TestNewError_CollectedSingleError(t *testing.T) {
 	c := NewCollector(10)
 	_ = c.Collect(E2027("score: value must be > 0", "0"))
 
 	joined := c.Join()
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	want := `error[E2027]: protovalidate violation
 Reason: "0" violates rule: score: value must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_TwoLevelCollectorTree verifies 2-level collector flattening:
+// TestNewError_TwoLevelCollectorTree verifies 2-level collector flattening:
 //
 //	root collector
 //	  └── child collector
 //	        ├── E2027
 //	        └── E2005
-func TestNewDesc_TwoLevelCollectorTree(t *testing.T) {
+func TestNewError_TwoLevelCollectorTree(t *testing.T) {
 	root := NewCollector(10)
 	child := root.NewChild(0)
 
@@ -510,7 +510,7 @@ func TestNewDesc_TwoLevelCollectorTree(t *testing.T) {
 	joined := root.Join()
 	require.NotNil(t, joined)
 
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -521,16 +521,16 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: map key "duplicate_key" already exists
 Help: fix duplicate keys and ensure map key is unique
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_TwoLevelWithWrapKV verifies WrapKV on individual errors before Collect:
+// TestNewError_TwoLevelWithWrapKV verifies WrapKV on individual errors before Collect:
 //
 //	root collector
 //	  └── child collector
 //	        ├── WrapKV(E2027, Module, Book:"Items#*.csv", Sheet:"ItemConf")
 //	        └── WrapKV(E2027, Module, Book:"Items#*.csv", Sheet:"Item2Conf")
-func TestNewDesc_TwoLevelWithWrapKV(t *testing.T) {
+func TestNewError_TwoLevelWithWrapKV(t *testing.T) {
 	root := NewCollector(10)
 	child := root.NewChild(0)
 
@@ -546,7 +546,7 @@ func TestNewDesc_TwoLevelWithWrapKV(t *testing.T) {
 	))
 
 	joined := root.Join()
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -565,12 +565,12 @@ DataCell: <no value>
 Reason: "abcdefghijklmnop" violates rule: item.name: too long
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_TwoLevelCollectorScope verifies that a child's scope reaches
+// TestNewError_TwoLevelCollectorScope verifies that a child's scope reaches
 // every error stored under it.
-func TestNewDesc_TwoLevelCollectorScope(t *testing.T) {
+func TestNewError_TwoLevelCollectorScope(t *testing.T) {
 	root := NewCollector(10)
 	child := root.NewChild(0,
 		KeyModule, ModuleConf,
@@ -580,7 +580,7 @@ func TestNewDesc_TwoLevelCollectorScope(t *testing.T) {
 	_ = child.Collect(E2027("item.score: must be > 0 and <= 100", "800"))
 	_ = child.Collect(E2027("item.name: too long", "abcdefghijklmnop"))
 
-	d := NewDesc(root.Join())
+	d := NewError(root.Join())
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -599,10 +599,10 @@ DataCell: <no value>
 Reason: "abcdefghijklmnop" violates rule: item.name: too long
 Help: fix the field value to satisfy the protovalidate rule
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_ThreeLevelCollectorTree verifies 3-level collector flattening:
+// TestNewError_ThreeLevelCollectorTree verifies 3-level collector flattening:
 //
 //	root collector (Generator)
 //	  └── child collector (workbook)
@@ -614,7 +614,7 @@ Help: fix the field value to satisfy the protovalidate rule
 //	              └── E2003
 //
 // All 4 leaf errors flatten into a single numbered list.
-func TestNewDesc_ThreeLevelCollectorTree(t *testing.T) {
+func TestNewError_ThreeLevelCollectorTree(t *testing.T) {
 	root := NewCollector(20)
 	child := root.NewChild(0)
 	grandchild1 := child.NewChild(0)
@@ -628,7 +628,7 @@ func TestNewDesc_ThreeLevelCollectorTree(t *testing.T) {
 	joined := root.Join()
 	require.NotNil(t, joined)
 
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -647,10 +647,10 @@ Help: fix duplicate keys and ensure map key is unique
 Reason: value "5" does not meet sequence requirement: "sequence:1"
 Help: prop "sequence:1" requires value starts from "1" and increases monotonically
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_ThreeLevelWithWrapKV verifies 3-level collector with WrapKV on
+// TestNewError_ThreeLevelWithWrapKV verifies 3-level collector with WrapKV on
 // individual errors before Collect:
 //
 //	root collector (Generator)
@@ -662,7 +662,7 @@ Help: prop "sequence:1" requires value starts from "1" and increases monotonical
 //	              └── WrapKV(E2005, Module, Book:"Items#*.csv", Sheet:"Sheet2")
 //
 // All 3 leaf errors carry BookName + SheetName from their WrapKV layers.
-func TestNewDesc_ThreeLevelWithWrapKV(t *testing.T) {
+func TestNewError_ThreeLevelWithWrapKV(t *testing.T) {
 	root := NewCollector(20)
 	child := root.NewChild(0)
 	grandchild1 := child.NewChild(0)
@@ -676,7 +676,7 @@ func TestNewDesc_ThreeLevelWithWrapKV(t *testing.T) {
 		KeyModule, ModuleConf, KeyBookName, "Items#*.csv", KeySheetName, "Sheet2"))
 
 	joined := root.Join()
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -703,12 +703,12 @@ DataCell: <no value>
 Reason: map key "dup_key" already exists
 Help: fix duplicate keys and ensure map key is unique
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_ThreeLevelCollectorScopes verifies that book and sheet fields
+// TestNewError_ThreeLevelCollectorScopes verifies that book and sheet fields
 // inherit through the collector hierarchy without wrapping Join results.
-func TestNewDesc_ThreeLevelCollectorScopes(t *testing.T) {
+func TestNewError_ThreeLevelCollectorScopes(t *testing.T) {
 	root := NewCollector(20)
 	book := root.NewChild(0, KeyModule, ModuleConf, KeyBookName, "Items#*.csv")
 	sheet1 := book.NewChild(0, KeySheetName, "Sheet1")
@@ -718,7 +718,7 @@ func TestNewDesc_ThreeLevelCollectorScopes(t *testing.T) {
 	_ = sheet1.Collect(E2027("name: too long", "abcdefghijk"))
 	_ = sheet2.Collect(E2005("dup_key"))
 
-	d := NewDesc(root.Join())
+	d := NewError(root.Join())
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -745,12 +745,12 @@ DataCell: <no value>
 Reason: map key "dup_key" already exists
 Help: fix duplicate keys and ensure map key is unique
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_MixedErrorTypesInCollectorTree verifies structured ecodes + plain errors
+// TestNewError_MixedErrorTypesInCollectorTree verifies structured ecodes + plain errors
 // in a collector tree render correctly.
-func TestNewDesc_MixedErrorTypesInCollectorTree(t *testing.T) {
+func TestNewError_MixedErrorTypesInCollectorTree(t *testing.T) {
 	root := NewCollector(10)
 	child := root.NewChild(0)
 
@@ -759,7 +759,7 @@ func TestNewDesc_MixedErrorTypesInCollectorTree(t *testing.T) {
 	_ = child.Collect(E2005("dup_key"))
 
 	joined := root.Join()
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -771,10 +771,10 @@ Help: fix the field value to satisfy the protovalidate rule
 Reason: map key "dup_key" already exists
 Help: fix duplicate keys and ensure map key is unique
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_MultipleWorkbookSiblings verifies multiple workbooks processed
+// TestNewError_MultipleWorkbookSiblings verifies multiple workbooks processed
 // concurrently, each producing WrapKV'd errors:
 //
 //	root collector
@@ -783,7 +783,7 @@ Help: fix duplicate keys and ensure map key is unique
 //	  │     └── WrapKV(E2027, Book:"Items.xlsx", Sheet:"ItemConf")
 //	  └── child2 (Quests.xlsx)
 //	        └── WrapKV(E2003, Book:"Quests.xlsx", Sheet:"QuestConf")
-func TestNewDesc_MultipleWorkbookSiblings(t *testing.T) {
+func TestNewError_MultipleWorkbookSiblings(t *testing.T) {
 	root := NewCollector(20)
 
 	c1 := root.NewChild(0)
@@ -797,7 +797,7 @@ func TestNewDesc_MultipleWorkbookSiblings(t *testing.T) {
 		KeyModule, ModuleConf, KeyBookName, "Quests.xlsx", KeySheetName, "QuestConf"))
 
 	joined := root.Join()
-	d := NewDesc(joined)
+	d := NewError(joined)
 	require.NotNil(t, d)
 
 	want := `[1] error[E2027]: protovalidate violation
@@ -824,18 +824,18 @@ DataCell: <no value>
 Reason: value "5" does not meet sequence requirement: "sequence:1"
 Help: prop "sequence:1" requires value starts from "1" and increases monotonically
 `
-	assert.Equal(t, want, d.Stringify(false))
+	assert.Equal(t, want, d.stringify(false))
 }
 
-// TestNewDesc_SingleErrorInDeepTree verifies that a single error in a 3-level
-// collector tree collapses to a single Desc (no numbered list), with subtests
+// TestNewError_SingleErrorInDeepTree verifies that a single error in a 3-level
+// collector tree collapses to a single Error (no numbered list), with subtests
 // for bare error, WrapKV before Collect, and WrapKV on Join.
 //
 //	root collector
 //	  └── child collector
 //	        └── grandchild collector
 //	              └── E2027 (single error)
-func TestNewDesc_SingleErrorInDeepTree(t *testing.T) {
+func TestNewError_SingleErrorInDeepTree(t *testing.T) {
 	t.Run("bare", func(t *testing.T) {
 		root := NewCollector(10)
 		child := root.NewChild(0)
@@ -843,14 +843,14 @@ func TestNewDesc_SingleErrorInDeepTree(t *testing.T) {
 
 		_ = grandchild.Collect(E2027("score: must be > 0", "0"))
 
-		d := NewDesc(root.Join())
+		d := NewError(root.Join())
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.Stringify(false))
+		assert.Equal(t, want, d.stringify(false))
 	})
 
 	t.Run("WrapKV_before_Collect", func(t *testing.T) {
@@ -864,7 +864,7 @@ Help: fix the field value to satisfy the protovalidate rule
 			KeySheetName, "Sheet1",
 		))
 
-		d := NewDesc(root.Join())
+		d := NewError(root.Join())
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
@@ -875,7 +875,7 @@ DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.Stringify(false))
+		assert.Equal(t, want, d.stringify(false))
 	})
 
 	t.Run("WrapKV_on_Join", func(t *testing.T) {
@@ -891,7 +891,7 @@ Help: fix the field value to satisfy the protovalidate rule
 			KeySheetName, "Sheet1",
 		)
 
-		d := NewDesc(wrapped)
+		d := NewError(wrapped)
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
@@ -902,13 +902,13 @@ DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.Stringify(false))
+		assert.Equal(t, want, d.stringify(false))
 	})
 }
 
-// TestNewDesc_InnerFieldWins verifies inner WrapKV value wins over outer on
+// TestNewError_InnerFieldWins verifies inner WrapKV value wins over outer on
 // key conflicts, with subtests for collector tree and layered WrapKV on Join.
-func TestNewDesc_InnerFieldWins(t *testing.T) {
+func TestNewError_InnerFieldWins(t *testing.T) {
 	t.Run("collector_tree", func(t *testing.T) {
 		root := NewCollector(10)
 		child := root.NewChild(0)
@@ -919,7 +919,7 @@ func TestNewDesc_InnerFieldWins(t *testing.T) {
 			KeySheetName, "InnerSheet",
 		))
 
-		d := NewDesc(root.Join())
+		d := NewError(root.Join())
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
@@ -930,7 +930,7 @@ DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.Stringify(false))
+		assert.Equal(t, want, d.stringify(false))
 	})
 
 	t.Run("WrapKV_on_Join", func(t *testing.T) {
@@ -944,7 +944,7 @@ Help: fix the field value to satisfy the protovalidate rule
 			KeySheetName, "OuterSheet",
 		)
 
-		d := NewDesc(outer)
+		d := NewError(outer)
 		require.NotNil(t, d)
 
 		want := `error[E2027]: protovalidate violation
@@ -955,24 +955,24 @@ DataCell: <no value>
 Reason: "0" violates rule: score: must be > 0
 Help: fix the field value to satisfy the protovalidate rule
 `
-		assert.Equal(t, want, d.Stringify(false))
+		assert.Equal(t, want, d.stringify(false))
 	})
 }
 
-// TestNewDesc_EmptyCollectorTree verifies empty collector tree → nil.
-func TestNewDesc_EmptyCollectorTree(t *testing.T) {
+// TestNewError_EmptyCollectorTree verifies empty collector tree → nil.
+func TestNewError_EmptyCollectorTree(t *testing.T) {
 	root := NewCollector(10)
 	_ = root.NewChild(0)
 	_ = root.NewChild(0)
 
 	joined := root.Join()
 	assert.NoError(t, joined)
-	assert.Nil(t, NewDesc(joined))
+	assert.Nil(t, NewError(joined))
 }
 
-// TestNewDesc_ProtogenModule verifies protogen-module errors render with the
+// TestNewError_ProtogenModule verifies protogen-module errors render with the
 // protogen template, with subtests for WrapKV before Collect and on Join.
-func TestNewDesc_ProtogenModule(t *testing.T) {
+func TestNewError_ProtogenModule(t *testing.T) {
 	want := `error[E0003]: duplicate column name
 Workbook: Items.xlsx
 Worksheet: ItemConf
@@ -998,9 +998,9 @@ Help: rename column name and keep sure it is unique in name row
 			KeyTypeCell, "int32",
 		))
 
-		d := NewDesc(root.Join())
+		d := NewError(root.Join())
 		require.NotNil(t, d)
-		assert.Equal(t, want, d.Stringify(false))
+		assert.Equal(t, want, d.stringify(false))
 	})
 
 	t.Run("WrapKV_on_Join", func(t *testing.T) {
@@ -1017,20 +1017,20 @@ Help: rename column name and keep sure it is unique in name row
 			KeyTypeCell, "int32",
 		)
 
-		d := NewDesc(wrapped)
+		d := NewError(wrapped)
 		require.NotNil(t, d)
-		assert.Equal(t, want, d.Stringify(false))
+		assert.Equal(t, want, d.stringify(false))
 	})
 }
 
-// TestNewDesc_GroupEndToEnd verifies the full pipeline using Group:
+// TestNewError_GroupEndToEnd verifies the full pipeline using Group:
 //
 //	root collector
 //	  └── child collector
 //	        └── Group.Go() goroutines return WrapKV'd errors
 //
 // Goroutine order is non-deterministic, so we use Contains checks.
-func TestNewDesc_GroupEndToEnd(t *testing.T) {
+func TestNewError_GroupEndToEnd(t *testing.T) {
 	root := NewCollector(20)
 	child := root.NewChild(0)
 	g := child.NewGroup(context.Background())
@@ -1053,10 +1053,10 @@ func TestNewDesc_GroupEndToEnd(t *testing.T) {
 	waitErr := g.Wait()
 	require.Error(t, waitErr)
 
-	assertGroupOutput := func(t *testing.T, d *Desc) {
+	assertGroupOutput := func(t *testing.T, d *Error) {
 		t.Helper()
 		require.NotNil(t, d)
-		rendered := d.Stringify(false)
+		rendered := d.stringify(false)
 		assert.Contains(t, rendered, "[1]")
 		assert.Contains(t, rendered, "[2]")
 		assert.Contains(t, rendered, `"800" violates rule: item.score: must be > 0 and <= 100`)
@@ -1066,15 +1066,15 @@ func TestNewDesc_GroupEndToEnd(t *testing.T) {
 	}
 
 	t.Run("via_Wait", func(t *testing.T) {
-		assertGroupOutput(t, NewDesc(waitErr))
+		assertGroupOutput(t, NewError(waitErr))
 	})
 
 	t.Run("via_root_Join", func(t *testing.T) {
-		assertGroupOutput(t, NewDesc(root.Join()))
+		assertGroupOutput(t, NewError(root.Join()))
 	})
 }
 
-func TestNewDescReferBookAndSheet(t *testing.T) {
+func TestNewErrorReferBookAndSheet(t *testing.T) {
 	err := WrapKV(E2013("not-a-bool", errors.New("parse")),
 		KeyModule, ModuleConf,
 		KeyBookName, "Affix.xlsx",
@@ -1084,9 +1084,9 @@ func TestNewDescReferBookAndSheet(t *testing.T) {
 		KeyDataCellPos, "C4",
 		KeyDataCell, "not-a-bool",
 	)
-	d := NewDesc(err)
+	d := NewError(err)
 	require.NotNil(t, d)
-	got := d.Stringify(false)
+	got := d.stringify(false)
 	assert.Contains(t, got, "Workbook: Affix.xlsx")
 	assert.Contains(t, got, "Worksheet: AffixConf")
 	assert.Contains(t, got, "ReferWorkbook: AssistSkill.xlsx")

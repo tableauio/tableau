@@ -236,13 +236,13 @@ func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
 	assert.NotContains(t, got, "Workbook: MergerCollector#*.csv",
 		"main workbook must not be reported as the offending file")
 
-	desc := xerrors.NewDesc(err)
+	desc := xerrors.NewError(err)
 	require.NotNil(t, desc)
-	assert.Equal(t, xerrors.ModuleConf, desc.GetValue(xerrors.KeyModule))
-	assert.Equal(t, "MergerShard1#*.csv", desc.GetValue(xerrors.KeyBookName))
-	assert.Equal(t, "MergerCollectorItemConf", desc.GetValue(xerrors.KeySheetName))
-	assert.Equal(t, "MergerCollector#*.csv", desc.GetValue(xerrors.KeyPrimaryBookName))
-	assert.Equal(t, "MergerCollectorItemConf", desc.GetValue(xerrors.KeyPrimarySheetName))
-	assert.Equal(t, "MergerCollectorItemConf", desc.GetValue(xerrors.KeyPBMessage))
-	assert.Equal(t, "B4", desc.GetValue(xerrors.KeyDataCellPos))
+	assert.Equal(t, xerrors.ModuleConf, xerrors.Fields(desc)[xerrors.KeyModule])
+	assert.Equal(t, "MergerShard1#*.csv", xerrors.Fields(desc)[xerrors.KeyBookName])
+	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(desc)[xerrors.KeySheetName])
+	assert.Equal(t, "MergerCollector#*.csv", xerrors.Fields(desc)[xerrors.KeyPrimaryBookName])
+	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(desc)[xerrors.KeyPrimarySheetName])
+	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(desc)[xerrors.KeyPBMessage])
+	assert.Equal(t, "B4", xerrors.Fields(desc)[xerrors.KeyDataCellPos])
 }

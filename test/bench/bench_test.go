@@ -26,7 +26,7 @@ func Test_genConf(t *testing.T) {
 
 	if err := genConf("INFO"); err != nil {
 		t.Errorf("%+v", err)
-		t.Fatalf("%s", xerrors.NewDesc(err))
+		t.Fatalf("%s", xerrors.NewError(err))
 	}
 }
 
@@ -108,7 +108,7 @@ func Test_genProto(t *testing.T) {
 	err := genProto("DEBUG")
 	if err != nil {
 		t.Errorf("%+v", err)
-		t.Fatalf("%s", xerrors.NewDesc(err))
+		t.Fatalf("%s", xerrors.NewError(err))
 	}
 }
 

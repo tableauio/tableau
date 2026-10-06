@@ -59,8 +59,8 @@ func TestTableParser_parseTableMetasheet(t *testing.T) {
 				t.Errorf("sheetParser.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
-				// t.Logf("err: %v", xerrors.NewDesc(err))
-				require.Equal(t, xerrors.ModuleConf, xerrors.NewDesc(err).GetValue(xerrors.KeyModule))
+				// t.Logf("err: %v", xerrors.NewError(err))
+				require.Equal(t, xerrors.ModuleConf, xerrors.Fields(err)[xerrors.KeyModule])
 				require.ErrorIs(t, err, tt.err)
 			}
 		})
@@ -477,18 +477,18 @@ func TestTableParser_parseHorizontalMapWithNoDigitSuffix(t *testing.T) {
 	// Error code: E2029 (no cell with digit suffix for horizontal map field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
-	desc := xerrors.NewDesc(err)
-	require.Equal(t, xerrors.ModuleConf, desc.GetValue(xerrors.KeyModule))
+	desc := xerrors.NewError(err)
+	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(desc)[xerrors.KeyModule])
 	// Semantic details from the ecode.
-	require.Equal(t, "Item", desc.GetValue("FieldName"))
-	require.Equal(t, "map", desc.GetValue("FieldType"))
+	require.Equal(t, "Item", xerrors.Fields(desc)["FieldName"])
+	require.Equal(t, "map", xerrors.Fields(desc)["FieldType"])
 	// Excel position details: the matched prefix range and data row.
-	require.Equal(t, "Item", desc.GetValue(xerrors.KeyColumnName))
-	require.Equal(t, "[B...C]2", desc.GetValue(xerrors.KeyDataCellPos))
-	require.Equal(t, "[100...200]", desc.GetValue(xerrors.KeyDataCell))
+	require.Equal(t, "Item", xerrors.Fields(desc)[xerrors.KeyColumnName])
+	require.Equal(t, "[B...C]2", xerrors.Fields(desc)[xerrors.KeyDataCellPos])
+	require.Equal(t, "[100...200]", xerrors.Fields(desc)[xerrors.KeyDataCell])
 
 	// Rendered summary carries the code, position, and reason.
-	rendered := desc.String()
+	rendered := desc.Error()
 	require.Contains(t, rendered, "error[E2029]:")
 	require.Contains(t, rendered, "DataCellPos: [B...C]2")
 	require.Contains(t, rendered, `horizontal map field "Item" has no cell with a digit suffix`)
@@ -523,18 +523,18 @@ func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
 	// Error code: E2029 (no cell with digit suffix for horizontal list field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
-	desc := xerrors.NewDesc(err)
-	require.Equal(t, xerrors.ModuleConf, desc.GetValue(xerrors.KeyModule))
+	desc := xerrors.NewError(err)
+	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(desc)[xerrors.KeyModule])
 	// Semantic details from the ecode.
-	require.Equal(t, "Item", desc.GetValue("FieldName"))
-	require.Equal(t, "list", desc.GetValue("FieldType"))
+	require.Equal(t, "Item", xerrors.Fields(desc)["FieldName"])
+	require.Equal(t, "list", xerrors.Fields(desc)["FieldType"])
 	// Excel position details: the matched prefix range and data row.
-	require.Equal(t, "Item", desc.GetValue(xerrors.KeyColumnName))
-	require.Equal(t, "[B...C]2", desc.GetValue(xerrors.KeyDataCellPos))
-	require.Equal(t, "[100...200]", desc.GetValue(xerrors.KeyDataCell))
+	require.Equal(t, "Item", xerrors.Fields(desc)[xerrors.KeyColumnName])
+	require.Equal(t, "[B...C]2", xerrors.Fields(desc)[xerrors.KeyDataCellPos])
+	require.Equal(t, "[100...200]", xerrors.Fields(desc)[xerrors.KeyDataCell])
 
 	// Rendered summary carries the code, position, and reason.
-	rendered := desc.String()
+	rendered := desc.Error()
 	require.Contains(t, rendered, "error[E2029]:")
 	require.Contains(t, rendered, "DataCellPos: [B...C]2")
 	require.Contains(t, rendered, `horizontal list field "Item" has no cell with a digit suffix`)
@@ -1297,10 +1297,10 @@ func TestTableParser_parseIncellStructTooManyPartsReportsSep(t *testing.T) {
 	err := parser.Parse(&unittestpb.FieldPresentMap{}, sheet)
 	require.ErrorIs(t, err, xerrors.ErrE2031)
 
-	desc := xerrors.NewDesc(err)
-	require.Equal(t, ",", desc.GetValue("Sep"))
-	require.Equal(t, "unittest.FieldPresentMap.Player.Info", desc.GetValue("TypeName"))
-	rendered := desc.String()
+	desc := xerrors.NewError(err)
+	require.Equal(t, ",", xerrors.Fields(desc)["Sep"])
+	require.Equal(t, "unittest.FieldPresentMap.Player.Info", xerrors.Fields(desc)["TypeName"])
+	rendered := desc.Error()
 	require.Contains(t, rendered, "error[E2031]:")
 	require.Contains(t, rendered, `sep: ","`)
 	require.Contains(t, rendered, `incell struct "unittest.FieldPresentMap.Player.Info"`)

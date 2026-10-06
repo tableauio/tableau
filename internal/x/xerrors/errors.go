@@ -165,9 +165,11 @@ func (w *withMessage) Error() string {
 		return w.message
 	}
 	// Joined errors need the wrapper's sharing rule while they are flattened.
-	if d := NewDesc(w); d != nil && d.err != w {
-		return d.String()
+	entries := extractEntries(w)
+	if len(entries) > 1 || (len(entries) == 1 && entries[0].cause != w) {
+		return newError(w, entries).Error()
 	}
+
 	// No join: delegate to cause.
 	if w.cause != nil {
 		return w.cause.Error()
@@ -186,9 +188,9 @@ func format(self error, s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			// %+v: Stringify(true) — summary + fields + stack trace.
-			if d := NewDesc(self); d != nil {
-				_, _ = io.WriteString(s, d.Stringify(true))
+			// %+v includes the shared summary, structured fields, and stack.
+			if d := NewError(self); d != nil {
+				_, _ = io.WriteString(s, d.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, self.Error())
 				var berr *base
@@ -238,7 +240,7 @@ func parseKV(keysAndValues ...any) map[string]any {
 	return m
 }
 
-// joinError is a multi-error that renders children via NewDesc and supports %+v.
+// joinError is a multi-error that renders children via NewError and supports %+v.
 type joinError struct {
 	errs  []error
 	stack *stack
@@ -248,8 +250,8 @@ func (j *joinError) Unwrap() []error { return j.errs }
 
 // Error renders the joined errors from their structured descriptions.
 func (j *joinError) Error() string {
-	if d := NewDesc(j); d != nil {
-		return d.String()
+	if d := NewError(j); d != nil {
+		return d.Error()
 	}
 	var sb strings.Builder
 	for i, err := range j.errs {
@@ -267,9 +269,9 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			// %+v: Stringify(true) — summary + fields + stack trace.
-			if d := NewDesc(j); d != nil {
-				_, _ = io.WriteString(s, d.Stringify(true))
+			// %+v includes the shared summary, structured fields, and stack.
+			if d := NewError(j); d != nil {
+				_, _ = io.WriteString(s, d.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, j.Error())
 			}
