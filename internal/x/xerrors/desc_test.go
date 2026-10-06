@@ -143,7 +143,7 @@ func TestNewDescMultipleChildren(t *testing.T) {
 	require.Len(t, md.children, 2)
 
 	for i, d := range md.children {
-		assert.Equal(t, "E2027", d.fields[keyErrCode], "children[%d].fields[keyErrCode]", i)
+		assert.Equal(t, "E2027", d.fields[KeyErrCode], "children[%d].fields[KeyErrCode]", i)
 	}
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation
@@ -167,8 +167,8 @@ func TestNewDescMixedErrors(t *testing.T) {
 	require.NotNil(t, md)
 	require.Len(t, md.children, 2)
 
-	assert.Equal(t, "E2027", md.children[0].fields[keyErrCode])
-	assert.Nil(t, md.children[1].fields[keyErrCode])
+	assert.Equal(t, "E2027", md.children[0].fields[KeyErrCode])
+	assert.Nil(t, md.children[1].fields[KeyErrCode])
 	assert.Equal(t, "plain error", md.children[1].Stringify(false))
 
 	wantNoDebug := `[1] error[E2027]: protovalidate violation

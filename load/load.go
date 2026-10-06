@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"buf.build/go/protovalidate"
+	"github.com/tableauio/tableau"
 	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen"
 	"github.com/tableauio/tableau/internal/importer"
@@ -24,7 +25,9 @@ import (
 )
 
 // LoadMessagerInDir loads message's content in the given dir, based on format and messager options.
-func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) error {
+func LoadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *MessagerOptions) (err error) {
+	defer func() { err = tableau.WrapError(err) }()
+
 	if err := loadMessagerInDir(msg, dir, fmt, opts); err != nil {
 		return err
 	}
@@ -60,7 +63,9 @@ func loadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 // based on the given path, format, and options.
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
-func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) (err error) {
+	defer func() { err = tableau.WrapError(err) }()
+
 	content, err := opts.GetReadFunc()(path)
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
@@ -138,7 +143,9 @@ func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 // Unmarshal unmarshals the message based on the given content, format, and options.
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
-func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
+func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) (err error) {
+	defer func() { err = tableau.WrapError(err) }()
+
 	var unmarshalErr error
 	switch fmt {
 	case format.JSON:

@@ -16,7 +16,9 @@ import (
 
 // Generate converts Excel/CSV/XML/YAML files to protoconf files and
 // different configuration files: JSON, Text, and Bin.
-func Generate(protoPackage, indir, outdir string, setters ...options.Option) error {
+func Generate(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
+	defer func() { err = WrapError(err) }()
+
 	if err := GenProto(protoPackage, indir, outdir, setters...); err != nil {
 		return xerrors.Wrapf(err, "failed to generate proto files")
 	}
@@ -28,6 +30,8 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) err
 
 // GenProto converts Excel/CSV/XML/YAML files to protoconf files.
 func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
+	defer func() { err = WrapError(err) }()
+
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {
 		return err
@@ -41,7 +45,9 @@ func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (er
 }
 
 // GenConf converts Excel/CSV/XML/YAML files to different configuration files: JSON, Text, and Bin.
-func GenConf(protoPackage, indir, outdir string, setters ...options.Option) error {
+func GenConf(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
+	defer func() { err = WrapError(err) }()
+
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {
 		return err
@@ -81,7 +87,9 @@ func SetLang(lang string) error {
 }
 
 // NewImporter creates a new importer of the specified workbook.
-func NewImporter(workbookPath string) (importer.Importer, error) {
+func NewImporter(workbookPath string) (imp importer.Importer, err error) {
+	defer func() { err = WrapError(err) }()
+
 	ctx := context.Background()
 	parser := confgen.NewSheetParser(ctx, xproto.InternalProtoPackage, "", book.MetasheetOptions(ctx))
 	return importer.New(ctx, workbookPath, importer.Parser(parser))

@@ -1,11 +1,9 @@
 package xerrors
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
-	"slices"
 	"strings"
 )
 
@@ -46,12 +44,12 @@ const (
 	KeyPBFieldOpts = "PBFieldOpts" // protobuf message field options (extensions)
 	KeyColumnName  = "ColumnName"  // column name
 
-	keyErrCode = "ErrCode"
-	keyErrDesc = "ErrDesc"
+	KeyErrCode = "ErrCode"
+	KeyErrDesc = "ErrDesc"
 	KeyReason  = "Reason" // error reason
-	// keyHelp suggests how to fix the error.
+	// KeyHelp suggests how to fix the error.
 	// See https://rustc-dev-guide.rust-lang.org/diagnostics.html#suggestions
-	keyHelp = "Help"
+	KeyHelp = "Help"
 )
 
 // keys defines the ordered set of field keys used for debug rendering.
@@ -81,10 +79,10 @@ var keys = []string{
 	KeyPBFieldOpts,
 	KeyColumnName,
 
-	keyErrCode,
-	keyErrDesc,
+	KeyErrCode,
+	KeyErrDesc,
 	KeyReason,
-	keyHelp,
+	KeyHelp,
 }
 
 // multiUnwrapper is implemented by joined errors (e.g. errors.Join).
@@ -231,19 +229,13 @@ func (d *Desc) Stringify(withDebug bool) string {
 		}
 		return d.err.Error()
 	}
-	if d.fields[KeyModule] == nil && d.fields[keyErrCode] != nil {
-		d.fields[KeyModule] = ModuleDefault
-	}
-	var module string
-	if val := d.GetValue(KeyModule); val != nil {
-		module = val.(string)
-	}
+	fields := d.Fields()
+	module, _ := fields[KeyModule].(string)
 	switch module {
 	case ModuleDefault, ModuleProto, ModuleConf:
-		ensureEcode(d.fields)
-		errmsg := renderSummary(module, d.fields)
+		errmsg := renderSummary(module, fields)
 		if withDebug {
-			errmsg += "\n--- debugging ---\n" + d.fieldsString() + "\n" + d.stackString() + "\n"
+			errmsg += "\n--- debugging ---\n" + fieldsString(fields) + "\n" + d.stackString() + "\n"
 		}
 		return errmsg
 	default:
@@ -255,10 +247,10 @@ func (d *Desc) Stringify(withDebug bool) string {
 }
 
 // fieldsString returns all structured fields as an ordered multi-line string.
-func (d *Desc) fieldsString() string {
+func fieldsString(fields map[string]any) string {
 	var lines []string
 	for _, key := range keys {
-		if val := d.fields[key]; val != nil {
+		if val := fields[key]; val != nil {
 			lines = append(lines, fmt.Sprintf("%s: %v", key, val))
 		}
 	}
@@ -279,30 +271,28 @@ func (d *Desc) GetValue(key string) any {
 	return d.fields[key]
 }
 
-// Fields returns a copy of the structured fields for this error. Aggregate
-// descriptions carry their fields on individual Children instead.
+// Fields returns a normalized copy for the public error data projection.
+// Rendering and serialization never modify the extracted descriptor fields.
 func (d *Desc) Fields() map[string]any {
-	return maps.Clone(d.fields)
-}
-
-// Children returns a copy of the flattened child description list. A single
-// error has no children; each child retains its own source context.
-func (d *Desc) Children() []*Desc {
-	return slices.Clone(d.children)
-}
-
-// MarshalJSON exposes structured fields and children without leaking the
-// underlying error or stack trace.
-func (d *Desc) MarshalJSON() ([]byte, error) {
-	var message string
-	if len(d.children) == 0 && d.fields[KeyReason] == nil && d.err != nil {
-		// Plain errors have no structured reason. Keep their text available
-		// in mixed joins, where each child needs its own explanation.
-		message = d.err.Error()
+	fields := maps.Clone(d.fields)
+	if fields[KeyReason] == nil {
+		return fields
 	}
-	return json.Marshal(struct {
-		Fields   map[string]any `json:"fields,omitempty"`
-		Children []*Desc        `json:"children,omitempty"`
-		Message  string         `json:"message,omitempty"`
-	}{Fields: d.fields, Children: d.children, Message: message})
+	if fields[KeyModule] == nil && fields[KeyErrCode] != nil {
+		fields[KeyModule] = ModuleDefault
+	}
+	module, _ := fields[KeyModule].(string)
+	switch module {
+	case ModuleDefault, ModuleProto, ModuleConf:
+		ensureEcode(fields)
+	}
+	return fields
+}
+
+// Leaves returns each individual description in source order. The descriptor
+// tree remains an internal extraction/rendering detail, not a public model.
+func (d *Desc) Leaves() []*Desc {
+	var leaves []*Desc
+	flattenDescs(d, &leaves)
+	return leaves
 }

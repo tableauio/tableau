@@ -316,20 +316,20 @@ func renderSummary(module string, kv map[string]any) string {
 // (matching ecoded errors like E2005). E0004 is "unknown error".
 const defaultErrCode = "E0004"
 
-// ensureEcode populates the ecode fields (keyErrCode, keyErrDesc) when the
+// ensureEcode populates the ecode fields (KeyErrCode, KeyErrDesc) when the
 // error has none, defaulting to E0004. This lets the protogen/confgen
 // message templates always render the "error[{{.ErrCode}}]: {{.ErrDesc}}"
 // header line instead of special-casing the no-ecode case.
 func ensureEcode(fields map[string]any) {
-	if fields[keyErrCode] != nil {
+	if fields[KeyErrCode] != nil {
 		return
 	}
-	fields[keyErrCode] = defaultErrCode
+	fields[KeyErrCode] = defaultErrCode
 	desc := "unknown error"
 	if detail := localizer.Default.RenderEcode(defaultErrCode, nil); detail != nil && detail.Desc != "" {
 		desc = detail.Desc
 	}
-	fields[keyErrDesc] = desc
+	fields[KeyErrDesc] = desc
 }
 
 func renderEcode(ec *ecode, kv map[string]any) error {
@@ -337,9 +337,9 @@ func renderEcode(ec *ecode, kv map[string]any) error {
 	fields := make(map[string]any, len(kv)+4)
 	maps.Copy(fields, kv)
 	fields[KeyReason] = detail.Text
-	fields[keyErrCode] = ec.code
-	fields[keyErrDesc] = detail.Desc
-	fields[keyHelp] = detail.Help
+	fields[KeyErrCode] = ec.code
+	fields[KeyErrDesc] = detail.Desc
+	fields[KeyHelp] = detail.Help
 	return &withMessage{
 		cause:         withStack(2, ec),
 		message:       detail.Text,

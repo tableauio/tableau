@@ -167,10 +167,10 @@ func TestEcode(t *testing.T) {
 		t.Log(err)
 		t.Logf("%+v", err)
 		t.Log(d.String())
-		assert.Equal(t, ecode, d.GetValue(keyErrCode))
-		assert.Equal(t, desc, d.GetValue(keyErrDesc))
+		assert.Equal(t, ecode, d.GetValue(KeyErrCode))
+		assert.Equal(t, desc, d.GetValue(KeyErrDesc))
 		assert.Equal(t, text, d.GetValue(KeyReason))
-		assert.Equal(t, help, d.GetValue(keyHelp))
+		assert.Equal(t, help, d.GetValue(KeyHelp))
 	}
 	e2003 := E2003("1", 3)
 	assert.ErrorIs(t, e2003, newEcode("E2003", "desc"))
