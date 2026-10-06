@@ -115,6 +115,8 @@ func readPlainXMLTag(data []byte, offset int) (plainXMLTag, int, error) {
 	return tag, offset, errComplexXML
 }
 
+// encoding/xml does not expose its name and character validators. These checks
+// accept only the plain OOXML subset; anything else uses the strict decoder.
 func isASCIINameByte(char byte, first bool) bool {
 	return char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' || char == '_' ||
 		!first && (char >= '0' && char <= '9' || char == '-' || char == '.')
@@ -128,24 +130,21 @@ func isPlainXMLText(text []byte) bool {
 	if bytes.Contains(text, []byte("]]>")) {
 		return false
 	}
-	for offset := 0; offset < len(text); {
-		char := text[offset]
+	ascii := true
+	for _, char := range text {
 		if char == '&' || char < 0x20 && !isXMLSpace(char) {
 			return false
 		}
-		if char < utf8.RuneSelf {
-			offset++
-			continue
+		if char >= utf8.RuneSelf {
+			ascii = false
 		}
-		r, size := utf8.DecodeRune(text[offset:])
-		// Valid UTF-8 excludes surrogates and out-of-range code points. The
-		// remaining non-ASCII characters forbidden by XML are U+FFFE/U+FFFF.
-		if size == 1 || r == '\ufffe' || r == '\uffff' {
-			return false
-		}
-		offset += size
 	}
-	return true
+	if ascii {
+		return true
+	}
+	// UTF-8 validation excludes surrogates and out-of-range code points, but
+	// XML also forbids U+FFFE and U+FFFF.
+	return utf8.Valid(text) && !bytes.Contains(text, []byte("\ufffe")) && !bytes.Contains(text, []byte("\uffff"))
 }
 
 func normalizeXMLNewlines(text []byte) string {
