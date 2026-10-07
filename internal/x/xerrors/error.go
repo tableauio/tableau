@@ -101,16 +101,13 @@ func Normalize(err error) error {
 	return buildError(err, entries)
 }
 
-// Inspect returns a typed view of any error tree for rendering or inspection.
+// Inspect returns an independent snapshot of an error's structured details.
 // Ordinary errors have one detail containing their message; nil returns nil.
-// The original error chain and metadata remain unchanged. An existing *Error
-// is returned directly. Use Normalize to expose structured details through errors.As.
+// Editing the snapshot does not change the input error's details. The original
+// error chain remains reachable through errors.Is and errors.As.
 func Inspect(err error) *Error {
 	if err == nil {
 		return nil
-	}
-	if e, ok := err.(*Error); ok {
-		return e
 	}
 	return buildError(err, extractEntries(err))
 }

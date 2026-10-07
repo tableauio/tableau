@@ -1259,14 +1259,28 @@ func TestInspectPreservesInput(t *testing.T) {
 	view.Details[0].Message = "edited view"
 	assert.Equal(t, "offline", plain.Error())
 
-	cause := NewKV("invalid cell", KeyModule, ModuleConf, KeyBookName, "Tasks.xlsx")
+	cause := NewKV("invalid cell", KeyModule, ModuleConf, KeyBookName, "Tasks.xlsx",
+		KeyDataCellPos, "A4", KeyDataCell, "bad", KeyPBFieldName, "id")
 	fields := cause.(fieldsCarrier).Fields()
 	assert.NotContains(t, fields, KeyErrCode)
 	view = Inspect(cause)
 	assert.Equal(t, "E0004", view.Details[0].Code)
 	_ = view.Error()
 	assert.NotContains(t, fields, KeyErrCode, "inspection must not add metadata to the input chain")
-	assert.Same(t, view, Inspect(view))
+	snapshot := Inspect(view)
+	assert.NotSame(t, view, snapshot)
+	assert.Equal(t, view.Error(), snapshot.Error())
+	assert.Equal(t, fmt.Sprintf("%+v", view), fmt.Sprintf("%+v", snapshot))
+	require.ErrorIs(t, snapshot, view)
+	require.ErrorIs(t, snapshot, cause)
+	snapshot.Details[0].Message = "edited snapshot"
+	snapshot.Details[0].Source.Workbook = "Other.xlsx"
+	snapshot.Details[0].Source.Cell.Position = "B6"
+	snapshot.Details[0].Field.Name = "other"
+	assert.Equal(t, "invalid cell", view.Details[0].Message)
+	assert.Equal(t, "Tasks.xlsx", view.Details[0].Source.Workbook)
+	assert.Equal(t, "A4", view.Details[0].Source.Cell.Position)
+	assert.Equal(t, "id", view.Details[0].Field.Name)
 }
 
 func TestErrorDetailPlainSourceRendering(t *testing.T) {
