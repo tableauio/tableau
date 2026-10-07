@@ -1,10 +1,7 @@
 package tableau
 
 import (
-	"context"
-
 	"github.com/tableauio/tableau/internal/confgen"
-	"github.com/tableauio/tableau/internal/importer"
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/x/xerrors"
@@ -76,9 +73,4 @@ func NewConfGeneratorWithOptions(protoPackage, indir, outdir string, options *op
 // E.g: en, zh.
 func SetLang(lang string) error {
 	return localizer.SetLang(lang)
-}
-
-// NewImporter creates a new importer of the specified workbook.
-func NewImporter(workbookPath string) (importer.Importer, error) {
-	return confgen.NewImporter(context.Background(), workbookPath)
 }

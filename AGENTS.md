@@ -94,7 +94,6 @@ NewConfGenerator(protoPackage, indir, outdir string, options ...options.Option) 
 
 // Utilities
 SetLang(lang string) error
-NewImporter(workbookPath string) (importer.Importer, error)
 GetVersionInfo() *VersionInfo
 ```
 
