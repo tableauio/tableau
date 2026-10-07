@@ -279,7 +279,7 @@ func normalizeFields(fields map[string]any) {
 
 func fieldsString(fields map[string]any) string {
 	var lines []string
-	for _, key := range keys {
+	for _, key := range debugKeyOrder {
 		if val := fields[key]; val != nil {
 			lines = append(lines, fmt.Sprintf("%s: %v", key, val))
 		}
@@ -288,7 +288,7 @@ func fieldsString(fields map[string]any) string {
 }
 
 // detailKeys are the metadata represented by the typed public model.
-var detailKeys = append(append([]string(nil), keys...), KeyNoteCellPos, KeyNoteCell)
+var detailKeys = append(append([]string(nil), debugKeyOrder...), KeyNoteCellPos, KeyNoteCell)
 
 func buildDetail(cause error, fields map[string]any) *ErrorDetail {
 	normalizeFields(fields)

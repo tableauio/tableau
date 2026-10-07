@@ -45,8 +45,8 @@ const (
 	KeyHelp = "Help"
 )
 
-// keys defines the ordered set of field keys used for debug rendering.
-var keys = []string{
+// debugKeyOrder defines the stable display order by referencing the key constants.
+var debugKeyOrder = []string{
 	KeyModule,
 
 	KeyIndir,
