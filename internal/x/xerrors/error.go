@@ -68,9 +68,9 @@ type FieldLocation struct {
 	Column  string `json:"column,omitempty"`
 }
 
-// GetValue returns the value associated with a legacy xerrors field key, or
-// nil when the key is absent. Typed metadata remains available through Source
-// and Field; this method provides a compatibility view without duplicating it.
+// GetValue returns the value associated with key in the detail, or nil if the
+// key is absent. It supports typed source and field metadata as well as
+// error-specific parameters.
 func (d *ErrorDetail) GetValue(key string) any {
 	if d == nil {
 		return nil
