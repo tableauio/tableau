@@ -54,10 +54,10 @@ func TestCollectorIntegration_SingleSheet(t *testing.T) {
 	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/", format.CSV)
 	err := gen.Generate("Collector2#HeroConf.csv")
 	require.Error(t, err)
-	var structuredErr *xerrors.Error
-	require.ErrorAs(t, err, &structuredErr)
-	require.Len(t, structuredErr.Details, 1)
-	assert.Equal(t, "E0003", structuredErr.Details[0].Code)
+	var serr *xerrors.Error
+	require.ErrorAs(t, err, &serr)
+	require.Len(t, serr.Details, 1)
+	assert.Equal(t, "E0003", serr.Details[0].Code)
 
 	got := err.Error()
 	// Single error: no numbered prefix.

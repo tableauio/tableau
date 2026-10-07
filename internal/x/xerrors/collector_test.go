@@ -1006,10 +1006,10 @@ func TestCollected_ChildScopeInheritsArbitraryFields(t *testing.T) {
 	_ = book.Collect(New("book error"))
 	_ = sheet.Collect(New("sheet error"))
 
-	structuredErr := Inspect(root.Join())
-	require.Len(t, structuredErr.Details, 2)
-	assert.Equal(t, "book", detailFields(structuredErr.Details[0])["source"])
-	assert.Equal(t, "sheet", detailFields(structuredErr.Details[1])["source"])
+	serr := Inspect(root.Join())
+	require.Len(t, serr.Details, 2)
+	assert.Equal(t, "book", detailFields(serr.Details[0])["source"])
+	assert.Equal(t, "sheet", detailFields(serr.Details[1])["source"])
 }
 
 // A multi-error containing a Join result may also contain a new error.
@@ -1159,10 +1159,10 @@ func TestCollected_CellFieldsStayOnTheirError(t *testing.T) {
 	assert.Contains(t, book.Join().Error(), "DataCellPos: A4")
 
 	_ = sheet.Collect(E2014("missing"))
-	structuredErr := Inspect(book.Join())
-	require.Len(t, structuredErr.Details, 2)
-	assert.Equal(t, "A4", detailFields(structuredErr.Details[0])[KeyDataCellPos])
-	assert.Nil(t, detailFields(structuredErr.Details[1])[KeyDataCellPos])
+	serr := Inspect(book.Join())
+	require.Len(t, serr.Details, 2)
+	assert.Equal(t, "A4", detailFields(serr.Details[0])[KeyDataCellPos])
+	assert.Nil(t, detailFields(serr.Details[1])[KeyDataCellPos])
 }
 
 // Per-cell fields on a joined snapshot must not reach unrelated errors.
@@ -1200,10 +1200,10 @@ func TestCollected_SiblingScopesRemainIndependent(t *testing.T) {
 	_ = second.Collect(New("second"))
 	_ = root.Collect(Wrap(root.Join()))
 
-	structuredErr := Inspect(root.Join())
-	require.Len(t, structuredErr.Details, 2)
-	assert.Equal(t, "First.xlsx", detailFields(structuredErr.Details[0])[KeyBookName])
-	assert.Equal(t, "Second.xlsx", detailFields(structuredErr.Details[1])[KeyBookName])
+	serr := Inspect(root.Join())
+	require.Len(t, serr.Details, 2)
+	assert.Equal(t, "First.xlsx", detailFields(serr.Details[0])[KeyBookName])
+	assert.Equal(t, "Second.xlsx", detailFields(serr.Details[1])[KeyBookName])
 }
 
 // collected marker is transparent: errors.Is works through it.
@@ -1302,11 +1302,11 @@ func TestCollected_FourLevelScopes(t *testing.T) {
 	assert.EqualValues(t, 4, root.counter.Load())
 	assert.EqualValues(t, 3, message.counter.Load())
 
-	structuredErr := Inspect(root.Join())
-	require.NotNil(t, structuredErr)
-	require.Len(t, structuredErr.Details, 4)
+	serr := Inspect(root.Join())
+	require.NotNil(t, serr)
+	require.Len(t, serr.Details, 4)
 	byReason := make(map[string]*ErrorDetail, 4)
-	for _, detail := range structuredErr.Details {
+	for _, detail := range serr.Details {
 		reason, ok := detailFields(detail)[KeyReason].(string)
 		require.True(t, ok)
 		byReason[reason] = detail
@@ -1364,7 +1364,7 @@ func TestTree_FullAncestorSignalsUntouchedSibling(t *testing.T) {
 	require.Error(t, second.Collect(nil))
 	assert.NoError(t, second.Join())
 	assert.EqualValues(t, 1, root.counter.Load())
-	assert.Equal(t, "First.xlsx", Fields(root.Join())[KeyBookName])
+	assert.Equal(t, "First.xlsx", Inspect(root.Join()).Details[0].GetValue(KeyBookName))
 	assert.NotContains(t, root.Join().Error(), "ignored")
 }
 
@@ -1396,12 +1396,12 @@ func TestTree_FourLevelLimitsAcrossSiblings(t *testing.T) {
 	require.Error(t, main.Collect(New("main overflow")))
 	assert.EqualValues(t, 4, book.counter.Load())
 	assert.EqualValues(t, 4, root.counter.Load())
-	structuredErr := Inspect(root.Join())
-	require.Len(t, structuredErr.Details, 4)
-	assert.Equal(t, "main 1", detailFields(structuredErr.Details[0])[KeyReason])
-	assert.Equal(t, "shard 1", detailFields(structuredErr.Details[1])[KeyReason])
-	assert.Equal(t, "shard 2", detailFields(structuredErr.Details[2])[KeyReason])
-	assert.Equal(t, "shard 3", detailFields(structuredErr.Details[3])[KeyReason])
+	serr := Inspect(root.Join())
+	require.Len(t, serr.Details, 4)
+	assert.Equal(t, "main 1", detailFields(serr.Details[0])[KeyReason])
+	assert.Equal(t, "shard 1", detailFields(serr.Details[1])[KeyReason])
+	assert.Equal(t, "shard 2", detailFields(serr.Details[2])[KeyReason])
+	assert.Equal(t, "shard 3", detailFields(serr.Details[3])[KeyReason])
 }
 
 // Each concurrent importer owns its scope, while Group.Go receives its Join
@@ -1428,10 +1428,10 @@ func TestGroup_ConcurrentImporterScopes(t *testing.T) {
 	require.Error(t, joined)
 	assert.EqualValues(t, importers, root.counter.Load())
 	assert.EqualValues(t, importers, message.counter.Load())
-	structuredErr := Inspect(joined)
-	require.Len(t, structuredErr.Details, importers)
+	serr := Inspect(joined)
+	require.Len(t, serr.Details, importers)
 	byReason := make(map[string]*ErrorDetail, importers)
-	for _, detail := range structuredErr.Details {
+	for _, detail := range serr.Details {
 		reason, ok := detailFields(detail)[KeyReason].(string)
 		require.True(t, ok)
 		byReason[reason] = detail

@@ -61,10 +61,10 @@ func TestCollectorIntegration_MessageLevel(t *testing.T) {
 	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/")
 	err := gen.Generate("Collector#ItemConf.csv")
 	require.Error(t, err)
-	var structuredErr *xerrors.Error
-	require.ErrorAs(t, err, &structuredErr)
-	require.Len(t, structuredErr.Details, 4)
-	assert.Equal(t, "E2012", structuredErr.Details[0].Code)
+	var serr *xerrors.Error
+	require.ErrorAs(t, err, &serr)
+	require.Len(t, serr.Details, 4)
+	assert.Equal(t, "E2012", serr.Details[0].Code)
 
 	got := err.Error()
 	want := "[1] " + e2012("Collector#*.csv", "ItemConf", "B4", "xyz", "int32") +
@@ -240,13 +240,13 @@ func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
 	assert.NotContains(t, got, "Workbook: MergerCollector#*.csv",
 		"main workbook must not be reported as the offending file")
 
-	structuredErr := xerrors.Inspect(err)
-	require.NotNil(t, structuredErr)
-	assert.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
-	assert.Equal(t, "MergerShard1#*.csv", xerrors.Fields(structuredErr)[xerrors.KeyBookName])
-	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(structuredErr)[xerrors.KeySheetName])
-	assert.Equal(t, "MergerCollector#*.csv", xerrors.Fields(structuredErr)[xerrors.KeyPrimaryBookName])
-	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(structuredErr)[xerrors.KeyPrimarySheetName])
-	assert.Equal(t, "MergerCollectorItemConf", xerrors.Fields(structuredErr)[xerrors.KeyPBMessage])
-	assert.Equal(t, "B4", xerrors.Fields(structuredErr)[xerrors.KeyDataCellPos])
+	serr := xerrors.Inspect(err)
+	require.NotNil(t, serr)
+	assert.Equal(t, xerrors.ModuleConf, serr.Details[0].GetValue(xerrors.KeyModule))
+	assert.Equal(t, "MergerShard1#*.csv", serr.Details[0].GetValue(xerrors.KeyBookName))
+	assert.Equal(t, "MergerCollectorItemConf", serr.Details[0].GetValue(xerrors.KeySheetName))
+	assert.Equal(t, "MergerCollector#*.csv", serr.Details[0].GetValue(xerrors.KeyPrimaryBookName))
+	assert.Equal(t, "MergerCollectorItemConf", serr.Details[0].GetValue(xerrors.KeyPrimarySheetName))
+	assert.Equal(t, "MergerCollectorItemConf", serr.Details[0].GetValue(xerrors.KeyPBMessage))
+	assert.Equal(t, "B4", serr.Details[0].GetValue(xerrors.KeyDataCellPos))
 }

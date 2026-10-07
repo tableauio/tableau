@@ -18,10 +18,10 @@ func assertError(t *testing.T, err error, errstr string) {
 	require.EqualValues(t, fmt.Sprintf("%q", errstr), fmt.Sprintf("%q", err))
 	// %+v should start with Inspect(err).Error(), followed by the stack trace.
 	plusV := fmt.Sprintf("%+v", err)
-	structuredErr := Inspect(err)
+	serr := Inspect(err)
 	var summary string
-	if structuredErr != nil {
-		summary = structuredErr.Error()
+	if serr != nil {
+		summary = serr.Error()
 	}
 	require.True(t, strings.HasPrefix(plusV, summary),
 		"%+v should start with Inspect(err).Error():\ngot:  %q\nwant prefix: %q", plusV, summary)
@@ -163,14 +163,14 @@ func TestWrapKV(t *testing.T) {
 
 func TestEcode(t *testing.T) {
 	assertEcode := func(err error, ecode string, description, text, help string) {
-		structuredErr := Inspect(err)
+		serr := Inspect(err)
 		t.Log(err)
 		t.Logf("%+v", err)
-		t.Log(structuredErr.Error())
-		assert.Equal(t, ecode, detailFields(structuredErr)[KeyErrCode])
-		assert.Equal(t, description, detailFields(structuredErr)[KeyErrDesc])
-		assert.Equal(t, text, detailFields(structuredErr)[KeyReason])
-		assert.Equal(t, help, detailFields(structuredErr)[KeyHelp])
+		t.Log(serr.Error())
+		assert.Equal(t, ecode, detailFields(serr)[KeyErrCode])
+		assert.Equal(t, description, detailFields(serr)[KeyErrDesc])
+		assert.Equal(t, text, detailFields(serr)[KeyReason])
+		assert.Equal(t, help, detailFields(serr)[KeyHelp])
 	}
 	e2003 := E2003("1", 3)
 	assert.ErrorIs(t, e2003, newEcode("E2003", "desc"))

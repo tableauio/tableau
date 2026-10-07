@@ -263,16 +263,6 @@ func (d *ErrorDetail) fields() map[string]any {
 	return fields
 }
 
-// Fields returns the first failure's metadata for internal parameter handling.
-// Public consumers use Error.Details and their typed source/field locations.
-func Fields(err error) map[string]any {
-	e := Inspect(err)
-	if e == nil || len(e.Details) == 0 {
-		return nil
-	}
-	return e.Details[0].fields()
-}
-
 func normalizeFields(fields map[string]any) {
 	if fields[KeyReason] == nil {
 		return

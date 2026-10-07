@@ -191,8 +191,8 @@ func format(self error, s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') {
 			// %+v includes the shared summary, structured fields, and stack.
-			if structuredErr := Inspect(self); structuredErr != nil {
-				_, _ = io.WriteString(s, structuredErr.stringify(true))
+			if serr := Inspect(self); serr != nil {
+				_, _ = io.WriteString(s, serr.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, self.Error())
 				var berr *base
@@ -252,8 +252,8 @@ func (j *joinError) Unwrap() []error { return j.errs }
 
 // Error renders the joined errors from their structured details.
 func (j *joinError) Error() string {
-	if structuredErr := Inspect(j); structuredErr != nil {
-		return structuredErr.Error()
+	if serr := Inspect(j); serr != nil {
+		return serr.Error()
 	}
 	var sb strings.Builder
 	for i, err := range j.errs {
@@ -272,8 +272,8 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') {
 			// %+v includes the shared summary, structured fields, and stack.
-			if structuredErr := Inspect(j); structuredErr != nil {
-				_, _ = io.WriteString(s, structuredErr.stringify(true))
+			if serr := Inspect(j); serr != nil {
+				_, _ = io.WriteString(s, serr.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, j.Error())
 			}

@@ -60,7 +60,7 @@ func TestTableParser_parseTableMetasheet(t *testing.T) {
 			}
 			if err != nil {
 				// t.Logf("err: %v", xerrors.Inspect(err))
-				require.Equal(t, xerrors.ModuleConf, xerrors.Fields(err)[xerrors.KeyModule])
+				require.Equal(t, xerrors.ModuleConf, xerrors.Inspect(err).Details[0].GetValue(xerrors.KeyModule))
 				require.ErrorIs(t, err, tt.err)
 			}
 		})
@@ -477,18 +477,18 @@ func TestTableParser_parseHorizontalMapWithNoDigitSuffix(t *testing.T) {
 	// Error code: E2029 (no cell with digit suffix for horizontal map field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
-	structuredErr := xerrors.Inspect(err)
-	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
+	serr := xerrors.Inspect(err)
+	require.Equal(t, xerrors.ModuleConf, serr.Details[0].GetValue(xerrors.KeyModule))
 	// Semantic details from the ecode.
-	require.Equal(t, "Item", xerrors.Fields(structuredErr)["FieldName"])
-	require.Equal(t, "map", xerrors.Fields(structuredErr)["FieldType"])
+	require.Equal(t, "Item", serr.Details[0].GetValue("FieldName"))
+	require.Equal(t, "map", serr.Details[0].GetValue("FieldType"))
 	// Excel position details: the matched prefix range and data row.
-	require.Equal(t, "Item", xerrors.Fields(structuredErr)[xerrors.KeyColumnName])
-	require.Equal(t, "[B...C]2", xerrors.Fields(structuredErr)[xerrors.KeyDataCellPos])
-	require.Equal(t, "[100...200]", xerrors.Fields(structuredErr)[xerrors.KeyDataCell])
+	require.Equal(t, "Item", serr.Details[0].GetValue(xerrors.KeyColumnName))
+	require.Equal(t, "[B...C]2", serr.Details[0].GetValue(xerrors.KeyDataCellPos))
+	require.Equal(t, "[100...200]", serr.Details[0].GetValue(xerrors.KeyDataCell))
 
 	// Rendered summary carries the code, position, and reason.
-	rendered := structuredErr.Error()
+	rendered := serr.Error()
 	require.Contains(t, rendered, "error[E2029]:")
 	require.Contains(t, rendered, "DataCellPos: [B...C]2")
 	require.Contains(t, rendered, `horizontal map field "Item" has no cell with a digit suffix`)
@@ -523,18 +523,18 @@ func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
 	// Error code: E2029 (no cell with digit suffix for horizontal list field).
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
-	structuredErr := xerrors.Inspect(err)
-	require.Equal(t, xerrors.ModuleConf, xerrors.Fields(structuredErr)[xerrors.KeyModule])
+	serr := xerrors.Inspect(err)
+	require.Equal(t, xerrors.ModuleConf, serr.Details[0].GetValue(xerrors.KeyModule))
 	// Semantic details from the ecode.
-	require.Equal(t, "Item", xerrors.Fields(structuredErr)["FieldName"])
-	require.Equal(t, "list", xerrors.Fields(structuredErr)["FieldType"])
+	require.Equal(t, "Item", serr.Details[0].GetValue("FieldName"))
+	require.Equal(t, "list", serr.Details[0].GetValue("FieldType"))
 	// Excel position details: the matched prefix range and data row.
-	require.Equal(t, "Item", xerrors.Fields(structuredErr)[xerrors.KeyColumnName])
-	require.Equal(t, "[B...C]2", xerrors.Fields(structuredErr)[xerrors.KeyDataCellPos])
-	require.Equal(t, "[100...200]", xerrors.Fields(structuredErr)[xerrors.KeyDataCell])
+	require.Equal(t, "Item", serr.Details[0].GetValue(xerrors.KeyColumnName))
+	require.Equal(t, "[B...C]2", serr.Details[0].GetValue(xerrors.KeyDataCellPos))
+	require.Equal(t, "[100...200]", serr.Details[0].GetValue(xerrors.KeyDataCell))
 
 	// Rendered summary carries the code, position, and reason.
-	rendered := structuredErr.Error()
+	rendered := serr.Error()
 	require.Contains(t, rendered, "error[E2029]:")
 	require.Contains(t, rendered, "DataCellPos: [B...C]2")
 	require.Contains(t, rendered, `horizontal list field "Item" has no cell with a digit suffix`)
@@ -1297,10 +1297,10 @@ func TestTableParser_parseIncellStructTooManyPartsReportsSep(t *testing.T) {
 	err := parser.Parse(&unittestpb.FieldPresentMap{}, sheet)
 	require.ErrorIs(t, err, xerrors.ErrE2031)
 
-	structuredErr := xerrors.Inspect(err)
-	require.Equal(t, ",", xerrors.Fields(structuredErr)["Sep"])
-	require.Equal(t, "unittest.FieldPresentMap.Player.Info", xerrors.Fields(structuredErr)["TypeName"])
-	rendered := structuredErr.Error()
+	serr := xerrors.Inspect(err)
+	require.Equal(t, ",", serr.Details[0].GetValue("Sep"))
+	require.Equal(t, "unittest.FieldPresentMap.Player.Info", serr.Details[0].GetValue("TypeName"))
+	rendered := serr.Error()
 	require.Contains(t, rendered, "error[E2031]:")
 	require.Contains(t, rendered, `sep: ","`)
 	require.Contains(t, rendered, `incell struct "unittest.FieldPresentMap.Player.Info"`)

@@ -425,7 +425,7 @@ func Test_validate(t *testing.T) {
 						firstErr = errs[0]
 					}
 				}
-				gotReason, _ := xerrors.Fields(firstErr)[xerrors.KeyReason].(string)
+				gotReason, _ := xerrors.Inspect(firstErr).Details[0].GetValue(xerrors.KeyReason).(string)
 				if gotReason != tt.wantReason {
 					t.Errorf("validate() KeyReason =\n\t%q\nwant:\n\t%q", gotReason, tt.wantReason)
 				}
