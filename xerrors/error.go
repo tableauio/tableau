@@ -1,5 +1,5 @@
-// Package errors provides structured Tableau errors for inspection and reporting.
-package errors
+// Package xerrors provides structured Tableau errors for inspection and reporting.
+package xerrors
 
 import "github.com/tableauio/tableau/internal/x/xerrors"
 
