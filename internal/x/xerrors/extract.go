@@ -57,7 +57,7 @@ func extractEntries(err error) []errorEntry {
 	}
 	fields := make(map[string]any)
 	for _, layer := range layers {
-		maps.Copy(fields, layer.fields)
+		mergeFields(fields, layer.fields)
 	}
 	return []errorEntry{{cause: err, fields: fields}}
 }
@@ -72,9 +72,17 @@ func inheritFields(entries []errorEntry, layers []fieldLayer) []errorEntry {
 		}
 		for j := range entries {
 			fields := maps.Clone(layer.fields)
-			maps.Copy(fields, entries[j].fields)
+			mergeFields(fields, entries[j].fields)
 			entries[j].fields = fields
 		}
 	}
 	return entries
+}
+
+// An inner code must not inherit a description belonging to an outer code.
+func mergeFields(dst, src map[string]any) {
+	if dst[KeyErrCode] != nil && src[KeyErrCode] != nil && errorField(dst, KeyErrCode) != errorField(src, KeyErrCode) {
+		delete(dst, KeyErrDesc)
+	}
+	maps.Copy(dst, src)
 }

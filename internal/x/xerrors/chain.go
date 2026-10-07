@@ -160,6 +160,14 @@ func (w *withMessage) Fields() map[string]any {
 	return w.fields
 }
 
+// Is matches a generated ecode carried by this metadata layer. The original
+// cause remains reachable through Unwrap, including joined failures.
+func (w *withMessage) Is(target error) bool {
+	code, ok := w.fields[KeyErrCode].(string)
+	ec, valid := target.(*ecode)
+	return ok && valid && ec != nil && code == ec.code
+}
+
 func (w *withMessage) Error() string {
 	if w.message != "" {
 		// replacesCause: message is the complete text.

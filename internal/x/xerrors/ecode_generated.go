@@ -38,6 +38,7 @@ var ErrE2028 = newEcode("E2028", `duplicate elements in incell keyed-list`)
 var ErrE2029 = newEcode("E2029", `no cell with digit suffix for horizontal list/map field`)
 var ErrE2030 = newEcode("E2030", `referred sheet not found`)
 var ErrE2031 = newEcode("E2031", `incell struct field count exceeds limit`)
+var ErrE2032 = newEcode("E2032", `custom check failed`)
 var ErrE3000 = newEcode("E3000", `no workbook file found about sheet specifier`)
 var ErrE3001 = newEcode("E3001", `no worksheet found in workbook`)
 var ErrE3002 = newEcode("E3002", `failed to open file`)
@@ -363,6 +364,13 @@ func E2031(typeName string, cellData string, expected int, actual int, sep strin
 		"Expected": expected,
 		"Actual":   actual,
 		"Sep":      sep,
+	})
+}
+
+// E2032: custom check failed
+func E2032(message string) error {
+	return renderEcode(ErrE2032, map[string]any{
+		"Message": message,
 	})
 }
 
