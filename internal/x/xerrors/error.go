@@ -68,6 +68,16 @@ type FieldLocation struct {
 	Column  string `json:"column,omitempty"`
 }
 
+// GetValue returns the value associated with a legacy xerrors field key, or
+// nil when the key is absent. Typed metadata remains available through Source
+// and Field; this method provides a compatibility view without duplicating it.
+func (d *ErrorDetail) GetValue(key string) any {
+	if d == nil {
+		return nil
+	}
+	return d.fields()[key]
+}
+
 // Normalize converts completed operation failures to the structured *Error
 // returned to callers. It resolves joins and scoped metadata, preserving the
 // original cause chain. Nil, ordinary Go errors, and existing *Error values are
