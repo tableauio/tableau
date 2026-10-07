@@ -35,6 +35,7 @@ type ErrorDetail struct {
 
 // SourceLocation identifies the actual source of a failure. PrimaryWorkbook
 // and PrimaryWorksheet identify the schema's source when a shard is loaded.
+// Use Wrap to attach source metadata to an error before inspection.
 type SourceLocation struct {
 	Workbook            string        `json:"workbook,omitempty"`
 	PrimaryWorkbook     string        `json:"primaryWorkbook,omitempty"`
@@ -49,6 +50,21 @@ type SourceLocation struct {
 	NameCell            *CellLocation `json:"nameCell,omitempty"`
 	TypeCell            *CellLocation `json:"typeCell,omitempty"`
 	NoteCell            *CellLocation `json:"noteCell,omitempty"`
+}
+
+// Wrap attaches source metadata to err while preserving its cause chain.
+// Existing metadata on each failure takes precedence over this source.
+// Nil errors return nil; a nil or empty source returns err unchanged.
+// Use Inspect at the reporting boundary to obtain the structured details.
+func (s *SourceLocation) Wrap(err error) error {
+	if err == nil || s == nil {
+		return err
+	}
+	fields := (&ErrorDetail{Source: s}).fields()
+	if len(fields) == 0 {
+		return err
+	}
+	return &withMessage{cause: withStack(1, err), fields: fields}
 }
 
 // CellLocation contains the source position and data of a cell. Position can

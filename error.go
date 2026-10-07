@@ -15,6 +15,7 @@ type ErrorDetail = xerrors.ErrorDetail
 
 // SourceLocation identifies the actual source of a failure. PrimaryWorkbook
 // and PrimaryWorksheet identify the schema's source when a shard is loaded.
+// Use Wrap to attach source metadata to an error before inspection.
 type SourceLocation = xerrors.SourceLocation
 
 // CellLocation contains the source position and data of a cell. Position can
