@@ -15,7 +15,6 @@ type ErrorDetail = xerrors.ErrorDetail
 
 // SourceLocation identifies the actual source of a failure. PrimaryWorkbook
 // and PrimaryWorksheet identify the schema's source when a shard is loaded.
-// Use Wrap to attach source metadata to an error before inspection.
 type SourceLocation = xerrors.SourceLocation
 
 // CellLocation contains the source position and data of a cell. Position can
@@ -40,4 +39,45 @@ func Normalize(err error) error {
 // through errors.Is and errors.As. Use Normalize to retain ordinary Go errors.
 func Inspect(err error) *Error {
 	return xerrors.Inspect(err)
+}
+
+// New returns an error with msg and a stack trace.
+// Use Inspect to obtain its structured details for reporting.
+func New(msg string) error {
+	return xerrors.New(msg)
+}
+
+// Newf returns an error with a formatted message and a stack trace.
+func Newf(format string, args ...any) error {
+	return xerrors.Newf(format, args...)
+}
+
+// NewKV returns an error with msg, metadata, and a stack trace.
+// keysAndValues contains alternating keys and values; an odd length panics.
+// Use the Key constants for source, field, and diagnostic metadata.
+func NewKV(msg string, keysAndValues ...any) error {
+	return xerrors.NewKV(msg, keysAndValues...)
+}
+
+// Wrap attaches a stack trace to err if it does not already have one.
+// It preserves the cause chain and returns nil when err is nil.
+func Wrap(err error) error {
+	return xerrors.Wrap(err)
+}
+
+// Wrapf adds a formatted message to err and attaches a stack trace if needed.
+// It preserves the cause chain and returns nil when err is nil.
+// The format uses fmt.Sprintf conventions; err supplies the cause.
+func Wrapf(err error, format string, args ...any) error {
+	return xerrors.Wrapf(err, format, args...)
+}
+
+// WrapKV adds metadata to err and attaches a stack trace if needed.
+// Existing metadata on each failure takes precedence over these values.
+// Fields on an errors.Join result apply to its children; Tableau's collected
+// errors retain their individual source scopes. Use Inspect for reporting.
+// It preserves the cause chain and returns nil when err is nil.
+// keysAndValues contains alternating keys and values; an odd length panics.
+func WrapKV(err error, keysAndValues ...any) error {
+	return xerrors.WrapKV(err, keysAndValues...)
 }

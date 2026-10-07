@@ -13,20 +13,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSourceLocationWrap(t *testing.T) {
+// TestWrapKVSourceDefaults verifies generic metadata wrapping fills missing
+// sources while retaining precise sources and original causes in joined errors.
+func TestWrapKVSourceDefaults(t *testing.T) {
 	cause := errors.New("condition missing")
-	source := &SourceLocation{Workbook: "Main.xlsx", Worksheet: "MainSheet"}
-	var noSource *SourceLocation
-	assert.Nil(t, source.Wrap(nil))
-	assert.Same(t, cause, noSource.Wrap(cause))
-	assert.Same(t, cause, (&SourceLocation{}).Wrap(cause))
-
-	wrapped := source.Wrap(cause)
+	wrapped := WrapKV(cause, KeyBookName, "Main.xlsx", KeySheetName, "MainSheet")
 	require.ErrorIs(t, wrapped, cause)
 	serr := Inspect(wrapped)
 	require.Len(t, serr.Details, 1)
 	require.ErrorIs(t, serr, cause)
-	assert.Equal(t, source, serr.Details[0].Source)
+	assert.Equal(t, &SourceLocation{Workbook: "Main.xlsx", Worksheet: "MainSheet"}, serr.Details[0].Source)
 	assert.Equal(t, "Workbook: Main.xlsx\nWorksheet: MainSheet\nReason: condition missing\n", serr.Error())
 
 	precise := &Error{Details: []*ErrorDetail{{
@@ -36,18 +32,14 @@ func TestSourceLocationWrap(t *testing.T) {
 			Cell: &CellLocation{Position: "B4", Data: "invalid"},
 		},
 	}}}
-	joined := Inspect(source.Wrap(errors.Join(cause, precise)))
+	joined := Inspect(WrapKV(errors.Join(cause, precise), KeyBookName, "Main.xlsx", KeySheetName, "MainSheet"))
 	require.Len(t, joined.Details, 2)
 	require.ErrorIs(t, joined, cause)
 	require.ErrorIs(t, joined, precise)
-	assert.Equal(t, source, joined.Details[0].Source)
+	assert.Equal(t, serr.Details[0].Source, joined.Details[0].Source)
 	assert.Equal(t, precise.Details[0].Source, joined.Details[1].Source)
 	assert.Equal(t, "invalid value", joined.Details[1].Message)
 	assert.Equal(t, "Shard.xlsx", precise.Details[0].Source.Workbook)
-
-	// Wrapping captures the metadata; later edits to the source do not alter it.
-	source.Workbook = "Other.xlsx"
-	assert.Equal(t, "Main.xlsx", Inspect(wrapped).Details[0].Source.Workbook)
 }
 
 func TestErrorGetValue(t *testing.T) {
