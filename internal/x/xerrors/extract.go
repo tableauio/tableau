@@ -8,8 +8,9 @@ import (
 // errorEntry is a temporary construction record. Once scope inheritance is
 // resolved, Inspect converts it to the canonical typed ErrorDetail.
 type errorEntry struct {
-	cause  error
-	fields map[string]any
+	cause           error
+	fields          map[string]any
+	preserveMessage bool // typed details already contain their intended message
 }
 
 type multiUnwrapper interface{ Unwrap() []error }
@@ -31,7 +32,7 @@ func extractEntries(err error) []errorEntry {
 			var entries []errorEntry
 			for _, detail := range e.Details {
 				if detail != nil {
-					entries = append(entries, errorEntry{cause: detail.cause, fields: detail.fields()})
+					entries = append(entries, errorEntry{cause: detail.cause, fields: detail.fields(), preserveMessage: true})
 				}
 			}
 			return inheritFields(entries, layers)

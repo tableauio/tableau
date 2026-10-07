@@ -1,6 +1,8 @@
 default: |
-  error[{{.ErrCode}}]: {{.ErrDesc}}
-  Reason: {{.Reason}}
+  {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}
+  {{ end }}{{ if .BookName }}Workbook: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
+  {{ end }}{{ if .SheetName }}Worksheet: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (Primary: {{.PrimarySheetName}}){{ end }}
+  {{ end }}Reason: {{.Reason}}
   {{- if .Help }}
   Help: {{.Help}}
   {{- end }}

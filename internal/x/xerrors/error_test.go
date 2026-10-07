@@ -1242,7 +1242,7 @@ func TestErrorPlainAndEmptyDetails(t *testing.T) {
 	plain := Wrapf(New("inner"), "outer")
 	assert.Equal(t, "outer: inner", Normalize(plain).Error())
 	scoped := WrapKV(errors.New("offline"), KeyModule, ModuleConf, KeyBookName, "Main.xlsx")
-	assert.Equal(t, "offline", Normalize(scoped).Error())
+	assert.Equal(t, "Workbook: Main.xlsx\nReason: offline\n", Normalize(scoped).Error())
 	for _, e := range []*Error{nil, {}, {Details: []*ErrorDetail{nil}}, {Details: []*ErrorDetail{{}}}} {
 		assert.Empty(t, e.Error())
 		assert.NotPanics(t, func() { _ = Normalize(fmt.Errorf("wrapped: %w", e)) })
@@ -1267,4 +1267,32 @@ func TestInspectPreservesInput(t *testing.T) {
 	_ = view.Error()
 	assert.NotContains(t, fields, KeyErrCode, "inspection must not add metadata to the input chain")
 	assert.Same(t, view, Inspect(view))
+}
+
+func TestErrorDetailPlainSourceRendering(t *testing.T) {
+	detail := &ErrorDetail{
+		Message: "custom check failed: missing award",
+		Source:  &SourceLocation{Workbook: "Test#*.csv", Worksheet: "Activity"},
+	}
+	assert.Equal(t, "Workbook: Test#*.csv\nWorksheet: Activity\nReason: custom check failed: missing award\n", detail.String())
+	assert.NotContains(t, detail.String(), "error[]")
+	encoded, err := json.Marshal(&Error{Details: []*ErrorDetail{detail}})
+	require.NoError(t, err)
+	var decoded Error
+	require.NoError(t, json.Unmarshal(encoded, &decoded))
+	assert.Equal(t, detail.String(), decoded.Details[0].String())
+}
+
+func TestInspectJoinedDetailPreservesMessage(t *testing.T) {
+	cause := errors.New("offline")
+	view := Inspect(cause)
+	view.Details[0].Message = "load failed: offline"
+	view.Details[0].Source = &SourceLocation{Workbook: "Tasks#*.csv", Worksheet: "Tasks"}
+	joined := Inspect(errors.Join(view, errors.New("another failure")))
+	require.Len(t, joined.Details, 2)
+	assert.Equal(t, "load failed: offline", joined.Details[0].Message)
+	assert.Contains(t, joined.Error(), "Workbook: Tasks#*.csv")
+	assert.Contains(t, joined.Error(), "load failed: offline")
+	require.ErrorIs(t, joined, cause)
+	assert.Equal(t, "offline", cause.Error())
 }

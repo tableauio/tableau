@@ -282,6 +282,8 @@ func TestFormatWrapKV(t *testing.T) {
 			"%+v",
 			[]string{
 				"error[E2003]: illegal sequence number",
+				"Workbook: Test.xlsx",
+				"Worksheet: Sheet1",
 				`Reason: value "1" does not meet sequence requirement: "sequence:3"`,
 				`Help: prop "sequence:3" requires value starts from "3" and increases monotonically`,
 				"",

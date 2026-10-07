@@ -8,10 +8,11 @@ import (
 	"strings"
 )
 
-// Error reports one or more structured failures from Tableau. Use Normalize
-// followed by errors.As to obtain it from an operation's error. Details contains
-// one entry per failure, including when only one cell fails. Error renders these
-// details as a localized summary. JSON omits underlying errors and stack traces.
+// Error reports one or more structured failures from Tableau. Use Inspect to
+// obtain it from an operation's error, or Normalize followed by errors.As.
+// Details contains one entry per failure, including when only one cell fails.
+// Error renders these details as a localized summary. JSON omits underlying
+// errors and stack traces.
 type Error struct {
 	Details []*ErrorDetail `json:"details"`
 	cause   error
@@ -120,7 +121,11 @@ func buildError(cause error, entries []errorEntry) *Error {
 	}
 	e := &Error{cause: cause, Details: make([]*ErrorDetail, 0, len(entries))}
 	for _, entry := range entries {
-		e.Details = append(e.Details, buildDetail(entry.cause, entry.fields))
+		detail := buildDetail(entry.cause, entry.fields)
+		if entry.preserveMessage {
+			detail.Message = errorField(entry.fields, KeyReason)
+		}
+		e.Details = append(e.Details, detail)
 	}
 	return e
 }
@@ -180,13 +185,11 @@ func (d *ErrorDetail) stringify(debug bool) string {
 	}
 	fields := d.fields()
 	var text string
-	switch d.Module {
-	case ModuleDefault, ModuleProto, ModuleConf:
-		if d.Code != "" {
-			text = renderSummary(d.Module, fields)
-		} else {
-			text = d.Message
-		}
+	switch {
+	case d.Code != "" && (d.Module == ModuleDefault || d.Module == ModuleProto || d.Module == ModuleConf):
+		text = renderSummary(d.Module, fields)
+	case d.Source != nil:
+		text = renderSummary(ModuleDefault, fields)
 	default:
 		text = d.Message
 	}

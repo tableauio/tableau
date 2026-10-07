@@ -1,6 +1,8 @@
 default: |
-  error[{{.ErrCode}}]: {{.ErrDesc}}
-  错误原因: {{.Reason}}
+  {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}
+  {{ end }}{{ if .BookName }}工作簿: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (主工作簿: {{.PrimaryBookName}}){{ end }}
+  {{ end }}{{ if .SheetName }}工作表: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (主工作表: {{.PrimarySheetName}}){{ end }}
+  {{ end }}错误原因: {{.Reason}}
   {{ if .Help }}修复建议: {{.Help}}{{ end }}
 protogen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
