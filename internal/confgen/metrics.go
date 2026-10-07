@@ -8,14 +8,13 @@ import (
 	"text/tabwriter"
 
 	"github.com/tableauio/tableau/internal/profile"
-	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/log"
 )
 
-// run completes generation and profiling before returning structured errors.
+// run executes generation and optional profiling.
 func (gen *Generator) run(work func() error) error {
 	if !gen.profiling {
-		return xerrors.Normalize(work())
+		return work()
 	}
 	defer gen.printMetrics()
 	profileDir := gen.OutputDir
@@ -23,7 +22,7 @@ func (gen *Generator) run(work func() error) error {
 		profileDir = filepath.Join(profileDir, gen.OutputOpt.Subdir)
 	}
 	files, err := profile.Capture("confgen", profileDir, work)
-	return xerrors.Normalize(errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU)))
+	return errors.Join(err, gen.SheetParserMetrics.LoadCPUProfile(files.CPU))
 }
 
 // printMetrics reports importer cache use and sheet parser metrics.

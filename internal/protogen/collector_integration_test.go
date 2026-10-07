@@ -55,7 +55,7 @@ func TestCollectorIntegration_SingleSheet(t *testing.T) {
 	err := gen.Generate("Collector2#HeroConf.csv")
 	require.Error(t, err)
 	var serr *xerrors.Error
-	require.ErrorAs(t, err, &serr)
+	require.ErrorAs(t, xerrors.Normalize(err), &serr)
 	require.Len(t, serr.Details, 1)
 	assert.Equal(t, "E0003", serr.Details[0].Code)
 

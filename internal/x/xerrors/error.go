@@ -8,10 +8,10 @@ import (
 	"strings"
 )
 
-// Error reports one or more structured failures from Tableau. Use errors.As
-// to obtain it from a wrapped error. Details contains one entry per failure,
-// including when only one cell fails. Error renders these details as a
-// localized summary. JSON omits underlying errors and stack traces.
+// Error reports one or more structured failures from Tableau. Use Normalize
+// followed by errors.As to obtain it from an operation's error. Details contains
+// one entry per failure, including when only one cell fails. Error renders these
+// details as a localized summary. JSON omits underlying errors and stack traces.
 type Error struct {
 	Details []*ErrorDetail `json:"details"`
 	cause   error
@@ -78,9 +78,9 @@ func (d *ErrorDetail) GetValue(key string) any {
 	return d.fields()[key]
 }
 
-// Normalize converts completed operation failures to the structured *Error
-// returned to callers. It resolves joins and scoped metadata, preserving the
-// original cause chain. Nil, ordinary Go errors, and existing *Error values are
+// Normalize converts an error to *Error when it carries structured metadata.
+// It resolves joins and scoped metadata, preserving the original cause chain.
+// Nil, ordinary Go errors, and existing *Error values are
 // returned unchanged. Use Wrap, Wrapf, or WrapKV to add context before this step.
 func Normalize(err error) error {
 	if err == nil {
@@ -103,7 +103,7 @@ func Normalize(err error) error {
 // Inspect returns a typed view of any error tree for rendering or inspection.
 // Ordinary errors have one detail containing their message; nil returns nil.
 // The original error chain and metadata remain unchanged. An existing *Error
-// is returned directly. Use Normalize when returning an operation's failure.
+// is returned directly. Use Normalize to expose structured details through errors.As.
 func Inspect(err error) *Error {
 	if err == nil {
 		return nil
