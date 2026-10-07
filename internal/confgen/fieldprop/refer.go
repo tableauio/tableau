@@ -2,6 +2,7 @@ package fieldprop
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -81,6 +82,8 @@ type rawRefer struct {
 
 type valueSpace struct {
 	*hashset.Set
+	bookName  string // loaded primary workbook, relative to the input directory
+	sheetName string // primary worksheet defining the referred value space
 }
 
 func newValueSpace() *valueSpace {
@@ -321,6 +324,11 @@ func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, 
 	header := tableparser.NewHeader(sheetOpts, bookOpts, nil)
 	// new empty referred value space set
 	space := newValueSpace()
+	space.bookName = primaryImporter.Filename()
+	if relBookName, err := xfs.Rel(input.InputDir, space.bookName); err == nil {
+		space.bookName = relBookName
+	}
+	space.sheetName = sheetName
 	for _, impInfo := range impInfos {
 		specifiedSheetName := sheetName
 		if impInfo.SpecifiedSheetName != "" {
@@ -382,6 +390,7 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 		return xerrors.New("referred cache is nil")
 	}
 
+	var failedSpaces []*valueSpace
 	for _, refer := range strings.Split(prop.Refer, ",") {
 		refer = strings.TrimSpace(refer)
 		if refer == "" {
@@ -411,6 +420,20 @@ func (r *ReferredCache) CheckRefer(ctx context.Context, prop *tableaupb.FieldPro
 		if entry.space.Contains(cellData) {
 			return nil
 		}
+		failedSpaces = append(failedSpaces, entry.space)
 	}
-	return xerrors.E2002(cellData, prop.Refer)
+	err = xerrors.E2002(cellData, prop.Refer)
+	if len(failedSpaces) == 0 {
+		return err
+	}
+	// Any target may satisfy the reference. Report their locations only after
+	// the value is absent from every target, keeping each location independent.
+	failures := make([]error, len(failedSpaces))
+	for i, space := range failedSpaces {
+		failures[i] = xerrors.WrapKV(err,
+			xerrors.KeyReferBookName, space.bookName,
+			xerrors.KeyReferSheetName, space.sheetName,
+		)
+	}
+	return errors.Join(failures...)
 }

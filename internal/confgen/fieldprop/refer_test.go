@@ -11,8 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
+	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -207,6 +210,57 @@ func TestCheckRefer(t *testing.T) {
 			err := cache.CheckRefer(context.Background(), tt.args.prop, tt.args.cellData, tt.args.input)
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("CheckRefer() error = %v, want %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestCheckReferMissingValueLocations(t *testing.T) {
+	for _, lang := range []string{"en", "zh"} {
+		t.Run(lang, func(t *testing.T) {
+			require.NoError(t, localizer.SetLang(lang))
+			t.Cleanup(func() { require.NoError(t, localizer.SetLang("en")) })
+			for _, tt := range []struct {
+				name, refer string
+				sheets      []string
+			}{
+				{"single target with alias", "Item(ItemConf).ID", []string{"ItemConf"}},
+				{"multiple targets", "ItemConf.ID, Transpose.Name", []string{"ItemConf", "Transpose"}},
+			} {
+				t.Run(tt.name, func(t *testing.T) {
+					cache := NewReferredCache()
+					input := &Input{
+						ProtoPackage: "unittest", InputDir: "../../../testdata/unittest",
+						SubdirRewrites: map[string]string{"unittest/": ""},
+						SourceBookName: "Source#*.csv", SourceSheetName: "SourceConf",
+						PRFiles: protoregistry.GlobalFiles, Present: true,
+					}
+					// Repeated failures exercise both the initial load and cached lookup.
+					for _, value := range []string{"missing-first", "missing-second"} {
+						err := cache.CheckRefer(context.Background(), &tableaupb.FieldProp{Refer: tt.refer}, value, input)
+						require.ErrorIs(t, err, xerrors.ErrE2002)
+						serr := xerrors.Inspect(err)
+						require.Len(t, serr.Details, len(tt.sheets))
+						for i, sheet := range tt.sheets {
+							detail := serr.Details[i]
+							require.NotNil(t, detail.Source)
+							assert.Equal(t, "Source#*.csv", detail.Source.Workbook)
+							assert.Equal(t, "SourceConf", detail.Source.Worksheet)
+							assert.Equal(t, "Unittest#*.csv", detail.Source.ReferencedWorkbook)
+							assert.Equal(t, sheet, detail.Source.ReferencedWorksheet)
+							bookLabel, sheetLabel := "ReferWorkbook", "ReferWorksheet"
+							if lang == "zh" {
+								bookLabel, sheetLabel = "引用工作簿", "引用工作表"
+							}
+							assert.Contains(t, detail.String(), bookLabel+": Unittest#*.csv")
+							assert.Contains(t, detail.String(), sheetLabel+": "+sheet)
+						}
+					}
+					if len(tt.sheets) > 1 {
+						// A match in a later target satisfies the union of referred spaces.
+						require.NoError(t, cache.CheckRefer(context.Background(), &tableaupb.FieldProp{Refer: tt.refer}, "Robin", input))
+					}
+				})
 			}
 		})
 	}
