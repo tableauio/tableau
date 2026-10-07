@@ -69,9 +69,13 @@ type FieldLocation struct {
 	Column  string `json:"column,omitempty"`
 }
 
-// GetValue returns the value associated with key in the first detail, or nil
-// if the error has no details or the key is absent. Use Details to inspect
-// individual failures in an aggregate error.
+// GetValue returns the value associated with key in the first detail.
+// It returns nil if the error is nil, has no details, its first detail is nil,
+// or the key is absent from that detail.
+//
+// This is a convenience for inspecting a single failure. For aggregate errors,
+// it neither searches later details nor combines their metadata. Iterate over
+// Details and call each detail's GetValue to keep values tied to their failure.
 func (e *Error) GetValue(key string) any {
 	if e == nil || len(e.Details) == 0 {
 		return nil
