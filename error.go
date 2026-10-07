@@ -1,5 +1,4 @@
-// Package xerrors provides structured Tableau errors for inspection and reporting.
-package xerrors
+package tableau
 
 import "github.com/tableauio/tableau/internal/x/xerrors"
 
