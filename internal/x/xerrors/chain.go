@@ -101,11 +101,19 @@ func Wrapf(err error, format string, args ...any) error {
 // children; a collector Join result keeps the scope of its collector tree.
 // Returns nil if err is nil.
 func WrapKV(err error, keysAndValues ...any) error {
+	return WrapKVWithCallerSkip(1, err, keysAndValues...)
+}
+
+// WrapKVWithCallerSkip is WrapKV with control over the captured caller.
+// skip counts additional caller frames to omit; zero starts at this function's
+// caller. Forwarding APIs pass one to capture their own caller instead.
+// An existing stack is preserved.
+func WrapKVWithCallerSkip(skip int, err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
 	}
 	return &withMessage{
-		cause:  withStack(1, err),
+		cause:  withStack(1+skip, err),
 		fields: parseKV(keysAndValues...),
 	}
 }
