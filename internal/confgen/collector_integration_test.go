@@ -242,11 +242,11 @@ func TestCollectorIntegration_MergerSubtableBookName(t *testing.T) {
 
 	serr := xerrors.Inspect(err)
 	require.NotNil(t, serr)
-	assert.Equal(t, xerrors.ModuleConf, serr.Details[0].GetValue(xerrors.KeyModule))
-	assert.Equal(t, "MergerShard1#*.csv", serr.Details[0].GetValue(xerrors.KeyBookName))
-	assert.Equal(t, "MergerCollectorItemConf", serr.Details[0].GetValue(xerrors.KeySheetName))
-	assert.Equal(t, "MergerCollector#*.csv", serr.Details[0].GetValue(xerrors.KeyPrimaryBookName))
-	assert.Equal(t, "MergerCollectorItemConf", serr.Details[0].GetValue(xerrors.KeyPrimarySheetName))
-	assert.Equal(t, "MergerCollectorItemConf", serr.Details[0].GetValue(xerrors.KeyPBMessage))
-	assert.Equal(t, "B4", serr.Details[0].GetValue(xerrors.KeyDataCellPos))
+	assert.Equal(t, xerrors.ModuleConf, serr.GetValue(xerrors.KeyModule))
+	assert.Equal(t, "MergerShard1#*.csv", serr.GetValue(xerrors.KeyBookName))
+	assert.Equal(t, "MergerCollectorItemConf", serr.GetValue(xerrors.KeySheetName))
+	assert.Equal(t, "MergerCollector#*.csv", serr.GetValue(xerrors.KeyPrimaryBookName))
+	assert.Equal(t, "MergerCollectorItemConf", serr.GetValue(xerrors.KeyPrimarySheetName))
+	assert.Equal(t, "MergerCollectorItemConf", serr.GetValue(xerrors.KeyPBMessage))
+	assert.Equal(t, "B4", serr.GetValue(xerrors.KeyDataCellPos))
 }

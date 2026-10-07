@@ -13,6 +13,47 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestErrorGetValue(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		err  *Error
+		key  string
+		want any
+	}{
+		{name: "nil error", key: KeyBookName},
+		{name: "no details", err: &Error{}, key: KeyBookName},
+		{name: "nil first detail", err: &Error{Details: []*ErrorDetail{nil}}, key: KeyBookName},
+		{
+			name: "source metadata",
+			err:  Inspect(NewKV("failure", KeyBookName, "First.xlsx")),
+			key:  KeyBookName, want: "First.xlsx",
+		},
+		{
+			name: "error parameter",
+			err:  Inspect(NewKV("failure", "FieldName", "Item")),
+			key:  "FieldName", want: "Item",
+		},
+		{
+			name: "first failure in aggregate",
+			err: Inspect(errors.Join(
+				NewKV("first", KeyBookName, "First.xlsx"),
+				NewKV("second", KeyBookName, "Second.xlsx"))),
+			key: KeyBookName, want: "First.xlsx",
+		},
+		{
+			name: "absent from first failure",
+			err: Inspect(errors.Join(
+				NewKV("first", KeySheetName, "FirstSheet"),
+				NewKV("second", KeyBookName, "Second.xlsx"))),
+			key: KeyBookName,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.err.GetValue(tt.key))
+		})
+	}
+}
+
 func TestInspect(t *testing.T) {
 	type args struct {
 		err error

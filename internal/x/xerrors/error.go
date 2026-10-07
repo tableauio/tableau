@@ -69,6 +69,16 @@ type FieldLocation struct {
 	Column  string `json:"column,omitempty"`
 }
 
+// GetValue returns the value associated with key in the first detail, or nil
+// if the error has no details or the key is absent. Use Details to inspect
+// individual failures in an aggregate error.
+func (e *Error) GetValue(key string) any {
+	if e == nil || len(e.Details) == 0 {
+		return nil
+	}
+	return e.Details[0].GetValue(key)
+}
+
 // GetValue returns the value associated with key in the detail, or nil if the
 // key is absent. It supports typed source and field metadata as well as
 // error-specific parameters.

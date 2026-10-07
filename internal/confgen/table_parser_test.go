@@ -60,7 +60,7 @@ func TestTableParser_parseTableMetasheet(t *testing.T) {
 			}
 			if err != nil {
 				// t.Logf("err: %v", xerrors.Inspect(err))
-				require.Equal(t, xerrors.ModuleConf, xerrors.Inspect(err).Details[0].GetValue(xerrors.KeyModule))
+				require.Equal(t, xerrors.ModuleConf, xerrors.Inspect(err).GetValue(xerrors.KeyModule))
 				require.ErrorIs(t, err, tt.err)
 			}
 		})
@@ -478,14 +478,14 @@ func TestTableParser_parseHorizontalMapWithNoDigitSuffix(t *testing.T) {
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
 	serr := xerrors.Inspect(err)
-	require.Equal(t, xerrors.ModuleConf, serr.Details[0].GetValue(xerrors.KeyModule))
+	require.Equal(t, xerrors.ModuleConf, serr.GetValue(xerrors.KeyModule))
 	// Semantic details from the ecode.
-	require.Equal(t, "Item", serr.Details[0].GetValue("FieldName"))
-	require.Equal(t, "map", serr.Details[0].GetValue("FieldType"))
+	require.Equal(t, "Item", serr.GetValue("FieldName"))
+	require.Equal(t, "map", serr.GetValue("FieldType"))
 	// Excel position details: the matched prefix range and data row.
-	require.Equal(t, "Item", serr.Details[0].GetValue(xerrors.KeyColumnName))
-	require.Equal(t, "[B...C]2", serr.Details[0].GetValue(xerrors.KeyDataCellPos))
-	require.Equal(t, "[100...200]", serr.Details[0].GetValue(xerrors.KeyDataCell))
+	require.Equal(t, "Item", serr.GetValue(xerrors.KeyColumnName))
+	require.Equal(t, "[B...C]2", serr.GetValue(xerrors.KeyDataCellPos))
+	require.Equal(t, "[100...200]", serr.GetValue(xerrors.KeyDataCell))
 
 	// Rendered summary carries the code, position, and reason.
 	rendered := serr.Error()
@@ -524,14 +524,14 @@ func TestTableParser_parseHorizontalListWithNoDigitSuffix(t *testing.T) {
 	require.ErrorIs(t, err, xerrors.ErrE2029)
 
 	serr := xerrors.Inspect(err)
-	require.Equal(t, xerrors.ModuleConf, serr.Details[0].GetValue(xerrors.KeyModule))
+	require.Equal(t, xerrors.ModuleConf, serr.GetValue(xerrors.KeyModule))
 	// Semantic details from the ecode.
-	require.Equal(t, "Item", serr.Details[0].GetValue("FieldName"))
-	require.Equal(t, "list", serr.Details[0].GetValue("FieldType"))
+	require.Equal(t, "Item", serr.GetValue("FieldName"))
+	require.Equal(t, "list", serr.GetValue("FieldType"))
 	// Excel position details: the matched prefix range and data row.
-	require.Equal(t, "Item", serr.Details[0].GetValue(xerrors.KeyColumnName))
-	require.Equal(t, "[B...C]2", serr.Details[0].GetValue(xerrors.KeyDataCellPos))
-	require.Equal(t, "[100...200]", serr.Details[0].GetValue(xerrors.KeyDataCell))
+	require.Equal(t, "Item", serr.GetValue(xerrors.KeyColumnName))
+	require.Equal(t, "[B...C]2", serr.GetValue(xerrors.KeyDataCellPos))
+	require.Equal(t, "[100...200]", serr.GetValue(xerrors.KeyDataCell))
 
 	// Rendered summary carries the code, position, and reason.
 	rendered := serr.Error()
@@ -1298,8 +1298,8 @@ func TestTableParser_parseIncellStructTooManyPartsReportsSep(t *testing.T) {
 	require.ErrorIs(t, err, xerrors.ErrE2031)
 
 	serr := xerrors.Inspect(err)
-	require.Equal(t, ",", serr.Details[0].GetValue("Sep"))
-	require.Equal(t, "unittest.FieldPresentMap.Player.Info", serr.Details[0].GetValue("TypeName"))
+	require.Equal(t, ",", serr.GetValue("Sep"))
+	require.Equal(t, "unittest.FieldPresentMap.Player.Info", serr.GetValue("TypeName"))
 	rendered := serr.Error()
 	require.Contains(t, rendered, "error[E2031]:")
 	require.Contains(t, rendered, `sep: ","`)

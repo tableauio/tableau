@@ -1364,7 +1364,7 @@ func TestTree_FullAncestorSignalsUntouchedSibling(t *testing.T) {
 	require.Error(t, second.Collect(nil))
 	assert.NoError(t, second.Join())
 	assert.EqualValues(t, 1, root.counter.Load())
-	assert.Equal(t, "First.xlsx", Inspect(root.Join()).Details[0].GetValue(KeyBookName))
+	assert.Equal(t, "First.xlsx", Inspect(root.Join()).GetValue(KeyBookName))
 	assert.NotContains(t, root.Join().Error(), "ignored")
 }
 
