@@ -4,13 +4,70 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub release tag (vX.Y.Z or cmd/tableauc/vX.Y.Z, optionally with a prerelease suffix)
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
+  validate:
+    name: Validate release version
+    runs-on: ubuntu-latest
+    permissions:
+      # GitHub requires push access to view draft releases during manual tests.
+      contents: write
+    # Ignore unrelated modules; validate candidate tags with the exact regex below.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v') || startsWith(github.event.release.tag_name, 'cmd/tableauc/v')
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      package-version: ${{ steps.version.outputs.package-version }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
+
+      - name: Verify release tag matches version.go
+        id: version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          RELEASE_VERSION="${RELEASE_TAG#cmd/tableauc/}"
+          if [[ ! "$RELEASE_VERSION" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+            echo "::error::Invalid release tag: $RELEASE_TAG"
+            exit 1
+          fi
+          TAG_VERSION="${BASH_REMATCH[1]}"
+          SOURCE_VERSION=$(sed -nE 's/^const version = "([^"]+)".*/\1/p' version.go)
+          if [ -z "$SOURCE_VERSION" ]; then
+            echo "::error::Could not read version from version.go"
+            exit 1
+          fi
+          if [ "$TAG_VERSION" != "$SOURCE_VERSION" ]; then
+            echo "::error::Release tag $RELEASE_TAG has base version $TAG_VERSION, but version.go declares $SOURCE_VERSION"
+            exit 1
+          fi
+          echo "Release tag $RELEASE_TAG matches version.go ($SOURCE_VERSION)"
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null; then
+            echo "::error::GitHub Release for $RELEASE_TAG does not exist or cannot be accessed"
+            exit 1
+          fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "package-version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
   release:
     name: Release tableauc
+    needs: validate
     runs-on: ubuntu-latest
-    # Only run for top-level release tags like `vX.Y.Z` (optionally with a suffix).
-    if: startsWith(github.event.release.tag_name, 'v')
+    permissions:
+      contents: write
     strategy:
       matrix:
         goos: [linux, darwin, windows]
@@ -22,8 +79,10 @@ jobs:
             goarch: arm64
 
     steps:
-      - name: Checkout code
+      - name: Checkout release tag
         uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ needs.validate.outputs.tag }}
 
       - name: Install Go
         uses: actions/setup-go@v6
@@ -47,23 +106,22 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           cd cmd/tableauc
-          CGO_ENABLED=0 go build -installsuffix cgo -trimpath -ldflags="-s -w" -o $GITHUB_WORKSPACE/build
+          CGO_ENABLED=0 go build -installsuffix cgo -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/build"
 
       - name: Create package
         id: package
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.package-version }}
         run: |
-          # Strip the leading `refs/tags/` so that a tag like `v0.16.1`
-          # produces a package name `tableauc.v0.16.1.<goos>.<goarch>.tar.gz`.
-          PACKAGE_NAME=tableauc.${GITHUB_REF#refs/tags/}.${{ matrix.goos }}.${{ matrix.goarch }}.tar.gz
-          tar -czvf $PACKAGE_NAME -C build .
-          echo "name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          PACKAGE_NAME=tableauc.${RELEASE_VERSION}.${{ matrix.goos }}.${{ matrix.goarch }}.tar.gz
+          tar -czvf "$PACKAGE_NAME" -C build .
+          echo "name=${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Upload asset
-        uses: actions/upload-release-asset@v1
+        # Existing assets are preserved. After a partial run, re-run only failed
+        # jobs, or delete conflicting assets before re-running the full workflow.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ steps.package.outputs.name }}
-          asset_name: ${{ steps.package.outputs.name }}
-          asset_content_type: application/gzip
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          PACKAGE_NAME: ${{ steps.package.outputs.name }}
+        run: gh release upload "$RELEASE_TAG" "$PACKAGE_NAME" --repo "$GITHUB_REPOSITORY"
