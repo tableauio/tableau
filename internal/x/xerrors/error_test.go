@@ -324,13 +324,7 @@ func TestInspectOuterFieldDoesNotOverrideInner(t *testing.T) {
 	serr := Inspect(wrapped)
 	require.NotNil(t, serr)
 
-	want := `error[E0004]: unknown error
-Workbook: <no value>
-Worksheet: <no value>
-DataCellPos: <no value>
-DataCell: <no value>
-Reason: inner error
-`
+	want := "error[E0004]: unknown error\nWorkbook: \nWorksheet: \nDataCellPos: <no value>\nDataCell: <no value>\nReason: inner error\n"
 	assert.Equal(t, want, serr.stringify(false))
 }
 
@@ -1394,7 +1388,7 @@ func TestSourceSchemaMetadata(t *testing.T) {
 			serr := Inspect(err)
 			require.ErrorIs(t, serr, cause)
 			require.Len(t, serr.Details, 1)
-			assert.Equal(t, "error[E0005]: custom check failed\nWorkbook: Shard1.xlsx (Primary: Task.xlsx)\nWorksheet: TaskSub (Primary: Task)\nWorkbookAlias: Tasks\nWorksheetAlias: TaskConf\n"+mode+": Shard*.xlsx#Task*, Season.xlsx#Daily\nReason: condition missing\n", serr.Error())
+			assert.Equal(t, "error[E0005]: custom check failed\nWorkbook: Shard1.xlsx (Primary: Task.xlsx, Alias: Tasks)\nWorksheet: TaskSub (Primary: Task, Alias: TaskConf, "+mode+": [Shard*.xlsx#Task*, Season.xlsx#Daily])\nReason: condition missing\n", serr.Error())
 			assert.Equal(t, "Tasks", serr.GetValue(KeyBookAlias))
 			assert.Equal(t, "TaskConf", serr.GetValue(KeySheetAlias))
 			assert.Equal(t, patterns, serr.GetValue(mode))

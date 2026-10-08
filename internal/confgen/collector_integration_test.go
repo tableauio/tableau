@@ -41,8 +41,7 @@ func newCollectorTestGenerator(inputDir string) *Generator {
 func e2012(workbook, worksheet, cellPos, value, fieldType string) string {
 	return `error[E2012]: invalid syntax of numerical value` + "\n" +
 		`Workbook: ` + workbook + "\n" +
-		`Worksheet: ` + worksheet + "\n" +
-		`WorksheetAlias: ` + strings.SplitN(workbook, "#", 2)[0] + worksheet + "\n" +
+		`Worksheet: ` + worksheet + " (Alias: " + strings.SplitN(workbook, "#", 2)[0] + worksheet + ")\n" +
 		`DataCellPos: ` + cellPos + "\n" +
 		`DataCell: ` + value + "\n" +
 		`Reason: "` + value + `" cannot be parsed to numerical type "` + fieldType + `", strconv.ParseFloat: parsing "` + value + `": invalid syntax` + "\n" +

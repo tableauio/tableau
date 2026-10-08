@@ -63,7 +63,7 @@ func TestLoadShardSchemaContext(t *testing.T) {
 			require.Error(t, err)
 			serr := tableau.Inspect(err)
 			require.Len(t, serr.Details, 1)
-			assert.Equal(t, "error[E2012]: invalid syntax of numerical value\nWorkbook: Shard1#*.csv (Primary: Primary#*.csv)\nWorksheet: TaskSub (Primary: Task)\nWorkbookAlias: Tasks\nWorksheetAlias: TaskConf\n"+mode+": Shard*.csv#TaskSub\nDataCellPos: A4\nDataCell: invalid\nReason: \"invalid\" cannot be parsed to numerical type \"int32\", strconv.ParseFloat: parsing \"invalid\": invalid syntax\nHelp: fill cell data with valid syntax of numerical type \"int32\"\n", serr.Error())
+			assert.Equal(t, "error[E2012]: invalid syntax of numerical value\nWorkbook: Shard1#*.csv (Primary: Primary#*.csv, Alias: Tasks)\nWorksheet: TaskSub (Primary: Task, Alias: TaskConf, "+mode+": [Shard*.csv#TaskSub])\nDataCellPos: A4\nDataCell: invalid\nReason: \"invalid\" cannot be parsed to numerical type \"int32\", strconv.ParseFloat: parsing \"invalid\": invalid syntax\nHelp: fill cell data with valid syntax of numerical type \"int32\"\n", serr.Error())
 			source := serr.Details[0].Source
 			require.NotNil(t, source)
 			assert.Equal(t, "Shard1#*.csv", source.Workbook)
@@ -105,5 +105,5 @@ func TestLoadMergerConflictSchemaContext(t *testing.T) {
 	assert.Contains(t, source.Workbook, "Unittest#*.csv")
 	assert.Contains(t, source.Workbook, "UnittestMerger1#*.csv")
 	assert.Equal(t, []string{"UnittestMerger1*.csv#MergerSingleConf"}, source.Merger)
-	assert.Contains(t, serr.Error(), "Merger: UnittestMerger1*.csv#MergerSingleConf\n")
+	assert.Contains(t, serr.Error(), "Worksheet: MergerSingleConf, MergerSingleConf (Merger: [UnittestMerger1*.csv#MergerSingleConf])\n")
 }

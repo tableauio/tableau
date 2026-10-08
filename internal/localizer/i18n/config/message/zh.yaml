@@ -1,11 +1,7 @@
 default: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}
-  {{ end }}{{ if .BookName }}工作簿: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (主工作簿: {{.PrimaryBookName}}){{ end }}
-  {{ end }}{{ if .SheetName }}工作表: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (主工作表: {{.PrimarySheetName}}){{ end }}
-  {{ end }}{{ if .BookAlias }}工作簿别名: {{.BookAlias}}
-  {{ end }}{{ if .SheetAlias }}工作表别名: {{.SheetAlias}}
-  {{ end }}{{ if .Merger }}合并来源: {{range $i, $v := .Merger}}{{if $i}}, {{end}}{{$v}}{{end}}
-  {{ end }}{{ if .Scatter }}散表来源: {{range $i, $v := .Scatter}}{{if $i}}, {{end}}{{$v}}{{end}}
+  {{ end }}{{ if or .BookName .PrimaryBookName .BookAlias }}工作簿: {{source .BookName .PrimaryBookName "主工作簿" "别名" .BookAlias}}
+  {{ end }}{{ if or .SheetName .PrimarySheetName .SheetAlias .Merger .Scatter }}工作表: {{source .SheetName .PrimarySheetName "主工作表" "别名" .SheetAlias "合并" .Merger "散表" .Scatter}}
   {{ end }}{{ if .ReferBookName }}引用工作簿: {{.ReferBookName}}
   引用工作表: {{.ReferSheetName}}
   {{ end }}错误原因: {{.Reason}}
@@ -14,20 +10,8 @@ default: |
   {{- end }}
 protogen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
-  工作簿: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (主工作簿: {{.PrimaryBookName}}){{ end }}
-  工作表: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (主工作表: {{.PrimarySheetName}}){{ end }}
-  {{- if .BookAlias }}
-  工作簿别名: {{.BookAlias}}
-  {{- end }}
-  {{- if .SheetAlias }}
-  工作表别名: {{.SheetAlias}}
-  {{- end }}
-  {{- if .Merger }}
-  合并来源: {{range $i, $v := .Merger}}{{if $i}}, {{end}}{{$v}}{{end}}
-  {{- end }}
-  {{- if .Scatter }}
-  散表来源: {{range $i, $v := .Scatter}}{{if $i}}, {{end}}{{$v}}{{end}}
-  {{- end }}
+  工作簿: {{source .BookName .PrimaryBookName "主工作簿" "别名" .BookAlias}}
+  工作表: {{source .SheetName .PrimarySheetName "主工作表" "别名" .SheetAlias "合并" .Merger "散表" .Scatter}}
   命名单元格位置: {{.NameCellPos}}
   命名单元格数据: {{.NameCell}}
   类型单元格位置: {{.TypeCellPos}}
@@ -36,20 +20,8 @@ protogen: |
   {{ if .Help }}修复建议: {{.Help}}{{ end }}
 confgen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
-  工作簿: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (主工作簿: {{.PrimaryBookName}}){{ end }}
-  工作表: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (主工作表: {{.PrimarySheetName}}){{ end }}
-  {{- if .BookAlias }}
-  工作簿别名: {{.BookAlias}}
-  {{- end }}
-  {{- if .SheetAlias }}
-  工作表别名: {{.SheetAlias}}
-  {{- end }}
-  {{- if .Merger }}
-  合并来源: {{range $i, $v := .Merger}}{{if $i}}, {{end}}{{$v}}{{end}}
-  {{- end }}
-  {{- if .Scatter }}
-  散表来源: {{range $i, $v := .Scatter}}{{if $i}}, {{end}}{{$v}}{{end}}
-  {{- end }}
+  工作簿: {{source .BookName .PrimaryBookName "主工作簿" "别名" .BookAlias}}
+  工作表: {{source .SheetName .PrimarySheetName "主工作表" "别名" .SheetAlias "合并" .Merger "散表" .Scatter}}
   {{- if .ReferBookName }}
   引用工作簿: {{.ReferBookName}}
   引用工作表: {{.ReferSheetName}}

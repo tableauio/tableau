@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/text/language"
 )
 
@@ -122,4 +123,29 @@ func Test_loadBundles(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFormatSource(t *testing.T) {
+	for _, tt := range []struct {
+		name            string
+		source, primary any
+		attributes      []any
+		want            string
+	}{
+		{name: "bare source", source: "Items.xlsx", want: "Items.xlsx"},
+		{name: "matching primary", source: "Items.xlsx", primary: "Items.xlsx", want: "Items.xlsx"},
+		{name: "absent attributes", source: "Items.xlsx", attributes: []any{"Alias", nil, "Merger", []string{}}, want: "Items.xlsx"},
+		{name: "metadata without physical name", attributes: []any{"Alias", "Items"}, want: "(Alias: Items)"},
+		{name: "combined attributes", source: "Shard.xlsx", primary: "Items.xlsx",
+			attributes: []any{"Alias", "Items", "Merger", []string{"Shard*.xlsx", "Extra.xlsx"}, "Scatter", []string{"Patch*.xlsx"}},
+			want:       "Shard.xlsx (Primary: Items.xlsx, Alias: Items, Merger: [Shard*.xlsx, Extra.xlsx], Scatter: [Patch*.xlsx])"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := formatSource(tt.source, tt.primary, "Primary", tt.attributes...)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+	_, err := formatSource("Items.xlsx", nil, "Primary", "Alias")
+	require.Error(t, err)
 }

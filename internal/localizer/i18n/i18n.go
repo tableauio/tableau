@@ -14,7 +14,46 @@ import (
 
 // FuncMap contains the custom template functions used for rendering i18n templates.
 var FuncMap = template.FuncMap{
-	"quote": func(v any) string { return strconv.Quote(fmt.Sprint(v)) },
+	"quote":  func(v any) string { return strconv.Quote(fmt.Sprint(v)) },
+	"source": formatSource,
+}
+
+// formatSource appends nonempty, localized key-value attributes to a source name.
+// Matching primary names are omitted; selector lists are bracketed.
+func formatSource(name, primary any, primaryKey string, keysAndValues ...any) (string, error) {
+	if len(keysAndValues)%2 != 0 {
+		return "", fmt.Errorf("source attributes must be key-value pairs")
+	}
+	valueText := func(value any) string {
+		switch value := value.(type) {
+		case nil:
+			return ""
+		case []string:
+			if len(value) == 0 {
+				return ""
+			}
+			return "[" + strings.Join(value, ", ") + "]"
+		default:
+			return fmt.Sprint(value)
+		}
+	}
+	text := valueText(name)
+	var attributes []string
+	if primaryText := valueText(primary); primaryText != "" && primaryText != text {
+		attributes = append(attributes, primaryKey+": "+primaryText)
+	}
+	for i := 0; i < len(keysAndValues); i += 2 {
+		if value := valueText(keysAndValues[i+1]); value != "" {
+			attributes = append(attributes, fmt.Sprint(keysAndValues[i])+": "+value)
+		}
+	}
+	if len(attributes) != 0 {
+		if text != "" {
+			text += " "
+		}
+		text += "(" + strings.Join(attributes, ", ") + ")"
+	}
+	return text, nil
 }
 
 // TODO: learn more about Internationalization (i18n) and Localization (l10n)
