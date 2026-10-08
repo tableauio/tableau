@@ -33,7 +33,7 @@ const (
 	KeyNoteCellPos     = "NoteCellPos"     // note cell position
 	KeyNoteCell        = "NoteCell"        // note cell value
 	KeyDataCellPos     = "DataCellPos"     // data cell position
-	KeyDataCell        = "DataCell"        // data data value
+	KeyDataCell        = "DataCell"        // data cell value
 
 	KeyPBMessage   = "PBMessage"   // protobuf message name
 	KeyPBFieldName = "PBFieldName" // protobuf message field name

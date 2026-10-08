@@ -302,14 +302,14 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 }
 
 type ecode struct {
-	code        string
-	description string
+	code string
+	desc string
 }
 
-func newEcode(code, description string) *ecode {
+func newEcode(code, desc string) *ecode {
 	return &ecode{
-		code:        code,
-		description: description,
+		code: code,
+		desc: desc,
 	}
 }
 
@@ -317,7 +317,7 @@ func (e *ecode) Error() string {
 	if e == nil || e.code == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s: %s", e.code, e.description)
+	return fmt.Sprintf("%s: %s", e.code, e.desc)
 }
 
 func (e *ecode) Is(target error) bool {
@@ -330,7 +330,7 @@ func renderSummary(module string, kv map[string]any) string {
 }
 
 // defaultErrCode is assigned to structured errors that carry no explicit
-// ecode, so every rendered error has a consistent "error[...]: description" header
+// ecode, so every rendered error has a consistent "error[...]: desc" header
 // (matching ecoded errors like E2005). E0004 is "unknown error".
 const defaultErrCode = "E0004"
 
@@ -343,11 +343,11 @@ func ensureEcode(fields map[string]any) {
 		return
 	}
 	fields[KeyErrCode] = defaultErrCode
-	description := "unknown error"
+	desc := "unknown error"
 	if detail := localizer.Default.RenderEcode(defaultErrCode, nil); detail != nil && detail.Desc != "" {
-		description = detail.Desc
+		desc = detail.Desc
 	}
-	fields[KeyErrDesc] = description
+	fields[KeyErrDesc] = desc
 }
 
 func renderEcode(ec *ecode, kv map[string]any) error {
