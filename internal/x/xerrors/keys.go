@@ -71,6 +71,8 @@ var debugKeyOrder = []string{
 	KeyTrimmedNameCell,
 	KeyTypeCellPos,
 	KeyTypeCell,
+	KeyNoteCellPos,
+	KeyNoteCell,
 	KeyDataCellPos,
 	KeyDataCell,
 

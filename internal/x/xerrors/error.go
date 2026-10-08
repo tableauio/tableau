@@ -319,7 +319,7 @@ func fieldsString(fields map[string]any) string {
 }
 
 // detailKeys are the metadata represented by the typed public model.
-var detailKeys = append(append([]string(nil), debugKeyOrder...), KeyNoteCellPos, KeyNoteCell)
+var detailKeys = append([]string(nil), debugKeyOrder...)
 
 func buildDetail(cause error, fields map[string]any) *ErrorDetail {
 	normalizeFields(fields)

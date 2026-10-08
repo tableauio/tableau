@@ -1251,7 +1251,9 @@ func TestErrorDetailsNormalization(t *testing.T) {
 		KeyTypeCellPos, "A2",
 		KeyTypeCell, "invalid-type",
 		KeyNoteCellPos, "A3",
-		KeyNoteCell, "identifier")
+		KeyNoteCell, "identifier",
+		KeyDataCellPos, "A4",
+		KeyDataCell, "1")
 	var structured *Error
 	require.ErrorAs(t, Normalize(err), &structured)
 	require.Len(t, structured.Details, 1)
@@ -1260,6 +1262,14 @@ func TestErrorDetailsNormalization(t *testing.T) {
 	assert.Equal(t, &CellLocation{Position: "A1", Data: " ID ", TrimmedData: "ID"}, detail.Source.NameCell)
 	assert.Equal(t, "A2", detail.Source.TypeCell.Position)
 	assert.Equal(t, "identifier", detail.Source.NoteCell.Data)
+	for _, view := range []error{err, structured, Inspect(structured)} {
+		debug := fmt.Sprintf("%+v", view)
+		assert.Contains(t, debug, "TypeCellPos: A2\nTypeCell: invalid-type\nNoteCellPos: A3\nNoteCell: identifier\nDataCellPos: A4\nDataCell: 1\n")
+		assert.Equal(t, 1, strings.Count(debug, "NoteCellPos: A3"))
+		assert.Equal(t, 1, strings.Count(debug, "NoteCell: identifier"))
+		assert.NotContains(t, fmt.Sprint(view), "NoteCellPos:")
+		assert.NotContains(t, fmt.Sprint(view), "NoteCell:")
+	}
 	before, err := json.Marshal(structured)
 	require.NoError(t, err)
 	for range 3 {
