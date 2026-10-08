@@ -107,7 +107,7 @@ func newRunCaches(profiling bool) (*fieldprop.ReferredCache, *importer.Cache) {
 // bookSpecifier can be:
 //   - only workbook: excel/Item.xlsx
 //   - specific worksheet: excel/Item.xlsx#Item (To be implemented)
-func (gen *Generator) Generate(bookSpecifiers ...string) (err error) {
+func (gen *Generator) Generate(bookSpecifiers ...string) error {
 	if len(bookSpecifiers) == 0 {
 		return gen.GenAll()
 	}
@@ -274,10 +274,10 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 		}
 		// log.Debugf("%s", md.FullName())
 		log.Infof("%15s: %s#%s (%s#%s)", "parsing sheet", fd.Path(), sheetInfo.MD.Name(), workbook.Name, sheetName)
-		messageCollector := bookCollector.NewChild(0,
+		messageCollector := bookCollector.NewChild(0, append(sheetInfo.schemaFields(),
 			xerrors.KeySheetName, sheetName,
 			xerrors.KeyPrimarySheetName, sheetName,
-			xerrors.KeyPBMessage, string(sheetInfo.MD.Name()))
+			xerrors.KeyPBMessage, string(sheetInfo.MD.Name()))...)
 
 		if sheetInfo.HasScatter() {
 			if sheetInfo.HasMerger() {

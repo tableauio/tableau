@@ -284,9 +284,9 @@ func Test_wrapDebugErr(t *testing.T) {
 			}
 			if err != nil {
 				require.ErrorIs(t, err, tt.err)
-				desc := xerrors.NewDesc(err)
-				require.Equal(t, desc.GetValue(xerrors.KeyBookName), tt.args.bookName)
-				require.Equal(t, desc.GetValue(xerrors.KeySheetName), tt.args.sheetName)
+				serr := xerrors.Inspect(err)
+				require.Equal(t, serr.GetValue(xerrors.KeyBookName), tt.args.bookName)
+				require.Equal(t, serr.GetValue(xerrors.KeySheetName), tt.args.sheetName)
 			}
 		})
 	}

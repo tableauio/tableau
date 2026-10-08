@@ -5,6 +5,7 @@ var ErrE0001 = newEcode("E0001", `sheet not found in book`)
 var ErrE0002 = newEcode("E0002", `cannot unmarshal file content to given proto.Message`)
 var ErrE0003 = newEcode("E0003", `duplicate column name`)
 var ErrE0004 = newEcode("E0004", `unknown error`)
+var ErrE0005 = newEcode("E0005", `custom check failed`)
 var ErrE1000 = newEcode("E1000", `generated proto filename conflict`)
 var ErrE2000 = newEcode("E2000", `integer overflow`)
 var ErrE2001 = newEcode("E2001", `field prop "refer" not configured correctly`)
@@ -37,7 +38,7 @@ var ErrE2027 = newEcode("E2027", `protovalidate violation`)
 var ErrE2028 = newEcode("E2028", `duplicate elements in incell keyed-list`)
 var ErrE2029 = newEcode("E2029", `no cell with digit suffix for horizontal list/map field`)
 var ErrE2030 = newEcode("E2030", `referred sheet not found`)
-var ErrE2031 = newEcode("E2031", `incell struct has too many fields`)
+var ErrE2031 = newEcode("E2031", `incell struct field count exceeds limit`)
 var ErrE3000 = newEcode("E3000", `no workbook file found about sheet specifier`)
 var ErrE3001 = newEcode("E3001", `no worksheet found in workbook`)
 var ErrE3002 = newEcode("E3002", `failed to open file`)
@@ -76,6 +77,13 @@ func E0003(name string, position1 string, position2 string) error {
 // E0004: unknown error
 func E0004() error {
 	return renderEcode(ErrE0004, map[string]any{})
+}
+
+// E0005: custom check failed
+func E0005(message string) error {
+	return renderEcode(ErrE0005, map[string]any{
+		"Message": message,
+	})
 }
 
 // E1000: generated proto filename conflict
@@ -355,7 +363,7 @@ func E2030(referBookName string, referSheetName string) error {
 	})
 }
 
-// E2031: incell struct has too many fields
+// E2031: incell struct field count exceeds limit
 func E2031(typeName string, cellData string, expected int, actual int, sep string) error {
 	return renderEcode(ErrE2031, map[string]any{
 		"TypeName": typeName,

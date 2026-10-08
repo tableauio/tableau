@@ -1,13 +1,17 @@
 default: |
-  error[{{.ErrCode}}]: {{.ErrDesc}}
-  Reason: {{.Reason}}
+  {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}
+  {{ end }}{{ if or .BookName .PrimaryBookName .BookAlias }}Workbook: {{source .BookName .PrimaryBookName "Primary" "Alias" .BookAlias}}
+  {{ end }}{{ if or .SheetName .PrimarySheetName .SheetAlias .Merger .Scatter }}Worksheet: {{source .SheetName .PrimarySheetName "Primary" "Alias" .SheetAlias "Merger" .Merger "Scatter" .Scatter}}
+  {{ end }}{{ if .ReferBookName }}ReferWorkbook: {{.ReferBookName}}
+  ReferWorksheet: {{.ReferSheetName}}
+  {{ end }}Reason: {{.Reason}}
   {{- if .Help }}
   Help: {{.Help}}
   {{- end }}
 protogen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
-  Workbook: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
-  Worksheet: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (Primary: {{.PrimarySheetName}}){{ end }}
+  Workbook: {{source .BookName .PrimaryBookName "Primary" "Alias" .BookAlias}}
+  Worksheet: {{source .SheetName .PrimarySheetName "Primary" "Alias" .SheetAlias "Merger" .Merger "Scatter" .Scatter}}
   NameCellPos: {{.NameCellPos}}
   NameCell: {{.NameCell}}
   TypeCellPos: {{.TypeCellPos}}
@@ -18,8 +22,8 @@ protogen: |
   {{- end }}
 confgen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
-  Workbook: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
-  Worksheet: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (Primary: {{.PrimarySheetName}}){{ end }}
+  Workbook: {{source .BookName .PrimaryBookName "Primary" "Alias" .BookAlias}}
+  Worksheet: {{source .SheetName .PrimarySheetName "Primary" "Alias" .SheetAlias "Merger" .Merger "Scatter" .Scatter}}
   {{- if .ReferBookName }}
   ReferWorkbook: {{.ReferBookName}}
   ReferWorksheet: {{.ReferSheetName}}

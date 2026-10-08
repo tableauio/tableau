@@ -13,6 +13,9 @@ E0003:
 E0004:
   desc: 未知错误
   text: 未知错误
+E0005:
+  desc: custom check failed
+  text: "{{.Message}}"
 # [1000, 1999]: protogen error
 E1000:
   desc: 生成的proto文件名冲突
@@ -144,9 +147,9 @@ E2030:
   text: 在工作簿 "{{.ReferBookName}}" 中未找到引用的工作表 "{{.ReferSheetName}}"
   help: 修改字段属性 "refer", 或新增引用的工作表 "{{.ReferSheetName}}"
 E2031:
-  desc: incell struct has too many fields
+  desc: incell struct field count exceeds limit
   text: 'incell struct {{ quote .TypeName }} 期望最多 {{.Expected}} 个字段, 但 {{ quote .CellData }} 中有 {{.Actual}} 段 (分隔符: {{ quote .Sep }})'
-  help: 确保单元格值中的分隔符数量不超过 (字段数 - 1)
+  help: '减少单元格中的 {{ quote .Sep }} 分隔符，使字段值不超过 {{.Expected}} 个'
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

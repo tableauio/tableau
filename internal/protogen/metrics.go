@@ -8,6 +8,7 @@ import (
 	"github.com/tableauio/tableau/internal/profile"
 )
 
+// run prepares generation and executes it with optional profiling.
 func (gen *Generator) run(generate func(context.Context) error) error {
 	if err := gen.measureOperation(gen.ctx, "prepare_run", func(context.Context) error {
 		return gen.prepareRun()

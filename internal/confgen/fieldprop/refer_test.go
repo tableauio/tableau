@@ -11,8 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/importer/book/tableparser"
+	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb"
@@ -212,6 +215,57 @@ func TestCheckRefer(t *testing.T) {
 	}
 }
 
+func TestCheckReferMissingValueLocations(t *testing.T) {
+	for _, lang := range []string{"en", "zh"} {
+		t.Run(lang, func(t *testing.T) {
+			require.NoError(t, localizer.SetLang(lang))
+			t.Cleanup(func() { require.NoError(t, localizer.SetLang("en")) })
+			for _, tt := range []struct {
+				name, refer string
+				sheets      []string
+			}{
+				{"single target with alias", "Item(ItemConf).ID", []string{"ItemConf"}},
+				{"multiple targets", "ItemConf.ID, Transpose.Name", []string{"ItemConf", "Transpose"}},
+			} {
+				t.Run(tt.name, func(t *testing.T) {
+					cache := NewReferredCache()
+					input := &Input{
+						ProtoPackage: "unittest", InputDir: "../../../testdata/unittest",
+						SubdirRewrites: map[string]string{"unittest/": ""},
+						SourceBookName: "Source#*.csv", SourceSheetName: "SourceConf",
+						PRFiles: protoregistry.GlobalFiles, Present: true,
+					}
+					// Repeated failures exercise both the initial load and cached lookup.
+					for _, value := range []string{"missing-first", "missing-second"} {
+						err := cache.CheckRefer(context.Background(), &tableaupb.FieldProp{Refer: tt.refer}, value, input)
+						require.ErrorIs(t, err, xerrors.ErrE2002)
+						serr := xerrors.Inspect(err)
+						require.Len(t, serr.Details, len(tt.sheets))
+						for i, sheet := range tt.sheets {
+							detail := serr.Details[i]
+							require.NotNil(t, detail.Source)
+							assert.Equal(t, "Source#*.csv", detail.Source.Workbook)
+							assert.Equal(t, "SourceConf", detail.Source.Worksheet)
+							assert.Equal(t, "Unittest#*.csv", detail.Source.ReferencedWorkbook)
+							assert.Equal(t, sheet, detail.Source.ReferencedWorksheet)
+							bookLabel, sheetLabel := "ReferWorkbook", "ReferWorksheet"
+							if lang == "zh" {
+								bookLabel, sheetLabel = "引用工作簿", "引用工作表"
+							}
+							assert.Contains(t, detail.String(), bookLabel+": Unittest#*.csv")
+							assert.Contains(t, detail.String(), sheetLabel+": "+sheet)
+						}
+					}
+					if len(tt.sheets) > 1 {
+						// A match in a later target satisfies the union of referred spaces.
+						require.NoError(t, cache.CheckRefer(context.Background(), &tableaupb.FieldProp{Refer: tt.refer}, "Robin", input))
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestCheckRefer_loadFailureDedup(t *testing.T) {
 	cache := NewReferredCache()
 	input := &Input{
@@ -247,11 +301,11 @@ func TestCheckRefer_includesSourceLocation(t *testing.T) {
 	if err == nil {
 		t.Fatal("CheckRefer() error = nil, want load error")
 	}
-	d := xerrors.NewDesc(err)
-	if got := d.GetValue(xerrors.KeyBookName); got != input.SourceBookName {
+	serr := xerrors.Inspect(err)
+	if got := serr.GetValue(xerrors.KeyBookName); got != input.SourceBookName {
 		t.Errorf("BookName = %v, want %s", got, input.SourceBookName)
 	}
-	if got := d.GetValue(xerrors.KeySheetName); got != input.SourceSheetName {
+	if got := serr.GetValue(xerrors.KeySheetName); got != input.SourceSheetName {
 		t.Errorf("SheetName = %v, want %s", got, input.SourceSheetName)
 	}
 
@@ -259,11 +313,11 @@ func TestCheckRefer_includesSourceLocation(t *testing.T) {
 	if err == nil {
 		t.Fatal("loadValueSpace() error = nil, want load error")
 	}
-	d = xerrors.NewDesc(err)
-	if got := d.GetValue(xerrors.KeyBookName); got != input.SourceBookName {
+	serr = xerrors.Inspect(err)
+	if got := serr.GetValue(xerrors.KeyBookName); got != input.SourceBookName {
 		t.Errorf("loadValueSpace BookName = %v, want %s", got, input.SourceBookName)
 	}
-	if got := d.GetValue(xerrors.KeySheetName); got != input.SourceSheetName {
+	if got := serr.GetValue(xerrors.KeySheetName); got != input.SourceSheetName {
 		t.Errorf("loadValueSpace SheetName = %v, want %s", got, input.SourceSheetName)
 	}
 }
@@ -407,17 +461,17 @@ func TestValueSpace_AddFromTable(t *testing.T) {
 		if err == nil {
 			t.Fatal("AddFromTable() error = nil, want error")
 		}
-		d := xerrors.NewDesc(err)
-		if got := d.GetValue(xerrors.KeyReferBookName); got != "AssistSkill.xlsx" {
+		serr := xerrors.Inspect(err)
+		if got := serr.GetValue(xerrors.KeyReferBookName); got != "AssistSkill.xlsx" {
 			t.Errorf("ReferBookName = %v, want AssistSkill.xlsx", got)
 		}
-		if got := d.GetValue(xerrors.KeyReferSheetName); got != "AssistSkill" {
+		if got := serr.GetValue(xerrors.KeyReferSheetName); got != "AssistSkill" {
 			t.Errorf("ReferSheetName = %v, want AssistSkill", got)
 		}
-		if got := d.GetValue(xerrors.KeyBookName); got != nil {
+		if got := serr.GetValue(xerrors.KeyBookName); got != nil {
 			t.Errorf("BookName = %v, want nil", got)
 		}
-		if got := d.GetValue(xerrors.KeySheetName); got != nil {
+		if got := serr.GetValue(xerrors.KeySheetName); got != nil {
 			t.Errorf("SheetName = %v, want nil", got)
 		}
 	})
@@ -433,11 +487,11 @@ func TestValueSpace_AddFromTable(t *testing.T) {
 		if err == nil {
 			t.Fatal("AddFromTable() error = nil, want error")
 		}
-		d := xerrors.NewDesc(err)
-		if got := d.GetValue(xerrors.KeyReferBookName); got != "AssistSkill.xlsx" {
+		serr := xerrors.Inspect(err)
+		if got := serr.GetValue(xerrors.KeyReferBookName); got != "AssistSkill.xlsx" {
 			t.Errorf("ReferBookName = %v, want AssistSkill.xlsx", got)
 		}
-		if got := d.GetValue(xerrors.KeyReferSheetName); got != "AssistSkill" {
+		if got := serr.GetValue(xerrors.KeyReferSheetName); got != "AssistSkill" {
 			t.Errorf("ReferSheetName = %v, want AssistSkill", got)
 		}
 	})
@@ -647,28 +701,28 @@ func TestLoadValueSpace_mergerErrorLocation(t *testing.T) {
 	if err == nil {
 		t.Fatal("loadValueSpace() error = nil, want missing-column error")
 	}
-	d := xerrors.NewDesc(err)
-	if got := d.GetValue(xerrors.KeyReferBookName); got != "UnittestMerger1#*.csv" {
+	serr := xerrors.Inspect(err)
+	if got := serr.GetValue(xerrors.KeyReferBookName); got != "UnittestMerger1#*.csv" {
 		t.Errorf("ReferBookName = %v, want UnittestMerger1#*.csv", got)
 	}
-	if got := d.GetValue(xerrors.KeyReferSheetName); got != "MergerSingleConf" {
+	if got := serr.GetValue(xerrors.KeyReferSheetName); got != "MergerSingleConf" {
 		t.Errorf("ReferSheetName = %v, want MergerSingleConf", got)
 	}
-	if got := d.GetValue(xerrors.KeyBookName); got != nil {
+	if got := serr.GetValue(xerrors.KeyBookName); got != nil {
 		t.Errorf("BookName = %v, want nil", got)
 	}
-	if got := d.GetValue(xerrors.KeySheetName); got != nil {
+	if got := serr.GetValue(xerrors.KeySheetName); got != nil {
 		t.Errorf("SheetName = %v, want nil", got)
 	}
 
-	d = xerrors.NewDesc(xerrors.WrapKV(err,
+	serr = xerrors.Inspect(xerrors.WrapKV(err,
 		xerrors.KeyBookName, "Source#*.csv",
 		xerrors.KeySheetName, "SourceConf",
 	))
-	if got := d.GetValue(xerrors.KeyBookName); got != "Source#*.csv" {
+	if got := serr.GetValue(xerrors.KeyBookName); got != "Source#*.csv" {
 		t.Errorf("wrapped BookName = %v, want Source#*.csv", got)
 	}
-	if got := d.GetValue(xerrors.KeySheetName); got != "SourceConf" {
+	if got := serr.GetValue(xerrors.KeySheetName); got != "SourceConf" {
 		t.Errorf("wrapped SheetName = %v, want SourceConf", got)
 	}
 }
@@ -738,17 +792,17 @@ func assertReferLocation(t *testing.T, err error, wantBook, wantSheet string) {
 	if err == nil {
 		t.Fatal("loadValueSpace() error = nil")
 	}
-	d := xerrors.NewDesc(err)
-	if got := d.GetValue(xerrors.KeyReferBookName); got != wantBook {
+	serr := xerrors.Inspect(err)
+	if got := serr.GetValue(xerrors.KeyReferBookName); got != wantBook {
 		t.Errorf("ReferBookName = %v, want %s", got, wantBook)
 	}
-	if got := d.GetValue(xerrors.KeyReferSheetName); got != wantSheet {
+	if got := serr.GetValue(xerrors.KeyReferSheetName); got != wantSheet {
 		t.Errorf("ReferSheetName = %v, want %s", got, wantSheet)
 	}
-	if got := d.GetValue(xerrors.KeyBookName); got != nil {
+	if got := serr.GetValue(xerrors.KeyBookName); got != nil {
 		t.Errorf("BookName = %v, want nil", got)
 	}
-	if got := d.GetValue(xerrors.KeySheetName); got != nil {
+	if got := serr.GetValue(xerrors.KeySheetName); got != nil {
 		t.Errorf("SheetName = %v, want nil", got)
 	}
 }

@@ -670,10 +670,10 @@ func TestGroup_ContextCancelled(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Structured error rendering via Stringify (Collector hierarchy)
+// Structured error rendering via Error (Collector hierarchy)
 // ---------------------------------------------------------------------------
 
-func TestCollector_Stringify_ThreeLevel(t *testing.T) {
+func TestCollector_Rendering_ThreeLevel(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(3)
@@ -685,14 +685,14 @@ func TestCollector_Stringify_ThreeLevel(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewDesc(joined).Stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] field_a: type mismatch
 [2] field_b: null value
 [3] row3: missing key`
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_NewKV(t *testing.T) {
+func TestCollector_Rendering_NewKV(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
@@ -707,7 +707,7 @@ func TestCollector_Stringify_NewKV(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewDesc(joined).Stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `error[E0004]: unknown error
 Workbook: Items.xlsx
 Worksheet: ItemConf
@@ -718,7 +718,7 @@ Reason: invalid integer value
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_WrapKV(t *testing.T) {
+func TestCollector_Rendering_WrapKV(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
@@ -744,7 +744,7 @@ func TestCollector_Stringify_WrapKV(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewDesc(joined).Stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] error[E0004]: unknown error
 Workbook: Hero.csv
 Worksheet: HeroConf
@@ -766,7 +766,7 @@ Reason: field2 error
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_WrapKV_Ecode(t *testing.T) {
+func TestCollector_Rendering_WrapKV_Ecode(t *testing.T) {
 	t.Run("modulconf", func(t *testing.T) {
 		global := NewCollector(10)
 		book := global.NewChild(5)
@@ -782,7 +782,7 @@ func TestCollector_Stringify_WrapKV_Ecode(t *testing.T) {
 
 		joined := global.Join()
 		require.Error(t, joined)
-		got := NewDesc(joined).Stringify(false)
+		got := Inspect(joined).stringify(false)
 		want := `error[E2005]: map key not unique
 Workbook: Items.xlsx
 Worksheet: ItemConf
@@ -811,7 +811,7 @@ Help: fix duplicate keys and ensure map key is unique
 
 		joined := global.Join()
 		require.Error(t, joined)
-		got := NewDesc(joined).Stringify(false)
+		got := Inspect(joined).stringify(false)
 		want := `error[E0003]: duplicate column name
 Workbook: Hero.csv
 Worksheet: HeroConf
@@ -826,7 +826,7 @@ Help: rename column name and keep sure it is unique in name row
 	})
 }
 
-func TestCollector_Stringify_MixedErrors(t *testing.T) {
+func TestCollector_Rendering_MixedErrors(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(5)
 	sheet := book.NewChild(5)
@@ -849,7 +849,7 @@ func TestCollector_Stringify_MixedErrors(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewDesc(joined).Stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] error[E0004]: unknown error
 Workbook: Items.xlsx
 Worksheet: ItemConf
@@ -869,7 +869,7 @@ Help: check field value and make sure it in representable range
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_MidLevelFull(t *testing.T) {
+func TestCollector_Rendering_MidLevelFull(t *testing.T) {
 	global := NewCollector(100)
 	book := global.NewChild(3)
 
@@ -887,14 +887,14 @@ func TestCollector_Stringify_MidLevelFull(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewDesc(joined).Stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] sheet1: err1
 [2] sheet1: err2
 [3] sheet2: err1`
 	assert.Equal(t, want, got)
 }
 
-func TestCollector_Stringify_NumberedList(t *testing.T) {
+func TestCollector_Rendering_NumberedList(t *testing.T) {
 	global := NewCollector(10)
 	book := global.NewChild(10)
 	sheet := book.NewChild(10)
@@ -905,7 +905,7 @@ func TestCollector_Stringify_NumberedList(t *testing.T) {
 
 	joined := global.Join()
 	require.Error(t, joined)
-	got := NewDesc(joined).Stringify(false)
+	got := Inspect(joined).stringify(false)
 	want := `[1] error alpha
 [2] error beta
 [3] error gamma`
@@ -993,9 +993,9 @@ func TestCollected_CollectSameTreeKeepsChildScope(t *testing.T) {
 
 	_ = root.Collect(WrapKV(child.Join(), KeyBookName, "unrelated.xlsx"))
 
-	got := NewDesc(root.Join())
+	got := Inspect(root.Join())
 	require.NotNil(t, got)
-	assert.Equal(t, "test.xlsx", got.GetValue(KeyBookName))
+	assert.Equal(t, "test.xlsx", detailFields(got)[KeyBookName])
 }
 
 // Collector scopes inherit by ancestry, including keys unknown to the renderer.
@@ -1006,10 +1006,10 @@ func TestCollected_ChildScopeInheritsArbitraryFields(t *testing.T) {
 	_ = book.Collect(New("book error"))
 	_ = sheet.Collect(New("sheet error"))
 
-	desc := NewDesc(root.Join())
-	require.Len(t, desc.children, 2)
-	assert.Equal(t, "book", desc.children[0].GetValue("source"))
-	assert.Equal(t, "sheet", desc.children[1].GetValue("source"))
+	serr := Inspect(root.Join())
+	require.Len(t, serr.Details, 2)
+	assert.Equal(t, "book", detailFields(serr.Details[0])["source"])
+	assert.Equal(t, "sheet", detailFields(serr.Details[1])["source"])
 }
 
 // A multi-error containing a Join result may also contain a new error.
@@ -1159,10 +1159,10 @@ func TestCollected_CellFieldsStayOnTheirError(t *testing.T) {
 	assert.Contains(t, book.Join().Error(), "DataCellPos: A4")
 
 	_ = sheet.Collect(E2014("missing"))
-	desc := NewDesc(book.Join())
-	require.Len(t, desc.children, 2)
-	assert.Equal(t, "A4", desc.children[0].GetValue(KeyDataCellPos))
-	assert.Nil(t, desc.children[1].GetValue(KeyDataCellPos))
+	serr := Inspect(book.Join())
+	require.Len(t, serr.Details, 2)
+	assert.Equal(t, "A4", detailFields(serr.Details[0])[KeyDataCellPos])
+	assert.Nil(t, detailFields(serr.Details[1])[KeyDataCellPos])
 }
 
 // Per-cell fields on a joined snapshot must not reach unrelated errors.
@@ -1200,10 +1200,10 @@ func TestCollected_SiblingScopesRemainIndependent(t *testing.T) {
 	_ = second.Collect(New("second"))
 	_ = root.Collect(Wrap(root.Join()))
 
-	desc := NewDesc(root.Join())
-	require.Len(t, desc.children, 2)
-	assert.Equal(t, "First.xlsx", desc.children[0].GetValue(KeyBookName))
-	assert.Equal(t, "Second.xlsx", desc.children[1].GetValue(KeyBookName))
+	serr := Inspect(root.Join())
+	require.Len(t, serr.Details, 2)
+	assert.Equal(t, "First.xlsx", detailFields(serr.Details[0])[KeyBookName])
+	assert.Equal(t, "Second.xlsx", detailFields(serr.Details[1])[KeyBookName])
 }
 
 // collected marker is transparent: errors.Is works through it.
@@ -1302,54 +1302,54 @@ func TestCollected_FourLevelScopes(t *testing.T) {
 	assert.EqualValues(t, 4, root.counter.Load())
 	assert.EqualValues(t, 3, message.counter.Load())
 
-	desc := NewDesc(root.Join())
-	require.NotNil(t, desc)
-	require.Len(t, desc.children, 4)
-	byReason := make(map[string]*Desc, 4)
-	for _, leaf := range desc.children {
-		reason, ok := leaf.GetValue(KeyReason).(string)
+	serr := Inspect(root.Join())
+	require.NotNil(t, serr)
+	require.Len(t, serr.Details, 4)
+	byReason := make(map[string]*ErrorDetail, 4)
+	for _, detail := range serr.Details {
+		reason, ok := detailFields(detail)[KeyReason].(string)
 		require.True(t, ok)
-		byReason[reason] = leaf
+		byReason[reason] = detail
 	}
 	require.Len(t, byReason, 4)
 
-	bookError := byReason["book error"]
-	require.NotNil(t, bookError)
-	assert.Equal(t, ModuleConf, bookError.GetValue(KeyModule))
-	assert.Equal(t, "Main.xlsx", bookError.GetValue(KeyBookName))
-	assert.Equal(t, "Main.xlsx", bookError.GetValue(KeyPrimaryBookName))
-	assert.Equal(t, "book", bookError.GetValue("trace"))
-	assert.Nil(t, bookError.GetValue(KeySheetName))
-	assert.Nil(t, bookError.GetValue(KeyPBMessage))
+	bookDetail := byReason["book error"]
+	require.NotNil(t, bookDetail)
+	assert.Equal(t, ModuleConf, detailFields(bookDetail)[KeyModule])
+	assert.Equal(t, "Main.xlsx", detailFields(bookDetail)[KeyBookName])
+	assert.Equal(t, "Main.xlsx", detailFields(bookDetail)[KeyPrimaryBookName])
+	assert.Equal(t, "book", detailFields(bookDetail)["trace"])
+	assert.Nil(t, detailFields(bookDetail)[KeySheetName])
+	assert.Nil(t, detailFields(bookDetail)[KeyPBMessage])
 
-	messageError := byReason["message error"]
-	require.NotNil(t, messageError)
-	assert.Equal(t, "Main.xlsx", messageError.GetValue(KeyBookName))
-	assert.Equal(t, "ItemConf", messageError.GetValue(KeySheetName))
-	assert.Equal(t, "ItemConf", messageError.GetValue(KeyPrimarySheetName))
-	assert.Equal(t, "ItemConf", messageError.GetValue(KeyPBMessage))
-	assert.Equal(t, "message", messageError.GetValue("trace"))
-	assert.Nil(t, messageError.GetValue(KeyDataCellPos))
+	messageDetail := byReason["message error"]
+	require.NotNil(t, messageDetail)
+	assert.Equal(t, "Main.xlsx", detailFields(messageDetail)[KeyBookName])
+	assert.Equal(t, "ItemConf", detailFields(messageDetail)[KeySheetName])
+	assert.Equal(t, "ItemConf", detailFields(messageDetail)[KeyPrimarySheetName])
+	assert.Equal(t, "ItemConf", detailFields(messageDetail)[KeyPBMessage])
+	assert.Equal(t, "message", detailFields(messageDetail)["trace"])
+	assert.Nil(t, detailFields(messageDetail)[KeyDataCellPos])
 
-	mainError := byReason["main cell"]
-	require.NotNil(t, mainError)
-	assert.Equal(t, "Main.xlsx", mainError.GetValue(KeyBookName))
-	assert.Equal(t, "ItemConf", mainError.GetValue(KeySheetName))
-	assert.Equal(t, "Main.xlsx", mainError.GetValue(KeyPrimaryBookName))
-	assert.Equal(t, "ItemConf", mainError.GetValue(KeyPrimarySheetName))
-	assert.Equal(t, "ItemConf", mainError.GetValue(KeyPBMessage))
-	assert.Equal(t, "message", mainError.GetValue("trace"))
-	assert.Equal(t, "A4", mainError.GetValue(KeyDataCellPos))
+	mainDetail := byReason["main cell"]
+	require.NotNil(t, mainDetail)
+	assert.Equal(t, "Main.xlsx", detailFields(mainDetail)[KeyBookName])
+	assert.Equal(t, "ItemConf", detailFields(mainDetail)[KeySheetName])
+	assert.Equal(t, "Main.xlsx", detailFields(mainDetail)[KeyPrimaryBookName])
+	assert.Equal(t, "ItemConf", detailFields(mainDetail)[KeyPrimarySheetName])
+	assert.Equal(t, "ItemConf", detailFields(mainDetail)[KeyPBMessage])
+	assert.Equal(t, "message", detailFields(mainDetail)["trace"])
+	assert.Equal(t, "A4", detailFields(mainDetail)[KeyDataCellPos])
 
-	shardError := byReason["shard cell"]
-	require.NotNil(t, shardError)
-	assert.Equal(t, "Shard.xlsx", shardError.GetValue(KeyBookName))
-	assert.Equal(t, "ShardItem", shardError.GetValue(KeySheetName))
-	assert.Equal(t, "Main.xlsx", shardError.GetValue(KeyPrimaryBookName))
-	assert.Equal(t, "ItemConf", shardError.GetValue(KeyPrimarySheetName))
-	assert.Equal(t, "ItemConf", shardError.GetValue(KeyPBMessage))
-	assert.Equal(t, "shard", shardError.GetValue("trace"))
-	assert.Equal(t, "B5", shardError.GetValue(KeyDataCellPos))
+	shardDetail := byReason["shard cell"]
+	require.NotNil(t, shardDetail)
+	assert.Equal(t, "Shard.xlsx", detailFields(shardDetail)[KeyBookName])
+	assert.Equal(t, "ShardItem", detailFields(shardDetail)[KeySheetName])
+	assert.Equal(t, "Main.xlsx", detailFields(shardDetail)[KeyPrimaryBookName])
+	assert.Equal(t, "ItemConf", detailFields(shardDetail)[KeyPrimarySheetName])
+	assert.Equal(t, "ItemConf", detailFields(shardDetail)[KeyPBMessage])
+	assert.Equal(t, "shard", detailFields(shardDetail)["trace"])
+	assert.Equal(t, "B5", detailFields(shardDetail)[KeyDataCellPos])
 }
 
 // When one branch fills an ancestor, a previously untouched sibling gets
@@ -1364,7 +1364,7 @@ func TestTree_FullAncestorSignalsUntouchedSibling(t *testing.T) {
 	require.Error(t, second.Collect(nil))
 	assert.NoError(t, second.Join())
 	assert.EqualValues(t, 1, root.counter.Load())
-	assert.Equal(t, "First.xlsx", NewDesc(root.Join()).GetValue(KeyBookName))
+	assert.Equal(t, "First.xlsx", Inspect(root.Join()).GetValue(KeyBookName))
 	assert.NotContains(t, root.Join().Error(), "ignored")
 }
 
@@ -1396,12 +1396,12 @@ func TestTree_FourLevelLimitsAcrossSiblings(t *testing.T) {
 	require.Error(t, main.Collect(New("main overflow")))
 	assert.EqualValues(t, 4, book.counter.Load())
 	assert.EqualValues(t, 4, root.counter.Load())
-	desc := NewDesc(root.Join())
-	require.Len(t, desc.children, 4)
-	assert.Equal(t, "main 1", desc.children[0].GetValue(KeyReason))
-	assert.Equal(t, "shard 1", desc.children[1].GetValue(KeyReason))
-	assert.Equal(t, "shard 2", desc.children[2].GetValue(KeyReason))
-	assert.Equal(t, "shard 3", desc.children[3].GetValue(KeyReason))
+	serr := Inspect(root.Join())
+	require.Len(t, serr.Details, 4)
+	assert.Equal(t, "main 1", detailFields(serr.Details[0])[KeyReason])
+	assert.Equal(t, "shard 1", detailFields(serr.Details[1])[KeyReason])
+	assert.Equal(t, "shard 2", detailFields(serr.Details[2])[KeyReason])
+	assert.Equal(t, "shard 3", detailFields(serr.Details[3])[KeyReason])
 }
 
 // Each concurrent importer owns its scope, while Group.Go receives its Join
@@ -1428,21 +1428,21 @@ func TestGroup_ConcurrentImporterScopes(t *testing.T) {
 	require.Error(t, joined)
 	assert.EqualValues(t, importers, root.counter.Load())
 	assert.EqualValues(t, importers, message.counter.Load())
-	desc := NewDesc(joined)
-	require.Len(t, desc.children, importers)
-	byReason := make(map[string]*Desc, importers)
-	for _, leaf := range desc.children {
-		reason, ok := leaf.GetValue(KeyReason).(string)
+	serr := Inspect(joined)
+	require.Len(t, serr.Details, importers)
+	byReason := make(map[string]*ErrorDetail, importers)
+	for _, detail := range serr.Details {
+		reason, ok := detailFields(detail)[KeyReason].(string)
 		require.True(t, ok)
-		byReason[reason] = leaf
+		byReason[reason] = detail
 	}
 	require.Len(t, byReason, importers)
 	for i := range importers {
-		leaf := byReason[fmt.Sprintf("error %d", i)]
-		require.NotNil(t, leaf)
-		assert.Equal(t, fmt.Sprintf("Shard%d.xlsx", i), leaf.GetValue(KeyBookName))
-		assert.Equal(t, fmt.Sprintf("Item%d", i), leaf.GetValue(KeySheetName))
-		assert.Equal(t, "ItemConf", leaf.GetValue(KeyPBMessage))
+		detail := byReason[fmt.Sprintf("error %d", i)]
+		require.NotNil(t, detail)
+		assert.Equal(t, fmt.Sprintf("Shard%d.xlsx", i), detailFields(detail)[KeyBookName])
+		assert.Equal(t, fmt.Sprintf("Item%d", i), detailFields(detail)[KeySheetName])
+		assert.Equal(t, "ItemConf", detailFields(detail)[KeyPBMessage])
 	}
 }
 
@@ -1459,17 +1459,17 @@ func TestCollected_JoinSnapshotAcrossHierarchy(t *testing.T) {
 	second := message.NewChild(0, KeyBookName, "Second.xlsx")
 	require.NoError(t, second.Collect(New("second")))
 
-	earlier := NewDesc(snapshot)
+	earlier := Inspect(snapshot)
 	require.NotNil(t, earlier)
-	assert.Empty(t, earlier.children)
-	assert.Equal(t, "first", earlier.GetValue(KeyReason))
-	assert.Equal(t, "First.xlsx", earlier.GetValue(KeyBookName))
-	assert.Equal(t, "ItemConf", earlier.GetValue(KeySheetName))
+	require.Len(t, earlier.Details, 1)
+	assert.Equal(t, "first", detailFields(earlier)[KeyReason])
+	assert.Equal(t, "First.xlsx", detailFields(earlier)[KeyBookName])
+	assert.Equal(t, "ItemConf", detailFields(earlier)[KeySheetName])
 
-	latest := NewDesc(root.Join())
-	require.Len(t, latest.children, 2)
-	assert.Equal(t, "First.xlsx", latest.children[0].GetValue(KeyBookName))
-	assert.Equal(t, "Second.xlsx", latest.children[1].GetValue(KeyBookName))
+	latest := Inspect(root.Join())
+	require.Len(t, latest.Details, 2)
+	assert.Equal(t, "First.xlsx", detailFields(latest.Details[0])[KeyBookName])
+	assert.Equal(t, "Second.xlsx", detailFields(latest.Details[1])[KeyBookName])
 }
 
 // ---------------------------------------------------------------------------

@@ -1,8 +1,10 @@
 package xerrors
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,15 +18,15 @@ func assertError(t *testing.T, err error, errstr string) {
 	require.EqualValues(t, errstr, err.Error())
 	require.EqualValues(t, errstr, fmt.Sprintf("%s", err))
 	require.EqualValues(t, fmt.Sprintf("%q", errstr), fmt.Sprintf("%q", err))
-	// %+v should start with NewDesc(err).String(), followed by the stack trace.
+	// %+v should start with Inspect(err).Error(), followed by the stack trace.
 	plusV := fmt.Sprintf("%+v", err)
-	d := NewDesc(err)
-	var descStr string
-	if d != nil {
-		descStr = d.String()
+	serr := Inspect(err)
+	var summary string
+	if serr != nil {
+		summary = serr.Error()
 	}
-	require.True(t, strings.HasPrefix(plusV, descStr),
-		"%+v should start with NewDesc(err).String():\ngot:  %q\nwant prefix: %q", plusV, descStr)
+	require.True(t, strings.HasPrefix(plusV, summary),
+		"%+v should start with Inspect(err).Error():\ngot:  %q\nwant prefix: %q", plusV, summary)
 }
 
 func TestErrorf(t *testing.T) {
@@ -162,19 +164,54 @@ func TestWrapKV(t *testing.T) {
 }
 
 func TestEcode(t *testing.T) {
-	assertEcode := func(err error, ecode string, desc, text, help string) {
-		d := NewDesc(err)
+	assertEcode := func(err error, ecode string, description, text, help string) {
+		serr := Inspect(err)
 		t.Log(err)
 		t.Logf("%+v", err)
-		t.Log(d.String())
-		assert.Equal(t, ecode, d.GetValue(keyErrCode))
-		assert.Equal(t, desc, d.GetValue(keyErrDesc))
-		assert.Equal(t, text, d.GetValue(KeyReason))
-		assert.Equal(t, help, d.GetValue(keyHelp))
+		t.Log(serr.Error())
+		assert.Equal(t, ecode, detailFields(serr)[KeyErrCode])
+		assert.Equal(t, description, detailFields(serr)[KeyErrDesc])
+		assert.Equal(t, text, detailFields(serr)[KeyReason])
+		assert.Equal(t, help, detailFields(serr)[KeyHelp])
 	}
 	e2003 := E2003("1", 3)
 	assert.ErrorIs(t, e2003, newEcode("E2003", "desc"))
 	assert.ErrorIs(t, e2003, ErrE2003)
 	assertEcode(e2003, "E2003", `illegal sequence number`, `value "1" does not meet sequence requirement: "sequence:3"`, `prop "sequence:3" requires value starts from "3" and increases monotonically`)
 	assert.ErrorIs(t, WrapKV(e2003, "key", "val"), ErrE2003)
+}
+
+func TestWrapKVSharedStacklessError(t *testing.T) {
+	cause := errors.New("condition missing")
+	original := &base{cause: cause}
+	wrapped := make([]error, 8)
+	var wg sync.WaitGroup
+	for i := range wrapped {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			wrapped[i] = WrapKV(original, KeySheetName, "TaskConfig")
+		}()
+	}
+	wg.Wait()
+
+	require.Nil(t, original.stack, "wrapping must not modify the shared error")
+	for i, err := range wrapped {
+		var berr *base
+		require.ErrorAs(t, err, &berr)
+		assert.NotSame(t, original, berr)
+		require.NotNil(t, berr.stack)
+		assert.NotEmpty(t, berr.StackTrace())
+		require.ErrorIs(t, err, original)
+		require.ErrorIs(t, err, cause)
+		assert.Equal(t, "TaskConfig", Inspect(err).GetValue(KeySheetName))
+		if i > 0 {
+			var previous *base
+			require.ErrorAs(t, wrapped[i-1], &previous)
+			assert.NotSame(t, previous, berr)
+		}
+		var rewrapped *base
+		require.ErrorAs(t, WrapKV(err, KeyBookName, "Task.xlsx"), &rewrapped)
+		assert.Same(t, berr, rewrapped, "further wrapping must retain the stack")
+	}
 }

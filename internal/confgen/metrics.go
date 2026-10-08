@@ -11,6 +11,7 @@ import (
 	"github.com/tableauio/tableau/log"
 )
 
+// run executes generation and optional profiling.
 func (gen *Generator) run(work func() error) error {
 	if !gen.profiling {
 		return work()

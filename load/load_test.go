@@ -326,7 +326,7 @@ func TestLoadJSON_E0002(t *testing.T) {
 	)
 	require.Error(t, err, "should return an error")
 	require.ErrorIs(t, err, xerrors.ErrE0002)
-	t.Logf("error: %s", xerrors.NewDesc(err).String())
+	t.Logf("error: %s", xerrors.Inspect(err).Error())
 
 	err = LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.Text,
 		&MessagerOptions{
@@ -335,7 +335,7 @@ func TestLoadJSON_E0002(t *testing.T) {
 	)
 	require.Error(t, err, "should return an error")
 	require.ErrorIs(t, err, xerrors.ErrE0002)
-	t.Logf("error: %s", xerrors.NewDesc(err).String())
+	t.Logf("error: %s", xerrors.Inspect(err).Error())
 }
 
 // TestLoadProtovalidate guards the protovalidate step in LoadMessagerInDir:
@@ -349,14 +349,14 @@ func TestLoadProtovalidate(t *testing.T) {
 		err := LoadMessagerInDir(&unittestpb.ValidateConf{}, "../testdata/", format.CSV, &MessagerOptions{})
 		require.Error(t, err)
 		require.ErrorIs(t, err, xerrors.ErrE2027)
-		t.Logf("error: %s", xerrors.NewDesc(err).String())
+		t.Logf("error: %s", xerrors.Inspect(err).Error())
 	})
 
 	t.Run("output-format-json", func(t *testing.T) {
 		err := LoadMessagerInDir(&unittestpb.ValidateConf{}, "../testdata/unittest/conf/", format.JSON, &MessagerOptions{})
 		require.Error(t, err)
 		require.ErrorIs(t, err, xerrors.ErrE2027)
-		t.Logf("error: %s", xerrors.NewDesc(err).String())
+		t.Logf("error: %s", xerrors.Inspect(err).Error())
 	})
 }
 
@@ -604,7 +604,7 @@ func TestLoadEmptyJSON_E0002(t *testing.T) {
 		},
 	)
 	require.ErrorIs(t, err, xerrors.ErrE0002)
-	require.Contains(t, xerrors.NewDesc(err).GetValue(xerrors.KeyReason), fileContentIsEmpty)
+	require.Contains(t, xerrors.Inspect(err).Details[0].Message, fileContentIsEmpty)
 }
 
 func TestLoadEmptyText(t *testing.T) {

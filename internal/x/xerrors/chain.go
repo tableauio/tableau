@@ -1,4 +1,4 @@
-// Error handling model:
+// Error chain model:
 //  1. cause (nil = no cause) is wrapped by base, which holds the caller stack.
 //  2. each error chain has exactly one caller stack.
 //  3. withMessage carries a message and can be nested arbitrarily.
@@ -74,7 +74,8 @@ func NewKV(msg string, keysAndValues ...any) error {
 	}
 }
 
-// Wrap annotates err with a stack trace. Returns nil if err is nil.
+// Wrap adds caller context to the cause chain by attaching a stack trace.
+// Returns nil if err is nil.
 func Wrap(err error) error {
 	if err == nil {
 		return nil
@@ -84,7 +85,8 @@ func Wrap(err error) error {
 	}
 }
 
-// Wrapf annotates err with a formatted message and a stack trace. Returns nil if err is nil.
+// Wrapf adds a formatted message and stack trace to the cause chain.
+// Returns nil if err is nil.
 func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
@@ -99,11 +101,19 @@ func Wrapf(err error, format string, args ...any) error {
 // children; a collector Join result keeps the scope of its collector tree.
 // Returns nil if err is nil.
 func WrapKV(err error, keysAndValues ...any) error {
+	return WrapKVWithCallerSkip(1, err, keysAndValues...)
+}
+
+// WrapKVWithCallerSkip is WrapKV with control over the captured caller.
+// skip counts additional caller frames to omit; zero starts at this function's
+// caller. Forwarding APIs pass one to capture their own caller instead.
+// An existing stack is preserved.
+func WrapKVWithCallerSkip(skip int, err error, keysAndValues ...any) error {
 	if err == nil {
 		return nil
 	}
 	return &withMessage{
-		cause:  withStack(1, err),
+		cause:  withStack(1+skip, err),
 		fields: parseKV(keysAndValues...),
 	}
 }
@@ -150,6 +160,14 @@ func (w *withMessage) Fields() map[string]any {
 	return w.fields
 }
 
+// Is matches a generated ecode carried by this metadata layer. The original
+// cause remains reachable through Unwrap, including joined failures.
+func (w *withMessage) Is(target error) bool {
+	code, ok := w.fields[KeyErrCode].(string)
+	ec, valid := target.(*ecode)
+	return ok && valid && ec != nil && code == ec.code
+}
+
 func (w *withMessage) Error() string {
 	if w.message != "" {
 		// replacesCause: message is the complete text.
@@ -165,9 +183,11 @@ func (w *withMessage) Error() string {
 		return w.message
 	}
 	// Joined errors need the wrapper's sharing rule while they are flattened.
-	if d := NewDesc(w); d != nil && d.err != w {
-		return d.String()
+	entries := extractEntries(w)
+	if len(entries) > 1 || (len(entries) == 1 && entries[0].cause != w) {
+		return buildError(w, entries).Error()
 	}
+
 	// No join: delegate to cause.
 	if w.cause != nil {
 		return w.cause.Error()
@@ -186,9 +206,9 @@ func format(self error, s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			// %+v: Stringify(true) — summary + fields + stack trace.
-			if d := NewDesc(self); d != nil {
-				_, _ = io.WriteString(s, d.Stringify(true))
+			// %+v includes the shared summary, structured fields, and stack.
+			if serr := Inspect(self); serr != nil {
+				_, _ = io.WriteString(s, serr.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, self.Error())
 				var berr *base
@@ -206,17 +226,15 @@ func format(self error, s fmt.State, verb rune) {
 	}
 }
 
-// withStack attaches a caller stack to err. Skips if a stack is already present.
+// withStack attaches a caller stack without changing err. An existing stack
+// is retained; a stack-less error receives a new wrapper.
 // skip == 0 means the caller of withStack is the first frame shown.
 func withStack(skip int, err error) error { // nolint:unparam
 	if err == nil {
 		return nil
 	}
 	var berr *base
-	if errors.As(err, &berr) {
-		if berr.stack == nil {
-			berr.stack = callers(1 + skip)
-		}
+	if errors.As(err, &berr) && berr != nil && berr.stack != nil {
 		return err
 	}
 	return &base{cause: err, stack: callers(1 + skip)}
@@ -238,7 +256,7 @@ func parseKV(keysAndValues ...any) map[string]any {
 	return m
 }
 
-// joinError is a multi-error that renders children via NewDesc and supports %+v.
+// joinError is a multi-error that renders children via Inspect and supports %+v.
 type joinError struct {
 	errs  []error
 	stack *stack
@@ -246,10 +264,10 @@ type joinError struct {
 
 func (j *joinError) Unwrap() []error { return j.errs }
 
-// Error renders the joined errors from their structured descriptions.
+// Error renders the joined errors from their structured details.
 func (j *joinError) Error() string {
-	if d := NewDesc(j); d != nil {
-		return d.String()
+	if serr := Inspect(j); serr != nil {
+		return serr.Error()
 	}
 	var sb strings.Builder
 	for i, err := range j.errs {
@@ -267,9 +285,9 @@ func (j *joinError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			// %+v: Stringify(true) — summary + fields + stack trace.
-			if d := NewDesc(j); d != nil {
-				_, _ = io.WriteString(s, d.Stringify(true))
+			// %+v includes the shared summary, structured fields, and stack.
+			if serr := Inspect(j); serr != nil {
+				_, _ = io.WriteString(s, serr.stringify(true))
 			} else {
 				_, _ = io.WriteString(s, j.Error())
 			}
@@ -316,20 +334,20 @@ func renderSummary(module string, kv map[string]any) string {
 // (matching ecoded errors like E2005). E0004 is "unknown error".
 const defaultErrCode = "E0004"
 
-// ensureEcode populates the ecode fields (keyErrCode, keyErrDesc) when the
+// ensureEcode populates the ecode fields (KeyErrCode, KeyErrDesc) when the
 // error has none, defaulting to E0004. This lets the protogen/confgen
 // message templates always render the "error[{{.ErrCode}}]: {{.ErrDesc}}"
 // header line instead of special-casing the no-ecode case.
 func ensureEcode(fields map[string]any) {
-	if fields[keyErrCode] != nil {
+	if fields[KeyErrCode] != nil {
 		return
 	}
-	fields[keyErrCode] = defaultErrCode
+	fields[KeyErrCode] = defaultErrCode
 	desc := "unknown error"
 	if detail := localizer.Default.RenderEcode(defaultErrCode, nil); detail != nil && detail.Desc != "" {
 		desc = detail.Desc
 	}
-	fields[keyErrDesc] = desc
+	fields[KeyErrDesc] = desc
 }
 
 func renderEcode(ec *ecode, kv map[string]any) error {
@@ -337,9 +355,9 @@ func renderEcode(ec *ecode, kv map[string]any) error {
 	fields := make(map[string]any, len(kv)+4)
 	maps.Copy(fields, kv)
 	fields[KeyReason] = detail.Text
-	fields[keyErrCode] = ec.code
-	fields[keyErrDesc] = detail.Desc
-	fields[keyHelp] = detail.Help
+	fields[KeyErrCode] = ec.code
+	fields[KeyErrDesc] = detail.Desc
+	fields[KeyHelp] = detail.Help
 	return &withMessage{
 		cause:         withStack(2, ec),
 		message:       detail.Text,

@@ -1,15 +1,10 @@
 package tableau
 
 import (
-	"context"
-
 	"github.com/tableauio/tableau/internal/confgen"
-	"github.com/tableauio/tableau/internal/importer"
-	"github.com/tableauio/tableau/internal/importer/book"
 	"github.com/tableauio/tableau/internal/localizer"
 	"github.com/tableauio/tableau/internal/protogen"
 	"github.com/tableauio/tableau/internal/x/xerrors"
-	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/options"
 )
@@ -27,7 +22,7 @@ func Generate(protoPackage, indir, outdir string, setters ...options.Option) err
 }
 
 // GenProto converts Excel/CSV/XML/YAML files to protoconf files.
-func GenProto(protoPackage, indir, outdir string, setters ...options.Option) (err error) {
+func GenProto(protoPackage, indir, outdir string, setters ...options.Option) error {
 	opts := options.ParseOptions(setters...)
 	if err := localizer.SetLang(opts.Lang); err != nil {
 		return err
@@ -78,11 +73,4 @@ func NewConfGeneratorWithOptions(protoPackage, indir, outdir string, options *op
 // E.g: en, zh.
 func SetLang(lang string) error {
 	return localizer.SetLang(lang)
-}
-
-// NewImporter creates a new importer of the specified workbook.
-func NewImporter(workbookPath string) (importer.Importer, error) {
-	ctx := context.Background()
-	parser := confgen.NewSheetParser(ctx, xproto.InternalProtoPackage, "", book.MetasheetOptions(ctx))
-	return importer.New(ctx, workbookPath, importer.Parser(parser))
 }
