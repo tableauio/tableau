@@ -1,0 +1,4 @@
+ItemMap,RangeMap,PresentMap,ComboMap,EnumRangeMap
+"map<int64, int64>||{refer:""ItemConf.ID""}","map<int32, int32>||{range:""1,10""}","map<int32, string>||{present:true}","map<int32, int64>|{refer:""ItemConf.ID""}|{range:""1,10""}","map<enum<.FruitType>, int32>||{range:""1,10""}"
+Item map,Range map,Present map,Combo map,Enum range map
+"1:1,2:2","1:5,2:8","1:hello,2:world","1:5,2:8","Apple:5,Orange:8"
