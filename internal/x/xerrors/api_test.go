@@ -42,7 +42,7 @@ func TestPublicWrapKVCaller(t *testing.T) {
 }
 
 func TestCustomCheckError(t *testing.T) {
-	assert.Nil(t, tableau.E2032(nil))
+	assert.Nil(t, tableau.E0005(nil))
 	cause := errors.New("condition missing")
 	plain := fmt.Errorf("task 42: %w", cause)
 	coded := xerrors.E2003("1", 3)
@@ -51,23 +51,23 @@ func TestCustomCheckError(t *testing.T) {
 		Source:  &tableau.SourceLocation{Workbook: "Shard.xlsx", Worksheet: "TaskConfig", PrimaryWorkbook: "Task.xlsx"},
 	}}}
 	joined := errors.Join(plain, coded, sourced)
-	wrapped := tableau.E2032(joined)
+	wrapped := tableau.E0005(joined)
 	serr := tableau.Inspect(wrapped)
 	require.Len(t, serr.Details, 3)
-	assert.Equal(t, "E2032", serr.Details[0].Code)
+	assert.Equal(t, "E0005", serr.Details[0].Code)
 	assert.Equal(t, "task 42: condition missing", serr.Details[0].Message)
 	assert.Equal(t, "E2003", serr.Details[1].Code)
 	assert.Equal(t, tableau.Inspect(coded).Details[0].Message, serr.Details[1].Message)
-	assert.Equal(t, "E2032", serr.Details[2].Code)
+	assert.Equal(t, "E0005", serr.Details[2].Code)
 	assert.Equal(t, "invalid target", serr.Details[2].Message)
 	assert.Equal(t, sourced.Details[0].Source, serr.Details[2].Source)
 	assert.Empty(t, sourced.Details[0].Code, "classification must not change the input")
-	for _, target := range []error{joined, cause, coded, sourced, xerrors.ErrE2032, xerrors.ErrE2003} {
+	for _, target := range []error{joined, cause, coded, sourced, xerrors.ErrE0005, xerrors.ErrE2003} {
 		require.ErrorIs(t, wrapped, target)
 		require.ErrorIs(t, serr, target)
 	}
-	assert.Equal(t, "error[E2032]: custom check failed\nReason: task 42: condition missing\n",
-		tableau.Inspect(tableau.E2032(plain)).Error())
+	assert.Equal(t, "error[E0005]: custom check failed\nReason: task 42: condition missing\n",
+		tableau.Inspect(tableau.E0005(plain)).Error())
 
 	encoded, err := json.Marshal(serr)
 	require.NoError(t, err)
@@ -76,10 +76,10 @@ func TestCustomCheckError(t *testing.T) {
 	assert.Equal(t, serr.Error(), decoded.Error())
 }
 
-func TestPublicE2032Caller(t *testing.T) {
+func TestPublicE0005Caller(t *testing.T) {
 	cause := errors.New("condition missing")
 	_, file, line, ok := runtime.Caller(0)
-	wrapped := tableau.E2032(cause)
+	wrapped := tableau.E0005(cause)
 	require.True(t, ok)
 	var tracer interface{ StackTrace() xerrors.StackTrace }
 	require.ErrorAs(t, wrapped, &tracer)
@@ -88,9 +88,9 @@ func TestPublicE2032Caller(t *testing.T) {
 	frame, _ := runtime.CallersFrames([]uintptr{uintptr(trace[0])}).Next()
 	assert.Equal(t, file, frame.File)
 	assert.Equal(t, line+1, frame.Line)
-	assert.Equal(t, "github.com/tableauio/tableau/internal/x/xerrors_test.TestPublicE2032Caller", frame.Function)
+	assert.Equal(t, "github.com/tableauio/tableau/internal/x/xerrors_test.TestPublicE0005Caller", frame.Function)
 
-	rewrapped := tableau.E2032(tableau.WrapKV(wrapped, tableau.KeyBookName, "Task.xlsx"))
+	rewrapped := tableau.E0005(tableau.WrapKV(wrapped, tableau.KeyBookName, "Task.xlsx"))
 	var rewrappedTracer interface{ StackTrace() xerrors.StackTrace }
 	require.ErrorAs(t, rewrapped, &rewrappedTracer)
 	assert.Same(t, tracer, rewrappedTracer)
@@ -101,7 +101,7 @@ func TestPublicE2032Caller(t *testing.T) {
 func TestCustomCheckErrorPreservesSparseCode(t *testing.T) {
 	original := &tableau.Error{Details: []*tableau.ErrorDetail{{Code: "E2012", Message: "invalid value"}}}
 	for _, err := range []error{original, errors.Join(original, errors.New("condition missing"))} {
-		serr := tableau.Inspect(tableau.E2032(err))
+		serr := tableau.Inspect(tableau.E0005(err))
 		require.NotEmpty(t, serr.Details)
 		assert.Equal(t, "E2012", serr.Details[0].Code)
 		assert.Empty(t, serr.Details[0].Description, "an existing code must not inherit the custom-check description")

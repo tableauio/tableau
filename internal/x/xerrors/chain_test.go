@@ -1,8 +1,10 @@
 package xerrors
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -177,4 +179,39 @@ func TestEcode(t *testing.T) {
 	assert.ErrorIs(t, e2003, ErrE2003)
 	assertEcode(e2003, "E2003", `illegal sequence number`, `value "1" does not meet sequence requirement: "sequence:3"`, `prop "sequence:3" requires value starts from "3" and increases monotonically`)
 	assert.ErrorIs(t, WrapKV(e2003, "key", "val"), ErrE2003)
+}
+
+func TestWrapKVSharedStacklessError(t *testing.T) {
+	cause := errors.New("condition missing")
+	original := &base{cause: cause}
+	wrapped := make([]error, 8)
+	var wg sync.WaitGroup
+	for i := range wrapped {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			wrapped[i] = WrapKV(original, KeySheetName, "TaskConfig")
+		}()
+	}
+	wg.Wait()
+
+	require.Nil(t, original.stack, "wrapping must not modify the shared error")
+	for i, err := range wrapped {
+		var berr *base
+		require.ErrorAs(t, err, &berr)
+		assert.NotSame(t, original, berr)
+		require.NotNil(t, berr.stack)
+		assert.NotEmpty(t, berr.StackTrace())
+		require.ErrorIs(t, err, original)
+		require.ErrorIs(t, err, cause)
+		assert.Equal(t, "TaskConfig", Inspect(err).GetValue(KeySheetName))
+		if i > 0 {
+			var previous *base
+			require.ErrorAs(t, wrapped[i-1], &previous)
+			assert.NotSame(t, previous, berr)
+		}
+		var rewrapped *base
+		require.ErrorAs(t, WrapKV(err, KeyBookName, "Task.xlsx"), &rewrapped)
+		assert.Same(t, berr, rewrapped, "further wrapping must retain the stack")
+	}
 }

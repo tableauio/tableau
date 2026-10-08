@@ -25,6 +25,11 @@ E0003:
 E0004:
   desc: unknown error
   text: unknown error
+E0005:
+  desc: custom check failed
+  text: "{{.Message}}"
+  fields:
+    - Message: string
 # [1000, 1999]: protogen error
 E1000:
   desc: generated proto filename conflict
@@ -235,11 +240,6 @@ E2031:
     - Expected: int
     - Actual: int
     - Sep: string
-E2032:
-  desc: custom check failed
-  text: "{{.Message}}"
-  fields:
-    - Message: string
 # [3000, 3999]: importer error
 E3000:
   desc: no workbook file found about sheet specifier

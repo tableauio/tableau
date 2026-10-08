@@ -52,10 +52,10 @@ func WrapKV(err error, keysAndValues ...any) error {
 	return xerrors.WrapKVWithCallerSkip(1, err, keysAndValues...)
 }
 
-// E2032 marks custom check failures with code E2032 (custom check failed).
+// E0005 marks custom check failures with code E0005 (custom check failed).
 // Joined errors retain one detail per failure and their original messages.
 // Existing codes and metadata take precedence; causes and stacks are preserved.
 // Nil returns nil. Use Inspect at the reporting boundary for text or JSON.
-func E2032(err error) error {
-	return xerrors.WrapEcodeWithCallerSkip(1, err, xerrors.ErrE2032)
+func E0005(err error) error {
+	return xerrors.WrapEcodeWithCallerSkip(1, err, xerrors.ErrE0005)
 }

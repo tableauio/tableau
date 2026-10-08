@@ -226,17 +226,15 @@ func format(self error, s fmt.State, verb rune) {
 	}
 }
 
-// withStack attaches a caller stack to err. Skips if a stack is already present.
+// withStack attaches a caller stack without changing err. An existing stack
+// is retained; a stack-less error receives a new wrapper.
 // skip == 0 means the caller of withStack is the first frame shown.
 func withStack(skip int, err error) error { // nolint:unparam
 	if err == nil {
 		return nil
 	}
 	var berr *base
-	if errors.As(err, &berr) {
-		if berr.stack == nil {
-			berr.stack = callers(1 + skip)
-		}
+	if errors.As(err, &berr) && berr != nil && berr.stack != nil {
 		return err
 	}
 	return &base{cause: err, stack: callers(1 + skip)}
