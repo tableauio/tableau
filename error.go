@@ -37,10 +37,16 @@ func Normalize(err error) error {
 	return xerrors.Normalize(err)
 }
 
-// Inspect returns an independent snapshot of any error's structured details,
-// including ordinary Go errors. Nil returns nil. Editing the snapshot does not
-// change the input error's details, and its original causes remain reachable
-// through errors.Is and errors.As. Use Normalize to retain ordinary Go errors.
+// Inspect collects all failures in err into an independent *Error snapshot.
+// Wrapped and joined errors are flattened into Details, preserving each
+// failure's metadata. The Error method renders the details consistently,
+// numbering multiple failures in one sequence: [1], [2], [3], ...
+// Call Inspect once at the reporting boundary.
+//
+// Editing the snapshot does not change err. Original causes remain reachable
+// through errors.Is and errors.As. An ordinary Go error yields one detail
+// containing its message; nil returns nil. Use Normalize to leave ordinary
+// Go errors unchanged.
 func Inspect(err error) *Error {
 	return xerrors.Inspect(err)
 }
