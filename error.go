@@ -15,6 +15,10 @@ type ErrorDetail = xerrors.ErrorDetail
 
 // SourceLocation identifies the actual source of a failure. PrimaryWorkbook
 // and PrimaryWorksheet identify the schema's source when a shard is loaded.
+// Aliases and merger/scatter specifiers describe that schema, independently
+// of the actual workbook, worksheet, and cell where the failure occurred.
+// WorksheetAlias is the protobuf message name when it differs from the
+// schema worksheet name.
 type SourceLocation = xerrors.SourceLocation
 
 // CellLocation contains the source position and data of a cell. Position can

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"slices"
 	"strings"
 )
 
@@ -35,11 +36,19 @@ type ErrorDetail struct {
 
 // SourceLocation identifies the actual source of a failure. PrimaryWorkbook
 // and PrimaryWorksheet identify the schema's source when a shard is loaded.
+// Aliases and merger/scatter specifiers describe that schema, independently
+// of the actual workbook, worksheet, and cell where the failure occurred.
+// WorksheetAlias is the protobuf message name when it differs from the
+// schema worksheet name.
 type SourceLocation struct {
 	Workbook            string        `json:"workbook,omitempty"`
 	PrimaryWorkbook     string        `json:"primaryWorkbook,omitempty"`
 	Worksheet           string        `json:"worksheet,omitempty"`
 	PrimaryWorksheet    string        `json:"primaryWorksheet,omitempty"`
+	WorkbookAlias       string        `json:"workbookAlias,omitempty"`
+	WorksheetAlias      string        `json:"worksheetAlias,omitempty"`
+	Merger              []string      `json:"merger,omitempty"`
+	Scatter             []string      `json:"scatter,omitempty"`
 	ReferencedWorkbook  string        `json:"referencedWorkbook,omitempty"`
 	ReferencedWorksheet string        `json:"referencedWorksheet,omitempty"`
 	InputDir            string        `json:"inputDir,omitempty"`
@@ -257,6 +266,14 @@ func (d *ErrorDetail) fields() map[string]any {
 		put(KeyPrimaryBookName, s.PrimaryWorkbook)
 		put(KeySheetName, s.Worksheet)
 		put(KeyPrimarySheetName, s.PrimaryWorksheet)
+		put(KeyBookAlias, s.WorkbookAlias)
+		put(KeySheetAlias, s.WorksheetAlias)
+		if len(s.Merger) != 0 {
+			fields[KeyMerger] = slices.Clone(s.Merger)
+		}
+		if len(s.Scatter) != 0 {
+			fields[KeyScatter] = slices.Clone(s.Scatter)
+		}
 		put(KeyReferBookName, s.ReferencedWorkbook)
 		put(KeyReferSheetName, s.ReferencedWorksheet)
 		put(KeyIndir, s.InputDir)
@@ -329,6 +346,10 @@ func buildDetail(cause error, fields map[string]any) *ErrorDetail {
 		PrimaryWorkbook:     errorField(fields, KeyPrimaryBookName),
 		Worksheet:           errorField(fields, KeySheetName),
 		PrimaryWorksheet:    errorField(fields, KeyPrimarySheetName),
+		WorkbookAlias:       errorField(fields, KeyBookAlias),
+		WorksheetAlias:      errorField(fields, KeySheetAlias),
+		Merger:              errorStrings(fields, KeyMerger),
+		Scatter:             errorStrings(fields, KeyScatter),
 		ReferencedWorkbook:  errorField(fields, KeyReferBookName),
 		ReferencedWorksheet: errorField(fields, KeyReferSheetName),
 		InputDir:            errorField(fields, KeyIndir),
@@ -339,7 +360,7 @@ func buildDetail(cause error, fields map[string]any) *ErrorDetail {
 		TypeCell:            errorCell(fields, KeyTypeCellPos, KeyTypeCell, ""),
 		NoteCell:            errorCell(fields, KeyNoteCellPos, KeyNoteCell, ""),
 	}
-	if *source != (SourceLocation{}) {
+	if source.hasMetadata() {
 		detail.Source = source
 	}
 	field := &FieldLocation{
@@ -362,6 +383,21 @@ func buildDetail(cause error, fields map[string]any) *ErrorDetail {
 		delete(detail.parameters, key)
 	}
 	return detail
+}
+
+func (s *SourceLocation) hasMetadata() bool {
+	return s.Workbook != "" || s.PrimaryWorkbook != "" || s.Worksheet != "" || s.PrimaryWorksheet != "" ||
+		s.WorkbookAlias != "" || s.WorksheetAlias != "" || len(s.Merger) != 0 || len(s.Scatter) != 0 ||
+		s.ReferencedWorkbook != "" || s.ReferencedWorksheet != "" || s.InputDir != "" || s.Subdir != "" || s.OutputDir != "" ||
+		s.Cell != nil || s.NameCell != nil || s.TypeCell != nil || s.NoteCell != nil
+}
+
+func errorStrings(fields map[string]any, key string) []string {
+	values, _ := fields[key].([]string)
+	if len(values) == 0 {
+		return nil
+	}
+	return slices.Clone(values)
 }
 
 func errorField(fields map[string]any, key string) string {

@@ -139,10 +139,10 @@ type oneMsg struct {
 // ParseMessage parses multiple importer infos into one protomsg.
 func ParseMessage(info *SheetInfo, messageCollector *xerrors.Collector, impInfos ...importer.ImporterInfo) (proto.Message, error) {
 	if len(impInfos) == 0 {
-		return nil, xerrors.NewKV("no importer to be parsed",
+		return nil, xerrors.NewKV("no importer to be parsed", append(info.schemaFields(),
 			xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 			xerrors.KeySheetName, info.SheetOpts.Name,
-			xerrors.KeyPBMessage, string(info.MD.Name()))
+			xerrors.KeyPBMessage, string(info.MD.Name()))...)
 	} else if len(impInfos) == 1 {
 		protomsg, err := parseMessageFromOneImporter(info, messageCollector, impInfos[0])
 		if err != nil {
@@ -197,17 +197,17 @@ func ParseMessage(info *SheetInfo, messageCollector *xerrors.Collector, impInfos
 					if err != nil {
 						bookNames := prevMsg.bookName + ", " + msg.bookName
 						sheetNames := prevMsg.sheetName + ", " + msg.sheetName
-						return nil, xerrors.WrapKV(err,
+						return nil, xerrors.WrapKV(err, append(info.schemaFields(),
 							xerrors.KeyBookName, bookNames,
 							xerrors.KeySheetName, sheetNames,
-							xerrors.KeyPBMessage, string(info.MD.Name()))
+							xerrors.KeyPBMessage, string(info.MD.Name()))...)
 					}
 				}
 			}
-			return nil, xerrors.WrapKV(err,
+			return nil, xerrors.WrapKV(err, append(info.schemaFields(),
 				xerrors.KeyBookName, msg.bookName,
 				xerrors.KeySheetName, msg.sheetName,
-				xerrors.KeyPBMessage, string(info.MD.Name()))
+				xerrors.KeyPBMessage, string(info.MD.Name()))...)
 		}
 	}
 	return mainMsg, nil
@@ -219,7 +219,8 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 	if sheet == nil {
 		bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
 		err := xerrors.E0001(sheetName, bookName)
-		return nil, xerrors.WrapKV(err, xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))
+		return nil, xerrors.WrapKV(err, append(info.schemaFields(),
+			xerrors.KeyBookName, bookName, xerrors.KeySheetName, sheetName, xerrors.KeyPBMessage, string(info.MD.Name()))...)
 	}
 	parser := NewExtendedSheetParser(
 		context.Background(), info.ProtoPackage, info.LocationName, info.BookOpts, info.SheetOpts, info.ExtInfo,
@@ -233,13 +234,13 @@ func parseMessageFromOneImporter(info *SheetInfo, messageCollector *xerrors.Coll
 		maxErrorsPerSheet = info.ExtInfo.ErrorLimit.MaxErrorsPerSheet
 	}
 	bookName := getRelBookName(info.ExtInfo.InputDir, impInfo.Filename())
-	parser.sheetCollector = messageCollector.NewChild(maxErrorsPerSheet,
+	parser.sheetCollector = messageCollector.NewChild(maxErrorsPerSheet, append(info.schemaFields(),
 		xerrors.KeyModule, xerrors.ModuleConf,
 		xerrors.KeyBookName, bookName,
 		xerrors.KeySheetName, sheetName,
 		xerrors.KeyPrimaryBookName, info.PrimaryBookName,
 		xerrors.KeyPrimarySheetName, info.SheetOpts.Name,
-		xerrors.KeyPBMessage, string(info.MD.Name()))
+		xerrors.KeyPBMessage, string(info.MD.Name()))...)
 	protomsg := dynamicpb.NewMessage(info.MD)
 	var parseErr error
 	if info.ExtInfo.SheetParserMetrics == nil {
@@ -270,6 +271,24 @@ type SheetInfo struct {
 	SheetOpts       *tableaupb.WorksheetOptions
 
 	ExtInfo *SheetParserExtInfo
+}
+
+// schemaFields records configured sources separately from actual shard locations.
+func (si *SheetInfo) schemaFields() []any {
+	var fields []any
+	if alias := si.BookOpts.GetAlias(); alias != "" {
+		fields = append(fields, xerrors.KeyBookAlias, alias)
+	}
+	if alias := string(si.MD.Name()); alias != si.SheetOpts.GetName() {
+		fields = append(fields, xerrors.KeySheetAlias, alias)
+	}
+	if merger := si.SheetOpts.GetMerger(); len(merger) != 0 {
+		fields = append(fields, xerrors.KeyMerger, merger)
+	}
+	if scatter := si.SheetOpts.GetScatter(); len(scatter) != 0 {
+		fields = append(fields, xerrors.KeyScatter, scatter)
+	}
+	return fields
 }
 
 func (si *SheetInfo) HasScatter() bool {

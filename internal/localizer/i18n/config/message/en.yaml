@@ -2,6 +2,10 @@ default: |
   {{ if .ErrCode }}error[{{.ErrCode}}]: {{.ErrDesc}}
   {{ end }}{{ if .BookName }}Workbook: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
   {{ end }}{{ if .SheetName }}Worksheet: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (Primary: {{.PrimarySheetName}}){{ end }}
+  {{ end }}{{ if .BookAlias }}WorkbookAlias: {{.BookAlias}}
+  {{ end }}{{ if .SheetAlias }}WorksheetAlias: {{.SheetAlias}}
+  {{ end }}{{ if .Merger }}Merger: {{range $i, $v := .Merger}}{{if $i}}, {{end}}{{$v}}{{end}}
+  {{ end }}{{ if .Scatter }}Scatter: {{range $i, $v := .Scatter}}{{if $i}}, {{end}}{{$v}}{{end}}
   {{ end }}{{ if .ReferBookName }}ReferWorkbook: {{.ReferBookName}}
   ReferWorksheet: {{.ReferSheetName}}
   {{ end }}Reason: {{.Reason}}
@@ -12,6 +16,18 @@ protogen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
   Workbook: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
   Worksheet: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (Primary: {{.PrimarySheetName}}){{ end }}
+  {{- if .BookAlias }}
+  WorkbookAlias: {{.BookAlias}}
+  {{- end }}
+  {{- if .SheetAlias }}
+  WorksheetAlias: {{.SheetAlias}}
+  {{- end }}
+  {{- if .Merger }}
+  Merger: {{range $i, $v := .Merger}}{{if $i}}, {{end}}{{$v}}{{end}}
+  {{- end }}
+  {{- if .Scatter }}
+  Scatter: {{range $i, $v := .Scatter}}{{if $i}}, {{end}}{{$v}}{{end}}
+  {{- end }}
   NameCellPos: {{.NameCellPos}}
   NameCell: {{.NameCell}}
   TypeCellPos: {{.TypeCellPos}}
@@ -24,6 +40,18 @@ confgen: |
   error[{{.ErrCode}}]: {{.ErrDesc}}
   Workbook: {{.BookName}}{{ if and (.PrimaryBookName) (not (eq .BookName .PrimaryBookName)) }} (Primary: {{.PrimaryBookName}}){{ end }}
   Worksheet: {{.SheetName}}{{ if and (.PrimarySheetName) (not (eq .SheetName .PrimarySheetName)) }} (Primary: {{.PrimarySheetName}}){{ end }}
+  {{- if .BookAlias }}
+  WorkbookAlias: {{.BookAlias}}
+  {{- end }}
+  {{- if .SheetAlias }}
+  WorksheetAlias: {{.SheetAlias}}
+  {{- end }}
+  {{- if .Merger }}
+  Merger: {{range $i, $v := .Merger}}{{if $i}}, {{end}}{{$v}}{{end}}
+  {{- end }}
+  {{- if .Scatter }}
+  Scatter: {{range $i, $v := .Scatter}}{{if $i}}, {{end}}{{$v}}{{end}}
+  {{- end }}
   {{- if .ReferBookName }}
   ReferWorkbook: {{.ReferBookName}}
   ReferWorksheet: {{.ReferSheetName}}

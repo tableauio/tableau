@@ -1380,3 +1380,50 @@ func TestInspectJoinedDetailPreservesMessage(t *testing.T) {
 	require.ErrorIs(t, joined, cause)
 	assert.Equal(t, "offline", cause.Error())
 }
+
+// Schema context survives formatting and snapshots without changing physical sources.
+func TestSourceSchemaMetadata(t *testing.T) {
+	for _, mode := range []string{KeyMerger, KeyScatter} {
+		t.Run(mode, func(t *testing.T) {
+			patterns := []string{"Shard*.xlsx#Task*", "Season.xlsx#Daily"}
+			cause := E0005("condition missing")
+			err := WrapKV(cause,
+				KeyBookName, "Shard1.xlsx", KeyPrimaryBookName, "Task.xlsx",
+				KeySheetName, "TaskSub", KeyPrimarySheetName, "Task",
+				KeyBookAlias, "Tasks", KeySheetAlias, "TaskConf", mode, patterns)
+			serr := Inspect(err)
+			require.ErrorIs(t, serr, cause)
+			require.Len(t, serr.Details, 1)
+			assert.Equal(t, "error[E0005]: custom check failed\nWorkbook: Shard1.xlsx (Primary: Task.xlsx)\nWorksheet: TaskSub (Primary: Task)\nWorkbookAlias: Tasks\nWorksheetAlias: TaskConf\n"+mode+": Shard*.xlsx#Task*, Season.xlsx#Daily\nReason: condition missing\n", serr.Error())
+			assert.Equal(t, "Tasks", serr.GetValue(KeyBookAlias))
+			assert.Equal(t, "TaskConf", serr.GetValue(KeySheetAlias))
+			assert.Equal(t, patterns, serr.GetValue(mode))
+			encoded, marshalErr := json.Marshal(serr)
+			require.NoError(t, marshalErr)
+			assert.JSONEq(t, `{"details":[{"code":"E0005","description":"custom check failed","module":"default","message":"condition missing","source":{"workbook":"Shard1.xlsx","primaryWorkbook":"Task.xlsx","worksheet":"TaskSub","primaryWorksheet":"Task","workbookAlias":"Tasks","worksheetAlias":"TaskConf","`+strings.ToLower(mode)+`":["Shard*.xlsx#Task*","Season.xlsx#Daily"]}}]}`, string(encoded))
+			var decoded Error
+			require.NoError(t, json.Unmarshal(encoded, &decoded))
+			assert.Equal(t, serr.Error(), decoded.Error())
+
+			snapshot := Inspect(serr)
+			snapshot.Details[0].Source.WorkbookAlias = "Edited"
+			if mode == KeyMerger {
+				snapshot.Details[0].Source.Merger[0] = "Edited.xlsx"
+			} else {
+				snapshot.Details[0].Source.Scatter[0] = "Edited.xlsx"
+			}
+			values := serr.GetValue(mode).([]string)
+			values[0] = "Changed.xlsx"
+			assert.Equal(t, patterns, serr.GetValue(mode), "snapshots and accessor values must own their lists")
+			assert.Equal(t, "Tasks", serr.Details[0].Source.WorkbookAlias)
+
+			precise := &Error{Details: []*ErrorDetail{{Message: "invalid target", Source: &SourceLocation{
+				Workbook: "Other.xlsx", Worksheet: "OtherSheet", WorksheetAlias: "OtherConf", Merger: []string{"Other*.xlsx"},
+			}}}}
+			joined := Inspect(WrapKV(errors.Join(err, precise), KeySheetAlias, "FallbackConf", KeyMerger, []string{"Fallback*.xlsx"}))
+			require.Len(t, joined.Details, 2)
+			assert.Equal(t, precise.Details[0].Source, joined.Details[1].Source)
+			require.ErrorIs(t, joined, precise)
+		})
+	}
+}

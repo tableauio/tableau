@@ -18,6 +18,10 @@ const (
 	KeyPrimaryBookName  = "PrimaryBookName"  // primary workbook name
 	KeySheetName        = "SheetName"        // worksheet name
 	KeyPrimarySheetName = "PrimarySheetName" // primary worksheet name
+	KeyBookAlias        = "BookAlias"        // schema workbook alias
+	KeySheetAlias       = "SheetAlias"       // schema worksheet alias (protobuf message name)
+	KeyMerger           = "Merger"           // configured merger sheet specifiers
+	KeyScatter          = "Scatter"          // configured scatter sheet specifiers
 	KeyReferBookName    = "ReferBookName"    // referred workbook name
 	KeyReferSheetName   = "ReferSheetName"   // referred worksheet name
 
@@ -56,6 +60,10 @@ var debugKeyOrder = []string{
 	KeyPrimaryBookName,
 	KeySheetName,
 	KeyPrimarySheetName,
+	KeyBookAlias,
+	KeySheetAlias,
+	KeyMerger,
+	KeyScatter,
 	KeyReferBookName,
 	KeyReferSheetName,
 	KeyNameCellPos,
