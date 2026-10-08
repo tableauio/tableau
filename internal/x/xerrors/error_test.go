@@ -1159,10 +1159,8 @@ func TestInspectReferBookAndSheet(t *testing.T) {
 	assert.Contains(t, got, "DataCellPos: C4")
 }
 
-func TestNormalize(t *testing.T) {
-	assert.Nil(t, Normalize(nil))
-	plain := fmt.Errorf("load config: %w", errors.New("unavailable"))
-	assert.Same(t, plain, Normalize(plain))
+func TestInspectStructuredFailure(t *testing.T) {
+	assert.Nil(t, Inspect(nil))
 
 	cause := E2031("protoconf.FightTypeFilter", ";ranked;casual", 2, 3, ";")
 	err := WrapKV(cause,
@@ -1174,11 +1172,9 @@ func TestNormalize(t *testing.T) {
 		KeyDataCell, ";ranked;casual",
 		KeyPBMessage, "TaskConfig",
 		KeyPBFieldName, "fight_type_filter")
-	wrapped := Normalize(fmt.Errorf("load failed: %w", err))
-	var structured *Error
-	require.ErrorAs(t, wrapped, &structured)
-	require.ErrorIs(t, wrapped, ErrE2031)
-	assert.Same(t, structured, Normalize(structured))
+	structured := Inspect(fmt.Errorf("load failed: %w", err))
+	require.NotNil(t, structured)
+	require.ErrorIs(t, structured, ErrE2031)
 	assert.Equal(t, Inspect(err).Error(), structured.Error())
 	assert.NotContains(t, structured.Error(), "--- debugging ---")
 	assert.Contains(t, fmt.Sprintf("%+v", structured), "--- debugging ---")
@@ -1218,9 +1214,8 @@ func TestErrorDetailsFromCollector(t *testing.T) {
 		_ = sheet.Collect(WrapKV(E2005(book), KeyDataCellPos, "A4"))
 	}
 	plain := errors.New("connection closed")
-	wrapped := Normalize(errors.Join(fmt.Errorf("load: %w", root.Join()), plain))
-	var structured *Error
-	require.ErrorAs(t, wrapped, &structured)
+	structured := Inspect(errors.Join(fmt.Errorf("load: %w", root.Join()), plain))
+	require.NotNil(t, structured)
 	require.Len(t, structured.Details, 3)
 	for i, detail := range structured.Details[:2] {
 		assert.Equal(t, "E2005", detail.Code)
@@ -1230,7 +1225,7 @@ func TestErrorDetailsFromCollector(t *testing.T) {
 	}
 	assert.Equal(t, "connection closed", structured.Details[2].Message)
 	assert.Nil(t, structured.Details[2].Source)
-	require.ErrorIs(t, wrapped, plain)
+	require.ErrorIs(t, structured, plain)
 	b, err := json.Marshal(structured)
 	require.NoError(t, err)
 	var decoded Error
@@ -1241,7 +1236,7 @@ func TestErrorDetailsFromCollector(t *testing.T) {
 	assert.Equal(t, structured.Error(), decoded.Error())
 }
 
-func TestErrorDetailsNormalization(t *testing.T) {
+func TestInspectHeaderMetadata(t *testing.T) {
 	err := NewKV("invalid header",
 		KeyModule, ModuleProto,
 		KeyBookName, "Items.xlsx",
@@ -1254,8 +1249,8 @@ func TestErrorDetailsNormalization(t *testing.T) {
 		KeyNoteCell, "identifier",
 		KeyDataCellPos, "A4",
 		KeyDataCell, "1")
-	var structured *Error
-	require.ErrorAs(t, Normalize(err), &structured)
+	structured := Inspect(err)
+	require.NotNil(t, structured)
 	require.Len(t, structured.Details, 1)
 	detail := structured.Details[0]
 	assert.Equal(t, "E0004", detail.Code)
@@ -1286,8 +1281,8 @@ func TestErrorDetailsDriveRendering(t *testing.T) {
 	cause := WrapKV(E2005("duplicate"),
 		KeyModule, ModuleConf,
 		KeyBookName, "Old.xlsx", KeyDataCellPos, "A4")
-	var e *Error
-	require.ErrorAs(t, Normalize(cause), &e)
+	e := Inspect(cause)
+	require.NotNil(t, e)
 	e.Details[0].Source.Workbook = "New.xlsx"
 	e.Details[0].Source.Cell.Position = "B6"
 	e.Details[0].Message = "updated reason"
@@ -1299,12 +1294,11 @@ func TestErrorDetailsDriveRendering(t *testing.T) {
 
 	// Joining an existing typed error must use those same edited details and
 	// retain its original cause through standard Go error traversal.
-	joined := Normalize(errors.Join(fmt.Errorf("load: %w", e), errors.New("offline")))
-	var aggregate *Error
-	require.ErrorAs(t, joined, &aggregate)
+	aggregate := Inspect(errors.Join(fmt.Errorf("load: %w", e), errors.New("offline")))
+	require.NotNil(t, aggregate)
 	require.Len(t, aggregate.Details, 2)
 	assert.Contains(t, aggregate.Error(), "Workbook: New.xlsx")
-	require.ErrorIs(t, joined, ErrE2005)
+	require.ErrorIs(t, aggregate, ErrE2005)
 	encoded, err := json.Marshal(aggregate)
 	require.NoError(t, err)
 	var decoded Error
@@ -1314,12 +1308,12 @@ func TestErrorDetailsDriveRendering(t *testing.T) {
 
 func TestErrorPlainAndEmptyDetails(t *testing.T) {
 	plain := Wrapf(New("inner"), "outer")
-	assert.Equal(t, "outer: inner", Normalize(plain).Error())
+	assert.Equal(t, "outer: inner", Inspect(plain).Error())
 	scoped := WrapKV(errors.New("offline"), KeyModule, ModuleConf, KeyBookName, "Main.xlsx")
-	assert.Equal(t, "Workbook: Main.xlsx\nReason: offline\n", Normalize(scoped).Error())
+	assert.Equal(t, "Workbook: Main.xlsx\nReason: offline\n", Inspect(scoped).Error())
 	for _, e := range []*Error{nil, {}, {Details: []*ErrorDetail{nil}}, {Details: []*ErrorDetail{{}}}} {
 		assert.Empty(t, e.Error())
-		assert.NotPanics(t, func() { _ = Normalize(fmt.Errorf("wrapped: %w", e)) })
+		assert.NotPanics(t, func() { _ = Inspect(fmt.Errorf("wrapped: %w", e)) })
 	}
 }
 
@@ -1329,7 +1323,6 @@ func TestInspectPreservesInput(t *testing.T) {
 	require.NotNil(t, view)
 	require.Len(t, view.Details, 1)
 	require.ErrorIs(t, view, plain)
-	assert.Same(t, plain, Normalize(plain))
 	view.Details[0].Message = "edited view"
 	assert.Equal(t, "offline", plain.Error())
 

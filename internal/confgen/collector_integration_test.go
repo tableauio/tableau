@@ -61,8 +61,8 @@ func TestCollectorIntegration_MessageLevel(t *testing.T) {
 	gen := newCollectorTestGenerator("./testdata/collector/csv/normal/")
 	err := gen.Generate("Collector#ItemConf.csv")
 	require.Error(t, err)
-	var serr *xerrors.Error
-	require.ErrorAs(t, xerrors.Normalize(err), &serr)
+	serr := xerrors.Inspect(err)
+	require.NotNil(t, serr)
 	require.Len(t, serr.Details, 4)
 	assert.Equal(t, "E2012", serr.Details[0].Code)
 

@@ -102,28 +102,6 @@ func (d *ErrorDetail) GetValue(key string) any {
 	return d.fields()[key]
 }
 
-// Normalize converts an error to *Error when it carries structured metadata.
-// It resolves joins and scoped metadata, preserving the original cause chain.
-// Nil, ordinary Go errors, and existing *Error values are
-// returned unchanged. Use Wrap, Wrapf, or WrapKV to add context before this step.
-func Normalize(err error) error {
-	if err == nil {
-		return nil
-	}
-	if _, ok := err.(*Error); ok {
-		return err
-	}
-	entries := extractEntries(err)
-	structured := false
-	for _, entry := range entries {
-		structured = structured || len(entry.fields) > 0
-	}
-	if !structured {
-		return err
-	}
-	return buildError(err, entries)
-}
-
 // Inspect collects all failures in err into an independent *Error snapshot.
 // Wrapped and joined errors are flattened into Details, preserving each
 // failure's metadata. The Error method renders the details consistently,
