@@ -3,7 +3,7 @@ package tableau
 import "github.com/tableauio/tableau/internal/x/xerrors"
 
 // Error reports one or more structured failures from Tableau. Use Inspect to
-// obtain it from an operation's error, or Normalize followed by errors.As.
+// obtain it from an operation's error.
 // Details contains one entry per failure, including when only one cell fails.
 // Error renders these details as a localized summary. JSON omits underlying
 // errors and stack traces.
@@ -29,14 +29,6 @@ type CellLocation = xerrors.CellLocation
 // failure. Options contains the textual Tableau field options, when available.
 type FieldLocation = xerrors.FieldLocation
 
-// Normalize exposes structured Tableau errors for inspection and serialization.
-// Call it on an operation's error before using errors.As to obtain *Error.
-// Nil, ordinary Go errors, and existing *Error values are returned unchanged;
-// converted errors retain their original causes for errors.Is and errors.As.
-func Normalize(err error) error {
-	return xerrors.Normalize(err)
-}
-
 // Inspect collects all failures in err into an independent *Error snapshot.
 // Wrapped and joined errors are flattened into Details, preserving each
 // failure's metadata. The Error method renders the details consistently,
@@ -45,8 +37,7 @@ func Normalize(err error) error {
 //
 // Editing the snapshot does not change err. Original causes remain reachable
 // through errors.Is and errors.As. An ordinary Go error yields one detail
-// containing its message; nil returns nil. Use Normalize to leave ordinary
-// Go errors unchanged.
+// containing its message; nil returns nil.
 func Inspect(err error) *Error {
 	return xerrors.Inspect(err)
 }

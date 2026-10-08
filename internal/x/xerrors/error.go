@@ -10,7 +10,7 @@ import (
 )
 
 // Error reports one or more structured failures from Tableau. Use Inspect to
-// obtain it from an operation's error, or Normalize followed by errors.As.
+// obtain it from an operation's error.
 // Details contains one entry per failure, including when only one cell fails.
 // Error renders these details as a localized summary. JSON omits underlying
 // errors and stack traces.
@@ -132,8 +132,7 @@ func Normalize(err error) error {
 //
 // Editing the snapshot does not change err. Original causes remain reachable
 // through errors.Is and errors.As. An ordinary Go error yields one detail
-// containing its message; nil returns nil. Use Normalize to leave ordinary
-// Go errors unchanged.
+// containing its message; nil returns nil.
 func Inspect(err error) *Error {
 	if err == nil {
 		return nil
