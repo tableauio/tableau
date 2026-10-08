@@ -17,6 +17,9 @@ jobs:
   validate:
     name: Validate release version
     runs-on: ubuntu-latest
+    permissions:
+      # GitHub requires push access to view draft releases during manual tests.
+      contents: write
     # Ignore unrelated modules; validate candidate tags with the exact regex below.
     if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v') || startsWith(github.event.release.tag_name, 'cmd/tableauc/v')
     outputs:
@@ -27,6 +30,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
 
       - name: Verify release tag matches version.go
         id: version
