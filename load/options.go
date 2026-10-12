@@ -85,17 +85,24 @@ type BaseOptions struct {
 // MessagerOptions is the options struct for a messager.
 type MessagerOptions struct {
 	BaseOptions
-	// Path specifies messager's config file path.
-	// If specified, then the main messager will be parsed directly,
-	// other than the specified load dir.
+	// Path specifies the main config file for this messager.
 	//
-	// NOTE: only output formats(JSON, Bin, Text) are supported.
+	// Resolution against the load dir passed to Load*/LoadMessagerInDir:
+	//   - empty:    load from dir/<Name>.<ext> (default)
+	//   - relative: filepath.Join(dir, Path)
+	//   - absolute: Path as-is (filepath.IsAbs)
+	//
+	// Relative paths are preferred when the same MessagerOptions is reused
+	// with different dirs (e.g. comparing two config trees).
+	//
+	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
 	// Default: "".
 	Path string
 
-	// PatchPaths specifies one or multiple corresponding patch file paths.
-	// If specified, then main messager will be patched.
+	// PatchPaths specifies one or multiple patch file paths.
+	// Each entry follows the same empty/relative/absolute rules as Path
+	// (empty entries are skipped; relative paths are joined with the load dir).
 	//
 	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
@@ -185,7 +192,8 @@ func (o *MessagerOptions) GetMaxErrorsPerSheet() int {
 	return o.MaxErrorsPerSheet
 }
 
-// GetPath returns messager's config file path.
+// GetPath returns the configured Path (not yet resolved against a load dir).
+// Resolution happens in LoadMessagerInDir via resolveConfigPath.
 func (o *MessagerOptions) GetPath() string {
 	if o == nil {
 		return ""
@@ -193,7 +201,8 @@ func (o *MessagerOptions) GetPath() string {
 	return o.Path
 }
 
-// GetPatchPaths returns corresponding patch file paths.
+// GetPatchPaths returns the configured PatchPaths (not yet resolved against a
+// load dir). Resolution happens in LoadMessagerInDir via resolveConfigPath.
 func (o *MessagerOptions) GetPatchPaths() []string {
 	if o == nil {
 		return nil

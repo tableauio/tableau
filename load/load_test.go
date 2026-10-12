@@ -141,7 +141,7 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					Path: "../testdata/unittest/conf/ItemConf.json",
+					Path: "unittest/conf/ItemConf.json",
 				},
 			},
 			wantMsg: &unittestpb.ItemConf{
@@ -168,7 +168,7 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					Path: "../testdata/unittest/conf/ItemConf.binpb",
+					Path: "unittest/conf/ItemConf.binpb",
 				},
 			},
 			wantErr: false,
@@ -180,7 +180,7 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					Path: "../testdata/unittest/conf/ItemConf-invalid.json",
+					Path: "unittest/conf/ItemConf-invalid.json",
 				},
 			},
 			wantErr: true,
@@ -192,7 +192,7 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					Path: "../testdata/unittest/Unittest#ItemConf.csv",
+					Path: "unittest/Unittest#ItemConf.csv",
 				},
 			},
 			wantErr: true,
@@ -321,7 +321,7 @@ func TestLoadOriginSupportsConcurrentSharedOptions(t *testing.T) {
 func TestLoadJSON_E0002(t *testing.T) {
 	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
 		&MessagerOptions{
-			Path: "../testdata/unittest/invalidconf/ItemConf.json",
+			Path: "unittest/invalidconf/ItemConf.json",
 		},
 	)
 	require.Error(t, err, "should return an error")
@@ -330,7 +330,7 @@ func TestLoadJSON_E0002(t *testing.T) {
 
 	err = LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.Text,
 		&MessagerOptions{
-			Path: "../testdata/unittest/invalidconf/ItemConf.txtpb",
+			Path: "unittest/invalidconf/ItemConf.txtpb",
 		},
 	)
 	require.Error(t, err, "should return an error")
@@ -392,7 +392,7 @@ func TestLoadWithPatch(t *testing.T) {
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					PatchPaths: []string{"../testdata/unittest/patchconf/PatchReplaceConf.json"},
+					PatchPaths: []string{"../patchconf/PatchReplaceConf.json"},
 				},
 			},
 		},
@@ -429,7 +429,7 @@ func TestLoadWithPatch(t *testing.T) {
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
+					PatchPaths: []string{"../patchconf/PatchMergeConf.json"},
 				},
 			},
 		},
@@ -443,7 +443,7 @@ func TestLoadWithPatch(t *testing.T) {
 					BaseOptions: BaseOptions{
 						PatchDirs: []string{"../testdata/unittest/patchconf2/"},
 					},
-					PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
+					PatchPaths: []string{"../patchconf/PatchMergeConf.json"},
 				},
 			},
 		},
@@ -467,7 +467,7 @@ func TestLoadWithPatch(t *testing.T) {
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					PatchPaths: []string{"../testdata/unittest/patchconf2/PatchMergeConf.txtpb"},
+					PatchPaths: []string{"../patchconf2/PatchMergeConf.txtpb"},
 				},
 			},
 		},
@@ -521,8 +521,8 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt: format.JSON,
 				options: &MessagerOptions{
 					PatchPaths: []string{
-						"../testdata/unittest/patchconf/PatchMergeConf.json",
-						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+						"../patchconf/PatchMergeConf.json",
+						"../patchconf2/PatchMergeConf.json",
 					},
 				},
 			},
@@ -538,8 +538,8 @@ func TestLoadWithPatch(t *testing.T) {
 						Mode: mode(ModeOnlyMain),
 					},
 					PatchPaths: []string{
-						"../testdata/unittest/patchconf/PatchMergeConf.json",
-						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+						"../patchconf/PatchMergeConf.json",
+						"../patchconf2/PatchMergeConf.json",
 					},
 				},
 			},
@@ -555,8 +555,8 @@ func TestLoadWithPatch(t *testing.T) {
 						Mode: mode(ModeOnlyPatch),
 					},
 					PatchPaths: []string{
-						"../testdata/unittest/patchconf/PatchMergeConf.json",
-						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+						"../patchconf/PatchMergeConf.json",
+						"../patchconf2/PatchMergeConf.json",
 					},
 				},
 			},
@@ -600,7 +600,7 @@ func TestLoadWithPatch(t *testing.T) {
 func TestLoadEmptyJSON_E0002(t *testing.T) {
 	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
 		&MessagerOptions{
-			Path: "../testdata/unittest/invalidconf/Empty.json",
+			Path: "unittest/invalidconf/Empty.json",
 		},
 	)
 	require.ErrorIs(t, err, xerrors.ErrE0002)
@@ -610,7 +610,7 @@ func TestLoadEmptyJSON_E0002(t *testing.T) {
 func TestLoadEmptyText(t *testing.T) {
 	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
 		&MessagerOptions{
-			Path: "../testdata/unittest/invalidconf/Empty.txtpb",
+			Path: "unittest/invalidconf/Empty.txtpb",
 		},
 	)
 	require.NoError(t, err, "should return no error")
