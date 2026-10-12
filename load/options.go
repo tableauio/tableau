@@ -1,9 +1,8 @@
 package load
 
 import (
-	"os"
+	"io/fs"
 
-	"github.com/tableauio/tableau/format"
 	"github.com/tableauio/tableau/internal/confgen/fieldprop"
 	"github.com/tableauio/tableau/internal/importer"
 	"google.golang.org/protobuf/proto"
@@ -45,17 +44,15 @@ type BaseOptions struct {
 	// Default: ModeAll.
 	Mode *LoadMode
 
-	// ReadFunc reads the config file and returns its content.
+	// FS is the filesystem used to open Path / PatchPaths and to expand
+	// PatchPaths globs for output formats (JSON, Bin, Text).
 	//
-	// Default: [os.ReadFile].
-	ReadFunc ReadFunc
-
-	// LoadFunc loads a messager's content.
+	// When nil, GetFS returns a host OS filesystem (cwd-relative names,
+	// absolute paths and ".." allowed). When set, that fs.FS is used instead;
+	// path acceptance follows the implementation (see io/fs.FS.Open).
 	//
-	// NOTE: only output formats (JSON, Bin, Text) are supported.
-	//
-	// Default: [LoadMessager].
-	LoadFunc LoadFunc
+	// Default: nil (→ host OS FS via GetFS).
+	FS fs.FS
 
 	// SubdirRewrites rewrites subdir paths (relative to workbook name option
 	// in .proto file).
@@ -92,17 +89,25 @@ type MessagerOptions struct {
 	//   - relative: filepath.Join(dir, Path)
 	//   - absolute: Path as-is (filepath.IsAbs)
 	//
-	// Relative paths are preferred when the same MessagerOptions is reused
-	// with different dirs (e.g. comparing two config trees).
+	// The resolved name is opened via GetFS(). Relative paths are preferred
+	// when the same MessagerOptions is reused with different dirs
+	// (e.g. comparing two config trees).
 	//
 	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
 	// Default: "".
 	Path string
 
-	// PatchPaths specifies one or multiple patch file paths.
+	// PatchPaths specifies one or multiple patch file paths or glob patterns.
 	// Each entry follows the same empty/relative/absolute rules as Path
 	// (empty entries are skipped; relative paths are joined with the load dir).
+	//
+	// Each entry is resolved against the load dir, then expanded with
+	// fs.Glob on GetFS() (hostFS when FS is nil). Literal paths are valid
+	// Glob patterns. Zero matches is an error.
+	//
+	// Prefer relative globs (e.g. "AiAccountPvpStatConf*") when the same options
+	// are reused across dirs (CheckCompatibility).
 	//
 	// NOTE: only output formats (JSON, Bin, Text) are supported.
 	//
@@ -159,20 +164,14 @@ func (o *MessagerOptions) GetMode() LoadMode {
 	return *o.Mode
 }
 
-// GetReadFunc returns the read function.
-func (o *MessagerOptions) GetReadFunc() ReadFunc {
-	if o == nil || o.ReadFunc == nil {
-		return os.ReadFile
+// GetFS returns the filesystem for output-format IO.
+// When o is nil or o.FS is nil, it returns the default host OS filesystem
+// (see hostFS).
+func (o *MessagerOptions) GetFS() fs.FS {
+	if o == nil || o.FS == nil {
+		return hostFS{}
 	}
-	return o.ReadFunc
-}
-
-// GetLoadFunc returns the load function.
-func (o *MessagerOptions) GetLoadFunc() LoadFunc {
-	if o == nil || o.LoadFunc == nil {
-		return LoadMessager
-	}
-	return o.LoadFunc
+	return o.FS
 }
 
 // GetSubdirRewrites returns the subdir path mapping.
@@ -193,7 +192,7 @@ func (o *MessagerOptions) GetMaxErrorsPerSheet() int {
 }
 
 // GetPath returns the configured Path (not yet resolved against a load dir).
-// Resolution happens in LoadMessagerInDir via resolveConfigPath.
+// Resolution happens at load time against the load dir.
 func (o *MessagerOptions) GetPath() string {
 	if o == nil {
 		return ""
@@ -202,7 +201,7 @@ func (o *MessagerOptions) GetPath() string {
 }
 
 // GetPatchPaths returns the configured PatchPaths (not yet resolved against a
-// load dir). Resolution happens in LoadMessagerInDir via resolveConfigPath.
+// load dir). Resolution and glob expansion happen at load time.
 func (o *MessagerOptions) GetPatchPaths() []string {
 	if o == nil {
 		return nil
@@ -245,11 +244,8 @@ func (o *Options) ParseMessagerOptionsByName(name string) *MessagerOptions {
 	if mopts.Mode == nil {
 		mopts.Mode = o.Mode
 	}
-	if mopts.ReadFunc == nil {
-		mopts.ReadFunc = o.ReadFunc
-	}
-	if mopts.LoadFunc == nil {
-		mopts.LoadFunc = o.LoadFunc
+	if mopts.FS == nil {
+		mopts.FS = o.FS
 	}
 	if mopts.SubdirRewrites == nil {
 		mopts.SubdirRewrites = o.SubdirRewrites
@@ -270,15 +266,6 @@ const (
 	ModeOnlyPatch                 // Only load the patch files
 )
 
-// ReadFunc reads the config file and returns its content.
-type ReadFunc func(name string) ([]byte, error)
-
-// LoadFunc defines a func which can load message's content based on the given
-// path, format, and options.
-//
-// NOTE: only output formats (JSON, Bin, Text) are supported.
-type LoadFunc func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error
-
 // Option is the functional option type.
 type Option func(*Options)
 
@@ -294,17 +281,11 @@ func ParseOptions(setters ...Option) *Options {
 	return opts
 }
 
-// WithReadFunc sets a custom read func.
-func WithReadFunc(readFunc ReadFunc) Option {
+// WithFileSystem sets the filesystem used for output-format config IO.
+// Path acceptance follows fsys. When omitted, GetFS uses the host OS FS.
+func WithFileSystem(fsys fs.FS) Option {
 	return func(opts *Options) {
-		opts.ReadFunc = readFunc
-	}
-}
-
-// WithLoadFunc sets a custom load func.
-func WithLoadFunc(loadFunc LoadFunc) Option {
-	return func(opts *Options) {
-		opts.LoadFunc = loadFunc
+		opts.FS = fsys
 	}
 }
 
