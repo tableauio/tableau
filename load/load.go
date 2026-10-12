@@ -42,8 +42,8 @@ func loadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 	name := string(md.Name())
 	var path string
 	if opts.GetPath() != "" {
-		// path specified directly, then use it instead of dir.
-		path = opts.GetPath()
+		// empty/relative/absolute: see resolveConfigPath / MessagerOptions.Path docs.
+		path = resolveConfigPath(dir, opts.GetPath())
 		fmt = format.GetFormat(path)
 	} else {
 		// path in dir
@@ -51,7 +51,7 @@ func loadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 	}
 	_, sheetOpts := confgen.ParseMessageOptions(md)
 	if sheetOpts.GetPatch() != tableaupb.Patch_PATCH_NONE {
-		return loadMessagerWithPatch(msg, path, fmt, sheetOpts.GetPatch(), opts)
+		return loadMessagerWithPatch(msg, dir, path, fmt, sheetOpts.GetPatch(), opts)
 	}
 	return opts.GetLoadFunc()(msg, path, fmt, opts)
 }
@@ -68,7 +68,7 @@ func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *Messa
 	return Unmarshal(content, msg, path, fmt, opts)
 }
 
-func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
+func loadMessagerWithPatch(msg proto.Message, dir, path string, fmt format.Format, patch tableaupb.Patch, opts *MessagerOptions) error {
 	name := string(msg.ProtoReflect().Descriptor().Name())
 	mode := opts.GetMode()
 	loadFunc := opts.GetLoadFunc()
@@ -78,8 +78,14 @@ func loadMessagerWithPatch(msg proto.Message, path string, fmt format.Format, pa
 	}
 	var patchPaths []string
 	if opts.GetPatchPaths() != nil {
-		// patch path specified in PatchPaths, then use it instead of PatchDirs.
-		patchPaths = opts.GetPatchPaths()
+		// PatchPaths take precedence over PatchDirs; resolve relative to load dir.
+		for _, patchPath := range opts.GetPatchPaths() {
+			resolved := resolveConfigPath(dir, patchPath)
+			if resolved == "" {
+				continue
+			}
+			patchPaths = append(patchPaths, resolved)
+		}
 	} else {
 		// patch path in PatchDirs
 		for _, patchDir := range opts.GetPatchDirs() {
