@@ -1,0 +1,43 @@
+{
+    "name": "orange",
+    "name2": "apple2",
+    "name3": "",
+    "time": {
+        "start": "2024-10-01T02:10:10Z",
+        "expiry": "7200s"
+    },
+    "priceList": [
+        10,
+        100,
+        20,
+        200
+    ],
+    "replacePriceList": [
+        20,
+        200
+    ],
+    "itemMap": {
+        "1": {
+            "id": 1,
+            "num": 99
+        },
+        "2": {
+            "id": 2,
+            "num": 20
+        },
+        "999": {
+            "id": 999,
+            "num": 99900
+        }
+    },
+    "replaceItemMap": {
+        "1": {
+            "id": 1,
+            "num": 99
+        },
+        "999": {
+            "id": 999,
+            "num": 99900
+        }
+    }
+}

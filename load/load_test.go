@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
@@ -198,47 +199,15 @@ func TestLoad(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "with-read-func",
+			name: "with-filesystem",
 			args: args{
 				msg: &unittestpb.ItemConf{},
-				dir: "../testdata/unittest/conf/",
+				dir: ".",
 				fmt: format.JSON,
 				options: &MessagerOptions{
 					BaseOptions: BaseOptions{
-						ReadFunc: func(_ string) ([]byte, error) {
-							return []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`), nil
-						},
-					},
-				},
-			},
-			wantMsg: &unittestpb.ItemConf{
-				ItemMap: map[uint32]*unittestpb.Item{
-					10: {
-						Id:  10,
-						Num: 100,
-					},
-					20: {
-						Id:  20,
-						Num: 200,
-					},
-					30: {
-						Id:  30,
-						Num: 300,
-					},
-				},
-			},
-		},
-		{
-			name: "with-load-func",
-			args: args{
-				msg: &unittestpb.ItemConf{},
-				dir: "../testdata/unittest/conf/",
-				fmt: format.JSON,
-				options: &MessagerOptions{
-					BaseOptions: BaseOptions{
-						LoadFunc: func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-							bytes := []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
-							return Unmarshal(bytes, msg, path, fmt, opts)
+						FS: fstest.MapFS{
+							"ItemConf.json": {Data: []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)},
 						},
 					},
 				},
@@ -524,6 +493,18 @@ func TestLoadWithPatch(t *testing.T) {
 						"../patchconf/PatchMergeConf.json",
 						"../patchconf2/PatchMergeConf.json",
 					},
+				},
+			},
+		},
+		{
+			name: "PatchPaths-merge-multiple-paths-glob",
+			args: args{
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: &MessagerOptions{
+					// Same files as PatchPaths-merge-multiple-paths, via glob.
+					PatchPaths: []string{"../patchconf*/PatchMergeConf.json"},
 				},
 			},
 		},
