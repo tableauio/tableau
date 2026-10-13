@@ -45,7 +45,7 @@ reuse them across old/new trees without pre-globbing a single directory.
 ## API surface
 
 - `GetPath` / `GetPatchPaths` still return the **configured** strings.
-- Resolution is internal (`resolveConfigPath`) at load time.
+- Resolution uses `xfs.ResolveAgainstDir` at load time.
 
 
 ## Filesystem (`fs.FS`)
