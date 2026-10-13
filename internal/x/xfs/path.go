@@ -6,6 +6,23 @@ import (
 	"github.com/tableauio/tableau/internal/x/xerrors"
 )
 
+// ResolveAgainstDir resolves path against dir for config-style loading:
+//   - empty → ""
+//   - absolute (filepath.IsAbs) → path as-is
+//   - relative → filepath.Join(dir, path) (".." may escape dir)
+//
+// Unlike Join/Dir/Abs, the result is OS-native (not CleanSlashPath). Callers
+// that pass names into io/fs should filepath.ToSlash first.
+func ResolveAgainstDir(dir, path string) string {
+	if path == "" {
+		return ""
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(dir, path)
+}
+
 // Dir returns all but the last element of path, typically the path's directory.
 // The result is a clean and slash path.
 func Dir(path string) string {

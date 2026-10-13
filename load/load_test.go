@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
@@ -141,7 +142,7 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					Path: "../testdata/unittest/conf/ItemConf.json",
+					Path: "unittest/conf/ItemConf.json",
 				},
 			},
 			wantMsg: &unittestpb.ItemConf{
@@ -168,7 +169,7 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					Path: "../testdata/unittest/conf/ItemConf.binpb",
+					Path: "unittest/conf/ItemConf.binpb",
 				},
 			},
 			wantErr: false,
@@ -180,7 +181,7 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					Path: "../testdata/unittest/conf/ItemConf-invalid.json",
+					Path: "unittest/conf/ItemConf-invalid.json",
 				},
 			},
 			wantErr: true,
@@ -192,53 +193,21 @@ func TestLoad(t *testing.T) {
 				dir: "../testdata/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					Path: "../testdata/unittest/Unittest#ItemConf.csv",
+					Path: "unittest/Unittest#ItemConf.csv",
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "with-read-func",
+			name: "with-filesystem",
 			args: args{
 				msg: &unittestpb.ItemConf{},
-				dir: "../testdata/unittest/conf/",
+				dir: ".",
 				fmt: format.JSON,
 				options: &MessagerOptions{
 					BaseOptions: BaseOptions{
-						ReadFunc: func(_ string) ([]byte, error) {
-							return []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`), nil
-						},
-					},
-				},
-			},
-			wantMsg: &unittestpb.ItemConf{
-				ItemMap: map[uint32]*unittestpb.Item{
-					10: {
-						Id:  10,
-						Num: 100,
-					},
-					20: {
-						Id:  20,
-						Num: 200,
-					},
-					30: {
-						Id:  30,
-						Num: 300,
-					},
-				},
-			},
-		},
-		{
-			name: "with-load-func",
-			args: args{
-				msg: &unittestpb.ItemConf{},
-				dir: "../testdata/unittest/conf/",
-				fmt: format.JSON,
-				options: &MessagerOptions{
-					BaseOptions: BaseOptions{
-						LoadFunc: func(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-							bytes := []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)
-							return Unmarshal(bytes, msg, path, fmt, opts)
+						FS: fstest.MapFS{
+							"ItemConf.json": {Data: []byte(`{"itemMap":{"10":{"id":10,"num":100},"20":{"id":20,"num":200},"30":{"id":30,"num":300}}}`)},
 						},
 					},
 				},
@@ -321,7 +290,7 @@ func TestLoadOriginSupportsConcurrentSharedOptions(t *testing.T) {
 func TestLoadJSON_E0002(t *testing.T) {
 	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
 		&MessagerOptions{
-			Path: "../testdata/unittest/invalidconf/ItemConf.json",
+			Path: "unittest/invalidconf/ItemConf.json",
 		},
 	)
 	require.Error(t, err, "should return an error")
@@ -330,7 +299,7 @@ func TestLoadJSON_E0002(t *testing.T) {
 
 	err = LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.Text,
 		&MessagerOptions{
-			Path: "../testdata/unittest/invalidconf/ItemConf.txtpb",
+			Path: "unittest/invalidconf/ItemConf.txtpb",
 		},
 	)
 	require.Error(t, err, "should return an error")
@@ -392,7 +361,7 @@ func TestLoadWithPatch(t *testing.T) {
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					PatchPaths: []string{"../testdata/unittest/patchconf/PatchReplaceConf.json"},
+					PatchPaths: []string{"../patchconf/PatchReplaceConf.json"},
 				},
 			},
 		},
@@ -429,7 +398,7 @@ func TestLoadWithPatch(t *testing.T) {
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
+					PatchPaths: []string{"../patchconf/PatchMergeConf.json"},
 				},
 			},
 		},
@@ -443,7 +412,7 @@ func TestLoadWithPatch(t *testing.T) {
 					BaseOptions: BaseOptions{
 						PatchDirs: []string{"../testdata/unittest/patchconf2/"},
 					},
-					PatchPaths: []string{"../testdata/unittest/patchconf/PatchMergeConf.json"},
+					PatchPaths: []string{"../patchconf/PatchMergeConf.json"},
 				},
 			},
 		},
@@ -467,7 +436,7 @@ func TestLoadWithPatch(t *testing.T) {
 				dir: "../testdata/unittest/conf/",
 				fmt: format.JSON,
 				options: &MessagerOptions{
-					PatchPaths: []string{"../testdata/unittest/patchconf2/PatchMergeConf.txtpb"},
+					PatchPaths: []string{"../patchconf2/PatchMergeConf.txtpb"},
 				},
 			},
 		},
@@ -521,9 +490,21 @@ func TestLoadWithPatch(t *testing.T) {
 				fmt: format.JSON,
 				options: &MessagerOptions{
 					PatchPaths: []string{
-						"../testdata/unittest/patchconf/PatchMergeConf.json",
-						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+						"../patchconf/PatchMergeConf.json",
+						"../patchconf2/PatchMergeConf.json",
 					},
+				},
+			},
+		},
+		{
+			name: "PatchPaths-merge-multiple-paths-glob",
+			args: args{
+				msg: &unittestpb.PatchMergeConf{},
+				dir: "../testdata/unittest/conf/",
+				fmt: format.JSON,
+				options: &MessagerOptions{
+					// Same files as PatchPaths-merge-multiple-paths, via glob.
+					PatchPaths: []string{"../patchconf*/PatchMergeConf.json"},
 				},
 			},
 		},
@@ -538,8 +519,8 @@ func TestLoadWithPatch(t *testing.T) {
 						Mode: mode(ModeOnlyMain),
 					},
 					PatchPaths: []string{
-						"../testdata/unittest/patchconf/PatchMergeConf.json",
-						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+						"../patchconf/PatchMergeConf.json",
+						"../patchconf2/PatchMergeConf.json",
 					},
 				},
 			},
@@ -555,8 +536,8 @@ func TestLoadWithPatch(t *testing.T) {
 						Mode: mode(ModeOnlyPatch),
 					},
 					PatchPaths: []string{
-						"../testdata/unittest/patchconf/PatchMergeConf.json",
-						"../testdata/unittest/patchconf2/PatchMergeConf.json",
+						"../patchconf/PatchMergeConf.json",
+						"../patchconf2/PatchMergeConf.json",
 					},
 				},
 			},
@@ -600,7 +581,7 @@ func TestLoadWithPatch(t *testing.T) {
 func TestLoadEmptyJSON_E0002(t *testing.T) {
 	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
 		&MessagerOptions{
-			Path: "../testdata/unittest/invalidconf/Empty.json",
+			Path: "unittest/invalidconf/Empty.json",
 		},
 	)
 	require.ErrorIs(t, err, xerrors.ErrE0002)
@@ -610,7 +591,7 @@ func TestLoadEmptyJSON_E0002(t *testing.T) {
 func TestLoadEmptyText(t *testing.T) {
 	err := LoadMessagerInDir(&unittestpb.ItemConf{}, "../testdata/", format.JSON,
 		&MessagerOptions{
-			Path: "../testdata/unittest/invalidconf/Empty.txtpb",
+			Path: "unittest/invalidconf/Empty.txtpb",
 		},
 	)
 	require.NoError(t, err, "should return no error")
@@ -724,5 +705,56 @@ func TestLoadOriginMerger(t *testing.T) {
 			},
 		)
 		require.Error(t, err)
+	})
+}
+
+func TestUnmarshal_IgnoreUnknownFields(t *testing.T) {
+	baseBin, err := proto.Marshal(&unittestpb.Item{Id: 1, Num: 2})
+	require.NoError(t, err)
+	// Append unknown field 15 (varint) so Bin has wire bytes not in the schema.
+	binWithUnknown := append(append([]byte{}, baseBin...), 0x78, 0x01)
+
+	ignore := &MessagerOptions{BaseOptions: BaseOptions{IgnoreUnknownFields: proto.Bool(true)}}
+	strict := &MessagerOptions{}
+
+	t.Run("json-strict-errors", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal([]byte(`{"id":1,"num":2,"unknown_field":9}`), msg, "item.json", format.JSON, strict)
+		require.Error(t, err)
+	})
+	t.Run("json-ignore-ok", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal([]byte(`{"id":1,"num":2,"unknown_field":9}`), msg, "item.json", format.JSON, ignore)
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), msg.Id)
+		require.Equal(t, int32(2), msg.Num)
+	})
+
+	t.Run("text-strict-errors", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal([]byte("id: 1\nnum: 2\nunknown_field: 9\n"), msg, "item.txtpb", format.Text, strict)
+		require.Error(t, err)
+	})
+	t.Run("text-ignore-ok", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal([]byte("id: 1\nnum: 2\nunknown_field: 9\n"), msg, "item.txtpb", format.Text, ignore)
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), msg.Id)
+		require.Equal(t, int32(2), msg.Num)
+	})
+
+	t.Run("bin-strict-keeps-unknown", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal(binWithUnknown, msg, "item.binpb", format.Bin, strict)
+		require.NoError(t, err)
+		require.NotEmpty(t, msg.ProtoReflect().GetUnknown())
+	})
+	t.Run("bin-ignore-discards-unknown", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal(binWithUnknown, msg, "item.binpb", format.Bin, ignore)
+		require.NoError(t, err)
+		require.Empty(t, msg.ProtoReflect().GetUnknown())
+		require.Equal(t, uint32(1), msg.Id)
+		require.Equal(t, int32(2), msg.Num)
 	})
 }
