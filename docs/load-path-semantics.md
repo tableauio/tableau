@@ -57,8 +57,11 @@ Output-format IO always goes through `opts.GetFS()` + `fs.ReadFile` / `fs.Glob`.
   absolute paths and `..` are allowed (unlike `os.DirFS`).
 - **FS set (`WithFileSystem`):** that `fs.FS` is used; acceptance of absolute /
   `..` names follows the implementation (`io/fs.FS.Open`).
+- **Deprecated `WithReadFunc`:** wraps the func as an `fs.FS` and assigns `FS`
+  (ReadFile → func; Open/Glob → host). `WithFileSystem` / `WithReadFunc` both
+  write `FS`; **later Option wins** (no separate priority).
 
-`ReadFunc` / `LoadFunc` are removed. Load logic does not special-case a nil FS.
+`LoadFunc` is removed. Prefer `WithFileSystem` for new code.
 
 
 ## Status
