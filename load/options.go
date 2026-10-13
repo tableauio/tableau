@@ -51,6 +51,10 @@ type BaseOptions struct {
 	// absolute paths and ".." allowed). When set, that fs.FS is used instead;
 	// path acceptance follows the implementation (see io/fs.FS.Open).
 	//
+	// WithFileSystem and deprecated WithReadFunc both assign this field;
+	// later Option calls overwrite earlier ones (last wins). There is no
+	// separate ReadFunc field or FS-vs-ReadFunc priority.
+	//
 	// Default: nil (→ host OS FS via GetFS).
 	FS fs.FS
 
@@ -266,6 +270,12 @@ const (
 	ModeOnlyPatch                 // Only load the patch files
 )
 
+// ReadFunc reads a config file and returns its content.
+//
+// Deprecated: implement [fs.FS] (typically [fs.ReadFileFS]) and use
+// [WithFileSystem] instead.
+type ReadFunc func(name string) ([]byte, error)
+
 // Option is the functional option type.
 type Option func(*Options)
 
@@ -281,8 +291,22 @@ func ParseOptions(setters ...Option) *Options {
 	return opts
 }
 
+// WithReadFunc sets a custom read func by wrapping it as an [fs.FS]
+// (ReadFile → readFunc; Open/Glob → host OS).
+//
+// Deprecated: use [WithFileSystem].
+//
+// Overwrites any FS previously set by WithFileSystem or WithReadFunc.
+func WithReadFunc(readFunc ReadFunc) Option {
+	return func(opts *Options) {
+		opts.FS = readFuncFS{read: readFunc}
+	}
+}
+
 // WithFileSystem sets the filesystem used for output-format config IO.
 // Path acceptance follows fsys. When omitted, GetFS uses the host OS FS.
+//
+// Overwrites any FS previously set by WithFileSystem or WithReadFunc.
 func WithFileSystem(fsys fs.FS) Option {
 	return func(opts *Options) {
 		opts.FS = fsys
