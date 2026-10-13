@@ -6,6 +6,7 @@ package load
 
 import (
 	"context"
+	"io/fs"
 	"path/filepath"
 
 	"buf.build/go/protovalidate"
@@ -42,7 +43,7 @@ func loadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 	name := string(md.Name())
 	var path string
 	if opts.GetPath() != "" {
-		path = resolveConfigPath(dir, opts.GetPath())
+		path = xfs.ResolveAgainstDir(dir, opts.GetPath())
 		fmt = format.GetFormat(path)
 	} else {
 		path = filepath.Join(dir, name+format.Format2Ext(fmt))
@@ -59,7 +60,7 @@ func loadMessagerInDir(msg proto.Message, dir string, fmt format.Format, opts *M
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
 func LoadMessager(msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
-	content, err := readConfigFile(opts, path)
+	content, err := fs.ReadFile(opts.GetFS(), filepath.ToSlash(path))
 	if err != nil {
 		return xerrors.Wrapf(err, "failed to read file: %v", path)
 	}
@@ -77,7 +78,7 @@ func loadMessagerWithPatch(msg proto.Message, dir, path string, fmt format.Forma
 	if opts.GetPatchPaths() != nil {
 		// PatchPaths take precedence over PatchDirs.
 		var err error
-		patchPaths, err = expandPatchPaths(opts, dir, opts.GetPatchPaths())
+		patchPaths, err = expandPatchPaths(opts.GetFS(), dir, opts.GetPatchPaths())
 		if err != nil {
 			return xerrors.Wrapf(err, "failed to expand PatchPaths")
 		}
