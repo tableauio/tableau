@@ -140,18 +140,20 @@ func loadMessagerWithPatch(msg proto.Message, dir, path string, fmt format.Forma
 // Unmarshal unmarshals the message based on the given content, format, and options.
 //
 // NOTE: only output formats (JSON, Bin, Text) are supported.
+// IgnoreUnknownFields is applied as DiscardUnknown on each format's
+// UnmarshalOptions (see [MessagerOptions.IgnoreUnknownFields]).
 func Unmarshal(content []byte, msg proto.Message, path string, fmt format.Format, opts *MessagerOptions) error {
 	var unmarshalErr error
+	discardUnknown := opts.GetIgnoreUnknownFields()
 	switch fmt {
 	case format.JSON:
-		unmarshalOpts := protojson.UnmarshalOptions{
-			DiscardUnknown: opts.GetIgnoreUnknownFields(),
-		}
-		unmarshalErr = unmarshalOpts.Unmarshal(content, msg)
+		unmarshalErr = protojson.UnmarshalOptions{DiscardUnknown: discardUnknown}.Unmarshal(content, msg)
 	case format.Text:
-		unmarshalErr = prototext.Unmarshal(content, msg)
+		unmarshalErr = prototext.UnmarshalOptions{DiscardUnknown: discardUnknown}.Unmarshal(content, msg)
 	case format.Bin:
-		unmarshalErr = proto.Unmarshal(content, msg)
+		// Wire format never fails on unknown tags; DiscardUnknown drops them
+		// instead of preserving them in the message's unknown-field set.
+		unmarshalErr = proto.UnmarshalOptions{DiscardUnknown: discardUnknown}.Unmarshal(content, msg)
 	default:
 		return xerrors.Newf("unknown format: %v", fmt)
 	}

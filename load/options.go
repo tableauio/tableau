@@ -22,10 +22,16 @@ type BaseOptions struct {
 	// Default: "Local".
 	LocationName string
 
-	// IgnoreUnknownFields signifies whether to ignore unknown JSON fields
-	// during parsing.
+	// IgnoreUnknownFields maps to UnmarshalOptions.DiscardUnknown for each
+	// output format (JSON / Text / Bin):
+	//   - JSON: protojson.UnmarshalOptions.DiscardUnknown
+	//   - Text: prototext.UnmarshalOptions.DiscardUnknown
+	//   - Bin:  proto.UnmarshalOptions.DiscardUnknown
 	//
-	// NOTE: only JSON format is supported.
+	// For JSON and Text, unknown fields error by default; when true they are
+	// ignored so loading succeeds. For Bin, unknown wire tags never cause
+	// unmarshal failure; when true they are discarded instead of preserved
+	// in the message's unknown-field set.
 	//
 	// Default: false.
 	IgnoreUnknownFields *bool
@@ -143,8 +149,8 @@ func (o *MessagerOptions) GetLocationName() string {
 	return o.LocationName
 }
 
-// GetIgnoreUnknownFields returns whether to ignore unknown fields when loading
-// JSON.
+// GetIgnoreUnknownFields returns whether unknown fields are discarded when
+// unmarshaling JSON, Text, or Bin (see IgnoreUnknownFields).
 func (o *MessagerOptions) GetIgnoreUnknownFields() bool {
 	if o == nil || o.IgnoreUnknownFields == nil {
 		return false
@@ -320,7 +326,8 @@ func LocationName(name string) Option {
 	}
 }
 
-// IgnoreUnknownFields ignores unknown JSON fields during parsing.
+// IgnoreUnknownFields sets DiscardUnknown for JSON, Text, and Bin unmarshaling.
+// See [MessagerOptions.IgnoreUnknownFields].
 func IgnoreUnknownFields() Option {
 	return func(opts *Options) {
 		opts.IgnoreUnknownFields = proto.Bool(true)

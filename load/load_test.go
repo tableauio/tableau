@@ -707,3 +707,54 @@ func TestLoadOriginMerger(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestUnmarshal_IgnoreUnknownFields(t *testing.T) {
+	baseBin, err := proto.Marshal(&unittestpb.Item{Id: 1, Num: 2})
+	require.NoError(t, err)
+	// Append unknown field 15 (varint) so Bin has wire bytes not in the schema.
+	binWithUnknown := append(append([]byte{}, baseBin...), 0x78, 0x01)
+
+	ignore := &MessagerOptions{BaseOptions: BaseOptions{IgnoreUnknownFields: proto.Bool(true)}}
+	strict := &MessagerOptions{}
+
+	t.Run("json-strict-errors", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal([]byte(`{"id":1,"num":2,"unknown_field":9}`), msg, "item.json", format.JSON, strict)
+		require.Error(t, err)
+	})
+	t.Run("json-ignore-ok", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal([]byte(`{"id":1,"num":2,"unknown_field":9}`), msg, "item.json", format.JSON, ignore)
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), msg.Id)
+		require.Equal(t, int32(2), msg.Num)
+	})
+
+	t.Run("text-strict-errors", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal([]byte("id: 1\nnum: 2\nunknown_field: 9\n"), msg, "item.txtpb", format.Text, strict)
+		require.Error(t, err)
+	})
+	t.Run("text-ignore-ok", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal([]byte("id: 1\nnum: 2\nunknown_field: 9\n"), msg, "item.txtpb", format.Text, ignore)
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), msg.Id)
+		require.Equal(t, int32(2), msg.Num)
+	})
+
+	t.Run("bin-strict-keeps-unknown", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal(binWithUnknown, msg, "item.binpb", format.Bin, strict)
+		require.NoError(t, err)
+		require.NotEmpty(t, msg.ProtoReflect().GetUnknown())
+	})
+	t.Run("bin-ignore-discards-unknown", func(t *testing.T) {
+		msg := &unittestpb.Item{}
+		err := Unmarshal(binWithUnknown, msg, "item.binpb", format.Bin, ignore)
+		require.NoError(t, err)
+		require.Empty(t, msg.ProtoReflect().GetUnknown())
+		require.Equal(t, uint32(1), msg.Id)
+		require.Equal(t, int32(2), msg.Num)
+	})
+}
