@@ -349,9 +349,15 @@ func (gen *Generator) parseDirInFirstPass(ctx context.Context, dir string) (err 
 		}
 
 		if fmt == format.CSV {
-			bookName, _, err := xfs.ParseCSVFilenamePattern(entry.Name())
-			if err != nil {
-				return err
+			// Use a separate variable. err is this function's named result, and
+			// a leftover parse error would fail the directory scan on return.
+			bookName, _, parseErr := xfs.ParseCSVFilenamePattern(entry.Name())
+			if parseErr != nil {
+				// A file that does not match "<BookName>#<SheetName>.csv" is not a
+				// tableau workbook. Skip it so one stray CSV does not fail a
+				// directory scan, matching a workbook with no @TABLEAU metasheet.
+				log.Debugf("skip csv file %s: %v", filepath.Join(dir, entry.Name()), parseErr)
+				continue
 			}
 			if _, ok := csvBooks[bookName]; ok {
 				// NOTE: multiple CSV files construct the same book.
