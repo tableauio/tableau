@@ -81,22 +81,22 @@ func TestGenAll_SkipsYAMLWithoutMetasheet(t *testing.T) {
 func TestGenAll_SkipsXMLWithoutMetasheet(t *testing.T) {
 	inputDir := t.TempDir()
 	outputDir := t.TempDir()
-	writeFile(t, filepath.Join(inputDir, "Item.xml"), ""+
-		"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"+
-		"<!--\n"+
-		"<@TABLEAU>\n"+
-		"    <Item Sheet=\"ItemConf\" />\n"+
-		"</@TABLEAU>\n"+
-		"\n"+
-		"<ItemConf>\n"+
-		"    <ID>uint32</ID>\n"+
-		"    <Name>string</Name>\n"+
-		"</ItemConf>\n"+
-		"-->\n"+
-		"<ItemConf>\n"+
-		"    <ID>1</ID>\n"+
-		"    <Name>apple</Name>\n"+
-		"</ItemConf>\n")
+	writeFile(t, filepath.Join(inputDir, "Item.xml"), `<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+<@TABLEAU>
+    <Item Sheet="ItemConf" />
+</@TABLEAU>
+
+<ItemConf>
+    <ID>uint32</ID>
+    <Name>string</Name>
+</ItemConf>
+-->
+<ItemConf>
+    <ID>1</ID>
+    <Name>apple</Name>
+</ItemConf>
+`)
 	writeFile(t, filepath.Join(inputDir, "NotAWorkbook.xml"), "<note>hello</note>\n")
 
 	gen := newGenAllTestGenerator(inputDir, outputDir, format.XML)
