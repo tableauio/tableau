@@ -33,8 +33,15 @@ const (
 	xmlProlog          = `<?xml version='1.0' encoding='UTF-8'?>`
 	atTypeDisplacement = "ATYPE"
 	atNoteDisplacement = "ANOTE"
-	ungreedyPropGroup  = `(\|\{[^\{\}]+\})?` // e.g.: |{default:"100"}
-	metasheetItemBlock = `<Item\s+[^>]*\/>`  // e.g.: <Item Sheet="XXXConf" Sep="|"/>
+	// Optional type-cell prop suffix. Alternatives match map vprop forms
+	// first (`|{K}|{V}`, `||{V}`), then the single-prop form (`|{P}`).
+	// The outer capturing group is required by escapeAttrs (matches[2]/[3]).
+	ungreedyPropGroup = `(` +
+		`\|\{[^\{\}]*\}\|\{[^\{\}]+\}` + `|` +
+		`\|\|\{[^\{\}]+\}` + `|` +
+		`\|\{[^\{\}]+\}` +
+		`)?`
+	metasheetItemBlock = `<Item\s+[^>]*\/>` // e.g.: <Item Sheet="XXXConf" Sep="|"/>
 
 	// xmlNoteAttrPrefix is the prefix for field-level note attributes
 	// (after @note displacement). In source XML, writing

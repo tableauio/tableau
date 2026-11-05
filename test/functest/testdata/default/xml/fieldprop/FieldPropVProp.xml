@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+<@TABLEAU>
+    <Item Sheet="XmlFieldPropVPropConf" />
+</@TABLEAU>
+
+<XmlFieldPropVPropConf>
+    <ItemMap @note="Item map">map<int64, int64>||{refer:"ItemConf.ID"}</ItemMap>
+    <RangeMap @note="Range map">map<int32, int32>||{range:"1,10"}</RangeMap>
+    <PresentMap @note="Present map">map<int32, string>||{present:true}</PresentMap>
+    <ComboMap @note="Combo map">map<int32, int64>|{refer:"ItemConf.ID"}|{range:"1,10"}</ComboMap>
+    <EnumRangeMap @note="Enum range map">map<enum<.FruitType>, int32>||{range:"1,10"}</EnumRangeMap>
+</XmlFieldPropVPropConf>
+-->
+
+<XmlFieldPropVPropConf>
+    <ItemMap>1:1,2:2</ItemMap>
+    <RangeMap>1:5,2:8</RangeMap>
+    <PresentMap>1:hello,2:world</PresentMap>
+    <ComboMap>1:5,2:8</ComboMap>
+    <EnumRangeMap>Apple:5,Orange:8</EnumRangeMap>
+</XmlFieldPropVPropConf>

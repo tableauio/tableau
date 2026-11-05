@@ -415,6 +415,36 @@ func Test_escapeAttrs(t *testing.T) {
 </Conf>
 `,
 		},
+		{
+			name: "MapValuePropTag",
+			args: args{
+				doc: `
+<Conf>
+	<RangeMap>map<int32, int32>||{range:"1,10"}</RangeMap>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<RangeMap>map&lt;int32, int32&gt;||{range:&#34;1,10&#34;}</RangeMap>
+</Conf>
+`,
+		},
+		{
+			name: "MapKeyAndValuePropAttr",
+			args: args{
+				doc: `
+<Conf>
+	<Combo Incell='map<int32, int64>|{refer:"ItemConf.ID"}|{range:"1,10"}'/>
+</Conf>
+`,
+			},
+			want: `
+<Conf>
+	<Combo Incell="map&lt;int32, int64&gt;|{refer:&#34;ItemConf.ID&#34;}|{range:&#34;1,10&#34;}"/>
+</Conf>
+`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
