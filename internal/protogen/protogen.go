@@ -349,8 +349,6 @@ func (gen *Generator) parseDirInFirstPass(ctx context.Context, dir string) (err 
 		}
 
 		if fmt == format.CSV {
-			// Use a separate variable. err is this function's named result, and
-			// a leftover parse error would fail the directory scan on return.
 			bookName, _, parseErr := xfs.ParseCSVFilenamePattern(entry.Name())
 			if parseErr != nil {
 				// Two-phase check for a tableau workbook:
