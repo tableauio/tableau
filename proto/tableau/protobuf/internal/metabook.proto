@@ -170,6 +170,12 @@ message Metasheet {
     name: "UnionShardSize"
     prop: {optional: true}
   }];
+  // confgen: sheet-level output formats (json/binpb/txtpb).
+  repeated string output_formats = 27 [(tableau.field) = {
+    name: "OutputFormats"
+    layout: LAYOUT_INCELL
+    prop: {optional: true}
+  }];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers

@@ -14,6 +14,7 @@ import (
 // refer: https://github.com/google/re2/wiki/Syntax
 const nameCharSet = `0-9A-Za-z_`
 const typeCharSet = `0-9A-Za-z _,\.<>`
+
 // structTypeCharSet allows `[]` so that incell struct fields can declare
 // repeated element types, e.g. `{[]int32 ID, string Name}Property`.
 const structTypeCharSet = typeCharSet + `\[\]`
