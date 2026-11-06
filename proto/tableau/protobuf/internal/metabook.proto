@@ -171,8 +171,8 @@ message Metasheet {
     prop: {optional: true}
   }];
   // confgen: sheet-level output formats (json/binpb/txtpb).
-  repeated string formats = 27 [(tableau.field) = {
-    name: "Formats"
+  repeated string output_formats = 27 [(tableau.field) = {
+    name: "OutputFormats"
     layout: LAYOUT_INCELL
     prop: {optional: true}
   }];

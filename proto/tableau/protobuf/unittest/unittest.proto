@@ -119,8 +119,8 @@ message ItemConf {
 message FormatsConf {
   option (tableau.worksheet) = {
     name: "FormatsConf"
-    formats: "json"
-    formats: "binpb"
+    output_formats: "json"
+    output_formats: "binpb"
   };
 }
 

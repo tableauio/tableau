@@ -306,13 +306,13 @@ func loadProtoRegistryFiles(protoPackage string, protoPaths []string, protoFiles
 }
 
 // parseOutputFormats parses the output formats of the specified message.
-// Priority: conf.output.messagerFormats > worksheet.formats > conf.output.formats > all output formats.
+// Priority: conf.output.messagerFormats > worksheet.output_formats > conf.output.formats > all output formats.
 func parseOutputFormats(msg proto.Message, opt *options.ConfOutputOption) []format.Format {
 	messagerName, wsOpts := ParseMessageOptions(msg.ProtoReflect().Descriptor())
 	if formats := opt.MessagerFormats[messagerName]; len(formats) != 0 {
 		return formats
 	}
-	if worksheetFormats := wsOpts.GetFormats(); len(worksheetFormats) != 0 {
+	if worksheetFormats := wsOpts.GetOutputFormats(); len(worksheetFormats) != 0 {
 		formats := make([]format.Format, len(worksheetFormats))
 		for i, s := range worksheetFormats {
 			formats[i] = format.Format(s)
