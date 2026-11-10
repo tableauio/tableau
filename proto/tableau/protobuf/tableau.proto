@@ -216,6 +216,8 @@ message WorksheetOptions {
   // Oneof sub-messages per shard for MODE_UNION_TYPE / MODE_UNION_TYPE_MULTI.
   // 0 (default) keeps nested inline messages.
   int32 union_shard_size = 25;
+  // confgen: sheet-level output formats (json/binpb/txtpb).
+  repeated string output_formats = 26;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.

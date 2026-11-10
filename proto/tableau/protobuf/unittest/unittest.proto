@@ -116,6 +116,14 @@ message ItemConf {
   }];
 }
 
+message FormatsConf {
+  option (tableau.worksheet) = {
+    name: "FormatsConf"
+    output_formats: "json"
+    output_formats: "binpb"
+  };
+}
+
 message MallConf {
   option (tableau.worksheet) = {
     name: "MallConf"

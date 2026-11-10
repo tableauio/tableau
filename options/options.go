@@ -328,7 +328,7 @@ type ConfOutputOption struct {
 	Formats []format.Format
 
 	// Specify generated conf file formats in messager level. This overrides
-	// Formats option.
+	// WorksheetOptions.output_formats (in .proto) and the Formats option.
 	//
 	// Default: nil.
 	MessagerFormats map[string][]format.Format `yaml:"messagerFormats"`

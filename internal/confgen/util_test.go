@@ -311,6 +311,29 @@ func Test_parseOutputFormats(t *testing.T) {
 			},
 			want: []format.Format{format.Text},
 		},
+		{
+			name: "worksheet formats overrides global",
+			args: args{
+				msg: &unittestpb.FormatsConf{},
+				opt: &options.ConfOutputOption{
+					Formats: []format.Format{format.Text},
+				},
+			},
+			want: []format.Format{format.JSON, format.Bin},
+		},
+		{
+			name: "messagerFormats overrides worksheet formats",
+			args: args{
+				msg: &unittestpb.FormatsConf{},
+				opt: &options.ConfOutputOption{
+					Formats: []format.Format{format.Text},
+					MessagerFormats: map[string][]format.Format{
+						"FormatsConf": {format.Text},
+					},
+				},
+			},
+			want: []format.Format{format.Text},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
