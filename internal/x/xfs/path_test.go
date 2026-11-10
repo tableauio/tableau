@@ -7,6 +7,32 @@ import (
 	"testing"
 )
 
+func TestResolveAgainstDir(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "cfg", "v1")
+
+	if got := ResolveAgainstDir(dir, ""); got != "" {
+		t.Errorf("empty path: got %q, want \"\"", got)
+	}
+	if got, want := ResolveAgainstDir(dir, "ItemConf.json"), filepath.Join(dir, "ItemConf.json"); got != want {
+		t.Errorf("relative: got %q, want %q", got, want)
+	}
+	if got, want := ResolveAgainstDir(dir, "patch/ItemConf.json"), filepath.Join(dir, "patch", "ItemConf.json"); got != want {
+		t.Errorf("nested relative: got %q, want %q", got, want)
+	}
+	if got, want := ResolveAgainstDir(dir, "../patch/X.json"), filepath.Join(dir, "..", "patch", "X.json"); got != want {
+		t.Errorf("dotdot relative: got %q, want %q", got, want)
+	}
+
+	// Must be a real absolute path: on Windows, paths like "/abs/..." are not IsAbs.
+	abs := filepath.Join(t.TempDir(), "ItemConf.json")
+	if !filepath.IsAbs(abs) {
+		t.Fatalf("expected abs path, got %q", abs)
+	}
+	if got := ResolveAgainstDir(dir, abs); got != abs {
+		t.Errorf("absolute: got %q, want %q", got, abs)
+	}
+}
+
 func TestDir(t *testing.T) {
 	tests := []struct {
 		name string
