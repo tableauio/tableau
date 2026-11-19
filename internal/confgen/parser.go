@@ -438,12 +438,18 @@ func (p *sheetParser) GetSubsep() string {
 	return options.DefaultSubsep
 }
 
-// GetVersionPattern returns the configured version pattern for the sheet.
+// GetVersionPattern returns the default version pattern for the sheet.
 func (p *sheetParser) GetVersionPattern() string {
+	// sheet-level
 	if pattern := p.sheetOpts.GetVersionPattern(); pattern != "" {
 		return pattern
 	}
-	return p.bookOpts.GetVersionPattern()
+	// book-level
+	if pattern := p.bookOpts.GetVersionPattern(); pattern != "" {
+		return pattern
+	}
+	// default
+	return options.DefaultVersionPattern
 }
 
 // GetBookFormat returns workbook format related to this sheet.
