@@ -310,7 +310,6 @@ func (si *SheetInfo) SheetName() string {
 type sheetParser struct {
 	ProtoPackage   string
 	LocationName   string
-	versionPattern string
 	source         SourceLocation
 	ctx            context.Context
 	bookOpts       *tableaupb.WorkbookOptions
@@ -362,7 +361,6 @@ type SourceLocation struct {
 
 // SheetParserExtInfo holds dependencies shared by extended sheet parsers.
 type SheetParserExtInfo struct {
-	versionPattern     string
 	InputDir           string
 	SubdirRewrites     map[string]string
 	PRFiles            *protoregistry.Files
@@ -387,6 +385,9 @@ func NewExtendedSheetParser(
 	extInfo *SheetParserExtInfo,
 	source SourceLocation,
 ) *sheetParser {
+	if extInfo != nil && extInfo.ReferredCache == nil {
+		extInfo.ReferredCache = fieldprop.NewReferredCache()
+	}
 	sp := &sheetParser{
 		ProtoPackage: protoPackage,
 		LocationName: locationName,
@@ -399,12 +400,6 @@ func NewExtendedSheetParser(
 		// confgen overwrites it with a larger capacity for multi-error collection across sheets.
 		sheetCollector: xerrors.NewCollector(1),
 		fields:         map[protoreflect.FieldDescriptor]*Field{},
-	}
-	if extInfo != nil {
-		sp.versionPattern = extInfo.versionPattern
-		if extInfo.ReferredCache == nil {
-			extInfo.ReferredCache = fieldprop.NewReferredCache()
-		}
 	}
 	sp.reset()
 	return sp
@@ -441,6 +436,20 @@ func (p *sheetParser) GetSubsep() string {
 	}
 	// default
 	return options.DefaultSubsep
+}
+
+// GetVersionPattern returns the default version pattern for the sheet.
+func (p *sheetParser) GetVersionPattern() string {
+	// sheet-level
+	if pattern := p.sheetOpts.GetVersionPattern(); pattern != "" {
+		return pattern
+	}
+	// book-level
+	if pattern := p.bookOpts.GetVersionPattern(); pattern != "" {
+		return pattern
+	}
+	// default
+	return options.DefaultVersionPattern
 }
 
 // GetBookFormat returns workbook format related to this sheet.
@@ -1034,7 +1043,7 @@ func (p *sheetParser) parseIncellUnion(field *Field, structValue protoreflect.Va
 //   - Enum types
 //   - Well-known types
 func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, fprop *tableaupb.FieldProp) (v protoreflect.Value, present bool, err error) {
-	v, present, err = xproto.ParseFieldValue(fd, rawValue, p.LocationName, p.versionPattern, fprop)
+	v, present, err = xproto.ParseFieldValue(fd, rawValue, p.LocationName, p.GetVersionPattern(), fprop)
 	if err != nil {
 		return v, present, err
 	}

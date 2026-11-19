@@ -66,17 +66,18 @@ func (b *Book) GetBookOptions() *tableaupb.WorkbookOptions {
 		return nil
 	}
 	return &tableaupb.WorkbookOptions{
-		Name:     "", // To be filled by protogen
-		Alias:    meta.Alias,
-		Namerow:  meta.Namerow,
-		Typerow:  meta.Typerow,
-		Noterow:  meta.Noterow,
-		Datarow:  meta.Datarow,
-		Nameline: meta.Nameline,
-		Typeline: meta.Typeline,
-		Noteline: meta.Noteline,
-		Sep:      meta.Sep,
-		Subsep:   meta.Subsep,
+		Name:           "", // To be filled by protogen
+		Alias:          meta.Alias,
+		Namerow:        meta.Namerow,
+		Typerow:        meta.Typerow,
+		Noterow:        meta.Noterow,
+		Datarow:        meta.Datarow,
+		Nameline:       meta.Nameline,
+		Typeline:       meta.Typeline,
+		Noteline:       meta.Noteline,
+		Sep:            meta.Sep,
+		Subsep:         meta.Subsep,
+		VersionPattern: meta.VersionPattern,
 	}
 }
 

@@ -473,7 +473,7 @@ func (gen *Generator) convertDocument(ctx context.Context, dir, filename string,
 	if alias != "" {
 		debugBookName += " (alias: " + alias + ")"
 	}
-	bp := newDocumentParser(bookName, alias, rewrittenBookName, gen)
+	bp := newDocumentParser(bookName, rewrittenBookName, bookOpts, gen)
 	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook,
 		xerrors.KeyModule, xerrors.ModuleProto,
 		xerrors.KeyBookName, debugBookName)
@@ -549,7 +549,7 @@ func (gen *Generator) convertTable(ctx context.Context, dir, filename string, pa
 		log.Infof("%15s: %s, %d sheet(s) will be parsed", "analyzing book", debugBookName, len(imp.GetSheets()))
 	}
 	// create a book parser
-	bp := newTableParser(bookName, alias, rewrittenBookName, gen)
+	bp := newTableParser(bookName, rewrittenBookName, bookOpts, gen)
 	bookCollector := gen.collector.NewChild(gen.ErrorLimitOpt.MaxErrorsPerBook,
 		xerrors.KeyModule, xerrors.ModuleProto,
 		xerrors.KeyBookName, debugBookName)

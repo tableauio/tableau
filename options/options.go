@@ -130,6 +130,11 @@ type ProtoInputOption struct {
 	// Header options of worksheet.
 	Header *HeaderOption `yaml:"header"`
 
+	// VersionPattern sets the default tableau.Version pattern in generated
+	// workbook options. A workbook's metasheet can override it.
+	// When no pattern is specified, configuration generation uses "255.255.255".
+	VersionPattern string `yaml:"versionPattern"`
+
 	// The proto paths are used to search for dependencies that are referenced in import
 	// statements in proto source files. If no import paths are provided then
 	// "." (current directory) is assumed to be the only import path.
@@ -306,12 +311,6 @@ type ConfInputOption struct {
 	//
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
-
-	// VersionPattern sets the default dotted-decimal pattern for tableau.Version
-	// fields. Each component sets its maximum. A field-level pattern takes precedence.
-	//
-	// Default: "255.255.255".
-	VersionPattern string `yaml:"versionPattern"`
 
 	// Whether converter will not report an error and abort if a workbook
 	// is not recognized in proto files.
@@ -499,9 +498,8 @@ func NewDefault() *Options {
 		},
 		Conf: &ConfOption{
 			Input: &ConfInputOption{
-				ProtoPaths:     []string{"."},
-				ProtoFiles:     []string{"*.proto"},
-				VersionPattern: DefaultVersionPattern,
+				ProtoPaths: []string{"."},
+				ProtoFiles: []string{"*.proto"},
 			},
 			Output: &ConfOutputOption{
 				Formats: []format.Format{format.JSON},

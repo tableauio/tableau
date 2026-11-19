@@ -233,7 +233,6 @@ func (gen *Generator) convert(prFiles *protoregistry.Files, fd protoreflect.File
 			BookOpts:        bookOpts,
 			SheetOpts:       sheetOpts,
 			ExtInfo: &SheetParserExtInfo{
-				versionPattern:     gen.InputOpt.VersionPattern,
 				InputDir:           gen.InputDir,
 				SubdirRewrites:     gen.InputOpt.SubdirRewrites,
 				PRFiles:            prFiles,

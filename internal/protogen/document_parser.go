@@ -17,8 +17,8 @@ type documentParser struct {
 	*bookParser
 }
 
-func newDocumentParser(bookName, alias, relSlashPath string, gen *Generator) *documentParser {
-	return &documentParser{bookParser: newBookParser(bookName, alias, relSlashPath, gen)}
+func newDocumentParser(bookName, relSlashPath string, bookOpts *tableaupb.WorkbookOptions, gen *Generator) *documentParser {
+	return &documentParser{bookParser: newBookParser(bookName, relSlashPath, bookOpts, gen)}
 }
 
 func errWithNodeKV(err error, node *book.Node, pairs ...any) error {

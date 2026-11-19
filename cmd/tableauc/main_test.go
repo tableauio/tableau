@@ -26,49 +26,65 @@ func newCmd(t *testing.T, args ...string) *cobra.Command {
 }
 
 func TestVersionPatternConfig(t *testing.T) {
-	const configTemplate = `lang: en
+	dir := t.TempDir()
+	files := map[string]string{
+		"config.yaml": fmt.Sprintf(`lang: en
 locationName: Asia/Shanghai
 log:
   level: ERROR
   mode: SIMPLE
   sink: CONSOLE
+proto:
+  input:
+    versionPattern: "9.9.9"
+  output: {}
 conf:
   input:
-    protoPaths: ["../../test/functest/proto/default"]
-    protoFiles: ["../../test/functest/proto/default/excel__wellknown__well_known.proto"]
-    %s
+    protoPaths: [%q]
+    protoFiles: [%q]
   output:
     formats: [json]
-`
-	for _, tc := range []struct {
-		name    string
-		setting string
-		wantVal string
-	}{
-		{name: "omitted", wantVal: "65539"},
-		{name: "empty", setting: `versionPattern: ""`, wantVal: "65539"},
-		{name: "configured", setting: `versionPattern: "9.99.99"`, wantVal: "10003"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			dir := t.TempDir()
-			configPath := filepath.Join(dir, "config.yaml")
-			require.NoError(t, os.WriteFile(configPath, []byte(fmt.Sprintf(configTemplate, tc.setting)), 0o600))
-			cmd := newCmd(t, "-c", configPath, "-m", ModeConf, "-i", "../../test/functest/testdata/default", "-o", dir)
-			require.NoError(t, runE(cmd, nil))
+`, filepath.ToSlash(dir), filepath.ToSlash(filepath.Join(dir, "*.proto"))),
+		"Global#@TABLEAU.csv":      "Sheet\nGlobalVersion\n",
+		"Global#GlobalVersion.csv": "Version\nversion\nVersion\n1.2.3\n",
+		"Override#@TABLEAU.csv":    "Sheet,VersionPattern\n#,9.99.9\nBookVersion,\nSheetVersion,9.99.99\n",
+		"Override#BookVersion.csv": "Version\nversion\nVersion\n1.2.3\n",
+		"Override#SheetVersion.csv": `Version,CustomVersion
+version,"version|{pattern:""9.9.99""}"
+Version,Custom version
+1.2.3,1.2.3
+`,
+	}
+	for name, data := range files {
+		require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(data), 0o600))
+	}
 
-			data, err := os.ReadFile(filepath.Join(dir, "WellKnownTypeVersion.json"))
-			require.NoError(t, err)
-			var conf struct {
-				Version           struct{ Val string }
-				CustomVersion     struct{ Val string }
-				IncellVersionList []struct{ Val string }
-			}
-			require.NoError(t, json.Unmarshal(data, &conf))
-			assert.Equal(t, tc.wantVal, conf.Version.Val)
-			assert.Equal(t, "10020300405006", conf.CustomVersion.Val)
-			require.Len(t, conf.IncellVersionList, 2)
-			assert.Equal(t, "1002003", conf.IncellVersionList[0].Val)
-		})
+	cmd := newCmd(t, "-c", filepath.Join(dir, "config.yaml"), "-i", dir, "-o", dir)
+	require.NoError(t, runE(cmd, nil))
+
+	for name, patterns := range map[string][]string{
+		"global.proto":   {`version_pattern:"9.9.9"`},
+		"override.proto": {`version_pattern:"9.99.9"`, `version_pattern:"9.99.99"`, `pattern:"9.9.99"`},
+	} {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		require.NoError(t, err)
+		for _, pattern := range patterns {
+			assert.Contains(t, string(data), pattern, name)
+		}
+	}
+
+	for name, want := range map[string]map[string]string{
+		"GlobalVersion.json": {"version": "123"},
+		"BookVersion.json":   {"version": "1023"},
+		"SheetVersion.json":  {"version": "10203", "customVersion": "1203"},
+	} {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		require.NoError(t, err)
+		var conf map[string]struct{ Val string }
+		require.NoError(t, json.Unmarshal(data, &conf))
+		for field, val := range want {
+			assert.Equal(t, val, conf[field].Val, "%s %s", name, field)
+		}
 	}
 }
 

@@ -117,6 +117,8 @@ message WorkbookOptions {
   //
   // If set, it will overwrite global-level subseq in options.ConfInputOption.Subsep.
   string subsep = 11;
+  // Default dotted-decimal pattern for tableau.Version fields in this workbook.
+  string version_pattern = 12;
 }
 
 message WorksheetOptions {
@@ -218,6 +220,8 @@ message WorksheetOptions {
   int32 union_shard_size = 25;
   // confgen: sheet-level output formats (json/binpb/txtpb).
   repeated string output_formats = 26;
+  // Overrides WorkbookOptions.version_pattern for this worksheet.
+  string version_pattern = 27;
 
   ////////// Loader related options below //////////
   // Generate OrderedMap accessers or not.
@@ -350,7 +354,8 @@ message FieldProp {
   //
   //    Specify the dotted-decimal pattern of current cell. Each decimal
   //    number ranges from 0 to the corresponding part (MAX) of pattern.
-  //    Default pattern: "255.255.255".
+  //    Overrides the worksheet and workbook version patterns.
+  //    If no pattern is specified at any level, the default is "255.255.255".
   //
   // TODO: use cases for more field types.
   string pattern = 16;

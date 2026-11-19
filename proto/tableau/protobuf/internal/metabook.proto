@@ -176,6 +176,11 @@ message Metasheet {
     layout: LAYOUT_INCELL
     prop: {optional: true}
   }];
+  // Default pattern for tableau.Version fields in this worksheet or workbook (#).
+  string version_pattern = 28 [(tableau.field) = {
+    name: "VersionPattern"
+    prop: {optional: true}
+  }];
 
   ////////// Loader related options below //////////
   // Generate ordered map accessers
