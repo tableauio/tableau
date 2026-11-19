@@ -30,8 +30,9 @@ type bookParser struct {
 	wb  *internalpb.Workbook
 }
 
-func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookParser {
+func newBookParser(bookName, relSlashPath string, bookOpts *tableaupb.WorkbookOptions, gen *Generator) *bookParser {
 	// log.Debugf("filenameWithSubdirPrefix: %v", filenameWithSubdirPrefix)
+	alias := bookOpts.GetAlias()
 	protoBookName := bookName // generated proto book file name
 	if alias != "" {
 		protoBookName = alias
@@ -54,16 +55,21 @@ func newBookParser(bookName, alias, relSlashPath string, gen *Generator) *bookPa
 	if subsep == "" {
 		subsep = options.DefaultSubsep
 	}
+	versionPattern := bookOpts.GetVersionPattern()
+	if versionPattern == "" {
+		versionPattern = gen.InputOpt.VersionPattern
+	}
 	bp := &bookParser{
 		gen: gen,
 		wb: &internalpb.Workbook{
 			Options: &tableaupb.WorkbookOptions{
 				// NOTE(wenchy): all OS platforms use path slash separator `/`
 				// see: https://stackoverflow.com/questions/9371031/how-do-i-create-crossplatform-file-paths-in-go
-				Name:   relSlashPath,
-				Alias:  alias,
-				Sep:    sep,
-				Subsep: subsep,
+				Name:           relSlashPath,
+				Alias:          alias,
+				Sep:            sep,
+				Subsep:         subsep,
+				VersionPattern: versionPattern,
 			},
 			Worksheets: []*internalpb.Worksheet{},
 			Name:       filename,

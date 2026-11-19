@@ -15,7 +15,7 @@ import (
 // generated proto field's Note, so that the exporter can emit it as a
 // `// ...` field comment.
 func TestDocumentParser_parseField_propagatesNote(t *testing.T) {
-	dp := newDocumentParser("Test", "", "Test.yaml", testgen)
+	dp := newDocumentParser("Test", "Test.yaml", nil, testgen)
 
 	t.Run("scalar field", func(t *testing.T) {
 		node := &book.Node{

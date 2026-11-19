@@ -150,6 +150,7 @@ func (s *Sheet) ToWorkseet() *internalpb.Worksheet {
 
 			Sep:                    s.Meta.Sep,
 			Subsep:                 s.Meta.Subsep,
+			VersionPattern:         s.Meta.VersionPattern,
 			Nested:                 s.Meta.Nested,
 			Transpose:              s.Meta.Transpose,
 			Labels:                 s.Meta.Labels,

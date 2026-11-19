@@ -362,7 +362,6 @@ type SourceLocation struct {
 
 // SheetParserExtInfo holds dependencies shared by extended sheet parsers.
 type SheetParserExtInfo struct {
-	versionPattern     string
 	InputDir           string
 	SubdirRewrites     map[string]string
 	PRFiles            *protoregistry.Files
@@ -387,24 +386,26 @@ func NewExtendedSheetParser(
 	extInfo *SheetParserExtInfo,
 	source SourceLocation,
 ) *sheetParser {
+	versionPattern := sheetOpts.GetVersionPattern()
+	if versionPattern == "" {
+		versionPattern = bookOpts.GetVersionPattern()
+	}
+	if extInfo != nil && extInfo.ReferredCache == nil {
+		extInfo.ReferredCache = fieldprop.NewReferredCache()
+	}
 	sp := &sheetParser{
-		ProtoPackage: protoPackage,
-		LocationName: locationName,
-		source:       source,
-		ctx:          ctx,
-		bookOpts:     bookOpts,
-		sheetOpts:    sheetOpts,
-		extInfo:      extInfo,
+		ProtoPackage:   protoPackage,
+		LocationName:   locationName,
+		versionPattern: versionPattern,
+		source:         source,
+		ctx:            ctx,
+		bookOpts:       bookOpts,
+		sheetOpts:      sheetOpts,
+		extInfo:        extInfo,
 		// Default capacity 1 is sufficient for protogen/load (fail-fast on first error).
 		// confgen overwrites it with a larger capacity for multi-error collection across sheets.
 		sheetCollector: xerrors.NewCollector(1),
 		fields:         map[protoreflect.FieldDescriptor]*Field{},
-	}
-	if extInfo != nil {
-		sp.versionPattern = extInfo.versionPattern
-		if extInfo.ReferredCache == nil {
-			extInfo.ReferredCache = fieldprop.NewReferredCache()
-		}
 	}
 	sp.reset()
 	return sp

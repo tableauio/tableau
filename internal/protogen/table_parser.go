@@ -20,8 +20,8 @@ type tableParser struct {
 	*bookParser
 }
 
-func newTableParser(bookName, alias, relSlashPath string, gen *Generator) *tableParser {
-	p := &tableParser{bookParser: newBookParser(bookName, alias, relSlashPath, gen)}
+func newTableParser(bookName, relSlashPath string, bookOpts *tableaupb.WorkbookOptions, gen *Generator) *tableParser {
+	p := &tableParser{bookParser: newBookParser(bookName, relSlashPath, bookOpts, gen)}
 
 	// assign book-level header
 	opts := p.wb.Options

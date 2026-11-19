@@ -216,7 +216,7 @@ func parseStructType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.Sh
 	if err := parser.Parse(desc, sheet); err != nil {
 		return err
 	}
-	bp := newTableParser("struct", "", "", gen)
+	bp := newTableParser("struct", "", nil, gen)
 	t := sheet.Tabler()
 	shHeader := &tableHeader{
 		Header: &tableparser.Header{
@@ -333,7 +333,7 @@ func parseUnionType(ws *internalpb.Worksheet, sheet *book.Sheet, parser book.She
 	}
 
 	// bp and t are shared across all union values; create them once outside the loop.
-	bp := newTableParser("union-fields", "", "", gen)
+	bp := newTableParser("union-fields", "", nil, gen)
 	t := sheet.Tabler()
 
 	usedNumbers := make(map[int32]struct{}, len(desc.Values))
