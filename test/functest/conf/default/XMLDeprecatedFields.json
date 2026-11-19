@@ -2,6 +2,14 @@
     "count": 1,
     "fruit": "FRUIT_TYPE_APPLE",
     "current": "active",
+    "limitMap": {
+        "max": 5,
+        "min": 1
+    },
+    "numberList": [
+        6,
+        7
+    ],
     "entryMap": {
         "2": {
             "id": 2,

@@ -6,6 +6,8 @@
 
 <XMLDeprecatedFields Count="int32|{deprecated:true}"
     Fruit="enum<.FruitType>|{deprecated:true}" Current="string">
+    <Limit>map<string, int32>|{deprecated:true}</Limit>
+    <Number>[]int32|{deprecated:true}</Number>
     <Entry ID="map<uint32, Entry>|{deprecated:true unique:true}" Value="string" />
     <Tag ID="[Tag]uint32|{deprecated:true}" />
     <Detail ID="{Detail}uint32|{deprecated:true}" />
@@ -13,6 +15,8 @@
 -->
 
 <XMLDeprecatedFields Count="1" Fruit="Apple" Current="active">
+    <Limit>min:1,max:5</Limit>
+    <Number>6,7</Number>
     <Entry ID="2" Value="old" />
     <Tag ID="3" />
     <Detail ID="4" />

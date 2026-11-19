@@ -1,4 +1,4 @@
-Count,Limit,Tag,Fruit,DetailID,DetailName
-uint32|{deprecated:true},"map<string,int32>|{deprecated:true}",[]string|{deprecated:true},enum<.FruitType>|{deprecated:true},{Detail}uint32|{deprecated:true},string
-,,,,,
-1,"min:2,max:5","red,sweet",Apple,7,Sample
+Count,Limit,Tag,Fruit,DetailID,DetailName,Entry1ID,Entry1Name,Task1ID,Task1Name
+uint32|{deprecated:true},"map<string,int32>|{deprecated:true}",[]string|{deprecated:true},enum<.FruitType>|{deprecated:true},{Detail}uint32|{deprecated:true},string,"map<uint32, Entry>|{deprecated:true}",string,[Task]uint32|{deprecated:true},string
+,,,,,,,,,
+1,"min:2,max:5","red,sweet",Apple,7,Sample,8,Entry,9,Task

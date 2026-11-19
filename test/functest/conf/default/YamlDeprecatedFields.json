@@ -1,6 +1,14 @@
 {
     "oldId": 1,
     "oldType": "FRUIT_TYPE_APPLE",
+    "oldIncellMap": {
+        "1": "apple",
+        "2": "pear"
+    },
+    "oldIncellList": [
+        1,
+        2
+    ],
     "oldMap": {
         "7": {
             "key": 7,
@@ -8,8 +16,9 @@
         }
     },
     "oldList": [
-        1,
-        2
+        {
+            "name": "pear"
+        }
     ],
     "oldStruct": {
         "name": "fruit"

@@ -3,11 +3,20 @@
 "@sheet": "@YamlDeprecatedFields"
 OldID: uint32|{deprecated:true}
 OldType: "enum<.FruitType>|{deprecated:true}"
+OldIncellMap:
+  "@type": "map<uint32, string>|{deprecated:true}"
+  "@incell": true
+OldIncellList:
+  "@type": "[int32]|{deprecated:true}"
+  "@incell": true
 OldMap:
   "@type": "map<uint32, Entry>|{deprecated:true}"
   "@struct":
     Name: string
-OldList: "[int32]|{deprecated:true}"
+OldList:
+  "@type": "[Tag]|{deprecated:true}"
+  "@struct":
+    Name: string
 OldStruct:
   "@type": "{Detail}|{deprecated:true}"
   Name: string
@@ -15,9 +24,12 @@ OldStruct:
 "@sheet": YamlDeprecatedFields
 OldID: 1
 OldType: FRUIT_TYPE_APPLE
+OldIncellMap: "1:apple,2:pear"
+OldIncellList: "1,2"
 OldMap:
   7:
     Name: apple
-OldList: [1, 2]
+OldList:
+  - Name: pear
 OldStruct:
   Name: fruit

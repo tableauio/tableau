@@ -12,5 +12,17 @@
     "detail": {
         "id": 7,
         "name": "Sample"
-    }
+    },
+    "entryMap": {
+        "8": {
+            "id": 8,
+            "name": "Entry"
+        }
+    },
+    "taskList": [
+        {
+            "id": 9,
+            "name": "Task"
+        }
+    ]
 }

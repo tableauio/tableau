@@ -23,4 +23,14 @@ message CSVDeprecatedFields {
     uint32 id = 1 [(tableau.field) = {name:"ID"}];
     string name = 2 [(tableau.field) = {name:"Name"}];
   }
+  map<uint32, Entry> entry_map = 6 [(tableau.field) = {name:"Entry" key:"ID" layout:LAYOUT_HORIZONTAL}, deprecated = true];
+  message Entry {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
+  repeated Task task_list = 7 [(tableau.field) = {name:"Task" layout:LAYOUT_HORIZONTAL}, deprecated = true];
+  message Task {
+    uint32 id = 1 [(tableau.field) = {name:"ID"}];
+    string name = 2 [(tableau.field) = {name:"Name"}];
+  }
 }
