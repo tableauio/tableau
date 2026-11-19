@@ -547,13 +547,21 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 	} else if desc := types.MatchList(attrValue); desc != nil {
 		if desc.ElemType != "" && desc.ColumnType != "" {
 			// struct list
+			rawProp := desc.Prop.RawProp()
+			if isFirstAttr {
+				prop, err := desc.Prop.FieldProp()
+				if err != nil {
+					return nil, nil, err
+				}
+				rawProp = desc.Prop.SubfieldRawProp(prop)
+			}
 			curBNode = &book.Node{
 				Kind: book.MapNode,
 				Name: book.KeywordStruct,
 				Children: []*book.Node{
 					{
 						Name:  attrName,
-						Value: desc.ColumnType + desc.Prop.RawProp(),
+						Value: desc.ColumnType + rawProp,
 					},
 				},
 			}
@@ -673,9 +681,17 @@ func parseXMLAttribute(bnode *book.Node, attrName, attrValue string, isFirstAttr
 				},
 			}
 			if isFirstAttr {
+				structType := fmt.Sprintf("{%s}", desc.StructType)
+				prop, err := desc.Prop.FieldProp()
+				if err != nil {
+					return nil, nil, err
+				}
+				if prop.GetDeprecated() {
+					structType += "|{deprecated:true}"
+				}
 				bnode.Children = append(bnode.Children, &book.Node{
 					Name:  book.KeywordType,
-					Value: fmt.Sprintf("{%s}", desc.StructType),
+					Value: structType,
 				}, curBNode)
 				return curBNode, curBNode.Children[0], nil
 			} else {

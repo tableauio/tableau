@@ -856,10 +856,13 @@ func (x *sheetExporter) exportField(depth int, field *internalpb.Field, prefix s
 
 func (x *bookExporter) genFieldOptionsString(opts *tableaupb.FieldOptions, fieldRules *validate.FieldRules) string {
 	jsonName := ""
+	deprecated := false
 	// remember and then clear protobuf built-in options
 	if opts.Prop != nil {
 		jsonName = opts.Prop.JsonName
+		deprecated = opts.Prop.Deprecated
 		opts.Prop.JsonName = ""
+		opts.Prop.Deprecated = false
 
 		// set nil if field prop is empty
 		if IsEmptyFieldProp(opts.Prop) {
@@ -871,6 +874,9 @@ func (x *bookExporter) genFieldOptionsString(opts *tableaupb.FieldOptions, field
 	fieldOpts := "[(tableau.field) = {" + x.marshalToText(opts) + "}"
 	if jsonName != "" {
 		fieldOpts += `, json_name="` + jsonName + `"`
+	}
+	if deprecated {
+		fieldOpts += ", deprecated = true"
 	}
 	if fieldRules != nil {
 		fieldOpts += `, (buf.validate.field) = {` + x.marshalToText(fieldRules) + `}`

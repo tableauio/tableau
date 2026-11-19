@@ -115,6 +115,90 @@ func Test_genFieldOptionsString_predefinedValidateRule(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+func TestGenerator_deprecatedFields(t *testing.T) {
+	inputDir := t.TempDir()
+	const workbook = `Scalar,Entry,Value,DetailID,DetailCode,ExplicitFalse,Unset
+int32|{deprecated:true present:true},"map<string,int32>|{deprecated:true}",[]int32|{deprecated:true},"{Detail}int32|{deprecated:true range:""1,10""}",string,int32|{deprecated:false},int32
+,,,,,,
+1,key:2,3,4,code,5,6
+`
+	writeFile(t, filepath.Join(inputDir, "DeprecatedFields#@TABLEAU.csv"), "Sheet\nFields\n")
+	writeFile(t, filepath.Join(inputDir, "DeprecatedFields#Fields.csv"), workbook)
+	message := generateMessage(t, inputDir, "deprecated_fields.proto", "Fields")
+
+	for _, tc := range []struct {
+		name       protoreflect.Name
+		deprecated bool
+	}{
+		{"scalar", true},
+		{"entry_map", true},
+		{"value_list", true},
+		{"detail", true},
+		{"explicit_false", false},
+		{"unset", false},
+	} {
+		field := message.Fields().ByName(tc.name)
+		require.NotNil(t, field, "%s", tc.name)
+		fieldOptions := field.Options().(*descriptorpb.FieldOptions)
+		assert.Equal(t, tc.deprecated, fieldOptions.GetDeprecated(), "%s", tc.name)
+		tableauOptions := proto.GetExtension(fieldOptions, tableaupb.E_Field).(*tableaupb.FieldOptions)
+		assert.False(t, tableauOptions.GetProp().GetDeprecated(), "%s", tc.name)
+	}
+	opts := proto.GetExtension(message.Fields().ByName("scalar").Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+	assert.True(t, opts.GetProp().GetPresent())
+	id := message.Fields().ByName("detail").Message().Fields().ByName("id")
+	require.NotNil(t, id)
+	assert.False(t, id.Options().(*descriptorpb.FieldOptions).GetDeprecated())
+	idOpts := proto.GetExtension(id.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+	assert.Equal(t, "1,10", idOpts.GetProp().GetRange())
+}
+
+func TestGenerator_deprecatedXMLFields(t *testing.T) {
+	inputDir := t.TempDir()
+	const workbook = `<!--
+<@TABLEAU>
+    <Item Sheet="Fields" />
+</@TABLEAU>
+<Fields>
+    <Item ID="{Item}uint32|{deprecated:true}" />
+    <Entry ID="[Entry]uint32|{deprecated:true unique:true}" />
+</Fields>
+-->
+<Fields>
+    <Item ID="1" />
+    <Entry ID="2" />
+</Fields>
+`
+	writeFile(t, filepath.Join(inputDir, "DeprecatedFields.xml"), workbook)
+	message := generateMessage(t, inputDir, "deprecated_fields.proto", "Fields")
+	for _, tc := range []struct {
+		name     protoreflect.Name
+		uniqueID bool
+	}{{"item", false}, {"entry_list", true}} {
+		field := message.Fields().ByName(tc.name)
+		require.NotNil(t, field, "%s", tc.name)
+		assert.True(t, field.Options().(*descriptorpb.FieldOptions).GetDeprecated(), "%s", tc.name)
+		id := field.Message().Fields().ByName("id")
+		require.NotNil(t, id, "%s.id", tc.name)
+		assert.False(t, id.Options().(*descriptorpb.FieldOptions).GetDeprecated(), "%s.id", tc.name)
+		idOpts := proto.GetExtension(id.Options(), tableaupb.E_Field).(*tableaupb.FieldOptions)
+		assert.Equal(t, tc.uniqueID, idOpts.GetProp().GetUnique(), "%s.id", tc.name)
+	}
+}
+
+func generateMessage(t *testing.T, inputDir, protoFile string, messageName protoreflect.Name) protoreflect.MessageDescriptor {
+	t.Helper()
+	outputDir := t.TempDir()
+	require.NoError(t, NewGenerator("testconf", inputDir, outputDir).Generate())
+	files, err := protoc.NewFiles([]string{outputDir}, []string{filepath.Join(outputDir, protoFile)})
+	require.NoError(t, err)
+	fd, err := files.FindFileByPath(protoFile)
+	require.NoError(t, err)
+	message := fd.Messages().ByName(messageName)
+	require.NotNil(t, message)
+	return message
+}
+
 func Test_isSameFieldMessageType(t *testing.T) {
 	type args struct {
 		left  *internalpb.Field

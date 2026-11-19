@@ -1,0 +1,28 @@
+{
+    "count": 1,
+    "limitMap": {
+        "max": 5,
+        "min": 2
+    },
+    "tagList": [
+        "red",
+        "sweet"
+    ],
+    "fruit": "FRUIT_TYPE_APPLE",
+    "detail": {
+        "id": 7,
+        "name": "Sample"
+    },
+    "entryMap": {
+        "8": {
+            "id": 8,
+            "name": "Entry"
+        }
+    },
+    "taskList": [
+        {
+            "id": 9,
+            "name": "Task"
+        }
+    ]
+}

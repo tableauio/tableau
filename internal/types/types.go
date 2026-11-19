@@ -9,6 +9,7 @@ import (
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 )
 
 // refer: https://github.com/google/re2/wiki/Syntax
@@ -284,6 +285,17 @@ type PropDescriptor struct {
 
 func (x *PropDescriptor) RawProp() string {
 	return "|{" + x.Text + "}"
+}
+
+// SubfieldRawProp forwards properties from a compound type to its first
+// subfield. Deprecation applies only to the compound field itself.
+func (x *PropDescriptor) SubfieldRawProp(prop *tableaupb.FieldProp) string {
+	if !prop.GetDeprecated() {
+		return x.RawProp()
+	}
+	subfieldProp := proto.CloneOf(prop)
+	subfieldProp.Deprecated = false
+	return "|{" + (prototext.MarshalOptions{}).Format(subfieldProp) + "}"
 }
 
 func (x *PropDescriptor) FieldProp() (*tableaupb.FieldProp, error) {

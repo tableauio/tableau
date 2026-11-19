@@ -160,7 +160,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 		if keyTypeDesc.Kind == types.EnumKind {
 			field.Options.Key = keyCell
 			// 1. append key to the first value struct field
-			scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.Prop.RawProp(), "")
+			scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.Prop.SubfieldRawProp(prop), "")
 			if err != nil {
 				return errWithNodeKV(err, typeNode,
 					xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
@@ -197,7 +197,7 @@ func (p *documentParser) parseMapField(field *internalpb.Field, node *book.Node)
 	field.Options.Key = keyCell
 	// struct map
 	// auto append key to the first value struct field
-	scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.Prop.RawProp(), "")
+	scalarField, err := p.parseBasicField(keyCell, desc.KeyType+desc.Prop.SubfieldRawProp(prop), "")
 	if err != nil {
 		return errWithNodeKV(err, typeNode,
 			xerrors.KeyPBFieldType, desc.KeyType+" (map key)",
