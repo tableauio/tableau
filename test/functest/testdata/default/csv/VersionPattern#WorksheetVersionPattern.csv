@@ -1,0 +1,4 @@
+Version,CustomVersion,EarlierVersion
+version,"version|{pattern:""9.9.99""}",[]version
+Inherits the worksheet pattern,Overrides the worksheet pattern,Each list element inherits the worksheet pattern
+1.2.3,1.2.3,"1.0.12,1.1.12"

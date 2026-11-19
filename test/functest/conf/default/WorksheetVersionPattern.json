@@ -1,0 +1,36 @@
+{
+    "version": {
+        "str": "1.2.3",
+        "val": "10203",
+        "major": 1,
+        "minor": 2,
+        "patch": 3,
+        "others": []
+    },
+    "customVersion": {
+        "str": "1.2.3",
+        "val": "1203",
+        "major": 1,
+        "minor": 2,
+        "patch": 3,
+        "others": []
+    },
+    "earlierVersionList": [
+        {
+            "str": "1.0.12",
+            "val": "10012",
+            "major": 1,
+            "minor": 0,
+            "patch": 12,
+            "others": []
+        },
+        {
+            "str": "1.1.12",
+            "val": "10112",
+            "major": 1,
+            "minor": 1,
+            "patch": 12,
+            "others": []
+        }
+    ]
+}
