@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/x/xerrors"
-	"github.com/tableauio/tableau/internal/x/xproto/protoc"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -366,13 +366,8 @@ func TestParseFieldValue(t *testing.T) {
 }
 
 func TestParseFieldValueVersionPattern(t *testing.T) {
-	const protoDir = "../../../test/functest/proto/default"
-	files, err := protoc.NewFiles([]string{protoDir}, []string{protoDir + "/excel__wellknown__well_known.proto"})
-	require.NoError(t, err)
-	descriptor, err := files.FindDescriptorByName("protoconf.WellKnownTypeVersion")
-	require.NoError(t, err)
-	versionField := descriptor.(pref.MessageDescriptor).Fields().ByName("version")
-	require.NotNil(t, versionField)
+	var versionValue unittestpb.VersionValue
+	versionField := versionValue.ProtoReflect().Descriptor().Fields().ByNumber(1)
 	valField := versionField.Message().Fields().ByName("val")
 
 	for _, tc := range []struct {

@@ -9,6 +9,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 import "tableau/protobuf/unittest/common.proto";
+import "tableau/protobuf/wellknown.proto";
 
 option go_package = "github.com/tableauio/tableau/proto/tableaupb/unittestpb";
 option (tableau.workbook) = {name: "unittest/Unittest#*.csv"};
@@ -980,4 +981,8 @@ message HorizontalListFieldConf {
       layout: LAYOUT_HORIZONTAL
     }];
   }
+}
+
+message VersionValue {
+  tableau.Version value = 1;
 }
