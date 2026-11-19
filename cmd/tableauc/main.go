@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -208,32 +207,12 @@ func loadConfig(path string) (*options.Options, error) {
 	if path == "" {
 		return options.NewDefault(), nil
 	}
+	config := &options.Options{}
 	d, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var doc yaml.Node
-	if err := yaml.Unmarshal(d, &doc); err != nil {
-		return nil, err
-	}
-
-	// Detect the old key before decoding Options, which ignores unknown keys.
-	var legacy struct {
-		Conf struct {
-			Input struct {
-				VersionPattern yaml.Node `yaml:"versionPattern"`
-			}
-		}
-	}
-	if err := doc.Decode(&legacy); err != nil {
-		return nil, err
-	}
-	if !legacy.Conf.Input.VersionPattern.IsZero() {
-		return nil, errors.New("conf.input.versionPattern has moved to proto.input.versionPattern. Move the setting and regenerate the proto files before running confgen")
-	}
-
-	config := &options.Options{}
-	if err := doc.Decode(config); err != nil {
+	if err := yaml.Unmarshal(d, config); err != nil {
 		return nil, err
 	}
 	return config, nil

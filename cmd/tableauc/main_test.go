@@ -88,33 +88,6 @@ Version,Custom version
 	}
 }
 
-func TestLegacyVersionPatternFailsBeforeGeneration(t *testing.T) {
-	const config = `lang: en
-locationName: Asia/Shanghai
-log:
-  level: ERROR
-  mode: SIMPLE
-  sink: CONSOLE
-conf:
-  input:
-    protoPaths: ["../../test/functest/proto/default"]
-    protoFiles: ["../../test/functest/proto/default/excel__wellknown__well_known.proto"]
-    versionPattern: "9.99.99"
-  output:
-    formats: [json]
-`
-	dir := t.TempDir()
-	configFile := filepath.Join(dir, "config.yaml")
-	outputDir := filepath.Join(dir, "output")
-	require.NoError(t, os.WriteFile(configFile, []byte(config), 0o600))
-
-	cmd := newCmd(t, "-c", configFile, "-m", ModeConf, "-i", "../../test/functest/testdata/default", "-o", outputDir)
-	err := runE(cmd, nil)
-	require.ErrorContains(t, err, "conf.input.versionPattern has moved to proto.input.versionPattern")
-	require.ErrorContains(t, err, "regenerate the proto files")
-	require.NoDirExists(t, outputDir)
-}
-
 // TestApplyFlags_PreserveFieldNumbers covers the --preserve-field-numbers
 // flag's bidirectional override of proto.output.preserveFieldNumbers.
 //
