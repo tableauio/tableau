@@ -1,0 +1,19 @@
+{
+    "count": 1,
+    "fruit": "FRUIT_TYPE_APPLE",
+    "current": "active",
+    "entryMap": {
+        "2": {
+            "id": 2,
+            "value": "old"
+        }
+    },
+    "tagList": [
+        {
+            "id": 3
+        }
+    ],
+    "detail": {
+        "id": 4
+    }
+}

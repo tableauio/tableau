@@ -1,0 +1,4 @@
+Count,Limit,Tag,Fruit,DetailID,DetailName
+uint32|{deprecated:true},"map<string,int32>|{deprecated:true}",[]string|{deprecated:true},enum<.FruitType>|{deprecated:true},{Detail}uint32|{deprecated:true},string
+,,,,,
+1,"min:2,max:5","red,sweet",Apple,7,Sample

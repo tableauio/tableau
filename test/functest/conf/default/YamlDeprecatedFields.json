@@ -1,0 +1,17 @@
+{
+    "oldId": 1,
+    "oldType": "FRUIT_TYPE_APPLE",
+    "oldMap": {
+        "7": {
+            "key": 7,
+            "name": "apple"
+        }
+    },
+    "oldList": [
+        1,
+        2
+    ],
+    "oldStruct": {
+        "name": "fruit"
+    }
+}

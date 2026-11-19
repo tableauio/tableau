@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+<@TABLEAU>
+    <Item Sheet="XMLDeprecatedFields" />
+</@TABLEAU>
+
+<XMLDeprecatedFields Count="int32|{deprecated:true}"
+    Fruit="enum<.FruitType>|{deprecated:true}" Current="string">
+    <Entry ID="map<uint32, Entry>|{deprecated:true unique:true}" Value="string" />
+    <Tag ID="[Tag]uint32|{deprecated:true}" />
+    <Detail ID="{Detail}uint32|{deprecated:true}" />
+</XMLDeprecatedFields>
+-->
+
+<XMLDeprecatedFields Count="1" Fruit="Apple" Current="active">
+    <Entry ID="2" Value="old" />
+    <Tag ID="3" />
+    <Detail ID="4" />
+</XMLDeprecatedFields>
