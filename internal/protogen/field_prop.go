@@ -18,6 +18,7 @@ func ExtractMapFieldProp(prop *tableaupb.FieldProp, layout tableaupb.Layout) *ta
 	}
 	p := &tableaupb.FieldProp{
 		JsonName:        prop.JsonName,
+		Deprecated:      prop.Deprecated,
 		Fixed:           prop.Fixed,
 		Size:            prop.Size,
 		Present:         prop.Present,
@@ -45,6 +46,7 @@ func ExtractListFieldProp(prop *tableaupb.FieldProp, isScalarList bool, layout t
 	}
 	p := &tableaupb.FieldProp{
 		JsonName:        prop.JsonName,
+		Deprecated:      prop.Deprecated,
 		Present:         prop.Present,
 		Optional:        prop.Optional,
 		Patch:           prop.Patch,
@@ -81,6 +83,7 @@ func ExtractStructFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 	}
 	p := &tableaupb.FieldProp{
 		JsonName:        prop.JsonName,
+		Deprecated:      prop.Deprecated,
 		Form:            prop.Form,
 		Present:         prop.Present,
 		Optional:        prop.Optional,
@@ -104,18 +107,19 @@ func ExtractScalarFieldProp(prop *tableaupb.FieldProp) *tableaupb.FieldProp {
 		return nil
 	}
 	p := &tableaupb.FieldProp{
-		JsonName: prop.JsonName,
-		Unique:   prop.Unique,
-		Sequence: prop.Sequence,
-		Range:    prop.Range,
-		Refer:    prop.Refer,
-		Default:  prop.Default,
-		Present:  prop.Present,
-		Optional: prop.Optional,
-		Patch:    prop.Patch,
-		Pattern:  prop.Pattern,
-		Order:    prop.Order,
-		Validate: prop.Validate,
+		JsonName:   prop.JsonName,
+		Deprecated: prop.Deprecated,
+		Unique:     prop.Unique,
+		Sequence:   prop.Sequence,
+		Range:      prop.Range,
+		Refer:      prop.Refer,
+		Default:    prop.Default,
+		Present:    prop.Present,
+		Optional:   prop.Optional,
+		Patch:      prop.Patch,
+		Pattern:    prop.Pattern,
+		Order:      prop.Order,
+		Validate:   prop.Validate,
 	}
 	if IsEmptyFieldProp(p) {
 		return nil

@@ -391,6 +391,8 @@ message FieldProp {
   //  - incell keyed-list: appends elements from each visit; duplicate keys
   //    across visits report error E2028.
   bool aggregate = 21;
+  // Set the generated protobuf field's deprecated option.
+  bool deprecated = 22;
 }
 
 // Layout of list and map.
