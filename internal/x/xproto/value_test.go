@@ -9,7 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protodesc"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -32,11 +36,30 @@ func TestParseFieldValue(t *testing.T) {
 	stringValueFd := stringValue.ProtoReflect().Descriptor().Fields().ByNumber(1)
 	var bytesValue wrapperspb.BytesValue
 	bytesValueFd := bytesValue.ProtoReflect().Descriptor().Fields().ByNumber(1)
+	versionFile, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
+		Name:       proto.String("version_field_test.proto"),
+		Syntax:     proto.String("proto3"),
+		Dependency: []string{tableaupb.File_tableau_protobuf_wellknown_proto.Path()},
+		MessageType: []*descriptorpb.DescriptorProto{{
+			Name: proto.String("VersionConfig"),
+			Field: []*descriptorpb.FieldDescriptorProto{{
+				Name:     proto.String("version"),
+				Number:   proto.Int32(1),
+				Label:    descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+				Type:     descriptorpb.FieldDescriptorProto_TYPE_MESSAGE.Enum(),
+				TypeName: proto.String(".tableau.Version"),
+			}},
+		}},
+	}, protoregistry.GlobalFiles)
+	require.NoError(t, err)
+	versionValueFd := versionFile.Messages().ByName("VersionConfig").Fields().ByName("version")
 
 	type args struct {
-		fd           pref.FieldDescriptor
-		rawValue     string
-		locationName string
+		fd                    pref.FieldDescriptor
+		rawValue              string
+		locationName          string
+		defaultVersionPattern string
+		fieldPattern          string
 	}
 	tests := []struct {
 		name        string
@@ -345,11 +368,74 @@ func TestParseFieldValue(t *testing.T) {
 			wantPresent: false,
 			wantErr:     false,
 		},
-		// TODO: add cases for enum and well-known messages
+		{
+			name: "version uses configured default pattern",
+			args: args{
+				fd:                    versionValueFd,
+				rawValue:              "1.2.3.4",
+				defaultVersionPattern: "9.99.99.99",
+			},
+			wantV: pref.ValueOfMessage((&tableaupb.Version{
+				Str:    "1.2.3.4",
+				Val:    1_020_304,
+				Major:  1,
+				Minor:  2,
+				Patch:  3,
+				Others: []uint32{4},
+			}).ProtoReflect()),
+			wantPresent: true,
+		},
+		{
+			name: "version rejects value outside configured default pattern",
+			args: args{
+				fd:                    versionValueFd,
+				rawValue:              "1.100.3",
+				defaultVersionPattern: "9.99.99",
+			},
+			wantV:   DefaultVersionValue,
+			wantErr: true,
+		},
+		{
+			name: "version field pattern overrides configured default",
+			args: args{
+				fd:                    versionValueFd,
+				rawValue:              "1.2.3",
+				defaultVersionPattern: "9.99.99.99",
+				fieldPattern:          "255.255.255",
+			},
+			wantV: pref.ValueOfMessage((&tableaupb.Version{
+				Str:   "1.2.3",
+				Val:   1<<16 | 2<<8 | 3,
+				Major: 1,
+				Minor: 2,
+				Patch: 3,
+			}).ProtoReflect()),
+			wantPresent: true,
+		},
+		{
+			name: "version falls back to built-in pattern",
+			args: args{
+				fd:       versionValueFd,
+				rawValue: "1.2.3",
+			},
+			wantV: pref.ValueOfMessage((&tableaupb.Version{
+				Str:   "1.2.3",
+				Val:   1<<16 | 2<<8 | 3,
+				Major: 1,
+				Minor: 2,
+				Patch: 3,
+			}).ProtoReflect()),
+			wantPresent: true,
+		},
+		// TODO: add cases for enum and other well-known messages
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, "", nil)
+			var fprop *tableaupb.FieldProp
+			if tt.args.fieldPattern != "" {
+				fprop = &tableaupb.FieldProp{Pattern: tt.args.fieldPattern}
+			}
+			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, tt.args.defaultVersionPattern, fprop)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseFieldValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
