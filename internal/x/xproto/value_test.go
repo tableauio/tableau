@@ -8,12 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/x/xerrors"
+	"github.com/tableauio/tableau/internal/x/xproto/protoc"
 	"github.com/tableauio/tableau/proto/tableaupb"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protodesc"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
-	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -36,30 +33,11 @@ func TestParseFieldValue(t *testing.T) {
 	stringValueFd := stringValue.ProtoReflect().Descriptor().Fields().ByNumber(1)
 	var bytesValue wrapperspb.BytesValue
 	bytesValueFd := bytesValue.ProtoReflect().Descriptor().Fields().ByNumber(1)
-	versionFile, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
-		Name:       proto.String("version_field_test.proto"),
-		Syntax:     proto.String("proto3"),
-		Dependency: []string{tableaupb.File_tableau_protobuf_wellknown_proto.Path()},
-		MessageType: []*descriptorpb.DescriptorProto{{
-			Name: proto.String("VersionConfig"),
-			Field: []*descriptorpb.FieldDescriptorProto{{
-				Name:     proto.String("version"),
-				Number:   proto.Int32(1),
-				Label:    descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
-				Type:     descriptorpb.FieldDescriptorProto_TYPE_MESSAGE.Enum(),
-				TypeName: proto.String(".tableau.Version"),
-			}},
-		}},
-	}, protoregistry.GlobalFiles)
-	require.NoError(t, err)
-	versionValueFd := versionFile.Messages().ByName("VersionConfig").Fields().ByName("version")
 
 	type args struct {
-		fd                    pref.FieldDescriptor
-		rawValue              string
-		locationName          string
-		defaultVersionPattern string
-		fieldPattern          string
+		fd           pref.FieldDescriptor
+		rawValue     string
+		locationName string
 	}
 	tests := []struct {
 		name        string
@@ -368,74 +346,11 @@ func TestParseFieldValue(t *testing.T) {
 			wantPresent: false,
 			wantErr:     false,
 		},
-		{
-			name: "version uses configured default pattern",
-			args: args{
-				fd:                    versionValueFd,
-				rawValue:              "1.2.3.4",
-				defaultVersionPattern: "9.99.99.99",
-			},
-			wantV: pref.ValueOfMessage((&tableaupb.Version{
-				Str:    "1.2.3.4",
-				Val:    1_020_304,
-				Major:  1,
-				Minor:  2,
-				Patch:  3,
-				Others: []uint32{4},
-			}).ProtoReflect()),
-			wantPresent: true,
-		},
-		{
-			name: "version rejects value outside configured default pattern",
-			args: args{
-				fd:                    versionValueFd,
-				rawValue:              "1.100.3",
-				defaultVersionPattern: "9.99.99",
-			},
-			wantV:   DefaultVersionValue,
-			wantErr: true,
-		},
-		{
-			name: "version field pattern overrides configured default",
-			args: args{
-				fd:                    versionValueFd,
-				rawValue:              "1.2.3",
-				defaultVersionPattern: "9.99.99.99",
-				fieldPattern:          "255.255.255",
-			},
-			wantV: pref.ValueOfMessage((&tableaupb.Version{
-				Str:   "1.2.3",
-				Val:   1<<16 | 2<<8 | 3,
-				Major: 1,
-				Minor: 2,
-				Patch: 3,
-			}).ProtoReflect()),
-			wantPresent: true,
-		},
-		{
-			name: "version falls back to built-in pattern",
-			args: args{
-				fd:       versionValueFd,
-				rawValue: "1.2.3",
-			},
-			wantV: pref.ValueOfMessage((&tableaupb.Version{
-				Str:   "1.2.3",
-				Val:   1<<16 | 2<<8 | 3,
-				Major: 1,
-				Minor: 2,
-				Patch: 3,
-			}).ProtoReflect()),
-			wantPresent: true,
-		},
 		// TODO: add cases for enum and other well-known messages
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var fprop *tableaupb.FieldProp
-			if tt.args.fieldPattern != "" {
-				fprop = &tableaupb.FieldProp{Pattern: tt.args.fieldPattern}
-			}
-			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, tt.args.defaultVersionPattern, fprop)
+			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, "", nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseFieldValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -446,6 +361,63 @@ func TestParseFieldValue(t *testing.T) {
 			if gotPresent != tt.wantPresent {
 				t.Errorf("ParseFieldValue() gotPresent = %v, want %v", gotPresent, tt.wantPresent)
 			}
+		})
+	}
+}
+
+func TestParseFieldValueVersionPattern(t *testing.T) {
+	const protoDir = "../../../test/functest/proto/default"
+	files, err := protoc.NewFiles([]string{protoDir}, []string{protoDir + "/excel__wellknown__well_known.proto"})
+	require.NoError(t, err)
+	descriptor, err := files.FindDescriptorByName("protoconf.WellKnownTypeVersion")
+	require.NoError(t, err)
+	versionField := descriptor.(pref.MessageDescriptor).Fields().ByName("version")
+	require.NotNil(t, versionField)
+	valField := versionField.Message().Fields().ByName("val")
+
+	for _, tc := range []struct {
+		name                  string
+		rawValue              string
+		defaultVersionPattern string
+		fieldProp             *tableaupb.FieldProp
+		wantVal               uint64
+		wantErr               error
+	}{
+		{
+			name:                  "configured default",
+			rawValue:              "1.2.3.4",
+			defaultVersionPattern: "9.99.99.99",
+			wantVal:               1_020_304,
+		},
+		{
+			name:                  "value outside configured default",
+			rawValue:              "1.100.3",
+			defaultVersionPattern: "9.99.99",
+			wantErr:               xerrors.ErrE2025,
+		},
+		{
+			name:                  "field pattern overrides configured default",
+			rawValue:              "1.2.3",
+			defaultVersionPattern: "9.99.99.99",
+			fieldProp:             &tableaupb.FieldProp{Pattern: "7.9.9"},
+			wantVal:               123,
+		},
+		{
+			name:     "built-in fallback",
+			rawValue: "1.2.3",
+			wantVal:  1<<16 | 2<<8 | 3,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, present, err := ParseFieldValue(versionField, tc.rawValue, "", tc.defaultVersionPattern, tc.fieldProp)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
+				require.False(t, present)
+				return
+			}
+			require.NoError(t, err)
+			require.True(t, present)
+			assert.Equal(t, tc.wantVal, got.Message().Get(valField).Uint())
 		})
 	}
 }
