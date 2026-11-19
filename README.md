@@ -45,6 +45,18 @@ Install:
 go install github.com/tableauio/tableau/cmd/tableauc@latest
 ```
 
+Set `conf.input.versionPattern` in `config.yaml` to define the default pattern
+for `tableau.Version` fields during config generation.
+
+```yaml
+conf:
+  input:
+    versionPattern: "99.999.999"
+```
+
+A field-level `pattern` takes precedence. If `versionPattern` is omitted or
+empty, the default is `255.255.255`.
+
 ## Features
 
 - Convert **Excel/CSV/XML/YAML** to **JSON/Text/Bin**.

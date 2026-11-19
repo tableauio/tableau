@@ -349,7 +349,7 @@ func TestParseFieldValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, nil)
+			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, "", nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseFieldValue() error = %v, wantErr %v", err, tt.wantErr)
 				return

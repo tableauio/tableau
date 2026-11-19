@@ -72,7 +72,7 @@ func init() {
 // # Well-known types
 //
 // Well-known types are message types defined by [types.IsWellKnownMessage].
-func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName string, fprop *tableaupb.FieldProp) (v pref.Value, present bool, err error) {
+func ParseFieldValue(fd pref.FieldDescriptor, rawValue, locationName, defaultVersionPattern string, fprop *tableaupb.FieldProp) (v pref.Value, present bool, err error) {
 	getTrimmedValue := func() string {
 		value := strings.TrimSpace(rawValue)
 		if value == "" {
@@ -259,7 +259,11 @@ func ParseFieldValue(fd pref.FieldDescriptor, rawValue string, locationName stri
 			if value == "" {
 				return DefaultVersionValue, false, nil
 			}
-			return parseVersion(fd.Message(), value, fprop.GetPattern())
+			pattern := fprop.GetPattern()
+			if pattern == "" {
+				pattern = defaultVersionPattern
+			}
+			return parseVersion(fd.Message(), value, pattern)
 		default:
 			return pref.Value{}, false, xerrors.Newf("not supported message type: %s", msgName)
 		}

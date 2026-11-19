@@ -1,6 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -19,6 +23,53 @@ func newCmd(t *testing.T, args ...string) *cobra.Command {
 	cmd := newRootCmd()
 	require.NoError(t, cmd.ParseFlags(args))
 	return cmd
+}
+
+func TestVersionPatternConfig(t *testing.T) {
+	const configTemplate = `lang: en
+locationName: Asia/Shanghai
+log:
+  level: ERROR
+  mode: SIMPLE
+  sink: CONSOLE
+conf:
+  input:
+    protoPaths: ["../../test/functest/proto/default"]
+    protoFiles: ["../../test/functest/proto/default/excel__wellknown__well_known.proto"]
+    %s
+  output:
+    formats: [json]
+`
+	for _, tc := range []struct {
+		name    string
+		setting string
+		wantVal string
+	}{
+		{name: "omitted", wantVal: "65539"},
+		{name: "empty", setting: `versionPattern: ""`, wantVal: "65539"},
+		{name: "configured", setting: `versionPattern: "9.99.99"`, wantVal: "10003"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			configPath := filepath.Join(dir, "config.yaml")
+			require.NoError(t, os.WriteFile(configPath, []byte(fmt.Sprintf(configTemplate, tc.setting)), 0o600))
+			cmd := newCmd(t, "-c", configPath, "-m", ModeConf, "-i", "../../test/functest/testdata/default", "-o", dir)
+			require.NoError(t, runE(cmd, nil))
+
+			data, err := os.ReadFile(filepath.Join(dir, "WellKnownTypeVersion.json"))
+			require.NoError(t, err)
+			var conf struct {
+				Version           struct{ Val string }
+				CustomVersion     struct{ Val string }
+				IncellVersionList []struct{ Val string }
+			}
+			require.NoError(t, json.Unmarshal(data, &conf))
+			assert.Equal(t, tc.wantVal, conf.Version.Val)
+			assert.Equal(t, "10020300405006", conf.CustomVersion.Val)
+			require.Len(t, conf.IncellVersionList, 2)
+			assert.Equal(t, "1002003", conf.IncellVersionList[0].Val)
+		})
+	}
 }
 
 // TestApplyFlags_PreserveFieldNumbers covers the --preserve-field-numbers
