@@ -310,7 +310,6 @@ func (si *SheetInfo) SheetName() string {
 type sheetParser struct {
 	ProtoPackage   string
 	LocationName   string
-	versionPattern string
 	source         SourceLocation
 	ctx            context.Context
 	bookOpts       *tableaupb.WorkbookOptions
@@ -386,22 +385,17 @@ func NewExtendedSheetParser(
 	extInfo *SheetParserExtInfo,
 	source SourceLocation,
 ) *sheetParser {
-	versionPattern := sheetOpts.GetVersionPattern()
-	if versionPattern == "" {
-		versionPattern = bookOpts.GetVersionPattern()
-	}
 	if extInfo != nil && extInfo.ReferredCache == nil {
 		extInfo.ReferredCache = fieldprop.NewReferredCache()
 	}
 	sp := &sheetParser{
-		ProtoPackage:   protoPackage,
-		LocationName:   locationName,
-		versionPattern: versionPattern,
-		source:         source,
-		ctx:            ctx,
-		bookOpts:       bookOpts,
-		sheetOpts:      sheetOpts,
-		extInfo:        extInfo,
+		ProtoPackage: protoPackage,
+		LocationName: locationName,
+		source:       source,
+		ctx:          ctx,
+		bookOpts:     bookOpts,
+		sheetOpts:    sheetOpts,
+		extInfo:      extInfo,
 		// Default capacity 1 is sufficient for protogen/load (fail-fast on first error).
 		// confgen overwrites it with a larger capacity for multi-error collection across sheets.
 		sheetCollector: xerrors.NewCollector(1),
@@ -442,6 +436,14 @@ func (p *sheetParser) GetSubsep() string {
 	}
 	// default
 	return options.DefaultSubsep
+}
+
+// GetVersionPattern returns the configured version pattern for the sheet.
+func (p *sheetParser) GetVersionPattern() string {
+	if pattern := p.sheetOpts.GetVersionPattern(); pattern != "" {
+		return pattern
+	}
+	return p.bookOpts.GetVersionPattern()
 }
 
 // GetBookFormat returns workbook format related to this sheet.
@@ -1035,7 +1037,7 @@ func (p *sheetParser) parseIncellUnion(field *Field, structValue protoreflect.Va
 //   - Enum types
 //   - Well-known types
 func (p *sheetParser) parseFieldValue(fd protoreflect.FieldDescriptor, rawValue string, fprop *tableaupb.FieldProp) (v protoreflect.Value, present bool, err error) {
-	v, present, err = xproto.ParseFieldValue(fd, rawValue, p.LocationName, p.versionPattern, fprop)
+	v, present, err = xproto.ParseFieldValue(fd, rawValue, p.LocationName, p.GetVersionPattern(), fprop)
 	if err != nil {
 		return v, present, err
 	}
