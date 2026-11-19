@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/proto/tableaupb"
+	"github.com/tableauio/tableau/proto/tableaupb/unittestpb"
 	pref "google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -345,11 +346,11 @@ func TestParseFieldValue(t *testing.T) {
 			wantPresent: false,
 			wantErr:     false,
 		},
-		// TODO: add cases for enum and well-known messages
+		// TODO: add cases for enum and other well-known messages
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, nil)
+			gotV, gotPresent, err := ParseFieldValue(tt.args.fd, tt.args.rawValue, tt.args.locationName, "", nil)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseFieldValue() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -360,6 +361,58 @@ func TestParseFieldValue(t *testing.T) {
 			if gotPresent != tt.wantPresent {
 				t.Errorf("ParseFieldValue() gotPresent = %v, want %v", gotPresent, tt.wantPresent)
 			}
+		})
+	}
+}
+
+func TestParseFieldValueVersionPattern(t *testing.T) {
+	var versionValue unittestpb.VersionValue
+	versionField := versionValue.ProtoReflect().Descriptor().Fields().ByNumber(1)
+	valField := versionField.Message().Fields().ByName("val")
+
+	for _, tc := range []struct {
+		name                  string
+		rawValue              string
+		defaultVersionPattern string
+		fieldProp             *tableaupb.FieldProp
+		wantVal               uint64
+		wantErr               error
+	}{
+		{
+			name:                  "configured default",
+			rawValue:              "1.2.3.4",
+			defaultVersionPattern: "9.99.99.99",
+			wantVal:               1_020_304,
+		},
+		{
+			name:                  "value outside configured default",
+			rawValue:              "1.100.3",
+			defaultVersionPattern: "9.99.99",
+			wantErr:               xerrors.ErrE2025,
+		},
+		{
+			name:                  "field pattern overrides configured default",
+			rawValue:              "1.2.3",
+			defaultVersionPattern: "9.99.99.99",
+			fieldProp:             &tableaupb.FieldProp{Pattern: "7.9.9"},
+			wantVal:               123,
+		},
+		{
+			name:     "built-in fallback",
+			rawValue: "1.2.3",
+			wantVal:  1<<16 | 2<<8 | 3,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, present, err := ParseFieldValue(versionField, tc.rawValue, "", tc.defaultVersionPattern, tc.fieldProp)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
+				require.False(t, present)
+				return
+			}
+			require.NoError(t, err)
+			require.True(t, present)
+			assert.Equal(t, tc.wantVal, got.Message().Get(valField).Uint())
 		})
 	}
 }

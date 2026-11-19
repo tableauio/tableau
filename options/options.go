@@ -307,6 +307,12 @@ type ConfInputOption struct {
 	// Default: nil.
 	SubdirRewrites map[string]string `yaml:"subdirRewrites"`
 
+	// VersionPattern sets the default dotted-decimal pattern for tableau.Version
+	// fields. Each component sets its maximum. A field-level pattern takes precedence.
+	//
+	// Default: "255.255.255".
+	VersionPattern string `yaml:"versionPattern"`
+
 	// Whether converter will not report an error and abort if a workbook
 	// is not recognized in proto files.
 	//
@@ -493,8 +499,9 @@ func NewDefault() *Options {
 		},
 		Conf: &ConfOption{
 			Input: &ConfInputOption{
-				ProtoPaths: []string{"."},
-				ProtoFiles: []string{"*.proto"},
+				ProtoPaths:     []string{"."},
+				ProtoFiles:     []string{"*.proto"},
+				VersionPattern: DefaultVersionPattern,
 			},
 			Output: &ConfOutputOption{
 				Formats: []format.Format{format.JSON},
