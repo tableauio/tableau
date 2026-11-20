@@ -134,7 +134,7 @@ message Book {}
 	if err != nil {
 		t.Fatal(err)
 	}
-	defaults := proto.GetExtension(descriptor.Options(), tableaupb.E_Confgen).(*tableaupb.Confgen)
+	defaults := proto.GetExtension(descriptor.Options(), tableaupb.E_Confgen).(*tableaupb.ConfgenOptions)
 	if got := defaults.GetDatarow(); got != 5 {
 		t.Errorf("defaults data row = %d, want 5 from the explicitly selected proto", got)
 	}

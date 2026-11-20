@@ -197,7 +197,7 @@ func (gen *Generator) stageConfig() error {
 		// previously generated workbooks that still import them.
 		return nil
 	}
-	config := &tableaupb.Confgen{
+	config := &tableaupb.ConfgenOptions{
 		Namerow:        header.NameRow,
 		Typerow:        header.TypeRow,
 		Noterow:        header.NoteRow,

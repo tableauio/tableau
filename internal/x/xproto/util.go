@@ -8,14 +8,14 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-// GetConfig returns the tableau.confgen option declared by a file or one of its imports.
-func GetConfig(fd protoreflect.FileDescriptor) *tableaupb.Confgen {
-	if config, _ := proto.GetExtension(fd.Options(), tableaupb.E_Confgen).(*tableaupb.Confgen); config != nil {
+// GetConfgenOptions returns the tableau.confgen option declared by a file or one of its imports.
+func GetConfgenOptions(fd protoreflect.FileDescriptor) *tableaupb.ConfgenOptions {
+	if config, _ := proto.GetExtension(fd.Options(), tableaupb.E_Confgen).(*tableaupb.ConfgenOptions); config != nil {
 		return config
 	}
 	imports := fd.Imports()
 	for i := 0; i < imports.Len(); i++ {
-		if config, _ := proto.GetExtension(imports.Get(i).Options(), tableaupb.E_Confgen).(*tableaupb.Confgen); config != nil {
+		if config, _ := proto.GetExtension(imports.Get(i).Options(), tableaupb.E_Confgen).(*tableaupb.ConfgenOptions); config != nil {
 			return config
 		}
 	}

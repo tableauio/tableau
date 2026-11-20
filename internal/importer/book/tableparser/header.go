@@ -22,7 +22,7 @@ type Header struct {
 }
 
 // NewHeaderFromConfig resolves the table header using the shared proto defaults.
-func NewHeaderFromConfig(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, config *tableaupb.Confgen) *Header {
+func NewHeaderFromConfig(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, config *tableaupb.ConfgenOptions) *Header {
 	return NewHeader(sheetOpts, bookOpts, &options.HeaderOption{
 		NameRow:  config.GetNamerow(),
 		TypeRow:  config.GetTyperow(),

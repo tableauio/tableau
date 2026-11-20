@@ -322,7 +322,7 @@ func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, 
 
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})
-	header := tableparser.NewHeaderFromConfig(sheetOpts, bookOpts, xproto.GetConfig(messageDesc.ParentFile()))
+	header := tableparser.NewHeaderFromConfig(sheetOpts, bookOpts, xproto.GetConfgenOptions(messageDesc.ParentFile()))
 	// new empty referred value space set
 	space := newValueSpace()
 	space.bookName = primaryImporter.Filename()

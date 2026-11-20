@@ -314,7 +314,7 @@ type sheetParser struct {
 	ctx            context.Context
 	bookOpts       *tableaupb.WorkbookOptions
 	sheetOpts      *tableaupb.WorksheetOptions
-	config         *tableaupb.Confgen
+	config         *tableaupb.ConfgenOptions
 	extInfo        *SheetParserExtInfo
 	sheetCollector *xerrors.Collector // sheet-level collector
 
@@ -486,7 +486,7 @@ func (p *sheetParser) IsFieldOptional(field *Field) bool {
 }
 
 func (p *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) (err error) {
-	if config := xproto.GetConfig(protomsg.ProtoReflect().Descriptor().ParentFile()); config != p.config {
+	if config := xproto.GetConfgenOptions(protomsg.ProtoReflect().Descriptor().ParentFile()); config != p.config {
 		p.config = config
 		// Cached field options include the separators resolved for this schema.
 		clear(p.fields)

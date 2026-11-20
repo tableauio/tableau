@@ -19,7 +19,7 @@ option objc_class_prefix = "TPB";
 
 extend google.protobuf.FileOptions {
   WorkbookOptions workbook = 50000;
-  Confgen confgen = 50001;
+  ConfgenOptions confgen = 50001;
 }
 
 extend google.protobuf.MessageOptions {
@@ -70,13 +70,13 @@ message OneofOptions {
   string field = 3; // Field name.
 }
 
-// Confgen defines global defaults for workbooks that import the file with the
+// ConfgenOptions defines global defaults for workbooks that import the file with the
 // (tableau.confgen) option.
 //
 // Settings flow from global to workbook to worksheet to field. Each level
 // overrides the inherited value when it provides a value. Header positions
 // can be overridden at workbook and worksheet level.
-message Confgen {
+message ConfgenOptions {
   // Default header and data row positions for table sheets. Zero uses the
   // built-in positions (1, 2, 3, and 4, respectively).
   int32 namerow = 4;
@@ -97,7 +97,7 @@ message Confgen {
   string version_pattern = 3;
 }
 
-// WorkbookOptions overrides the global Confgen defaults for one workbook.
+// WorkbookOptions overrides the global ConfgenOptions defaults for one workbook.
 message WorkbookOptions {
   // filename with path, e.g.: "relative/path/BookName.suffix" (slash path)
   string name = 1;
@@ -138,15 +138,15 @@ message WorkbookOptions {
   //  - incell list elements (scalar or struct).
   //  - incell map items.
   //
-  // Overrides Confgen.sep for this workbook.
+  // Overrides ConfgenOptions.sep for this workbook.
   string sep = 10;
   // Workbook-level subseparator for separating:
   //  - key-value pair of each incell map item.
   //  - struct fields of each incell struct list element.
   //
-  // Overrides Confgen.subsep for this workbook.
+  // Overrides ConfgenOptions.subsep for this workbook.
   string subsep = 11;
-  // Overrides Confgen.version_pattern for this workbook.
+  // Overrides ConfgenOptions.version_pattern for this workbook.
   string version_pattern = 12;
 }
 
