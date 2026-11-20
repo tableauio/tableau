@@ -1,0 +1,18 @@
+{
+    "version": {
+        "str": "1.2.3",
+        "val": "1203",
+        "major": 1,
+        "minor": 2,
+        "patch": 3,
+        "others": []
+    },
+    "fieldVersion": {
+        "str": "1.2.3",
+        "val": "123",
+        "major": 1,
+        "minor": 2,
+        "patch": 3,
+        "others": []
+    }
+}

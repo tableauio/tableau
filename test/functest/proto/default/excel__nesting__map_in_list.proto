@@ -9,7 +9,7 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/nesting/MapInList#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/nesting/MapInList#*.csv"};
 
 message HPredefStructMapInHListFF {
   option (tableau.worksheet) = {name:"HPredefStructMapInHListFF"};

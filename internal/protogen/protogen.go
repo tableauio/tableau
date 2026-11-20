@@ -64,7 +64,8 @@ type Generator struct {
 	// parsing passes mutate and reuse their sheet state.
 	cachedImporters map[string]importer.Importer // absolute file path -> importer
 
-	output *protoOutput
+	output       *protoOutput
+	configImport string
 }
 
 func NewGenerator(protoPackage, indir, outdir string, setters ...options.Option) *Generator {
@@ -200,6 +201,9 @@ func (gen *Generator) GenAll() error {
 			return err
 		}
 		defer gen.output.removeStagingDir()
+		if err := gen.stageConfig(); err != nil {
+			return err
+		}
 		if err := gen.preprocess(ctx, false); err != nil {
 			return err
 		}
@@ -218,12 +222,16 @@ func (gen *Generator) GenAll() error {
 }
 
 // GenWorkbook generates proto files for the specified input workbooks.
+// An explicit header also refreshes the defaults shared by other workbooks.
 func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 	return gen.run(func(ctx context.Context) error {
 		if err := gen.output.createStagingDir(); err != nil {
 			return err
 		}
 		defer gen.output.removeStagingDir()
+		if err := gen.stageConfig(); err != nil {
+			return err
+		}
 
 		// Preprocess and first-pass parsing establish the declarations needed to
 		// parse the selected workbooks in the second pass.
@@ -257,7 +265,7 @@ func (gen *Generator) GenWorkbook(relWorkbookPaths ...string) error {
 		if err := gen.parseWorkbooksInSecondPass(ctx, relWorkbookPaths...); err != nil {
 			return err
 		}
-		// Other workbooks' outputs remain valid when generating a selection.
+		// Publish the selected workbooks and any updated shared defaults.
 		return gen.measureOperation(ctx, "output_publish", func(context.Context) error {
 			return gen.output.publishSelected()
 		})

@@ -15,6 +15,7 @@ import (
 	"github.com/tableauio/tableau/internal/profile"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
+	"github.com/tableauio/tableau/internal/x/xproto"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -321,7 +322,7 @@ func loadValueSpaceForKey(ctx context.Context, refer string, key referCacheKey, 
 
 	// append self
 	impInfos = append(impInfos, importer.ImporterInfo{Importer: primaryImporter})
-	header := tableparser.NewHeader(sheetOpts, bookOpts, nil)
+	header := tableparser.NewHeaderFromConfig(sheetOpts, bookOpts, xproto.GetConfgenOptions(messageDesc.ParentFile()))
 	// new empty referred value space set
 	space := newValueSpace()
 	space.bookName = primaryImporter.Filename()

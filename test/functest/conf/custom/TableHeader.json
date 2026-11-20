@@ -4,5 +4,18 @@
         10,
         20,
         30
-    ]
+    ],
+    "version": {
+        "str": "1.2.3",
+        "val": "10203",
+        "major": 1,
+        "minor": 2,
+        "patch": 3,
+        "others": []
+    },
+    "valueMap": {
+        "a": 1,
+        "b": 2
+    },
+    "previousId": 1
 }

@@ -10,7 +10,7 @@ import "excel__union__union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/map/VerticalMap#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/map/VerticalMap#*.csv"};
 
 message UniqueFieldInVerticalStructMap {
   option (tableau.worksheet) = {name:"UniqueFieldInVerticalStructMap"};

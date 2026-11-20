@@ -1,6 +1,15 @@
+Skipped first row,,,,
+Skipped second row,,,,
+Skipped third row,,,,
 "IDNote
 ID
 int32","PropNote
 Prop
-[]int32|{sep:"";""}"
-1,10;20;30
+[]int32|{sep:"";""}","VersionNote
+Version
+version","ValueNote
+Value
+map<string,int32>","PreviousIDNote
+PreviousID
+int32|{refer:""TableHeader.ID""}"
+1,10;20;30,1.2.3,a=1|b=2,1

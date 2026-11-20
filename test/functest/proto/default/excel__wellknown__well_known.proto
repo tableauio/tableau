@@ -11,7 +11,7 @@ import "tableau/protobuf/tableau.proto";
 import "tableau/protobuf/wellknown.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/wellknown/WellKnown#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/wellknown/WellKnown#*.csv"};
 
 message WellKnownTypeComparator {
   option (tableau.worksheet) = {name:"WellKnownTypeComparator"};

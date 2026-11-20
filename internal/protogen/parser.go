@@ -11,7 +11,6 @@ import (
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xfs"
 	"github.com/tableauio/tableau/internal/x/xproto"
-	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 )
@@ -43,22 +42,6 @@ func newBookParser(bookName, relSlashPath string, bookOpts *tableaupb.WorkbookOp
 		snakePath := strcase.FromContext(gen.ctx).ToSnake(xfs.CleanSlashPath(bookPath))
 		filename = strings.ReplaceAll(snakePath, "/", "__")
 	}
-	// sep and subsep
-	var sep, subsep string
-	if gen.InputOpt.Header != nil {
-		sep = gen.InputOpt.Header.Sep
-		subsep = gen.InputOpt.Header.Subsep
-	}
-	if sep == "" {
-		sep = options.DefaultSep
-	}
-	if subsep == "" {
-		subsep = options.DefaultSubsep
-	}
-	versionPattern := bookOpts.GetVersionPattern()
-	if versionPattern == "" {
-		versionPattern = gen.InputOpt.VersionPattern
-	}
 	bp := &bookParser{
 		gen: gen,
 		wb: &internalpb.Workbook{
@@ -67,9 +50,9 @@ func newBookParser(bookName, relSlashPath string, bookOpts *tableaupb.WorkbookOp
 				// see: https://stackoverflow.com/questions/9371031/how-do-i-create-crossplatform-file-paths-in-go
 				Name:           relSlashPath,
 				Alias:          alias,
-				Sep:            sep,
-				Subsep:         subsep,
-				VersionPattern: versionPattern,
+				Sep:            bookOpts.GetSep(),
+				Subsep:         bookOpts.GetSubsep(),
+				VersionPattern: bookOpts.GetVersionPattern(),
 			},
 			Worksheets: []*internalpb.Worksheet{},
 			Name:       filename,

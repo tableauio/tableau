@@ -10,7 +10,7 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/metasheet/SheetMode#*.csv"};
 
 message ShardTargetSkill {
   google.protobuf.Timestamp start_time = 1 [(tableau.field) = {name:"StartTime"}];

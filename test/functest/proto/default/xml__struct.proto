@@ -10,7 +10,7 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"xml/Struct.xml" sep:"," subsep:":"};
+option (tableau.workbook) = {name:"xml/Struct.xml"};
 
 message XMLStructConf {
   option (tableau.worksheet) = {name:"XMLStructConf"};

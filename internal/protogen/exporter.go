@@ -3,6 +3,7 @@ package protogen
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -15,6 +16,7 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/internal/x/xproto"
+	"github.com/tableauio/tableau/internal/x/xproto/protoc"
 	"github.com/tableauio/tableau/log"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
@@ -66,21 +68,7 @@ func (x *bookExporter) GetProtoFilePath() string {
 
 func (x *bookExporter) export(ctx context.Context) error {
 	x.ctx = ctx
-	// keep the elements ordered by import path
-	set := treeset.NewWithStringComparator()
-	set.Add(tableauProtoPath) // default must be imported path
-
-	// infer imports from ProtoFileOptions
-	for optionKey := range x.ProtoFileOptions {
-		switch {
-		case strings.Contains(optionKey, "features.(pb.go)"):
-			set.Add("google/protobuf/go_features.proto")
-		case strings.Contains(optionKey, "features.(pb.cpp)"):
-			set.Add("google/protobuf/cpp_features.proto")
-		case strings.Contains(optionKey, "features.(pb.java)"):
-			set.Add("google/protobuf/java_features.proto")
-		}
-	}
+	set := protoHeaderImports(x.ProtoFileOptions)
 
 	p3 := printer.New()
 	for i, ws := range x.wb.Worksheets {
@@ -106,7 +94,7 @@ func (x *bookExporter) export(ctx context.Context) error {
 	}
 
 	header := printer.New()
-	x.writeProtoHeader(header, set)
+	x.writeProtoHeader(header, set, x.gen.configImport)
 	header.P("option (tableau.workbook) = {", x.marshalToText(x.wb.Options), "};")
 	header.P("")
 
@@ -141,7 +129,7 @@ func (x *bookExporter) export(ctx context.Context) error {
 }
 
 // writeProtoHeader writes syntax/edition, package, imports, and file options.
-func (x *bookExporter) writeProtoHeader(p *printer.Printer, imports *treeset.Set) {
+func (x *bookExporter) writeProtoHeader(p *printer.Printer, imports *treeset.Set, configImport string) {
 	p.P(generatedFileHeaderPrefix, " (protogen v", Version, "). DO NOT EDIT.")
 	p.P("// clang-format off")
 	p.P("")
@@ -156,6 +144,10 @@ func (x *bookExporter) writeProtoHeader(p *printer.Printer, imports *treeset.Set
 
 	for _, key := range imports.Values() {
 		p.P(`import "`, key, `";`)
+	}
+	if configImport != "" {
+		// The dependency carries schema options that consumers read by reflection.
+		p.P(`import public "`, configImport, `";`)
 	}
 	p.P("")
 	// sort keys alphabetically
@@ -175,10 +167,79 @@ func (x *bookExporter) writeUnionShardFile(shardFile *unionShardFile) error {
 	for imp := range shardFile.Imports {
 		importSet.Add(imp)
 	}
-	x.writeProtoHeader(header, importSet)
+	x.writeProtoHeader(header, importSet, x.gen.configImport)
 	header.P("option (tableau.workbook) = {", x.marshalToText(x.wb.Options), "};")
 	header.P("")
 	return x.gen.output.stageFile(filepath.Join(x.OutputDir, shardFile.ImportPath), header.Bytes(), shardFile.Printer.Bytes())
+}
+
+func protoHeaderImports(fileOptions map[string]string) *treeset.Set {
+	imports := treeset.NewWithStringComparator()
+	imports.Add(tableauProtoPath)
+	for key := range fileOptions {
+		switch {
+		case strings.Contains(key, "features.(pb.go)"):
+			imports.Add("google/protobuf/go_features.proto")
+		case strings.Contains(key, "features.(pb.cpp)"):
+			imports.Add("google/protobuf/cpp_features.proto")
+		case strings.Contains(key, "features.(pb.java)"):
+			imports.Add("google/protobuf/java_features.proto")
+		}
+	}
+	return imports
+}
+
+func (gen *Generator) stageConfig() error {
+	gen.configImport = ""
+	header := gen.InputOpt.Header
+	if !header.IsExplicit() {
+		// Selected generation leaves the existing defaults available to
+		// previously generated workbooks that still import them.
+		return nil
+	}
+	config := &tableaupb.ConfgenOptions{
+		Namerow:        header.NameRow,
+		Typerow:        header.TypeRow,
+		Noterow:        header.NoteRow,
+		Datarow:        header.DataRow,
+		Nameline:       header.NameLine,
+		Typeline:       header.TypeLine,
+		Noteline:       header.NoteLine,
+		Sep:            header.Sep,
+		Subsep:         header.Subsep,
+		VersionPattern: header.VersionPattern,
+	}
+	filename := protoc.DefaultsProtoFilename(gen.ProtoPackage, gen.OutputOpt.FilenameSuffix)
+	path := filepath.Join(gen.output.outputDir, filename)
+
+	const configDeclaration = "option (tableau.confgen) = {"
+	data, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return xerrors.WrapKV(err)
+	}
+	existingConfig := strings.HasPrefix(string(data), generatedFileHeaderPrefix) &&
+		strings.Contains(string(data), "\n"+configDeclaration)
+	if err == nil && !existingConfig {
+		return xerrors.Newf("shared proto config conflicts with existing file: %s", path)
+	}
+
+	if err := gen.output.reservePath(path, filename); err != nil {
+		return err
+	}
+	exporter := &bookExporter{
+		ProtoPackage:     gen.ProtoPackage,
+		Edition:          gen.OutputOpt.Edition,
+		ProtoFileOptions: gen.OutputOpt.FileOptions,
+		gen:              gen,
+	}
+	p := printer.New()
+	exporter.writeProtoHeader(p, protoHeaderImports(exporter.ProtoFileOptions), "")
+	p.P(configDeclaration, exporter.marshalToText(config), "};")
+	if err := gen.output.stageFile(path, p.Bytes()); err != nil {
+		return err
+	}
+	gen.configImport = filename
+	return nil
 }
 
 type sheetExporter struct {

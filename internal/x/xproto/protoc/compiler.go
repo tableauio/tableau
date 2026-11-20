@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bufbuild/protocompile"
 	"github.com/bufbuild/protocompile/linker"
@@ -25,6 +26,13 @@ import (
 )
 
 type fileDescriptorProtoMap map[string]*descriptorpb.FileDescriptorProto // file path -> file desc proto
+
+const defaultsProtoSuffix = "_tableau_defaults.proto"
+
+// DefaultsProtoFilename returns the shared defaults filename for a generated schema.
+func DefaultsProtoFilename(protoPackage, filenameSuffix string) string {
+	return strings.ReplaceAll(protoPackage, ".", "__") + filenameSuffix + defaultsProtoSuffix
+}
 
 // NewFiles creates a new protoregistry.Files from the provided proto paths, files, and excluded proto files.
 func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...string) (*protoregistry.Files, error) {
@@ -66,7 +74,7 @@ func NewFiles(protoPaths []string, protoFiles []string, excludedProtoFiles ...st
 			parsedProtoFiles[cleanSlashPath] = importPath
 		}
 	}
-	return parseProtos(protoPaths, parsedProtoFiles)
+	return parseProtos(protoPaths, parsedProtoFiles, protoFilesByImportPath, parsedExcludedProtoFiles)
 }
 
 func rel(filename string, protoPaths []string) (string, error) {
@@ -82,25 +90,38 @@ func rel(filename string, protoPaths []string) (string, error) {
 }
 
 // parseProtos parses the proto paths and proto files to protoregistry.Files.
-func parseProtos(protoPaths []string, protoFilesMap map[string]string) (*protoregistry.Files, error) {
+func parseProtos(protoPaths []string, protoFilesMap, protoFilesByImportPath map[string]string, excluded map[string]bool) (*protoregistry.Files, error) {
 	log.Debugf("proto paths: %v", protoPaths)
 	log.Debugf("proto files: %v", protoFilesMap)
 	var protoFiles []string
 	for _, path := range protoFilesMap {
 		protoFiles = append(protoFiles, path)
 	}
+	sources := &protocompile.SourceResolver{
+		ImportPaths: protoPaths,
+		Accessor: func(path string) (io.ReadCloser, error) {
+			cleanPath := xfs.CleanSlashPath(path)
+			// A workbook selected by an exact path still needs its shared config.
+			if _, ok := protoFilesMap[cleanPath]; !ok && (!strings.HasSuffix(filepath.Base(cleanPath), defaultsProtoSuffix) || excluded[cleanPath]) {
+				return nil, fs.ErrNotExist
+			}
+			return os.Open(path)
+		},
+	}
 	compiler := protocompile.Compiler{
 		Resolver: protocompile.CompositeResolver{
 			protocompile.ResolverFunc(resolveGlobalFiles),
-			&protocompile.SourceResolver{
-				ImportPaths: protoPaths,
-				Accessor: func(path string) (io.ReadCloser, error) {
-					if _, ok := protoFilesMap[xfs.CleanSlashPath(path)]; !ok {
-						return nil, fs.ErrNotExist
+			protocompile.ResolverFunc(func(importPath string) (protocompile.SearchResult, error) {
+				// An explicit defaults file takes precedence over discovery in earlier roots.
+				if selected, ok := protoFilesByImportPath[importPath]; ok && strings.HasSuffix(importPath, defaultsProtoSuffix) {
+					source, err := os.Open(selected)
+					if err != nil {
+						return protocompile.SearchResult{}, err
 					}
-					return os.Open(path)
-				},
-			},
+					return protocompile.SearchResult{Source: source}, nil
+				}
+				return sources.FindFileByPath(importPath)
+			}),
 		},
 	}
 	results, err := compiler.Compile(context.Background(), protoFiles...)

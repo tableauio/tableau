@@ -9,7 +9,7 @@ import "common/union.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/Union.yaml" sep:"," subsep:":"};
+option (tableau.workbook) = {name:"yaml/Union.yaml"};
 
 message YamlUnionConf {
   option (tableau.worksheet) = {name:"YamlUnionConf"};

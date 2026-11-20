@@ -9,7 +9,7 @@ import "tableau/protobuf/tableau.proto";
 import "tableau/protobuf/wellknown.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"csv/VersionPattern#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":" version_pattern:"9.99.9"};
+option (tableau.workbook) = {name:"csv/VersionPattern#*.csv" version_pattern:"9.99.9"};
 
 message WorkbookVersionPattern {
   option (tableau.worksheet) = {name:"WorkbookVersionPattern"};

@@ -8,7 +8,7 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/metasheet/YamlScatter.yaml" sep:"," subsep:":"};
+option (tableau.workbook) = {name:"yaml/metasheet/YamlScatter.yaml"};
 
 message YamlScatterConf {
   option (tableau.worksheet) = {name:"YamlScatterConf" scatter:"YamlScatter*.yaml"};
