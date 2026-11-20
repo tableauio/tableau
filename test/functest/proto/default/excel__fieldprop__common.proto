@@ -8,7 +8,7 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/fieldprop/Common#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/fieldprop/Common#*.csv"};
 
 message EquipConf {
   option (tableau.worksheet) = {name:"EquipConf"};

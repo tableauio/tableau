@@ -11,7 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tableauio/tableau/format"
+	"github.com/tableauio/tableau/internal/x/xproto/protoc"
+	"github.com/tableauio/tableau/load"
 	"github.com/tableauio/tableau/options"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 // newCmd parses the given CLI args against a freshly built root command and
@@ -25,30 +30,45 @@ func newCmd(t *testing.T, args ...string) *cobra.Command {
 	return cmd
 }
 
-func TestVersionPatternConfig(t *testing.T) {
-	dir := t.TempDir()
-	files := map[string]string{
-		"config.yaml": fmt.Sprintf(`lang: en
+func TestSharedProtoConfig(t *testing.T) {
+	const baseConfig = `lang: en
 locationName: Asia/Shanghai
 log:
   level: ERROR
   mode: SIMPLE
   sink: CONSOLE
+`
+	dir := t.TempDir()
+	const protoConfig = baseConfig + `
 proto:
   input:
-    versionPattern: "9.9.9"
+    header:
+      datarow: 5
+      sep: "|"
+      subsep: "="
+      versionPattern: %q
   output: {}
+`
+	files := map[string]string{
+		"protogen.yaml":         fmt.Sprintf(protoConfig, "9.9.9"),
+		"protogen-updated.yaml": fmt.Sprintf(protoConfig, "9.999.999"),
+		"protogen-without-header.yaml": baseConfig + `
+proto:
+  input: {}
+  output: {}
+`,
+		"confgen.yaml": baseConfig + fmt.Sprintf(`
 conf:
   input:
     protoPaths: [%q]
-    protoFiles: [%q]
+    protoFiles: [%q, %q]
   output:
     formats: [json]
-`, filepath.ToSlash(dir), filepath.ToSlash(filepath.Join(dir, "*.proto"))),
+`, filepath.ToSlash(dir), filepath.ToSlash(filepath.Join(dir, "global.proto")), filepath.ToSlash(filepath.Join(dir, "override.proto"))),
 		"Global#@TABLEAU.csv":      "Sheet\nGlobalVersion\n",
-		"Global#GlobalVersion.csv": "Version\nversion\nVersion\n1.2.3\n",
-		"Override#@TABLEAU.csv":    "Sheet,VersionPattern\n#,9.99.9\nBookVersion,\nSheetVersion,9.99.99\n",
-		"Override#BookVersion.csv": "Version\nversion\nVersion\n1.2.3\n",
+		"Global#GlobalVersion.csv": "Version,Values\nversion,\"map<string,int32>\"\nVersion,Values\nSkipped row,\n1.2.3,alpha=1|beta=2\n",
+		"Override#@TABLEAU.csv":    "Sheet,VersionPattern,Sep,Subsep,Datarow\n#,9.99.9,;,/,4\nBookVersion,,,,\nSheetVersion,9.99.99,,,\n",
+		"Override#BookVersion.csv": "Version,Values\nversion,\"map<string,int32>\"\nVersion,Values\n1.2.3,alpha/1;beta/2\n",
 		"Override#SheetVersion.csv": `Version,CustomVersion
 version,"version|{pattern:""9.9.99""}"
 Version,Custom version
@@ -59,17 +79,26 @@ Version,Custom version
 		require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(data), 0o600))
 	}
 
-	cmd := newCmd(t, "-c", filepath.Join(dir, "config.yaml"), "-i", dir, "-o", dir)
+	cmd := newCmd(t, "-c", filepath.Join(dir, "protogen.yaml"), "-m", ModeProto, "-i", dir, "-o", dir)
 	require.NoError(t, runE(cmd, nil))
 
-	for name, patterns := range map[string][]string{
-		"global.proto":   {`version_pattern:"9.9.9"`},
-		"override.proto": {`version_pattern:"9.99.9"`, `version_pattern:"9.99.99"`, `pattern:"9.9.99"`},
+	cmd = newCmd(t, "-c", filepath.Join(dir, "confgen.yaml"), "-m", ModeConf, "-i", dir, "-o", dir)
+	require.NoError(t, runE(cmd, nil))
+
+	for name, declarations := range map[string][]string{
+		"protoconf_tableau_defaults.proto": {`option (tableau.confgen) = {datarow:5 sep:"|" subsep:"=" version_pattern:"9.9.9"};`},
+		"global.proto":                     {`import public "protoconf_tableau_defaults.proto";`},
+		"override.proto":                   {`import public "protoconf_tableau_defaults.proto";`, `sep:";" subsep:"/" version_pattern:"9.99.9"`, `version_pattern:"9.99.99"`, `pattern:"9.9.99"`},
 	} {
 		data, err := os.ReadFile(filepath.Join(dir, name))
 		require.NoError(t, err)
-		for _, pattern := range patterns {
-			assert.Contains(t, string(data), pattern, name)
+		for _, declaration := range declarations {
+			assert.Contains(t, string(data), declaration, name)
+		}
+		if name == "global.proto" {
+			assert.NotContains(t, string(data), "version_pattern:", name)
+			assert.NotContains(t, string(data), "sep:", name)
+			assert.NotContains(t, string(data), "datarow:", name)
 		}
 	}
 
@@ -85,6 +114,133 @@ Version,Custom version
 		for field, val := range want {
 			assert.Equal(t, val, conf[field].Val, "%s %s", name, field)
 		}
+	}
+
+	for _, name := range []string{"GlobalVersion", "BookVersion"} {
+		data, err := os.ReadFile(filepath.Join(dir, name+".json"))
+		require.NoError(t, err)
+		var conf struct{ ValuesMap map[string]int32 }
+		require.NoError(t, json.Unmarshal(data, &conf))
+		assert.Equal(t, map[string]int32{"alpha": 1, "beta": 2}, conf.ValuesMap)
+	}
+
+	// The source checker reads the shared defaults from the workbook descriptor.
+	globalPath := filepath.Join(dir, "global.proto")
+	prFiles, err := protoc.NewFiles([]string{dir}, []string{globalPath})
+	require.NoError(t, err)
+	desc, err := prFiles.FindDescriptorByName("protoconf.GlobalVersion")
+	require.NoError(t, err)
+	msg := dynamicpb.NewMessage(desc.(protoreflect.MessageDescriptor))
+	require.NoError(t, load.LoadMessagerInDir(msg, dir, format.CSV, nil))
+	loaded, err := protojson.Marshal(msg)
+	require.NoError(t, err)
+	globalJSON := filepath.Join(dir, "GlobalVersion.json")
+	generated, err := os.ReadFile(globalJSON)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(generated), string(loaded))
+
+	// A failed selected run keeps the old defaults. A successful run replaces them.
+	defaultsPath := filepath.Join(dir, "protoconf_tableau_defaults.proto")
+	defaults, err := os.ReadFile(defaultsPath)
+	require.NoError(t, err)
+	unselected, err := os.ReadFile(globalPath)
+	require.NoError(t, err)
+	const selectedSheet = "Override#BookVersion.csv"
+	selectedPath := filepath.Join(dir, selectedSheet)
+	require.NoError(t, os.WriteFile(selectedPath, []byte("Version\n.MissingType\nVersion\n1.2.3\n"), 0o600))
+	cmd = newCmd(t, "-c", filepath.Join(dir, "protogen-updated.yaml"), "-m", ModeProto, "-i", dir, "-o", dir)
+	require.ErrorContains(t, runE(cmd, []string{selectedSheet}), "predefined type not found")
+	after, err := os.ReadFile(defaultsPath)
+	require.NoError(t, err)
+	require.Equal(t, defaults, after)
+	require.NoError(t, os.WriteFile(selectedPath, []byte(files[selectedSheet]), 0o600))
+	require.NoError(t, runE(cmd, []string{selectedSheet}))
+	defaults, err = os.ReadFile(defaultsPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(defaults), `version_pattern:"9.999.999"`)
+	unchanged, err := os.ReadFile(globalPath)
+	require.NoError(t, err)
+	assert.Equal(t, unselected, unchanged)
+
+	// Generating a selection without header overrides leaves existing imports valid.
+	cmd = newCmd(t, "-c", filepath.Join(dir, "protogen-without-header.yaml"), "-m", ModeProto, "-i", dir, "-o", dir)
+	require.NoError(t, runE(cmd, []string{selectedSheet}))
+	after, err = os.ReadFile(defaultsPath)
+	require.NoError(t, err)
+	assert.Equal(t, defaults, after)
+	selected, err := os.ReadFile(filepath.Join(dir, "override.proto"))
+	require.NoError(t, err)
+	assert.NotContains(t, string(selected), "protoconf_tableau_defaults.proto")
+	cmd = newCmd(t, "-c", filepath.Join(dir, "confgen.yaml"), "-m", ModeConf, "-i", dir, "-o", dir)
+	require.NoError(t, runE(cmd, nil))
+	updated, err := os.ReadFile(globalJSON)
+	require.NoError(t, err)
+	var conf struct{ Version struct{ Val string } }
+	require.NoError(t, json.Unmarshal(updated, &conf))
+	assert.Equal(t, "1002003", conf.Version.Val)
+
+	// A full run regenerates every workbook, so the old defaults file can be removed.
+	cmd = newCmd(t, "-c", filepath.Join(dir, "protogen-without-header.yaml"), "-m", ModeProto, "-i", dir, "-o", dir)
+	require.NoError(t, runE(cmd, nil))
+	require.NoFileExists(t, defaultsPath)
+	regenerated, err := os.ReadFile(filepath.Join(dir, "global.proto"))
+	require.NoError(t, err)
+	assert.NotContains(t, string(regenerated), "protoconf_tableau_defaults.proto")
+}
+
+func TestProtoDefaultsFileFollowsHeaderPresence(t *testing.T) {
+	const configTemplate = `lang: en
+log: {level: ERROR, mode: SIMPLE, sink: CONSOLE}
+proto:
+  input:%s
+  output: {}
+`
+	for _, tc := range []struct {
+		name         string
+		input        string
+		defaultsDecl string
+	}{
+		{name: "no config file"},
+		{name: "header omitted", input: " {}"},
+		{name: "explicit empty header", input: "\n    header: {}", defaultsDecl: `option (tableau.confgen) = {};`},
+		{
+			name: "explicit built-in header values",
+			input: `
+    header: {namerow: 1, typerow: 2, noterow: 3, datarow: 4, sep: ",", subsep: ":", versionPattern: "255.255.255"}`,
+			defaultsDecl: `option (tableau.confgen) = {namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":" version_pattern:"255.255.255"};`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			args := []string{"-m", ModeProto, "-i", dir, "-o", dir}
+			if tc.input != "" {
+				configPath := filepath.Join(dir, "config.yaml")
+				require.NoError(t, os.WriteFile(configPath, []byte(fmt.Sprintf(configTemplate, tc.input)), 0o600))
+				args = append(args, "-c", configPath)
+			}
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "Book#@TABLEAU.csv"), []byte("Sheet\nVersionConf\n"), 0o600))
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "Book#VersionConf.csv"), []byte("Version\nversion\nVersion\n1.2.3\n"), 0o600))
+
+			cmd := newCmd(t, args...)
+			require.NoError(t, runE(cmd, nil))
+			schemaPath := filepath.Join(dir, "book.proto")
+			schema, err := os.ReadFile(schemaPath)
+			require.NoError(t, err)
+			assert.Contains(t, string(schema), `option (tableau.workbook) = {name:"Book#*.csv"};`)
+
+			defaultsPath := filepath.Join(dir, "protoconf_tableau_defaults.proto")
+			if tc.defaultsDecl == "" {
+				require.NoFileExists(t, defaultsPath)
+				assert.NotContains(t, string(schema), "protoconf_tableau_defaults.proto")
+				return
+			}
+			defaults, err := os.ReadFile(defaultsPath)
+			require.NoError(t, err)
+			assert.Contains(t, string(defaults), tc.defaultsDecl)
+			assert.Contains(t, string(schema), `import public "protoconf_tableau_defaults.proto";`)
+			_, err = protoc.NewFiles([]string{dir}, []string{schemaPath})
+			require.NoError(t, err)
+		})
 	}
 }
 

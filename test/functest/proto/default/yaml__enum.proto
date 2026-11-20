@@ -9,7 +9,7 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/Enum.yaml" sep:"," subsep:":"};
+option (tableau.workbook) = {name:"yaml/Enum.yaml"};
 
 message YamlEnumConf {
   option (tableau.worksheet) = {name:"YamlEnumConf"};

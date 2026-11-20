@@ -6,9 +6,10 @@ syntax = "proto3";
 package protoconf;
 
 import "tableau/protobuf/tableau.proto";
+import public "protoconf_tableau_defaults.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/metasheet/CustomMetasheetName#*.csv" alias:"CustomMetasheetNameLite" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/metasheet/CustomMetasheetName#*.csv" alias:"CustomMetasheetNameLite"};
 
 message ItemLite {
   option (tableau.worksheet) = {name:"Item" namerow:1 typerow:1 nameline:1 typeline:2};

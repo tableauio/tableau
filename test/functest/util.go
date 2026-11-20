@@ -44,7 +44,7 @@ func genProto(logLevel, logMode string) error {
 		}
 	}
 
-	genDefault := func(metasheetName, outdir string) error {
+	genDefault := func(metasheetName, outdir string, header *options.HeaderOption) error {
 		return tableau.GenProto(
 			"protoconf",
 			"./testdata/default",
@@ -52,6 +52,7 @@ func genProto(logLevel, logMode string) error {
 			options.Proto(
 				&options.ProtoOption{
 					Input: &options.ProtoInputOption{
+						Header:     header,
 						ProtoPaths: []string{defaultOutdir},
 						ProtoFiles: []string{
 							filepath.Join(defaultOutdir, "common/base.proto"),
@@ -64,14 +65,6 @@ func genProto(logLevel, logMode string) error {
 							format.CSV,
 							format.XML,
 							format.YAML,
-						},
-						Header: &options.HeaderOption{
-							NameRow: 1,
-							TypeRow: 2,
-							NoteRow: 3,
-							DataRow: 4,
-							Sep:     ",",
-							Subsep:  ":",
 						},
 						Subdirs:       []string{"excel", "csv", "xml", "yaml"},
 						MetasheetName: metasheetName,
@@ -100,10 +93,26 @@ func genProto(logLevel, logMode string) error {
 		)
 	}
 
-	if err = genDefault(metasheet.DefaultMetasheetName, defaultOutdir); err != nil {
+	if err = genDefault(metasheet.DefaultMetasheetName, defaultOutdir, nil); err != nil {
 		return err
 	}
-	if err = genDefault(customMetasheetName, defaultOutdir+"/custom"); err != nil {
+	defaultsPath := filepath.Join(defaultOutdir, "protoconf_tableau_defaults.proto")
+	if _, err := os.Stat(defaultsPath); err == nil {
+		return fmt.Errorf("unexpected shared defaults file for an omitted header: %s", defaultsPath)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	builtInHeader := &options.HeaderOption{
+		NameRow:        options.DefaultNameRow,
+		TypeRow:        options.DefaultTypeRow,
+		NoteRow:        options.DefaultNoteRow,
+		DataRow:        options.DefaultDataRow,
+		Sep:            options.DefaultSep,
+		Subsep:         options.DefaultSubsep,
+		VersionPattern: options.DefaultVersionPattern,
+	}
+	if err = genDefault(customMetasheetName, filepath.Join(defaultOutdir, "custom"), builtInHeader); err != nil {
 		return err
 	}
 
@@ -120,15 +129,16 @@ func genProto(logLevel, logMode string) error {
 						format.CSV,
 					},
 					Header: &options.HeaderOption{
-						NameRow:  1,
-						TypeRow:  1,
-						NoteRow:  1,
-						DataRow:  2,
-						NameLine: 2,
-						TypeLine: 3,
-						NoteLine: 1,
-						Sep:      ",",
-						Subsep:   ":",
+						NameRow:        4,
+						TypeRow:        4,
+						NoteRow:        4,
+						DataRow:        5,
+						NameLine:       2,
+						TypeLine:       3,
+						NoteLine:       1,
+						Sep:            "|",
+						Subsep:         "=",
+						VersionPattern: "9.99.99",
 					},
 					Subdirs:       []string{"excel"},
 					MetasheetName: customMetasheetName,
@@ -159,7 +169,7 @@ func genConf(logLevel, logMode string) error {
 		options.Conf(
 			&options.ConfOption{
 				Input: &options.ConfInputOption{
-					ProtoPaths: []string{"./_proto/default/"},
+					ProtoPaths: []string{"./_proto/default/custom", "./_proto/default"},
 					ProtoFiles: []string{"./_proto/default/*.proto", "./_proto/default/common/*.proto", "./_proto/default/custom/*.proto"},
 					Formats: []format.Format{
 						// format.Excel,

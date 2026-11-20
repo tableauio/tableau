@@ -3,9 +3,24 @@ package xproto
 import (
 	"fmt"
 
+	"github.com/tableauio/tableau/proto/tableaupb"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+// GetConfig returns the tableau.confgen option declared by a file or one of its imports.
+func GetConfig(fd protoreflect.FileDescriptor) *tableaupb.Confgen {
+	if config, _ := proto.GetExtension(fd.Options(), tableaupb.E_Confgen).(*tableaupb.Confgen); config != nil {
+		return config
+	}
+	imports := fd.Imports()
+	for i := 0; i < imports.Len(); i++ {
+		if config, _ := proto.GetExtension(imports.Get(i).Options(), tableaupb.E_Confgen).(*tableaupb.Confgen); config != nil {
+			return config
+		}
+	}
+	return nil
+}
 
 // Clone returns a deep copy of m. If the top-level message is invalid, it
 // returns an invalid message as well.

@@ -95,6 +95,39 @@ type HeaderOption struct {
 	//
 	// Default: ":".
 	Subsep string
+
+	// VersionPattern sets the default tableau.Version pattern in the shared proto config.
+	//
+	// Default: "255.255.255".
+	VersionPattern string `yaml:"versionPattern"`
+
+	implicit bool
+}
+
+var defaultHeader = HeaderOption{
+	NameRow:  DefaultNameRow,
+	TypeRow:  DefaultTypeRow,
+	NoteRow:  DefaultNoteRow,
+	DataRow:  DefaultDataRow,
+	Sep:      DefaultSep,
+	Subsep:   DefaultSubsep,
+	implicit: true,
+}
+
+// IsExplicit reports whether the caller supplied or customized the header.
+func (h *HeaderOption) IsExplicit() bool {
+	return h != nil && *h != defaultHeader
+}
+
+// UnmarshalYAML marks a header mapping as explicit, including when a caller
+// unmarshals it over the header initialized by NewDefault.
+func (h *HeaderOption) UnmarshalYAML(unmarshal func(any) error) error {
+	type plainHeader HeaderOption
+	if err := unmarshal((*plainHeader)(h)); err != nil {
+		return err
+	}
+	h.implicit = false
+	return nil
 }
 
 // ErrorLimitOption is the error collection limit configuration shared by protogen and confgen.
@@ -127,13 +160,9 @@ type ProtoOption struct {
 
 // Input options for generating proto files.
 type ProtoInputOption struct {
-	// Header options of worksheet.
+	// Header options of worksheet. An explicit header is written to the shared
+	// proto defaults file.
 	Header *HeaderOption `yaml:"header"`
-
-	// VersionPattern sets the default tableau.Version pattern in generated
-	// workbook options. A workbook's metasheet can override it.
-	// When no pattern is specified, configuration generation uses "255.255.255".
-	VersionPattern string `yaml:"versionPattern"`
 
 	// The proto paths are used to search for dependencies that are referenced in import
 	// statements in proto source files. If no import paths are provided then
@@ -469,6 +498,7 @@ func ErrorLimit(o *ErrorLimitOption) Option {
 
 // NewDefault returns a default Options.
 func NewDefault() *Options {
+	header := defaultHeader
 	return &Options{
 		Lang:         "en",
 		LocationName: "Local",
@@ -484,14 +514,7 @@ func NewDefault() *Options {
 		},
 		Proto: &ProtoOption{
 			Input: &ProtoInputOption{
-				Header: &HeaderOption{
-					NameRow: DefaultNameRow,
-					TypeRow: DefaultTypeRow,
-					NoteRow: DefaultNoteRow,
-					DataRow: DefaultDataRow,
-					Sep:     DefaultSep,
-					Subsep:  DefaultSubsep,
-				},
+				Header:     &header,
 				ProtoPaths: []string{"."},
 			},
 			Output: &ProtoOutputOption{},

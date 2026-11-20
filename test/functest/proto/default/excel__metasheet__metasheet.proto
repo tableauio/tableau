@@ -9,7 +9,7 @@ import "excel__metasheet__sheet_mode.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/metasheet/Metasheet#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/metasheet/Metasheet#*.csv"};
 
 message Index {
   option (tableau.worksheet) = {name:"Index" index:"ID" index:"(ID,Name)@SpecialItem" lang_options:{key:"Index" value:"cpp go"} lang_options:{key:"OrderedMap" value:"cpp"}};

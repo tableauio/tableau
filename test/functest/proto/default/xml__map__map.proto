@@ -10,7 +10,7 @@ import "google/protobuf/duration.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"xml/map/Map.xml" sep:"," subsep:":"};
+option (tableau.workbook) = {name:"xml/map/Map.xml"};
 
 message MapConf {
   option (tableau.worksheet) = {name:"MapConf"};

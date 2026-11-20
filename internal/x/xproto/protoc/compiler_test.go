@@ -1,10 +1,14 @@
 package protoc
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/tableauio/tableau/proto/tableaupb"
+	"google.golang.org/protobuf/proto"
 )
 
 func writeProtoFile(t *testing.T, path, source string) {
@@ -98,6 +102,41 @@ message Book { Common common = 1; }
 		if _, err := files.FindFileByPath(path); err != nil {
 			t.Errorf("compiled proto %q is missing: %v", path, err)
 		}
+	}
+}
+
+func TestNewFilesPrefersExplicitDefaults(t *testing.T) {
+	root := t.TempDir()
+	oldDir := filepath.Join(root, "old")
+	newDir := filepath.Join(root, "new")
+	defaultsName := DefaultsProtoFilename("protoconf", "")
+	oldDefaults := filepath.Join(oldDir, defaultsName)
+	newDefaults := filepath.Join(newDir, defaultsName)
+	book := filepath.Join(newDir, "book.proto")
+	const defaultsSource = `syntax = "proto3";
+package protoconf;
+import "tableau/protobuf/tableau.proto";
+option (tableau.confgen) = {datarow: %d};
+`
+	writeProtoFile(t, oldDefaults, fmt.Sprintf(defaultsSource, 4))
+	writeProtoFile(t, newDefaults, fmt.Sprintf(defaultsSource, 5))
+	writeProtoFile(t, book, fmt.Sprintf(`syntax = "proto3";
+package protoconf;
+import public %q;
+message Book {}
+`, defaultsName))
+
+	files, err := NewFiles([]string{oldDir, newDir}, []string{book, newDefaults})
+	if err != nil {
+		t.Fatal(err)
+	}
+	descriptor, err := files.FindFileByPath(defaultsName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaults := proto.GetExtension(descriptor.Options(), tableaupb.E_Confgen).(*tableaupb.Confgen)
+	if got := defaults.GetDatarow(); got != 5 {
+		t.Errorf("defaults data row = %d, want 5 from the explicitly selected proto", got)
 	}
 }
 

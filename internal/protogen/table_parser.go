@@ -9,7 +9,6 @@ import (
 	"github.com/tableauio/tableau/internal/types"
 	"github.com/tableauio/tableau/internal/x/xerrors"
 	"github.com/tableauio/tableau/log"
-	"github.com/tableauio/tableau/options"
 	"github.com/tableauio/tableau/proto/tableaupb"
 	"github.com/tableauio/tableau/proto/tableaupb/internalpb"
 	"google.golang.org/protobuf/proto"
@@ -23,30 +22,15 @@ type tableParser struct {
 func newTableParser(bookName, relSlashPath string, bookOpts *tableaupb.WorkbookOptions, gen *Generator) *tableParser {
 	p := &tableParser{bookParser: newBookParser(bookName, relSlashPath, bookOpts, gen)}
 
-	// assign book-level header
+	// Emit only the header overrides from the workbook's metasheet.
 	opts := p.wb.Options
-	header := gen.InputOpt.Header
-	if header != nil {
-		opts.Namerow = header.NameRow
-		opts.Typerow = header.TypeRow
-		opts.Noterow = header.NoteRow
-		opts.Datarow = header.DataRow
-		opts.Nameline = header.NameLine
-		opts.Typeline = header.TypeLine
-		opts.Noteline = header.NoteLine
-	}
-	if opts.Namerow == 0 {
-		opts.Namerow = options.DefaultNameRow
-	}
-	if opts.Typerow == 0 {
-		opts.Typerow = options.DefaultTypeRow
-	}
-	if opts.Noterow == 0 {
-		opts.Noterow = options.DefaultNoteRow
-	}
-	if opts.Datarow == 0 {
-		opts.Datarow = options.DefaultDataRow
-	}
+	opts.Namerow = bookOpts.GetNamerow()
+	opts.Typerow = bookOpts.GetTyperow()
+	opts.Noterow = bookOpts.GetNoterow()
+	opts.Datarow = bookOpts.GetDatarow()
+	opts.Nameline = bookOpts.GetNameline()
+	opts.Typeline = bookOpts.GetTypeline()
+	opts.Noteline = bookOpts.GetNoteline()
 	return p
 }
 

@@ -9,7 +9,7 @@ import "common/common.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"yaml/fieldprop/Optional.yaml" sep:"," subsep:":"};
+option (tableau.workbook) = {name:"yaml/fieldprop/Optional.yaml"};
 
 message YamlFieldPropOptionalConf {
   option (tableau.worksheet) = {name:"YamlFieldPropOptionalConf"};

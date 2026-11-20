@@ -8,7 +8,7 @@ package protoconf;
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"excel/enum/Enum#*.csv" namerow:1 typerow:2 noterow:3 datarow:4 sep:"," subsep:":"};
+option (tableau.workbook) = {name:"excel/enum/Enum#*.csv"};
 
 enum JobType {
   option (tableau.etype) = {name:"EnumJobType"};

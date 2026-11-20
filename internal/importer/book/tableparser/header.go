@@ -21,6 +21,21 @@ type Header struct {
 	AdjacentKey bool
 }
 
+// NewHeaderFromConfig resolves the table header using the shared proto defaults.
+func NewHeaderFromConfig(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, config *tableaupb.Confgen) *Header {
+	return NewHeader(sheetOpts, bookOpts, &options.HeaderOption{
+		NameRow:  config.GetNamerow(),
+		TypeRow:  config.GetTyperow(),
+		NoteRow:  config.GetNoterow(),
+		DataRow:  config.GetDatarow(),
+		NameLine: config.GetNameline(),
+		TypeLine: config.GetTypeline(),
+		NoteLine: config.GetNoteline(),
+		Sep:      config.GetSep(),
+		Subsep:   config.GetSubsep(),
+	})
+}
+
 // NewHeader creates a new header, which merges sheet-level, book-level, and
 // global-level header options into the final header options.
 func NewHeader(sheetOpts *tableaupb.WorksheetOptions, bookOpts *tableaupb.WorkbookOptions, globalOpts *options.HeaderOption) *Header {

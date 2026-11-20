@@ -314,6 +314,7 @@ type sheetParser struct {
 	ctx            context.Context
 	bookOpts       *tableaupb.WorkbookOptions
 	sheetOpts      *tableaupb.WorksheetOptions
+	config         *tableaupb.Confgen
 	extInfo        *SheetParserExtInfo
 	sheetCollector *xerrors.Collector // sheet-level collector
 
@@ -413,12 +414,16 @@ func (p *sheetParser) reset() {
 // GetSep returns sheet-level separator.
 func (p *sheetParser) GetSep() string {
 	// sheet-level
-	if p.sheetOpts.Sep != "" {
-		return p.sheetOpts.Sep
+	if sep := p.sheetOpts.GetSep(); sep != "" {
+		return sep
 	}
 	// book-level
-	if p.bookOpts.Sep != "" {
-		return p.bookOpts.Sep
+	if sep := p.bookOpts.GetSep(); sep != "" {
+		return sep
+	}
+	// shared config
+	if sep := p.config.GetSep(); sep != "" {
+		return sep
 	}
 	// default
 	return options.DefaultSep
@@ -427,12 +432,16 @@ func (p *sheetParser) GetSep() string {
 // GetSubsep returns sheet-level subseparator.
 func (p *sheetParser) GetSubsep() string {
 	// sheet-level
-	if p.sheetOpts.Subsep != "" {
-		return p.sheetOpts.Subsep
+	if subsep := p.sheetOpts.GetSubsep(); subsep != "" {
+		return subsep
 	}
 	// book-level
-	if p.bookOpts.Subsep != "" {
-		return p.bookOpts.Subsep
+	if subsep := p.bookOpts.GetSubsep(); subsep != "" {
+		return subsep
+	}
+	// shared config
+	if subsep := p.config.GetSubsep(); subsep != "" {
+		return subsep
 	}
 	// default
 	return options.DefaultSubsep
@@ -446,6 +455,10 @@ func (p *sheetParser) GetVersionPattern() string {
 	}
 	// book-level
 	if pattern := p.bookOpts.GetVersionPattern(); pattern != "" {
+		return pattern
+	}
+	// shared config
+	if pattern := p.config.GetVersionPattern(); pattern != "" {
 		return pattern
 	}
 	// default
@@ -473,6 +486,11 @@ func (p *sheetParser) IsFieldOptional(field *Field) bool {
 }
 
 func (p *sheetParser) Parse(protomsg proto.Message, sheet *book.Sheet) (err error) {
+	if config := xproto.GetConfig(protomsg.ProtoReflect().Descriptor().ParentFile()); config != p.config {
+		p.config = config
+		// Cached field options include the separators resolved for this schema.
+		clear(p.fields)
+	}
 	defer func() {
 		p.reset()
 		if err != nil {

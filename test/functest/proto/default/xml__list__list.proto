@@ -10,7 +10,7 @@ import "google/protobuf/timestamp.proto";
 import "tableau/protobuf/tableau.proto";
 
 option go_package = "github.com/tableauio/tableau/test/functest/protoconf";
-option (tableau.workbook) = {name:"xml/list/List.xml" sep:"," subsep:":"};
+option (tableau.workbook) = {name:"xml/list/List.xml"};
 
 message ListConf {
   option (tableau.worksheet) = {name:"ListConf"};
